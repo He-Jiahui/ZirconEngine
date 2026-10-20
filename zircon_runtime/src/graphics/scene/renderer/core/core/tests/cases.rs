@@ -150,7 +150,7 @@ fn capture_graphics_backpressure_cancels_admitted_uploads_and_preserves_last_goo
     let old_pixels = sample_environment(&renderer.backend, &renderer.core);
     renderer.backend.poll_submission_completions().unwrap();
 
-    let mut scene = crate::scene::World::new().to_render_snapshot();
+    let mut scene = crate::scene::World::new().to_render_snapshot_cloning();
     scene.environment.skybox = SkyboxSettings::source_cubemap(next);
     let request = RenderEnvironmentCaptureRequest::new("backpressure", [0.0; 3], 1)
         .unwrap()

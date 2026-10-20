@@ -51,6 +51,15 @@ fn build_runtime_frame_carries_prepared_sideband_and_output_target_into_viewport
         88,
         [1, 2, 3, 4],
     );
+    let resolved_profiles: Arc<[crate::core::framework::render::SubsurfaceProfileData]> =
+        vec![crate::core::framework::render::SubsurfaceProfileData::new(
+            3,
+            Vec3::ONE,
+            Vec3::ONE,
+            1.0,
+        )]
+        .into();
+    let source_lighting = extract.lighting.clone();
     let mut context = FrameSubmissionContext::new(
         UVec2::new(640, 480),
         UVec2::new(640, 480),
@@ -107,6 +116,7 @@ fn build_runtime_frame_carries_prepared_sideband_and_output_target_into_viewport
         None,
         1,
     )
+    .with_subsurface_profiles(Arc::clone(&resolved_profiles))
     .with_environment_source_cubemap_override(Some(environment_source_cubemap_override.clone()))
     .with_particle_previous_sprites_override(Some(particle_previous_sprites.clone()));
     let prepared = PreparedRuntimeSubmission::new(
@@ -133,6 +143,27 @@ fn build_runtime_frame_carries_prepared_sideband_and_output_target_into_viewport
         ViewportCameraStackOutputPolicy::new(false, false),
     );
 
+    assert!(frame.extract.lighting.ptr_eq(&source_lighting));
+    assert!(Arc::ptr_eq(
+        &resolved_profiles,
+        frame.subsurface_profiles_override.as_ref().unwrap()
+    ));
+    assert_eq!(frame.subsurface_profiles()[0].profile_id, 3);
+    assert!(frame
+        .extract
+        .lighting
+        .advanced_lighting
+        .subsurface_profiles
+        .is_empty());
+    assert!(!context.virtual_geometry_debug_snapshot_requested());
+    let builds = std::cell::Cell::new(0);
+    for _ in 0..2 {
+        context.cached_virtual_geometry_cull_input(|| {
+            builds.set(builds.get() + 1);
+            None
+        });
+    }
+    assert_eq!(builds.get(), 1);
     assert!(Arc::ptr_eq(
         &context_post_process,
         frame
@@ -315,6 +346,176 @@ fn empty_scene_snapshot() -> SceneViewportRenderPacket {
         },
         virtual_geometry_debug: None,
     }
+}
+
+#[test]
+fn memory_profile_virtual_geometry_execution_moves_payloads_after_optional_debug_capture() {
+    use crate::core::framework::render::{
+        RenderVirtualGeometryPagePayload, RenderVirtualGeometryPagePayloadVertex,
+        RenderVirtualGeometryPreparedCpuFrame,
+    };
+    use crate::graphics::{VirtualGeometryIndexedSourceAdmission, VirtualGeometrySourceAdmission};
+
+    for capture_debug in [false, true] {
+        let payloads = vec![RenderVirtualGeometryPagePayload::new(
+            7,
+            vec![RenderVirtualGeometryPagePayloadVertex::default(); 32_768],
+        )];
+        let payload_pointer = payloads.as_ptr();
+        let vertex_pointer = payloads[0].vertices.as_ptr();
+        let payload_bytes = std::mem::size_of_val(payloads[0].vertices.as_slice());
+        let source = Arc::new(VirtualGeometrySourceAdmission::new(
+            ResourceId::from_stable_label("tests/vg-payload-transfer/model"),
+            1,
+            Vec::new(),
+            vec![crate::asset::ModelPrimitiveAsset {
+                vertices: Vec::new(),
+                indices: Vec::new(),
+                mesh: None,
+                mesh_sdf: None,
+                virtual_geometry: None,
+            }],
+        ));
+        let sources = vec![VirtualGeometryIndexedSourceAdmission::new(
+            1,
+            source.primitive(0).unwrap(),
+            vec![(7, 7)],
+            Vec::new(),
+        )];
+        let sources_pointer = sources.as_ptr();
+        let mut context = payload_transfer_context(payloads)
+            .with_virtual_geometry_indexed_sources(sources)
+            .with_virtual_geometry_debug_snapshot_requested(capture_debug);
+        let prepared = PreparedRuntimeSubmission::default()
+            .with_virtual_geometry_prepared_cpu_frame(Some(Arc::new(
+                RenderVirtualGeometryPreparedCpuFrame::unavailable(),
+            )));
+        let build = || {
+            build_runtime_frame(
+                None,
+                &mut context,
+                prepared,
+                ViewportCameraStackOutputPolicy::new(false, false),
+            )
+        };
+        #[cfg(feature = "memory-validation")]
+        let (frame, measurement) = crate::memory_validation::measure(build);
+        #[cfg(not(feature = "memory-validation"))]
+        let frame = build();
+
+        let execution = frame.virtual_geometry_execution_data.as_ref().unwrap();
+        assert_eq!(execution.resident_page_payloads.as_ptr(), payload_pointer);
+        assert_eq!(
+            execution.resident_page_payloads[0].vertices.as_ptr(),
+            vertex_pointer
+        );
+        assert_eq!(
+            frame.virtual_geometry_indexed_sources.as_ptr(),
+            sources_pointer
+        );
+        assert_eq!(
+            frame.virtual_geometry_indexed_sources[0].stable_instance_key(),
+            1
+        );
+        assert!(context.virtual_geometry_resident_page_payloads().is_empty());
+        assert!(context.virtual_geometry_indexed_sources().is_empty());
+        assert!(context.virtual_geometry_extract().is_some());
+        if capture_debug {
+            let snapshot = frame.virtual_geometry_debug_snapshot.as_ref().unwrap();
+            assert_eq!(
+                snapshot.resident_page_payloads,
+                execution.resident_page_payloads
+            );
+            assert_ne!(
+                snapshot.resident_page_payloads[0].vertices.as_ptr(),
+                vertex_pointer
+            );
+        } else {
+            assert!(frame.virtual_geometry_debug_snapshot.is_none());
+            #[cfg(feature = "memory-validation")]
+            {
+                assert!(measurement.peak_bytes < payload_bytes / 4);
+                measurement.report(
+                    "vg_runtime_frame_payload_transfer",
+                    "moved_execution_payloads",
+                );
+            }
+        }
+        #[cfg(not(feature = "memory-validation"))]
+        let _ = payload_bytes;
+
+        // A failed execution build must retain its original resident data.
+        let mut failed = payload_transfer_context(vec![RenderVirtualGeometryPagePayload::new(
+            7,
+            vec![RenderVirtualGeometryPagePayloadVertex::default()],
+        )]);
+        let pointer = failed.virtual_geometry_resident_page_payloads().as_ptr();
+        assert!(super::super::build_virtual_geometry_debug_snapshot::build_virtual_geometry_execution_data(
+            &mut failed,
+        ).is_none());
+        assert_eq!(
+            failed.virtual_geometry_resident_page_payloads().as_ptr(),
+            pointer
+        );
+    }
+}
+
+fn payload_transfer_context(
+    payloads: Vec<crate::core::framework::render::RenderVirtualGeometryPagePayload>,
+) -> FrameSubmissionContext {
+    let extract = RenderFrameExtract::from_snapshot(
+        crate::core::framework::render::RenderWorldSnapshotHandle::new(9),
+        empty_scene_snapshot(),
+    );
+    FrameSubmissionContext::new(
+        UVec2::new(64, 64),
+        UVec2::new(64, 64),
+        RenderPipelineHandle::new(1),
+        0,
+        None,
+        Default::default(),
+        Arc::new(empty_pipeline()),
+        RenderCapabilitySummary::default(),
+        VisibilityContext::from_extract(&extract),
+        None,
+        super::super::super::super::viewport_record::ViewportCameraHistoryKey::from_camera(
+            extract.view.selected_camera_descriptor().unwrap(),
+        ),
+        Default::default(),
+        false,
+        None,
+        crate::graphics::ViewportRenderOutputTarget::PrimarySurface,
+        Default::default(),
+        crate::core::framework::render::RenderViewFamilyPipeline::resolve(
+            UVec2::new(64, 64),
+            Default::default(),
+            crate::core::framework::render::RenderUpscalerKind::Spatial,
+        ),
+        None,
+        Default::default(),
+        Default::default(),
+        Default::default(),
+        advanced_runtime_plan_with_virtual_geometry(),
+        Default::default(),
+        false,
+        true,
+        None,
+        Default::default(),
+        None,
+        None,
+        Arc::new(extract),
+        0,
+        0,
+        0,
+        Some(Default::default()),
+        Default::default(),
+        Vec::new(),
+        Vec::new(),
+        payloads,
+        None,
+        None,
+        1,
+    )
 }
 
 fn test_mesh(node_id: u64, transform: Transform) -> RenderMeshSnapshot {

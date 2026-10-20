@@ -5,6 +5,7 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphComputeDispatchRecord, RenderGraphLightGridReport,
 };
 use crate::graphics::visibility::HzbOcclusionCullReport;
+use crate::graphics::RenderReportLabel;
 
 use crate::graphics::scene::scene_renderer::history::{
     SceneHistoryDomain, SceneHistoryWriteIntent,
@@ -46,12 +47,12 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
 
     pub fn record_compute_dispatch(
         &mut self,
-        pass_name: impl Into<String>,
-        executor_id: impl Into<String>,
-        pipeline_label: impl Into<String>,
+        pass_name: impl Into<RenderReportLabel>,
+        executor_id: impl Into<RenderReportLabel>,
+        pipeline_label: impl Into<RenderReportLabel>,
         workgroup_size: [u32; 3],
         dispatch_groups: [u32; 3],
-        storage_write_resources: Vec<String>,
+        storage_write_resources: Vec<RenderReportLabel>,
     ) {
         self.record_compute_dispatch_with_uploaded_bytes(
             pass_name,
@@ -66,11 +67,11 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
 
     pub fn record_indirect_compute_dispatch(
         &mut self,
-        pass_name: impl Into<String>,
-        executor_id: impl Into<String>,
-        pipeline_label: impl Into<String>,
+        pass_name: impl Into<RenderReportLabel>,
+        executor_id: impl Into<RenderReportLabel>,
+        pipeline_label: impl Into<RenderReportLabel>,
         workgroup_size: [u32; 3],
-        storage_write_resources: Vec<String>,
+        storage_write_resources: Vec<RenderReportLabel>,
     ) {
         self.compute_dispatches.push(
             RenderGraphComputeDispatchRecord::new(
@@ -88,13 +89,13 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
     #[allow(clippy::too_many_arguments)]
     pub fn record_compute_dispatch_with_uploaded_bytes(
         &mut self,
-        pass_name: impl Into<String>,
-        executor_id: impl Into<String>,
-        pipeline_label: impl Into<String>,
+        pass_name: impl Into<RenderReportLabel>,
+        executor_id: impl Into<RenderReportLabel>,
+        pipeline_label: impl Into<RenderReportLabel>,
         workgroup_size: [u32; 3],
         dispatch_groups: [u32; 3],
         uploaded_bytes: u64,
-        storage_write_resources: Vec<String>,
+        storage_write_resources: Vec<RenderReportLabel>,
     ) {
         self.compute_dispatches.push(
             RenderGraphComputeDispatchRecord::new(

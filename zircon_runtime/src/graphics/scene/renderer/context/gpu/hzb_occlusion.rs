@@ -87,10 +87,10 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
                 [report.dispatch_group_count, 1, 1],
                 if report.candidate_arg_count > 0 {
                     vec![
-                        HZB_OCCLUSION_COMPACTED_INDIRECT_ARGS_RESOURCE.to_string(),
-                        HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE.to_string(),
-                        HZB_OCCLUSION_DRAW_COUNT_RESOURCE.to_string(),
-                        HZB_OCCLUSION_STATS_RESOURCE.to_string(),
+                        HZB_OCCLUSION_COMPACTED_INDIRECT_ARGS_RESOURCE.into(),
+                        HZB_OCCLUSION_VISIBLE_INSTANCE_INDEX_RESOURCE.into(),
+                        HZB_OCCLUSION_DRAW_COUNT_RESOURCE.into(),
+                        HZB_OCCLUSION_STATS_RESOURCE.into(),
                     ]
                 } else {
                     Vec::new()

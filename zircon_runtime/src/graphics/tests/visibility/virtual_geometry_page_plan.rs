@@ -23,7 +23,7 @@ fn visibility_context_builds_virtual_geometry_visibility_feedback_and_page_plan(
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
 
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 1,
@@ -113,7 +113,7 @@ fn visibility_context_with_history_tracks_virtual_geometry_requested_pages() {
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
 
-    let mut previous_extract = world.to_render_frame_extract();
+    let mut previous_extract = world.to_render_frame_extract_cloning();
     previous_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 3,
         page_budget: 3,
@@ -134,7 +134,7 @@ fn visibility_context_with_history_tracks_virtual_geometry_requested_pages() {
     });
     let previous_context = VisibilityContext::from(&previous_extract);
 
-    let mut current_extract = world.to_render_frame_extract();
+    let mut current_extract = world.to_render_frame_extract_cloning();
     current_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 3,
         page_budget: 3,
@@ -201,7 +201,7 @@ fn visibility_context_refines_virtual_geometry_parent_cluster_into_visible_child
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
 
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 2,
@@ -285,7 +285,7 @@ fn visibility_context_keeps_parent_virtual_geometry_cluster_visible_while_reques
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
 
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 2,
@@ -357,7 +357,7 @@ fn visibility_context_keeps_resident_virtual_geometry_children_visible_while_req
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
 
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 2,
@@ -444,7 +444,7 @@ fn visibility_context_holds_resident_parent_one_frame_after_requested_children_b
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
 
-    let mut previous_extract = world.to_render_frame_extract();
+    let mut previous_extract = world.to_render_frame_extract_cloning();
     previous_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 2,
@@ -466,7 +466,7 @@ fn visibility_context_holds_resident_parent_one_frame_after_requested_children_b
     });
     let previous_context = VisibilityContext::from(&previous_extract);
 
-    let mut current_extract = world.to_render_frame_extract();
+    let mut current_extract = world.to_render_frame_extract_cloning();
     current_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 2,

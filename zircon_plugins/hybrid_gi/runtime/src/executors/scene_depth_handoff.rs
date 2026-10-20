@@ -1,3 +1,6 @@
+use super::pipeline_cache::PipelineCache;
+use std::sync::Mutex;
+use zircon_runtime::graphics::RenderPassDeviceEpoch;
 use zircon_runtime::graphics::{
     RenderPassBufferUploadSink, RenderPassExecutionContext, RenderPassGpuNativeContext,
     RenderPassGpuResourceFactory,
@@ -56,8 +59,10 @@ pub(super) fn record_scene_depth_handoff(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
     let pass_name = context.pass_name.clone();
-    let executor_id = context.executor_id.as_str().to_string();
+    let executor_id =
+        zircon_runtime::graphics::RenderReportLabel::new(context.executor_id.as_str());
     let gpu = context.require_gpu()?;
+    let device_epoch = gpu.device_epoch();
     let scene_depth_desc =
         gpu.require_texture_desc(SCENE_DEPTH_RESOURCE, RenderGraphResourceAccessKind::Read)?;
     let shader = SceneDepthHandoffShader::for_sample_count(scene_depth_desc.sample_count);
@@ -98,6 +103,7 @@ pub(super) fn record_scene_depth_handoff(
     let mut native = gpu.native_context();
     encode_scene_depth_handoff(
         &mut native,
+        device_epoch,
         &shader,
         &scene_depth_view,
         &scene_normal_view,
@@ -111,21 +117,30 @@ pub(super) fn record_scene_depth_handoff(
         HYBRID_GI_SCENE_DEPTH_HANDOFF_PIPELINE_LABEL,
         HYBRID_GI_SCENE_DEPTH_HANDOFF_WORKGROUP_SIZE,
         HYBRID_GI_SCENE_DEPTH_HANDOFF_DISPATCH_GROUPS,
-        vec![HYBRID_GI_SCENE_RESOURCE.to_string()],
+        vec![HYBRID_GI_SCENE_RESOURCE.into()],
     );
     Ok(())
 }
 
 fn encode_scene_depth_handoff(
     native: &mut RenderPassGpuNativeContext<'_, '_>,
+    device_epoch: Option<RenderPassDeviceEpoch>,
     shader: &SceneDepthHandoffShader,
     scene_depth_view: &wgpu::TextureView,
     scene_normal_view: &wgpu::TextureView,
     scene_hzb_view: &wgpu::TextureView,
     hybrid_gi_scene_buffer: wgpu::BufferBinding<'_>,
 ) {
-    let bind_group_layout = create_scene_depth_handoff_bind_group_layout(native, shader);
-    let pipeline = create_scene_depth_handoff_pipeline(native, shader, &bind_group_layout);
+    static CACHE: Mutex<PipelineCache<bool, (wgpu::BindGroupLayout, wgpu::ComputePipeline)>> =
+        Mutex::new(PipelineCache::new());
+    let (bind_group_layout, pipeline) = CACHE
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner())
+        .get(device_epoch, shader.texture_multisampled(), || {
+            let layout = create_scene_depth_handoff_bind_group_layout(native, shader);
+            let pipeline = create_scene_depth_handoff_pipeline(native, shader, &layout);
+            (layout, pipeline)
+        });
     let bind_group = create_scene_depth_handoff_bind_group(
         native,
         &bind_group_layout,

@@ -47,7 +47,7 @@ fn empty_frame() -> ViewportRenderFrame {
     ViewportRenderFrame::from_extract(
         RenderFrameExtract::from_snapshot(
             RenderWorldSnapshotHandle::new(1),
-            World::new().to_render_snapshot(),
+            World::new().to_render_snapshot_cloning(),
         ),
         UVec2::new(64, 64),
     )

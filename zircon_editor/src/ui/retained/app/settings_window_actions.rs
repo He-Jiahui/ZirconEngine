@@ -7,9 +7,12 @@ use super::{HostInvalidationMask, RetainedEditorHost};
 impl RetainedEditorHost {
     pub(super) fn sync_settings_projections(&mut self) {
         let snapshot = self.runtime.context().settings().snapshot();
-        match self.workbench_window_bridge.set_preview_features(snapshot.show_preview_features()) {
+        match self
+            .workbench_window_bridge
+            .set_preview_features(snapshot.show_preview_features())
+        {
             Ok(true) => self.mark_presentation_dirty(),
-            Ok(false) => {},
+            Ok(false) => {}
             Err(error) => self.set_status_line(error.to_string()),
         }
         if install_editor_v2_design_tokens(snapshot.as_ref()) {
@@ -29,19 +32,19 @@ impl RetainedEditorHost {
         else {
             return;
         };
-        let (current_contribution_generation, current_enabled_capabilities) =
-            (match self.runtime.extension_projection_revision() {
-                Ok(value) => value,
-                Err(error) => {
-                    self.set_status_line(error.to_string());
-                    return;
-                }
-            });
+        let extensions_are_current = match self.runtime.extension_projection_is_current(
+            revision.contribution_generation,
+            &revision.enabled_capabilities,
+        ) {
+            Ok(current) => current,
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                return;
+            }
+        };
         let current_locale = self.runtime.context().i18n().active_locale();
-        let directory_is_stale = revision.contribution_generation
-            != current_contribution_generation
-            || revision.enabled_capabilities != current_enabled_capabilities
-            || revision.locale != current_locale.as_str();
+        let directory_is_stale =
+            !extensions_are_current || revision.locale != current_locale.as_str();
         let values_are_stale = revision.settings_generation != current_settings_generation;
 
         let refreshed = if directory_is_stale {

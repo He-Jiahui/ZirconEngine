@@ -16,6 +16,8 @@ mod options;
 mod sample_grid;
 #[path = "nodes/settings.rs"]
 mod settings;
+#[path = "nodes/table_cells.rs"]
+mod table_cells;
 #[path = "nodes/timeline_strip.rs"]
 mod timeline_strip;
 #[path = "nodes/weight_heatmap.rs"]
@@ -30,5 +32,6 @@ pub(crate) use node::*;
 pub(crate) use options::*;
 pub(crate) use sample_grid::*;
 pub(crate) use settings::*;
+pub(crate) use table_cells::*;
 pub(crate) use timeline_strip::*;
 pub(crate) use weight_heatmap::*;

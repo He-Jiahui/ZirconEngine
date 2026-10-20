@@ -164,7 +164,7 @@ impl ProjectAssetManager {
         &self,
         id: ResourceId,
     ) -> Option<ModelAssetManagementRecord> {
-        self.load_model_asset(id)
+        self.load_model_asset_snapshot(id)
             .ok()
             .map(|asset| asset.management_record(id))
     }
@@ -203,7 +203,7 @@ impl ProjectAssetManager {
         &self,
         id: ResourceId,
     ) -> Option<Result<MeshAssetManagementRecord, MeshValidationError>> {
-        self.load_mesh_asset(id)
+        self.load_mesh_asset_snapshot(id)
             .ok()
             .map(|asset| asset.management_record(id))
     }

@@ -12,7 +12,7 @@ fn runtime07_renderer_derived_lighting_subsurface_resolver_does_not_mutate_extra
     let manager = ProjectAssetManager::default();
     let extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
 
     let (profiles, indices) = resolve_subsurface_material_profiles(&manager, &extract);

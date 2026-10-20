@@ -3,7 +3,8 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 
-use super::super::HostPaintImagePixels;
+use super::super::{HostPaintImagePixels, RasterTargetSize};
+use super::key::VisualAssetVariant;
 use crate::ui::retained_host::host_contract::chrome_command_stream::invalidate_editor_icon_atlas;
 
 // The byte budget is the primary guard. The entry budget must cover all editor icons and
@@ -13,6 +14,7 @@ const MAX_VISUAL_ASSET_CACHE_BYTES: usize = 64 * 1024 * 1024;
 
 struct VisualAssetCacheEntry {
     base_key: String,
+    variant: Option<VisualAssetVariant>,
     pixels: Option<HostPaintImagePixels>,
     byte_size: usize,
     last_used: u64,
@@ -49,6 +51,17 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn cached_
         .get(key)
 }
 
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn cached_visual_asset_variant(
+    base_key: &str,
+    target: Option<RasterTargetSize>,
+    tint: Option<[u8; 4]>,
+) -> Option<Option<HostPaintImagePixels>> {
+    visual_asset_cache()
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner())
+        .get_variant(base_key, VisualAssetVariant { target, tint })
+}
+
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn store_visual_asset_pixels(
     key: String,
     base_key: &str,
@@ -61,6 +74,28 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn store_v
         .lock()
         .unwrap_or_else(|poison| poison.into_inner())
         .insert(key, base_key, source_paths, pixels);
+}
+
+/// Capture-only lookup: a retained command must still refer to an admitted cache product.
+/// Capture begin reconciles file fingerprints; evicted/stale commands cannot claim new receipts.
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn visual_asset_source_is_current(
+    pixels: &HostPaintImagePixels,
+) -> bool {
+    let Some(cache) = VISUAL_ASSET_CACHE.get() else {
+        return false;
+    };
+    cache
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner())
+        .entries
+        .values()
+        .any(|entry| {
+            entry.pixels.as_ref().is_some_and(|cached| {
+                cached.source_resource_key == pixels.source_resource_key
+                    && pixels.source_resource_key.is_some()
+                    && cached.source_path == pixels.source_path
+            })
+        })
 }
 
 pub(super) fn begin_visual_asset_source_load(
@@ -169,6 +204,25 @@ impl VisualAssetCache {
         Some(entry.pixels.clone())
     }
 
+    fn get_variant(
+        &mut self,
+        base_key: &str,
+        variant: VisualAssetVariant,
+    ) -> Option<Option<HostPaintImagePixels>> {
+        // The index narrows lookup to this source's few size/tint variants; no formatted key on hits.
+        let key = self
+            .base_entry_keys
+            .get(base_key)?
+            .iter()
+            .find(|key| {
+                self.entries
+                    .get(key.as_ref())
+                    .is_some_and(|entry| entry.variant == Some(variant))
+            })
+            .cloned()?;
+        self.get(&key)
+    }
+
     fn begin_source_load(
         &mut self,
         base_key: &str,
@@ -271,6 +325,7 @@ impl VisualAssetCache {
         }
         self.track_base_sources(base_key, source_paths);
         let last_used = self.next_access();
+        let variant = VisualAssetVariant::from_cache_key(&key, base_key);
         let cache_key: Arc<str> = key.into();
         self.resident_bytes = self.resident_bytes.saturating_add(byte_size);
         self.base_entry_keys
@@ -281,6 +336,7 @@ impl VisualAssetCache {
             Arc::clone(&cache_key),
             VisualAssetCacheEntry {
                 base_key: base_key.to_owned(),
+                variant,
                 pixels,
                 byte_size,
                 last_used,
@@ -489,7 +545,7 @@ fn visual_asset_byte_size(pixels: &Option<HostPaintImagePixels>) -> usize {
                 .atlas
                 .as_ref()
                 .and_then(|atlas| atlas.rgba.as_ref())
-                .map_or(0, Vec::len),
+                .map_or(0, |rgba| rgba.len()),
         )
     })
 }

@@ -25,7 +25,7 @@ pub(crate) use visual_evidence::TextPaintEvidenceScope;
 
 use self::clip_rect::resolve_text_pixel_clip;
 use self::glyphs::draw_layout_glyphs;
-use self::layout::layout_text_run_with_layout_policy;
+use self::layout::{layout_recorded_text, layout_text_run_with_layout_policy};
 use self::metrics::clamped_text_metrics;
 use self::recording::record_text_run;
 
@@ -54,14 +54,12 @@ fn draw_text_with_size_and_style_impl(
     };
 
     let (font_size, line_height) = clamped_text_metrics(rect.height, font_size, line_height);
-    let layout = layout_text_run_with_layout_policy(
-        &rect,
-        text,
-        font_size,
-        line_height,
-        style,
-        layout_policy,
-    );
+    let layout_fn = if frame.record_only() {
+        layout_recorded_text
+    } else {
+        layout_text_run_with_layout_policy
+    };
+    let layout = layout_fn(&rect, text, font_size, line_height, style, layout_policy);
     if frame.is_recording() {
         record_text_run(
             frame,
@@ -91,6 +89,7 @@ fn draw_text_with_size_and_style_impl(
     draw_layout_glyphs(
         frame,
         &clip,
+        &rect,
         &layout.glyphs,
         &layout.artifact_raster_faces,
         color,

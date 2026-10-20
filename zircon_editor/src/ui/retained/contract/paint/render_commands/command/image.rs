@@ -58,11 +58,35 @@ impl HostPaintCommand {
         frame: FrameRect,
         clip_frame: Option<FrameRect>,
         z_index: i32,
-        resource_key: String,
+        resource_key: impl Into<Arc<str>>,
         image_width: u32,
         image_height: u32,
         rgba: impl Into<Arc<[u8]>>,
         atlas: Option<HostPaintAtlasImage>,
+        opacity: f32,
+    ) -> Self {
+        Self::from_image_pixels(
+            frame,
+            clip_frame,
+            z_index,
+            HostPaintImagePixels {
+                source_resource_key: None,
+                source_path: None,
+                resource_key: resource_key.into(),
+                width: image_width,
+                height: image_height,
+                rgba: rgba.into(),
+                atlas,
+            },
+            opacity,
+        )
+    }
+
+    pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn from_image_pixels(
+        frame: FrameRect,
+        clip_frame: Option<FrameRect>,
+        z_index: i32,
+        image: HostPaintImagePixels,
         opacity: f32,
     ) -> Self {
         let (font_size, line_height) = Self::fallback_text_metrics();
@@ -87,13 +111,7 @@ impl HostPaintCommand {
             text_layout_policy: HostTextLayoutPolicy::SingleLineEllipsis,
             text_font_request: None,
             image_key: None,
-            image_pixels: Some(HostPaintImagePixels {
-                resource_key,
-                width: image_width,
-                height: image_height,
-                rgba: rgba.into(),
-                atlas,
-            }),
+            image_pixels: Some(image),
             opacity,
         }
     }

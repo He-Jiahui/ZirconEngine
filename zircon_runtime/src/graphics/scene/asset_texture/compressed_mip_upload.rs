@@ -1,10 +1,9 @@
 use std::fmt::Display;
-use std::sync::Arc;
 
 use crate::asset::TextureUploadPlan;
 use crate::graphics::types::GraphicsError;
 use zr_rhi::TextureCopyRegion;
-use zr_rhi_wgpu::{WgpuTextureUpload, WgpuTextureUploadBatch};
+use zr_rhi_wgpu::{WgpuTextureUpload, WgpuTextureUploadBatch, WgpuTextureUploadPayload};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct CompressedMipUpload {
@@ -51,7 +50,7 @@ pub(super) fn enqueue_compressed_texture_uploads<T: Display + ?Sized>(
     height: u32,
     mip_count: u32,
     layer_count: u32,
-    data: Arc<[u8]>,
+    data: WgpuTextureUploadPayload,
     plan: &TextureUploadPlan,
 ) -> Result<(), GraphicsError> {
     let payload_start = plan.data_offset;
@@ -87,7 +86,7 @@ pub(super) fn enqueue_compressed_texture_uploads<T: Display + ?Sized>(
                 mip_extent(height, upload.mip_level),
                 upload.bytes_per_row,
                 upload.block_rows,
-                Arc::clone(&data),
+                data.clone(),
                 upload.data_offset..source_end,
                 payload_start..payload_end,
                 texture_uri,
@@ -121,7 +120,7 @@ pub(super) fn enqueue_compressed_texture_uploads<T: Display + ?Sized>(
                 upload.height,
                 upload.bytes_per_row,
                 upload.block_rows,
-                Arc::clone(&data),
+                data.clone(),
                 upload.data_offset..source_end,
                 payload_start..payload_end,
                 texture_uri,
@@ -165,7 +164,7 @@ pub(super) fn enqueue_compressed_texture_uploads<T: Display + ?Sized>(
             height,
             bytes_per_row,
             block_rows,
-            Arc::clone(&data),
+            data.clone(),
             start..end,
             payload_start..payload_end,
             texture_uri,
@@ -184,7 +183,7 @@ fn enqueue_compressed_subresource<T: Display + ?Sized>(
     height: u32,
     bytes_per_row: u32,
     block_rows: u32,
-    data: Arc<[u8]>,
+    data: WgpuTextureUploadPayload,
     source_range: core::ops::Range<usize>,
     payload_range: core::ops::Range<usize>,
     texture_uri: &T,

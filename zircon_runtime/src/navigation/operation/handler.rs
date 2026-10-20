@@ -560,7 +560,7 @@ fn estimate_snapshot_bytes(snapshot: &NavigationGeneratedBakeSnapshot) -> usize 
 }
 
 fn source_retained_bytes(source: &WorldPublicationSource) -> usize {
-    source.snapshot().node_records().len().saturating_mul(256)
+    source.snapshot().entity_count().saturating_mul(256)
 }
 
 fn encode_prepared_snapshot_values(

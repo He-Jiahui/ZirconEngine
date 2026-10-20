@@ -86,7 +86,7 @@ impl AuthoringSceneInstaller for AcceptingSceneInstaller {
 
     fn install_scene(
         &mut self,
-        _document: &crate::core::project::ProjectSceneDocument,
+        _document: &mut crate::core::project::ProjectSceneDocument,
     ) -> Result<(), Self::Error> {
         Ok(())
     }

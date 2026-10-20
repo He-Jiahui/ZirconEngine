@@ -5,7 +5,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / (
-    "zircon_editor/src/ui/retained_host/ui/pane_data_conversion/hierarchy_projection.rs"
+    "zircon_editor/src/ui/retained/ui/data/hierarchy_projection.rs"
 )
 
 

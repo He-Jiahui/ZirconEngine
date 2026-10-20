@@ -272,7 +272,7 @@ fn keyboard_input_uses_the_generated_signature_index_for_large_keymaps() {
     );
     let keymap = EditorKeymap::default_workbench().with_overrides(&overrides);
 
-    assert_eq!(keymap.signature_index.len(), 10_010);
+    assert_eq!(keymap.signature_index.len(), 10_017);
     assert_eq!(
         keymap.resolve_keyboard_input_when(
             &keyboard_event("F10000", 0, true, false, false, false),

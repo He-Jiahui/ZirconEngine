@@ -30,6 +30,9 @@ use super::scene_viewport_state::SceneViewportState;
 pub(crate) struct SceneViewportController {
     pub(in crate::scene::viewport::controller) state: SceneViewportState,
     pub(in crate::scene::viewport::controller) handles: HandleToolRegistry,
+    pub(in crate::scene::viewport::controller) render_cache: std::cell::RefCell<
+        Option<super::scene_viewport_controller_build_render_snapshot::CachedRenderScene>,
+    >,
     pub(in crate::scene::viewport::controller) interaction_extract: ViewportInteractionExtractCache,
     pub(in crate::scene::viewport::controller) pointer_bridge: ViewportOverlayPointerRouter,
     pub(in crate::scene::viewport::controller) settings_mutations: Arc<SettingsMutationCoordinator>,

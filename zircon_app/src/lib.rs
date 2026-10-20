@@ -1,5 +1,11 @@
 //! Entry runners that bootstrap the core runtime and host editor/runtime shells.
 
+#[cfg(feature = "profiling-memory")]
+#[global_allocator]
+static MEMORY_ALLOCATOR: zircon_runtime::core::diagnostics::profiling::memory::CountingAllocator<
+    std::alloc::System,
+> = zircon_runtime::core::diagnostics::profiling::memory::CountingAllocator(std::alloc::System);
+
 #[cfg(all(feature = "native-host", target_arch = "wasm32"))]
 compile_error!("native-host requires a native target; disable default features for browser builds");
 

@@ -1,7 +1,34 @@
-use core::ops::Range;
+use core::ops::{Deref, Range};
 use std::sync::Arc;
 
 use zr_rhi::TextureCopyRegion;
+
+/// Shared bytes or a retained asset exposing its existing upload bytes.
+#[derive(Clone)]
+pub enum WgpuTextureUploadPayload {
+    Bytes(Arc<[u8]>),
+    Shared(Arc<dyn AsRef<[u8]> + Send + Sync>),
+}
+
+impl WgpuTextureUploadPayload {
+    pub fn shared<T: AsRef<[u8]> + Send + Sync + 'static>(source: Arc<T>) -> Self {
+        Self::Shared(source)
+    }
+}
+impl From<Arc<[u8]>> for WgpuTextureUploadPayload {
+    fn from(bytes: Arc<[u8]>) -> Self {
+        Self::Bytes(bytes)
+    }
+}
+impl Deref for WgpuTextureUploadPayload {
+    type Target = [u8];
+    fn deref(&self) -> &[u8] {
+        match self {
+            Self::Bytes(bytes) => bytes,
+            Self::Shared(source) => source.as_ref().as_ref(),
+        }
+    }
+}
 
 /// One native subresource write backed by a shared immutable source payload.
 ///
@@ -14,7 +41,7 @@ pub struct WgpuTextureUpload {
     region: TextureCopyRegion,
     bytes_per_row: u32,
     rows_per_image: u32,
-    payload: Arc<[u8]>,
+    payload: WgpuTextureUploadPayload,
     source_range: Range<usize>,
 }
 
@@ -25,9 +52,10 @@ impl WgpuTextureUpload {
         region: TextureCopyRegion,
         bytes_per_row: u32,
         rows_per_image: u32,
-        payload: Arc<[u8]>,
+        payload: impl Into<WgpuTextureUploadPayload>,
         source_range: Range<usize>,
     ) -> Option<Self> {
+        let payload = payload.into();
         (source_range.start <= source_range.end && source_range.end <= payload.len()).then_some(
             Self {
                 texture,
@@ -55,7 +83,7 @@ impl WgpuTextureUpload {
             region,
             bytes_per_row,
             rows_per_image,
-            payload,
+            payload: payload.into(),
             source_range: 0..payload_len,
         }
     }
@@ -131,5 +159,20 @@ impl From<WgpuTextureUpload> for WgpuTextureUploadBatch {
         Self {
             uploads: vec![upload],
         }
+    }
+}
+
+#[cfg(test)]
+mod payload_tests {
+    use super::*;
+    #[test]
+    fn shared_upload_payload_retains_source_without_copying_bytes() {
+        let bytes = Arc::new(vec![1u8, 2, 3, 4]);
+        let pointer = bytes.as_ptr();
+        let payload = WgpuTextureUploadPayload::shared(Arc::clone(&bytes));
+        let copy = payload.clone();
+        drop(bytes);
+        assert_eq!(copy.as_ptr(), pointer);
+        assert_eq!(&copy[..], &[1, 2, 3, 4]);
     }
 }

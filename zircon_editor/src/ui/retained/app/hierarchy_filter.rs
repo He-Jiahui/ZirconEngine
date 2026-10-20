@@ -1,9 +1,21 @@
 use std::borrow::Cow;
+use std::cell::RefCell;
 
 use zircon_runtime::scene::WorldInspectionHierarchyRow;
 
 use super::{HostInvalidationMask, RetainedEditorHost};
 use crate::ui::workbench::snapshot::SceneEntries;
+
+struct HierarchyFilterCache {
+    source: SceneEntries,
+    query: String,
+    filtered: SceneEntries,
+}
+
+thread_local! {
+    // One current query per UI thread; retaining the source prevents pointer-reuse cache hits.
+    static FILTER_CACHE: RefCell<Option<HierarchyFilterCache>> = const { RefCell::new(None) };
+}
 
 impl SceneEntries {
     pub(crate) fn filtered_by_hierarchy_query(&self, query: &str) -> Self {
@@ -11,7 +23,24 @@ impl SceneEntries {
         if query.is_empty() {
             return self.clone();
         }
-        self.with_hierarchy_rows(hierarchy_entries_matching_query(self, query))
+        FILTER_CACHE.with_borrow_mut(|cache| {
+            if let Some(cached) = cache.as_ref() {
+                if cached.source.shares_hierarchy_with(self)
+                    && cached.source.inspection_generation() == self.inspection_generation()
+                    && cached.query == query
+                {
+                    // Selection is a separate overlay and must remain current on a row-cache hit.
+                    return self.with_hierarchy_rows(cached.filtered.hierarchy_rows_arc());
+                }
+            }
+            let filtered = self.with_hierarchy_rows(hierarchy_entries_matching_query(self, query));
+            *cache = Some(HierarchyFilterCache {
+                source: self.clone(),
+                query: query.to_owned(),
+                filtered: filtered.clone(),
+            });
+            filtered
+        })
     }
 }
 

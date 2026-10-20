@@ -24,7 +24,7 @@ fn visibility_context_only_holds_requested_virtual_geometry_lineage_when_frontie
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
 
-    let mut previous_extract = world.to_render_frame_extract();
+    let mut previous_extract = world.to_render_frame_extract_cloning();
     previous_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 3,
@@ -58,7 +58,7 @@ fn visibility_context_only_holds_requested_virtual_geometry_lineage_when_frontie
         "expected the fully resident previous frame to refine onto both sibling lineages before testing frontier-budget collapse protection"
     );
 
-    let mut current_extract = world.to_render_frame_extract();
+    let mut current_extract = world.to_render_frame_extract_cloning();
     current_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 1,
         page_budget: 3,
@@ -130,7 +130,7 @@ fn visibility_context_splits_virtual_geometry_draw_segments_across_parent_lineag
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
 
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 2,
@@ -226,7 +226,7 @@ fn visibility_context_keeps_parent_virtual_geometry_cluster_when_children_exceed
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
 
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
         page_budget: 2,
@@ -291,7 +291,7 @@ fn visibility_context_prioritizes_virtual_geometry_pages_backing_more_visible_cl
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
 
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 3,
         page_budget: 1,
@@ -350,7 +350,7 @@ fn visibility_context_uses_aggregate_screen_space_error_to_break_virtual_geometr
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
 
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 4,
         page_budget: 1,

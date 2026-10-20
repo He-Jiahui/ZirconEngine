@@ -43,8 +43,8 @@ impl RetainedEditorHost {
             );
         }
 
-        let project_open = match self.runtime.editor_snapshot() {
-            Ok(snapshot) => snapshot.project_open,
+        let project_open = match self.runtime.project_open() {
+            Ok(project_open) => project_open,
             Err(error) => {
                 self.set_status_line(error.to_string());
                 return;

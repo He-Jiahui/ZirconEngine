@@ -25,7 +25,7 @@ impl RenderPassExecutor for VolumetricIntegrateExecutor {
     fn execute(&self, context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
         validate_compute_context(context, VOLUMETRIC_INTEGRATE_EXECUTOR_ID)?;
         let pass_name = context.pass_name.clone();
-        let executor_id = context.executor_id.as_str().to_string();
+        let executor_id = crate::graphics::RenderReportLabel::new(context.executor_id.as_str());
         let gpu = context.require_gpu()?;
         let device_epoch = gpu.device_epoch().ok_or_else(|| {
             "volumetric integrate requires a materialized device epoch before pipeline recording"
@@ -84,7 +84,7 @@ impl RenderPassExecutor for VolumetricIntegrateExecutor {
             ],
             [dispatch[0], dispatch[1], 1],
             FroxelIntegratePipeline::UPLOADED_BYTES_PER_DISPATCH,
-            vec![PostProcessGraphResourceNames::VOLUMETRIC_INTEGRATED.to_string()],
+            vec![PostProcessGraphResourceNames::VOLUMETRIC_INTEGRATED.into()],
         );
         Ok(())
     }

@@ -839,7 +839,7 @@ fn compile_half_resolution_transparency_preserves_plugin_transparent_pass_replac
 fn test_extract() -> RenderFrameExtract {
     RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     )
 }
 

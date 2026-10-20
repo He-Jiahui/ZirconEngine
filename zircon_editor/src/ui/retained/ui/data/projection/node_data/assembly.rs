@@ -57,5 +57,6 @@ pub(in super::super) fn template_pane_node_data(
     assign_spatial_fields(&mut node, world_space, clip_frame);
     assign_interaction_fields(&mut node, popup_actions, drag_overlay);
     assign_visual_fields(&mut node, validation_state, visual_state, visual_style);
+    node.prepare_table_cells();
     node
 }

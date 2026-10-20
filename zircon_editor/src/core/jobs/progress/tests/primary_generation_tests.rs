@@ -320,3 +320,36 @@ fn terminal_and_completion_do_not_double_advance_the_primary_generation() {
     );
     assert!(after_completion.primary().is_none());
 }
+
+#[test]
+fn notification_revision_tracks_nonprimary_jobs_and_ignores_duplicate_progress() {
+    let source = EditorJobProgressSource::default();
+    let primary = source
+        .primary_snapshot_if_changed(None)
+        .unwrap()
+        .generation();
+    let initial = source.projection_revision();
+    let id = JobId::new(99);
+    source.register(
+        id,
+        &EditorJobSpec::new("background", JobCategory::Index).with_primary_progress_visible(false),
+    );
+    assert!(source.primary_snapshot_if_changed(Some(primary)).is_none());
+    assert!(source.projection_revision() > initial);
+    let event = JobEventKind::Progress {
+        completed: 1,
+        total: 2,
+        message: "Halfway".into(),
+    };
+    let registered = source.projection_revision();
+    source.apply_event(id, &event);
+    let progressed = source.projection_revision();
+    assert!(progressed > registered);
+    source.apply_event(id, &event);
+    assert_eq!(source.projection_revision(), progressed);
+    source.apply_event(id, &JobEventKind::Completed);
+    assert!(source.projection_revision() > progressed);
+    let terminal = source.projection_revision();
+    source.apply_event(id, &JobEventKind::Completed);
+    assert_eq!(source.projection_revision(), terminal);
+}

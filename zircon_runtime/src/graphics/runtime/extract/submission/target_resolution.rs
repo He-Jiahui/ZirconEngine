@@ -85,9 +85,8 @@ fn resolve_camera_texture_target_descriptor(
     texture: ResourceHandle<TextureMarker>,
 ) -> Result<ResolvedCameraTargetDescriptor, RenderFrameworkError> {
     let descriptor = asset_manager
-        .load_texture_asset(texture.id())
-        .map(|texture| texture.render_image_descriptor())
-        .map_err(|_| unsupported_camera_texture_target_asset())?;
+        .texture_render_descriptor(texture.id())
+        .ok_or_else(unsupported_camera_texture_target_asset)?;
     let format = validate_camera_texture_target_descriptor(&descriptor)?;
     let size = UVec2::new(descriptor.width, descriptor.height);
     Ok(ResolvedCameraTargetDescriptor {

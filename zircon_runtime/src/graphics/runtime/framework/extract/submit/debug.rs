@@ -30,6 +30,24 @@ use crate::core::framework::render::{
     RenderVirtualGeometryDebugSnapshot, RenderVirtualGeometryVisBuffer64Entry,
 };
 
+// Public diagnostic payload sharing remains deferred. Count these optional
+// copies; execution takes the originals only after diagnostic readers finish.
+fn copy_resident_payloads(
+    context: &FrameSubmissionContext,
+) -> Vec<crate::core::framework::render::RenderVirtualGeometryPagePayload> {
+    let payloads = context.virtual_geometry_resident_page_payloads();
+    crate::profile_counter!(
+        "render",
+        "vg_payload_copy_bytes",
+        payloads
+            .iter()
+            .map(|page| std::mem::size_of_val(page.vertices.as_slice())
+                + std::mem::size_of_val(page.cluster_ranges.as_slice()))
+            .sum::<usize>()
+    );
+    payloads.to_vec()
+}
+
 pub(super) fn build_virtual_geometry_debug_snapshot(
     frame_extract: &RenderFrameExtract,
     context: &FrameSubmissionContext,
@@ -125,7 +143,7 @@ pub(super) fn build_virtual_geometry_debug_snapshot(
     Some(RenderVirtualGeometryDebugSnapshot {
         instances: extract.instances.clone(),
         page_dependencies: extract.page_dependencies.clone(),
-        resident_page_payloads: context.virtual_geometry_resident_page_payloads().to_vec(),
+        resident_page_payloads: copy_resident_payloads(context),
         debug: extract.debug,
         cull_input,
         cluster_selection_input_source: cull_input.cluster_selection_input_source,
@@ -185,7 +203,7 @@ fn vg_execution_required<T>(value: Option<T>, reason: &str) -> Option<T> {
 }
 
 pub(super) fn build_virtual_geometry_execution_data(
-    context: &FrameSubmissionContext,
+    context: &mut FrameSubmissionContext,
 ) -> Option<crate::core::framework::render::RenderVirtualGeometryExecutionData> {
     let extract = vg_execution_required(context.virtual_geometry_extract(), "extract")?;
     let plan = context
@@ -371,14 +389,19 @@ pub(super) fn build_virtual_geometry_execution_data(
     } else {
         None
     };
+    let instances = extract.instances.clone();
+    let debug = extract.debug;
+    // All validation and diagnostic reads precede ownership transfer. On failure,
+    // leave the context intact so its caller can still report the original inputs.
+    let resident_page_payloads = context.take_virtual_geometry_resident_page_payloads();
     Some(
         crate::core::framework::render::RenderVirtualGeometryExecutionData {
             indexed_candidate_payload_ranges,
             author_cluster_catalog,
             candidate_author_indices,
-            instances: extract.instances.clone(),
-            resident_page_payloads: context.virtual_geometry_resident_page_payloads().to_vec(),
-            debug: extract.debug,
+            instances,
+            resident_page_payloads,
+            debug,
             cull_input,
             prepared_cpu_frame: Some(prepared),
             selected_clusters,
@@ -390,40 +413,43 @@ pub(super) fn build_virtual_geometry_execution_data(
 pub(super) fn build_virtual_geometry_cull_input(
     context: &FrameSubmissionContext,
 ) -> Option<crate::core::framework::render::RenderVirtualGeometryCullInputSnapshot> {
-    let extract = context.virtual_geometry_extract()?;
-    let plan = context
-        .virtual_geometry_page_upload_plan()
-        .cloned()
-        .unwrap_or_default();
-    let available = build_available_page_slots(extract, &plan);
-    let sizes = build_page_size_index(extract);
-    let pages = build_resident_page_inspections(&plan, &sizes);
-    let evictable = build_evictable_page_inspections(&plan, &pages, &sizes);
-    let mut cull_input = build_cull_input_snapshot(
-        extract,
-        &plan,
-        available.len(),
-        evictable.len(),
-        &context.visibility_context().main_view_visible_entity_set(),
-    )
-    .ok()?;
-    let inputs = context.virtual_geometry_execution_inputs();
-    if let Some(author) = inputs.prepare.as_ref() {
-        cull_input.visible_entity_count = u32::try_from(author.visible_entities.len()).ok()?;
-        cull_input.visible_cluster_count = u32::try_from(author.visible_clusters.len()).ok()?;
-        cull_input.resident_page_count = u32::try_from(author.resident_pages.len()).ok()?;
-        cull_input.pending_page_request_count =
-            u32::try_from(author.pending_page_requests.len()).ok()?;
-        cull_input.available_page_slot_count = u32::try_from(author.available_slots.len()).ok()?;
-        cull_input.evictable_page_count = u32::try_from(author.evictable_pages.len()).ok()?;
-        cull_input.cluster_selection_input_source =
-            RenderVirtualGeometryClusterSelectionInputSource::PrepareDerivedFrameOwned;
-    }
-    if inputs.selections.is_some() {
-        cull_input.cluster_selection_input_source =
-            RenderVirtualGeometryClusterSelectionInputSource::ExplicitFrameOwned;
-    }
-    Some(cull_input)
+    context.cached_virtual_geometry_cull_input(|| {
+        let extract = context.virtual_geometry_extract()?;
+        let plan = context
+            .virtual_geometry_page_upload_plan()
+            .cloned()
+            .unwrap_or_default();
+        let available = build_available_page_slots(extract, &plan);
+        let sizes = build_page_size_index(extract);
+        let pages = build_resident_page_inspections(&plan, &sizes);
+        let evictable = build_evictable_page_inspections(&plan, &pages, &sizes);
+        let mut cull_input = build_cull_input_snapshot(
+            extract,
+            &plan,
+            available.len(),
+            evictable.len(),
+            &context.visibility_context().main_view_visible_entity_set(),
+        )
+        .ok()?;
+        let inputs = context.virtual_geometry_execution_inputs();
+        if let Some(author) = inputs.prepare.as_ref() {
+            cull_input.visible_entity_count = u32::try_from(author.visible_entities.len()).ok()?;
+            cull_input.visible_cluster_count = u32::try_from(author.visible_clusters.len()).ok()?;
+            cull_input.resident_page_count = u32::try_from(author.resident_pages.len()).ok()?;
+            cull_input.pending_page_request_count =
+                u32::try_from(author.pending_page_requests.len()).ok()?;
+            cull_input.available_page_slot_count =
+                u32::try_from(author.available_slots.len()).ok()?;
+            cull_input.evictable_page_count = u32::try_from(author.evictable_pages.len()).ok()?;
+            cull_input.cluster_selection_input_source =
+                RenderVirtualGeometryClusterSelectionInputSource::PrepareDerivedFrameOwned;
+        }
+        if inputs.selections.is_some() {
+            cull_input.cluster_selection_input_source =
+                RenderVirtualGeometryClusterSelectionInputSource::ExplicitFrameOwned;
+        }
+        Some(cull_input)
+    })
 }
 
 impl FrameSubmissionContext {

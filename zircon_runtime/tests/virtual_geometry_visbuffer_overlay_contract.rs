@@ -114,7 +114,7 @@ fn build_extract(
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut snapshot = world.to_render_snapshot();
+    let mut snapshot = world.to_render_snapshot_cloning();
     snapshot.scene.directional_lights.clear();
     snapshot.scene.point_lights.clear();
     snapshot.scene.spot_lights.clear();

@@ -58,10 +58,12 @@ pub(super) struct PreparedSubsurfaceFrame {
 }
 
 impl PreparedSubsurfaceFrame {
-    pub(super) fn prepare(extract: &RenderFrameExtract, size: UVec2) -> Result<Self, String> {
-        let table = resolve_subsurface_profile_table(
-            &extract.lighting.advanced_lighting.subsurface_profiles,
-        );
+    pub(super) fn prepare(
+        extract: &RenderFrameExtract,
+        size: UVec2,
+        profiles: &[SubsurfaceProfileData],
+    ) -> Result<Self, String> {
+        let table = resolve_subsurface_profile_table(profiles);
         if table.profiles.is_empty() {
             return Err(
                 "sss.prepare requires at least one resolved subsurface profile".to_string(),

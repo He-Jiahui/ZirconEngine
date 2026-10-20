@@ -60,7 +60,7 @@ pub(super) fn build_preview_report(
         component_instance_count,
         entity_count,
         resource_count: scene.resources.len(),
-        target_entity_count: world.node_records().len(),
+        target_entity_count: world.entity_count(),
         preserved_entity_count: entity_count.saturating_sub(remapped_entity_count),
         remapped_entity_count,
         component_types,

@@ -17,6 +17,7 @@ use row::draw_glyph_row;
 pub(super) fn draw_layout_glyphs(
     frame: &mut HostRgbaFrame,
     clip: &PixelRect,
+    origin: &super::super::super::data::FrameRect,
     glyphs: &[RuntimeTextGlyph],
     artifact_raster_faces: &[UiTextGlyphArtifactRasterFace],
     color: [u8; 4],
@@ -24,6 +25,16 @@ pub(super) fn draw_layout_glyphs(
 ) {
     let smoothing = current_host_text_preferences().smoothing;
     for glyph in glyphs {
+        let mut positioned = *glyph;
+        positioned.origin_x += super::placement::retained_text_origin_for_smoothing(
+            origin.x + glyph.line_origin_x,
+            smoothing,
+        ) - super::placement::retained_text_origin_for_smoothing(
+            glyph.line_origin_x,
+            smoothing,
+        );
+        positioned.baseline_y += origin.y;
+        let glyph = &positioned;
         let Some(face) = artifact_raster_faces.get(glyph.raster_face_index) else {
             super::visual_evidence::failure("glyph raster face is unavailable");
             zircon_runtime::profile_counter!(

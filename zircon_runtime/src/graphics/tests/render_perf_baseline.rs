@@ -40,7 +40,7 @@ struct SubmissionModeFrame {
     config: RenderSubmissionConfig,
     width: u32,
     height: u32,
-    rgba: Vec<u8>,
+    rgba: std::sync::Arc<[u8]>,
 }
 
 struct ParallelRecordingProductFrame {
@@ -309,7 +309,7 @@ fn render_perf_prewarm_zero_first_frame_miss() {
         .unwrap();
     let mut first_extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     first_extract.apply_viewport_size(STANDARD_VIEWPORT_SIZE);
     framework
@@ -331,7 +331,7 @@ fn render_perf_prewarm_zero_first_frame_miss() {
 
     let mut repeated_extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(2),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     repeated_extract.apply_viewport_size(STANDARD_VIEWPORT_SIZE);
     framework
@@ -404,7 +404,7 @@ fn render_submission_mode_matrix() -> Vec<SubmissionModeFrame> {
                     .unwrap();
                 let mut extract = RenderFrameExtract::from_snapshot(
                     RenderWorldSnapshotHandle::new(1),
-                    World::new().to_render_snapshot(),
+                    World::new().to_render_snapshot_cloning(),
                 );
                 extract.apply_viewport_size(STANDARD_VIEWPORT_SIZE);
                 framework.submit_frame_extract(viewport, extract).unwrap();
@@ -480,7 +480,7 @@ fn render_parallel_recording_product_frame(
 
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.view.camera.core_pipeline = CorePipelineKind::Core2d;
     extract.view.camera.projection_mode = ProjectionMode::Orthographic;
@@ -581,7 +581,7 @@ fn render_two_standard_empty_scene_frames() -> (RenderStats, RenderStats) {
         .unwrap();
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.apply_viewport_size(STANDARD_VIEWPORT_SIZE);
 

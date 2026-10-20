@@ -167,6 +167,7 @@ struct ProgressState {
     active: BTreeMap<JobId, ActiveJobEntry>,
     visible_by_priority: BTreeSet<(u8, JobId)>,
     primary_generation: u64,
+    all_generation: u64,
 }
 
 #[derive(Debug)]
@@ -178,6 +179,10 @@ struct ActiveJobEntry {
 }
 
 impl EditorJobProgressSource {
+    pub(crate) fn projection_revision(&self) -> u64 {
+        self.lock_state().all_generation
+    }
+
     pub fn primary_snapshot(&self) -> Option<EditorJobProgressSnapshot> {
         self.lock_state().primary_snapshot()
     }
@@ -322,6 +327,7 @@ impl EditorJobProgressSource {
         };
         let next_generation = primary_projection_changes.then(|| state.next_primary_generation());
 
+        state.advance_all_generation();
         if let Some(previous) = state.active.insert(id, next_entry) {
             if !previous.terminal {
                 state.visible_by_priority.remove(&previous.primary_key());
@@ -396,6 +402,7 @@ impl EditorJobProgressSource {
                 let next_generation =
                     (previous_primary == Some(id)).then(|| state.next_primary_generation());
 
+                state.advance_all_generation();
                 if let Some(entry) = state.active.get_mut(&id) {
                     entry.snapshot.progress = Some(next);
                 }
@@ -414,6 +421,7 @@ impl EditorJobProgressSource {
                 let next_generation =
                     (previous_primary == Some(id)).then(|| state.next_primary_generation());
 
+                state.advance_all_generation();
                 if let Some(entry) = state.active.get_mut(&id) {
                     entry.terminal = true;
                 }
@@ -433,6 +441,7 @@ impl EditorJobProgressSource {
             (previous_primary == Some(id)).then(|| state.next_primary_generation());
 
         if let Some(entry) = state.active.remove(&id) {
+            state.advance_all_generation();
             if !entry.terminal {
                 state.visible_by_priority.remove(&entry.primary_key());
             }
@@ -456,6 +465,13 @@ impl EditorJobProgressSource {
 }
 
 impl ProgressState {
+    fn advance_all_generation(&mut self) {
+        self.all_generation = self
+            .all_generation
+            .checked_add(1)
+            .expect("job projection generation cannot overflow");
+    }
+
     fn primary_entry(&self) -> Option<&ActiveJobEntry> {
         let (_, id) = self.visible_by_priority.first()?;
         self.active.get(id)

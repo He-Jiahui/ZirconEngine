@@ -235,7 +235,7 @@ fn map_color(color: [f32; 3], mut map: impl FnMut(f32) -> f32) -> [f32; 3] {
 
 #[cfg(test)]
 struct UserColorLutReadbackReference {
-    rgba: Vec<u8>,
+    texture: std::sync::Arc<TextureAsset>,
     width: u32,
     height: u32,
     mode: UserColorLutReadbackMode,
@@ -289,7 +289,7 @@ impl UserColorLutReadbackReference {
         let texture = streamer
             .asset_manager()
             .ok()?
-            .load_texture_asset(texture_id)
+            .load_texture_asset_snapshot(texture_id)
             .ok()?;
         let descriptor = texture.render_image_descriptor();
         let mode = user_lut_readback_mode(
@@ -299,19 +299,16 @@ impl UserColorLutReadbackReference {
             &descriptor,
             readback_size,
         )?;
-        let TextureAsset {
-            rgba,
-            width,
-            height,
-            payload,
-            ..
-        } = texture;
-        if payload != TexturePayload::Rgba8 || rgba.len() < mode.rgba_byte_len(width, height)? {
+        let width = texture.width;
+        let height = texture.height;
+        if texture.payload != TexturePayload::Rgba8
+            || texture.rgba.len() < mode.rgba_byte_len(width, height)?
+        {
             return None;
         }
 
         Some(Self {
-            rgba,
+            texture: std::sync::Arc::clone(texture.resource()),
             width,
             height,
             mode,
@@ -365,13 +362,13 @@ impl UserColorLutReadbackReference {
 
     fn texel_rgb_by_flat_index(&self, flat_index: u32) -> [f32; 3] {
         let offset = flat_index as usize * 4;
-        if offset + 2 >= self.rgba.len() {
+        if offset + 2 >= self.texture.rgba.len() {
             return [0.0; 3];
         }
         [
-            self.rgba[offset] as f32 / 255.0,
-            self.rgba[offset + 1] as f32 / 255.0,
-            self.rgba[offset + 2] as f32 / 255.0,
+            self.texture.rgba[offset] as f32 / 255.0,
+            self.texture.rgba[offset + 1] as f32 / 255.0,
+            self.texture.rgba[offset + 2] as f32 / 255.0,
         ]
     }
 }

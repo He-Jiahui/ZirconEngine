@@ -150,3 +150,13 @@ fn rgba8_len(width: u32, height: u32) -> TextureDescriptorResult<usize> {
         .and_then(|bytes| usize::try_from(bytes).ok())
         .ok_or(TextureDescriptorError::Rgba8ExtentTooLarge { width, height })
 }
+
+/// Uploads borrow the payload from the retained asset instead of cloning its bytes.
+impl AsRef<[u8]> for TextureAsset {
+    fn as_ref(&self) -> &[u8] {
+        match &self.payload {
+            TexturePayload::Rgba8 => &self.rgba,
+            TexturePayload::Container { bytes, .. } => bytes,
+        }
+    }
+}

@@ -18,6 +18,8 @@ mod gpu;
 mod indirect;
 #[path = "executors/native_probe.rs"]
 pub(super) mod native_probe;
+#[path = "executors/pipeline_cache.rs"]
+mod pipeline_cache;
 #[path = "executors/selection.rs"]
 mod selection;
 

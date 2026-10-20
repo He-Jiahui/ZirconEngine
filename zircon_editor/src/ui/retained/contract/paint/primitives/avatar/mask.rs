@@ -40,7 +40,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn apply_r
         image.height,
         mask_radius.to_bits(),
         image.resource_key
-    );
+    )
+    .into();
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn rounded_alpha_mask_radius(

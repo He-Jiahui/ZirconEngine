@@ -22,14 +22,41 @@ pub struct EditorNotificationService {
     toast_epoch: OnceLock<Instant>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct NotificationProjectionRevision {
+    decisions: (u64, u64),
+    progress_bindings: u64,
+    jobs: u64,
+    toasts: (u64, Option<Duration>),
+}
+
 impl EditorNotificationService {
+    pub(crate) fn projection_revision(
+        &self,
+        jobs: &EditorJobProgressSource,
+    ) -> Result<NotificationProjectionRevision, DecisionNotificationError> {
+        Ok(NotificationProjectionRevision {
+            decisions: self.decisions()?.projection_revision(),
+            progress_bindings: self.progress().projection_revision(),
+            jobs: jobs.projection_revision(),
+            toasts: self.toasts().projection_revision_at(self.toast_elapsed()),
+        })
+    }
+
     /// Pending decisions, live toasts and active job progress; reading does not create centers.
     pub fn active_count(&self) -> usize {
-        let decisions = self.decisions.get().map_or(0, |center| center.pending_count());
-        let progress = self.progress.get().map_or(0, |center| center.active_count());
-        let toasts = self.toasts.get().map_or(0, |queue| {
-            queue.snapshot_at(self.toast_elapsed()).len()
-        });
+        let decisions = self
+            .decisions
+            .get()
+            .map_or(0, |center| center.pending_count());
+        let progress = self
+            .progress
+            .get()
+            .map_or(0, |center| center.active_count());
+        let toasts = self
+            .toasts
+            .get()
+            .map_or(0, |queue| queue.snapshot_at(self.toast_elapsed()).len());
         decisions.saturating_add(progress).saturating_add(toasts)
     }
 

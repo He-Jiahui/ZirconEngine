@@ -19,7 +19,7 @@ fn clustered_lighting_does_not_tint_final_frame_by_tile_buffer() {
         [0, 0],
         &RenderFrameExtract::from_snapshot(
             RenderWorldSnapshotHandle::new(1),
-            World::new().to_render_snapshot(),
+            World::new().to_render_snapshot_cloning(),
         ),
         &PostProcessExtract::default(),
         SceneRuntimeFeatureFlags {
@@ -52,7 +52,7 @@ fn contact_shadow_runtime_flag_is_encoded_separately_from_ssao() {
         [0, 0],
         &RenderFrameExtract::from_snapshot(
             RenderWorldSnapshotHandle::new(1),
-            World::new().to_render_snapshot(),
+            World::new().to_render_snapshot_cloning(),
         ),
         &PostProcessExtract::default(),
         SceneRuntimeFeatureFlags {
@@ -82,7 +82,7 @@ fn hybrid_gi_current_lighting_flag_is_encoded_separately_from_history() {
         [0, 0],
         &RenderFrameExtract::from_snapshot(
             RenderWorldSnapshotHandle::new(1),
-            World::new().to_render_snapshot(),
+            World::new().to_render_snapshot_cloning(),
         ),
         &PostProcessExtract::default(),
         SceneRuntimeFeatureFlags {
@@ -118,7 +118,7 @@ fn post_process_params_pack_physical_viewport_and_local_scene_source_origins_sep
         [0, 0],
         &RenderFrameExtract::from_snapshot(
             RenderWorldSnapshotHandle::new(1),
-            World::new().to_render_snapshot(),
+            World::new().to_render_snapshot_cloning(),
         ),
         &PostProcessExtract::default(),
         SceneRuntimeFeatureFlags::default(),
@@ -137,7 +137,7 @@ fn post_process_params_pack_physical_viewport_and_local_scene_source_origins_sep
 fn effect_stack_settings_are_encoded_into_post_process_params() {
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.post_process.effect_stack = RenderPostProcessEffectStackSettings {
         tonemap: RenderTonemapSettings {
@@ -252,7 +252,7 @@ fn effect_stack_settings_are_encoded_into_post_process_params() {
 fn camera_view_basis_is_encoded_for_post_process_normals() {
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.view.camera.transform = Transform::looking_at(Vec3::ZERO, -Vec3::X, Vec3::Y);
 
@@ -289,7 +289,7 @@ fn camera_view_basis_is_encoded_for_post_process_normals() {
 fn post_process_projection_params_ignore_temporal_jitter() {
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.view.camera.fov_y_radians = std::f32::consts::FRAC_PI_2;
     extract.view.camera.projection_mode = ProjectionMode::Perspective;
@@ -338,7 +338,7 @@ fn post_process_projection_params_ignore_temporal_jitter() {
 fn orthographic_camera_depth_params_disable_perspective_linearization() {
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.view.camera.projection_mode =
         crate::core::framework::render::ProjectionMode::Orthographic;

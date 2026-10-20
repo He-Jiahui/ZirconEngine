@@ -60,13 +60,15 @@ pub(super) fn positioned_artifact_glyphs(
             }
             let face_pair = (glyph.font_face?, glyph.font_instance);
             let raster_face_index = *face_indices.get(&face_pair)?;
-            glyphs.push(artifact_glyph_geometry(
+            let mut projected = artifact_glyph_geometry(
                 glyph,
-                line_x,
+                retained_text_origin_for_smoothing(line_x, smoothing),
                 baseline_y,
                 physical_ppem,
                 raster_face_index,
-            )?);
+            )?;
+            projected.line_origin_x = line_x;
+            glyphs.push(projected);
         }
     }
 
@@ -94,6 +96,7 @@ pub(super) fn artifact_glyph_geometry(
         glyph_id: glyph.glyph_id,
         physical_ppem,
         origin_x,
+        line_origin_x: line_x,
         baseline_y,
         raster_face_index,
     })
@@ -103,7 +106,7 @@ fn artifact_line_origin(
     line: &RuntimeTextLine,
     rect: &FrameRect,
     line_height: f32,
-    smoothing: HostTextSmoothing,
+    _smoothing: HostTextSmoothing,
     layout_policy: HostTextLayoutPolicy,
 ) -> Option<(f32, f32)> {
     let artifact_line = line.artifact_line.as_ref()?;
@@ -114,7 +117,7 @@ fn artifact_line_origin(
         }
         HostTextLayoutPolicy::WordWrap => rect.y + line.frame_y,
     };
-    let line_x = retained_text_origin_for_smoothing(rect.x + line.frame_x, smoothing);
+    let line_x = rect.x + line.frame_x;
     (line_x.is_finite() && line_y.is_finite() && baseline.is_finite())
         .then_some((line_x, line_y + baseline))
 }

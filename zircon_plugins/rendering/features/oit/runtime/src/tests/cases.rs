@@ -130,7 +130,7 @@ fn oit_disabled_keeps_sorted_transparency_graph_baseline() {
 fn oit_without_camera_settings_falls_back_to_sorted_transparency() {
     let extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     let baseline = RenderPipelineAsset::default_forward_plus()
         .compile(&extract)
@@ -153,7 +153,7 @@ fn oit_without_camera_settings_falls_back_to_sorted_transparency() {
 fn oit_extract() -> RenderFrameExtract {
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.apply_viewport_size(UVec2::new(320, 180));
     extract.lighting.advanced_lighting = AdvancedLightingExtract {

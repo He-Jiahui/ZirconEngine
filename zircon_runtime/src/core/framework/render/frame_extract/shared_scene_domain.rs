@@ -45,6 +45,9 @@ impl<T> Deref for RenderSharedSceneDomain<T> {
 
 impl<T: Clone> DerefMut for RenderSharedSceneDomain<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
+        if Arc::strong_count(&self.0) > 1 {
+            crate::profile_counter!("render", "shared_scene_domain_cow_clone", 1);
+        }
         Arc::make_mut(&mut self.0)
     }
 }

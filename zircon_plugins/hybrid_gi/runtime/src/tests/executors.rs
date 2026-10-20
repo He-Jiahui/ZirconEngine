@@ -69,7 +69,7 @@ fn hybrid_gi_resolve_accepts_external_or_transient_scene_velocity() {
 #[test]
 fn hybrid_gi_executor_rejects_legacy_runtime_pass_name() {
     let mut context = context_for_contract(&SCENE_PREPARE_CONTRACT);
-    context.pass_name = "runtime-hybrid-gi-scene-prepare".to_string();
+    context.pass_name = "runtime-hybrid-gi-scene-prepare".into();
 
     let error = hybrid_gi_scene_prepare_executor(&mut context).unwrap_err();
 

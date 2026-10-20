@@ -64,7 +64,7 @@ fn render_product_sprite_world_frame_extract_exposes_runtime_sprite_components()
         )
         .unwrap();
 
-    let extract = world.to_render_frame_extract();
+    let extract = world.to_render_frame_extract_cloning();
 
     assert_eq!(
         extract.view.core_pipeline,
@@ -160,7 +160,7 @@ fn render_product_sprite_world_frame_extract_filters_by_camera_layers() {
         )
         .unwrap();
 
-    let extract = world.to_render_frame_extract();
+    let extract = world.to_render_frame_extract_cloning();
 
     assert!(extract
         .sprites
@@ -224,7 +224,7 @@ fn render_product_sprite_world_frame_extract_projects_static_mobility_into_commo
         )
         .unwrap();
 
-    let extract = world.to_render_frame_extract();
+    let extract = world.to_render_frame_extract_cloning();
     let sprite = extract
         .sprites
         .sprites
@@ -269,7 +269,7 @@ fn render_product_sprite_mesh2d_component_does_not_count_as_particle_sprite() {
         )
         .unwrap();
 
-    let extract = world.to_render_frame_extract();
+    let extract = world.to_render_frame_extract_cloning();
 
     assert!(extract.particles.sprites.is_empty());
     assert!(extract.sprites.sprites.is_empty());

@@ -238,7 +238,7 @@ fn viewport_render_snapshot_keeps_authoring_overlay_and_preview_state_in_editor_
     assert!(!toggled.preview.lighting_enabled);
     assert!(!toggled.preview.skybox_enabled);
 
-    let runtime_packet = scene.to_render_extract();
+    let runtime_packet = scene.to_render_extract_cloning();
     assert!(runtime_packet.overlays.highlights.is_none());
     assert!(runtime_packet.overlays.selection_anchors.is_empty());
     assert!(runtime_packet.overlays.handles.is_empty());
@@ -329,7 +329,7 @@ fn viewport_edit_mode_projection_derives_authoring_panels_from_runtime_world() {
             && !field.editable
     }));
 
-    let runtime_packet = scene.to_render_extract();
+    let runtime_packet = scene.to_render_extract_cloning();
     assert!(runtime_packet.overlays.highlights.is_none());
     assert!(runtime_packet.overlays.scene_gizmos.is_empty());
 }

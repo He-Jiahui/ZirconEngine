@@ -265,3 +265,20 @@ fn hierarchy_filter_preserves_the_editor_selection_overlay() {
     assert_eq!(filtered[0].entity, 2);
     assert!(filtered.is_selected(2));
 }
+
+#[test]
+fn repeated_filter_shares_rows_and_keeps_current_selection() {
+    let rows: std::sync::Arc<[_]> = vec![entry(1, "Camera", 0), entry(2, "Cube", 0)].into();
+    let first = SceneEntries::from_hierarchy_rows_at_generation(rows.clone(), [], 7);
+    let selected = SceneEntries::from_hierarchy_rows_at_generation(rows.clone(), [1], 7);
+    let filtered = first.filtered_by_hierarchy_query("cam");
+    let again = selected.filtered_by_hierarchy_query("cam");
+    assert!(filtered.shares_hierarchy_with(&again));
+    assert!(!filtered.is_selected(1));
+    assert!(again.is_selected(1));
+    let next_generation = SceneEntries::from_hierarchy_rows_at_generation(rows, [1], 8)
+        .filtered_by_hierarchy_query("cam");
+    assert!(!again.shares_hierarchy_with(&next_generation));
+    let other_query = selected.filtered_by_hierarchy_query("cube");
+    assert_eq!(other_query[0].entity, 2);
+}

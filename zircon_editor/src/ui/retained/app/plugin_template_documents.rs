@@ -14,10 +14,10 @@ impl RetainedEditorHost {
     pub(super) fn sync_plugin_template_documents_if_changed(
         &mut self,
     ) -> Result<(), PluginTemplateSynchronizationError> {
-        let (generation, enabled_capabilities) = self.runtime.extension_projection_revision()?;
-        if self.plugin_template_generation == generation
-            && self.plugin_template_capabilities == enabled_capabilities
-        {
+        if self.runtime.extension_projection_is_current(
+            self.plugin_template_generation,
+            &self.plugin_template_capabilities,
+        )? {
             return Ok(());
         }
 

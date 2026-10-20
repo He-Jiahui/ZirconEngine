@@ -195,3 +195,6 @@ mod tests;
 mod validation_scope;
 
 pub use scene::RenderPassGpuRecordingContext;
+
+mod report_label;
+pub use report_label::RenderReportLabel;

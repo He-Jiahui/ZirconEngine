@@ -596,7 +596,10 @@ fn pane_with_hierarchy_projection(
 
     zircon_runtime::profile_scope!("editor", "retained_host", "scene_pane_hierarchy");
     let size = UiSize::new(width.max(0.0), height.max(0.0));
-    pane.native_body.hierarchy.nodes = hierarchy_pane_nodes(&chrome.scene_entries, size);
+    pane.native_body.hierarchy.nodes = hierarchy_pane_nodes(
+        &super::hierarchy_projection::projected_hierarchy_entries(chrome),
+        size,
+    );
     pane
 }
 

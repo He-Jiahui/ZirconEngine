@@ -311,8 +311,8 @@ fn hybrid_gi_package_manifest_declares_dist_contract() {
 #[test]
 fn hybrid_gi_history_compiles_with_builtin_post_at_primary_render_extent() {
     use zircon_runtime::core::framework::render::{
-        PostProcessStackDescriptor, RenderFrameExtract, RenderResolutionPolicy,
-        RenderUpscalerKind, RenderViewFamilyPipeline, RenderWorldSnapshotHandle,
+        PostProcessStackDescriptor, RenderFrameExtract, RenderResolutionPolicy, RenderUpscalerKind,
+        RenderViewFamilyPipeline, RenderWorldSnapshotHandle,
     };
     use zircon_runtime::core::math::UVec2;
     use zircon_runtime::graphics::{RenderPipelineAsset, RenderPipelineCompileOptions};
@@ -320,14 +320,16 @@ fn hybrid_gi_history_compiles_with_builtin_post_at_primary_render_extent() {
 
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.apply_viewport_size(UVec2::new(1920, 1080));
-    extract.view.apply_view_family_pipeline(RenderViewFamilyPipeline::resolve(
-        UVec2::new(1920, 1080),
-        RenderResolutionPolicy::with_temporal_fractions(0.5, 0.75),
-        RenderUpscalerKind::Temporal,
-    ));
+    extract
+        .view
+        .apply_view_family_pipeline(RenderViewFamilyPipeline::resolve(
+            UVec2::new(1920, 1080),
+            RenderResolutionPolicy::with_temporal_fractions(0.5, 0.75),
+            RenderUpscalerKind::Temporal,
+        ));
     let render_extent = extract.view.effective_render_size();
     assert_ne!(render_extent, extract.view.effective_view_size());
     let compiled = RenderPipelineAsset::default_forward_plus()
@@ -345,7 +347,10 @@ fn hybrid_gi_history_compiles_with_builtin_post_at_primary_render_extent() {
         .expect("real hybrid GI and builtin post must agree on history schema");
     let graph = compiled.graph();
     for name in ["hybrid-gi-resolve", "uber"] {
-        assert!(graph.passes().iter().any(|pass| pass.name == name && !pass.culled));
+        assert!(graph
+            .passes()
+            .iter()
+            .any(|pass| pass.name == name && !pass.culled));
     }
     for name in [
         PostProcessGraphResourceNames::HISTORY_PREVIOUS_HYBRID_GI,
@@ -357,7 +362,10 @@ fn hybrid_gi_history_compiles_with_builtin_post_at_primary_render_extent() {
             .external_texture_desc
             .as_ref()
             .expect("GI history external physical descriptor");
-        assert_eq!((desc.width, desc.height), (render_extent.x, render_extent.y));
+        assert_eq!(
+            (desc.width, desc.height),
+            (render_extent.x, render_extent.y)
+        );
         assert_eq!(desc.format, TextureFormat::Rgba16Float);
         assert_eq!(desc.sample_count, 1);
     }

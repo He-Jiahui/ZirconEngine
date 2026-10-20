@@ -8,7 +8,6 @@ use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::template_runtime::EditorUiHostRuntime;
 
 use super::super::template_node_conversion::to_host_contract_template_node;
-use super::model_projection::map_model_rc;
 use super::template_node_projection::project_nodes;
 
 pub(super) fn to_host_contract_hierarchy_pane(
@@ -86,19 +85,10 @@ fn hierarchy_template_projection(
     })
 }
 
-fn to_host_contract_scene_node(node: &SceneNodeData) -> host_contract::SceneNodeData {
-    host_contract::SceneNodeData {
-        id: node.id.clone(),
-        name: node.name.clone(),
-        depth: node.depth,
-        selected: node.selected,
-    }
-}
-
 fn to_host_contract_scene_nodes(
     nodes: &ModelRc<SceneNodeData>,
 ) -> ModelRc<host_contract::SceneNodeData> {
-    map_model_rc(nodes, to_host_contract_scene_node)
+    nodes.clone()
 }
 
 fn apply_hierarchy_template_state(

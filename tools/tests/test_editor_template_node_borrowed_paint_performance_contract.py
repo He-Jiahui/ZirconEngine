@@ -7,12 +7,12 @@ ROOT = Path(__file__).resolve().parents[2]
 PIPELINE = (
     ROOT
     / "zircon_editor/src/ui/retained/contract/paint/"
-    "template_node_pipeline/draw.rs"
+    "node_pipeline/draw.rs"
 )
 HOVER = (
     ROOT
     / "zircon_editor/src/ui/retained/contract/paint/"
-    "template_node_pipeline/hover.rs"
+    "node_pipeline/hover.rs"
 )
 
 
@@ -37,11 +37,13 @@ class EditorTemplateNodeBorrowedPaintPerformanceContractTests(unittest.TestCase)
         stable_branch = collector.index("if transform.is_none() {")
         borrowed_dispatch = collector.index("push_untransformed_template_node_commands(")
         stable_return = collector.index("return;", borrowed_dispatch)
-        transform_clone = collector.index("let source_node = source_node.clone();", stable_return)
+        transform_clone = collector.index("patched = Some(source_node.clone());", stable_return)
 
         self.assertLess(stable_branch, borrowed_dispatch)
         self.assertLess(borrowed_dispatch, stable_return)
         self.assertLess(stable_return, transform_clone)
+        self.assertLess(collector.index("transform.filter_row"), transform_clone)
+        self.assertLess(collector.index("template_node_intersects_clip(node"), transform_clone)
 
     def test_hover_match_predicate_is_shared_with_hover_application(self) -> None:
         source = HOVER.read_text(encoding="utf-8")

@@ -52,7 +52,7 @@ fn virtual_geometry_async_executors_accept_graphics_queue_fallback() {
 #[test]
 fn virtual_geometry_executor_rejects_legacy_runtime_pass_name() {
     let mut context = context_for_contract(&PREPARE_CONTRACT);
-    context.pass_name = "runtime-virtual-geometry-prepare".to_string();
+    context.pass_name = "runtime-virtual-geometry-prepare".into();
 
     let error = virtual_geometry_prepare_executor(&mut context).unwrap_err();
 

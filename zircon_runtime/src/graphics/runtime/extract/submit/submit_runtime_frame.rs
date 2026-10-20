@@ -146,14 +146,15 @@ fn submit_selected_runtime_frame(
     let resolved_history = resolve_history_handle(&mut state, viewport, &context);
     context.set_virtual_geometry_prepared_cpu_frame(prepared.virtual_geometry_prepared_cpu_frame());
     attach_prepared_sidebands_to_runtime_frame(frame, prepared);
+    frame.subsurface_profiles_override = context.subsurface_profiles();
     frame.virtual_geometry_readback_scope = context.virtual_geometry_readback_scope();
     frame.virtual_geometry_execution_inputs = context.virtual_geometry_execution_inputs();
-    frame.virtual_geometry_indexed_sources = context.virtual_geometry_indexed_sources().to_vec();
     frame.virtual_geometry_execution_data =
         super::build_virtual_geometry_debug_snapshot::build_virtual_geometry_execution_data(
-            &context,
+            &mut context,
         )
         .map(Arc::new);
+    frame.virtual_geometry_indexed_sources = context.take_virtual_geometry_indexed_sources();
     state
         .renderer
         .set_global_material_mip_bias(context.global_material_mip_bias());

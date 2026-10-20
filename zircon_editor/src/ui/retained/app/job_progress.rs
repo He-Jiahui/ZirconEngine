@@ -6,11 +6,19 @@ use super::RetainedEditorHost;
 
 impl RetainedEditorHost {
     pub(super) fn sync_editor_job_progress(&mut self) {
-        let primary = self.runtime.primary_job_progress_snapshot();
-        let progress = status_task_progress_from_jobs(primary.as_slice());
-        if !self.runtime.set_retained_status_task_progress(&progress) {
+        let Some(snapshot) = self
+            .runtime
+            .context()
+            .jobs()
+            .progress()
+            .primary_snapshot_if_changed(self.observed_job_progress_generation)
+        else {
             return;
-        }
+        };
+        let primary = snapshot.primary();
+        let progress =
+            status_task_progress_from_jobs(primary.map_or(&[][..], std::slice::from_ref));
+        self.runtime.set_retained_status_task_progress(&progress);
         capture_trace::record("visible_job_progress_changed", || {
             format!(
                 "primary={primary:?} cursor={:?}",
@@ -21,7 +29,10 @@ impl RetainedEditorHost {
             .workbench_window_bridge
             .prepare_status_task_progress(progress.as_ref())
         {
-            Ok(()) => self.pending_activity_projection_refresh = true,
+            Ok(()) => {
+                self.observed_job_progress_generation = Some(snapshot.generation());
+                self.pending_activity_projection_refresh = true;
+            }
             Err(error) => self.set_status_line(error.to_string()),
         }
     }

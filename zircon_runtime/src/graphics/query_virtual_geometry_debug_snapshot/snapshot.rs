@@ -10,7 +10,8 @@ pub(in crate::graphics::runtime::render_framework) fn query_virtual_geometry_deb
     framework: &WgpuRenderFramework,
 ) -> Result<Option<RenderVirtualGeometryDebugSnapshot>, RenderFrameworkError> {
     framework.finish_submission()?;
-    let state = framework.lock_state();
+    let mut state = framework.lock_state();
+    state.virtual_geometry_debug_snapshot_requested = true;
     let snapshot = state.last_virtual_geometry_debug_snapshot.clone();
     let mut physical = None;
     if let Some(original) = snapshot.as_ref() {
@@ -54,7 +55,8 @@ pub(in crate::graphics::runtime::render_framework) fn query_virtual_geometry_deb
     framework: &WgpuRenderFramework,
 ) -> Result<bool, RenderFrameworkError> {
     framework.finish_submission()?;
-    let state = framework.lock_state();
+    let mut state = framework.lock_state();
+    state.virtual_geometry_debug_snapshot_requested = true;
     Ok(state.last_virtual_geometry_debug_snapshot.is_some())
 }
 
@@ -462,7 +464,7 @@ mod terminal_failure_tests {
     }
 
     fn extract(mode: u64) -> RenderFrameExtract {
-        let mut snapshot = crate::scene::world::World::new().to_render_snapshot();
+        let mut snapshot = crate::scene::world::World::new().to_render_snapshot_cloning();
         snapshot.scene.meshes.clear();
         snapshot.scene.directional_lights.clear();
         snapshot.scene.point_lights.clear();

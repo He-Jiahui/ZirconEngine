@@ -610,6 +610,6 @@ fn compute_pass_lowering_preserves_external_binding_when_adding_missing_read_acc
 fn test_extract() -> RenderFrameExtract {
     RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     )
 }

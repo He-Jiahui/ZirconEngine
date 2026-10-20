@@ -43,7 +43,7 @@ fn visibility_context_partitions_static_and_dynamic_meshes() {
         .set_render_layer_mask(world.active_camera(), 0x0000_0006)
         .expect("camera layer assignment should include test meshes");
 
-    let context = VisibilityContext::from(&world.to_render_frame_extract());
+    let context = VisibilityContext::from(&world.to_render_frame_extract_cloning());
 
     assert_eq!(context.renderable_entities, vec![static_mesh, dynamic_mesh]);
     assert_eq!(context.static_entities, vec![static_mesh]);
@@ -98,7 +98,7 @@ fn visibility_context_builds_deterministic_batches_and_instancing_candidates() {
         .set_render_layer_mask(world.active_camera(), 0x0000_0009)
         .expect("camera layer assignment should include all test batches");
 
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.geometry.meshes.reverse();
     extract.visibility.renderable_entities.reverse();
     extract.visibility.static_entities.reverse();
@@ -173,7 +173,7 @@ fn visibility_context_filters_visible_batches_through_camera_frustum() {
         )
         .expect("culled mesh transform should update");
 
-    let context = VisibilityContext::from(&world.to_render_frame_extract());
+    let context = VisibilityContext::from(&world.to_render_frame_extract_cloning());
 
     assert_eq!(context.main_view_visible_entities(), vec![visible]);
     assert_eq!(context.main_view_culled_entities(), vec![culled]);
@@ -213,7 +213,7 @@ fn visibility_context_without_history_marks_bvh_full_rebuild() {
         .set_mobility(tree_entity, Mobility::Static)
         .expect("static mobility assignment should succeed");
 
-    let context = VisibilityContext::from(&world.to_render_frame_extract());
+    let context = VisibilityContext::from(&world.to_render_frame_extract_cloning());
 
     assert_eq!(
         context.bvh_update_plan.strategy,
@@ -264,7 +264,7 @@ fn visibility_context_with_history_tracks_bvh_dirty_entities() {
             material_handle("res://materials/tree.zmaterial"),
         )
         .expect("test mesh spawn should succeed");
-    let previous_context = VisibilityContext::from(&world.to_render_frame_extract());
+    let previous_context = VisibilityContext::from(&world.to_render_frame_extract_cloning());
 
     world
         .update_transform(
@@ -281,7 +281,7 @@ fn visibility_context_with_history_tracks_bvh_dirty_entities() {
         .expect("test mesh spawn should succeed");
 
     let context = VisibilityContext::from_extract_with_history(
-        &world.to_render_frame_extract(),
+        &world.to_render_frame_extract_cloning(),
         Some(&previous_context.history_snapshot),
     );
 
@@ -332,7 +332,7 @@ fn visibility_context_without_history_marks_particle_emitters_dirty() {
             material_handle("res://materials/tree.zmaterial"),
         )
         .expect("test mesh spawn should succeed");
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.particles.emitters = vec![emitter_a, emitter_b];
 
     let context = VisibilityContext::from(&extract);
@@ -365,7 +365,7 @@ fn visibility_context_with_history_tracks_particle_upload_changes() {
             material_handle("res://materials/tree.zmaterial"),
         )
         .expect("test mesh spawn should succeed");
-    let mut previous_extract = world.to_render_frame_extract();
+    let mut previous_extract = world.to_render_frame_extract_cloning();
     previous_extract.particles.emitters = vec![emitter_a, removed_emitter];
     let previous_context = VisibilityContext::from(&previous_extract);
 
@@ -375,7 +375,7 @@ fn visibility_context_with_history_tracks_particle_upload_changes() {
             material_handle("res://materials/statue.zmaterial"),
         )
         .expect("test mesh spawn should succeed");
-    let mut current_extract = world.to_render_frame_extract();
+    let mut current_extract = world.to_render_frame_extract_cloning();
     current_extract.particles.emitters = vec![emitter_a, inserted_emitter];
 
     let context = VisibilityContext::from_extract_with_history(
@@ -460,7 +460,7 @@ fn visibility_context_preserves_multi_primitive_stable_instance_keys() {
         .update_transform(entity, Transform::from_translation(Vec3::ZERO))
         .expect("visible primitive transform should update");
 
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     let mut hidden_primitive = extract.geometry.meshes[0].clone();
     hidden_primitive.stable_instance_key = render_mesh_stable_instance_key(entity, 1);
     hidden_primitive.model = model_handle("res://models/tree.obj");
@@ -529,7 +529,7 @@ fn virtual_geometry_visibility_keeps_same_entity_primitives_separate_by_stable_i
         .update_transform(entity, Transform::from_translation(Vec3::ZERO))
         .expect("visible primitive transform should update");
 
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     let visible_key = extract.geometry.meshes[0].stable_instance_key;
     let mut hidden_primitive = extract.geometry.meshes[0].clone();
     hidden_primitive.stable_instance_key = render_mesh_stable_instance_key(entity, 1);

@@ -136,7 +136,7 @@ fn assert_exact_baseline(pipeline: RenderPipelineAsset, extract: &RenderFrameExt
 fn extract_with_profiles(with_profile: bool) -> RenderFrameExtract {
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     if with_profile {
         extract.lighting.advanced_lighting.subsurface_profiles = vec![SubsurfaceProfileData::new(

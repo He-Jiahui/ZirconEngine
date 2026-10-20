@@ -26,7 +26,7 @@ fn project_loader_deserializes_the_world_payload_once() {
 #[test]
 fn world_bootstraps_with_renderable_defaults() {
     let world = World::new();
-    let snapshot = world.to_render_snapshot();
+    let snapshot = world.to_render_snapshot_cloning();
 
     assert!(!snapshot.scene.meshes.is_empty());
     assert!(snapshot.overlays.grid.is_none());

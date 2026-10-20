@@ -512,8 +512,8 @@ impl RuntimeDynamicSession {
             Ok(payload) => payload,
             Err(status) => return status,
         };
-        let path_payload = || match String::from_utf8(payload.to_vec()) {
-            Ok(path) => Ok(path),
+        let path_payload = || match std::str::from_utf8(payload) {
+            Ok(path) => Ok(path.to_owned()),
             Err(_) => Err(invalid_argument(b"invalid runtime file drag path")),
         };
         let file_event = match event.state {

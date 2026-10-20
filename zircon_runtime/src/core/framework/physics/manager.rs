@@ -25,7 +25,10 @@ pub trait PhysicsManager: Send + Sync {
     /// 接收完整世界快照，供后端查询、接触检测和调试显示使用。
     fn sync_world(&self, sync: PhysicsWorldSyncState);
     /// 返回已同步状态；缺席表示该世界尚未同步或后端已清理其状态。
-    fn synchronized_world(&self, world: WorldHandle) -> Option<PhysicsWorldSyncState>;
+    fn synchronized_world(
+        &self,
+        world: WorldHandle,
+    ) -> Option<std::sync::Arc<PhysicsWorldSyncState>>;
     fn ray_cast(&self, query: &PhysicsRayCastQuery) -> Vec<PhysicsRayCastHit>;
     // TODO: [CR-PHYSICS-FRAMEWORK-0001] 确认默认空结果能否表达“后端不支持形状查询”；目前与“没有命中”无法区分；下一步核对服务兼容策略及查询消费者。
     /// 对已同步世界查询形状重叠；兼容实现默认返回空结果。

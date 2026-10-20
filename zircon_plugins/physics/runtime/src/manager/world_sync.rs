@@ -8,7 +8,7 @@ use zircon_runtime::core::framework::physics::{
 };
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::math::{Transform, Vec3};
-use zircon_runtime::scene::components::{ColliderShape, JointKind, RigidBodyType, SceneNode};
+use zircon_runtime::scene::components::{ColliderShape, JointKind, RigidBodyType};
 use zircon_runtime::scene::world::World;
 
 use super::poison_recovery::recover_lock;
@@ -22,9 +22,10 @@ use super::validation::{
 use crate::backend::builtin::PhysicsTriggerPairMap;
 
 pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> PhysicsWorldSyncState {
-    let nodes = world.node_records();
+    let mut entities = world.stable_entity_ids().collect::<Vec<_>>();
+    entities.sort_unstable();
     let (body_capacity, collider_capacity, joint_capacity, material_capacity) =
-        world_sync_projection_capacities(&nodes);
+        world_sync_projection_capacities(world, &entities);
     let mut sync = PhysicsWorldSyncState {
         world: world_handle,
         bodies: Vec::with_capacity(body_capacity),
@@ -33,11 +34,13 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
         materials: Vec::with_capacity(material_capacity),
     };
 
-    for node in nodes {
-        let entity = node.id;
-        let entity_transform = world.world_transform(entity).unwrap_or(node.transform);
+    for entity in entities {
+        let entity_transform = world
+            .world_transform(entity)
+            .or_else(|| world.local_transform(entity))
+            .unwrap_or_default();
 
-        if let Some(rigid_body) = node.rigid_body {
+        if let Some(rigid_body) = world.rigid_body(entity) {
             if transform_is_finite(entity_transform) && rigid_body_sync_input_is_finite(&rigid_body)
             {
                 sync.bodies.push(PhysicsBodySyncState {
@@ -63,7 +66,7 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
             }
         }
 
-        if let Some(collider) = node.collider {
+        if let Some(collider) = world.collider(entity) {
             let transform = combine_transforms(entity_transform, collider.local_transform);
             if transform_is_finite(transform)
                 && collider_shape_sync_input_is_valid(&collider.shape)
@@ -74,7 +77,7 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
                     .is_none_or(material_metadata_sync_input_is_finite)
             {
                 let material_locator = collider.material.map(|handle| handle.id().to_string());
-                let material_override = collider.material_override;
+                let material_override = collider.material_override.clone();
                 let material = if material_locator.is_some() || material_override.is_some() {
                     Some(PhysicsMaterialSyncState {
                         entity,
@@ -86,7 +89,7 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
                 };
                 sync.colliders.push(PhysicsColliderSyncState {
                     entity,
-                    shape: collider_shape_into_physics(collider.shape),
+                    shape: collider_shape_to_physics(&collider.shape),
                     sensor: collider.sensor,
                     layer: collider.layer,
                     collision_group: collider.collision_group,
@@ -99,7 +102,7 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
             }
         }
 
-        if let Some(joint) = node.joint {
+        if let Some(joint) = world.joint(entity) {
             if joint_sync_input_is_finite(&joint) {
                 sync.joints.push(PhysicsJointSyncState {
                     entity,
@@ -116,8 +119,8 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
                     axis: joint.axis.to_array(),
                     limits: joint.limits,
                     collide_connected: joint.collide_connected,
-                    constraint: joint.constraint,
-                    skeleton_binding: joint.skeleton_binding,
+                    constraint: joint.constraint.clone(),
+                    skeleton_binding: joint.skeleton_binding.clone(),
                 });
             }
         }
@@ -126,18 +129,23 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
     sync
 }
 
-fn world_sync_projection_capacities(nodes: &[SceneNode]) -> (usize, usize, usize, usize) {
-    nodes.iter().fold(
+fn world_sync_projection_capacities(
+    world: &World,
+    entities: &[u64],
+) -> (usize, usize, usize, usize) {
+    entities.iter().fold(
         (0, 0, 0, 0),
-        |(bodies, colliders, joints, materials), node| {
-            let has_material = node.collider.as_ref().is_some_and(|collider| {
-                collider.material.is_some() || collider.material_override.is_some()
-            });
+        |(bodies, colliders, joints, materials), &entity| {
+            let collider = world.collider(entity);
             (
-                bodies + usize::from(node.rigid_body.is_some()),
-                colliders + usize::from(node.collider.is_some()),
-                joints + usize::from(node.joint.is_some()),
-                materials + usize::from(has_material),
+                bodies + usize::from(world.rigid_body(entity).is_some()),
+                colliders + usize::from(collider.is_some()),
+                joints + usize::from(world.joint(entity).is_some()),
+                materials
+                    + usize::from(
+                        collider
+                            .is_some_and(|c| c.material.is_some() || c.material_override.is_some()),
+                    ),
             )
         },
     )

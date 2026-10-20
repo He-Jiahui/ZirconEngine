@@ -5,6 +5,7 @@ fn glyph(origin_x: f32, baseline_y: f32) -> RuntimeTextGlyph {
         glyph_id: 42,
         physical_ppem: 16,
         origin_x,
+        line_origin_x: 0.0,
         baseline_y,
         raster_face_index: 0,
     }

@@ -381,7 +381,7 @@ fn anti_alias_product_profile(name: &str, anti_alias_enabled: bool) -> RenderQua
 }
 
 fn temporal_off_product_extract(viewport_size: UVec2) -> RenderFrameExtract {
-    let mut extract = World::new().to_render_frame_extract();
+    let mut extract = World::new().to_render_frame_extract_cloning();
     extract.apply_viewport_size(viewport_size);
     extract.view.anti_alias = AntiAliasSettings::off();
     extract

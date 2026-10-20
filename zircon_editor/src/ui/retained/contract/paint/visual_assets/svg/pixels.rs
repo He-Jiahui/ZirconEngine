@@ -58,7 +58,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn render_
         tint_non_transparent_pixels(&mut rgba, tint);
     }
     let image = HostPaintImagePixels {
-        resource_key: retained_image_resource_key(target.width, target.height, &rgba),
+        source_resource_key: None,
+        source_path: None,
+        resource_key: (retained_image_resource_key(target.width, target.height, &rgba)).into(),
         width: target.width,
         height: target.height,
         rgba: rgba.into(),

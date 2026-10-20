@@ -1,9 +1,8 @@
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
-use std::sync::{Mutex, OnceLock};
 
 use serde_json::{json, Value};
 use zircon_runtime_interface::runtime_build_set::ZrRuntimeDigestV1;
@@ -32,7 +31,7 @@ struct StyleValues {
     shadow_scan_complete: bool,
     shadow_incomplete: bool,
     shadow_layers: Vec<Value>,
-    identity: Option<PaintNodeIdentity>,
+    identity: Option<Rc<PaintNodeIdentity>>,
 }
 
 #[derive(Default)]
@@ -48,11 +47,15 @@ struct Capture {
 }
 
 thread_local! {
+    static CAPTURE_ACTIVE: Cell<bool> = const { Cell::new(false) };
     static CAPTURE: RefCell<Option<Capture>> = const { RefCell::new(None) };
-    static ACTIVE_OWNER: RefCell<Option<PaintNodeIdentity>> = const { RefCell::new(None) };
+    static ACTIVE_OWNER: RefCell<Option<Rc<PaintNodeIdentity>>> = const { RefCell::new(None) };
+    static MEDIA_FILES: RefCell<HashMap<String, Option<MediaFileReceipt>>> = RefCell::new(HashMap::new());
 }
 
-static MEDIA_FILES: OnceLock<Mutex<HashMap<String, Option<MediaFileReceipt>>>> = OnceLock::new();
+pub(super) fn capture_active() -> bool {
+    CAPTURE_ACTIVE.get()
+}
 
 pub(crate) struct PaintEvidenceScope(PhantomData<Rc<()>>);
 
@@ -80,11 +83,15 @@ impl PaintEvidenceScope {
             if capture.is_some() {
                 return Err("paint evidence capture is already active".into());
             }
+            // Invalidate stale warm pixels before collecting any new source receipts.
+            super::visual_assets::reconcile_visual_asset_pixel_sources();
+            MEDIA_FILES.with_borrow_mut(HashMap::clear);
             *capture = Some(Capture {
                 repo: Some(repo),
                 dpi,
                 ..Capture::default()
             });
+            CAPTURE_ACTIVE.set(true);
             Ok(Self(PhantomData))
         })
     }
@@ -97,16 +104,18 @@ impl PaintEvidenceScope {
             .styles
             .into_iter()
             .map(|((source_path, source_node_id, instance_path), values)| {
-                let identity = values.identity.unwrap_or(PaintNodeIdentity {
-                    node_id: String::new(),
-                    parent_node_id: None,
-                    source_path: source_path.clone(),
-                    source_node_id: source_node_id.clone(),
-                    instance_path: instance_path.clone(),
-                    parent_source_path: None,
-                    parent_source_node_id: None,
-                    parent_instance_path: None,
-                    control_id: None,
+                let identity = values.identity.unwrap_or_else(|| {
+                    Rc::new(PaintNodeIdentity {
+                        node_id: String::new(),
+                        parent_node_id: None,
+                        source_path: source_path.clone(),
+                        source_node_id: source_node_id.clone(),
+                        instance_path: instance_path.clone(),
+                        parent_source_path: None,
+                        parent_source_node_id: None,
+                        parent_instance_path: None,
+                        control_id: None,
+                    })
                 });
                 let (background, background_complete) =
                     unique_color(values.background, values.shadow_scan_complete);
@@ -215,20 +224,22 @@ impl PaintEvidenceScope {
 
 impl Drop for PaintEvidenceScope {
     fn drop(&mut self) {
+        CAPTURE_ACTIVE.set(false);
         CAPTURE.with_borrow_mut(|capture| *capture = None);
         ACTIVE_OWNER.with_borrow_mut(|owner| *owner = None);
+        MEDIA_FILES.with_borrow_mut(HashMap::clear);
     }
 }
 
-pub(super) struct PaintNodeOwnerScope(Option<PaintNodeIdentity>);
+pub(super) struct PaintNodeOwnerScope(Option<Rc<PaintNodeIdentity>>);
 
 impl PaintNodeOwnerScope {
-    pub(super) fn enter(owner: Option<&PaintNodeIdentity>) -> Self {
-        let previous = ACTIVE_OWNER.with_borrow_mut(|active| {
-            let previous = active.clone();
-            *active = owner.cloned();
-            previous
-        });
+    pub(super) fn enter(owner: Option<&Rc<PaintNodeIdentity>>) -> Self {
+        if !capture_active() {
+            return Self(None);
+        }
+        let previous =
+            ACTIVE_OWNER.with_borrow_mut(|active| std::mem::replace(active, owner.cloned()));
         Self(previous)
     }
 }
@@ -239,7 +250,7 @@ impl Drop for PaintNodeOwnerScope {
     }
 }
 
-pub(in crate::ui::retained_host::host_contract) fn active_owner() -> Option<PaintNodeIdentity> {
+pub(in crate::ui::retained_host::host_contract) fn active_owner() -> Option<Rc<PaintNodeIdentity>> {
     ACTIVE_OWNER.with_borrow(|owner| owner.clone())
 }
 
@@ -251,7 +262,7 @@ pub(super) fn record_identity_issue(issue: String) {
     });
 }
 
-pub(super) fn record_owner_commands_complete(owner: &PaintNodeIdentity) {
+pub(super) fn record_owner_commands_complete(owner: &Rc<PaintNodeIdentity>) {
     CAPTURE.with_borrow_mut(|capture| {
         let Some(capture) = capture else { return };
         let values = capture.styles.entry(identity_key(owner)).or_default();
@@ -261,6 +272,9 @@ pub(super) fn record_owner_commands_complete(owner: &PaintNodeIdentity) {
 }
 
 pub(super) fn record_box_shadow_command(command: &HostPaintCommand) {
+    if !capture_active() {
+        return;
+    }
     let Some(geometry) = command.box_shadow else {
         return;
     };
@@ -389,30 +403,33 @@ pub(super) fn record_drawn_command(command: &HostPaintCommand) {
 }
 
 pub(super) fn register_media_source(resource_key: &str, path: &Path) {
-    let key = MEDIA_FILES.get_or_init(|| Mutex::new(HashMap::new()));
-    let receipt = (|| {
-        let canonical = path.canonicalize().ok()?;
-        let bytes = std::fs::read(&canonical).ok()?;
-        let sha256 = ZrRuntimeDigestV1::sha256(&bytes).as_str().to_owned();
-        Some(MediaFileReceipt {
-            path: canonical,
-            sha256,
-        })
-    })();
-    if let Ok(mut files) = key.lock() {
-        match (files.get(resource_key), receipt) {
-            (None, receipt) => {
-                files.insert(resource_key.to_owned(), receipt);
-            }
-            (Some(Some(old)), Some(new)) if old.path == new.path && old.sha256 == new.sha256 => {}
-            _ => {
+    if !capture_active() {
+        return;
+    }
+    let canonical = path.canonicalize().ok();
+    MEDIA_FILES.with_borrow_mut(|files| {
+        if let Some(previous) = files.get(resource_key) {
+            if previous.as_ref().map(|receipt| &receipt.path) != canonical.as_ref() {
                 files.insert(resource_key.to_owned(), None);
             }
+            // Hash once per capture/key. finish() independently detects changes during capture.
+            return;
         }
-    }
+        let receipt = canonical.and_then(|path| {
+            let bytes = std::fs::read(&path).ok()?;
+            Some(MediaFileReceipt {
+                path,
+                sha256: ZrRuntimeDigestV1::sha256(&bytes).as_str().to_owned(),
+            })
+        });
+        files.insert(resource_key.to_owned(), receipt);
+    });
 }
 
 pub(super) fn record_media_use(resource_key: &str) {
+    if !capture_active() {
+        return;
+    }
     let owner = active_owner();
     CAPTURE.with_borrow_mut(|capture| {
         let Some(capture) = capture else { return };
@@ -422,11 +439,7 @@ pub(super) fn record_media_use(resource_key: &str) {
             ));
             return;
         };
-        let registry = MEDIA_FILES.get_or_init(|| Mutex::new(HashMap::new()));
-        let file = registry
-            .lock()
-            .ok()
-            .and_then(|files| files.get(resource_key).cloned());
+        let file = MEDIA_FILES.with_borrow(|files| files.get(resource_key).cloned());
         let Some(Some(file)) = file else {
             capture.issues.push(format!(
                 "media resource {resource_key} has no unambiguous source file receipt"

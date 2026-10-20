@@ -319,7 +319,7 @@ fn export_procedural_realtime_ibl_pbr_matrix_png() {
     );
     let world =
         zircon_runtime::scene::world::World::load_scene_from_uri(&project, &scene_uri).unwrap();
-    let mut snapshot = world.build_viewport_render_packet(&SceneViewportExtractRequest {
+    let mut snapshot = world.build_viewport_render_packet_cloning(&SceneViewportExtractRequest {
         settings: ViewportRenderSettings::default(),
         active_camera_override: None,
         camera: None,
@@ -516,16 +516,17 @@ fn export_procedural_realtime_ibl_mirror_cardinal_120deg_png() {
     let mut frames = Vec::new();
     let mut render_millis = Vec::with_capacity(cases.len());
     for view_case in cases {
-        let mut snapshot = world.build_viewport_render_packet(&SceneViewportExtractRequest {
-            settings: ViewportRenderSettings::default(),
-            active_camera_override: None,
-            camera: Some(realtime_mirror_camera_descriptor(
-                view_case.camera_view,
-                MULTI_VIEW_OUTPUT_SIZE,
-            )),
-            viewport_size: Some(MULTI_VIEW_OUTPUT_SIZE),
-            virtual_geometry_debug: None,
-        });
+        let mut snapshot =
+            world.build_viewport_render_packet_cloning(&SceneViewportExtractRequest {
+                settings: ViewportRenderSettings::default(),
+                active_camera_override: None,
+                camera: Some(realtime_mirror_camera_descriptor(
+                    view_case.camera_view,
+                    MULTI_VIEW_OUTPUT_SIZE,
+                )),
+                viewport_size: Some(MULTI_VIEW_OUTPUT_SIZE),
+                virtual_geometry_debug: None,
+            });
         snapshot.environment = environment.clone();
         snapshot.preview =
             PreviewEnvironmentExtract::from_environment(&snapshot.environment, true, Vec4::ZERO);

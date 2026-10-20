@@ -12,11 +12,8 @@ pub fn integrate_builtin_physics_steps(world: &mut World, plan: PhysicsWorldStep
         return;
     }
 
-    let entities = world
-        .node_records()
-        .iter()
-        .map(|node| node.id)
-        .collect::<Vec<_>>();
+    let mut entities = world.stable_entity_ids().collect::<Vec<_>>();
+    entities.sort_unstable();
     for _ in 0..plan.steps {
         for entity in &entities {
             let Some(mut rigid_body) = world.rigid_body(*entity).cloned() else {
@@ -28,7 +25,7 @@ pub fn integrate_builtin_physics_steps(world: &mut World, plan: PhysicsWorldStep
             if !rigid_body_step_input_is_finite(&rigid_body) {
                 continue;
             }
-            let Some(mut transform) = world.find_node(*entity).map(|node| node.transform) else {
+            let Some(mut transform) = world.local_transform(*entity) else {
                 continue;
             };
             if !transform_is_finite(transform) {

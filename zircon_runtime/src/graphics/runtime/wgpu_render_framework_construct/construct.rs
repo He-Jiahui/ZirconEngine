@@ -497,6 +497,7 @@ impl WgpuRenderFramework {
                     solari_runtime_provider: selected_solari_runtime_provider,
                     virtual_geometry_runtime_provider: selected_virtual_geometry_runtime_provider,
                     last_virtual_geometry_debug_snapshot: None,
+                    virtual_geometry_debug_snapshot_requested: false,
                     viewports: HashMap::new(),
                     stats: crate::core::framework::render::RenderStats {
                         device_diagnostics,

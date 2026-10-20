@@ -100,7 +100,7 @@ impl ResourceStreamer {
     fn material_texture_uses_output_target_binding(&self, texture_id: ResourceId) -> bool {
         self.asset_manager()
             .ok()
-            .and_then(|asset_manager| asset_manager.load_texture_asset(texture_id).ok())
+            .and_then(|asset_manager| asset_manager.load_texture_asset_snapshot(texture_id).ok())
             .map(|texture| {
                 let descriptor = texture.render_image_descriptor();
                 descriptor.usage.contains(&RenderImageUsage::RenderTarget)

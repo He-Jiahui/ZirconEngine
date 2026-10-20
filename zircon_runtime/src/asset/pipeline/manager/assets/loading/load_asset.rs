@@ -30,6 +30,29 @@ impl ProjectAssetManager {
         self.load_typed(id, ResourceHandle::<MeshMarker>::new(id), "mesh")
     }
 
+    pub fn load_model_asset_snapshot(
+        &self,
+        id: AssetId,
+    ) -> Result<ResourceSnapshot<ModelAsset>, CoreError> {
+        self.load_typed_snapshot(id, ResourceHandle::<ModelMarker>::new(id), "model")
+    }
+
+    pub fn load_mesh_asset_snapshot(
+        &self,
+        id: AssetId,
+    ) -> Result<ResourceSnapshot<MeshAsset>, CoreError> {
+        self.load_typed_snapshot(id, ResourceHandle::<MeshMarker>::new(id), "mesh")
+    }
+
+    pub fn texture_render_descriptor(
+        &self,
+        id: AssetId,
+    ) -> Option<crate::core::framework::render::RenderImageDescriptor> {
+        self.load_texture_asset_snapshot(id)
+            .ok()
+            .map(|texture| texture.render_image_descriptor())
+    }
+
     pub fn load_material_asset(&self, id: AssetId) -> Result<MaterialAsset, CoreError> {
         self.load_typed(id, ResourceHandle::<MaterialMarker>::new(id), "material")
     }

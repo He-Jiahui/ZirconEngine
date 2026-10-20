@@ -236,10 +236,11 @@ impl SceneComponentSerializerRegistry {
                 )));
             }
         }
-        // Validate the complete descriptor set on a shadow World before touching
-        // the caller's World.  This includes descriptor-property and reflection
-        // checks that are intentionally owned by World::register_component_type.
-        let mut shadow_world = world.clone();
+        // Validate descriptors against registry copies without copying entities or components.
+        let mut shadow_world = World::empty();
+        shadow_world.component_types = world.component_types.clone();
+        shadow_world.type_registry = world.type_registry.clone();
+        shadow_world.component_registry = world.component_registry.clone();
         for descriptor in &descriptors {
             if world
                 .component_type_descriptor(&descriptor.type_id)

@@ -309,6 +309,10 @@ fn editor_runtime_snapshots_enabled_plugin_templates_by_owner_and_capability() {
     assert!(!disabled_capabilities.contains(&capability));
     assert_eq!(disabled_revision_capabilities, disabled_capabilities);
     assert!(!disabled_templates.contains_key("weather"));
+    assert!(runtime
+        .runtime
+        .extension_projection_is_current(disabled_revision, &disabled_revision_capabilities)
+        .unwrap());
 
     let manager = runtime
         .core
@@ -328,6 +332,14 @@ fn editor_runtime_snapshots_enabled_plugin_templates_by_owner_and_capability() {
     assert_eq!(enabled_revision, registered_generation);
     assert!(enabled_capabilities.contains(&capability));
     assert_eq!(enabled_revision_capabilities, enabled_capabilities);
+    assert!(!runtime
+        .runtime
+        .extension_projection_is_current(disabled_revision, &disabled_revision_capabilities)
+        .unwrap());
+    assert!(runtime
+        .runtime
+        .extension_projection_is_current(enabled_revision, &enabled_revision_capabilities)
+        .unwrap());
     assert_eq!(
         enabled_templates
             .get("weather")

@@ -183,7 +183,7 @@ fn plugin_capability_metadata_without_ready_runtime_plan_does_not_enable_submiss
 fn test_extract() -> RenderFrameExtract {
     RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     )
 }
 

@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use super::super::super::evidence::register_media_source;
 use super::super::super::sprite_atlas::resolve_editor_sprite_atlas_image;
 use super::super::candidates::{first_existing_path, is_svg_path};
 use super::super::svg::render_svg_file_pixels;
@@ -8,7 +7,7 @@ use super::super::{
     mui_icons, retained_image_pixels, HostPaintImagePixels, RasterTargetSize, MUI_ICON_DEFAULT_EDGE,
 };
 use super::async_loader::{schedule_visual_asset_load, VisualAssetLoadSchedule};
-use super::cache::{cached_visual_asset_pixels, store_visual_asset_pixels};
+use super::cache::{cached_visual_asset_variant, store_visual_asset_pixels};
 use super::image::{load_image_from_path, load_image_from_path_for_target};
 use super::key::image_pixels_cache_key;
 use crate::ui::retained_host::host_contract::data::FrameRect;
@@ -44,8 +43,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn load_pi
 ) -> CandidatePixelsLoad {
     // Asset refresh invalidates this bounded cache, so stable paints need neither candidate
     // construction nor filesystem probing.
-    let key = image_pixels_cache_key(base_key, target, tint);
-    if let Some(cached) = cached_visual_asset_pixels(&key) {
+    if let Some(cached) = cached_visual_asset_variant(base_key, target, tint) {
         zircon_runtime::profile_counter!("editor", "ui.visual_asset_cache.hit_count", 1);
         record_current_ui_perf_counter(UiPerfCounter::VisualAssetCacheHitCount, 1.0);
         return match cached {
@@ -53,6 +51,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn load_pi
             None => CandidatePixelsLoad::Missing,
         };
     }
+    let key = image_pixels_cache_key(base_key, target, tint);
     zircon_runtime::profile_counter!("editor", "ui.visual_asset_cache.miss_count", 1);
     record_current_ui_perf_counter(UiPerfCounter::VisualAssetCacheMissCount, 1.0);
     let candidates =
@@ -110,7 +109,9 @@ pub(super) fn load_visual_asset_pixels_uncached(
                 .and_then(|image| retained_image_pixels(&image, tint))
         }
     }
-    .map(|pixels| {
+    .map(|mut pixels| {
+        // Keep the actual resolver result, including on asynchronous/non-capture loads.
+        pixels.source_path = Some(std::sync::Arc::new(path.clone()));
         if tint.is_none() {
             pixels.with_atlas(resolve_editor_sprite_atlas_image(base_key, &path))
         } else {
@@ -124,11 +125,10 @@ pub(super) fn load_visual_asset_pixels_uncached(
         },
     );
 
-    if let Some(pixels) = &loaded {
-        register_media_source(&pixels.resource_key, &path);
-    }
-
-    loaded
+    loaded.map(|mut pixels| {
+        pixels.source_resource_key = Some(std::sync::Arc::clone(&pixels.resource_key));
+        pixels
+    })
 }
 
 fn icon_raster_resource_key(base_key: &str, content_key: &str) -> Option<String> {

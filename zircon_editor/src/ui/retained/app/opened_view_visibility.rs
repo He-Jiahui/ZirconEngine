@@ -56,9 +56,10 @@ impl RetainedEditorHost {
             return Ok(());
         }
         self.recompute_if_dirty();
-        let presentation = self.ui.get_host_presentation();
-        if !owns_ordinary_panes(&presentation)
-            || authored_panes(&presentation)
+        let generation = self.ui.get_host_presentation_generation();
+        let presentation = generation.structure();
+        if !owns_ordinary_panes(presentation)
+            || authored_panes(presentation)
                 .iter()
                 .any(|pane| pane.root.control_id.as_str() == authored_root)
         {

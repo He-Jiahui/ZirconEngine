@@ -27,7 +27,7 @@ pub(super) fn encode_frame(frame: CapturedFrame) -> EncodedRuntimeFrame {
         width: frame.width,
         height: frame.height,
         generation: frame.generation,
-        rgba: frame.rgba,
+        rgba: frame.rgba.to_vec(),
     }
 }
 

@@ -115,10 +115,10 @@ impl AuthoringSceneInstaller for EditorStateSceneInstaller<'_> {
             .map_err(|error| error.to_string())
     }
 
-    fn install_scene(&mut self, document: &ProjectSceneDocument) -> Result<(), Self::Error> {
+    fn install_scene(&mut self, document: &mut ProjectSceneDocument) -> Result<(), Self::Error> {
         let authoring_world = self
             .manager
-            .prepare_authoring_world(document.world().clone())
+            .prepare_authoring_world(document.take_world())
             .map_err(|error| error.to_string())?;
         self.state
             .replace_world(authoring_world, &self.project_path)

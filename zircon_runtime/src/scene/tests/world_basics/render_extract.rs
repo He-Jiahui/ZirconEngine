@@ -13,7 +13,7 @@ fn updated_transform_is_reflected_in_render_extract() {
         .update_transform(cube, Transform::from_translation(Vec3::new(2.0, 3.0, 4.0)))
         .unwrap();
 
-    let snapshot = world.to_render_extract();
+    let snapshot = world.to_render_extract_cloning();
     let mesh_snapshot = snapshot
         .scene
         .meshes
@@ -68,7 +68,7 @@ fn mesh_renderer_sort_fields_feed_geometry_phase_queue() {
             .unwrap();
     }
 
-    let extract = world.to_render_frame_extract();
+    let extract = world.to_render_frame_extract_cloning();
     let mesh_index = |entity| {
         extract
             .geometry
@@ -252,7 +252,7 @@ fn render_extract_separates_directional_point_and_spot_lights() {
         )
         .unwrap();
 
-    let snapshot = world.to_render_extract();
+    let snapshot = world.to_render_extract_cloning();
 
     assert_eq!(snapshot.scene.directional_lights.len(), 1);
 
@@ -281,7 +281,7 @@ fn render_extract_separates_directional_point_and_spot_lights() {
     assert_eq!(spot_light.inner_angle_radians, 0.35);
     assert_eq!(spot_light.outer_angle_radians, 0.65);
 
-    let frame_extract = world.to_render_frame_extract();
+    let frame_extract = world.to_render_frame_extract_cloning();
     assert_eq!(frame_extract.lighting.directional_lights.len(), 1);
     assert!(frame_extract
         .lighting
@@ -363,7 +363,7 @@ fn render_product_pbr_world_frame_extract_exposes_authored_ambient_and_rect_ligh
         )
         .unwrap();
 
-    let snapshot = world.to_render_extract();
+    let snapshot = world.to_render_extract_cloning();
     assert_eq!(snapshot.scene.ambient_lights.len(), 1);
     assert_eq!(
         snapshot.scene.ambient_lights[0].color,
@@ -391,7 +391,7 @@ fn render_product_pbr_world_frame_extract_exposes_authored_ambient_and_rect_ligh
     assert_eq!(rect_light.size, Vec2::new(2.0, 0.5));
     assert!(rect_light.renderer_degraded);
 
-    let extract = world.to_render_frame_extract();
+    let extract = world.to_render_frame_extract_cloning();
     assert_eq!(
         extract.lighting.ambient_lights,
         snapshot.scene.ambient_lights
@@ -473,7 +473,7 @@ fn world_render_extract_rejects_unrepresentable_primitive_domains_before_emissio
         }
         world.insert(entity, renderer).unwrap();
 
-        let valid = world.to_render_frame_extract();
+        let valid = world.to_render_frame_extract_cloning();
         let rows = valid
             .geometry
             .meshes
@@ -523,7 +523,7 @@ fn world_render_extract_rejects_unrepresentable_primitive_domains_before_emissio
         };
         selected.push(primitive);
         assert_eq!(selected.len(), limit + 1);
-        let rejected = world.to_render_frame_extract();
+        let rejected = world.to_render_frame_extract_cloning();
         assert!(
             rejected
                 .geometry

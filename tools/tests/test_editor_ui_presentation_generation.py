@@ -50,7 +50,7 @@ class EditorUiPresentationGenerationContractTests(unittest.TestCase):
         )
         draw = self.read(
             "zircon_editor/src/ui/retained/contract/paint/"
-            "template_node_pipeline/draw.rs"
+            "node_pipeline/draw.rs"
         )
 
         self.assertNotIn("apply_template_hover_to_presentation", snapshot)

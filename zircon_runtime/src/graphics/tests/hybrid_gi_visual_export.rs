@@ -202,7 +202,7 @@ fn noop_render_pass_executor(_context: &mut RenderPassExecutionContext<'_>) -> R
 
 fn direct_hybrid_gi_extract(viewport_size: UVec2) -> RenderFrameExtract {
     let world = World::new();
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.apply_viewport_size(viewport_size);
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
         enabled: true,

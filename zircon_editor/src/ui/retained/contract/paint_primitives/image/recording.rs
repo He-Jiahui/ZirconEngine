@@ -64,7 +64,7 @@ impl ImageRecordingMetadata<'_> {
                 frame.record_image(
                     rect,
                     clip,
-                    atlas.resource_key.clone(),
+                    atlas.resource_key.to_string(),
                     atlas.width,
                     atlas.height,
                     None,

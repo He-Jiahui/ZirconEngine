@@ -47,16 +47,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_im
                 _ => None,
             };
             if let Some(image) = image {
-                output.push(HostPaintCommand::image_pixels(
-                    frame,
-                    clip_frame,
-                    z_index,
-                    image.resource_key,
-                    image.width,
-                    image.height,
-                    image.rgba,
-                    image.atlas,
-                    opacity,
+                output.push(HostPaintCommand::from_image_pixels(
+                    frame, clip_frame, z_index, image, opacity,
                 ));
                 return;
             }

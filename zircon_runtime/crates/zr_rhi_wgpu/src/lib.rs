@@ -81,6 +81,7 @@ pub use production::{
     WgpuNativeSurfaceFrameTarget, WgpuRenderDevice, WgpuRenderDeviceContext,
     WgpuResourceUploadBatch, WgpuSubmissionMetricsDelta, WgpuSubmissionMetricsSnapshot,
     WgpuSurfaceAdapterBootstrap, WgpuSurfaceBootstrap, WgpuTextureUpload, WgpuTextureUploadBatch,
+    WgpuTextureUploadPayload,
 };
 pub use ui_surface::{
     WgpuUiExternalImage, WgpuUiExternalImageAlphaMode, WgpuUiExternalImageCopyReceipt,

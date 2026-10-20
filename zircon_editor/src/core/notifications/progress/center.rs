@@ -34,6 +34,7 @@ pub struct ProgressNotificationCenter {
 #[derive(Default)]
 struct ProgressNotificationState {
     entries: BTreeMap<NotificationId, ProgressNotification>,
+    revision: u64,
     jobs: BTreeMap<JobId, NotificationId>,
     #[cfg(test)]
     job_lookup_probes: usize,
@@ -47,7 +48,23 @@ impl Default for ProgressNotificationCenter {
     }
 }
 
+impl ProgressNotificationState {
+    fn advance_revision(&mut self) {
+        self.revision = self
+            .revision
+            .checked_add(1)
+            .expect("progress notification revision cannot overflow");
+    }
+}
+
 impl ProgressNotificationCenter {
+    pub(crate) fn projection_revision(&self) -> u64 {
+        self.state
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner())
+            .revision
+    }
+
     pub(crate) fn active_count(&self) -> usize {
         self.state
             .lock()
@@ -77,6 +94,7 @@ impl ProgressNotificationCenter {
                 state
                     .entries
                     .insert(notification.id().clone(), notification);
+                state.advance_revision();
                 return Ok(());
             }
             return Err(ProgressNotificationError::DuplicateNotification {
@@ -102,6 +120,7 @@ impl ProgressNotificationCenter {
                 state
                     .entries
                     .insert(notification.id().clone(), notification);
+                state.advance_revision();
                 return Ok(());
             }
             return Err(ProgressNotificationError::DuplicateJob {
@@ -119,6 +138,7 @@ impl ProgressNotificationCenter {
         state
             .entries
             .insert(notification.id().clone(), notification);
+        state.advance_revision();
         Ok(())
     }
 
@@ -172,6 +192,7 @@ impl ProgressNotificationCenter {
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         if let Some(notification_id) = state.jobs.remove(&job) {
             state.entries.remove(&notification_id);
+            state.advance_revision();
         }
     }
 
@@ -187,10 +208,14 @@ impl ProgressNotificationCenter {
             .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let previous_len = state.entries.len();
         state
             .entries
             .retain(|_, notification| jobs.contains_key(&notification.job()));
         state.jobs.retain(|job, _| jobs.contains_key(job));
+        if state.entries.len() != previous_len {
+            state.advance_revision();
+        }
         state
             .entries
             .values()
@@ -226,6 +251,7 @@ impl ProgressNotificationCenter {
             if remove_captured_binding {
                 state.entries.remove(notification_id);
                 state.jobs.remove(captured_job);
+                state.advance_revision();
             }
         }
         state

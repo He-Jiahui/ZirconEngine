@@ -234,7 +234,7 @@ fn atlas_recording_keeps_one_copy_of_atlas_pixels() {
     let mut frame = HostRgbaFrame::recording_only(1, 1);
     let source_rgba = vec![255, 0, 0, 255];
     let atlas = HostPaintAtlasImage {
-        resource_key: "atlas://editor/icons".to_string(),
+        resource_key: ("atlas://editor/icons".to_string()).into(),
         resource_generation: 0,
         width: 2,
         height: 2,
@@ -265,7 +265,10 @@ fn atlas_recording_keeps_one_copy_of_atlas_pixels() {
         panic!("expected recorded image");
     };
     assert!(rgba.is_none(), "atlas bytes must not be duplicated");
-    assert_eq!(atlas.and_then(|atlas| atlas.rgba), Some(vec![7; 16]));
+    assert_eq!(
+        atlas.and_then(|atlas| atlas.rgba).as_deref(),
+        Some([7; 16].as_slice())
+    );
 }
 
 #[test]

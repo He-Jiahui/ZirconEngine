@@ -43,6 +43,7 @@ pub(super) struct RuntimeTextGlyph {
     pub(super) glyph_id: u32,
     pub(super) physical_ppem: u32,
     pub(super) origin_x: f32,
+    pub(super) line_origin_x: f32,
     pub(super) baseline_y: f32,
     pub(super) raster_face_index: usize,
 }
@@ -80,6 +81,27 @@ pub(super) fn layout_text_run_with_layout_policy(
         font_face_for_paint_style(style),
         current_host_text_preferences().smoothing,
         layout_policy,
+        false,
+    )
+}
+
+pub(super) fn layout_recorded_text(
+    rect: &FrameRect,
+    text: &str,
+    font_size: f32,
+    line_height: f32,
+    style: UiTextRunPaintStyle,
+    policy: HostTextLayoutPolicy,
+) -> Arc<PaintTextLayout> {
+    layout_text_run_with_layout_policy_and_smoothing(
+        rect,
+        text,
+        font_size,
+        line_height,
+        font_face_for_paint_style(style),
+        current_host_text_preferences().smoothing,
+        policy,
+        true,
     )
 }
 
@@ -100,6 +122,7 @@ fn layout_text_run_with_smoothing(
         font_face,
         smoothing,
         HostTextLayoutPolicy::SingleLineEllipsis,
+        false,
     )
 }
 
@@ -111,6 +134,7 @@ fn layout_text_run_with_layout_policy_and_smoothing(
     font_face: HostTextFontFace,
     smoothing: HostTextSmoothing,
     layout_policy: HostTextLayoutPolicy,
+    display_only: bool,
 ) -> Arc<PaintTextLayout> {
     cached_paint_text_layout(
         rect,
@@ -120,7 +144,8 @@ fn layout_text_run_with_layout_policy_and_smoothing(
         font_face,
         smoothing,
         layout_policy,
-        || {
+        display_only,
+        |rect| {
             layout_text_run_uncached(
                 rect,
                 text,
@@ -129,6 +154,7 @@ fn layout_text_run_with_layout_policy_and_smoothing(
                 font_face,
                 smoothing,
                 layout_policy,
+                display_only,
             )
         },
     )
@@ -142,6 +168,7 @@ fn layout_text_run_uncached(
     font_face: HostTextFontFace,
     smoothing: HostTextSmoothing,
     layout_policy: HostTextLayoutPolicy,
+    display_only: bool,
 ) -> PaintTextLayout {
     zircon_runtime::profile_scope!("editor", "host_painter", "text_layout_cache_miss");
     let lines = match layout_policy {
@@ -157,6 +184,14 @@ fn layout_text_run_uncached(
         }
     };
     let display_text = display_text_from_lines(&lines);
+    if display_only {
+        return PaintTextLayout {
+            display_text,
+            glyphs: Vec::new(),
+            artifact_raster_faces: Vec::new(),
+            measured_lines: Vec::new(),
+        };
+    }
     let measured_lines = lines
         .iter()
         .map(|line| PaintTextLine {

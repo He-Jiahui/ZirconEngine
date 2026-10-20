@@ -14,12 +14,12 @@ class EditorTextLayoutCachePerformanceContractTests(unittest.TestCase):
     def test_stable_hit_uses_borrowed_text_and_only_miss_owns_the_key(self) -> None:
         source = CACHE.read_text(encoding="utf-8")
         lookup_start = source.index("pub(super) fn cached_paint_text_layout")
-        build_start = source.index("let layout = Arc::new(build())", lookup_start)
+        build_start = source.index("let layout = Arc::new(build(&relative_rect))", lookup_start)
         hit_path = source[lookup_start:build_start]
         miss_path = source[build_start:]
 
         self.assertIn("PaintTextLayoutCacheLookup", hit_path)
-        self.assertIn(".get(&lookup)", hit_path)
+        self.assertIn("touch_layout(&mut cache, &lookup)", hit_path)
         self.assertNotIn("text.to_string()", hit_path)
         self.assertIn("text.to_string()", miss_path)
 
@@ -27,8 +27,12 @@ class EditorTextLayoutCachePerformanceContractTests(unittest.TestCase):
         source = CACHE.read_text(encoding="utf-8")
 
         self.assertNotIn("cache.clear()", source)
-        self.assertIn("swap_remove_index(0)", source)
+        self.assertIn("shift_remove_index(0)", source)
         self.assertIn("IndexMap<PaintTextLayoutCacheKey", source)
+        self.assertIn("cache.move_index(index, last)", source)
+        self.assertNotIn("swap_remove_index", source)
+        self.assertNotIn("rect_x_bits", source)
+        self.assertNotIn("rect_y_bits", source)
 
     def test_cache_miss_projects_one_runtime_artifact_without_host_relayout(self) -> None:
         source = LAYOUT.read_text(encoding="utf-8")

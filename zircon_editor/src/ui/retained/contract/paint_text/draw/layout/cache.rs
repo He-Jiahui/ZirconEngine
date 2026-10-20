@@ -20,8 +20,6 @@ struct PaintTextLayoutCacheKey {
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct PaintTextLayoutCacheProperties {
-    rect_x_bits: u32,
-    rect_y_bits: u32,
     rect_width_bits: u32,
     rect_height_bits: u32,
     font_size_bits: u32,
@@ -30,6 +28,7 @@ struct PaintTextLayoutCacheProperties {
     font_request: HostTextFontRequest,
     smoothing: HostTextSmoothing,
     word_wrap: bool,
+    display_only: bool,
 }
 
 #[derive(Clone, Copy, Debug, Hash)]
@@ -52,14 +51,13 @@ pub(super) fn cached_paint_text_layout(
     font_face: HostTextFontFace,
     smoothing: HostTextSmoothing,
     layout_policy: HostTextLayoutPolicy,
-    build: impl FnOnce() -> PaintTextLayout,
+    display_only: bool,
+    build: impl FnOnce(&FrameRect) -> PaintTextLayout,
 ) -> Arc<PaintTextLayout> {
     static CACHE: OnceLock<Mutex<IndexMap<PaintTextLayoutCacheKey, Arc<PaintTextLayout>>>> =
         OnceLock::new();
 
     let properties = PaintTextLayoutCacheProperties {
-        rect_x_bits: rect.x.to_bits(),
-        rect_y_bits: rect.y.to_bits(),
         rect_width_bits: rect.width.to_bits(),
         rect_height_bits: rect.height.to_bits(),
         font_size_bits: font_size.to_bits(),
@@ -68,29 +66,39 @@ pub(super) fn cached_paint_text_layout(
         font_request: font_request_for_face(font_face),
         smoothing,
         word_wrap: layout_policy == HostTextLayoutPolicy::WordWrap,
+        display_only,
     };
     let lookup = PaintTextLayoutCacheLookup {
         text,
         properties: &properties,
     };
     let cache = CACHE.get_or_init(|| Mutex::new(IndexMap::new()));
-    if let Some(layout) = lock_recovering_poison(cache).get(&lookup).cloned() {
-        return layout;
+    {
+        let mut cache = lock_recovering_poison(cache);
+        if let Some(layout) = touch_layout(&mut cache, &lookup) {
+            return layout;
+        }
     }
 
-    let layout = Arc::new(build());
+    let relative_rect = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: rect.width,
+        height: rect.height,
+    };
+    let layout = Arc::new(build(&relative_rect));
     let mut cache = lock_recovering_poison(cache);
-    if let Some(existing) = cache
-        .get(&PaintTextLayoutCacheLookup {
+    if let Some(existing) = touch_layout(
+        &mut cache,
+        &PaintTextLayoutCacheLookup {
             text,
             properties: &properties,
-        })
-        .cloned()
-    {
+        },
+    ) {
         return existing;
     }
     if cache.len() >= TEXT_LAYOUT_CACHE_CAPACITY {
-        let _ = cache.swap_remove_index(0);
+        let _ = cache.shift_remove_index(0);
     }
     cache.insert(
         PaintTextLayoutCacheKey {
@@ -100,6 +108,17 @@ pub(super) fn cached_paint_text_layout(
         Arc::clone(&layout),
     );
     layout
+}
+
+fn touch_layout(
+    cache: &mut IndexMap<PaintTextLayoutCacheKey, Arc<PaintTextLayout>>,
+    lookup: &PaintTextLayoutCacheLookup<'_>,
+) -> Option<Arc<PaintTextLayout>> {
+    let (index, _, value) = cache.get_full(lookup)?;
+    let value = Arc::clone(value);
+    let last = cache.len() - 1;
+    cache.move_index(index, last);
+    Some(value)
 }
 
 #[cfg(test)]

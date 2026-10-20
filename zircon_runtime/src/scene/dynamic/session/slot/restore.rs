@@ -26,7 +26,7 @@ impl RuntimeSessionSlot {
         level: &LevelSystem,
     ) -> Result<RuntimeSessionLevelRestoreReport, RuntimeSessionArchiveError> {
         let world = self.restore_to_empty_world()?;
-        let entity_count = world.node_records().len();
+        let entity_count = world.entity_count();
         let metadata = self.metadata.to_level_metadata();
         // TODO: [CR-DYNAMIC-SESSION-FACADE-0003] 确认并发读取是否要求世界与元数据同一时刻可见；当前两次独立加锁，中间可观察到新世界配旧元数据，缺少联合快照契约与并发测试。
         level.replace_world_and_reset_runtime_state(world);

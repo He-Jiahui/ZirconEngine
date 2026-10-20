@@ -157,10 +157,12 @@ fn physics_query_snapshot_clones_the_arc_instead_of_the_world() {
     let first = super::query::synchronized_world(&manager, world).unwrap();
     let second = super::query::synchronized_world(&manager, world).unwrap();
     let runtime_snapshot = manager.synchronized_world_snapshot(world).unwrap();
+    let service_snapshot = PhysicsManager::synchronized_world(&manager, world).unwrap();
 
     assert!(Arc::ptr_eq(&snapshot, &first));
     assert!(Arc::ptr_eq(&first, &second));
     assert!(Arc::ptr_eq(&second, &runtime_snapshot));
+    assert!(Arc::ptr_eq(&runtime_snapshot, &service_snapshot));
 }
 
 #[test]

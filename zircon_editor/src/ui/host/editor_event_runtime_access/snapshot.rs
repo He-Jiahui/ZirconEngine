@@ -28,6 +28,11 @@ fn core_view_instance_id(
 }
 
 impl EditorHostEventController {
+    pub(crate) fn project_open(&self) -> Result<bool, crate::ui::host::EditorError> {
+        let _manager = self.enter_editor_manager()?;
+        Ok(self.shell().lock().state.project_open)
+    }
+
     pub fn editor_snapshot(&self) -> Result<EditorDataSnapshot, crate::ui::host::EditorError> {
         let manager = self.enter_editor_manager()?;
         Ok({

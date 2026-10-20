@@ -162,3 +162,35 @@ fn optimization_wave_20260825_editor10_progress_job_index_evidence() {
     assert_eq!(probe_reduction_bps, 9_843);
     assert!(elapsed_ns <= MAX_ELAPSED_NS);
 }
+
+#[test]
+fn binding_revision_changes_on_admission_replacement_pruning_and_retirement() {
+    let center = ProgressNotificationCenter::default();
+    let initial = center.projection_revision();
+    let first = JobId::new(1);
+    let automatic = ProgressNotification::new(
+        NotificationId::parse("editor.job.progress.1").unwrap(),
+        NotificationSource::builtin(AUTOMATIC_PROGRESS_SOURCE_ID).unwrap(),
+        first,
+        "editor.progress.title",
+    )
+    .unwrap();
+    center.publish(automatic).unwrap();
+    let admitted = center.projection_revision();
+    assert!(admitted > initial);
+    center
+        .publish(notification("editor.custom.progress.1", first))
+        .unwrap();
+    let replaced = center.projection_revision();
+    assert!(replaced > admitted);
+    assert_eq!(center.synchronize([job(first)]).len(), 1);
+    assert_eq!(center.projection_revision(), replaced);
+    center.synchronize([]);
+    assert!(center.projection_revision() > replaced);
+    center
+        .publish(notification("editor.custom.progress.2", JobId::new(2)))
+        .unwrap();
+    let before_retirement = center.projection_revision();
+    center.retire_job(JobId::new(2));
+    assert!(center.projection_revision() > before_retirement);
+}

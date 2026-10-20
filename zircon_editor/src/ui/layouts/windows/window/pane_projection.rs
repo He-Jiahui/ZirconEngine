@@ -546,7 +546,10 @@ fn pane_metadata(
             false,
         ),
         ViewContentKind::Hierarchy => (
-            format!("{} nodes", chrome.scene_entries.len()),
+            format!(
+                "{} nodes",
+                super::hierarchy_projection::projected_hierarchy_entries(chrome).len()
+            ),
             "Hierarchy selection drives Scene and Inspector".to_string(),
             false,
         ),
@@ -638,17 +641,17 @@ fn pane_metadata(
 }
 
 fn hierarchy_pane_data(chrome: &EditorChromeSnapshot) -> HierarchyPaneViewData {
+    let entries = super::hierarchy_projection::projected_hierarchy_entries(chrome);
     HierarchyPaneViewData {
         nodes: Default::default(),
         hierarchy_nodes: model_rc(
-            chrome
-                .scene_entries
+            entries
                 .iter()
                 .map(|entry| SceneNodeData {
                     id: entry.entity.to_string().into(),
                     name: entry.display_name.clone().into(),
                     depth: entry.depth as i32,
-                    selected: chrome.scene_entries.is_selected(entry.entity),
+                    selected: entries.is_selected(entry.entity),
                 })
                 .collect(),
         ),

@@ -124,7 +124,7 @@ fn directory_project_scene_renders_non_background_frame_with_gizmo_overlay() {
     let mut project = ProjectManager::open(&root).unwrap();
     project.scan_and_import().unwrap();
     let world = World::load_scene_from_uri(&project, &scene_uri).unwrap();
-    let snapshot = world.build_viewport_render_packet(&SceneViewportExtractRequest {
+    let snapshot = world.build_viewport_render_packet_cloning(&SceneViewportExtractRequest {
         settings: ViewportRenderSettings::default(),
         active_camera_override: None,
         camera: None,
@@ -160,7 +160,7 @@ fn example_vampire_scene_renders_visible_mesh_pixels() {
 
     let scene_uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
     let world = World::load_scene_from_uri(&project, &scene_uri).unwrap();
-    let mut snapshot = world.to_render_snapshot();
+    let mut snapshot = world.to_render_snapshot_cloning();
     snapshot.preview.skybox_enabled = false;
     snapshot.preview.fallback_skybox = FallbackSkyboxKind::None;
     snapshot.overlays = RenderOverlayExtract {
@@ -199,7 +199,7 @@ fn export_example_vampire_scene_png() {
 
     let scene_uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
     let world = World::load_scene_from_uri(&project, &scene_uri).unwrap();
-    let mut snapshot = world.build_viewport_render_packet(&SceneViewportExtractRequest {
+    let mut snapshot = world.build_viewport_render_packet_cloning(&SceneViewportExtractRequest {
         settings: ViewportRenderSettings::default(),
         active_camera_override: None,
         camera: None,
@@ -296,7 +296,7 @@ fn export_runtime_shader_material_sphere_png() {
     }
     let world = World::load_scene_from_uri(&project, &scene_uri).unwrap();
     let output_size = UVec2::new(1024, 1024);
-    let mut snapshot = world.build_viewport_render_packet(&SceneViewportExtractRequest {
+    let mut snapshot = world.build_viewport_render_packet_cloning(&SceneViewportExtractRequest {
         settings: ViewportRenderSettings::default(),
         active_camera_override: None,
         camera: None,
@@ -570,7 +570,7 @@ fn directory_project_material_shader_drives_pipeline_color_output() {
     project.scan_and_import().unwrap();
     let world = World::load_scene_from_uri(&project, &scene_uri).unwrap();
 
-    let mut snapshot = world.to_render_snapshot();
+    let mut snapshot = world.to_render_snapshot_cloning();
     snapshot.overlays = RenderOverlayExtract {
         display_mode: DisplayMode::Shaded,
         ..RenderOverlayExtract::default()
@@ -653,7 +653,7 @@ fn wire_only_mode_reduces_filled_surface_pixels() {
     project.scan_and_import().unwrap();
     let world = World::load_scene_from_uri(&project, &scene_uri).unwrap();
 
-    let mut shaded = world.to_render_snapshot();
+    let mut shaded = world.to_render_snapshot_cloning();
     shaded.preview.skybox_enabled = false;
     shaded.preview.fallback_skybox = FallbackSkyboxKind::None;
     shaded.overlays = RenderOverlayExtract {

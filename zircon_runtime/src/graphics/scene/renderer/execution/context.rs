@@ -1,6 +1,7 @@
 use crate::core::math::UVec2;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::types::ViewportRenderRegion;
+use crate::graphics::RenderReportLabel;
 use crate::render_graph::{
     CompiledRenderGraph, CompiledRenderGraphComputeBindingAccessPacket,
     CompiledRenderGraphComputeDispatchAccessPacket, PassFlags, QueueLane,
@@ -28,7 +29,7 @@ pub(in crate::graphics::scene::scene_renderer) use gpu::{
 pub use resource_resolver::RgResourceResolver;
 
 pub struct RenderPassExecutionContext<'a> {
-    pub pass_name: String,
+    pub pass_name: RenderReportLabel,
     pub executor_id: RenderPassExecutorId,
     pub declared_queue: QueueLane,
     pub queue: QueueLane,
@@ -81,7 +82,7 @@ impl std::fmt::Debug for RenderPassExecutionContext<'_> {
 }
 
 impl<'a> RenderPassExecutionContext<'a> {
-    pub fn new(pass_name: impl Into<String>, executor_id: RenderPassExecutorId) -> Self {
+    pub fn new(pass_name: impl Into<RenderReportLabel>, executor_id: RenderPassExecutorId) -> Self {
         Self::with_graph_metadata(
             pass_name,
             executor_id,
@@ -91,7 +92,7 @@ impl<'a> RenderPassExecutionContext<'a> {
     }
 
     pub fn with_graph_metadata(
-        pass_name: impl Into<String>,
+        pass_name: impl Into<RenderReportLabel>,
         executor_id: RenderPassExecutorId,
         queue: QueueLane,
         flags: PassFlags,
@@ -100,7 +101,7 @@ impl<'a> RenderPassExecutionContext<'a> {
     }
 
     pub fn with_declared_graph_metadata(
-        pass_name: impl Into<String>,
+        pass_name: impl Into<RenderReportLabel>,
         executor_id: RenderPassExecutorId,
         queue: QueueLane,
         declared_queue: QueueLane,
@@ -117,7 +118,7 @@ impl<'a> RenderPassExecutionContext<'a> {
     }
 
     pub fn with_graph_metadata_and_resources(
-        pass_name: impl Into<String>,
+        pass_name: impl Into<RenderReportLabel>,
         executor_id: RenderPassExecutorId,
         queue: QueueLane,
         flags: PassFlags,
@@ -134,7 +135,7 @@ impl<'a> RenderPassExecutionContext<'a> {
     }
 
     pub fn with_declared_graph_metadata_and_resources(
-        pass_name: impl Into<String>,
+        pass_name: impl Into<RenderReportLabel>,
         executor_id: RenderPassExecutorId,
         queue: QueueLane,
         declared_queue: QueueLane,
@@ -153,7 +154,7 @@ impl<'a> RenderPassExecutionContext<'a> {
     }
 
     pub fn with_declared_graph_metadata_dependencies_and_resources(
-        pass_name: impl Into<String>,
+        pass_name: impl Into<RenderReportLabel>,
         executor_id: RenderPassExecutorId,
         queue: QueueLane,
         declared_queue: QueueLane,

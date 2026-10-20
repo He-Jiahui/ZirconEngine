@@ -37,6 +37,7 @@ pub use progress::{
     ProgressNotificationSnapshot, MAX_PROGRESS_NOTIFICATIONS,
 };
 pub use service::EditorNotificationService;
+pub(crate) use service::NotificationProjectionRevision;
 pub use toast::{
     ToastCenterConfig, ToastDeliveryQueue, ToastDeliverySnapshot, ToastNotification,
     ToastNotificationCenter, ToastNotificationError, ToastNotificationSnapshot, ToastSeverity,

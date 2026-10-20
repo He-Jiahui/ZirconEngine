@@ -24,10 +24,27 @@ fn owner() -> PaintNodeIdentity {
 }
 
 #[test]
+fn owner_scope_is_idle_without_capture_and_shares_identity_during_capture() {
+    let owner = std::rc::Rc::new(owner());
+    {
+        let _scope = super::PaintNodeOwnerScope::enter(Some(&owner));
+        assert!(super::active_owner().is_none());
+    }
+    let capture = PaintEvidenceScope::begin(&std::env::current_dir().unwrap(), 1.0).unwrap();
+    {
+        let _scope = super::PaintNodeOwnerScope::enter(Some(&owner));
+        assert!(std::rc::Rc::ptr_eq(&owner, &super::active_owner().unwrap()));
+    }
+    assert!(super::active_owner().is_none());
+    capture.finish().unwrap();
+    assert!(!super::capture_active());
+}
+
+#[test]
 fn shadow_commands_keep_a_separate_dpi_normalized_receipt() {
     let repo = std::env::current_dir().unwrap();
     let scope = PaintEvidenceScope::begin(&repo, 2.0).unwrap();
-    let owner = owner();
+    let owner = std::rc::Rc::new(owner());
     record_owner_commands_complete(&owner);
 
     let mut shadow = HostPaintCommand::quad(
@@ -137,4 +154,20 @@ fn normal_paint_evidence_without_a_frame_theme_keeps_token_input_unobserved() {
     let repo = std::env::current_dir().unwrap();
     let evidence = PaintEvidenceScope::begin_for_normal_present(&repo).unwrap();
     assert!(evidence.finish().unwrap()["designTokenInput"].is_null());
+}
+
+#[test]
+fn media_receipts_exist_only_during_capture_and_reject_source_conflicts() {
+    let repo = std::env::current_dir().unwrap();
+    let source = repo.join("Cargo.toml");
+    super::register_media_source("test:media", &source);
+    assert!(super::MEDIA_FILES.with_borrow(|files| files.is_empty()));
+    let scope = PaintEvidenceScope::begin(&repo, 1.0).unwrap();
+    super::register_media_source("test:media", &source);
+    super::register_media_source("test:media", &source);
+    assert!(super::MEDIA_FILES.with_borrow(|files| files["test:media"].is_some()));
+    super::register_media_source("test:media", &repo.join("missing-source"));
+    assert!(super::MEDIA_FILES.with_borrow(|files| files["test:media"].is_none()));
+    drop(scope);
+    assert!(super::MEDIA_FILES.with_borrow(|files| files.is_empty()));
 }

@@ -98,7 +98,7 @@ fn effect_stack_lut_texture_id_uses_enabled_lookup_handle() {
     ));
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.post_process.effect_stack = RenderPostProcessEffectStackSettings {
         color_lookup: RenderColorLookupSettings {
@@ -120,7 +120,7 @@ fn effect_stack_lut_texture_id_ignores_disabled_lookup_handle() {
     ));
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.post_process.effect_stack = RenderPostProcessEffectStackSettings {
         color_lookup: RenderColorLookupSettings {
@@ -139,7 +139,7 @@ fn effect_stack_lut_texture_id_ignores_disabled_lookup_handle() {
 fn effect_stack_lut_texture_request_tracks_enabled_lut_without_handle() {
     let mut extract = RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.post_process.effect_stack = RenderPostProcessEffectStackSettings {
         color_lookup: RenderColorLookupSettings {
@@ -207,7 +207,7 @@ fn output_target_graph_import_report_marks_srgb_texture_ready_for_direct_import(
     let frame = ViewportRenderFrame::from_extract(
         RenderFrameExtract::from_snapshot(
             RenderWorldSnapshotHandle::new(1),
-            World::new().to_render_snapshot(),
+            World::new().to_render_snapshot_cloning(),
         ),
         UVec2::new(64, 64),
     )
@@ -249,7 +249,7 @@ fn output_target_graph_import_report_keeps_linear_texture_on_writeback_path() {
     let frame = ViewportRenderFrame::from_extract(
         RenderFrameExtract::from_snapshot(
             RenderWorldSnapshotHandle::new(1),
-            World::new().to_render_snapshot(),
+            World::new().to_render_snapshot_cloning(),
         ),
         UVec2::new(64, 64),
     )

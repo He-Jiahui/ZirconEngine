@@ -24,7 +24,7 @@ pub trait AuthoringSceneInstaller {
     fn prepare_scene_transition(&mut self) -> Result<(), Self::Error>;
 
     /// Installs a resolved scene atomically, or returns without mutating the current world.
-    fn install_scene(&mut self, document: &ProjectSceneDocument) -> Result<(), Self::Error>;
+    fn install_scene(&mut self, document: &mut ProjectSceneDocument) -> Result<(), Self::Error>;
 }
 
 /// Synchronizes the authoritative asset catalog around a newly published scene source.
@@ -191,7 +191,7 @@ impl<'a> SceneDocumentRoute<'a> {
                 }),
             };
         }
-        if let Err(install) = installer.install_scene(creation.document()) {
+        if let Err(install) = installer.install_scene(creation.document_mut()) {
             self.release_uncommitted_document_journal(&reservation);
             return match creation.rollback() {
                 Ok(()) => match catalog.remove_scene(&scene_uri) {
@@ -210,7 +210,7 @@ impl<'a> SceneDocumentRoute<'a> {
 
     fn install_and_commit<Installer>(
         &self,
-        document: ProjectSceneDocument,
+        mut document: ProjectSceneDocument,
         reservation: SceneDocumentActivationReservation,
         installer: &mut Installer,
     ) -> Result<SceneDocumentRouteResult, SceneDocumentRouteError<Installer::Error>>
@@ -219,7 +219,7 @@ impl<'a> SceneDocumentRoute<'a> {
     {
         self.bind_document(&document, &reservation)
             .map_err(SceneDocumentRouteError::Journal)?;
-        if let Err(error) = installer.install_scene(&document) {
+        if let Err(error) = installer.install_scene(&mut document) {
             self.release_uncommitted_document_journal(&reservation);
             return Err(SceneDocumentRouteError::Install(error));
         }

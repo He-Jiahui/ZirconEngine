@@ -15,6 +15,14 @@ pub(in crate::ui::retained_host::host_contract) struct HostRenderSourceTable {
 }
 
 impl HostRenderSourceTable {
+    pub(in crate::ui::retained_host::host_contract) fn clear(&mut self) {
+        self.frames.clear();
+        self.keys_by_identity.clear();
+        if self.frames.capacity() > 32_768 || self.keys_by_identity.capacity() > 32_768 {
+            *self = Self::default();
+        }
+    }
+
     pub(in crate::ui::retained_host::host_contract) fn register(
         &mut self,
         frame: &Arc<UiSurfaceFrame>,

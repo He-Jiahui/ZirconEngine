@@ -107,7 +107,7 @@ fn astra_m4_resolver_skips_invalid_and_nonmatching_manifests_and_keeps_first_mat
     )
     .unwrap();
     let image = resolve_editor_sprite_atlas_image("template-icon:search", &fixture.source).unwrap();
-    assert_eq!(image.resource_key, selected.resource_key);
+    assert_eq!(image.resource_key.as_ref(), selected.resource_key.as_str());
     assert_eq!((image.width, image.height), (1, 1));
     assert_eq!(image.uv.min, [0.0, 0.0]);
     assert_eq!(image.uv.max, [1.0, 1.0]);

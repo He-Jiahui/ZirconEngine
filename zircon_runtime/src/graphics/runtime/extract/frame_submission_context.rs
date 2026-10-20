@@ -84,6 +84,11 @@ pub(super) struct FrameSubmissionContext {
     // Owns the renderer-resolved view overlay while sharing the immutable generation scene.
     // Submit/prepare/stat readers borrow heavy scene slices without cloning their domains.
     submission_extract: Arc<RenderFrameExtract>,
+    subsurface_profiles: Option<Arc<[crate::core::framework::render::SubsurfaceProfileData]>>,
+    virtual_geometry_debug_snapshot_requested: bool,
+    virtual_geometry_cull_input_cache: std::sync::OnceLock<
+        Option<crate::core::framework::render::RenderVirtualGeometryCullInputSnapshot>,
+    >,
     particle_sprite_count: usize,
     particle_previous_state_sprite_count: usize,
     particle_anonymous_stream_ambiguity_sprite_count: usize,
@@ -280,6 +285,9 @@ impl FrameSubmissionContext {
             hybrid_gi_update_plan,
             hybrid_gi_feedback,
             submission_extract,
+            subsurface_profiles: None,
+            virtual_geometry_debug_snapshot_requested: false,
+            virtual_geometry_cull_input_cache: std::sync::OnceLock::new(),
             particle_sprite_count,
             particle_previous_state_sprite_count,
             particle_anonymous_stream_ambiguity_sprite_count,
@@ -387,6 +395,46 @@ impl FrameSubmissionContext {
         &self.visibility_context
     }
 
+    pub(super) fn with_subsurface_profiles(
+        mut self,
+        profiles: Arc<[crate::core::framework::render::SubsurfaceProfileData]>,
+    ) -> Self {
+        self.subsurface_profiles = Some(profiles);
+        self
+    }
+    pub(super) fn subsurface_profiles(
+        &self,
+    ) -> Option<Arc<[crate::core::framework::render::SubsurfaceProfileData]>> {
+        self.subsurface_profiles.clone()
+    }
+    pub(super) fn with_virtual_geometry_debug_snapshot_requested(
+        mut self,
+        requested: bool,
+    ) -> Self {
+        self.virtual_geometry_debug_snapshot_requested = requested;
+        self
+    }
+    pub(super) fn virtual_geometry_debug_snapshot_requested(&self) -> bool {
+        self.virtual_geometry_debug_snapshot_requested
+            || self.virtual_geometry_readback_scope.is_some()
+            || self
+                .virtual_geometry_extract
+                .as_ref()
+                .is_some_and(|extract| {
+                    let debug = extract.debug;
+                    debug.visualize_bvh || debug.visualize_visbuffer || debug.print_leaf_clusters
+                })
+    }
+    pub(super) fn cached_virtual_geometry_cull_input(
+        &self,
+        build: impl FnOnce() -> Option<
+            crate::core::framework::render::RenderVirtualGeometryCullInputSnapshot,
+        >,
+    ) -> Option<crate::core::framework::render::RenderVirtualGeometryCullInputSnapshot> {
+        self.virtual_geometry_cull_input_cache
+            .get_or_init(build)
+            .clone()
+    }
     pub(super) fn submission_extract(&self) -> Arc<RenderFrameExtract> {
         Arc::clone(&self.submission_extract)
     }
@@ -614,6 +662,13 @@ impl FrameSubmissionContext {
         &self.virtual_geometry_resident_page_payloads
     }
 
+    // Diagnostic readers run first; execution is the final owner of the heavy page data.
+    pub(super) fn take_virtual_geometry_resident_page_payloads(
+        &mut self,
+    ) -> Vec<RenderVirtualGeometryPagePayload> {
+        std::mem::take(&mut self.virtual_geometry_resident_page_payloads)
+    }
+
     pub(super) fn predicted_generation(&self) -> u64 {
         self.predicted_generation
     }
@@ -690,5 +745,11 @@ impl FrameSubmissionContext {
         &self,
     ) -> &[crate::graphics::VirtualGeometryIndexedSourceAdmission] {
         &self.virtual_geometry_indexed_sources
+    }
+
+    pub(super) fn take_virtual_geometry_indexed_sources(
+        &mut self,
+    ) -> Vec<crate::graphics::VirtualGeometryIndexedSourceAdmission> {
+        std::mem::take(&mut self.virtual_geometry_indexed_sources)
     }
 }

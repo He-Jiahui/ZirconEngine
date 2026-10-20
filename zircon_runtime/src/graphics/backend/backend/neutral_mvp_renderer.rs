@@ -89,11 +89,8 @@ impl NeutralMvpRenderer {
     ) -> Result<Self, GraphicsError> {
         let config = RenderBackendConfig::from_environment();
         let instance = wgpu::Instance::new(config.instance_descriptor());
-        let (adapter, adapter_facts) = select_offscreen_adapter(
-            &instance,
-            config,
-            &AdapterSelectionPolicy::default(),
-        )?;
+        let (adapter, adapter_facts) =
+            select_offscreen_adapter(&instance, config, &AdapterSelectionPolicy::default())?;
         let requested_device = request_device_with_policy(&adapter, device_request_policy)?;
         let profile = RenderDeviceProfile::new(
             next_wgpu_device_id(),

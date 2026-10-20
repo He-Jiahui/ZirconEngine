@@ -24,7 +24,10 @@ pub(super) fn build_runtime_frame(
 ) -> ViewportRenderFrame {
     context.set_virtual_geometry_prepared_cpu_frame(prepared.virtual_geometry_prepared_cpu_frame());
     let extract = context.submission_extract();
-    let virtual_geometry_debug_snapshot = build_virtual_geometry_debug_snapshot(&extract, context);
+    let virtual_geometry_debug_snapshot = context
+        .virtual_geometry_debug_snapshot_requested()
+        .then(|| build_virtual_geometry_debug_snapshot(&extract, context))
+        .flatten();
     let runtime_overlays = runtime_virtual_geometry_debug_overlays(
         &extract.debug.overlays,
         context,
@@ -46,11 +49,13 @@ pub(super) fn build_runtime_frame(
         .with_particle_previous_sprites_override(context.take_particle_previous_sprites_override())
         .with_prepared_runtime_sidebands(prepared.into_prepared_runtime_sidebands())
         .with_virtual_geometry_debug_snapshot(virtual_geometry_debug_snapshot.map(Arc::new));
+    frame.subsurface_profiles_override = context.subsurface_profiles();
     frame.virtual_geometry_readback_scope = context.virtual_geometry_readback_scope();
     frame.virtual_geometry_execution_inputs = context.virtual_geometry_execution_inputs();
-    frame.virtual_geometry_indexed_sources = context.virtual_geometry_indexed_sources().to_vec();
     frame.virtual_geometry_execution_data =
         build_virtual_geometry_execution_data(context).map(Arc::new);
+    // Execution validation still borrows the admitted source mappings above.
+    frame.virtual_geometry_indexed_sources = context.take_virtual_geometry_indexed_sources();
     frame.render_region = frame.render_region().with_local_size(context.render_size());
     if let Some(runtime_overlays) = runtime_overlays {
         frame = frame.with_runtime_overlays(runtime_overlays);

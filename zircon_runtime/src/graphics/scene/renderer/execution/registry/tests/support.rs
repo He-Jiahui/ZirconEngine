@@ -29,7 +29,7 @@ use super::super::RenderPassExecutorRegistry;
 pub(super) fn test_extract() -> RenderFrameExtract {
     RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     )
 }
 
@@ -195,7 +195,7 @@ pub(super) struct ContextMutatingExecutor;
 
 impl RenderPassExecutor for ContextMutatingExecutor {
     fn execute(&self, context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
-        context.pass_name.push_str(":executed");
+        context.pass_name = format!("{}:executed", context.pass_name).into();
         Ok(())
     }
 }

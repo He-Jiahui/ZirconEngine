@@ -12,6 +12,10 @@ mod persistent_row_patch_map;
 
 use persistent_row_patch_map::{PersistentRowPatchCursor, PersistentRowPatchMap};
 
+#[path = "shared_string.rs"]
+pub(crate) mod shared_string;
+
+// Legacy fields migrate in separate slices; new retained fields can use shared_string::SharedString.
 pub(crate) type SharedString = String;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -117,6 +121,7 @@ pub(crate) struct Image {
     width: u32,
     height: u32,
     content_fingerprint: u64,
+    resource_key: Arc<str>,
 }
 
 pub(crate) struct ImagePixelProductRef<'a> {
@@ -124,17 +129,12 @@ pub(crate) struct ImagePixelProductRef<'a> {
     pub(crate) width: u32,
     pub(crate) height: u32,
     pub(crate) content_fingerprint: u64,
+    pub(crate) resource_key: &'a Arc<str>,
 }
 
 impl Image {
     pub(crate) fn from_rgba8(buffer: SharedPixelBuffer<Rgba8Pixel>) -> Self {
-        let rgba: Arc<[u8]> = buffer.rgba.into();
-        Self {
-            content_fingerprint: image_content_fingerprint(buffer.width, buffer.height, &rgba),
-            rgba,
-            width: buffer.width,
-            height: buffer.height,
-        }
+        Self::from_rgba_vec(buffer.rgba, buffer.width, buffer.height)
     }
 
     pub(crate) fn load_from_path(path: &Path) -> Result<Self, image::ImageError> {
@@ -168,6 +168,7 @@ impl Image {
             width: self.width,
             height: self.height,
             content_fingerprint: self.content_fingerprint,
+            resource_key: &self.resource_key,
         })
     }
 
@@ -205,8 +206,12 @@ impl Image {
 
     fn from_rgba_vec(rgba: Vec<u8>, width: u32, height: u32) -> Self {
         let rgba: Arc<[u8]> = rgba.into();
+        let content_fingerprint = image_content_fingerprint(width, height, &rgba);
+        let resource_key =
+            format!("retained-image:{width}x{height}:{content_fingerprint:016x}").into();
         Self {
-            content_fingerprint: image_content_fingerprint(width, height, &rgba),
+            content_fingerprint,
+            resource_key,
             rgba,
             width,
             height,
@@ -245,6 +250,7 @@ pub(crate) struct ModelRc<T> {
 }
 
 enum ModelValues<T> {
+    Empty,
     Contiguous(Rc<Vec<T>>),
     ContiguousOverlay {
         base: Rc<Vec<T>>,
@@ -260,6 +266,7 @@ enum ModelValues<T> {
 impl<T> Clone for ModelValues<T> {
     fn clone(&self) -> Self {
         match self {
+            Self::Empty => Self::Empty,
             Self::Contiguous(values) => Self::Contiguous(Rc::clone(values)),
             Self::ContiguousOverlay { base, patches } => Self::ContiguousOverlay {
                 base: Rc::clone(base),
@@ -401,7 +408,7 @@ impl<T> ExactSizeIterator for ModelIter<'_, T> {}
 impl<T> Default for ModelRc<T> {
     fn default() -> Self {
         Self {
-            values: ModelValues::Contiguous(Rc::new(Vec::new())),
+            values: ModelValues::Empty,
             metadata: None,
         }
     }
@@ -447,6 +454,7 @@ impl<T> ModelRc<T> {
 
     pub(crate) fn row_count(&self) -> usize {
         match &self.values {
+            ModelValues::Empty => 0,
             ModelValues::Contiguous(values) => values.len(),
             ModelValues::ContiguousOverlay { base, .. } => base.len(),
             ModelValues::SharedRows(values) => values.len(),
@@ -463,6 +471,7 @@ impl<T> ModelRc<T> {
 
     pub(crate) fn get(&self, row: usize) -> Option<&T> {
         match &self.values {
+            ModelValues::Empty => None,
             ModelValues::Contiguous(values) => values.get(row),
             ModelValues::ContiguousOverlay { base, patches } => {
                 patches.get(row).map(Rc::as_ref).or_else(|| base.get(row))
@@ -476,6 +485,7 @@ impl<T> ModelRc<T> {
 
     pub(crate) fn iter(&self) -> impl DoubleEndedIterator<Item = &T> + ExactSizeIterator {
         match &self.values {
+            ModelValues::Empty => ModelIter::Contiguous([].iter()),
             ModelValues::Contiguous(values) => ModelIter::Contiguous(values.iter()),
             ModelValues::ContiguousOverlay { base, patches } => ModelIter::ContiguousOverlay {
                 base,
@@ -497,6 +507,7 @@ impl<T> ModelRc<T> {
 
     pub(crate) fn shares_values_with(&self, other: &Self) -> bool {
         match (&self.values, &other.values) {
+            (ModelValues::Empty, ModelValues::Empty) => true,
             (ModelValues::Contiguous(left), ModelValues::Contiguous(right)) => {
                 Rc::ptr_eq(left, right)
             }
@@ -581,6 +592,7 @@ impl<T> ModelRc<T> {
     #[cfg(test)]
     fn row_rc(&self, row: usize) -> Option<&Rc<T>> {
         match &self.values {
+            ModelValues::Empty => None,
             ModelValues::Contiguous(_) => None,
             ModelValues::ContiguousOverlay { patches, .. } => patches.get(row),
             ModelValues::SharedRows(values) => values.get(row),
@@ -618,6 +630,7 @@ impl<T> ModelRc<T> {
         }
 
         let values = match &self.values {
+            ModelValues::Empty => ModelValues::Empty,
             ModelValues::Contiguous(base) => ModelValues::ContiguousOverlay {
                 base: Rc::clone(base),
                 patches: PersistentRowPatchMap::empty(row_count).with_updates(row_patches),
@@ -661,6 +674,7 @@ impl<T: fmt::Debug> fmt::Debug for ModelRc<T> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut debug = formatter.debug_struct("ModelRc");
         match &self.values {
+            ModelValues::Empty => debug.field("empty", &true),
             ModelValues::Contiguous(values) => debug.field("values", values),
             ModelValues::ContiguousOverlay { base, patches } => debug
                 .field("base_rows", &base.len())
@@ -699,3 +713,17 @@ impl<T: Clone> From<Rc<VecModel<T>>> for ModelRc<T> {
 #[cfg(test)]
 #[path = "tests/primitives_perf.rs"]
 mod performance_tests;
+
+#[cfg(test)]
+mod empty_model_tests {
+    use super::*;
+    #[test]
+    fn default_model_has_no_allocated_rows_and_preserves_empty_operations() {
+        let model = ModelRc::<String>::default();
+        assert!(matches!(model.values, ModelValues::Empty));
+        assert_eq!(model.iter().len(), 0);
+        assert_eq!(model.get(0), None);
+        assert!(model.shares_values_with(&model.clone()));
+        assert_eq!(model, ModelRc::with_metadata(Vec::new(), ()));
+    }
+}

@@ -29,7 +29,10 @@ fn to_host_contract_template_frame(
 pub(crate) fn to_host_contract_template_node(
     data: &ViewTemplateNodeData,
 ) -> host_contract::TemplatePaneNodeData {
-    to_host_contract_template_node_with_options_text(data, options_text(&data.options).into())
+    let mut node =
+        to_host_contract_template_node_with_options_text(data, options_text(&data.options).into());
+    node.prepare_table_cells();
+    node
 }
 
 fn to_host_contract_template_node_with_options_text(
@@ -290,6 +293,7 @@ pub(crate) fn to_host_contract_template_node_owned(
     node.media_source = media_source;
     node.icon_name = icon_name;
     node.preview_image = preview_image;
+    node.prepare_table_cells();
     node
 }
 

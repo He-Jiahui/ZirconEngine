@@ -175,3 +175,53 @@ fn activity_toast_delivery_sequence_exhaustion_never_reuses_a_ticket() {
         Err(ToastNotificationError::PresentationSequenceExhausted)
     );
 }
+
+#[test]
+fn projection_revision_is_stable_until_ack_then_tracks_time_and_expiration() {
+    let queue = queue(2);
+    let initial = queue.projection_revision_at(Duration::ZERO);
+    assert_eq!(
+        initial,
+        queue.projection_revision_at(Duration::from_secs(1))
+    );
+    queue
+        .publish_at(
+            notification("editor.delivery.revision", Duration::from_secs(3)),
+            Duration::ZERO,
+        )
+        .unwrap();
+    let pending = queue.projection_revision_at(Duration::ZERO);
+    assert_ne!(initial, pending);
+    assert_eq!(
+        pending,
+        queue.projection_revision_at(Duration::from_secs(100))
+    );
+    let snapshot = queue.snapshot_at(Duration::from_secs(100)).remove(0);
+    assert!(queue
+        .acknowledge_at(
+            snapshot.notification().id(),
+            snapshot.delivery_token(),
+            Duration::from_secs(100)
+        )
+        .unwrap());
+    let acknowledged = queue.projection_revision_at(Duration::from_secs(100));
+    assert_ne!(pending, acknowledged);
+    assert_ne!(
+        acknowledged,
+        queue.projection_revision_at(Duration::from_secs(101))
+    );
+    assert!(!queue
+        .acknowledge_at(
+            snapshot.notification().id(),
+            snapshot.delivery_token(),
+            Duration::from_secs(101)
+        )
+        .unwrap());
+    let expired = queue.projection_revision_at(Duration::from_secs(103));
+    assert_eq!(expired.1, None);
+    assert!(expired.0 > acknowledged.0);
+    assert_eq!(
+        expired,
+        queue.projection_revision_at(Duration::from_secs(104))
+    );
+}

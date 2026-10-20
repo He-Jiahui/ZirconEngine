@@ -1,6 +1,9 @@
 //! Post-frame gathers over the actual retained buffers. Host code selects only
 //! the available ABI; every live count and returned record comes from GPU bytes.
+use super::pipeline_cache::PipelineCache;
+use std::sync::Mutex;
 use std::{num::NonZeroU64, ops::Range};
+use zircon_runtime::graphics::RenderPassDeviceEpoch;
 
 use zircon_runtime::{
     graphics::{
@@ -69,12 +72,14 @@ pub(super) fn retain(
     output_capacity: u32,
 ) -> Result<bool, String> {
     let staging_bytes = result_bytes(output_capacity)?;
+    let device_epoch = gpu.device_epoch();
     gpu.retain_virtual_geometry_native_probe(
         &sources,
         staging_bytes,
         move |recording, retained, kind| {
             gather(
                 recording,
+                device_epoch,
                 retained,
                 RawReadKind::try_from(kind)?,
                 output_capacity,
@@ -137,6 +142,7 @@ fn gather(
     recording: &mut dyn RenderPassGpuRecordingContext<
         ResourceFactory = dyn RenderPassGpuResourceFactory + '_,
     >,
+    device_epoch: Option<RenderPassDeviceEpoch>,
     sources: &[SourceView<'_>],
     kind: RawReadKind,
     output_capacity: u32,
@@ -211,41 +217,49 @@ fn gather(
         contents: bytemuck::cast_slice(&params),
         usage: wgpu::BufferUsages::UNIFORM,
     });
-    let layout = factory.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("zircon-vg-native-gather-layout"),
-        entries: &[
-            storage_entry(0, true),
-            storage_entry(1, true),
-            wgpu::BindGroupLayoutEntry {
-                binding: 2,
-                visibility: wgpu::ShaderStages::COMPUTE,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: NonZeroU64::new(32),
-                },
-                count: None,
-            },
-            storage_entry(3, false),
-        ],
-    });
-    let shader = factory.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("zircon-vg-native-gather"),
-        source: wgpu::ShaderSource::Wgsl(include_str!("native_probe.wgsl").into()),
-    });
-    let pipeline_layout = factory.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: Some("zircon-vg-native-gather-pipeline-layout"),
-        bind_group_layouts: &[Some(&layout)],
-        immediate_size: 0,
-    });
-    let pipeline = factory.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-        label: Some("zircon-vg-native-gather"),
-        layout: Some(&pipeline_layout),
-        module: &shader,
-        entry_point: Some("gather"),
-        compilation_options: Default::default(),
-        cache: None,
-    });
+    static CACHE: Mutex<PipelineCache<(), (wgpu::BindGroupLayout, wgpu::ComputePipeline)>> =
+        Mutex::new(PipelineCache::new());
+    let (layout, pipeline) = CACHE
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner())
+        .get(device_epoch, (), || {
+            let layout = factory.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("zircon-vg-native-gather-layout"),
+                entries: &[
+                    storage_entry(0, true),
+                    storage_entry(1, true),
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: NonZeroU64::new(32),
+                        },
+                        count: None,
+                    },
+                    storage_entry(3, false),
+                ],
+            });
+            let shader = factory.create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("zircon-vg-native-gather"),
+                source: wgpu::ShaderSource::Wgsl(include_str!("native_probe.wgsl").into()),
+            });
+            let pipeline_layout = factory.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("zircon-vg-native-gather-pipeline-layout"),
+                bind_group_layouts: &[Some(&layout)],
+                immediate_size: 0,
+            });
+            let pipeline = factory.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                label: Some("zircon-vg-native-gather"),
+                layout: Some(&pipeline_layout),
+                module: &shader,
+                entry_point: Some("gather"),
+                compilation_options: Default::default(),
+                cache: None,
+            });
+            (layout, pipeline)
+        });
     let bindings = factory.create_bind_group(&wgpu::BindGroupDescriptor {
         label: Some("zircon-vg-native-gather-bindings"),
         layout: &layout,

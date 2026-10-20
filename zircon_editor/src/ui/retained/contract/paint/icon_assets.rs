@@ -35,15 +35,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ic
         return false;
     };
 
-    commands.push(HostPaintCommand::image_pixels(
+    commands.push(HostPaintCommand::from_image_pixels(
         rect.clone(),
         Some(clip.clone()),
         order,
-        image.resource_key,
-        image.width,
-        image.height,
-        image.rgba,
-        image.atlas,
+        image,
         opacity,
     ));
     true

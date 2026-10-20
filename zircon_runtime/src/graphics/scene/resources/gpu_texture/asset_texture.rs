@@ -23,7 +23,7 @@ use crate::graphics::scene::scene_renderer::mip_gen::{
 };
 use crate::graphics::types::GraphicsError;
 use zr_rhi::TextureCopyRegion;
-use zr_rhi_wgpu::{WgpuTextureUpload, WgpuTextureUploadBatch};
+use zr_rhi_wgpu::{WgpuTextureUpload, WgpuTextureUploadBatch, WgpuTextureUploadPayload};
 
 pub(crate) use self::texture_format::texture_upload_support_from_device;
 use self::texture_format::{compressed_wgpu_format, rgba8_wgpu_format, wgpu_texture_usages};
@@ -47,9 +47,10 @@ impl GpuTextureResource {
         texture_layout: &wgpu::BindGroupLayout,
         sampler_cache: Arc<TextureSamplerCache>,
         id: ResourceId,
-        payload: TextureAsset,
+        payload: impl Into<Arc<TextureAsset>>,
         runtime_mip_gen_pass: &RuntimeMipGenPass,
     ) -> Result<GpuTextureUploadWork, GraphicsError> {
+        let payload = payload.into();
         let support = texture_upload_support_from_device(device);
         match payload.upload_readiness(support) {
             TextureUploadReadiness::Ready { plan }
@@ -100,11 +101,12 @@ impl GpuTextureResource {
         device: &wgpu::Device,
         texture_layout: &wgpu::BindGroupLayout,
         id: ResourceId,
-        payload: TextureAsset,
+        payload: impl Into<Arc<TextureAsset>>,
         previous: &GpuTextureResource,
         previous_range: Range<u8>,
         requested_range: Range<u8>,
     ) -> Result<GpuTextureUploadWork, GraphicsError> {
+        let payload = payload.into();
         if !previous.supports_mip_streaming() {
             return Err(GraphicsError::Asset(format!(
                 "texture {} does not support physical mip streaming",
@@ -149,7 +151,7 @@ impl GpuTextureResource {
         texture_layout: &wgpu::BindGroupLayout,
         sampler_cache: Arc<TextureSamplerCache>,
         id: ResourceId,
-        payload: TextureAsset,
+        payload: Arc<TextureAsset>,
     ) -> Result<GpuTextureUploadWork, GraphicsError> {
         let descriptor = payload.render_image_descriptor();
         let texture_uri = payload.uri.clone();
@@ -157,13 +159,13 @@ impl GpuTextureResource {
         let height = payload.height;
         let shape = validated_texture_shape(&descriptor, &texture_uri)?;
         let layer_count = shape.array_layer_count();
-        let crate::asset::TexturePayload::Container { bytes, .. } = payload.payload else {
+        let crate::asset::TexturePayload::Container { .. } = &payload.payload else {
             return Err(GraphicsError::Asset(format!(
                 "lightmap texture {} requires a raw rgba16f container payload",
                 texture_uri
             )));
         };
-        let upload_payload: Arc<[u8]> = Arc::from(bytes);
+        let upload_payload = WgpuTextureUploadPayload::shared(Arc::clone(&payload));
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("zircon-lightmap-rgba16f-array"),
             size: wgpu::Extent3d {
@@ -214,7 +216,7 @@ impl GpuTextureResource {
                 TextureCopyRegion::new(width, height).with_origin(0, 0, layer),
                 8 * width,
                 height,
-                Arc::clone(&upload_payload),
+                upload_payload.clone(),
                 start..end,
                 &texture_uri,
             )?;
@@ -260,7 +262,7 @@ impl GpuTextureResource {
         texture_layout: &wgpu::BindGroupLayout,
         sampler_cache: Arc<TextureSamplerCache>,
         id: ResourceId,
-        payload: TextureAsset,
+        payload: Arc<TextureAsset>,
         plan: TextureUploadPlan,
         runtime_mip_gen_pass: &RuntimeMipGenPass,
     ) -> Result<GpuTextureUploadWork, GraphicsError> {
@@ -322,7 +324,7 @@ impl GpuTextureResource {
         } else {
             mip_level_count
         };
-        let upload_payload: Arc<[u8]> = Arc::from(payload.rgba);
+        let upload_payload = WgpuTextureUploadPayload::shared(Arc::clone(&payload));
         let mut upload_batch = WgpuTextureUploadBatch::new();
         for upload in rgba8_mip_uploads(width, height, uploaded_mip_level_count, layer_count) {
             let byte_len = rgba8_level_size_bytes(upload.width, upload.height);
@@ -340,7 +342,7 @@ impl GpuTextureResource {
                     .with_origin(0, 0, upload.layer),
                 4 * upload.width,
                 upload.height,
-                Arc::clone(&upload_payload),
+                upload_payload.clone(),
                 byte_range(upload.offset, end, &texture_uri)?,
                 &texture_uri,
             )?;
@@ -411,7 +413,7 @@ impl GpuTextureResource {
         texture_layout: &wgpu::BindGroupLayout,
         sampler_cache: Arc<TextureSamplerCache>,
         id: ResourceId,
-        payload: TextureAsset,
+        payload: Arc<TextureAsset>,
         plan: TextureUploadPlan,
         previous: &GpuTextureResource,
         previous_range: Range<u8>,
@@ -509,7 +511,7 @@ impl GpuTextureResource {
             }
             pre_upload_commands.push(encoder.finish());
         }
-        let upload_payload: Arc<[u8]> = Arc::from(payload.rgba);
+        let upload_payload = WgpuTextureUploadPayload::shared(Arc::clone(&payload));
         let mut upload_batch = WgpuTextureUploadBatch::new();
         for upload in rgba8_resident_mip_uploads(
             width,
@@ -534,7 +536,7 @@ impl GpuTextureResource {
                     .with_origin(0, 0, upload.source.layer),
                 4 * upload.source.width,
                 upload.source.height,
-                Arc::clone(&upload_payload),
+                upload_payload.clone(),
                 byte_range(upload.source.offset, end, &texture_uri)?,
                 &texture_uri,
             )?;
@@ -583,7 +585,7 @@ impl GpuTextureResource {
         texture_layout: &wgpu::BindGroupLayout,
         sampler_cache: Arc<TextureSamplerCache>,
         id: ResourceId,
-        payload: TextureAsset,
+        payload: Arc<TextureAsset>,
         plan: TextureUploadPlan,
     ) -> Result<GpuTextureUploadWork, GraphicsError> {
         let descriptor = payload.render_image_descriptor();
@@ -597,8 +599,10 @@ impl GpuTextureResource {
                 texture_uri, plan.format
             ))
         })?;
-        let data = match payload.payload {
-            crate::asset::TexturePayload::Container { bytes, .. } => Arc::<[u8]>::from(bytes),
+        let data = match &payload.payload {
+            crate::asset::TexturePayload::Container { .. } => {
+                WgpuTextureUploadPayload::shared(Arc::clone(&payload))
+            }
             crate::asset::TexturePayload::Rgba8 => {
                 return Err(GraphicsError::Asset(format!(
                     "texture {} was planned as compressed but has rgba payload",
@@ -725,7 +729,7 @@ fn enqueue_texture_upload<T: std::fmt::Display + ?Sized>(
     region: TextureCopyRegion,
     bytes_per_row: u32,
     rows_per_image: u32,
-    payload: Arc<[u8]>,
+    payload: WgpuTextureUploadPayload,
     source_range: Range<usize>,
     texture_uri: &T,
 ) -> Result<(), GraphicsError> {

@@ -52,7 +52,7 @@ impl RenderPassExecutor for SetupExecutor {
     fn execute(&self, context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
         validate_context(context, SSS_SETUP_EXECUTOR_ID, QueueLane::AsyncCompute)?;
         let pass_name = context.pass_name.clone();
-        let executor_id = context.executor_id.as_str().to_string();
+        let executor_id = crate::graphics::RenderReportLabel::new(context.executor_id.as_str());
         let gpu = context.require_gpu()?;
         let device_epoch = gpu.device_epoch().ok_or_else(|| {
             "subsurface setup requires a materialized device epoch before pipeline recording"
@@ -67,7 +67,8 @@ impl RenderPassExecutor for SetupExecutor {
         let params_buffer = params.buffer.clone();
         let profiles_buffer = profiles.buffer.clone();
         let size = gpu.viewport_size();
-        let prepared = PreparedSubsurfaceFrame::prepare(gpu.frame_extract(), size)?;
+        let prepared =
+            PreparedSubsurfaceFrame::prepare(gpu.frame_extract(), size, gpu.subsurface_profiles())?;
         let dispatch = prepared.dispatch();
         let target_format = gpu.target_format();
         {
@@ -100,8 +101,8 @@ impl RenderPassExecutor for SetupExecutor {
             dispatch,
             PreparedSubsurfaceFrame::uploaded_byte_len(),
             vec![
-                PostProcessGraphResourceNames::SSS_TILE_LIST.to_string(),
-                PostProcessGraphResourceNames::SSS_INDIRECT_ARGS.to_string(),
+                PostProcessGraphResourceNames::SSS_TILE_LIST.into(),
+                PostProcessGraphResourceNames::SSS_INDIRECT_ARGS.into(),
             ],
         );
         Ok(())
@@ -112,7 +113,7 @@ impl RenderPassExecutor for ScatterExecutor {
     fn execute(&self, context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
         validate_context(context, SSS_SCATTER_EXECUTOR_ID, QueueLane::AsyncCompute)?;
         let pass_name = context.pass_name.clone();
-        let executor_id = context.executor_id.as_str().to_string();
+        let executor_id = crate::graphics::RenderReportLabel::new(context.executor_id.as_str());
         let gpu = context.require_gpu()?;
         let device_epoch = gpu.device_epoch().ok_or_else(|| {
             "subsurface scatter requires a materialized device epoch before pipeline recording"
@@ -156,7 +157,7 @@ impl RenderPassExecutor for ScatterExecutor {
             executor_id,
             super::SSS_SCATTER_PIPELINE_LABEL,
             SSS_TILE_SIZE,
-            vec![PostProcessGraphResourceNames::SSS_SCATTERED.to_string()],
+            vec![PostProcessGraphResourceNames::SSS_SCATTERED.into()],
         );
         Ok(())
     }

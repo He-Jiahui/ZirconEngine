@@ -105,6 +105,6 @@ fn optional_external_pipeline(pass: RenderFeaturePassDescriptor) -> RenderPipeli
 fn test_extract() -> RenderFrameExtract {
     RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     )
 }

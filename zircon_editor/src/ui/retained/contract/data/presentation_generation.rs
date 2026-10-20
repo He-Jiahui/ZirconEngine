@@ -390,9 +390,34 @@ pub(crate) fn paint_viewport_images(
         .unwrap_or_else(|| presentation.viewport_images.clone())
 }
 
+thread_local! {
+    static DIAGNOSTIC_PAINT_OVERRIDE: RefCell<Option<Arc<SharedString>>> = const { RefCell::new(None) };
+}
+
+pub(crate) fn with_diagnostics_paint_override<R>(
+    text: SharedString,
+    paint: impl FnOnce() -> R,
+) -> R {
+    struct Reset(Option<Arc<SharedString>>);
+    impl Drop for Reset {
+        fn drop(&mut self) {
+            DIAGNOSTIC_PAINT_OVERRIDE.with(|active| {
+                active.replace(self.0.take());
+            });
+        }
+    }
+    let _reset =
+        Reset(DIAGNOSTIC_PAINT_OVERRIDE.with(|active| active.replace(Some(Arc::new(text)))));
+    paint()
+}
+
 pub(crate) fn paint_debug_refresh_rate(
     presentation: &HostWindowPresentationData,
 ) -> Arc<SharedString> {
+    if let Some(text) = DIAGNOSTIC_PAINT_OVERRIDE.with(|active| active.borrow().clone()) {
+        return text;
+    }
+
     ACTIVE_PAINT_OVERRIDES
         .with(|active| {
             active

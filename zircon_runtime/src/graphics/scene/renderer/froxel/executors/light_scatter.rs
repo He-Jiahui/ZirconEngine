@@ -26,7 +26,7 @@ impl RenderPassExecutor for VolumetricLightScatterExecutor {
     fn execute(&self, context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
         validate_compute_context(context, VOLUMETRIC_LIGHT_SCATTER_EXECUTOR_ID)?;
         let pass_name = context.pass_name.clone();
-        let executor_id = context.executor_id.as_str().to_string();
+        let executor_id = crate::graphics::RenderReportLabel::new(context.executor_id.as_str());
         let gpu = context.require_gpu()?;
         let device_epoch = gpu.device_epoch().ok_or_else(|| {
             "volumetric light scatter requires a materialized device epoch before pipeline recording"
@@ -153,7 +153,7 @@ impl RenderPassExecutor for VolumetricLightScatterExecutor {
             VOLUMETRIC_LIGHT_SCATTER_WORKGROUP_SIZE,
             dispatch,
             FroxelLightScatterPipeline::UPLOADED_BYTES_PER_DISPATCH,
-            vec![PostProcessGraphResourceNames::VOLUMETRIC_SCATTERING.to_string()],
+            vec![PostProcessGraphResourceNames::VOLUMETRIC_SCATTERING.into()],
         );
         gpu.record_history_write(SceneHistoryDomain::VolumetricScattering);
         Ok(())

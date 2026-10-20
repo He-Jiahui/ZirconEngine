@@ -599,7 +599,7 @@ impl SceneReflectionProbeResources {
                         _ => {
                             report.asset_load_call_count += 1;
                             let asset_load_started = Instant::now();
-                            let texture_result = asset_manager.load_texture_asset(cubemap);
+                            let texture_result = asset_manager.load_texture_asset_snapshot(cubemap);
                             report.asset_load_cpu_time_us =
                                 report.asset_load_cpu_time_us.saturating_add(
                                     u64::try_from(asset_load_started.elapsed().as_micros())

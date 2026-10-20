@@ -59,7 +59,9 @@ pub(super) fn observe_wait_guard_for_test(
         release_publisher: Mutex::new(release_publisher),
     });
     let mut barriers = WAIT_GUARD_BARRIERS.lock().expect("wait guard barriers");
-    assert!(!barriers.iter().any(|entry| entry.receipt == barrier.receipt));
+    assert!(!barriers
+        .iter()
+        .any(|entry| entry.receipt == barrier.receipt));
     barriers.push(Arc::clone(&barrier));
     WaitGuardRegistration(barrier)
 }

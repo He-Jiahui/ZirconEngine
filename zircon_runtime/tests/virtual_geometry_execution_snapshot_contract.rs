@@ -50,7 +50,7 @@ fn render_framework_visbuffer_marks_follow_execution_segments_not_missing_visibi
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
 
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.apply_viewport_size(viewport_size);
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
@@ -232,7 +232,7 @@ fn render_framework_visbuffer64_source_reports_clear_only_for_empty_execution_se
         .expect("quality profile should be accepted");
 
     let world = World::new();
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.apply_viewport_size(viewport_size);
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 0,

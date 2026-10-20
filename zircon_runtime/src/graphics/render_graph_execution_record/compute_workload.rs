@@ -1,6 +1,7 @@
 //! 保存计算 pass 的实际 dispatch 与编译图计划之间的可观察差异。
 //! GPU 生成的间接组数不回读 CPU；审计必须保留“未知”而非伪造组数。
 
+use crate::graphics::RenderReportLabel;
 use crate::render_graph::{
     RenderGraphComputeDispatchExtent, RenderGraphComputePipelineResolution,
     RenderGraphComputeWorkload, RenderGraphPassResourceAccess,
@@ -10,9 +11,9 @@ use crate::render_graph::{
 /// 一次实际编码的计算派发及其管线、资源和上传证据。
 /// generic-compute 与内建计算 pass 都向帧执行记录追加此项。
 pub struct RenderGraphComputeDispatchRecord {
-    pub pass_name: String,
-    pub executor_id: String,
-    pub pipeline_label: String,
+    pub pass_name: RenderReportLabel,
+    pub executor_id: RenderReportLabel,
+    pub pipeline_label: RenderReportLabel,
     pub pipeline_resolution: Option<RenderGraphComputePipelineResolution>,
     pub workgroup_size: [u32; 3],
     pub dispatch_groups: [u32; 3],
@@ -20,18 +21,18 @@ pub struct RenderGraphComputeDispatchRecord {
     /// dispatch that is intentionally not read back into the frame CPU path.
     pub dispatch_groups_known: bool,
     pub uploaded_bytes: u64,
-    pub storage_write_resources: Vec<String>,
+    pub storage_write_resources: Vec<RenderReportLabel>,
     pub resource_accesses: Vec<RenderGraphPassResourceAccess>,
 }
 
 impl RenderGraphComputeDispatchRecord {
     pub fn new(
-        pass_name: impl Into<String>,
-        executor_id: impl Into<String>,
-        pipeline_label: impl Into<String>,
+        pass_name: impl Into<RenderReportLabel>,
+        executor_id: impl Into<RenderReportLabel>,
+        pipeline_label: impl Into<RenderReportLabel>,
         workgroup_size: [u32; 3],
         dispatch_groups: [u32; 3],
-        storage_write_resources: Vec<String>,
+        storage_write_resources: Vec<RenderReportLabel>,
     ) -> Self {
         Self {
             pass_name: pass_name.into(),
@@ -222,10 +223,10 @@ impl RenderGraphComputeWorkloadAuditStatus {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RenderGraphComputeWorkloadAuditRecord {
-    pub pass_name: String,
-    pub executor_id: String,
-    pub planned_pipeline_label: Option<String>,
-    pub actual_pipeline_label: Option<String>,
+    pub pass_name: RenderReportLabel,
+    pub executor_id: RenderReportLabel,
+    pub planned_pipeline_label: Option<RenderReportLabel>,
+    pub actual_pipeline_label: Option<RenderReportLabel>,
     pub planned_workgroup_size: Option<[u32; 3]>,
     pub actual_workgroup_size: Option<[u32; 3]>,
     pub planned_dispatch_groups: Option<[u32; 3]>,
@@ -254,9 +255,9 @@ impl RenderGraphComputeWorkloadAuditRecord {
             RenderGraphComputeWorkloadAuditStatus::Matched
         };
         Self {
-            pass_name: pass_name.to_string(),
-            executor_id: executor_id.to_string(),
-            planned_pipeline_label: Some(planned.pipeline_label.clone()),
+            pass_name: pass_name.into(),
+            executor_id: executor_id.into(),
+            planned_pipeline_label: Some(planned.pipeline_label.as_str().into()),
             actual_pipeline_label: Some(actual.pipeline_label.clone()),
             planned_workgroup_size: Some(planned.workgroup_size),
             actual_workgroup_size: Some(actual.workgroup_size),
@@ -275,9 +276,9 @@ impl RenderGraphComputeWorkloadAuditRecord {
         dispatch_context: RenderGraphComputeWorkloadDispatchContext,
     ) -> Self {
         Self {
-            pass_name: pass_name.to_string(),
-            executor_id: executor_id.to_string(),
-            planned_pipeline_label: Some(planned.pipeline_label.clone()),
+            pass_name: pass_name.into(),
+            executor_id: executor_id.into(),
+            planned_pipeline_label: Some(planned.pipeline_label.as_str().into()),
             actual_pipeline_label: None,
             planned_workgroup_size: Some(planned.workgroup_size),
             actual_workgroup_size: None,

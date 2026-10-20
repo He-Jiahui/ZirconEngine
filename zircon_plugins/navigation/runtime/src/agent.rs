@@ -10,13 +10,13 @@ use zircon_runtime::core::framework::navigation::NavMeshAsset;
 use zircon_runtime::core::framework::navigation::{
     NavAgentTickReport, NavAgentWritebackMode, NavMeshAgentDescriptor, NavMeshHandle, NavPathQuery,
     NavigationAgentDebugState, NavigationDebugCapture, NavigationError, NavigationManager,
-    NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
+    NAV_MESH_OBSTACLE_COMPONENT_TYPE,
 };
 use zircon_runtime::core::math::{Real, Vec3};
 use zircon_runtime::navigation::NavRepathBudget;
 use zircon_runtime::scene::World;
 
-use crate::component_json::parse_component;
+use crate::component_json::cached_agent_descriptor;
 use crate::manager::DefaultNavigationManager;
 use crate::runtime_obstacles::has_obstacle_worlds;
 
@@ -461,14 +461,15 @@ fn movement_settings(agent: &NavMeshAgentDescriptor) -> NavMeshAgentDescriptor {
 fn collect_agent_tick_inputs(world: &World) -> (Vec<(u64, NavMeshAgentDescriptor)>, bool) {
     let mut agents = Vec::new();
     let mut has_runtime_obstacles = false;
-    for node in world.node_records() {
-        if let Some(value) = world.dynamic_component(node.id, NAV_MESH_AGENT_COMPONENT_TYPE) {
-            agents.push((node.id, parse_component::<NavMeshAgentDescriptor>(value)));
+    for entity in world.stable_entity_ids() {
+        if let Some(agent) = cached_agent_descriptor(world, entity) {
+            agents.push((entity, agent));
         }
         has_runtime_obstacles |= world
-            .dynamic_component(node.id, NAV_MESH_OBSTACLE_COMPONENT_TYPE)
+            .dynamic_component(entity, NAV_MESH_OBSTACLE_COMPONENT_TYPE)
             .is_some();
     }
+    agents.sort_by_key(|(entity, _)| *entity);
     (agents, has_runtime_obstacles)
 }
 

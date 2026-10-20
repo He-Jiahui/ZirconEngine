@@ -37,7 +37,8 @@ fn agent_tick_inputs_use_one_world_projection() {
 
     assert!(tick.contains("collect_agent_tick_inputs(world)"));
     assert!(!tick.contains("collect_runtime_obstacles(world)"));
-    assert_eq!(collector.matches(".node_records()").count(), 1);
+    assert!(!collector.contains(".node_records()"));
+    assert!(collector.contains("stable_entity_ids()"));
 }
 
 #[test]
@@ -88,7 +89,7 @@ fn benchmark_samples_csv(samples: &[u128]) -> String {
 fn benchmark_world(node_count: usize) -> World {
     let mut world = World::empty();
     for index in 0..node_count {
-        let entity = world.spawn_node(NodeKind::Empty);
+        let entity = world.spawn_node(NodeKind::Empty).unwrap();
         if index % 2 == 0 {
             world
                 .set_dynamic_component(entity, NAV_MESH_AGENT_COMPONENT_TYPE, json!({}))

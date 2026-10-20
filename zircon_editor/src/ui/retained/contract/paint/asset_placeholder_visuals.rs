@@ -236,15 +236,11 @@ fn push_thumbnail_icon_command(
     ) else {
         return;
     };
-    commands.push(HostPaintCommand::image_pixels(
+    commands.push(HostPaintCommand::from_image_pixels(
         icon_rect,
         Some(clip.clone()),
         order,
-        image.resource_key,
-        image.width,
-        image.height,
-        image.rgba,
-        image.atlas,
+        image,
         opacity,
     ));
 }
@@ -278,15 +274,11 @@ fn push_typed_thumbnail_preview_commands(
     ) else {
         return;
     };
-    commands.push(HostPaintCommand::image_pixels(
+    commands.push(HostPaintCommand::from_image_pixels(
         icon_rect,
         Some(clip.clone()),
         order,
-        image.resource_key,
-        image.width,
-        image.height,
-        image.rgba,
-        image.atlas,
+        image,
         opacity,
     ));
 }

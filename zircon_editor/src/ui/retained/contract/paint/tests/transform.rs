@@ -12,34 +12,39 @@ struct TestTransform;
 struct ExactRowsTransform;
 
 impl TemplateNodePaintTransform for TestTransform {
-    fn transform_row(
+    fn filter_row(
         &self,
         _row: usize,
-        mut node: TemplatePaneNodeData,
-        mut clip: FrameRect,
-    ) -> Option<(TemplatePaneNodeData, FrameRect)> {
-        match node.control_id.as_str() {
-            "moved" => node.frame.x += 12.0,
-            "clipped" => clip.width = 4.0,
-            "suppressed" => return None,
-            _ => {}
+        node: &TemplatePaneNodeData,
+        clip: &FrameRect,
+    ) -> Option<FrameRect> {
+        if node.control_id == "suppressed" {
+            return None;
         }
-        Some((node, clip))
+        let mut clip = clip.clone();
+        if node.control_id == "clipped" {
+            clip.width = 4.0;
+        }
+        Some(clip)
+    }
+    fn patch_row(
+        &self,
+        _row: usize,
+        node: &TemplatePaneNodeData,
+        _clip: &FrameRect,
+    ) -> Option<TemplatePaneNodeData> {
+        if node.control_id != "moved" {
+            return None;
+        }
+        let mut node = node.clone();
+        node.frame.x += 12.0;
+        Some(node)
     }
 }
 
 impl TemplateNodePaintTransform for ExactRowsTransform {
     fn row_visit_indices(&self, _row_count: usize, _clip: &FrameRect) -> Option<Vec<usize>> {
         Some(vec![1])
-    }
-
-    fn transform_row(
-        &self,
-        _row: usize,
-        node: TemplatePaneNodeData,
-        clip: FrameRect,
-    ) -> Option<(TemplatePaneNodeData, FrameRect)> {
-        Some((node, clip))
     }
 }
 

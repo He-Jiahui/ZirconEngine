@@ -42,8 +42,9 @@ fn perception_tick_uses_one_world_projection_without_redundant_sample_sorts() {
         .expect("sample collector source");
 
     assert!(tick.contains("collect_perception_samples(world)"));
-    assert_eq!(collector.matches(".node_records()").count(), 1);
-    assert!(!collector.contains("sort_by"));
+    assert!(!collector.contains(".node_records()"));
+    assert!(collector.contains("stable_entity_ids()"));
+    assert!(collector.contains("sort_by_key"));
 }
 
 #[test]

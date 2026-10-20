@@ -153,7 +153,8 @@ impl UiHostWindow {
     }
 
     pub(crate) fn request_runtime_frame_update(&self) {
-        self.global::<UiHostContext>().invoke_runtime_frame_requested();
+        self.global::<UiHostContext>()
+            .invoke_runtime_frame_requested();
     }
 
     pub(crate) fn request_interactive_frame_update(&self) {

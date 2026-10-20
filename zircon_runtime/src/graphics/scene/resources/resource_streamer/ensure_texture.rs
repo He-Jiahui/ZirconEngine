@@ -145,14 +145,13 @@ impl ResourceStreamer {
         crate::profile_scope!("render", "texture", "prepare_gpu_resource");
         let revision = texture.revision();
         let capture_sample_rgba = center_texture_asset_rgba(&texture);
-        let payload_bytes = texture_payload_byte_len(&texture);
-        crate::profile_counter!("render", "texture_cpu_payload_clone_bytes", payload_bytes);
+        crate::profile_counter!("render", "texture_cpu_payload_clone_bytes", 0);
         let work = GpuTextureResource::from_asset(
             &backend.device,
             texture_layout,
             Arc::clone(&self.texture_sampler_cache),
             id,
-            (*texture).clone(),
+            Arc::clone(texture.resource()),
             &self.runtime_mip_gen_pass,
         )?;
         Ok((revision, capture_sample_rgba, work))
@@ -266,6 +265,7 @@ impl ResourceStreamer {
     }
 }
 
+#[cfg(test)]
 fn texture_payload_byte_len(texture: &TextureAsset) -> usize {
     match &texture.payload {
         crate::asset::TexturePayload::Rgba8 => texture.rgba.len(),

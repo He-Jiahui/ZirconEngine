@@ -44,7 +44,7 @@ fn chrome_atlas_image_payload(
         .map(|rgba| rgba.len() as u64)
         .unwrap_or_else(|| u64::from(atlas.width) * u64::from(atlas.height) * 4);
     ChromeImagePayload {
-        resource_key: atlas.resource_key,
+        resource_key: atlas.resource_key.to_string(),
         resource_generation: atlas.resource_generation,
         width: atlas.width,
         height: atlas.height,

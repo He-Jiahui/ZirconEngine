@@ -116,12 +116,12 @@ class Editor17SettingsValueBatchContractTests(unittest.TestCase):
         )
 
         sync = actions.split("fn sync_open_settings_window", 1)[1]
-        self.assertIn("extension_projection_revision", sync)
+        self.assertIn("extension_projection_is_current", sync)
         self.assertIn("capture_settings_window_projection", sync)
         self.assertIn("capture_settings_values_for_category", sync)
         self.assertLess(
             sync.index("settings_window_revision"),
-            sync.index("extension_projection_revision"),
+            sync.index("extension_projection_is_current"),
         )
         self.assertLess(
             sync.index("if directory_is_stale"),
@@ -151,7 +151,7 @@ class Editor17SettingsValueBatchContractTests(unittest.TestCase):
         self.assertIn("mod plugin_template_documents;", app)
         self.assertNotIn("fn sync_plugin_template_documents_if_changed", app)
         self.assertIn("fn sync_plugin_template_documents_if_changed", owner)
-        self.assertIn("extension_projection_revision", owner)
+        self.assertIn("extension_projection_is_current", owner)
 
     def test_viewport_cannot_construct_a_second_settings_authority_in_production(self) -> None:
         construction = self.read(

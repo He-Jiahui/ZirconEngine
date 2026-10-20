@@ -21,7 +21,7 @@ fn visibility_context_uses_instance_ranges_and_forced_mip_for_virtual_geometry_s
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
 
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 8,
         page_budget: 2,
@@ -95,7 +95,7 @@ fn visibility_context_freeze_cull_preserves_previous_virtual_geometry_selection_
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
         .expect("mesh transform should update");
 
-    let mut previous_extract = world.to_render_frame_extract();
+    let mut previous_extract = world.to_render_frame_extract_cloning();
     previous_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 1,
         page_budget: 1,
@@ -133,7 +133,7 @@ fn visibility_context_freeze_cull_preserves_previous_virtual_geometry_selection_
         vec![100]
     );
 
-    let mut current_extract = world.to_render_frame_extract();
+    let mut current_extract = world.to_render_frame_extract_cloning();
     current_extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 1,
         page_budget: 1,
@@ -208,7 +208,7 @@ fn viewport_virtual_geometry_debug_roundtrips_into_render_frame_extract() {
         virtual_geometry_debug: Some(debug),
     };
 
-    let snapshot = world.build_viewport_render_packet(&request);
+    let snapshot = world.build_viewport_render_packet_cloning(&request);
     assert_eq!(snapshot.virtual_geometry_debug, Some(debug));
 
     let extract = RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(77), snapshot);

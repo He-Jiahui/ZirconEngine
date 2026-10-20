@@ -118,7 +118,7 @@ fn record_ibl_bake_wgpu_command(
     )?;
 
     let pass_name = context.pass_name.clone();
-    let executor_id = context.executor_id.as_str().to_string();
+    let executor_id = crate::graphics::RenderReportLabel::new(context.executor_id.as_str());
     let resource_accesses = context.resources.clone();
     let encoded = {
         let gpu = context.require_gpu()?;
@@ -157,10 +157,10 @@ fn record_ibl_bake_wgpu_command(
     let dispatch_record = RenderGraphComputeDispatchRecord::new(
         pass_name,
         executor_id,
-        encoded.pipeline_label.clone(),
+        encoded.pipeline_label.as_str(),
         IBL_BAKE_WORKGROUP_SIZE,
         encoded.dispatch_groups,
-        vec![output_resource_name.to_string()],
+        vec![output_resource_name.into()],
     )
     .with_resource_accesses(resource_accesses);
     context

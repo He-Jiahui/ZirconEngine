@@ -198,7 +198,7 @@ fn push_recorded_for_test(
 
 fn atlas_image(resource_key: &str, min: [f32; 2], max: [f32; 2]) -> HostPaintAtlasImage {
     HostPaintAtlasImage {
-        resource_key: resource_key.to_string(),
+        resource_key: (resource_key.to_string()).into(),
         resource_generation: 0,
         width: 4,
         height: 4,

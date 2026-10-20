@@ -130,7 +130,8 @@ fn render_frame_extract_filters_lights_by_camera_layers() {
         Some("rect light shading and shadow rendering are not implemented yet")
     );
 
-    let packet = world.build_viewport_render_packet(&SceneViewportExtractRequest::default());
+    let packet =
+        world.build_viewport_render_packet_cloning(&SceneViewportExtractRequest::default());
     assert_eq!(packet.scene.ambient_lights.len(), 1);
     assert_eq!(packet.scene.ambient_lights[0].color, visible_ambient_color);
     assert!(packet

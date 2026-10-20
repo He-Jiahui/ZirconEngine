@@ -213,10 +213,9 @@ fn scoped_admission_timeout_releases_shutdown_lock_and_drops_unadmitted_borrow()
         owner.dispatch(Instant::now(), |_| ()).unwrap();
     }
     let mut output = Vec::new();
-    let result = owner.dispatch_scoped(
-        Instant::now() + Duration::from_millis(25),
-        |_| output.push(42),
-    );
+    let result = owner.dispatch_scoped(Instant::now() + Duration::from_millis(25), |_| {
+        output.push(42)
+    });
     let shutdown_available = owner.shutdown.try_lock().is_ok();
     release_tx.send(()).unwrap();
     let shutdown = owner.shutdown_until(Instant::now() + Duration::from_secs(2), |_| true);
@@ -330,8 +329,7 @@ fn receipt_waiter_releases_initial_guard_and_stays_bounded_while_original_publis
             Err(std::sync::TryLockError::WouldBlock)
         ) && receipt.state.load(Ordering::Acquire) == super::RECEIPT_PENDING;
         let retained = retained_code.upgrade().is_some() && !owner.joined.load(Ordering::Acquire);
-        let same_receipt =
-            Arc::ptr_eq(owner.shutdown.lock().unwrap().as_ref().unwrap(), &receipt);
+        let same_receipt = Arc::ptr_eq(owner.shutdown.lock().unwrap().as_ref().unwrap(), &receipt);
         let _ = release_publisher_tx.send(());
         // 即使限时断言失败也先放行原 publisher、回收 waiter，避免测试遗留 owner。
         (

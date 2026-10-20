@@ -555,6 +555,12 @@ impl World {
         &self.node_cache
     }
 
+    /// Number of live entities, without projecting their components.
+    pub fn entity_count(&self) -> usize {
+        self.entities.len()
+    }
+
+    /// Owned serialization/editor-boundary records. Tick paths should use typed accessors.
     pub fn node_records(&self) -> Vec<SceneNode> {
         let mut nodes = Vec::with_capacity(self.entities.len());
         for entity in self.stable_entity_ids() {

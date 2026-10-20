@@ -162,6 +162,8 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         invalidation: HostInvalidationRoot::with_initial_full_rebuild(),
         pending_ui_perf_scenario: None,
         pending_activity_projection_refresh: false,
+        observed_job_progress_generation: None,
+        activity_notification_revision: None,
         runtime_diagnostics_refresh_target: RuntimeDiagnosticsRefreshTarget::None,
         presentation_dirty: true,
         layout_dirty: true,

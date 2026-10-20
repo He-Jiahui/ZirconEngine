@@ -20,8 +20,8 @@ fn untinted_retained_image_reuses_the_precomputed_pixel_product() {
 
     assert!(Arc::ptr_eq(product.rgba, &retained.rgba));
     assert_eq!(
-        retained.resource_key,
-        retained_image_resource_key(1, 1, &[1, 2, 3, 255])
+        retained.resource_key.as_ref(),
+        retained_image_resource_key(1, 1, &[1, 2, 3, 255]).as_str()
     );
 }
 
@@ -79,4 +79,20 @@ fn tinted_retained_image_cache_separates_content_and_dimensions() {
     assert!(!Arc::ptr_eq(&horizontal.rgba, &vertical.rgba));
     assert_ne!(horizontal.resource_key, different_content.resource_key);
     assert!(!Arc::ptr_eq(&horizontal.rgba, &different_content.rgba));
+}
+
+#[test]
+fn repeated_retained_pixels_share_the_preformatted_key() {
+    let image = Image::from_rgba8(SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(
+        &[1, 2, 3, 255],
+        1,
+        1,
+    ));
+    let first = retained_image_pixels(&image, None).unwrap();
+    let second = retained_image_pixels(&image, None).unwrap();
+    assert!(std::sync::Arc::ptr_eq(
+        &first.resource_key,
+        &second.resource_key
+    ));
+    assert!(std::sync::Arc::ptr_eq(&first.rgba, &second.rgba));
 }

@@ -844,6 +844,8 @@ struct RetainedEditorHost {
     invalidation: HostInvalidationRoot,
     pending_ui_perf_scenario: Option<UiPerfScenario>,
     pending_activity_projection_refresh: bool,
+    observed_job_progress_generation: Option<u64>,
+    activity_notification_revision: Option<workbench_notifications::ActivityProjectionRevision>,
     runtime_diagnostics_refresh_target: RuntimeDiagnosticsRefreshTarget,
     presentation_dirty: bool,
     layout_dirty: bool,

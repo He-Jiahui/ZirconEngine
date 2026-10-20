@@ -239,7 +239,7 @@ fn render_frame_extract_selects_mesh_lod_by_camera_distance() {
             Transform::from_translation(Vec3::new(0.0, 0.0, 5.0)),
         )
         .unwrap();
-    let near_extract = world.to_render_frame_extract();
+    let near_extract = world.to_render_frame_extract_cloning();
     let near_mesh = near_extract
         .geometry
         .meshes
@@ -257,7 +257,7 @@ fn render_frame_extract_selects_mesh_lod_by_camera_distance() {
             Transform::from_translation(Vec3::new(0.0, 0.0, 12.0)),
         )
         .unwrap();
-    let far_extract = world.to_render_frame_extract();
+    let far_extract = world.to_render_frame_extract_cloning();
     let far_mesh = far_extract
         .geometry
         .meshes

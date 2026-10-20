@@ -19,7 +19,7 @@ STREAM_MODEL = ROOT / (
 )
 STREAM_TESTS = ROOT / (
     "zircon_editor/src/ui/retained/contract/"
-    "chrome_command_stream/tests/stream_model.rs"
+    "tests/stream_model.rs"
 )
 
 
@@ -40,11 +40,13 @@ class EditorChromeCommandStreamAllocationPerformanceContractTests(unittest.TestC
         body = source.split("fn extract_chrome_commands", 1)[1]
 
         clip = body.index("damage_clip_command")
-        chain = body.index(".chain(")
-        recorded = body.index("recorded_frame.commands", chain)
+        reuse = body.index("ChromeCommandStream::take_command_buffer()")
+        recorded = body.index("recorded_frame.commands.drain(..)", reuse)
 
-        self.assertLess(clip, chain)
-        self.assertLess(chain, recorded)
+        self.assertLess(clip, reuse)
+        self.assertLess(reuse, recorded)
+        self.assertIn("commands.extend(damage_clip)", body)
+        self.assertIn("HostPaintRecording::recycle_commands", body)
         self.assertIn("ChromeCommandKind::Clip", source)
 
     def test_stream_constructor_and_rust_regression_preserve_vector_identity(self) -> None:
@@ -81,7 +83,7 @@ class EditorChromeCommandStreamAllocationPerformanceContractTests(unittest.TestC
         push = (
             ROOT
             / "zircon_editor/src/ui/retained/contract/"
-            "chrome_command_stream/stream/push/command.rs"
+            "stream/push/command.rs"
         ).read_text(encoding="utf-8")
         append = push.split("fn push_command", 1)[1]
         self.assertIn("self.image_resources_compacted = false", append)

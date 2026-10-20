@@ -436,7 +436,7 @@ fn runtime_bootstrap_without_linked_virtual_geometry_keeps_base_pipeline_lightwe
             )
             .expect("base renderer should accept the profile without activating an absent plugin");
         render_framework
-            .submit_frame_extract(viewport, World::new().to_render_frame_extract())
+            .submit_frame_extract(viewport, World::new().to_render_frame_extract_cloning())
             .expect("base virtual geometry request should degrade to the base pipeline");
         let stats = render_framework.query_stats().unwrap();
 
@@ -651,7 +651,7 @@ fn linked_runtime_render_feature_descriptors_rebuild_default_pipelines() {
             )
             .expect("linked virtual geometry profile should be supported by headless renderer");
         render_framework
-            .submit_frame_extract(viewport, World::new().to_render_frame_extract())
+            .submit_frame_extract(viewport, World::new().to_render_frame_extract_cloning())
             .expect("linked virtual geometry frame should submit");
         let stats = render_framework.query_stats().unwrap();
 

@@ -90,3 +90,47 @@ fn checked_reparent_render_stage_publishes_changed_world_matrix() {
         )
     );
 }
+
+#[test]
+fn prepared_viewport_extract_is_idempotent_without_authoring_edits() {
+    use crate::core::framework::render::SceneViewportExtractRequest;
+    let mut world = World::new();
+    let entity = world.spawn_node(NodeKind::Cube).unwrap();
+    world
+        .update_transform(
+            entity,
+            Transform::from_translation(Vec3::new(2.0, 3.0, 4.0)),
+        )
+        .unwrap();
+    let request = SceneViewportExtractRequest::default();
+    let first = world.build_prepared_viewport_render_packet(&request);
+    let generation = world.world_generation();
+    let artifact = world.render_component_change_artifact().unwrap();
+    let second = world.build_prepared_viewport_render_packet(&request);
+    assert_eq!(first, second);
+    assert_eq!(world.world_generation(), generation);
+    assert!(Arc::ptr_eq(
+        &artifact,
+        &world.render_component_change_artifact().unwrap()
+    ));
+    assert!(!world.has_pending_scene_systems());
+}
+
+#[test]
+fn memory_profile_prepared_viewport_packet_10k_entities() {
+    use crate::core::framework::render::SceneViewportExtractRequest;
+    let mut world = World::empty();
+    for _ in 0..10_000 {
+        world.spawn_node(NodeKind::Empty).unwrap();
+    }
+    world.prepare_viewport_render_extract();
+    let request = SceneViewportExtractRequest::default();
+    let (_, prepared) =
+        crate::memory_validation::measure(|| world.build_prepared_viewport_render_packet(&request));
+    prepared.report("viewport_packet_10k", "prepared");
+    let (_, cloning) =
+        crate::memory_validation::measure(|| world.build_viewport_render_packet_cloning(&request));
+    cloning.report("viewport_packet_10k", "cloning");
+    assert!(prepared.allocations < cloning.allocations);
+    assert!(prepared.peak_bytes < cloning.peak_bytes);
+}

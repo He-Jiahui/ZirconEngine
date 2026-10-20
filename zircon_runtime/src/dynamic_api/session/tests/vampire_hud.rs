@@ -116,7 +116,7 @@ fn vampire_project_session_capture_frame_draws_world_hud_bars() {
             vampire_capture_viewport_size(),
         ))
         .unwrap();
-    let rgba = frame.rgba.as_slice();
+    let rgba = frame.rgba.as_ref();
     let top_left_panel_pixels = count_hud_panel_pixels(rgba, frame.width, frame.height);
     let world_hud_bar_pixels = count_world_hud_bar_pixels(rgba, frame.width, frame.height);
     let diagnostics = collect_runtime_diagnostics(&session.runtime.handle());

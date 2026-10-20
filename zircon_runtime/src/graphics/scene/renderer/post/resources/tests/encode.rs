@@ -10,7 +10,7 @@ use crate::scene::world::World;
 #[test]
 fn hybrid_gi_probe_encoder_returns_no_resources_when_disabled() {
     let frame = ViewportRenderFrame::from_extract(
-        World::new().to_render_frame_extract(),
+        World::new().to_render_frame_extract_cloning(),
         UVec2::new(160, 120),
     );
 
@@ -176,7 +176,7 @@ fn hybrid_gi_probe_encoder_projects_prepared_runtime_screen_probe_sideband() {
 
 fn hybrid_gi_scene_representation_extract() -> RenderFrameExtract {
     let world = World::new();
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.apply_viewport_size(UVec2::new(160, 120));
     extract.lighting.hybrid_global_illumination = Some(RenderHybridGiExtract {
         enabled: true,

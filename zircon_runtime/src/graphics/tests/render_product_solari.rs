@@ -203,7 +203,7 @@ pub(super) fn solari_capabilities() -> RenderCapabilitySummary {
 fn default_extract() -> crate::core::framework::render::RenderFrameExtract {
     let mut extract = crate::core::framework::render::RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(900),
-        World::new().to_render_snapshot(),
+        World::new().to_render_snapshot_cloning(),
     );
     extract.apply_viewport_size(UVec2::new(320, 240));
     extract

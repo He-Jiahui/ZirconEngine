@@ -5,7 +5,6 @@ use crate::core::logging::{LogEntry, LogSeverity, LogSource};
 use crate::scene::viewport::ViewportState;
 use crate::scene::viewport::{
     RenderFrameExtract, RenderSceneSnapshot, RenderVisibleSpatialQuerySnapshot,
-    RenderWorldSnapshotHandle,
 };
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
@@ -19,11 +18,22 @@ pub(crate) struct EditorRenderFrameSubmission {
 
 impl EditorState {
     pub fn render_snapshot(&self) -> Option<RenderSceneSnapshot> {
-        match self.world.with_world(|scene| {
+        match self.world.with_world_mut(|scene| {
             let controller = &self.viewport_controller;
-            controller.build_render_snapshot(scene)
+            controller
+                .build_prepared_render_extract(scene)
+                .to_scene_snapshot()
         }) {
-            Ok(snapshot) => snapshot,
+            Ok(Some(outcome)) => {
+                let (snapshot, error) = outcome.into_parts();
+                if let Some(error) = error {
+                    self.report_authoring_world_access_failure("render snapshot", &error);
+                    None
+                } else {
+                    Some(snapshot)
+                }
+            }
+            Ok(None) => None,
             Err(error) => {
                 self.report_authoring_world_access_failure("render snapshot", &error);
                 None
@@ -43,18 +53,23 @@ impl EditorState {
         {
             emit_highlight_delivery_error(&self.context, error.to_string());
         }
-        match self.world.with_world(|scene| {
+        match self.world.with_world_mut(|scene| {
             let controller = &self.viewport_controller;
-            let snapshot = controller.build_render_snapshot(scene);
             EditorRenderFrameSubmission {
-                extract: RenderFrameExtract::from_snapshot(
-                    RenderWorldSnapshotHandle::new(scene.world_generation()),
-                    snapshot,
-                ),
+                extract: controller.build_prepared_render_extract(scene),
                 ui: None,
             }
         }) {
-            Ok(submission) => submission,
+            Ok(Some(outcome)) => {
+                let (submission, error) = outcome.into_parts();
+                if let Some(error) = error {
+                    self.report_authoring_world_access_failure("render frame extraction", &error);
+                    None
+                } else {
+                    Some(submission)
+                }
+            }
+            Ok(None) => None,
             Err(error) => {
                 self.report_authoring_world_access_failure("render frame extraction", &error);
                 None
@@ -84,18 +99,23 @@ impl EditorState {
         }
         let world = &self.world;
         let viewport_controller = &mut self.viewport_controller;
-        match world.with_world(|scene| {
+        match world.with_world_mut(|scene| {
             let controller = viewport_controller.session(view_id);
-            let snapshot = controller.build_render_snapshot(scene);
             EditorRenderFrameSubmission {
-                extract: RenderFrameExtract::from_snapshot(
-                    RenderWorldSnapshotHandle::new(scene.world_generation()),
-                    snapshot,
-                ),
+                extract: controller.build_prepared_render_extract(scene),
                 ui: None,
             }
         }) {
-            Ok(submission) => submission,
+            Ok(Some(outcome)) => {
+                let (submission, error) = outcome.into_parts();
+                if let Some(error) = error {
+                    self.report_authoring_world_access_failure("render frame extraction", &error);
+                    None
+                } else {
+                    Some(submission)
+                }
+            }
+            Ok(None) => None,
             Err(error) => {
                 self.report_authoring_world_access_failure("render frame extraction", &error);
                 None

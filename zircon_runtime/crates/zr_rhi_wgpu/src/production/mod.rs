@@ -66,7 +66,7 @@ pub use submission_metrics::{WgpuSubmissionMetricsDelta, WgpuSubmissionMetricsSn
 pub(crate) use surface::WgpuSurfaceService;
 pub use surface_bootstrap::WgpuSurfaceBootstrap;
 pub use surface_bootstrap_adapter::WgpuSurfaceAdapterBootstrap;
-pub use upload_batch::{WgpuTextureUpload, WgpuTextureUploadBatch};
+pub use upload_batch::{WgpuTextureUpload, WgpuTextureUploadBatch, WgpuTextureUploadPayload};
 
 #[cfg(test)]
 #[path = "tests/cases.rs"]

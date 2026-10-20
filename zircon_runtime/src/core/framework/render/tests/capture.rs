@@ -100,3 +100,10 @@ fn hdr_capture_preserves_linear_texels_and_capture_provenance() {
     assert_eq!(frame.generation, 7);
     assert_eq!(frame.capture_report, report);
 }
+
+#[test]
+fn captured_frame_clones_share_rgba_storage() {
+    let frame = super::CapturedFrame::new(1, 1, vec![1, 2, 3, 4], 1);
+    let shared = frame.clone();
+    assert!(std::sync::Arc::ptr_eq(&frame.rgba, &shared.rgba));
+}

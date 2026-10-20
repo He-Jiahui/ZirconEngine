@@ -90,7 +90,7 @@ fn export_runtime_shader_probe_blend_boundary_png() {
 
     let output = shader_test_output_dir()
         .join("runtime_shader_pbr_reflection_probe_blend_boundary_20260710.png");
-    ImageBuffer::<Rgba<u8>, _>::from_raw(frame.width, frame.height, frame.rgba.clone())
+    ImageBuffer::<Rgba<u8>, _>::from_raw(frame.width, frame.height, frame.rgba.to_vec())
         .expect("probe blend frame dimensions")
         .save_with_format(output, ImageFormat::Png)
         .expect("write reflection-probe blend screenshot");
@@ -165,15 +165,15 @@ impl ProbeProductFixture {
         } else {
             EnvironmentExtract::procedural_default()
         };
-        let mut snapshot = self
-            .world
-            .build_viewport_render_packet(&SceneViewportExtractRequest {
-                settings: ViewportRenderSettings::default(),
-                active_camera_override: None,
-                camera: None,
-                viewport_size: Some(PROBE_PRODUCT_OUTPUT_SIZE),
-                virtual_geometry_debug: None,
-            });
+        let mut snapshot =
+            self.world
+                .build_viewport_render_packet_cloning(&SceneViewportExtractRequest {
+                    settings: ViewportRenderSettings::default(),
+                    active_camera_override: None,
+                    camera: None,
+                    viewport_size: Some(PROBE_PRODUCT_OUTPUT_SIZE),
+                    virtual_geometry_debug: None,
+                });
         snapshot.environment = environment;
         snapshot.preview =
             PreviewEnvironmentExtract::from_environment(&snapshot.environment, true, Vec4::ZERO);

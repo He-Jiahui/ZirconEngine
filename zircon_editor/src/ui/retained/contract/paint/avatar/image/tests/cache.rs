@@ -3,7 +3,9 @@ use crate::ui::retained_host::host_contract::paint_template_nodes::visual_assets
 
 fn image(resource_key: &str) -> HostPaintImagePixels {
     HostPaintImagePixels {
-        resource_key: resource_key.to_string(),
+        source_resource_key: None,
+        source_path: None,
+        resource_key: (resource_key.to_string()).into(),
         width: 1,
         height: 1,
         rgba: vec![255; 4].into(),

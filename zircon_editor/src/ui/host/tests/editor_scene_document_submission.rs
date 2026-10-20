@@ -4,7 +4,7 @@ fn project_scene_installer_prepares_an_authoring_seed_before_replacing_authoring
     let prepare_seed = [
         "self",
         "            .manager",
-        "            .prepare_authoring_world(document.world().clone())",
+        "            .prepare_authoring_world(document.take_world())",
     ]
     .join("\n");
     let raw_level_install = [

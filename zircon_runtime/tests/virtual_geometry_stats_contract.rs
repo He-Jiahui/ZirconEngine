@@ -48,7 +48,7 @@ fn render_framework_stats_expose_virtual_geometry_instance_ranges_and_debug_stat
         .find(|node| node.mesh.is_some())
         .map(|node| node.id)
         .expect("default world should contain a renderable mesh");
-    let mut extract = world.to_render_frame_extract();
+    let mut extract = world.to_render_frame_extract_cloning();
     extract.apply_viewport_size(viewport_size);
     extract.geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
         cluster_budget: 2,
@@ -260,7 +260,7 @@ fn render_framework_stats_expose_virtual_geometry_instance_ranges_and_debug_stat
         )
         .expect("quality profile should disable virtual geometry for the reset assertion");
 
-    let mut cleared_extract = world.to_render_frame_extract();
+    let mut cleared_extract = world.to_render_frame_extract_cloning();
     cleared_extract.apply_viewport_size(viewport_size);
     server
         .submit_frame_extract(viewport, cleared_extract)
