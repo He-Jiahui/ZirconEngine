@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use serde::{Deserialize, Serialize};
 
 use crate::asset::{
@@ -48,6 +50,7 @@ use ui::{ArtifactCacheUiAssetDocument, ArtifactCacheUiV2AssetDocument};
 /// self-describing map format and skipped fields shift the remaining bytes.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub(super) enum ArtifactCacheAsset<
+    'a,
     ModelPayload = ArtifactCacheModelAsset,
     TextureData = ArtifactCacheTextureAsset,
     SoundData = SoundAsset,
@@ -57,45 +60,56 @@ pub(super) enum ArtifactCacheAsset<
     Texture(TextureData),
     Shader(ArtifactCacheShaderAsset),
     Material(ArtifactCacheMaterialAsset),
-    MaterialGraph(MaterialGraphAsset),
+    MaterialGraph(Cow<'a, MaterialGraphAsset>),
     Sound(SoundData),
     Font(ArtifactCacheFontAsset),
     PhysicsMaterial(ArtifactCachePhysicsMaterialAsset),
-    NavMesh(NavMeshAsset),
-    NavigationSettings(NavigationSettingsAsset),
-    Terrain(TerrainAsset),
-    TerrainLayerStack(TerrainLayerStackAsset),
-    TileSet(TileSetAsset),
-    TileMap(TileMapAsset),
+    NavMesh(Cow<'a, NavMeshAsset>),
+    NavigationSettings(Cow<'a, NavigationSettingsAsset>),
+    Terrain(Cow<'a, TerrainAsset>),
+    TerrainLayerStack(Cow<'a, TerrainLayerStackAsset>),
+    TileSet(Cow<'a, TileSetAsset>),
+    TileMap(Cow<'a, TileMapAsset>),
     Prefab(ArtifactCachePrefabAsset),
     Scene(ArtifactCacheSceneAsset),
     Model(ModelPayload),
     Mesh(MeshData),
-    AnimationSkeleton(AnimationSkeletonAsset),
-    AnimationClip(AnimationClipAsset),
-    AnimationSequence(AnimationSequenceAsset),
-    AnimationGraph(AnimationGraphAsset),
-    AnimationStateMachine(AnimationStateMachineAsset),
+    AnimationSkeleton(Cow<'a, AnimationSkeletonAsset>),
+    AnimationClip(Cow<'a, AnimationClipAsset>),
+    AnimationSequence(Cow<'a, AnimationSequenceAsset>),
+    AnimationGraph(Cow<'a, AnimationGraphAsset>),
+    AnimationStateMachine(Cow<'a, AnimationStateMachineAsset>),
     UiLayout(ArtifactCacheUiAssetDocument),
     UiWidget(ArtifactCacheUiAssetDocument),
     UiStyle(ArtifactCacheUiAssetDocument),
-    UiTheme(UiThemeAsset),
-    UiIcon(UiIconAsset),
+    UiTheme(Cow<'a, UiThemeAsset>),
+    UiIcon(Cow<'a, UiIconAsset>),
     UiV2View(ArtifactCacheUiV2AssetDocument),
     UiV2Component(ArtifactCacheUiV2AssetDocument),
     UiV2Style(ArtifactCacheUiV2AssetDocument),
 }
 
-impl<ModelPayload, TextureData, SoundData, MeshData>
-    ArtifactCacheAsset<ModelPayload, TextureData, SoundData, MeshData>
+// Cow serializes as its payload, without a new tag or a different field order.
+// Reads deserialize into owned values; writes borrow the unchanged wire types.
+fn cache_asset_view<T: Clone>(asset: &T, borrow: bool) -> Cow<'_, T> {
+    if borrow {
+        Cow::Borrowed(asset)
+    } else {
+        Cow::Owned(asset.clone())
+    }
+}
+
+impl<'a, ModelPayload, TextureData, SoundData, MeshData>
+    ArtifactCacheAsset<'a, ModelPayload, TextureData, SoundData, MeshData>
 {
     /// 在 ArtifactStore 写入前把编辑格式转换为顺序式缓存载荷，并拒绝无效纹理元数据。
-    fn from_imported_with_model<'a>(
+    fn from_imported_with_model(
         asset: &'a ImportedAsset,
         model: impl FnOnce(&'a ModelAsset) -> ModelPayload,
         texture: impl FnOnce(&'a TextureAsset) -> TextureData,
         sound: impl FnOnce(&'a SoundAsset) -> SoundData,
         mesh: impl FnOnce(&'a crate::asset::MeshAsset) -> MeshData,
+        borrow_passthrough: bool,
     ) -> Result<Self, AssetCodecError> {
         Ok(match asset {
             ImportedAsset::Data(asset) => Self::Data(ArtifactCacheDataAsset::from(asset)),
@@ -107,18 +121,32 @@ impl<ModelPayload, TextureData, SoundData, MeshData>
             ImportedAsset::Material(asset) => {
                 Self::Material(ArtifactCacheMaterialAsset::from(asset))
             }
-            ImportedAsset::MaterialGraph(asset) => Self::MaterialGraph(asset.clone()),
+            ImportedAsset::MaterialGraph(asset) => {
+                Self::MaterialGraph(cache_asset_view(asset, borrow_passthrough))
+            }
             ImportedAsset::Sound(asset) => Self::Sound(sound(asset)),
             ImportedAsset::Font(asset) => Self::Font(ArtifactCacheFontAsset::from(asset)),
             ImportedAsset::PhysicsMaterial(asset) => {
                 Self::PhysicsMaterial(ArtifactCachePhysicsMaterialAsset::from(asset))
             }
-            ImportedAsset::NavMesh(asset) => Self::NavMesh(asset.clone()),
-            ImportedAsset::NavigationSettings(asset) => Self::NavigationSettings(asset.clone()),
-            ImportedAsset::Terrain(asset) => Self::Terrain(asset.clone()),
-            ImportedAsset::TerrainLayerStack(asset) => Self::TerrainLayerStack(asset.clone()),
-            ImportedAsset::TileSet(asset) => Self::TileSet(asset.clone()),
-            ImportedAsset::TileMap(asset) => Self::TileMap(asset.clone()),
+            ImportedAsset::NavMesh(asset) => {
+                Self::NavMesh(cache_asset_view(asset, borrow_passthrough))
+            }
+            ImportedAsset::NavigationSettings(asset) => {
+                Self::NavigationSettings(cache_asset_view(asset, borrow_passthrough))
+            }
+            ImportedAsset::Terrain(asset) => {
+                Self::Terrain(cache_asset_view(asset, borrow_passthrough))
+            }
+            ImportedAsset::TerrainLayerStack(asset) => {
+                Self::TerrainLayerStack(cache_asset_view(asset, borrow_passthrough))
+            }
+            ImportedAsset::TileSet(asset) => {
+                Self::TileSet(cache_asset_view(asset, borrow_passthrough))
+            }
+            ImportedAsset::TileMap(asset) => {
+                Self::TileMap(cache_asset_view(asset, borrow_passthrough))
+            }
             ImportedAsset::Prefab(asset) => {
                 asset
                     .scene
@@ -140,12 +168,20 @@ impl<ModelPayload, TextureData, SoundData, MeshData>
             }
             ImportedAsset::Model(asset) => Self::Model(model(asset)),
             ImportedAsset::Mesh(asset) => Self::Mesh(mesh(asset)),
-            ImportedAsset::AnimationSkeleton(asset) => Self::AnimationSkeleton(asset.clone()),
-            ImportedAsset::AnimationClip(asset) => Self::AnimationClip(asset.clone()),
-            ImportedAsset::AnimationSequence(asset) => Self::AnimationSequence(asset.clone()),
-            ImportedAsset::AnimationGraph(asset) => Self::AnimationGraph(asset.clone()),
+            ImportedAsset::AnimationSkeleton(asset) => {
+                Self::AnimationSkeleton(cache_asset_view(asset, borrow_passthrough))
+            }
+            ImportedAsset::AnimationClip(asset) => {
+                Self::AnimationClip(cache_asset_view(asset, borrow_passthrough))
+            }
+            ImportedAsset::AnimationSequence(asset) => {
+                Self::AnimationSequence(cache_asset_view(asset, borrow_passthrough))
+            }
+            ImportedAsset::AnimationGraph(asset) => {
+                Self::AnimationGraph(cache_asset_view(asset, borrow_passthrough))
+            }
             ImportedAsset::AnimationStateMachine(asset) => {
-                Self::AnimationStateMachine(asset.clone())
+                Self::AnimationStateMachine(cache_asset_view(asset, borrow_passthrough))
             }
             ImportedAsset::UiLayout(asset) => Self::UiLayout(
                 ArtifactCacheUiAssetDocument::from_document(&asset.document)?,
@@ -156,8 +192,12 @@ impl<ModelPayload, TextureData, SoundData, MeshData>
             ImportedAsset::UiStyle(asset) => Self::UiStyle(
                 ArtifactCacheUiAssetDocument::from_document(&asset.document)?,
             ),
-            ImportedAsset::UiTheme(asset) => Self::UiTheme(asset.clone()),
-            ImportedAsset::UiIcon(asset) => Self::UiIcon(asset.clone()),
+            ImportedAsset::UiTheme(asset) => {
+                Self::UiTheme(cache_asset_view(asset, borrow_passthrough))
+            }
+            ImportedAsset::UiIcon(asset) => {
+                Self::UiIcon(cache_asset_view(asset, borrow_passthrough))
+            }
             ImportedAsset::UiV2View(asset) => Self::UiV2View(
                 ArtifactCacheUiV2AssetDocument::from_document(&asset.document)?,
             ),
@@ -180,18 +220,20 @@ pub(super) fn from_imported_for_write(
         texture_ref::ArtifactCacheTextureAssetRef::new,
         |sound| sound,
         mesh::ArtifactCacheMeshAssetRef::new,
+        true,
     )
 }
 
-impl ArtifactCacheAsset {
+impl<'a> ArtifactCacheAsset<'a> {
     #[cfg(test)]
-    pub(super) fn from_imported(asset: &ImportedAsset) -> Result<Self, AssetCodecError> {
+    pub(super) fn from_imported(asset: &'a ImportedAsset) -> Result<Self, AssetCodecError> {
         Self::from_imported_with_model(
             asset,
             ArtifactCacheModelAsset::from,
             ArtifactCacheTextureAsset::from,
             SoundAsset::clone,
             ArtifactCacheMeshAsset::from,
+            false,
         )
     }
 
@@ -202,30 +244,34 @@ impl ArtifactCacheAsset {
             Self::Texture(asset) => ImportedAsset::Texture(asset.into_asset()?),
             Self::Shader(asset) => ImportedAsset::Shader(asset.into_asset()?),
             Self::Material(asset) => ImportedAsset::Material(asset.into_asset()?),
-            Self::MaterialGraph(asset) => ImportedAsset::MaterialGraph(asset),
+            Self::MaterialGraph(asset) => ImportedAsset::MaterialGraph(asset.into_owned()),
             Self::Sound(asset) => ImportedAsset::Sound(asset),
             Self::Font(asset) => ImportedAsset::Font(asset.into_asset()),
             Self::PhysicsMaterial(asset) => ImportedAsset::PhysicsMaterial(asset.into()),
-            Self::NavMesh(asset) => ImportedAsset::NavMesh(asset),
-            Self::NavigationSettings(asset) => ImportedAsset::NavigationSettings(asset),
-            Self::Terrain(asset) => ImportedAsset::Terrain(asset),
-            Self::TerrainLayerStack(asset) => ImportedAsset::TerrainLayerStack(asset),
-            Self::TileSet(asset) => ImportedAsset::TileSet(asset),
-            Self::TileMap(asset) => ImportedAsset::TileMap(asset),
+            Self::NavMesh(asset) => ImportedAsset::NavMesh(asset.into_owned()),
+            Self::NavigationSettings(asset) => {
+                ImportedAsset::NavigationSettings(asset.into_owned())
+            }
+            Self::Terrain(asset) => ImportedAsset::Terrain(asset.into_owned()),
+            Self::TerrainLayerStack(asset) => ImportedAsset::TerrainLayerStack(asset.into_owned()),
+            Self::TileSet(asset) => ImportedAsset::TileSet(asset.into_owned()),
+            Self::TileMap(asset) => ImportedAsset::TileMap(asset.into_owned()),
             Self::Prefab(asset) => ImportedAsset::Prefab(asset.into_asset()?),
             Self::Scene(asset) => ImportedAsset::Scene(asset.into_asset()?),
             Self::Model(asset) => ImportedAsset::Model(asset.into_asset()),
             Self::Mesh(asset) => ImportedAsset::Mesh(asset.into_asset()),
-            Self::AnimationSkeleton(asset) => ImportedAsset::AnimationSkeleton(asset),
-            Self::AnimationClip(asset) => ImportedAsset::AnimationClip(asset),
-            Self::AnimationSequence(asset) => ImportedAsset::AnimationSequence(asset),
-            Self::AnimationGraph(asset) => ImportedAsset::AnimationGraph(asset),
-            Self::AnimationStateMachine(asset) => ImportedAsset::AnimationStateMachine(asset),
+            Self::AnimationSkeleton(asset) => ImportedAsset::AnimationSkeleton(asset.into_owned()),
+            Self::AnimationClip(asset) => ImportedAsset::AnimationClip(asset.into_owned()),
+            Self::AnimationSequence(asset) => ImportedAsset::AnimationSequence(asset.into_owned()),
+            Self::AnimationGraph(asset) => ImportedAsset::AnimationGraph(asset.into_owned()),
+            Self::AnimationStateMachine(asset) => {
+                ImportedAsset::AnimationStateMachine(asset.into_owned())
+            }
             Self::UiLayout(asset) => ImportedAsset::UiLayout(asset.into_layout_asset()?),
             Self::UiWidget(asset) => ImportedAsset::UiWidget(asset.into_widget_asset()?),
             Self::UiStyle(asset) => ImportedAsset::UiStyle(asset.into_style_asset()?),
-            Self::UiTheme(asset) => ImportedAsset::UiTheme(asset),
-            Self::UiIcon(asset) => ImportedAsset::UiIcon(asset),
+            Self::UiTheme(asset) => ImportedAsset::UiTheme(asset.into_owned()),
+            Self::UiIcon(asset) => ImportedAsset::UiIcon(asset.into_owned()),
             Self::UiV2View(asset) => ImportedAsset::UiV2View(asset.into_view_asset()?),
             Self::UiV2Component(asset) => {
                 ImportedAsset::UiV2Component(asset.into_component_asset()?)
@@ -460,3 +506,7 @@ impl From<ArtifactCachePhysicsMaterialAsset> for PhysicsMaterialAsset {
 #[cfg(test)]
 #[path = "cache_payload/tests/metadata_error_buffer.rs"]
 mod metadata_error_buffer_tests;
+
+#[cfg(test)]
+#[path = "cache_payload/tests/borrowed_passthrough.rs"]
+mod borrowed_passthrough_tests;
