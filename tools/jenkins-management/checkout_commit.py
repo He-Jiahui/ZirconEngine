@@ -107,7 +107,29 @@ def load_policy(repo):
     return policy
 
 
+def selected_file_grants(repo, fallback):
+    """Use the selected profile, rather than the retained optional strict table."""
+    config_path = physical(repo / '.codex/config.toml')
+    if not config_path.is_file():
+        return fallback, None
+    raw = config_path.read_bytes()
+    config = tomllib.loads(raw.decode('utf-8-sig'))
+    selected = config.get('default_permissions')
+    if selected == ':danger-full-access':
+        grants = {str(repo): 'write'}
+    elif selected is None:
+        grants = fallback
+    elif isinstance(selected, str) and not selected.startswith(':'):
+        grants = config.get('permissions', {}).get(selected, {}).get('filesystem', {})
+    else:
+        grants = {}
+    if not isinstance(grants, dict):
+        raise ValueError('Selected project filesystem permissions must be a table')
+    return grants, (config_path, raw)
+
+
 def selected_paths(repo, paths, policy, grants):
+    grants, selected_config = selected_file_grants(repo, grants)
     if not isinstance(paths, list) or not paths or len(paths) > 256:
         raise ValueError("Select between 1 and 256 individual task files")
     result, seen = [], set()
@@ -137,6 +159,8 @@ def selected_paths(repo, paths, policy, grants):
             raise ValueError("Selected file has no project write grant: " + name)
         seen.add(name.casefold())
         result.append(name)
+    if selected_config is not None and selected_config[0].read_bytes() != selected_config[1]:
+        raise ValueError('Selected project permissions changed during file checks')
     return result
 
 
