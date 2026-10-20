@@ -30,8 +30,8 @@ use crate::core::framework::render::{
     RenderVirtualGeometryDebugSnapshot, RenderVirtualGeometryVisBuffer64Entry,
 };
 
-// Public debug/execution payload sharing is deferred by the audit. Account for
-// the remaining copies explicitly instead of reporting the provider move as zero-copy end to end.
+// Public diagnostic payload sharing remains deferred. Count these optional
+// copies; execution takes the originals only after diagnostic readers finish.
 fn copy_resident_payloads(
     context: &FrameSubmissionContext,
 ) -> Vec<crate::core::framework::render::RenderVirtualGeometryPagePayload> {
@@ -203,7 +203,7 @@ fn vg_execution_required<T>(value: Option<T>, reason: &str) -> Option<T> {
 }
 
 pub(super) fn build_virtual_geometry_execution_data(
-    context: &FrameSubmissionContext,
+    context: &mut FrameSubmissionContext,
 ) -> Option<crate::core::framework::render::RenderVirtualGeometryExecutionData> {
     let extract = vg_execution_required(context.virtual_geometry_extract(), "extract")?;
     let plan = context
@@ -389,14 +389,19 @@ pub(super) fn build_virtual_geometry_execution_data(
     } else {
         None
     };
+    let instances = extract.instances.clone();
+    let debug = extract.debug;
+    // All validation and diagnostic reads precede ownership transfer. On failure,
+    // leave the context intact so its caller can still report the original inputs.
+    let resident_page_payloads = context.take_virtual_geometry_resident_page_payloads();
     Some(
         crate::core::framework::render::RenderVirtualGeometryExecutionData {
             indexed_candidate_payload_ranges,
             author_cluster_catalog,
             candidate_author_indices,
-            instances: extract.instances.clone(),
-            resident_page_payloads: copy_resident_payloads(context),
-            debug: extract.debug,
+            instances,
+            resident_page_payloads,
+            debug,
             cull_input,
             prepared_cpu_frame: Some(prepared),
             selected_clusters,

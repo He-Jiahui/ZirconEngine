@@ -52,9 +52,10 @@ pub(super) fn build_runtime_frame(
     frame.subsurface_profiles_override = context.subsurface_profiles();
     frame.virtual_geometry_readback_scope = context.virtual_geometry_readback_scope();
     frame.virtual_geometry_execution_inputs = context.virtual_geometry_execution_inputs();
-    frame.virtual_geometry_indexed_sources = context.virtual_geometry_indexed_sources().to_vec();
     frame.virtual_geometry_execution_data =
         build_virtual_geometry_execution_data(context).map(Arc::new);
+    // Execution validation still borrows the admitted source mappings above.
+    frame.virtual_geometry_indexed_sources = context.take_virtual_geometry_indexed_sources();
     frame.render_region = frame.render_region().with_local_size(context.render_size());
     if let Some(runtime_overlays) = runtime_overlays {
         frame = frame.with_runtime_overlays(runtime_overlays);

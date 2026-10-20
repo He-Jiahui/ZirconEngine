@@ -662,6 +662,13 @@ impl FrameSubmissionContext {
         &self.virtual_geometry_resident_page_payloads
     }
 
+    // Diagnostic readers run first; execution is the final owner of the heavy page data.
+    pub(super) fn take_virtual_geometry_resident_page_payloads(
+        &mut self,
+    ) -> Vec<RenderVirtualGeometryPagePayload> {
+        std::mem::take(&mut self.virtual_geometry_resident_page_payloads)
+    }
+
     pub(super) fn predicted_generation(&self) -> u64 {
         self.predicted_generation
     }
@@ -738,5 +745,11 @@ impl FrameSubmissionContext {
         &self,
     ) -> &[crate::graphics::VirtualGeometryIndexedSourceAdmission] {
         &self.virtual_geometry_indexed_sources
+    }
+
+    pub(super) fn take_virtual_geometry_indexed_sources(
+        &mut self,
+    ) -> Vec<crate::graphics::VirtualGeometryIndexedSourceAdmission> {
+        std::mem::take(&mut self.virtual_geometry_indexed_sources)
     }
 }
