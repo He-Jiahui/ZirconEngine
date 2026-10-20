@@ -20,9 +20,9 @@ fn virtual_geometry_availability_query_does_not_clone_the_payload() {
         .find("fn query_virtual_geometry_debug_snapshot_available")
         .expect("availability query");
     let end = source[start..]
-        .find("#[cfg(test)]")
+        .find("\n}\n")
         .map(|offset| start + offset)
-        .expect("availability query end");
+        .expect("availability query function end");
     let body = &source[start..end];
 
     assert!(body.contains("last_virtual_geometry_debug_snapshot.is_some()"));
