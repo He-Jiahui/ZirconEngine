@@ -128,7 +128,7 @@ class ZirconBuildStagingManifestTests(unittest.TestCase):
                 plugins=(),
                 dry_run=False,
             )
-            self._write(config.repo_root / "tools" / "zircon_build.py", b"builder")
+            self._write(config.repo_root / "tools" / "build" / "zircon_build.py", b"builder")
 
             manifest_path = write_staging_manifest(config)
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))

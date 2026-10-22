@@ -206,7 +206,7 @@ def _source_candidates(config: object, staged_path: Path) -> Iterator[tuple[str,
     if relative.as_posix() in {"plugins.toml", "plugins/native_plugins.toml"} or (
         relative.parts and relative.parts[0] == "cache"
     ):
-        yield "generated", config.repo_root / "tools" / "zircon_build.py"
+        yield "generated", config.repo_root / "tools" / "build" / "zircon_build.py"
 
     if relative.name == f"{_runtime_library_name()}.manifest.json":
         yield "generated", config.repo_root / "tools" / "build" / "zircon_build_runtime_manifest.py"
