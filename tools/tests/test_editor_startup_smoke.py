@@ -9,6 +9,7 @@ from unittest.mock import patch
 import zlib
 
 from tools.build.editor_startup_smoke import inspect_first_frame, run_startup_smoke
+from tools.build.zircon_build_support import platform_executable_name, platform_runtime_library_name
 
 
 def png_bytes(*, blank=False, transparent=False, width=640, height=360):
@@ -46,6 +47,19 @@ class StartupSmokeTests(unittest.TestCase):
     def test_standalone_gpu_is_recorded_without_claiming_shared_presentation(self):
         self.run_case('standalone')
 
+    def test_native_smoke_rejects_relative_and_aliased_paths(self):
+        import os
+        from tools.build.editor_startup_smoke import smoke_output_path
+        if os.name == 'nt':
+            self.skipTest('Native POSIX output validation')
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            alias = root / 'alias'
+            alias.symlink_to(root, target_is_directory=True)
+            for path in (Path('relative'), root / '..' / 'escape', alias / 'evidence'):
+                with self.subTest(path=path), self.assertRaises(ValueError):
+                    smoke_output_path(path)
+
     def test_failure_timeout_missing_frame_or_software_never_claim_success(self):
         for mode in ['exit', 'timeout', 'missing', 'blank', 'software', 'no-backend',
                      'forced-software', 'missing-presenter', 'repeated-presenter']:
@@ -64,7 +78,9 @@ class StartupSmokeTests(unittest.TestCase):
                 calls.append(command)
                 self.assertEqual(kwargs['timeout'], 3)
                 self.assertEqual(kwargs['env']['WGPU_BACKEND'], 'dx12')
-                self.assertEqual(kwargs['env']['ZIRCON_RUNTIME_LIBRARY'], str(staging / 'zircon_runtime.dll'))
+                self.assertEqual(command[0], str(staging / platform_executable_name('zircon_editor')))
+                self.assertEqual(kwargs['env']['ZIRCON_RUNTIME_LIBRARY'], str(staging / platform_runtime_library_name()))
+                self.assertEqual(kwargs['env']['XDG_CACHE_HOME'], str(evidence / 'profile/cache'))
                 if '--help' in command:
                     kwargs['stdout'].write(b'Usage: zircon_editor')
                 else:
@@ -105,6 +121,9 @@ class StartupSmokeTests(unittest.TestCase):
             self.assertEqual(receipt['status'], 'passed' if succeeded else 'failed')
             self.assertEqual(receipt['first_frame_verified'], succeeded)
             self.assertEqual(len(calls), 2)
+            if succeeded:
+                self.assertEqual([entry['label'] for entry in receipt['launches']], ['help', 'first-frame'])
+                self.assertGreaterEqual(receipt['launches'][1]['wall_seconds'], 0)
 
 
 if __name__ == '__main__':

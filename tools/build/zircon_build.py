@@ -649,7 +649,13 @@ def build_runtime(config: BuildConfig, runtime_feature_arg: str, include_preview
                 "(use target-client, target-editor-host, or dynamic-api)."
             )
     runtime_root = config.targets_root / "runtime"
-    lib_target_dir = runtime_root / "lib"
+    # Editor-only staging uses the same runtime feature closure for both
+    # artifacts. Reuse dependencies instead of rebuilding a second target tree.
+    lib_target_dir = (
+        config.targets_root / "editor"
+        if getattr(config, "targets", ()) == ("editor",)
+        else runtime_root / "lib"
+    )
     bin_target_dir = runtime_root / "bin"
     preview_feature_arg = config.runtime_preview_feature_arg
     cargo_preview_binary = _cargo_host_binary(config, "zircon_runtime")

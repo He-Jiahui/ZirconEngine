@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 from unittest import mock
 
-from tools.build.zircon_build import build_runtime
+from tools.build.zircon_build import build_editor, build_runtime
 from tools.build.zircon_build_abi import AbiValidationError
 from tools.build.zircon_build_product_output import _validate_product_abis
 from tools.build.zircon_build_product_profile import load_product_build_profile
@@ -47,6 +47,22 @@ class RuntimeBuildOrchestrationTests(unittest.TestCase):
             build_runtime(config, "target-server", include_preview=False)
         self.assertEqual(run.call_count, 1)
         self.assertEqual(copy.call_count, 1)
+
+    def test_editor_only_library_and_host_reuse_dependency_outputs(self):
+        config = self.config()
+        config.targets = ("editor",)
+        with mock.patch("tools.build.zircon_build.run_cargo") as run, mock.patch(
+            "tools.build.zircon_build.copy_artifact"
+        ):
+            build_runtime(config, "target-editor-host", include_preview=False)
+            build_editor(config, "target-editor-host")
+        self.assertEqual(run.call_count, 2)
+        for call in run.call_args_list:
+            command = call.args[1]
+            self.assertEqual(
+                command[command.index("--target-dir") + 1], str(config.targets_root / "editor")
+            )
+            self.assertEqual(command[command.index("--features") + 1], "target-editor-host")
 
     def test_development_features_fail_before_any_build_or_copy(self):
         for features in (
