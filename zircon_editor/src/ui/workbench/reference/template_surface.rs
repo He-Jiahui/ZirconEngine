@@ -208,6 +208,10 @@ impl EditorWorkbenchTemplateSurface {
             self.surface.last_layout_geometry_changed_node_ids().len()
         );
         zircon_runtime::profile_counter!("editor", "ui.workbench_template.layout_pass_count", 1);
+        crate::ui::retained_host::ui_perf::record_current_ui_perf_counter(
+            crate::ui::retained_host::ui_perf::UiPerfCounter::WorkbenchLayoutPassCount,
+            1.0,
+        );
         #[cfg(test)]
         {
             self.layout_pass_count = self.layout_pass_count.saturating_add(1);
@@ -230,6 +234,10 @@ impl EditorWorkbenchTemplateSurface {
             geometry_node_ids: self.surface.last_layout_geometry_changed_node_ids().clone(),
         };
         if report.layout_recomputed {
+            crate::ui::retained_host::ui_perf::record_current_ui_perf_counter(
+                crate::ui::retained_host::ui_perf::UiPerfCounter::WorkbenchLayoutPassCount,
+                1.0,
+            );
             zircon_runtime::profile_counter!(
                 "editor",
                 "ui.workbench_template.layout_pass_count",

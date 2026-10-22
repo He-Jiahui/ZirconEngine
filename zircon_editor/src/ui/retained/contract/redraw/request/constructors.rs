@@ -17,6 +17,7 @@ impl HostRedrawRequest {
 
     pub(crate) fn frame_update_only_for_scenario(scenario: UiPerfScenario) -> Self {
         Self::FrameUpdate {
+            runtime_tick: false,
             scenario,
             interactive_frame_update: false,
         }
@@ -29,6 +30,7 @@ impl HostRedrawRequest {
     pub(crate) fn full_frame_for_scenario(scenario: UiPerfScenario, frame_update: bool) -> Self {
         record_ui_perf_counter(scenario, UiPerfCounter::RedrawFullFrame, 1.0);
         Self::Full {
+            runtime_tick: false,
             frame_update,
             interactive_frame_update: false,
             scenario,
@@ -85,17 +87,24 @@ impl HostRedrawRequest {
 
     pub(crate) fn into_interactive_frame_update(self) -> Self {
         match self {
-            Self::FrameUpdate { scenario, .. } => Self::FrameUpdate {
+            Self::FrameUpdate {
+                runtime_tick,
                 scenario,
-                interactive_frame_update: true,
+                ..
+            } => Self::FrameUpdate {
+                runtime_tick,
+                scenario,
+                interactive_frame_update: !runtime_tick,
             },
             Self::Full {
+                runtime_tick,
                 frame_update,
                 scenario,
                 ..
             } => Self::Full {
+                runtime_tick,
                 frame_update,
-                interactive_frame_update: frame_update,
+                interactive_frame_update: frame_update && !runtime_tick,
                 scenario,
             },
             Self::Region {
@@ -108,7 +117,7 @@ impl HostRedrawRequest {
                 damage,
                 runtime_tick,
                 frame_update,
-                interactive_frame_update: frame_update,
+                interactive_frame_update: frame_update && !runtime_tick,
                 scenario,
             },
             Self::None => Self::None,

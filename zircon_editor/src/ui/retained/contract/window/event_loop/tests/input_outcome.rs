@@ -108,10 +108,12 @@ fn input_outcome_authority_has_no_unbounded_sequence_collection() {
 #[test]
 fn frame_update_wake_is_not_misclassified_as_present_damage() {
     let frame_update = HostRedrawRequest::FrameUpdate {
+        runtime_tick: false,
         scenario: UiPerfScenario::Click,
         interactive_frame_update: false,
     };
     let present = HostRedrawRequest::Full {
+        runtime_tick: false,
         frame_update: true,
         interactive_frame_update: false,
         scenario: UiPerfScenario::Click,

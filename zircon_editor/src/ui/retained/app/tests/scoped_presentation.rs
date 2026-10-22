@@ -18,6 +18,34 @@ props = { text = "Ready" }
 "#;
 
 #[test]
+fn clean_runtime_ticks_preserve_workbench_layout_and_presentation() {
+    let _guard = lock_env();
+    let harness = ChildWindowHostHarness::new("zircon_retained_clean_runtime_tick");
+    harness.activate_workbench_page();
+    let mut host = harness.host.borrow_mut();
+    host.tick_runtime_only();
+    let cursor = host.ui.get_host_presentation_generation().cursor();
+    let layouts = host.workbench_window_bridge.layout_pass_count();
+    let rebuilds = host
+        .invalidation
+        .diagnostics_snapshot()
+        .slow_path_rebuild_count;
+    let _ = host.ui.take_external_redraw_for_test();
+    for _ in 0..60 {
+        host.tick_runtime_only();
+    }
+    assert_eq!(host.ui.get_host_presentation_generation().cursor(), cursor);
+    assert_eq!(host.workbench_window_bridge.layout_pass_count(), layouts);
+    assert_eq!(
+        host.invalidation
+            .diagnostics_snapshot()
+            .slow_path_rebuild_count,
+        rebuilds
+    );
+    assert!(!host.ui.take_external_redraw_for_test().requires_present());
+}
+
+#[test]
 fn active_drawer_pane_presentation_uses_shell_content_without_a_full_rebuild() {
     let _guard = lock_env();
     let harness = ChildWindowHostHarness::new("zircon_retained_scoped_drawer_presentation");

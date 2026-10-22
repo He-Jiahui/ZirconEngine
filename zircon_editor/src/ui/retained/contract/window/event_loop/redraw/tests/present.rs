@@ -3,6 +3,17 @@ use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::redraw::HostRedrawRequest;
 use crate::ui::retained_host::ui_perf::UiPerfScenario;
 
+fn successful_present_branch(source: &str) -> &str {
+    let (_, branches) = source
+        .split_once("match present_result {")
+        .expect("present result dispatch");
+    let (success, _) = branches
+        .split_once("Err(HostPresenterError::RetryableSurfacePresent)")
+        .expect("retryable present branch");
+    assert!(success.trim_start().starts_with("Ok("));
+    success
+}
+
 #[test]
 fn first_frame_exit_emits_a_presented_frame_diagnostic() {
     assert_eq!(
@@ -89,15 +100,7 @@ fn retryable_surface_present_preserves_bounded_damage_pressure() {
 #[test]
 fn successful_present_consumes_input_batch_but_retry_retains_it() {
     let source = include_str!("../present.rs");
-    let success = source
-        .split("Ok(diagnostics) =>")
-        .nth(1)
-        .and_then(|source| {
-            source
-                .split("Err(HostPresenterError::RetryableSurfacePresent)")
-                .next()
-        })
-        .expect("successful present branch");
+    let success = successful_present_branch(source);
     let retry = source
         .split("Err(HostPresenterError::RetryableSurfacePresent) =>")
         .nth(1)
@@ -111,15 +114,7 @@ fn successful_present_consumes_input_batch_but_retry_retains_it() {
 #[test]
 fn first_present_notification_is_emitted_only_from_the_successful_present_branch() {
     let source = include_str!("../present.rs");
-    let success = source
-        .split("Ok(diagnostics) =>")
-        .nth(1)
-        .and_then(|source| {
-            source
-                .split("Err(HostPresenterError::RetryableSurfacePresent)")
-                .next()
-        })
-        .expect("successful present branch");
+    let success = successful_present_branch(source);
     let retry = source
         .split("Err(HostPresenterError::RetryableSurfacePresent) =>")
         .nth(1)
@@ -133,15 +128,7 @@ fn first_present_notification_is_emitted_only_from_the_successful_present_branch
 #[test]
 fn warmup_exports_source_bound_geometry_before_requesting_measurement_restart() {
     let source = include_str!("../present.rs");
-    let success = source
-        .split("Ok(diagnostics) =>")
-        .nth(1)
-        .and_then(|source| {
-            source
-                .split("Err(HostPresenterError::RetryableSurfacePresent)")
-                .next()
-        })
-        .expect("successful present branch");
+    let success = successful_present_branch(source);
     let artifacts = success
         .find("submit_present_artifacts(")
         .expect("warmup must publish source-bound geometry");

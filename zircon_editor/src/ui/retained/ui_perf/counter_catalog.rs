@@ -1,6 +1,11 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum UiPerfCounter {
     FrameDurationUs,
+    WorkbenchLayoutPassCount,
+    FrameUpdateCount,
+    RuntimeTickCount,
+    PresentCount,
+    CoalescedPresentCount,
     InputToDamageUs,
     DamageToSubmitUs,
     HostInvalidationTransactionCount,

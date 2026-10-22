@@ -3,6 +3,9 @@ use std::cell::Cell;
 #[cfg(feature = "profiling")]
 use std::time::Instant;
 
+#[cfg(feature = "profiling")]
+#[path = "ui_perf/activity_trace.rs"]
+mod activity_trace;
 #[path = "ui_perf/counter_batch.rs"]
 mod counter_batch;
 #[path = "ui_perf/counter_catalog.rs"]
@@ -117,6 +120,7 @@ pub(crate) fn record_current_ui_perf_counter(counter: UiPerfCounter, value: f64)
 pub(crate) fn record_ui_perf_counter(scenario: UiPerfScenario, counter: UiPerfCounter, value: f64) {
     #[cfg(feature = "profiling")]
     {
+        activity_trace::record(counter, value);
         zircon_runtime::profile_counter!("editor", counter_name(scenario, counter), value);
     }
     #[cfg(not(feature = "profiling"))]
@@ -130,6 +134,13 @@ macro_rules! counter_name_for_prefix {
     ($counter:expr, $prefix:literal) => {
         match $counter {
             UiPerfCounter::FrameDurationUs => concat!($prefix, ".frame_duration_us"),
+            UiPerfCounter::WorkbenchLayoutPassCount => {
+                concat!($prefix, ".workbench_layout_pass_count")
+            }
+            UiPerfCounter::FrameUpdateCount => concat!($prefix, ".frame_update_count"),
+            UiPerfCounter::RuntimeTickCount => concat!($prefix, ".runtime_tick_count"),
+            UiPerfCounter::PresentCount => concat!($prefix, ".present_count"),
+            UiPerfCounter::CoalescedPresentCount => concat!($prefix, ".coalesced_present_count"),
             UiPerfCounter::InputToDamageUs => concat!($prefix, ".input_to_damage_us"),
             UiPerfCounter::DamageToSubmitUs => concat!($prefix, ".damage_to_submit_us"),
             UiPerfCounter::HostInvalidationTransactionCount => {

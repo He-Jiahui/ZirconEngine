@@ -24,11 +24,11 @@ fn scoped_view_presentation_returns_before_the_full_shell_rebuild() {
     let scoped_branch = production
         .split_once("RecomputeInvalidationTarget::ViewPresentation")
         .and_then(|(_, tail)| tail.split_once("if paint_only_reasons.requires_layout()"))
-        .map(|(_, tail)| tail)
+        .map(|(branch, _)| branch)
         .expect("scoped presentation branch should remain before full recompute");
 
     assert!(scoped_branch.contains("self.apply_scoped_ui_asset_presentation(view_ids)"));
-    assert!(scoped_branch.contains("return;"));
+    assert!(scoped_branch.contains("return Ok(());"));
     assert!(!scoped_branch.contains("build_recompute_shell_snapshot"));
 }
 

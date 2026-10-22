@@ -32,6 +32,8 @@ pub(super) fn present_redraw(
     let _paint_scope = generation.enter_paint_scope();
     let presentation = generation.structure();
     let invalidation = event_loop_state.host.refresh_invalidation_diagnostics();
+    #[cfg(feature = "profiling")]
+    let present_count_before = presenter.diagnostics_snapshot().present_count;
     let (present_result, toast_confirmation, awaiting_toast) =
         super::super::super::toast_presentation::present_with_toast_confirmation(
             event_loop_state.host.state.as_ptr() as usize,
@@ -43,7 +45,14 @@ pub(super) fn present_redraw(
             event_loop_state.host.window().is_visible(),
         );
     match present_result {
-        Ok(_) => {
+        Ok(_diagnostics) => {
+            #[cfg(feature = "profiling")]
+            record_current_ui_perf_counter(
+                UiPerfCounter::PresentCount,
+                _diagnostics
+                    .present_count
+                    .saturating_sub(present_count_before) as f64,
+            );
             event_loop_state.reset_surface_present_retry_backoff();
             let toast_confirmed = toast_confirmation
                 .is_some_and(|receipt| event_loop_state.host.notify_toast_presented(receipt));
