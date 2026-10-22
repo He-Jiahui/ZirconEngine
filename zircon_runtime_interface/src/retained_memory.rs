@@ -20,8 +20,7 @@ pub const RETAINED_PROVIDER_VERSION_V1: u32 = 1;
 /// Provider traversal policy, independent of the admitted allocation model.
 pub const MAX_RETAINED_DEPTH_V1: usize = 64;
 pub const MAX_RETAINED_VISITS_V1: usize = 1_048_576;
-pub const RETAINED_MODEL_ID_V1: &str =
-    "ZR_RETAINED_STD_RUST_1_94_1_E408947B_X86_64_WINDOWS_MSVC_GLOBAL_V1";
+pub const RETAINED_MODEL_ID_V1: &str = availability::ZR_RETAINED_STD_MODEL_ID_V1;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RetainedBytesV1(u64);
@@ -299,7 +298,7 @@ pub fn btree_node_upper_v1<K, V>() -> Result<u64, RetentionContractError> {
     u64::try_from(internal).map_err(|_| RetentionContractError::Overflow)
 }
 
-/// Certificate for a fresh, private std/hashbrown0.16.1 table only. Never derive
+/// Certificate for a fresh, private table in an admitted std/hashbrown model only. Never derive
 /// this from an arbitrary map's public capacity after removals/tombstones.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct FreshHashStorageV1 {
