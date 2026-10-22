@@ -1,5 +1,8 @@
 use super::*;
 
+#[path = "chooser_runtime.rs"]
+mod chooser_runtime;
+
 #[derive(Debug, PartialEq, Eq)]
 struct StartupWorldSentinel(u32);
 
@@ -10,7 +13,7 @@ impl zircon_runtime::scene::ecs::Component for StartupWorldSentinel {}
 fn startup_session_defaults_to_the_project_chooser_without_recent_project() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_startup_welcome");
-    let runtime = editor_runtime_with_config_path(&path);
+    let runtime = chooser_runtime::with_config_path(&path);
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
@@ -28,6 +31,8 @@ fn startup_session_defaults_to_the_project_chooser_without_recent_project() {
         crate::ui::workbench::startup::EditorStartupSessionDocument::default().status_message
     );
 
+    drop(manager);
+    drop(runtime);
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);
 }
@@ -38,7 +43,7 @@ fn startup_session_keeps_valid_recent_projects_in_the_chooser() {
     let path = unique_temp_path("zircon_editor_startup_recent");
     let location = unique_temp_dir("zircon_editor_welcome_recent");
     fs::create_dir_all(&location).unwrap();
-    let runtime = editor_runtime_with_config_path(&path);
+    let runtime = chooser_runtime::with_config_path(&path);
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
@@ -77,6 +82,8 @@ fn startup_session_keeps_valid_recent_projects_in_the_chooser() {
         .status_message
         .contains("scene=res://scenes/main.scene.toml"));
 
+    drop(manager);
+    drop(runtime);
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);
     let _ = fs::remove_dir_all(location);
