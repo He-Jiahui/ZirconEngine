@@ -70,6 +70,11 @@ zr_runtime_dev_dylib = { path = "zircon_runtime/crates/zr_runtime_dev_dylib", de
 debug = 0
 incremental = false
 
+# Native hosts verify large runtime artifacts during startup. Keep that integrity
+# check fast in development without optimizing the engine's full crate graph.
+[profile.dev.package.sha2]
+opt-level = 3
+
 [profile.test]
 debug = 0
 incremental = false
