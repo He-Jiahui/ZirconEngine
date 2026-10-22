@@ -20,7 +20,11 @@ use zircon_editor::{
     module_descriptor as editor_module_descriptor, EDITOR_MANAGER_NAME, EDITOR_MODULE_NAME,
 };
 use zircon_runtime::core::framework::scene::SCENE_MODULE_NAME;
+use zircon_runtime::core::runtime::modules::{
+    TasksModule, TimeModule, TASKS_MODULE_NAME, TIME_MODULE_NAME,
+};
 use zircon_runtime::core::CoreRuntime;
+use zircon_runtime::engine_module::EngineModule;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
@@ -70,6 +74,44 @@ impl Drop for TestConfigEnvironment {
         }
         let _ = std::fs::remove_file(&self.path);
     }
+}
+
+// Admit the real editor descriptor with its complete module dependency graph.
+// The lazy RenderFramework service is not resolved by these event-controller tests.
+fn editor_runtime() -> CoreRuntime {
+    let core = CoreRuntime::new();
+    for descriptor in [
+        foundation_module_descriptor(),
+        TasksModule.descriptor(),
+        TimeModule.descriptor(),
+        zircon_runtime::platform::module_descriptor(),
+        zircon_runtime::asset::module_descriptor(),
+        zircon_runtime::scene::module_descriptor(),
+        zircon_runtime::text::TextModule::default().descriptor(),
+        zircon_runtime::graphics::graphics_module_descriptor(),
+        zircon_runtime::input::module_descriptor(),
+        zircon_runtime::ui::module_descriptor(),
+        editor_module_descriptor(),
+    ] {
+        core.register_module(descriptor).unwrap();
+    }
+    core.store_config_value(EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY, json!([]));
+    for name in [
+        FOUNDATION_MODULE_NAME,
+        TASKS_MODULE_NAME,
+        TIME_MODULE_NAME,
+        zircon_runtime::platform::PLATFORM_MODULE_NAME,
+        zircon_runtime::asset::ASSET_MODULE_NAME,
+        SCENE_MODULE_NAME,
+        zircon_runtime::text::TEXT_MODULE_NAME,
+        zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME,
+        zircon_runtime::input::INPUT_MODULE_NAME,
+        zircon_runtime::ui::UI_MODULE_NAME,
+        EDITOR_MODULE_NAME,
+    ] {
+        core.activate_module(name).unwrap();
+    }
+    core
 }
 
 #[test]
@@ -259,20 +301,7 @@ fn public_editor_ui_delta_queue_preserves_press_release_barriers() {
 fn public_full_refresh_replays_other_view_delta_after_snapshot() {
     let _config_lock = config_environment_lock();
     let _config = TestConfigEnvironment::install("zircon_editor_public_full_refresh_delta");
-    let core = CoreRuntime::new();
-    core.register_module(foundation_module_descriptor())
-        .unwrap();
-    core.register_module(zircon_runtime::asset::module_descriptor())
-        .unwrap();
-    core.register_module(zircon_runtime::scene::module_descriptor())
-        .unwrap();
-    core.register_module(editor_module_descriptor()).unwrap();
-    core.store_config_value(EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY, json!([]));
-    core.activate_module(FOUNDATION_MODULE_NAME).unwrap();
-    core.activate_module(zircon_runtime::asset::ASSET_MODULE_NAME)
-        .unwrap();
-    core.activate_module(SCENE_MODULE_NAME).unwrap();
-    core.activate_module(EDITOR_MODULE_NAME).unwrap();
+    let core = editor_runtime();
 
     let manager = core
         .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
@@ -317,20 +346,7 @@ fn public_full_refresh_replays_other_view_delta_after_snapshot() {
 fn public_retained_pointer_move_burst_does_not_schedule_reflection_work() {
     let _config_lock = config_environment_lock();
     let _config = TestConfigEnvironment::install("zircon_editor_public_pointer_move_burst");
-    let core = CoreRuntime::new();
-    core.register_module(foundation_module_descriptor())
-        .unwrap();
-    core.register_module(zircon_runtime::asset::module_descriptor())
-        .unwrap();
-    core.register_module(zircon_runtime::scene::module_descriptor())
-        .unwrap();
-    core.register_module(editor_module_descriptor()).unwrap();
-    core.store_config_value(EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY, json!([]));
-    core.activate_module(FOUNDATION_MODULE_NAME).unwrap();
-    core.activate_module(zircon_runtime::asset::ASSET_MODULE_NAME)
-        .unwrap();
-    core.activate_module(SCENE_MODULE_NAME).unwrap();
-    core.activate_module(EDITOR_MODULE_NAME).unwrap();
+    let core = editor_runtime();
 
     let manager = core
         .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)

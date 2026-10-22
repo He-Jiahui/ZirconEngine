@@ -120,7 +120,7 @@ fn opacity_variants_keep_distinct_resources_through_compaction_and_replay() {
                 },
                 None,
                 index as i32,
-                "shared-opacity-source".into(),
+                "shared-opacity-source",
                 1,
                 1,
                 Arc::clone(&source),
@@ -199,7 +199,7 @@ fn opaque_images_preserve_the_atlas_fast_path() {
         resource_generation: 7,
         width: 1,
         height: 1,
-        rgba: Some(vec![255, 255, 255, 255]),
+        rgba: Some(vec![255, 255, 255, 255].into()),
         uv: HostPaintImageUvRect {
             min: [0.0, 0.0],
             max: [1.0, 1.0],
@@ -214,7 +214,7 @@ fn opaque_images_preserve_the_atlas_fast_path() {
         },
         None,
         0,
-        "original-opacity-source".into(),
+        "original-opacity-source",
         1,
         1,
         Arc::<[u8]>::from([255_u8, 255, 255, 255]),
@@ -234,7 +234,7 @@ fn opaque_images_preserve_the_atlas_fast_path() {
     else {
         panic!("opaque atlas image must remain an image");
     };
-    assert_eq!(resource_key, &atlas.resource_key);
+    assert_eq!(resource_key.as_str(), atlas.resource_key.as_ref());
     assert!(
         rgba.is_none(),
         "opaque atlas must not materialize derived RGBA"
