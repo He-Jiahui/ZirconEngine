@@ -189,6 +189,13 @@ pub(super) fn create_surface(
     target: RenderNativeSurfaceTarget,
 ) -> Result<wgpu::Surface<'static>, RhiError> {
     match target {
+        #[cfg(target_os = "linux")]
+        target @ (RenderNativeSurfaceTarget::Xlib { .. }
+        | RenderNativeSurfaceTarget::Xcb { .. }
+        | RenderNativeSurfaceTarget::Wayland { .. }) => {
+            crate::native_surface::create_linux_surface(instance, target)
+        }
+
         RenderNativeSurfaceTarget::Win32 { .. } => Err(RhiError::SurfaceUnavailable(
             "win32 retained UI surfaces are only supported on windows".to_string(),
         )),

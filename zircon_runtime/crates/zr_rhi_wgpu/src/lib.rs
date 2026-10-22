@@ -34,6 +34,9 @@ mod gpu_pipeline_statistics;
 mod gpu_readback_queue;
 #[path = "indirect_validation.rs"]
 mod indirect_validation;
+#[cfg(target_os = "linux")]
+#[path = "native_surface.rs"]
+mod native_surface;
 #[path = "pipeline_validation.rs"]
 mod pipeline_validation;
 #[path = "production/mod.rs"]
