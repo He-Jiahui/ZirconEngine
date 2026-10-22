@@ -27,13 +27,13 @@ mod graph_resources;
 #[path = "../../builtin_postprocess_executors/resource_routing.rs"]
 mod resource_routing;
 
-// 同时借用 pass 元数据和 GPU 上下文时，先暂移元数据，
-// 再在成功或错误返回后还原，避免 executor 改写后续诊断所用的身份。
+// Share the report label's bytes while mutably borrowing the GPU context.
+// Move the executor identity temporarily and restore it on success or error.
 fn with_borrowed_gpu_metadata<'a, T>(
     context: &mut RenderPassExecutionContext<'a>,
     operation: impl FnOnce(&str, &str, &mut RenderPassGpuExecutionContext<'a>) -> Result<T, String>,
 ) -> Result<T, String> {
-    let pass_name = mem::take(&mut context.pass_name);
+    let pass_name = context.pass_name.clone();
     let executor_id = mem::replace(
         &mut context.executor_id,
         RenderPassExecutorId::from(String::new()),
@@ -46,7 +46,6 @@ fn with_borrowed_gpu_metadata<'a, T>(
             pass_name
         )),
     };
-    context.pass_name = pass_name;
     context.executor_id = executor_id;
     result
 }

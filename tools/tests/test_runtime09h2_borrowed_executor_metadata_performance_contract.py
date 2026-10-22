@@ -5,7 +5,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 EXECUTORS_RS = ROOT / (
-    "zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/"
+    "zircon_runtime/src/graphics/scene/execution/"
     "builtin_postprocess_executors.rs"
 )
 
@@ -22,13 +22,13 @@ def metadata_helper_body() -> str:
 
 
 class Runtime09H2BorrowedExecutorMetadataContract(unittest.TestCase):
-    def test_helper_moves_and_restores_owned_context_metadata(self) -> None:
+    def test_helper_shares_label_bytes_and_restores_executor_identity(self) -> None:
         body = metadata_helper_body()
         compact = re.sub(r"\s+", "", body)
 
-        self.assertIn("mem::take(&mut context.pass_name)", body)
+        self.assertIn("let pass_name = context.pass_name.clone()", body)
         self.assertIn("mem::replace(&mutcontext.executor_id", compact)
-        self.assertIn("context.pass_name = pass_name", body)
+        self.assertNotIn("&mut context.pass_name", body)
         self.assertIn("context.executor_id = executor_id", body)
 
     def test_all_builtin_gpu_calls_use_the_borrowed_metadata_helper(self) -> None:
@@ -41,7 +41,9 @@ class Runtime09H2BorrowedExecutorMetadataContract(unittest.TestCase):
     def test_executor_path_has_no_metadata_string_copies(self) -> None:
         text = source()
 
-        self.assertNotIn("context.pass_name.clone()", text)
+        # RenderReportLabel::clone shares Arc<str>; materializing a String here
+        # would reintroduce the per-pass allocation this contract protects.
+        self.assertNotIn("context.pass_name.to_string()", text)
         self.assertNotIn("context.executor_id.as_str().to_string()", text)
 
     def test_missing_gpu_restoration_has_a_direct_rust_contract(self) -> None:
@@ -51,9 +53,8 @@ class Runtime09H2BorrowedExecutorMetadataContract(unittest.TestCase):
 
         self.assertIn("context.gpu_mut()", body)
         self.assertIn("executor_id.as_str(),pass_name", compact)
-        self.assertIn(
-            "borrowed_gpu_metadata_restores_context_when_gpu_is_missing", text
-        )
+        test_source = (ROOT / 'zircon_runtime/src/graphics/scene/tests/builtin_postprocess_executors.rs').read_text(encoding='utf-8')
+        self.assertIn("borrowed_gpu_metadata_restores_context_when_gpu_is_missing", test_source)
 
 
 if __name__ == "__main__":

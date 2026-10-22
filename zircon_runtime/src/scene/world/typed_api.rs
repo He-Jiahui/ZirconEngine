@@ -599,7 +599,7 @@ impl World {
     }
 
     pub(crate) fn entity_ids_for_query(&self) -> super::StableWorldEntityIter<'_> {
-        self.stable_entity_ids()
+        self.stable_query_order.entities()
     }
 
     pub(in crate::scene::world) fn ensure_dynamic_component_presence_id(
