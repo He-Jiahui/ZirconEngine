@@ -113,7 +113,79 @@ impl TemplateNodePaintTransform for ActivityAssetContentProjector {
         ))
     }
 
-    fn transform_row(
+    fn filter_row(
+        &self,
+        row: usize,
+        node: &TemplatePaneNodeData,
+        clip: &FrameRect,
+    ) -> Option<FrameRect> {
+        self.record_descriptor_lookup();
+        let mut node_frame = frame_from_template(&node.frame);
+        let content_clip = match self.metadata.row_descriptor(row) {
+            AssetContentRowDescriptor::ActivityReference { list_kind, .. } => {
+                let (reference_clip, scroll_px) = match list_kind {
+                    ActivityAssetReferenceListKind::References => {
+                        (self.references_clip.as_ref()?, self.references_scroll_px)
+                    }
+                    ActivityAssetReferenceListKind::UsedBy => {
+                        (self.used_by_clip.as_ref()?, self.used_by_scroll_px)
+                    }
+                };
+                node_frame.y -= scroll_px;
+                reference_clip
+            }
+            AssetContentRowDescriptor::ActivityContent(identity) => {
+                if identity == ActivityContentNodeIdentity::ContentPanel {
+                    return Some(clip.clone());
+                }
+                if let ActivityContentNodeIdentity::Item { index: slot, role } = identity {
+                    if let Some(virtualization) = self.metadata.activity_virtualization() {
+                        let binding = self.metadata.activity_slot_binding(self.scroll_px, slot)?;
+                        let geometry = activity_row_geometry(
+                            virtualization.panel,
+                            virtualization.metrics,
+                            virtualization.view_mode,
+                            binding.top,
+                            binding.height,
+                            &binding.meta(),
+                        );
+                        node_frame = frame_from_asset_content_rect(geometry.for_role(role));
+                    }
+                }
+                if identity.scrolls() {
+                    node_frame.y -= self.scroll_px;
+                }
+                self.content_clip.as_ref()?
+            }
+            _ => return Some(clip.clone()),
+        };
+        let content_clip = intersect(clip, content_clip)?;
+        intersect(
+            &translated(&node_frame, self.origin_x, self.origin_y),
+            &content_clip,
+        )?;
+        Some(content_clip)
+    }
+
+    fn patch_row(
+        &self,
+        row: usize,
+        node: &TemplatePaneNodeData,
+        clip: &FrameRect,
+    ) -> Option<TemplatePaneNodeData> {
+        match self.metadata.row_descriptor(row) {
+            AssetContentRowDescriptor::ActivityReference { .. } => {}
+            AssetContentRowDescriptor::ActivityContent(identity)
+                if identity != ActivityContentNodeIdentity::ContentPanel => {}
+            _ => return None,
+        }
+        self.transform_node(row, node.clone(), clip.clone())
+            .map(|(node, _)| node)
+    }
+}
+
+impl ActivityAssetContentProjector {
+    fn transform_node(
         &self,
         row: usize,
         mut node: TemplatePaneNodeData,
@@ -364,7 +436,95 @@ impl TemplateNodePaintTransform for BrowserAssetContentProjector {
         Some(rows)
     }
 
-    fn transform_row(
+    fn filter_row(
+        &self,
+        row: usize,
+        node: &TemplatePaneNodeData,
+        clip: &FrameRect,
+    ) -> Option<FrameRect> {
+        self.record_descriptor_lookup();
+        let mut node_frame = frame_from_template(&node.frame);
+        let content_clip = match self.metadata.row_descriptor(row) {
+            AssetContentRowDescriptor::BrowserSourceTree { .. } => {
+                node_frame.y -= self.source_tree_scroll_px;
+                self.source_tree_clip.as_ref()?
+            }
+            AssetContentRowDescriptor::BrowserReference { list_kind, .. } => {
+                let (reference_clip, scroll_px) = match list_kind {
+                    BrowserAssetReferenceListKind::References => {
+                        (self.references_clip.as_ref()?, self.references_scroll_px)
+                    }
+                    BrowserAssetReferenceListKind::UsedBy => {
+                        (self.used_by_clip.as_ref()?, self.used_by_scroll_px)
+                    }
+                };
+                node_frame.y -= scroll_px;
+                reference_clip
+            }
+            AssetContentRowDescriptor::BrowserContent(identity) => {
+                let (slot_index, thumbnail_role) = match identity {
+                    BrowserContentNodeIdentity::Row { index } => (index, None),
+                    BrowserContentNodeIdentity::Thumbnail { index, role } => (index, Some(role)),
+                    _ => return Some(clip.clone()),
+                };
+                if self.metadata.browser_has_virtual_items() {
+                    let binding = self
+                        .metadata
+                        .browser_slot_binding(self.scroll_px, slot_index)?;
+                    if let AssetBrowserPaintItem::Thumbnail(item) = binding.item {
+                        let role = thumbnail_role?;
+                        let slot_card = self
+                            .metadata
+                            .browser_thumbnail_slot_card_frame(slot_index)?;
+                        if role == BrowserThumbnailNodeRole::SelectionMarker && !binding.selected {
+                            return None;
+                        }
+                        let geometry = asset_thumbnail_card_geometry(
+                            slot_card,
+                            !item.name_continuation.is_empty(),
+                            item.type_label_width,
+                        );
+                        node_frame = frame_from_asset_content_rect(geometry.for_role(role));
+                    }
+                    node_frame.y += binding.y_offset;
+                }
+                node_frame.y -= self.scroll_px;
+                self.row_clip.as_ref()?
+            }
+            _ => return Some(clip.clone()),
+        };
+        let content_clip = intersect(clip, content_clip)?;
+        intersect(
+            &translated(&node_frame, self.origin_x, self.origin_y),
+            &content_clip,
+        )?;
+        Some(content_clip)
+    }
+
+    fn patch_row(
+        &self,
+        row: usize,
+        node: &TemplatePaneNodeData,
+        clip: &FrameRect,
+    ) -> Option<TemplatePaneNodeData> {
+        match self.metadata.row_descriptor(row) {
+            AssetContentRowDescriptor::BrowserSourceTree { .. }
+            | AssetContentRowDescriptor::BrowserReference { .. }
+            | AssetContentRowDescriptor::BrowserContent(BrowserContentNodeIdentity::Row {
+                ..
+            })
+            | AssetContentRowDescriptor::BrowserContent(BrowserContentNodeIdentity::Thumbnail {
+                ..
+            }) => {}
+            _ => return None,
+        }
+        self.transform_node(row, node.clone(), clip.clone())
+            .map(|(node, _)| node)
+    }
+}
+
+impl BrowserAssetContentProjector {
+    fn transform_node(
         &self,
         row: usize,
         mut node: TemplatePaneNodeData,
@@ -580,6 +740,15 @@ fn translated_asset_content_rect(rect: AssetContentRect, origin: &FrameRect) -> 
     FrameRect {
         x: origin.x + rect.x,
         y: origin.y + rect.y,
+        width: rect.width,
+        height: rect.height,
+    }
+}
+
+fn frame_from_asset_content_rect(rect: AssetContentRect) -> FrameRect {
+    FrameRect {
+        x: rect.x,
+        y: rect.y,
         width: rect.width,
         height: rect.height,
     }

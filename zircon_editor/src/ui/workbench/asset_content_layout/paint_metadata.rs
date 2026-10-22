@@ -448,6 +448,7 @@ impl AssetContentPaintMetadata {
     pub(crate) fn with_activity_virtual_rows(mut self, rows: ActivityAssetVirtualization) -> Self {
         if self.surface == AssetContentSurface::Activity {
             self.folder_row_count = rows.folder_count();
+            self.content_extent = rows.content_extent();
             self.activity_virtualization = Some(rows);
         }
         self
