@@ -23,6 +23,9 @@ use super::runtime_ui::RuntimeUiSurfaceSet;
 
 const DEFAULT_PROJECT_NAVMESH_PATH: &[&str] = &["assets", "navigation", "main.navmesh.toml"];
 
+#[path = "project/play_config.rs"]
+mod play_config;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct RuntimeProjectConfig {
     root: ResolvedProjectPath,
@@ -185,6 +188,19 @@ impl RuntimePreparedProject {
 
     pub(super) fn has_play_scene_override(&self) -> bool {
         self.play_scene.is_some()
+    }
+
+    /// The editor owns a unique snapshot directory until this Play session retires.
+    /// Keep its config writer there so it never competes with the edit runtime.
+    pub(super) fn play_snapshot_config_path(&self) -> Option<PathBuf> {
+        let scene = self.play_scene.as_ref()?;
+        if !matches!(scene.kind, PreparedPlaySceneKind::VersionedSnapshot) {
+            return None;
+        }
+        play_config::snapshot_config_path(
+            scene.relative.as_str(),
+            scene.operation_path.operation_path(),
+        )
     }
 
     pub(super) fn play_scene_identifier(&self) -> Option<String> {

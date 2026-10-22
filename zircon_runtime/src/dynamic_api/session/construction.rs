@@ -159,12 +159,29 @@ pub(super) fn build(
     {
         crate::profile_scope!("runtime", "dynamic_api", "runtime_session_register_modules");
         for descriptor in modules.module_descriptors() {
-            construction_cleanup.check(runtime.register_module(descriptor.clone()).map_err(
-                |source| RuntimeDynamicSessionError::CoreStep {
+            let mut descriptor = descriptor.clone();
+            #[cfg(feature = "native-host")]
+            if descriptor.name == crate::core::framework::foundation::FOUNDATION_MODULE_NAME {
+                if let Some(path) = prepared_project
+                    .as_ref()
+                    .and_then(RuntimePreparedProject::play_snapshot_config_path)
+                {
+                    construction_cleanup.check(
+                        crate::foundation::bind_config_file_path(&mut descriptor, path).map_err(
+                            |source| RuntimeDynamicSessionError::CoreStep {
+                                step: "bind Play snapshot config",
+                                source,
+                            },
+                        ),
+                    )?;
+                }
+            }
+            construction_cleanup.check(runtime.register_module(descriptor).map_err(|source| {
+                RuntimeDynamicSessionError::CoreStep {
                     step: "register runtime module",
                     source,
-                },
-            ))?;
+                }
+            }))?;
         }
     }
     write_log(
@@ -413,10 +430,7 @@ pub(super) fn build(
             .claim_attachment()
             .map_err(|reason| RuntimeDynamicSessionError::CoreStep {
                 step: "claim input ingress attachment",
-                source: CoreError::Initialization(
-                    INPUT_MODULE_NAME.to_owned(),
-                    reason.to_string(),
-                ),
+                source: CoreError::Initialization(INPUT_MODULE_NAME.to_owned(), reason.to_string()),
             })
     })())?;
     let frame_clock_activation_rebase = rebase_frame_clock_after_session_activation(&runtime);
