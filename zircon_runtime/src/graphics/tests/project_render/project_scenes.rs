@@ -51,7 +51,7 @@ fn render_snapshot_through_framework(
     ViewportFrame {
         width: captured.width,
         height: captured.height,
-        rgba: captured.rgba,
+        rgba: captured.rgba.to_vec(),
         generation: captured.generation,
         capture_report: captured.capture_report,
     }
