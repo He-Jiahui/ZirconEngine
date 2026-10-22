@@ -31,6 +31,9 @@ pub use core::gateway::{
     SharedEditorRuntimeGateway,
 };
 pub use core::gui_startup_request::EditorGuiStartupRequest;
+pub use ui::retained_host::startup_splash::{
+    run_startup_splash_child, EditorStartupSplash, EditorStartupStage,
+};
 pub use core::plugin::{
     EditorExtensionCatalogReport, EditorPlugin, EditorPluginDescriptor,
     EditorPluginRegistrationReport,

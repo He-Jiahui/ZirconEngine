@@ -4,13 +4,16 @@
 mod startup_diagnostic;
 
 fn main() -> std::process::ExitCode {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    if let Some(result) = zircon_editor::run_startup_splash_child(&args) {
+        return result;
+    }
     use zircon_runtime::diagnostic_log::{
         initialize_process_log, install_process_log_panic_flush, shutdown_process_log, write_error, write_log,
         DEFAULT_DIAGNOSTIC_LOG_CRASH_FLUSH_TIMEOUT, DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT,
     };
 
     install_process_log_panic_flush(DEFAULT_DIAGNOSTIC_LOG_CRASH_FLUSH_TIMEOUT);
-    let args: Vec<String> = std::env::args().skip(1).collect();
     let result = zircon_app::EntryRunner::run_editor_with_args_terminal(args.iter().cloned());
     let failure = result.as_ref().err().map(|error| {
         // Argument parsing can fail before the entry runner installs its process log.

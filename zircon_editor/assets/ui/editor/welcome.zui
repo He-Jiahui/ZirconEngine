@@ -193,15 +193,15 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WelcomeOpenExistingButton"
 classes = ["workbench-control-button"]
-props = { text = "Open", button_variant = "outlined", button_color = "secondary", height = "$editor.control.height.default" }
-layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+props = { text = { text_key = "editor.welcome.open_project", table = "editor" }, tooltip = { text_key = "editor.welcome.open_project_hint", table = "editor" }, button_variant = "outlined", button_color = "secondary", height = "$editor.control.height.default" }
+layout = { width = { min = 118.0, preferred = 118.0, max = 118.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "Welcome/OpenExisting", event = "Click", route = "workbench.welcome.open_existing" }]
 
 [nodes.create_project_button]
 component = "WorkbenchButton"
 control_id = "WelcomeCreateProjectButton"
 classes = ["workbench-control-button", "workbench-primary-button"]
-props = { text = "Create Project", button_variant = "filled", button_color = "accent", validation_level = "normal", height = "$editor.control.height.default", layout_padding_left = "$editor.density.gap.small", layout_padding_right = "$editor.density.gap.small" }
+props = { text = { text_key = "editor.welcome.create_project", table = "editor" }, tooltip = { text_key = "editor.welcome.create_project_hint", table = "editor" }, button_variant = "filled", button_color = "accent", validation_level = "normal", height = "$editor.control.height.default", layout_padding_left = "$editor.density.gap.small", layout_padding_right = "$editor.density.gap.small" }
 layout = { width = { min = 118.0, preferred = 118.0, max = 118.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "Welcome/CreateProject", event = "Click", route = "workbench.welcome.product.create_project" }]
 

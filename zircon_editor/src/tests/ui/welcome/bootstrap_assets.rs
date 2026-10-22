@@ -70,6 +70,18 @@ fn welcome_projection_maps_bootstrap_asset_into_mount_nodes() {
         .filter_map(|row| pane.row_data(row))
         .collect::<Vec<_>>();
 
+    for (control, text) in [
+        ("WelcomeOpenExistingButton", "Open Project"),
+        ("WelcomeCreateProjectButton", "Create Project"),
+    ] {
+        assert!(
+            nodes
+                .iter()
+                .any(|node| node.control_id == control && node.text == text),
+            "welcome project action/help text must be resolved before the first frame: {control}"
+        );
+    }
+
     for label in [
         "WelcomeOuterPanel",
         "WelcomeRecentPanel",
