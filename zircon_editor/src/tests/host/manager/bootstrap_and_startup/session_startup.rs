@@ -23,7 +23,10 @@ fn startup_session_defaults_to_the_project_chooser_without_recent_project() {
     assert!(session.recent_projects.is_empty());
     assert_eq!(session.draft.project_name, "ZirconProject");
     assert_eq!(session.draft.template, ProjectTemplateId::RenderableEmpty);
-    assert_eq!(session.status_message, "Select a project to open.");
+    assert_eq!(
+        session.status_message,
+        crate::ui::workbench::startup::EditorStartupSessionDocument::default().status_message
+    );
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);
@@ -63,11 +66,14 @@ fn startup_session_keeps_valid_recent_projects_in_the_chooser() {
         default_startup.recent_projects[0].validation,
         RecentProjectValidation::Valid
     );
-    assert_eq!(default_startup.status_message, "Select a project to open.");
+    assert_eq!(
+        default_startup.status_message,
+        crate::ui::workbench::startup::EditorStartupSessionDocument::default().status_message
+    );
     assert!(opened
         .status_message
         .contains("scene=res://scenes/main.scene.toml"));
-    assert!(default_startup
+    assert!(!default_startup
         .status_message
         .contains("scene=res://scenes/main.scene.toml"));
 

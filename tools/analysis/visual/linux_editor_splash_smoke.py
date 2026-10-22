@@ -47,6 +47,28 @@ def capture(window: str, output: Path, env: dict[str, str]) -> None:
     )
 
 
+def launch_isolated(command: list[str], staging: Path, evidence: Path,
+                    env: dict[str, str], stdout) -> tuple[subprocess.Popen, int, list[str], bool]:
+    # Hub recents use ~/.zircon independently of XDG and runtime configuration.
+    # A private mount keeps that data isolated without changing the home variable
+    # or modifying the shared user's registry and appearance preferences.
+    app_data = evidence / "profile" / "app-data"
+    app_data.mkdir(parents=True)
+    initial_registry_exists = (app_data / "hub" / "recent_projects.json").exists()
+    read_fd, write_fd = os.pipe()
+    host_command = [
+        "bwrap", "--dev-bind", "/", "/", "--proc", "/proc",
+        "--bind", str(app_data), str(Path.home() / ".zircon"),
+        "--die-with-parent", "--info-fd", str(write_fd), "--", *command,
+    ]
+    process = subprocess.Popen(host_command, cwd=staging, env=env, stdout=stdout,
+                               stderr=subprocess.PIPE, pass_fds=[write_fd])
+    os.close(write_fd)
+    with os.fdopen(read_fd) as info:
+        app_pid = int(json.load(info)["child-pid"])
+    return process, app_pid, host_command, initial_registry_exists
+
+
 def probe_child(staging: Path, evidence: Path) -> dict:
     """Exercise rendering/dismissal without pretending this is engine readiness."""
     evidence.mkdir(parents=True, exist_ok=False)
@@ -121,10 +143,15 @@ def run(staging: Path, evidence: Path, mode: str, project: Path | None, timeout:
         XDG_CACHE_HOME=str(evidence / "profile" / "cache"),
         XDG_DATA_HOME=str(evidence / "profile" / "data"),
         MESA_SHADER_CACHE_DIR=str(evidence / "mesa-cache"),
-        ZIRCON_EDITOR_CAPTURE_FIRST_FRAME_PNG=str(evidence / "first-frame.png"),
         ZIRCON_EDITOR_STARTUP_SPLASH="1",
     )
     env.pop("ZIRCON_EDITOR_EXIT_AFTER_FIRST_FRAME", None)
+    # The engine's product-frame hook requires an opened project. Welcome uses
+    # a native capture after the same successful first-present notification.
+    if mode == "welcome":
+        env.pop("ZIRCON_EDITOR_CAPTURE_FIRST_FRAME_PNG", None)
+    else:
+        env["ZIRCON_EDITOR_CAPTURE_FIRST_FRAME_PNG"] = str(evidence / "first-frame.png")
     command = [str(staging / "zircon_editor")]
     if mode == "create":
         command += ["--create-project", "--project-name", "SplashSmoke", "--location",
@@ -136,12 +163,18 @@ def run(staging: Path, evidence: Path, mode: str, project: Path | None, timeout:
     started = time.monotonic()
     metrics: dict = {
         "command": command, "mode": mode, "events": [],
-        "cold_scope": "new process, app profile, UI cache, and Mesa cache; shared OS page cache",
+        "cold_scope": "new process, private app-data mount, profile, UI and Mesa caches; shared OS page cache",
+        "first_frame_capture_kind": (
+            "native window after first-present callback" if mode == "welcome"
+            else "engine product-frame hook"
+        ),
     }
     lines: list[str] = []
     stdout = (evidence / "stdout.log").open("wb")
-    process = subprocess.Popen(command, cwd=staging, env=env, stdout=stdout, stderr=subprocess.PIPE)
-    metrics["pid"] = process.pid
+    process, app_pid, host_command, initial_registry_exists = launch_isolated(
+        command, staging, evidence, env, stdout)
+    metrics.update(pid=app_pid, wrapper_pid=process.pid, host_command=host_command,
+                   initial_recent_registry_exists=initial_registry_exists)
 
     def drain() -> None:
         assert process.stderr is not None
@@ -167,7 +200,7 @@ def run(staging: Path, evidence: Path, mode: str, project: Path | None, timeout:
                 raise RuntimeError(f"editor exited before smoke completion: {process.returncode}")
             if time.monotonic() - started > timeout:
                 raise TimeoutError("editor did not present its first frame in time")
-            child_pids.update(splash_children(process.pid))
+            child_pids.update(splash_children(app_pid))
             visible = any("startup_splash event=visible " in line for line in lines)
             first_frame = any("startup_splash event=first_frame " in line for line in lines)
             if visible and splash_window is None:
@@ -179,20 +212,26 @@ def run(staging: Path, evidence: Path, mode: str, project: Path | None, timeout:
                         capture(splash_window, evidence / "splash.png", env)
                         break
             if splash_window is not None and not resized and not first_frame:
+                resize_events_before = sum("startup_splash event=resized " in line for line in lines)
+                requested = time.monotonic()
                 subprocess.run(["xdotool", "windowsize", splash_window, "420", "360"],
                                env=env, check=True, timeout=5)
-                requested = time.monotonic()
-                while not any("startup_splash event=resized " in line for line in lines):
+                while sum("startup_splash event=resized " in line for line in lines) <= resize_events_before:
                     if time.monotonic() - requested > 5:
                         raise TimeoutError("splash did not handle resize during loading")
                     time.sleep(0.02)
+                metrics["splash_resize_event_response_seconds"] = time.monotonic() - requested
                 # Allow the native software buffer to repaint at the new size.
                 time.sleep(0.15)
                 capture(splash_window, evidence / "splash-compact.png", env)
-                metrics["splash_resize_response_seconds"] = time.monotonic() - requested
+                metrics["splash_resize_capture_seconds"] = time.monotonic() - requested
                 subprocess.run(["xdotool", "windowsize", splash_window, "640", "440"],
                                env=env, check=True, timeout=5)
                 resized = True
+            if first_frame and mode == "welcome" and not (evidence / "first-frame.png").exists():
+                parent_windows = windows(app_pid, env)
+                if parent_windows:
+                    capture(parent_windows[-1], evidence / "first-frame.png", env)
             if first_frame and (evidence / "first-frame.png").is_file():
                 metrics["first_frame_capture_observed_seconds"] = time.monotonic() - started
                 break
@@ -206,12 +245,17 @@ def run(staging: Path, evidence: Path, mode: str, project: Path | None, timeout:
                 raise TimeoutError("splash child survived the first workbench frame")
             time.sleep(0.025)
         metrics["splash_child_reaped_before_quit"] = True
-        parent_windows = windows(process.pid, env)
+        parent_windows = windows(app_pid, env)
         if not parent_windows:
             raise RuntimeError("workbench has no visible parent-owned native window")
         window = parent_windows[-1]
         metrics["workbench_window"] = window
+        if mode == "welcome":
+            # Keep the first-frame capture separate from the form's asynchronous
+            # project-location probe and its subsequent normal UI updates.
+            time.sleep(1)
         capture(window, evidence / "workbench.png", env)
+        metrics["workbench_capture_observed_seconds"] = time.monotonic() - started
         subprocess.run(["xdotool", "windowactivate", "--sync", window, "key", "alt+F4"],
                        env=env, check=True, timeout=10)
         process.wait(timeout=45)

@@ -31,9 +31,6 @@ pub use core::gateway::{
     SharedEditorRuntimeGateway,
 };
 pub use core::gui_startup_request::EditorGuiStartupRequest;
-pub use ui::retained_host::startup_splash::{
-    run_startup_splash_child, EditorStartupSplash, EditorStartupStage,
-};
 pub use core::plugin::{
     EditorExtensionCatalogReport, EditorPlugin, EditorPluginDescriptor,
     EditorPluginRegistrationReport,
@@ -44,6 +41,9 @@ pub use ui::host::module::{
     EDITOR_MODULE_NAME,
 };
 pub use ui::host::{UiAssetWorkspaceWatchDiagnostics, UiAssetWorkspaceWatchPollReport};
+pub use ui::retained_host::startup_splash::{
+    run_startup_splash_child, EditorStartupSplash, EditorStartupStage,
+};
 pub use ui::retained_host::{
     export_zui_visual_evidence, export_zui_visual_evidence_with_context,
     export_zui_workbench_product_snapshots, export_zui_workbench_product_snapshots_with_context,
