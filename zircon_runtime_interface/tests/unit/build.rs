@@ -87,3 +87,73 @@ fn slot_catalog_generator_rejects_metadata_that_does_not_describe_v8() {
     assert!(error.contains("runtime_api_version"));
     assert!(error.contains("must be 8"));
 }
+
+#[test]
+fn retained_model_admission_requires_the_complete_audited_identity() {
+    let version = "rustc 1.99.1\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\n";
+    let libraries = [
+        (
+            "liballoc-",
+            "1713afb7fc9da7a917293bafdede9562ceddd75700d5a5ff57d4eeb2e42ce9b1",
+        ),
+        (
+            "libcore-",
+            "b346ce2305e13b1a5ec9ab6e093028caee38227c540cdaf78d7b253f59ae5913",
+        ),
+        (
+            "libstd-",
+            "ea104615e69d068c8a12c749135c7138b3ec28c7275ae163f91169a03561f75b",
+        ),
+    ]
+    .map(|(name, hash)| (name.to_owned(), hash.to_owned()));
+    let admit = |target, version: &str, libraries: &[(String, String)], mode| {
+        super::admitted_retained_std_model_v1(target, version, libraries, mode)
+    };
+    assert_eq!(
+        admit("x86_64-unknown-linux-gnu", version, &libraries, true),
+        Some("ZR_RETAINED_STD_RUST_1_99_1_58CF8F9C_X86_64_LINUX_GNU_GLOBAL_V1")
+    );
+    assert!(admit("x86_64-pc-windows-msvc", version, &libraries, true).is_none());
+    assert!(admit(
+        "x86_64-unknown-linux-gnu",
+        "commit-hash: unknown",
+        &libraries,
+        true
+    )
+    .is_none());
+    assert!(admit("x86_64-unknown-linux-gnu", version, &libraries, false).is_none());
+    assert!(admit("x86_64-unknown-linux-gnu", version, &libraries[..2], true).is_none());
+    for index in 0..libraries.len() {
+        let mut changed = libraries.clone();
+        changed[index].1.push('0');
+        assert!(admit("x86_64-unknown-linux-gnu", version, &changed, true).is_none());
+    }
+    let mut extra = libraries.to_vec();
+    extra.push(libraries[0].clone());
+    assert!(admit("x86_64-unknown-linux-gnu", version, &extra, true).is_none());
+
+    let windows = [
+        (
+            "liballoc-",
+            "ec31d2076f0a772502d983a3f08544f419a2e9ec7b91dde39085160a9fcbfe8d",
+        ),
+        (
+            "libcore-",
+            "cc07c244f9e8a0bdc3d541de001a0fd90abec28d3a7343c05ec759c7bd89871b",
+        ),
+        (
+            "libstd-",
+            "dad1e7dca0365c18af4f6ceb3e8f9362974bc099ef5dc37f4b4c4d8d14b6edd0",
+        ),
+    ]
+    .map(|(name, hash)| (name.to_owned(), hash.to_owned()));
+    assert_eq!(
+        admit(
+            "x86_64-pc-windows-msvc",
+            "commit-hash: e408947bfd200af42db322daf0fadfe7e26d3bd1",
+            &windows,
+            true
+        ),
+        Some("ZR_RETAINED_STD_RUST_1_94_1_E408947B_X86_64_WINDOWS_MSVC_GLOBAL_V1")
+    );
+}

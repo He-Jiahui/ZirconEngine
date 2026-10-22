@@ -393,38 +393,21 @@ fn generate_retained_std_model_v1() -> Result<(), String> {
         }
         Ok((version, libraries))
     })();
-    let expected = [
-        (
-            "liballoc-",
-            "ec31d2076f0a772502d983a3f08544f419a2e9ec7b91dde39085160a9fcbfe8d",
-        ),
-        (
-            "libcore-",
-            "cc07c244f9e8a0bdc3d541de001a0fd90abec28d3a7343c05ec759c7bd89871b",
-        ),
-        (
-            "libstd-",
-            "dad1e7dca0365c18af4f6ceb3e8f9362974bc099ef5dc37f4b4c4d8d14b6edd0",
-        ),
-    ];
     let mode = env::var("RUSTFLAGS").unwrap_or_default();
     let encoded = env::var("CARGO_ENCODED_RUSTFLAGS").unwrap_or_default();
     let wrappers_empty = ["RUSTC_WRAPPER", "RUSTC_WORKSPACE_WRAPPER"]
         .iter()
         .all(|key| env::var_os(key).is_none_or(|v| v.is_empty()));
-    let supported = observed.as_ref().is_ok_and(|(version, libraries)| {
-        target == "x86_64-pc-windows-msvc"
-            && version
-                .lines()
-                .any(|s| s == "commit-hash: e408947bfd200af42db322daf0fadfe7e26d3bd1")
-            && libraries
-                .iter()
-                .zip(expected)
-                .all(|((name, hash), (n, h))| name == n && hash == h)
-            && wrappers_empty
-            && !mode.contains("-Z")
-            && !encoded.contains("-Z")
+    let model = observed.as_ref().ok().and_then(|(version, libraries)| {
+        admitted_retained_std_model_v1(
+            &target,
+            version,
+            libraries,
+            wrappers_empty && !mode.contains("-Z") && !encoded.contains("-Z"),
+        )
     });
+    let supported = model.is_some();
+    let model_id = model.unwrap_or("ZR_RETAINED_STD_UNAVAILABLE_V1");
     // Normal dependency source/version provenance is deliberately not inferred here.
     // Unknown identity emits unavailable metadata; unrelated Runtime targets still build.
     let reason = if supported {
@@ -435,8 +418,59 @@ fn generate_retained_std_model_v1() -> Result<(), String> {
     let generated = format!(
         "// @generated; availability only, not normal dependency provenance.\n\
          pub const ZR_RETAINED_STD_MODEL_AVAILABLE_V1: bool = {supported};\n\
+         pub const ZR_RETAINED_STD_MODEL_ID_V1: &str = {model_id:?};\n\
          pub const ZR_RETAINED_STD_MODEL_REASON_V1: &str = {reason:?};\n"
     );
     fs::write(output.join("retained_std_model_v1.rs"), generated)
         .map_err(|e| format!("could not write retained-model metadata: {e}"))
+}
+
+// These are exact, audited distributions, not a general OS or version allowlist.
+// See docs/testing-and-validation/retained-std-models.md before adding a model.
+fn admitted_retained_std_model_v1(
+    target: &str,
+    version: &str,
+    libraries: &[(String, String)],
+    ordinary_layout_mode: bool,
+) -> Option<&'static str> {
+    const MODELS: &[(&str, &str, &str, [&str; 3])] = &[
+        (
+            "x86_64-pc-windows-msvc",
+            "e408947bfd200af42db322daf0fadfe7e26d3bd1",
+            "ZR_RETAINED_STD_RUST_1_94_1_E408947B_X86_64_WINDOWS_MSVC_GLOBAL_V1",
+            [
+                "ec31d2076f0a772502d983a3f08544f419a2e9ec7b91dde39085160a9fcbfe8d",
+                "cc07c244f9e8a0bdc3d541de001a0fd90abec28d3a7343c05ec759c7bd89871b",
+                "dad1e7dca0365c18af4f6ceb3e8f9362974bc099ef5dc37f4b4c4d8d14b6edd0",
+            ],
+        ),
+        (
+            "x86_64-unknown-linux-gnu",
+            "58cf8f9c35b355199727627d07ae34a4e2846d67",
+            "ZR_RETAINED_STD_RUST_1_99_1_58CF8F9C_X86_64_LINUX_GNU_GLOBAL_V1",
+            [
+                "1713afb7fc9da7a917293bafdede9562ceddd75700d5a5ff57d4eeb2e42ce9b1",
+                "b346ce2305e13b1a5ec9ab6e093028caee38227c540cdaf78d7b253f59ae5913",
+                "ea104615e69d068c8a12c749135c7138b3ec28c7275ae163f91169a03561f75b",
+            ],
+        ),
+    ];
+    if !ordinary_layout_mode || libraries.len() != 3 {
+        return None;
+    }
+    MODELS
+        .iter()
+        .find_map(|(expected_target, commit, model, hashes)| {
+            (target == *expected_target
+                && version
+                    .lines()
+                    .any(|line| line.strip_prefix("commit-hash: ") == Some(*commit))
+                && libraries
+                    .iter()
+                    .zip(["liballoc-", "libcore-", "libstd-"].iter().zip(hashes))
+                    .all(|((name, hash), (expected_name, expected_hash))| {
+                        name == expected_name && hash == expected_hash
+                    }))
+            .then_some(*model)
+        })
 }
