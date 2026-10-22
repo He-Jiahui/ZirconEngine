@@ -810,6 +810,12 @@ fn browser_thumbnail_virtual_rebind_reprojects_item_specific_child_geometry() {
         visual.frame.y + visual.frame.height,
         "stacked item-specific info band shares the shorter preview's boundary"
     );
+    assert_eq!(info_band.frame.height, 54.0);
+    assert_eq!(
+        info_band.frame.y + info_band.frame.height,
+        card.frame.y + card.frame.height - 8.0,
+        "the rebound info band keeps the shared card's bottom inset"
+    );
     assert!(continuation.frame.height > 0.0);
     assert!(continuation.frame.y > name.frame.y);
     assert!(

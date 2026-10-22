@@ -99,6 +99,30 @@ fn suspended_windows_child_runs_only_after_job_attachment_and_can_be_tree_termin
 
 #[cfg(all(unix, not(windows)))]
 #[test]
+fn persistent_unix_tree_terminates_an_attached_child_and_can_be_retried() {
+    use super::{configure_process_tree_cancellation, ProcessTreeLease};
+    use std::process::Command;
+
+    let mut command = Command::new("sleep");
+    command.arg("60");
+    configure_process_tree_cancellation(&mut command);
+    let mut child = command.spawn().expect("fixture child should spawn");
+    let mut tree = ProcessTreeLease::attach_and_start(&child, "unix process fixture")
+        .expect("fixture should attach to its process group");
+    let result = tree.terminate("unix process fixture");
+    if !result.succeeded {
+        let _ = child.kill();
+    }
+    child.wait().expect("fixture child should be reaped");
+    assert!(result.succeeded, "{}", result.diagnostic);
+    assert!(result.error.is_none());
+    let repeated = tree.terminate("unix process fixture");
+    assert!(repeated.succeeded, "{}", repeated.diagnostic);
+    assert!(repeated.error.is_none());
+}
+
+#[cfg(all(unix, not(windows)))]
+#[test]
 fn persistent_unix_tree_treats_an_absent_group_as_terminal() {
     let source = include_str!("../process.rs");
     assert!(source.contains("unix_process_group::terminate(child_id)"));
