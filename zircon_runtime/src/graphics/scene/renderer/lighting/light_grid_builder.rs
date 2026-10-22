@@ -392,12 +392,27 @@ fn light_grid_stats(zbins: &[u32], tile_masks: &[u32], params: &LightGridParams)
     let mut non_empty_cluster_count = 0;
     let mut peak_lights_per_cluster = 0;
     let mut total_cluster_lights = 0_u64;
-    for bin in 0..params.bin_count as usize {
+    let mut bin = 0;
+    while bin < params.bin_count as usize {
         let zbin_base = bin * bin_stride + ZBIN_HEADER_WORDS as usize;
         let zbin_words = &zbins[zbin_base..zbin_base + words_per_tile];
-        if zbin_words.iter().any(|word| *word != 0) {
-            non_empty_zbin_count += 1;
+        // Consecutive bins often share the same light mask (a sun covers every
+        // depth). Their per-tile intersections are identical. Count each run once
+        // and multiply the integer statistics, preserving the uploaded grid ABI.
+        let mut next = bin + 1;
+        while next < params.bin_count as usize {
+            let base = next * bin_stride + ZBIN_HEADER_WORDS as usize;
+            if &zbins[base..base + words_per_tile] != zbin_words {
+                break;
+            }
+            next += 1;
         }
+        let repeated = (next - bin) as u32;
+        bin = next;
+        if zbin_words.iter().all(|word| *word == 0) {
+            continue;
+        }
+        non_empty_zbin_count += repeated;
         for tile in 0..tile_count {
             let tile_base = tile * words_per_tile;
             let mut cluster_lights = 0;
@@ -405,10 +420,10 @@ fn light_grid_stats(zbins: &[u32], tile_masks: &[u32], params: &LightGridParams)
                 cluster_lights += (tile_masks[tile_base + word] & zbin_words[word]).count_ones();
             }
             if cluster_lights > 0 {
-                non_empty_cluster_count += 1;
+                non_empty_cluster_count += repeated;
             }
             peak_lights_per_cluster = peak_lights_per_cluster.max(cluster_lights);
-            total_cluster_lights += u64::from(cluster_lights);
+            total_cluster_lights += u64::from(cluster_lights) * u64::from(repeated);
         }
     }
 

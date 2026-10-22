@@ -142,6 +142,112 @@ fn light_grid_shader_include_is_valid_wgsl() {
         .expect("light grid WGSL include should parse");
 }
 
+#[test]
+fn light_grid_statistics_match_cluster_reference_for_repeated_and_sparse_masks() {
+    for words in [1, 2, 3] {
+        let params = LightGridParams {
+            words_per_tile: words,
+            tile_resolution: [7, 3],
+            bin_count: 19,
+            light_count: words * 32,
+            ..LightGridParams::disabled()
+        };
+        let mut seed = 11_u32;
+        let mut next = || {
+            seed = seed.wrapping_mul(1664525).wrapping_add(1013904223);
+            seed
+        };
+        let tiles = (0..21 * words)
+            .map(|i| if i % 4 == 0 { 0 } else { next() })
+            .collect::<Vec<_>>();
+        let stride = (words + ZBIN_HEADER_WORDS) as usize;
+        let mut bins = vec![0; stride * params.bin_count as usize];
+        for bin in 0..params.bin_count as usize {
+            for word in 0..words as usize {
+                // Empty runs, repeated runs, and distinct multiword masks.
+                bins[bin * stride + ZBIN_HEADER_WORDS as usize + word] = match bin / 4 {
+                    0 => 0,
+                    1 => 0x1234,
+                    2 => 0x5678,
+                    _ => next(),
+                };
+            }
+        }
+        let result = light_grid_stats(&bins, &tiles, &params);
+        let tile_rows = tiles.chunks_exact(words as usize).collect::<Vec<_>>();
+        let bin_rows = bins
+            .chunks_exact(stride)
+            .map(|row| &row[ZBIN_HEADER_WORDS as usize..])
+            .collect::<Vec<_>>();
+        let counts = bin_rows
+            .iter()
+            .flat_map(|bin| {
+                tile_rows.iter().map(move |tile| {
+                    tile.iter()
+                        .zip(*bin)
+                        .map(|(a, b)| (a & b).count_ones())
+                        .sum::<u32>()
+                })
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            result.non_empty_tile_count,
+            tile_rows
+                .iter()
+                .filter(|row| row.iter().any(|w| *w != 0))
+                .count() as u32
+        );
+        assert_eq!(
+            result.non_empty_zbin_count,
+            bin_rows
+                .iter()
+                .filter(|row| row.iter().any(|w| *w != 0))
+                .count() as u32
+        );
+        assert_eq!(
+            result.non_empty_cluster_count,
+            counts.iter().filter(|n| **n > 0).count() as u32
+        );
+        assert_eq!(
+            result.peak_lights_per_cluster,
+            *counts.iter().max().unwrap()
+        );
+        assert_eq!(
+            result.average_lights_per_cluster,
+            counts.iter().map(|n| u64::from(*n)).sum::<u64>() as f32 / counts.len() as f32
+        );
+    }
+}
+
+#[test]
+#[ignore = "explicit operator profiling workload"]
+fn light_grid_operator_profile() {
+    use std::hint::black_box;
+    use std::time::Instant;
+    let view = test_view(UVec2::new(1251, 769));
+    for (name, lights) in [
+        ("empty", vec![]),
+        ("sun", vec![directional_light()]),
+        (
+            "mixed",
+            vec![
+                directional_light(),
+                point_light(Vec3::new(-1.25, 0.0, -4.0), 0.4),
+                point_light(Vec3::new(1.0, 0.0, -8.0), 0.8),
+            ],
+        ),
+    ] {
+        let mut samples = Vec::new();
+        for _ in 0..16 {
+            let started = Instant::now();
+            black_box(build_light_grid(black_box(&lights), black_box(&view)));
+            samples.push(started.elapsed().as_secs_f64() * 1000.0);
+        }
+        samples.sort_by(f64::total_cmp);
+        eprintln!("light_grid_profile scenario={name} samples=16 median_ms={:.6} min_ms={:.6} p95_ms={:.6}", samples[8], samples[0], samples[15]);
+    }
+}
+
 fn test_view(viewport_size: UVec2) -> LightGridViewInfo {
     LightGridViewInfo::from_camera(&test_camera(viewport_size), viewport_size)
 }
