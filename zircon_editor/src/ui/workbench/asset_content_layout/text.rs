@@ -45,15 +45,26 @@ pub(crate) fn compact_thumbnail_file_name_to_width(
     max_width: f32,
     font_size: f32,
 ) -> String {
+    let compaction = RuntimeFileNameCompaction {
+        max_width,
+        font_size,
+        min_prefix_chars: THUMBNAIL_FILE_NAME_MIN_PREFIX_CHARS,
+        min_tail_stem_chars: THUMBNAIL_FILE_NAME_MIN_TAIL_STEM_CHARS,
+        preferred_tail_stem_chars: THUMBNAIL_FILE_NAME_EXTENSION_TAIL_STEM_CHARS,
+    };
+    let compact = compact_file_like_display_name(display_name, extension, compaction);
+    if fits(&compact, compaction) {
+        return compact;
+    }
+    // Narrow cards or wider platform fonts can exceed the preferred readable
+    // minimum. Keep the extension while allowing a shorter prefix and stem tail.
     compact_file_like_display_name(
         display_name,
         extension,
         RuntimeFileNameCompaction {
-            max_width,
-            font_size,
-            min_prefix_chars: THUMBNAIL_FILE_NAME_MIN_PREFIX_CHARS,
-            min_tail_stem_chars: THUMBNAIL_FILE_NAME_MIN_TAIL_STEM_CHARS,
-            preferred_tail_stem_chars: THUMBNAIL_FILE_NAME_EXTENSION_TAIL_STEM_CHARS,
+            min_prefix_chars: 1,
+            min_tail_stem_chars: 1,
+            ..compaction
         },
     )
 }
