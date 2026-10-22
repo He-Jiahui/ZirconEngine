@@ -14,7 +14,87 @@ use zircon_runtime_interface::runtime_build_set::ZrRuntimeBuildSetId;
 
 use crate::core::hub_link::{consume_focus_signals, publish_focus_signal};
 
-use super::consume_pending_focus_signals;
+use super::{consume_pending_focus_signals, may_publish_focus_signal, HubFocusSignalWatch};
+
+#[test]
+fn mailbox_reads_and_removals_do_not_trigger_another_scan() {
+    use notify::event::{AccessKind, AccessMode, RemoveKind};
+    use notify::{Event, EventKind};
+
+    let directory = std::path::Path::new("project/.zircon/hub/focus/913-42/requests");
+    for kind in [
+        EventKind::Access(AccessKind::Any),
+        EventKind::Access(AccessKind::Open(AccessMode::Read)),
+        EventKind::Access(AccessKind::Read),
+        EventKind::Access(AccessKind::Close(AccessMode::Read)),
+        EventKind::Remove(RemoveKind::File),
+    ] {
+        let event = Event::new(kind).add_path(directory.to_path_buf());
+        assert!(!may_publish_focus_signal(&event, directory), "{kind:?}");
+    }
+}
+
+#[test]
+fn mailbox_publication_and_overflow_recovery_trigger_a_scan() {
+    use notify::event::{CreateKind, Flag, ModifyKind, RenameMode};
+    use notify::{Event, EventKind};
+
+    let directory = std::path::Path::new("project/.zircon/hub/focus/913-42/requests");
+    for kind in [
+        EventKind::Any,
+        EventKind::Create(CreateKind::File),
+        EventKind::Modify(ModifyKind::Name(RenameMode::To)),
+        EventKind::Modify(ModifyKind::Name(RenameMode::Both)),
+    ] {
+        assert!(may_publish_focus_signal(
+            &Event::new(kind).add_path(directory.join("request.json")),
+            directory,
+        ));
+        assert!(!may_publish_focus_signal(
+            &Event::new(kind).add_path(PathBuf::from("another/inbox/request.json")),
+            directory,
+        ));
+    }
+    assert!(may_publish_focus_signal(
+        &Event::new(EventKind::Other).set_flag(Flag::Rescan),
+        directory,
+    ));
+}
+
+#[test]
+fn live_watcher_delivers_a_request_published_after_registration_once() {
+    let target_directory = std::env::var_os("CARGO_TARGET_DIR")
+        .expect("focus watcher filesystem tests require a managed CARGO_TARGET_DIR");
+    let project_root = PathBuf::from(target_directory).join(format!(
+        "zircon-editor-live-focus-watch-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("system clock should be after epoch")
+            .as_nanos()
+    ));
+    let instance_id = "913-42";
+    let (sender, receiver) = std::sync::mpsc::channel();
+    let watcher = HubFocusSignalWatch::start(&project_root, instance_id, 1, move |request| {
+        sender
+            .send(request)
+            .expect("focus receiver should remain alive");
+    })
+    .expect("register real OS watcher");
+    let request_id = HubSessionToken::from_str("0d9a5890-0e44-4e2a-b77e-3e5d4fdf1e52")
+        .expect("valid request id");
+    publish_focus_signal(&project_root, &ready_focus_record(instance_id), request_id)
+        .expect("publish while the OS watcher is registered");
+    let request = receiver
+        .recv_timeout(std::time::Duration::from_secs(5))
+        .expect("watcher should consume the newly published request");
+    assert_eq!(request.request_id, request_id);
+    assert!(receiver
+        .recv_timeout(std::time::Duration::from_millis(100))
+        .is_err());
+    drop(watcher);
+    std::fs::remove_dir_all(project_root).expect("remove temporary project root");
+}
 
 #[test]
 fn focus_mailbox_path_names_the_target_instance_only() {
