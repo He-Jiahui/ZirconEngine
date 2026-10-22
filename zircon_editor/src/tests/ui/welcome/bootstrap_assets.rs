@@ -2,7 +2,7 @@
 
 use crate::ui::layouts::views::welcome_pane_nodes;
 use zircon_runtime::ui::v2::UiV2AssetLoader;
-use zircon_runtime_interface::ui::design_tokens::EditorTypographyTokens;
+use zircon_runtime_interface::ui::design_tokens::{EditorDesignTokens, EditorTypographyTokens};
 use zircon_runtime_interface::ui::layout::UiSize;
 
 const WELCOME_LAYOUT_TOML: &str = include_str!(concat!(
@@ -275,7 +275,7 @@ fn welcome_mvp_columns_prioritize_project_actions_before_recent_history_width() 
         let recent = node("WelcomeRecentPanel");
         let main = node("WelcomeMainPanel");
 
-        assert!(recent.frame.width >= 184.0 - EPSILON);
+        assert!(recent.frame.width >= 136.0 - EPSILON);
         assert!(recent.frame.width <= 240.0 + EPSILON);
         assert!(
             main.frame.width >= 280.0 - EPSILON,
@@ -291,6 +291,7 @@ fn welcome_mvp_columns_prioritize_project_actions_before_recent_history_width() 
 #[test]
 fn welcome_mvp_recent_section_uses_workbench_vertical_rhythm() {
     const EPSILON: f32 = 0.01;
+    let tokens = EditorDesignTokens::default();
     let pane = welcome_pane_nodes(UiSize::new(560.0, 384.0));
     let nodes = (0..pane.row_count())
         .filter_map(|row| pane.row_data(row))
@@ -305,9 +306,12 @@ fn welcome_mvp_recent_section_uses_workbench_vertical_rhythm() {
     let header = node("WelcomeRecentHeaderPanel");
     let list = node("WelcomeRecentListPanel");
 
-    assert!((header.frame.y - recent.frame.y - 18.0).abs() <= EPSILON);
-    assert!((header.frame.height - 30.0).abs() <= EPSILON);
-    assert!((list.frame.y - header.frame.y - header.frame.height - 8.0).abs() <= EPSILON);
+    assert!((header.frame.y - recent.frame.y - tokens.density.panel_padding).abs() <= EPSILON);
+    assert!((header.frame.height - tokens.chrome.panel_header_height).abs() <= EPSILON);
+    assert!(
+        (list.frame.y - header.frame.y - header.frame.height - tokens.density.gap_medium).abs()
+            <= EPSILON
+    );
 }
 
 #[test]
@@ -412,8 +416,8 @@ fn welcome_mvp_field_labels_use_shared_runtime_text_label_nodes() {
             Some("muted")
         );
         assert_eq!(
-            numeric_prop(label.props.get("font_size")),
-            Some(EditorTypographyTokens::WORKBENCH_CAPTION_SIZE as f64)
+            label.props.get("font_size").and_then(toml::Value::as_str),
+            Some("$editor.typography.caption.size")
         );
 
         let projected = nodes
@@ -421,6 +425,9 @@ fn welcome_mvp_field_labels_use_shared_runtime_text_label_nodes() {
             .find(|node| node.control_id == control_id)
             .unwrap_or_else(|| panic!("welcome projection should contain `{control_id}`"));
         assert!(projected.frame.width > 0.0 && projected.frame.height > 0.0);
+        assert!(
+            (projected.font_size - EditorTypographyTokens::WORKBENCH_CAPTION_SIZE).abs() < 0.01
+        );
         let field = nodes
             .iter()
             .find(|node| node.control_id == field_control_id)
