@@ -13,8 +13,10 @@ impl Default for EditorStartupSessionDocument {
             draft: NewProjectDraft::renderable_empty_default(),
             creation_validation: "Checking project location…".to_string(),
             can_open_existing: false,
-            status_message: "Open an existing project or create a renderable empty project."
-                .to_string(),
+            status_message: crate::ui::retained_host::startup_splash::content::startup_text(
+                "editor.welcome.project_help",
+            )
+            .to_string(),
         }
     }
 }

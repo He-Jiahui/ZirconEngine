@@ -38,7 +38,9 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_new_project_head
             width: text_width,
             height: title_line_height,
         },
-        "New Project",
+        &crate::ui::retained_host::startup_splash::content::startup_text(
+            "editor.welcome.project_heading",
+        ),
         Some(clip),
         crate::ui::retained_host::host_contract::paint_theme::current_host_palette().text,
         title_font_size,
