@@ -200,27 +200,24 @@ impl UiSurfaceDescriptor {
         label: &'static str,
         window: &dyn winit::window::Window,
     ) -> Result<Self, RhiError> {
-        use winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
+        use winit::raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
         let size = window.surface_size();
         let raw = window
             .window_handle()
             .map_err(|error| RhiError::SurfaceUnavailable(error.to_string()))?
             .as_raw();
-        match raw {
-            RawWindowHandle::Win32(handle) => Ok(Self::native(
-                label,
-                size.width.max(1),
-                size.height.max(1),
-                RenderNativeSurfaceTarget::Win32 {
-                    hwnd: handle.hwnd.get() as u64,
-                    hinstance: handle.hinstance.map(|hinstance| hinstance.get() as u64),
-                },
-            )),
-            other => Err(RhiError::SurfaceUnavailable(format!(
-                "unsupported native window handle for retained UI surface: {other:?}"
-            ))),
-        }
+        let display = window
+            .display_handle()
+            .map_err(|error| RhiError::SurfaceUnavailable(error.to_string()))?
+            .as_raw();
+        let target = RenderNativeSurfaceTarget::from_raw_handles(raw, display)?;
+        Ok(Self::native(
+            label,
+            size.width.max(1),
+            size.height.max(1),
+            target,
+        ))
     }
 }
 

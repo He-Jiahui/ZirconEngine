@@ -4,6 +4,7 @@ pub(crate) struct RenderBackendConfig {
     pub(crate) backends: wgpu::Backends,
     pub(crate) instance_flags: wgpu::InstanceFlags,
     pub(crate) prefer_dx12: bool,
+    pub(crate) allow_software: bool,
 }
 
 impl RenderBackendConfig {
@@ -12,6 +13,9 @@ impl RenderBackendConfig {
             std::env::var("WGPU_BACKEND").ok().as_deref(),
             std::env::var("WGPU_DEBUG").ok().as_deref(),
             std::env::var("WGPU_VALIDATION").ok().as_deref(),
+            std::env::var("ZIRCON_ALLOW_SOFTWARE_ADAPTER")
+                .ok()
+                .as_deref(),
         )
     }
 
@@ -19,6 +23,7 @@ impl RenderBackendConfig {
         backend: Option<&str>,
         debug: Option<&str>,
         validation: Option<&str>,
+        allow_software: Option<&str>,
     ) -> Self {
         let mut instance_flags = wgpu::InstanceFlags::from_build_config();
         apply_optional_flag(&mut instance_flags, wgpu::InstanceFlags::DEBUG, debug);
@@ -30,10 +35,18 @@ impl RenderBackendConfig {
 
         Self {
             prefer_dx12: backend.is_none() && cfg!(windows),
+            allow_software: allow_software == Some("1"),
             backends: backend
                 .map(wgpu::Backends::from_comma_list)
                 .unwrap_or(wgpu::Backends::PRIMARY),
             instance_flags,
+        }
+    }
+
+    pub(crate) fn adapter_selection_policy(self) -> zr_rhi::AdapterSelectionPolicy {
+        zr_rhi::AdapterSelectionPolicy {
+            allow_software: self.allow_software,
+            ..Default::default()
         }
     }
 

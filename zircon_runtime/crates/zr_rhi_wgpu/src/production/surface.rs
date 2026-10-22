@@ -547,10 +547,17 @@ pub(crate) fn create_native_surface(
 
 #[cfg(not(target_os = "windows"))]
 pub(crate) fn create_native_surface(
-    _instance: &wgpu::Instance,
+    instance: &wgpu::Instance,
     target: RenderNativeSurfaceTarget,
 ) -> Result<wgpu::Surface<'static>, RhiError> {
     match target {
+        #[cfg(target_os = "linux")]
+        target @ (RenderNativeSurfaceTarget::Xlib { .. }
+        | RenderNativeSurfaceTarget::Xcb { .. }
+        | RenderNativeSurfaceTarget::Wayland { .. }) => {
+            crate::native_surface::create_linux_surface(instance, target)
+        }
+
         #[cfg(target_arch = "wasm32")]
         RenderNativeSurfaceTarget::Canvas { .. } => Err(RhiError::SurfaceUnavailable(
             "create a browser surface through WgpuSurfaceBootstrap::from_canvas".into(),
