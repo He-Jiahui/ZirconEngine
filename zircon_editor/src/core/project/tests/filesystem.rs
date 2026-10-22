@@ -25,8 +25,9 @@ fn scene_path_guard_rejects_unsupported_platforms_before_loading_or_publishing()
     let _ = std::fs::remove_dir_all(&root);
     std::fs::create_dir_all(root.join("assets/scenes")).unwrap();
 
-    let error =
-        protect_scene_path(&root, &root.join("assets/scenes/main.scene.toml"), false).unwrap_err();
+    let error = protect_scene_path(&root, &root.join("assets/scenes/main.scene.toml"), false)
+        .err()
+        .expect("unsupported platform must reject the scene lease");
     assert!(matches!(
         error,
         ProjectAuthorityError::SceneTarget { reason, .. }
