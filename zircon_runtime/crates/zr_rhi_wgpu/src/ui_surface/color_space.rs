@@ -23,7 +23,21 @@ pub(super) const fn target_color_mode(format: wgpu::TextureFormat) -> UiTargetCo
 /// Hardware sRGB sampling decodes these texels before filtering, so transparent image edges retain
 /// both correct premultiplied interpolation and linear-light composition.
 pub(super) fn encode_linear_premultiplied_srgba8(mut rgba: Arc<[u8]>) -> Arc<[u8]> {
+    // Viewport readbacks are opaque. Their transfer function and premultiplication
+    // are already correct; retain the shared bytes instead of cloning and doing
+    // six powf calls per pixel on the UI submission thread.
+    if rgba.chunks_exact(4).all(|pixel| pixel[3] == u8::MAX) {
+        return rgba;
+    }
     for pixel in Arc::make_mut(&mut rgba).chunks_exact_mut(4) {
+        match pixel[3] {
+            u8::MAX => continue,
+            0 => {
+                pixel[..3].fill(0);
+                continue;
+            }
+            _ => {}
+        }
         let alpha = f32::from(pixel[3]) / 255.0;
         for channel in &mut pixel[..3] {
             let linear = srgb_to_linear(f32::from(*channel) / 255.0) * alpha;
@@ -32,6 +46,10 @@ pub(super) fn encode_linear_premultiplied_srgba8(mut rgba: Arc<[u8]>) -> Arc<[u8
     }
     rgba
 }
+
+#[cfg(test)]
+#[path = "tests/color_space.rs"]
+mod tests;
 
 fn srgb_to_linear(value: f32) -> f32 {
     if value <= 0.040_45 {
