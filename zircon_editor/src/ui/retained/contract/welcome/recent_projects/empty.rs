@@ -26,7 +26,9 @@ pub(super) fn draw_recent_projects_empty_state(
         list,
         clip,
         content_y,
-        "No recent projects",
+        &crate::ui::retained_host::startup_splash::content::startup_text(
+            "editor.welcome.empty_title",
+        ),
         title_font_size,
         title_line_height,
         metrics,
@@ -36,7 +38,9 @@ pub(super) fn draw_recent_projects_empty_state(
         list,
         clip,
         content_y + title_line_height + metrics.gap_s,
-        "Create a new project to start",
+        &crate::ui::retained_host::startup_splash::content::startup_text(
+            "editor.welcome.empty_hint",
+        ),
         subtitle_font_size,
         subtitle_line_height,
         metrics,
