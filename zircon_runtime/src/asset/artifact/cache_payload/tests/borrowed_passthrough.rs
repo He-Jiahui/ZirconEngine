@@ -1,4 +1,4 @@
-use super::super::{from_imported_for_write, ArtifactCacheAsset};
+use super::{from_imported_for_write, ArtifactCacheAsset};
 use crate::asset::{
     AssetReference, AssetUri, ImportedAsset, MaterialGraphAsset, TerrainAsset, TerrainLayerAsset,
     TerrainLayerStackAsset, TileMapAsset, TileMapLayerAsset, TileSetAsset, TileSetTileAsset,
