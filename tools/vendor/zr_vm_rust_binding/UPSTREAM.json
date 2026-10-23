@@ -1,0 +1,18 @@
+{
+  "repository": "https://github.com/He-Jiahui/zr_vm",
+  "revision": "3c1352ecb6ddfab02752d46682cc376558d5f481",
+  "path": "zr_vm_rust_binding/rust/zr_vm_rust_binding",
+  "original_sha256": {
+    "Cargo.toml": "09e97c0a9e5527af9da4a48d9eeed8d604081077384c409129e9fd6bb29fbc47",
+    "src/execution_budget.rs": "3f5264643b780ae9941a2b9d21c3bff0ad45e29d297801217d8789a94a8b848b",
+    "src/gc.rs": "e65e8d8fa80e13842115b380522d5c53020606f9e968fc146e8560cf6c1c996a",
+    "src/lib.rs": "db598b1d00e7bb789c2fa91f6a9a7be2570b8a51c5b226fed07ddaacf4ab8302",
+    "src/native.rs": "d304e3f49ae3e2f104dec1fcc2b6c03a5548b8ae520743c5a3529703d58fa91f",
+    "src/native_argument_view.rs": "f59bf0a0814a0134a1dcf17bb750ceea1562df21c5f129fdd896be88aaf01be8",
+    "src/project_session_checkpoint.rs": "deccb775bd44fe405d0079699291609c23300169a0ba52745446839673158d44",
+    "tests/execution_budget.rs": "67d465ca4b90ad4d82586321c533a9b0bb54631a6558a818024f9eba9aa59438",
+    "tests/native_registration.rs": "a864b0730ccea1d8c0c6b42f182a83bfda5be3266db7965f08ef94bf7f8bb734",
+    "tests/project_session_checkpoint.rs": "3d583603aad736e2199e3289de80dd931853ec930cdfcca644278cd66c8653b0"
+  },
+  "changes": "Manifest self-containment/license metadata, explicit state-derived visitor trampoline types, and comments recording static-check exceptions for inherited upstream FFI/defect markers; integration tests unchanged. The byte-view test declares its native parameter int[4] to match the original guest raw array, retaining all assertions."
+}

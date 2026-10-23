@@ -1,0 +1,126 @@
+# Native-only Linux integration for the pinned upstream listed in UPSTREAM.json.
+# Source selection and definitions mirror its zr_vm_rust_binding/CMakeLists.txt;
+# no Cargo validation targets or generated files are added to the source tree.
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    message(FATAL_ERROR "This native binding recipe is Linux-only")
+endif()
+if(NOT ZIRCON_LINUX_CARGO_TARGET_ROOT MATCHES "^/workspace/cargo-targets/[^/]+$")
+    message(FATAL_ERROR "An explicit direct Linux Cargo output namespace is required")
+endif()
+foreach(output IN ITEMS "${ZIRCON_LINUX_CARGO_TARGET_ROOT}" "${CMAKE_BINARY_DIR}")
+    get_filename_component(physical "${output}" REALPATH)
+    if(NOT IS_DIRECTORY "${output}" OR NOT "${physical}" STREQUAL "${output}")
+        message(FATAL_ERROR "Native outputs must use existing physical paths: ${output}")
+    endif()
+    string(FIND "${physical}/" "${ZIRCON_LINUX_CARGO_TARGET_ROOT}/" prefix)
+    if(NOT prefix EQUAL 0)
+        message(FATAL_ERROR "Native output escapes the declared Cargo namespace: ${output}")
+    endif()
+endforeach()
+
+set(binding_source "${CMAKE_SOURCE_DIR}/zr_vm_rust_binding")
+file(GLOB_RECURSE binding_sources CONFIGURE_DEPENDS "${binding_source}/src/*.c")
+set(cli_source "${CMAKE_SOURCE_DIR}/zr_vm_cli/src/zr_vm_cli")
+list(APPEND binding_sources ${zr_vm_common_src}
+    "${cli_source}/project/project.c"
+    "${cli_source}/compiler/compiler.c"
+    "${cli_source}/compiler/compiler_aot.c"
+    "${cli_source}/compiler/compiler_aot_exports.c"
+    "${cli_source}/runtime/runtime.c")
+
+foreach(kind IN ITEMS static shared)
+    if(kind STREQUAL "static" AND NOT BUILD_STATIC_LIB)
+        continue()
+    elseif(kind STREQUAL "shared" AND NOT BUILD_SHARED_LIB)
+        continue()
+    endif()
+    string(TOUPPER "${kind}" library_type)
+    set(binding "zr_vm_rust_binding_${kind}")
+    add_library(${binding} ${library_type} ${binding_sources})
+    set_target_properties(${binding} PROPERTIES OUTPUT_NAME zr_vm_rust_binding)
+    target_include_directories(${binding} PUBLIC "${binding_source}/include")
+    target_include_directories(${binding} PRIVATE
+        "${binding_source}/src/zr_vm_rust_binding"
+        "${CMAKE_SOURCE_DIR}/zr_vm_common/include"
+        "${CMAKE_SOURCE_DIR}/zr_vm_cli/include" "${cli_source}")
+    target_compile_definitions(${binding} PRIVATE
+        ZR_CURRENT_MODULE="zr_vm_rust_binding" ZR_LIBRARY_TYPE_${library_type}
+        ZR_VM_SOURCE_ROOT="${CMAKE_SOURCE_DIR}"
+        ZR_VM_HOST_LIB_DIR="${CMAKE_BINARY_DIR}/lib")
+    if(TARGET zr_vm_thread_${kind})
+        target_compile_definitions(${binding} PRIVATE ZR_VM_HAS_THREAD_MODULE=1)
+    endif()
+endforeach()
+include("${CMAKE_SOURCE_DIR}/zr_vm_common/CommonMacros.cmake")
+foreach(module IN ITEMS zr_vm_core zr_vm_library zr_vm_parser zr_vm_lib_math
+        zr_vm_lib_system zr_vm_lib_network zr_vm_lib_container zr_vm_lib_ffi
+        zr_vm_lib_iteration)
+    zr_link_library_for_module(zr_vm_rust_binding ${module})
+endforeach()
+if(TARGET zr_vm_thread_static OR TARGET zr_vm_thread_shared)
+    zr_link_library_for_module(zr_vm_rust_binding zr_vm_thread)
+endif()
+
+# Export CMake's actual dependency closure for Cargo's static archive linker.
+# Platform shared dependencies (e.g. system libffi) remain system libraries;
+# only VM/third-party STATIC_LIBRARY targets are bundled as static archives.
+function(collect_link item)
+    if(item STREQUAL "Threads::Threads" OR item STREQUAL "")
+        return()
+    endif()
+    if(TARGET "${item}")
+        get_property(seen GLOBAL PROPERTY ZIRCON_VM_SEEN)
+        if(item IN_LIST seen)
+            return()
+        endif()
+        set_property(GLOBAL APPEND PROPERTY ZIRCON_VM_SEEN "${item}")
+        get_target_property(kind "${item}" TYPE)
+        if(kind STREQUAL "STATIC_LIBRARY")
+            get_target_property(name "${item}" OUTPUT_NAME)
+            if(NOT name)
+                set(name "${item}")
+            endif()
+            set_property(GLOBAL APPEND PROPERTY ZIRCON_VM_ARCHIVES "${name}")
+            get_target_property(links "${item}" LINK_LIBRARIES)
+        else()
+            get_target_property(links "${item}" INTERFACE_LINK_LIBRARIES)
+        endif()
+        if(links AND NOT links MATCHES "-NOTFOUND$")
+            foreach(link IN LISTS links)
+                collect_link("${link}")
+            endforeach()
+        endif()
+    elseif(IS_ABSOLUTE "${item}")
+        get_filename_component(name "${item}" NAME)
+        if(NOT name MATCHES "^lib(.+)\\.(a|so(\\.[0-9.]+)?|dylib)$")
+            message(FATAL_ERROR "Unsupported system dependency: ${item}")
+        endif()
+        set_property(GLOBAL APPEND PROPERTY ZIRCON_VM_SYSTEM_LIBS "${CMAKE_MATCH_1}")
+        get_filename_component(directory "${item}" DIRECTORY)
+        set_property(GLOBAL APPEND PROPERTY ZIRCON_VM_SYSTEM_DIRS "${directory}")
+    elseif(item MATCHES "^[-$]")
+        message(FATAL_ERROR "Unresolved native linker contract item: ${item}")
+    else()
+        set_property(GLOBAL APPEND PROPERTY ZIRCON_VM_SYSTEM_LIBS "${item}")
+    endif()
+endfunction()
+if(BUILD_STATIC_LIB)
+    get_target_property(links zr_vm_rust_binding_static LINK_LIBRARIES)
+    foreach(link IN LISTS links)
+        collect_link("${link}")
+    endforeach()
+    get_property(archives GLOBAL PROPERTY ZIRCON_VM_ARCHIVES)
+    get_property(system GLOBAL PROPERTY ZIRCON_VM_SYSTEM_LIBS)
+    get_property(directories GLOBAL PROPERTY ZIRCON_VM_SYSTEM_DIRS)
+    list(APPEND system pthread)
+    list(REMOVE_DUPLICATES archives)
+    list(REMOVE_DUPLICATES system)
+    list(REMOVE_DUPLICATES directories)
+    string(JOIN "," archives ${archives})
+    string(JOIN "," system ${system})
+    string(JOIN "\n" directories ${directories})
+    file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/zr_vm_rust_binding-static-link-contract.txt"
+        CONTENT "${archives}\n${system}\n")
+    file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/zr_vm_rust_binding-system-library-dirs.txt"
+        CONTENT "${directories}\n")
+endif()
