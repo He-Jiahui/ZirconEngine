@@ -179,13 +179,16 @@ def run(staging: Path, evidence: Path, mode: str, project: Path | None, timeout:
                         capture(splash_window, evidence / "splash.png", env)
                         break
             if splash_window is not None and not resized and not first_frame:
+                requested = time.monotonic()
+                resize_log_start = len(lines)
                 subprocess.run(["xdotool", "windowsize", splash_window, "420", "360"],
                                env=env, check=True, timeout=5)
-                requested = time.monotonic()
-                while not any("startup_splash event=resized " in line for line in lines):
+                while not any("startup_splash event=resized " in line
+                              for line in lines[resize_log_start:]):
                     if time.monotonic() - requested > 5:
                         raise TimeoutError("splash did not handle resize during loading")
                     time.sleep(0.02)
+                metrics["splash_resize_ack_seconds"] = time.monotonic() - requested
                 # Allow the native software buffer to repaint at the new size.
                 time.sleep(0.15)
                 capture(splash_window, evidence / "splash-compact.png", env)
