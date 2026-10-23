@@ -43,7 +43,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, sc
 [nodes.recent_panel]
 component = "VerticalBox"
 control_id = "WelcomeRecentPanel"
-props = { responsive_min_tier = "narrow" }
+props = { display = { xs = "none", md = "block" } }
 layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { min = 136.0, preferred = 184.0, max = 240.0, weight = 1.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "recent_panel_top_space" }, { node = "recent_header_panel" }, { node = "recent_header_list_gap" }, { node = "recent_list_panel" }]
 
@@ -56,7 +56,7 @@ component = "WorkbenchButton"
 control_id = "WelcomeStartupWorkbenchButton"
 classes = ["workbench-control-button"]
 props = { text = "Default", tooltip = "Open default Workbench", button_variant = "outlined", button_color = "secondary", height = "$editor.control.height.compact" }
-layout = { width = { min = "$editor.density.toolbar_wide_action_width", preferred = "$editor.density.toolbar_wide_action_width", max = "$editor.density.toolbar_wide_action_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = 0.0, preferred = "$editor.density.toolbar_wide_action_width", max = "$editor.density.toolbar_wide_action_width", weight = 1.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "Welcome/OpenStartupWorkbench", event = "Click", route = "workbench.welcome.open_startup_workbench" }]
 
 [nodes.startup_chooser_button_demo]
@@ -64,7 +64,7 @@ component = "WorkbenchButton"
 control_id = "WelcomeStartupDemoButton"
 classes = ["workbench-control-button"]
 props = { text = "Showcase", tooltip = "Open UI Component Showcase", button_variant = "outlined", button_color = "secondary", height = "$editor.control.height.compact" }
-layout = { width = { min = "$editor.density.toolbar_wide_action_width", preferred = "$editor.density.toolbar_wide_action_width", max = "$editor.density.toolbar_wide_action_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = 0.0, preferred = "$editor.density.toolbar_wide_action_width", max = "$editor.density.toolbar_wide_action_width", weight = 1.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "Welcome/OpenStartupDemo", event = "Click", route = "workbench.welcome.open_startup_demo" }]
 
 [nodes.startup_chooser_button_asset]
@@ -72,7 +72,7 @@ component = "WorkbenchButton"
 control_id = "WelcomeStartupAssetWindowButton"
 classes = ["workbench-control-button"]
 props = { text = "Assets", tooltip = "Open Asset Window", button_variant = "outlined", button_color = "secondary", height = "$editor.control.height.compact" }
-layout = { width = { min = "$editor.density.toolbar_wide_action_width", preferred = "$editor.density.toolbar_wide_action_width", max = "$editor.density.toolbar_wide_action_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = 0.0, preferred = "$editor.density.toolbar_wide_action_width", max = "$editor.density.toolbar_wide_action_width", weight = 1.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "Welcome/OpenStartupAssetWindow", event = "Click", route = "workbench.welcome.open_startup_asset_window" }]
 
 [nodes.startup_chooser_button_ui_layout]
@@ -80,7 +80,7 @@ component = "WorkbenchButton"
 control_id = "WelcomeStartupUILayoutEditorButton"
 classes = ["workbench-control-button"]
 props = { text = "UI Layout", tooltip = "Open UI Layout Editor", button_variant = "outlined", button_color = "secondary", height = "$editor.control.height.compact" }
-layout = { width = { min = "$editor.density.toolbar_wide_action_width", preferred = "$editor.density.toolbar_wide_action_width", max = "$editor.density.toolbar_wide_action_width", stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = 0.0, preferred = "$editor.density.toolbar_wide_action_width", max = "$editor.density.toolbar_wide_action_width", weight = 1.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
 events = [{ id = "Welcome/OpenStartupUILayoutEditor", event = "Click", route = "workbench.welcome.open_startup_ui_layout_editor" }]
 
 [nodes.startup_chooser_gap]
@@ -109,6 +109,7 @@ layout = { width = { stretch = "Stretch" }, height = { min = 0.0, preferred = 0.
 
 [nodes.status_panel]
 component = "Space"
+props = { display = { xs = "none", sm = "block" } }
 control_id = "WelcomeStatusPanel"
 layout = { width = { max = 680.0, stretch = "Stretch" }, height = { min = "$editor.control.height.large", preferred = "$editor.control.height.large", max = "$editor.control.height.large", stretch = "Fixed" } }
 
@@ -118,22 +119,20 @@ layout = { width = { stretch = "Stretch" }, height = { min = 0.0, preferred = 0.
 
 [nodes.new_project_header_panel]
 component = "Space"
+props = { display = { xs = "none", sm = "block" } }
 control_id = "WelcomeNewProjectHeaderPanel"
-layout = { width = { max = 680.0, stretch = "Stretch" }, height = { min = "$editor.control.height.large", preferred = "$editor.control.height.large", max = "$editor.control.height.large", stretch = "Fixed" } }
+layout = { width = { max = 680.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 
 [nodes.new_project_name_gap]
 component = "Space"
+props = { display = { xs = "none", sm = "block" } }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.gap.medium", preferred = "$editor.density.gap.medium", max = "$editor.density.gap.medium", stretch = "Fixed" } }
 
 [nodes.project_name_label]
 component = "Label"
 control_id = "WelcomeProjectNameLabel"
-props = { text = "Project name", text_tone = "muted", font_size = "$editor.typography.caption.size", overflow = "elide" }
-layout = { width = { max = 680.0, stretch = "Stretch" }, height = { min = "$editor.density.caption.min_height", preferred = "$editor.density.caption.preferred_height", max = "$editor.density.caption.max_height", stretch = "Fixed" } }
-
-[nodes.project_name_label_gap]
-component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.gap.small", preferred = "$editor.density.gap.small", max = "$editor.density.gap.small", stretch = "Fixed" } }
+props = { text = "Project name", text_tone = "muted", font_size = "$editor.typography.caption.size", overflow = "elide", z_index = 1 }
+layout = { width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.project_name_field]
 component = "WorkbenchField"
@@ -149,12 +148,8 @@ layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.ga
 [nodes.location_label]
 component = "Label"
 control_id = "WelcomeLocationLabel"
-props = { text = "Parent folder", text_tone = "muted", font_size = "$editor.typography.caption.size", overflow = "elide" }
-layout = { width = { max = 680.0, stretch = "Stretch" }, height = { min = "$editor.density.caption.min_height", preferred = "$editor.density.caption.preferred_height", max = "$editor.density.caption.max_height", stretch = "Fixed" } }
-
-[nodes.location_label_gap]
-component = "Space"
-layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.gap.small", preferred = "$editor.density.gap.small", max = "$editor.density.gap.small", stretch = "Fixed" } }
+props = { text = "Parent folder", text_tone = "muted", font_size = "$editor.typography.caption.size", overflow = "elide", z_index = 1 }
+layout = { width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.location_field]
 component = "WorkbenchField"
@@ -169,10 +164,12 @@ layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.ga
 
 [nodes.status_preview_gap]
 component = "Space"
+props = { display = { xs = "none", sm = "block" } }
 layout = { width = { stretch = "Stretch" }, height = { min = 0.0, preferred = "$editor.density.gap.large", max = "$editor.density.gap.large", stretch = "Fixed" } }
 
 [nodes.preview_panel]
 component = "Space"
+props = { display = { xs = "none", sm = "block" } }
 control_id = "WelcomePreviewPanel"
 layout = { width = { max = 680.0, stretch = "Stretch" }, height = { min = 0.0, preferred = 52.0, max = 52.0, stretch = "Fixed" } }
 
@@ -219,6 +216,16 @@ children = [
 component = "Space"
 layout = { width = { stretch = "Stretch" }, height = { min = 0.0, preferred = "$editor.density.panel_padding", max = "$editor.density.panel_padding", stretch = "Fixed" } }
 
+[nodes.project_name_row]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { max = 680.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+children = [{ node = "project_name_label" }, { node = "project_name_field" }]
+
+[nodes.location_row]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { max = 680.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+children = [{ node = "location_label" }, { node = "location_field" }]
+
 [nodes.main_panel]
 component = "ScrollableBox"
 control_id = "WelcomeMainPanel"
@@ -226,20 +233,16 @@ props = { input_hoverable = true }
 layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { min = 0.0, preferred = 560.0, max = 760.0, weight = 4.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
   { node = "main_panel_top_space" },
-  { node = "status_panel", slot = { layout = { padding = { left = "$editor.density.panel_padding", right = "$editor.density.panel_padding" } } } },
   { node = "new_project_header_panel", slot = { layout = { padding = { left = "$editor.density.panel_padding", right = "$editor.density.panel_padding" } } } },
   { node = "new_project_name_gap" },
-  { node = "project_name_label", slot = { layout = { padding = { left = "$editor.density.panel_padding", right = "$editor.density.panel_padding" } } } },
-  { node = "project_name_label_gap" },
-  { node = "project_name_field", slot = { layout = { padding = { left = "$editor.density.panel_padding", right = "$editor.density.panel_padding" } } } },
+  { node = "project_name_row", slot = { layout = { padding = { left = "$editor.density.panel_padding", right = "$editor.density.panel_padding" } } } },
   { node = "project_name_location_gap" },
-  { node = "location_label", slot = { layout = { padding = { left = "$editor.density.panel_padding", right = "$editor.density.panel_padding" } } } },
-  { node = "location_label_gap" },
-  { node = "location_field", slot = { layout = { padding = { left = "$editor.density.panel_padding", right = "$editor.density.panel_padding" } } } },
+  { node = "location_row", slot = { layout = { padding = { left = "$editor.density.panel_padding", right = "$editor.density.panel_padding" } } } },
   { node = "location_validation_gap" },
   { node = "validation_panel", slot = { layout = { padding = { left = "$editor.density.panel_padding", right = "$editor.density.panel_padding" } } } },
   { node = "validation_actions_gap" },
   { node = "actions_row", slot = { layout = { padding = { left = "$editor.density.panel_padding", right = "$editor.density.panel_padding" } } } },
+  { node = "status_panel", slot = { layout = { padding = { left = "$editor.density.panel_padding", right = "$editor.density.panel_padding" } } } },
   { node = "status_preview_gap" },
   { node = "preview_panel", slot = { layout = { padding = { left = "$editor.density.panel_padding", right = "$editor.density.panel_padding" } } } },
   { node = "startup_chooser_gap" },

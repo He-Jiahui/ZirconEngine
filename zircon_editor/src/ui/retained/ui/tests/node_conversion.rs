@@ -281,3 +281,34 @@ fn unreal_header_conversion_retains_consumed_source_frame_and_live_instance_inpu
         Some("A long authored document caption")
     );
 }
+
+#[test]
+fn welcome_form_captions_survive_composited_template_surfaces() {
+    use crate::ui::layouts::views::welcome_pane_nodes;
+    use crate::ui::retained_host::paint_template_nodes_for_test;
+    use zircon_runtime_interface::ui::layout::UiSize;
+    let source = welcome_pane_nodes(UiSize::new(316.0, 242.0));
+    let nodes = to_host_contract_template_nodes(&source);
+    let pixels = paint_template_nodes_for_test(316, 242, nodes.clone());
+    for control in ["WelcomeProjectNameLabel", "WelcomeLocationLabel"] {
+        let label = nodes
+            .iter()
+            .find(|node| node.control_id == control)
+            .expect("caption");
+        let mut colors = std::collections::BTreeSet::new();
+        for y in
+            label.frame.y.ceil() as usize..(label.frame.y + label.frame.height).floor() as usize
+        {
+            for x in
+                label.frame.x.ceil() as usize..(label.frame.x + label.frame.width).floor() as usize
+            {
+                let offset = (y * 316 + x) * 4;
+                colors.insert(&pixels[offset..offset + 4]);
+            }
+        }
+        assert!(
+            colors.len() > 3,
+            "{control} must paint glyphs above the enclosing surfaces"
+        );
+    }
+}

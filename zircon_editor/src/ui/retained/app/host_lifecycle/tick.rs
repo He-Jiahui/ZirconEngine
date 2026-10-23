@@ -130,7 +130,9 @@ impl RetainedEditorHost {
             }
             self.set_status_line(message);
         }
+        self.poll_welcome_project_probe();
         let lifecycle_deadline = [
+            self.welcome_project_probe.poll_deadline(Instant::now()),
             close_deadline,
             plugin_watch_deadline,
             match self
@@ -156,7 +158,6 @@ impl RetainedEditorHost {
         self.poll_active_scene_reload();
         self.poll_prompted_close_save();
         self.poll_document_save_all();
-        self.poll_welcome_project_probe();
         self.poll_desktop_export_jobs();
         self.poll_desktop_export_wizard_sessions();
         self.sync_editor_job_progress();

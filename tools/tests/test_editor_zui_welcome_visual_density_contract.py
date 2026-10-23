@@ -326,7 +326,7 @@ class EditorZuiWelcomeVisualDensityContractTests(unittest.TestCase):
 
         recent = nodes["recent_panel"]
         main = nodes["main_panel"]
-        self.assertEqual({"responsive_min_tier": "narrow"}, recent["props"])
+        self.assertEqual({"display": {"xs": "none", "md": "block"}}, recent["props"])
 
         logical_width = 640.0 / 1.5
         panel_padding = tokens["density"]["panel_padding"]

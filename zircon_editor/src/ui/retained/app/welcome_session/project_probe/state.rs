@@ -52,6 +52,21 @@ impl Default for WelcomeProjectProbeState {
 }
 
 impl WelcomeProjectProbeState {
+    // The welcome pane otherwise sleeps when idle. Wake for debounce admission
+    // and bounded completion collection, then release the deadline when settled.
+    pub(in crate::ui::retained_host::app) fn poll_deadline(&self, now: Instant) -> Option<Instant> {
+        if let Some(pending) = self.pending.as_ref() {
+            return Some(
+                (pending.last_requested_at + WELCOME_PROJECT_PROBE_DEBOUNCE)
+                    .min(pending.first_requested_at + WELCOME_PROJECT_PROBE_MAX_FEEDBACK_DELAY)
+                    .max(now),
+            );
+        }
+        self.active
+            .as_ref()
+            .map(|_| now + WELCOME_PROJECT_PROBE_DEBOUNCE)
+    }
+
     pub(super) fn request(&mut self, draft: NewProjectDraft, now: Instant) {
         if self
             .pending

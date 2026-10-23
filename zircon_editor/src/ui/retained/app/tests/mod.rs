@@ -60,3 +60,6 @@ mod module_tools_menus;
 
 #[path = "module_plugin_details.rs"]
 mod module_plugin_details;
+
+#[path = "welcome_probe.rs"]
+mod welcome_probe;
