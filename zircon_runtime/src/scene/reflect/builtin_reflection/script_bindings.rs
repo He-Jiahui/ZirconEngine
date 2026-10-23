@@ -12,7 +12,7 @@ use crate::scene::{EntityId, ReflectComponent, RuntimeTypeRegistration, World};
 
 use super::component_support;
 
-const TYPE_PATH: &str = "script.bindings";
+const TYPE_PATH: &str = SceneScriptBindingAsset::COMPONENT_TYPE_PATH;
 const FIELD: &str = "bindings";
 
 pub(super) fn registration() -> Result<RuntimeTypeRegistration, ReflectError> {
@@ -30,8 +30,8 @@ pub(super) fn registration() -> Result<RuntimeTypeRegistration, ReflectError> {
             ReflectSerializationStrategy::Json,
         )
         .as_component()
-        // G-02 still owns structured GUI authoring; expose this internal payload
-        // to serialization without offering an unvalidated generic JSON editor.
+        // Structured Scripts controls own authoring; keep this serialization
+        // payload out of the generic reflected JSON inspector.
         .with_editor_visible(false),
         component: Some(
             ReflectComponent::new(TYPE_PATH, contains, read_field, write_field, remove)

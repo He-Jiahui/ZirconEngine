@@ -551,9 +551,17 @@ impl World {
         Ok(true)
     }
 
-    /// 非空目录要求类型已登记；空目录保留允许任意动态类型路径的兼容行为。
+    /// 插件目录不接管内建反射组件；其他非空目录路径仍须有描述符。
     fn validate_dynamic_component_type(&self, component_id: &str) -> SceneResult<()> {
-        if self.component_types.is_empty() || self.component_types.contains(component_id) {
+        if self.component_types.is_empty()
+            || self.component_types.contains(component_id)
+            || self
+                .type_registry
+                .registration(component_id)
+                .is_ok_and(|registration| {
+                    registration.is_component() && !registration.is_plugin_owned()
+                })
+        {
             return Ok(());
         }
         Err(SceneError::UnregisteredDynamicComponentType {
