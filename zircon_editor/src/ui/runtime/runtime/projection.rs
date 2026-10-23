@@ -543,6 +543,25 @@ fn surface_host_attributes(
 ) -> BTreeMap<String, Value> {
     let mut attributes = metadata.attributes.clone();
     apply_surface_focus_state_attributes(surface, node_id, &mut attributes);
+    // Publish the live control anchor to the native popup projection. The popup's
+    // ordinary layout frame is a placeholder; its trigger owns the placement.
+    if let zircon_runtime_interface::ui::widget::UiPopupAnchor::Control { control_id } =
+        &metadata.widget.popup_anchor
+    {
+        if let Some(anchor) = surface
+            .unique_control_node_id(control_id)
+            .and_then(|id| surface.arranged_node(id))
+        {
+            for (key, value) in [
+                ("popup_anchor_x", anchor.frame.x),
+                ("popup_anchor_y", anchor.frame.y),
+                ("popup_anchor_width", anchor.frame.width),
+                ("popup_anchor_height", anchor.frame.height),
+            ] {
+                attributes.insert(key.to_owned(), Value::Float(value as f64));
+            }
+        }
+    }
     attributes
 }
 

@@ -41,6 +41,21 @@ impl RetainedEditorHost {
             self.invalidate_host(dirty_domains);
         }
         self.apply_dispatch_side_effects(&effects);
+        if effects.redraw_scene_interaction {
+            self.request_scene_interaction_redraw();
+        }
+    }
+
+    pub(in crate::ui::retained_host::app) fn request_scene_interaction_redraw(&self) {
+        let size = self.ui.window().size();
+        self.ui.request_frame_update_region(
+            crate::ui::retained_host::host_contract::data::FrameRect {
+                x: 0.0,
+                y: 0.0,
+                width: size.width as f32,
+                height: size.height as f32,
+            },
+        );
     }
 
     pub(super) fn apply_viewport_resize_effects_in_active_recompute(

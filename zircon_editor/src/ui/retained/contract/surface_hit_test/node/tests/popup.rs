@@ -139,6 +139,35 @@ fn workbench_hit_test_routes_open_popup_menu_rows() {
 }
 
 #[test]
+fn native_popup_hit_preserves_registered_editor_command_identity() {
+    let presentation = HostWindowPresentationData {
+        workbench_window_nodes: model(vec![TemplatePaneNodeData {
+            node_id: "add-popup".into(),
+            control_id: "UnrealAddMenuPopup".into(),
+            role: "Menu".into(),
+            component_role: "menu".into(),
+            popup_open: true,
+            frame: TemplateNodeFrameData {
+                x: 72.0,
+                y: 92.0,
+                width: 200.0,
+                height: 32.0,
+            },
+            structured_menu_items: model(vec![TemplatePaneMenuItemData {
+                action_id: "scene.node.create_cube".into(),
+                label: "Create Cube".into(),
+                ..TemplatePaneMenuItemData::default()
+            }]),
+            ..TemplatePaneNodeData::default()
+        }]),
+        ..HostWindowPresentationData::default()
+    };
+    let hit = hit_test_workbench_window_template_node(&presentation, 100.0, 108.0).unwrap();
+    assert_eq!(hit.action_id.as_str(), "scene.node.create_cube");
+    assert_eq!(hit.dispatch_kind.as_str(), "workbench_menu_item");
+}
+
+#[test]
 fn workbench_hit_test_blocks_popup_menu_separator_row() {
     let presentation = HostWindowPresentationData {
         workbench_window_nodes: model(vec![TemplatePaneNodeData {

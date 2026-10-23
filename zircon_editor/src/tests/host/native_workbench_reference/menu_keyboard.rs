@@ -170,8 +170,34 @@ fn native_popup_no_redraw_search_consumes_f_and_preserves_key_release() {
     use winit::event::{ElementState, KeyEvent};
     use winit::keyboard::{Key, KeyCode, KeyLocation, ModifiersState, PhysicalKey};
     use zircon_runtime_interface::ui::dispatch::UiKeyboardInputState;
-    let ui = host_with_componentized_workbench_nodes();
-    assert!(ui.dispatch_native_popup_text_for_test("m").request_redraw());
+    let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(
+        WORKBENCH_REFERENCE_WIDTH as f32,
+        WORKBENCH_REFERENCE_HEIGHT as f32,
+    ))
+    .unwrap();
+    bridge
+        .mutate_control_property_for_test(
+            "UnrealFileMenuPopup",
+            "menu_items",
+            zircon_runtime_interface::ui::component::UiValue::Array(vec![
+                zircon_runtime_interface::ui::component::UiValue::String(
+                    "Diagnostics|action=diagnostics.open".into(),
+                ),
+            ]),
+        )
+        .unwrap();
+    bridge
+        .dispatch_control_state("MenuSlot0", UiEventKind::Click)
+        .unwrap()
+        .unwrap();
+    let ui = host_with_workbench_bridge(bridge);
+    assert!(ui.dispatch_native_popup_text_for_test("d").request_redraw());
+    assert_eq!(
+        ui.get_pane_interaction_state()
+            .hovered_template_action_id
+            .as_str(),
+        "diagnostics.open"
+    );
     let unhandled = Rc::new(RefCell::new(Vec::new()));
     let observed = unhandled.clone();
     ui.global::<UiHostContext>()
@@ -189,12 +215,17 @@ fn native_popup_no_redraw_search_consumes_f_and_preserves_key_release() {
             key_without_modifiers: key,
         }
     };
+    // Neither key matches a row: the popup still owns both presses even though
+    // the native search produces no redraw. Releases retain normal routing.
     for (text, code) in [("f", KeyCode::KeyF), ("m", KeyCode::KeyM)] {
         let result = ui.dispatch_native_key_for_test(
             key_event(text, code, ElementState::Pressed),
             ModifiersState::empty(),
         );
-        assert!(!result.request_redraw());
+        assert!(
+            !result.request_redraw(),
+            "no-match key {text} must stay idle"
+        );
         assert!(unhandled.borrow().is_empty());
     }
     ui.dispatch_native_key_for_test(

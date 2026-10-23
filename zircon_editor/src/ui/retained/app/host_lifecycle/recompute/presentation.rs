@@ -172,7 +172,7 @@ impl RetainedEditorHost {
         )
     }
 
-    pub(super) fn apply_workbench_projection_presentation(
+    pub(in crate::ui::retained_host::app) fn apply_workbench_projection_presentation(
         &mut self,
     ) -> Result<bool, crate::ui::host::EditorError> {
         zircon_runtime::profile_scope!(
@@ -313,7 +313,7 @@ impl RetainedEditorHost {
         }
     }
 
-    fn invalidate_committed_shell_presentation(&mut self) {
+    pub(in crate::ui::retained_host::app) fn invalidate_committed_shell_presentation(&mut self) {
         if let Some(committed) = self.committed_shell_state.as_mut() {
             committed.retained_shell_presentation = None;
         }

@@ -157,7 +157,8 @@ impl ReloadHarness {
         state.bind_scene_document(document);
         drop(manager);
         host.runtime = EditorHostEventController::new(state, manager_handle)
-            .expect("editor controller manager admission");
+            .expect("editor controller manager admission")
+            .into();
         Self {
             host,
             _core: core,

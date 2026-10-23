@@ -12,6 +12,26 @@ pub(in crate::ui::retained_host::host_contract) fn draw_viewport_image(
     viewport_images: &HostViewportImageSet,
     surface_key: Option<&str>,
 ) -> bool {
+    if pane.kind.as_str() == "Game" && std::env::var_os("ZIRCON_TRACE_EDITOR_INTERACTION").is_some()
+    {
+        static SAMPLES: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        if SAMPLES.fetch_add(1, std::sync::atomic::Ordering::Relaxed) < 8 {
+            eprintln!(
+                "editor_interaction kind=game_paint available={} body={:?} clip={:?} image={:?}",
+                viewport_images.game().is_some_and(|image| image.is_valid()),
+                body,
+                clip,
+                viewport_images.game().map(|image| (
+                    image.resource_key.as_str(),
+                    image.width,
+                    image.height,
+                    image
+                        .rgba()
+                        .map(|rgba| (rgba.get(..4), rgba.get(rgba.len() / 2..rgba.len() / 2 + 4)))
+                ))
+            );
+        }
+    }
     let Some(image) = viewport_images
         .for_surface(surface_key.unwrap_or(""), pane.kind.as_str())
         .filter(|image| image.is_valid())

@@ -134,6 +134,7 @@ impl PlayBackend for PreviewFrameBackend {
         api.capture_frame = Some(capture_preview_frame);
         api.release_allocation = Some(release_preview_frame);
         let session = ZrRuntimeSessionHandle::new(41);
+        // SAFETY: static test callbacks and their output storage outlive this mock gateway.
         let gateway = unsafe {
             SessionGateway::new_with_identity(
                 Arc::new(()),
@@ -289,6 +290,7 @@ unsafe extern "C" fn capture_preview_frame(
         request.size.width,
         request.size.height,
     ));
+    // SAFETY: the gateway supplies writable frame storage for this callback invocation.
     unsafe {
         frame.write(ZrRuntimeFrameV2 {
             abi_version: ZIRCON_RUNTIME_ABI_VERSION_V2,
@@ -360,6 +362,75 @@ fn start_test_play_gateway(
         Some(WorldDomain::Play(instance)) => instance,
         domain => panic!("attachable test backend did not publish a Play domain: {domain:?}"),
     }
+}
+
+#[test]
+fn gpu_play_preview_extract_uses_the_attached_live_world() {
+    let level = DefaultLevelManager::default().create_default_level();
+    let expected_world = level.with_world(|world| {
+        world
+            .render_world_snapshot_handle()
+            .with_generation(world.world_generation())
+    });
+    let controller = PlaySessionController::new();
+    let instance = start_test_play_gateway(
+        &controller,
+        Arc::new(crate::core::gateway::InProcessGateway::for_authoring_level(
+            level.clone(),
+        )),
+    );
+    let (actual_instance, identity, extract) = controller
+        .preview_render_extract(zircon_runtime_interface::math::UVec2::new(320, 180))
+        .expect("live extract capability")
+        .expect("GPU route");
+    assert_eq!(actual_instance, instance);
+    assert_eq!(
+        identity,
+        controller.play_gateway(instance).unwrap().identity()
+    );
+    assert_eq!(extract.world, expected_world);
+    let surface_before = PlayPreviewFrameIdentity::viewport_surface_key(instance, &identity);
+    let preview = PlayPreviewFrame::for_test(instance, identity, 1, 1, 1, vec![0, 0, 0, 255]);
+    assert!(controller.preview_identity_is_current(preview.identity()));
+    controller
+        .play_gateway(instance)
+        .unwrap()
+        .replace_for_play(
+            Arc::new(crate::core::gateway::InProcessGateway::for_authoring_level(
+                level,
+            )),
+            Some(instance.raw()),
+        )
+        .unwrap();
+    let replacement = controller.play_gateway(instance).unwrap().identity();
+    assert_ne!(
+        surface_before,
+        PlayPreviewFrameIdentity::viewport_surface_key(instance, &replacement),
+        "queued products must retain the submitting gateway's surface namespace"
+    );
+    assert!(
+        !controller.preview_identity_is_current(preview.identity()),
+        "a late viewport product must not cross a gateway replacement"
+    );
+    controller.request_stop().unwrap();
+    assert!(!controller.preview_identity_is_current(preview.identity()));
+    assert!(controller
+        .preview_render_extract(zircon_runtime_interface::math::UVec2::new(320, 180))
+        .unwrap()
+        .is_none());
+}
+
+#[test]
+fn serialized_play_preview_explicitly_uses_the_capture_fallback() {
+    let controller = PlaySessionController::new();
+    controller.set_play_backend(Arc::new(PreviewFrameBackend));
+    controller
+        .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
+        .unwrap();
+    assert!(controller
+        .preview_render_extract(zircon_runtime_interface::math::UVec2::new(320, 180))
+        .unwrap()
+        .is_none());
 }
 
 #[test]
@@ -454,6 +525,7 @@ fn play_gateway_attachment_preserves_authoring_world_access_across_detach() {
     let _authoring_facade =
         EditorAuthoringWorld::loaded(&authoring_gateway, authoring_level.clone())
             .expect("the authoring facade should install the edit-domain gateway");
+    // SAFETY: the static test API remains live for the mock session's complete lifetime.
     let session_gateway = unsafe {
         SessionGateway::new_with_identity(
             Arc::new(()),

@@ -19,10 +19,14 @@ impl RetainedEditorHost {
             .runtime
             .dispatch_authorized_scene_save(lease)
             .map_err(|error| {
-                let crate::ui::host::EditorEventDispatchError::Execution(source) = &error;
+                let source = match &error {
+                    crate::ui::host::EditorEventDispatchError::Execution(source) => Some(source),
+                    _ => None,
+                };
                 SceneOverwriteSaveFailure {
-                    source_conflict: source.is_scene_source_conflict(),
-                    persisted: source.persisted_scene_receipt().is_some(),
+                    source_conflict: source.is_some_and(|source| source.is_scene_source_conflict()),
+                    persisted: source
+                        .is_some_and(|source| source.persisted_scene_receipt().is_some()),
                     message: error.to_string(),
                 }
             })?;

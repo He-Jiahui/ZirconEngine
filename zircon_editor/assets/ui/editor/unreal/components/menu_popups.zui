@@ -15,7 +15,7 @@ default_classes = ["unreal-level-editor-menu-popups"]
 [nodes.popups]
 component = "Overlay"
 control_id = "UnrealEditorMenuPopups"
-props = { input_interactive = false }
+props = { input_interactive = false, surface_variant = "frame_only" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [{ node = "file_popup" }, { node = "edit_popup" }, { node = "window_popup" }, { node = "tools_popup" }, { node = "build_popup" }, { node = "help_popup" }, { node = "modes_popup" }, { node = "add_popup" }, { node = "blueprints_popup" }, { node = "cinematics_popup" }, { node = "settings_popup" }, { node = "run_mode_popup" }]
 

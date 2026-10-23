@@ -547,7 +547,13 @@ fn inspector_binding_restores_every_boundary_after_late_transaction_application_
         .transactions()
         .history_status(HistoryContextId::Global)
         .unwrap();
-    let world_before = state.world.snapshot();
+    // Rollback restores authored content; mutation generations remain monotonic.
+    let world_before = state
+        .world
+        .expect_with_world(|scene| zircon_runtime::scene::DynamicScene::from_world(scene).unwrap());
+    let generation_before = state
+        .world
+        .expect_with_world(|scene| scene.world_generation());
     let transaction_subscriber = state
         .context
         .bus()
@@ -568,7 +574,12 @@ fn inspector_binding_restores_every_boundary_after_late_transaction_application_
     );
 
     let error = apply_inspector_binding(&mut state, &binding).unwrap_err();
-    assert!(error.to_string().contains("missing parent 999999"));
+    assert!(
+        std::iter::successors(Some(&error as &dyn std::error::Error), |error| error
+            .source())
+        .any(|source| source.to_string().contains("missing parent 999999")),
+        "missing-parent failure must survive in the error chain: {error:?}"
+    );
     let lifecycle = state
         .context
         .bus()
@@ -627,7 +638,13 @@ fn inspector_binding_restores_every_boundary_after_late_transaction_application_
             .unwrap(),
         history_status_before
     );
-    assert_eq!(state.world.snapshot(), world_before);
+    state.world.expect_with_world(|scene| {
+        assert_eq!(
+            zircon_runtime::scene::DynamicScene::from_world(scene).unwrap(),
+            world_before
+        );
+        assert!(scene.world_generation() > generation_before);
+    });
 }
 
 #[test]
@@ -667,7 +684,13 @@ fn inspector_binding_cancels_post_apply_selection_sync_failure_before_history_co
         .transactions()
         .history_status(HistoryContextId::Global)
         .unwrap();
-    let world_before = state.world.snapshot();
+    // Rollback restores authored content; mutation generations remain monotonic.
+    let world_before = state
+        .world
+        .expect_with_world(|scene| zircon_runtime::scene::DynamicScene::from_world(scene).unwrap());
+    let generation_before = state
+        .world
+        .expect_with_world(|scene| scene.world_generation());
     let transaction_subscriber = state
         .context
         .bus()
@@ -755,7 +778,13 @@ fn inspector_binding_cancels_post_apply_selection_sync_failure_before_history_co
             .unwrap(),
         history_status_before
     );
-    assert_eq!(state.world.snapshot(), world_before);
+    state.world.expect_with_world(|scene| {
+        assert_eq!(
+            zircon_runtime::scene::DynamicScene::from_world(scene).unwrap(),
+            world_before
+        );
+        assert!(scene.world_generation() > generation_before);
+    });
 }
 
 #[test]

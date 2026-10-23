@@ -131,7 +131,8 @@ impl ChildWindowHostHarness {
             RetainedEditorHost::new_for_test(core.handle(), root_ui.clone_strong())
                 .map(|mut host| {
                     host.runtime = EditorHostEventController::new(state, manager)
-                        .expect("editor controller manager admission");
+                        .expect("editor controller manager admission")
+                        .into();
                     host.sync_asset_workspace();
                     host
                 })

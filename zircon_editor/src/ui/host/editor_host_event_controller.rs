@@ -78,6 +78,7 @@ pub struct EditorHostEventController {
     pub(super) runtime_event_consumers: EditorRuntimeEventConsumerHost,
     pub(super) plugin_registration_gate: Mutex<()>,
     next_play_session_generation: AtomicU64,
+    pub(super) async_play: Mutex<super::editor_async_play::AsyncPlayCommands>,
 }
 
 impl EditorHostEventController {
@@ -114,6 +115,7 @@ impl EditorHostEventController {
             ),
             plugin_registration_gate: Mutex::new(()),
             next_play_session_generation: AtomicU64::new(FIRST_PLAY_SESSION_GENERATION),
+            async_play: Mutex::new(Default::default()),
         };
         controller.ensure_live_scene_viewport_sessions()?;
         controller.seed_scene_inspection_publication();

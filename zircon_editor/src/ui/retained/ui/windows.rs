@@ -12,8 +12,8 @@ use zircon_runtime_interface::ui::{binding::UiEventKind, layout::UiFrame};
 use super::component_contract_metadata::tokens_for_component_role;
 use super::pane_data_conversion::{
     projected_command_palette_option_rows, projected_notification_center_metadata_from_host,
-    projected_notification_center_option_rows, projected_settings_window_data,
-    structured_menu_items, structured_options_for_node,
+    projected_notification_center_option_rows, projected_popup_frame,
+    projected_settings_window_data, structured_menu_items, structured_options_for_node,
 };
 use super::template_layout_context::apply_table_layout_context_variant;
 
@@ -248,6 +248,11 @@ pub(crate) fn build_host_contract_workbench_window_geometry_patch_at_mount_and_s
         }
 
         let mut projected = previous.clone();
+        // Open anchored popups need semantic projection to resolve the current
+        // trigger, rather than restoring their ordinary placeholder layout frame.
+        if previous.popup_open && previous.has_popup_anchor {
+            return None;
+        }
         bind_published_source(&mut projected, node.source_surface_frame.as_ref());
         projected.frame = project_frame_into_physical_mount(
             template_frame(node.frame),
@@ -349,7 +354,11 @@ fn to_host_contract_workbench_window_node_with_previous(
                 .flatten()
         })
         .unwrap_or_default();
-    let icon_name = node.icon.clone().unwrap_or_default();
+    let icon_name = node
+        .icon
+        .clone()
+        .or_else(|| first_string_property(&node.properties, &["icon"]))
+        .unwrap_or_default();
     let has_preview_image = !media_source.trim().is_empty() || !icon_name.trim().is_empty();
     let (options_text, options, structured_options) = if let Some(reused) = reused_notification_rows
     {
@@ -726,10 +735,33 @@ fn to_host_contract_workbench_window_node_with_previous(
             .clip_frame
             .map(template_frame)
             .unwrap_or_else(host_contract::TemplateNodeFrameData::default),
-        frame: template_frame(node.frame),
+        frame: projected_popup_frame(
+            &button_style_values,
+            &component_role,
+            node.popup_open,
+            node.has_popup_anchor.then_some(node.popup_anchor_x as f32),
+            node.has_popup_anchor.then_some(node.popup_anchor_y as f32),
+            node.frame.x,
+            node.frame.y,
+            node.frame.width,
+            node.frame.height,
+        ),
         ..host_contract::TemplatePaneNodeData::default()
     };
     bind_published_source(&mut projected, node.source_surface_frame.as_ref());
+    if projected.popup_open
+        && projected.control_id.as_str() == "UnrealAddMenuPopup"
+        && std::env::var_os("ZIRCON_TRACE_EDITOR_INTERACTION").is_some()
+    {
+        eprintln!(
+            "editor_interaction kind=native_add_popup role={} open={} frame=({}, {}, {}, {}) clip=({}, {}, {}, {}) surface={} rows={} parent={} text={:?} value={:?}",
+            projected.component_role, projected.popup_open,
+            projected.frame.x, projected.frame.y, projected.frame.width, projected.frame.height,
+            projected.clip_frame.x, projected.clip_frame.y, projected.clip_frame.width, projected.clip_frame.height,
+            projected.surface_variant, projected.structured_menu_items.row_count(), projected.parent_node_id,
+            projected.text, projected.value_text,
+        );
+    }
     Some(projected)
 }
 

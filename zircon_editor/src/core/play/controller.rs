@@ -199,13 +199,17 @@ impl PlaySessionController {
                 }
                 Ok(PlayTransitionReport::unchanged(PlayModeKind::Building))
             }
-            PlayMode::Playing { .. } | PlayMode::CleanupFailed { .. } => {
-                Err(PlaySessionError::InvalidTransition {
-                    mode: self.mode(),
-                    event: "request_play",
-                })
-            }
+            PlayMode::Starting { .. }
+            | PlayMode::Stopping { .. }
+            | PlayMode::Playing { .. }
+            | PlayMode::CleanupFailed { .. } => Err(PlaySessionError::InvalidTransition {
+                mode: self.mode(),
+                event: "request_play",
+            }),
         };
+        if result.is_err() && matches!(self.mode_snapshot(), PlayMode::Starting { .. }) {
+            self.replace_mode(PlayMode::Edit);
+        }
         drop(transition);
         match &result {
             Ok(report) => self.publish_mode_transition(from, report.mode),
@@ -260,7 +264,7 @@ impl PlaySessionController {
             Err(_) => {
                 // Ordinary activation/start failures do not commit a mode. Attachment rollback
                 // may commit Playing or CleanupFailed when runtime ownership is still live.
-                if self.mode() == PlayModeKind::Building {
+                if matches!(self.mode(), PlayModeKind::Building | PlayModeKind::Starting) {
                     self.replace_mode(PlayMode::Edit);
                 }
                 self.mode()
@@ -302,7 +306,14 @@ impl PlaySessionController {
                         event: "request_stop_with_mismatched_session_owner",
                     });
                 }
-                let backend_report = backend.stop().map_err(PlaySessionError::BackendStop)?;
+                self.replace_mode(PlayMode::Stopping { kind });
+                let backend_report = match backend.stop() {
+                    Ok(report) => report,
+                    Err(error) => {
+                        self.replace_mode(PlayMode::Playing { kind });
+                        return Err(PlaySessionError::BackendStop(error));
+                    }
+                };
                 Ok(self.complete_runtime_stop(
                     kind,
                     backend,
@@ -313,6 +324,12 @@ impl PlaySessionController {
                 ))
             }
             PlayMode::CleanupFailed { kind, failure } => Ok(self.retry_cleanup(kind, failure)),
+            PlayMode::Starting { .. } | PlayMode::Stopping { .. } => {
+                Err(PlaySessionError::InvalidTransition {
+                    mode: from,
+                    event: "request_stop_during_transition",
+                })
+            }
         };
         drop(transition);
         if let Ok(report) = &result {
@@ -422,6 +439,7 @@ impl PlaySessionController {
         &self,
         request: PlayStartRequest,
     ) -> Result<PlayTransitionReport, PlaySessionError> {
+        self.replace_mode(PlayMode::Starting { kind: request.kind });
         let activation = self.plugin_activation();
         let report = activation
             .activate(request.project_root.as_deref())
@@ -808,7 +826,9 @@ fn play_state_kind(mode: PlayModeKind) -> PlayStateKind {
     match mode {
         PlayModeKind::Edit => PlayStateKind::Edit,
         PlayModeKind::Building => PlayStateKind::Building,
+        PlayModeKind::Starting => PlayStateKind::Starting,
         PlayModeKind::Playing => PlayStateKind::Playing,
+        PlayModeKind::Stopping => PlayStateKind::Stopping,
         PlayModeKind::CleanupFailed => PlayStateKind::CleanupFailed,
     }
 }

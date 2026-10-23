@@ -95,6 +95,25 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
                     .is_image_resource_resident(resource_key, generation)
             },
         );
+        if std::env::var_os("ZIRCON_TRACE_EDITOR_INTERACTION").is_some() {
+            static SAMPLES: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+            let game = draw_list
+                .commands
+                .iter()
+                .find_map(|command| match &command.kind {
+                    zircon_runtime::rhi::UiSurfaceCommandKind::Image { payload }
+                        if payload.resource_key.starts_with("play-viewport") =>
+                    {
+                        Some((command, payload))
+                    }
+                    _ => None,
+                });
+            if let Some((command, payload)) = game {
+                if SAMPLES.fetch_add(1, std::sync::atomic::Ordering::Relaxed) < 8 {
+                    eprintln!("editor_interaction kind=game_submit frame={:?} clip={:?} inline={} table={} resident={}", command.frame, command.clip, payload.rgba.is_some(), draw_list.image_resource(&payload.resource_key, payload.resource_generation).is_some(), self.surface.is_image_resource_resident(&payload.resource_key, payload.resource_generation));
+                }
+            }
+        }
         let result = self.present_draw_list_with_damage_diagnostics(
             draw_list,
             surface_size,
@@ -278,7 +297,18 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
         diagnostic_damage: Option<&FrameRect>,
         invalidation: HostInvalidationDiagnostics,
     ) -> HostPresenterResult<HostRefreshDiagnostics> {
+        let trace_game = std::env::var_os("ZIRCON_TRACE_EDITOR_INTERACTION").is_some()
+            && draw_list.commands.iter().any(|command| {
+                matches!(&command.kind, zircon_runtime::rhi::UiSurfaceCommandKind::Image { payload }
+                    if payload.resource_key.starts_with("play-viewport"))
+            });
         let stats = require_submitted_present(self.surface.present_owned(draw_list)?)?;
+        if trace_game {
+            static SAMPLES: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+            if SAMPLES.fetch_add(1, std::sync::atomic::Ordering::Relaxed) < 8 {
+                eprintln!("editor_interaction kind=image_present vertices={} compiled_vertices={} uploads={} invalid={} rejects={} shared={} cached={} visits={}", stats.image_vertex_count, stats.compiled_image_vertex_count, stats.image_upload_write_count, stats.image_invalid_payload_count, stats.image_cache_admission_reject_count, stats.image_shared_resolve_count, stats.image_prepare_cache_hit_count, stats.image_prepare_command_visit_count);
+            }
+        }
         self.finish_present(
             stats,
             surface_size,

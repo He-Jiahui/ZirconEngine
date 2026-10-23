@@ -581,6 +581,19 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.template_surface
             .refresh_after_state_change(self.runtime.as_ref())?;
         self.refresh_mounted_module_source_publication()?;
+        if source_control_id == "WorkbenchToolbarAddActor"
+            && std::env::var_os("ZIRCON_TRACE_EDITOR_INTERACTION").is_some()
+        {
+            if let Some(node) = self
+                .host_projection()
+                .node_by_control_id("UnrealAddMenuPopup")
+            {
+                eprintln!(
+                    "editor_interaction kind=add_popup frame={:?} clip={:?} open={} items={:?}",
+                    node.frame, node.clip_frame, node.popup_open, node.menu_items
+                );
+            }
+        }
         Ok(())
     }
 

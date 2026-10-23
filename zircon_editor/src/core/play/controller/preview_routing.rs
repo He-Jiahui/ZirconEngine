@@ -13,6 +13,52 @@ use crate::core::play::{
 };
 
 impl PlaySessionController {
+    /// Prefer a live runtime extract when the presenter can consume it on the same device.
+    pub(crate) fn preview_render_extract(
+        &self,
+        size: zircon_runtime_interface::math::UVec2,
+    ) -> Result<
+        Option<(
+            super::super::PlayInstanceId,
+            crate::core::gateway::GatewaySessionIdentity,
+            zircon_runtime::core::framework::render::RenderFrameExtract,
+        )>,
+        PlayPreviewCaptureError,
+    > {
+        let _transition = self
+            .transition_gate
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        let mode = self.mode();
+        if !mode.has_active_runtime() {
+            return Ok(None);
+        }
+        let Some(WorldDomain::Play(instance)) = self.play_domain.attached_domain() else {
+            return Err(PlayPreviewCaptureError::GatewayUnavailable { mode });
+        };
+        let Some(gateway) = self.play_domain.gateway(instance) else {
+            return Err(PlayPreviewCaptureError::GatewayUnavailable { mode });
+        };
+        let identity = gateway.identity();
+        match gateway.render_preview_extract_at_identity(&identity, size) {
+            Ok(extract) => Ok(Some((instance, identity, extract))),
+            Err(crate::core::gateway::GatewayError::RequiresSerializedAccess) => Ok(None),
+            Err(error) => Err(PlayPreviewCaptureError::Capture(error)),
+        }
+    }
+
+    pub(crate) fn preview_identity_is_current(
+        &self,
+        identity: &super::super::PlayPreviewFrameIdentity,
+    ) -> bool {
+        self.mode().has_active_runtime()
+            && self.play_domain.attached_domain() == Some(WorldDomain::Play(identity.instance()))
+            && self
+                .play_domain
+                .gateway(identity.instance())
+                .is_some_and(|gateway| gateway.identity() == *identity.gateway())
+    }
+
     pub fn capture_preview_frame(
         &self,
         size: ZrRuntimeViewportSizeV1,

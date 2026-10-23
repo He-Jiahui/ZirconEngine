@@ -11,6 +11,12 @@ use crate::ui::binding_dispatch::{apply_selection_binding, dispatch_selection_bi
 fn selection_binding_dispatches_and_applies_scene_node_selection() {
     let mut state = support::test_state();
     let cube = support::cube_id(&state);
+    let camera = support::camera_id(&state);
+    state
+        .apply_intent(crate::core::editing::intent::EditorIntent::SelectNode(
+            camera,
+        ))
+        .unwrap();
     let binding = EditorUiBinding::new(
         "HierarchyView",
         "SceneNodeSelect",

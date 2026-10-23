@@ -38,7 +38,9 @@ const fn play_state_from_mode(play_mode: PlayModeKind) -> PlayStateKind {
     match play_mode {
         PlayModeKind::Edit => PlayStateKind::Edit,
         PlayModeKind::Building => PlayStateKind::Building,
+        PlayModeKind::Starting => PlayStateKind::Starting,
         PlayModeKind::Playing => PlayStateKind::Playing,
+        PlayModeKind::Stopping => PlayStateKind::Stopping,
         PlayModeKind::CleanupFailed => PlayStateKind::CleanupFailed,
     }
 }

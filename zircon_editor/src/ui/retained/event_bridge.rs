@@ -39,6 +39,7 @@ pub(crate) struct UiHostEventEffects {
     pub dirty_domains: HostInvalidationMask,
     shell_content_scopes: BTreeSet<HostShellContentScope>,
     pub sync_viewport_chrome: bool,
+    pub redraw_scene_interaction: bool,
     pub presentation_dirty: bool,
     pub layout_dirty: bool,
     pub render_dirty: bool,
@@ -140,6 +141,7 @@ impl UiHostEventEffects {
             && dirty.intersection(allowed) == dirty
             && self.shell_content_scopes.is_empty()
             && !self.sync_viewport_chrome
+            && !self.redraw_scene_interaction
             && self.active_layout_preset_name.is_none()
             && !self.present_welcome_surface
             && !self.sync_asset_workspace
@@ -187,6 +189,33 @@ impl UiHostEventEffects {
 }
 
 pub(crate) fn apply_record_effects(target: &mut UiHostEventEffects, record: &EditorEventRecord) {
+    // These commands update the viewport, Outliner and Details together. Their
+    // native input damage covers only the clicked control, not all three views.
+    if record.result.error.is_none()
+        && record
+            .result
+            .value
+            .as_ref()
+            .and_then(|value| value.get("changed"))
+            .and_then(serde_json::Value::as_bool)
+            == Some(true)
+        && matches!(
+            &record.event,
+            EditorEvent::Selection(_)
+                | EditorEvent::Inspector(_)
+                | EditorEvent::Viewport(
+                    crate::core::editor_event::EditorViewportEvent::LeftReleased
+                )
+                | EditorEvent::WorkbenchMenu(
+                    MenuAction::CreateNode(_)
+                        | MenuAction::DeleteSelected
+                        | MenuAction::Undo
+                        | MenuAction::Redo
+                )
+        )
+    {
+        target.redraw_scene_interaction = true;
+    }
     if record.operation_group.as_deref() == Some("MaterialComponentLab") {
         target.request_paint_only();
     }

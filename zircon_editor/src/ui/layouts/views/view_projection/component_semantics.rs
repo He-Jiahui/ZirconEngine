@@ -72,7 +72,7 @@ pub(crate) fn resolve_component_role(component: &str) -> &'static str {
         "Popper" => "popper",
         "Tooltip" => "tooltip",
         "Snackbar" => "snackbar",
-        "Menu" => "menu",
+        "Menu" | "PopupMenu" | "MenuPopup" => "menu",
         "ContextMenu" => "context-menu",
         "ContextActionMenu" => "context-action-menu",
         "DropdownPopup" => "dropdown-popup",

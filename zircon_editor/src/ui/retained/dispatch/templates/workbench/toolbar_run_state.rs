@@ -27,7 +27,14 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         &mut self,
         model: &WorkbenchViewModel,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        let projection = toolbar_run_projection(model.run_controls);
+        self.apply_run_controls(model.run_controls)
+    }
+
+    pub(crate) fn apply_run_controls(
+        &mut self,
+        controls: RunControlsModel,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        let projection = toolbar_run_projection(controls);
         self.set_visible(PLAY_CONTROL_ID, projection.play.visible)?;
         self.mutate_control_property(
             PLAY_CONTROL_ID,
@@ -44,9 +51,10 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             (PLAY_CONTROL_ID, projection.play),
             (STOP_CONTROL_ID, projection.stop),
         ] {
+            let label = self.i18n.translate(state.label).to_string();
             self.mutate_control_property(control, "disabled", UiValue::Bool(!state.enabled))?;
-            self.mutate_control_property(control, "label", UiValue::String(state.label.to_owned()))?;
-            self.mutate_control_property(control, "tooltip", UiValue::String(state.label.to_owned()))?;
+            self.mutate_control_property(control, "label", UiValue::String(label.clone()))?;
+            self.mutate_control_property(control, "tooltip", UiValue::String(label))?;
         }
         Ok(())
     }
@@ -55,27 +63,27 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
 fn toolbar_run_projection(model: RunControlsModel) -> ToolbarRunProjection {
     let show_stop = matches!(
         model.state,
-        PlayStateKind::Playing | PlayStateKind::CleanupFailed
+        PlayStateKind::Playing | PlayStateKind::Stopping | PlayStateKind::CleanupFailed
     );
     ToolbarRunProjection {
         play: RunControlProjection {
             visible: !show_stop,
             checked: false,
             enabled: model.enter_enabled,
-            label: if model.state == PlayStateKind::Building {
-                "Building…"
-            } else {
-                "Play"
+            label: match model.state {
+                PlayStateKind::Building => "editor.play.toolbar.building",
+                PlayStateKind::Starting => "editor.play.toolbar.starting",
+                _ => "editor.play.toolbar.play",
             },
         },
         stop: RunControlProjection {
             visible: show_stop,
-            checked: model.state == PlayStateKind::Playing,
+            checked: false,
             enabled: model.stop_enabled,
-            label: if model.state == PlayStateKind::CleanupFailed {
-                "Retry Stop"
-            } else {
-                "Stop"
+            label: match model.state {
+                PlayStateKind::CleanupFailed => "editor.play.toolbar.retry_stop",
+                PlayStateKind::Stopping => "editor.play.toolbar.stopping",
+                _ => "editor.play.toolbar.stop",
             },
         },
     }

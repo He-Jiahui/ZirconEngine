@@ -75,6 +75,7 @@ pub(in crate::ui::retained_host::ui) use self::notification_center::{
     projected_notification_center_structured_options, projected_notification_center_value_text,
     NotificationCenterMetadata,
 };
+pub(in crate::ui::retained_host::ui) use self::popup_frame::projected_popup_frame;
 pub(in crate::ui::retained_host::ui) use self::sample_grid::projected_sample_grid_data;
 pub(in crate::ui::retained_host::ui) use self::settings_window::projected_settings_window_data;
 pub(in crate::ui::retained_host::ui) use self::timeline_strip::projected_timeline_strip_data;

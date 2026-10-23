@@ -17,7 +17,7 @@ impl<'a> TerminalGatewayDetachReservation<'a> {
         reserved
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
             .is_ok()
-            .then_some(Self { reserved })
+            .then(|| Self { reserved })
     }
 }
 
@@ -138,6 +138,8 @@ impl PlaySessionController {
             return Ok(PlayTransitionReport::unchanged(from));
         };
 
+        let terminal_mode = self.mode_snapshot();
+        self.replace_mode(PlayMode::Stopping { kind });
         let result = match backend.retire() {
             Ok(report) => {
                 let mut ownership = self
@@ -159,7 +161,7 @@ impl PlaySessionController {
                     *ownership = None;
                 }
                 drop(ownership);
-                match self.mode_snapshot() {
+                match terminal_mode.clone() {
                     PlayMode::CleanupFailed {
                         failure:
                             PlayCleanupFailure::BackendRetirement {
@@ -188,11 +190,14 @@ impl PlaySessionController {
                             PlayTransitionCause::Stopped,
                         )
                     }
-                    _ => PlayTransitionReport::unchanged_with_backend(from, report.diagnostics),
+                    _ => {
+                        self.replace_mode(terminal_mode.clone());
+                        PlayTransitionReport::unchanged_with_backend(from, report.diagnostics)
+                    }
                 }
             }
             Err(message) => {
-                let plugin_deactivation = match self.mode_snapshot() {
+                let plugin_deactivation = match terminal_mode {
                     PlayMode::CleanupFailed {
                         failure: PlayCleanupFailure::PluginDeactivation { message },
                         ..

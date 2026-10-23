@@ -15,6 +15,9 @@ impl UiHostWindowEventLoop {
             .global::<UiHostContext>()
             .invoke_workbench_input_activity();
         let keyboard = platform_keyboard_input(platform_event.event);
+        if std::env::var_os("ZIRCON_TRACE_EDITOR_INTERACTION").is_some() {
+            eprintln!("editor_interaction kind=keyboard event={event:?} translated={keyboard:?}");
+        }
         if let Some(keyboard) = keyboard.as_ref() {
             if let Some(result) = self.host.dispatch_retained_pane_platform_input(
                 zircon_runtime_interface::ui::dispatch::UiInputEvent::Keyboard(keyboard.clone()),
