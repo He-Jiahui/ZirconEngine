@@ -64,6 +64,7 @@ impl RuntimeProjectConfig {
         if slice.is_empty() {
             return Ok(None);
         }
+        // SAFETY: the startup ABI caller keeps its path buffer readable for this synchronous call.
         let bytes = unsafe { slice.checked_slice(ZR_RUNTIME_PROJECT_PATH_MAX_ENCODED_BYTES_V1) }
             .map_err(|error| RuntimeProjectError::ResolveProjectRoot {
                 root: PathBuf::from("<invalid ABI project root>"),
@@ -87,6 +88,7 @@ impl RuntimeProjectConfig {
         play_report_pipe: ZrByteSlice,
     ) -> RuntimeProjectResult<Option<Self>> {
         for slice in [project_root, play_scene, play_report_pipe] {
+            // SAFETY: startup path buffers are borrowed from the caller until construction returns.
             unsafe { slice.checked_slice(ZR_RUNTIME_PROJECT_PATH_MAX_ENCODED_BYTES_V1) }.map_err(
                 |error| RuntimeProjectError::ResolveProjectRoot {
                     root: PathBuf::from("<invalid ABI startup path>"),
@@ -185,6 +187,22 @@ impl RuntimePreparedProject {
 
     pub(super) fn has_play_scene_override(&self) -> bool {
         self.play_scene.is_some()
+    }
+
+    /// Play owns its configuration alongside its snapshot, independently of the
+    /// editor session's preferences. The snapshot owner also retires this file.
+    pub(super) fn play_config_file_path(&self) -> Option<PathBuf> {
+        let scene = self.play_scene.as_ref()?;
+        Some(match scene.kind {
+            PreparedPlaySceneKind::VersionedSnapshot => scene
+                .operation_path
+                .operation_path()
+                .parent()?
+                .join("runtime-config.json"),
+            PreparedPlaySceneKind::SceneAsset { .. } => {
+                self.root.join(".zircon/play/runtime-config.json")
+            }
+        })
     }
 
     pub(super) fn play_scene_identifier(&self) -> Option<String> {
@@ -518,6 +536,7 @@ fn parse_optional_play_scene(slice: ZrByteSlice) -> RuntimeProjectResult<Option<
     if slice.is_empty() {
         return Ok(None);
     }
+    // SAFETY: startup config validation checked the slice; its caller-owned buffer is still live.
     let bytes = unsafe { slice.checked_slice(ZR_RUNTIME_PROJECT_PATH_MAX_ENCODED_BYTES_V1) }
         .expect("runtime startup byte slices are validated before Play scene parsing");
     let value = std::str::from_utf8(bytes)
@@ -537,6 +556,7 @@ fn parse_optional_play_report_pipe(slice: ZrByteSlice) -> RuntimeProjectResult<O
     if slice.is_empty() {
         return Ok(None);
     }
+    // SAFETY: startup config validation checked the slice; its caller-owned buffer is still live.
     let bytes = unsafe { slice.checked_slice(ZR_RUNTIME_PROJECT_PATH_MAX_ENCODED_BYTES_V1) }
         .expect("runtime startup byte slices are validated before Play report parsing");
     let value = std::str::from_utf8(bytes)
