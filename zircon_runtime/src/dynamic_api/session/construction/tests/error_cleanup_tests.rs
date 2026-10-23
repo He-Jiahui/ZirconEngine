@@ -29,6 +29,40 @@ const DEFAULT_NAVMESH: &str = "assets/navigation/main.navmesh.toml";
 const PLAY_SCENE: &str = ".zircon/play/instance/late-error.zrscene.json";
 
 #[test]
+fn play_configuration_is_owned_by_the_snapshot_and_released_on_retirement() {
+    use crate::core::manager::{config_manager_handle, resolve_manager_service};
+    let fixture = PlaySceneProject::create();
+    let path = fixture
+        .root
+        .join(PLAY_SCENE)
+        .parent()
+        .unwrap()
+        .join("runtime-config.json");
+    for value in [1, 2] {
+        let mut session = RuntimeDynamicSession::new(
+            RuntimeDynamicSessionProfile::Headless,
+            Some(fixture.config()),
+        )
+        .expect("Play must own a config file independently of editor preferences");
+        let core = session.runtime.handle();
+        let manager =
+            resolve_manager_service(&core, config_manager_handle(&core).unwrap()).unwrap();
+        manager
+            .set_value("play_acceptance", serde_json::json!(value))
+            .unwrap();
+        manager.flush(Duration::from_secs(5)).unwrap();
+        let written: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        assert_eq!(written["play_acceptance"], value);
+        drop(manager);
+        drop(core);
+        assert!(session.shutdown_before_library_unload());
+        drop(session);
+    }
+    fixture.assert_removable();
+}
+
+#[test]
 fn normal_invalid_utf8_play_scene_preserves_primary_and_closes_activated_core() {
     let fixture = PlaySceneProject::create();
     let mut healthy = RuntimeDynamicSession::new(
@@ -94,6 +128,7 @@ fn app_core_shutdown_owner_public_abi_late_play_error_returns_diagnostic_without
     let destroy = api.destroy_session.expect("public destroy_session");
     let config = public_startup_config(root);
     let mut healthy = ZrRuntimeSessionHandle::invalid();
+    // SAFETY: fixture strings and writable handle storage remain live throughout creation.
     let status = unsafe { create(config, &mut healthy) };
     assert_eq!(
         status.status_code(),
@@ -103,6 +138,7 @@ fn app_core_shutdown_owner_public_abi_late_play_error_returns_diagnostic_without
     );
     assert!(healthy.is_valid());
     assert!(session_handle_is_published_for_test(healthy));
+    // SAFETY: this test owns the published session and destroys it exactly once.
     let status = unsafe { destroy(healthy) };
     assert_eq!(
         status.status_code(),
@@ -115,6 +151,7 @@ fn app_core_shutdown_owner_public_abi_late_play_error_returns_diagnostic_without
     std::fs::write(fixture.root.join(PLAY_SCENE), [0xff]).expect("corrupt this existing Play file");
     // A nonzero, already-destroyed handle proves the public function clears caller output.
     let mut output = healthy;
+    // SAFETY: the fixture root and writable output remain live for this synchronous call.
     let (status, observation) = observe_runtime_startup_for_test(|| unsafe {
         create(public_startup_config(root), &mut output)
     });
@@ -146,6 +183,7 @@ fn app_core_shutdown_owner_public_linked_late_navmesh_error_closes_without_slot(
     .expect("the same real linked project and nonempty navmesh must start publicly");
     assert!(healthy.is_valid());
     assert!(session_handle_is_published_for_test(healthy));
+    // SAFETY: the linked API created this live handle, exclusively owned by the fixture.
     let status = unsafe { api.destroy_session.expect("public destroy_session")(healthy) };
     assert_eq!(
         status.status_code(),
@@ -219,6 +257,7 @@ fn assert_public_startup_closed(observation: &RuntimeStartupObservation, step: &
 }
 
 fn public_runtime_api() -> &'static zircon_runtime_interface::ZrRuntimeApiV8 {
+    // SAFETY: the in-process export returns a static API table and accepts a null host.
     unsafe { &*crate::dynamic_api::zircon_runtime_get_api_v8(core::ptr::null()) }
 }
 
@@ -234,6 +273,7 @@ fn public_startup_config(root: &str) -> ZrRuntimeSessionConfigV3 {
 }
 
 fn copy_status_diagnostic(status: ZrStatus) -> String {
+    // SAFETY: the returned status retains bounded diagnostic storage until this copy finishes.
     let bytes = unsafe {
         status
             .diagnostics
