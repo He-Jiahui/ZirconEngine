@@ -206,6 +206,11 @@ impl EntryRunner {
                     EditorLaunchRoute::Gui(intent) => intent.into_parts(),
                 };
             let first_frame_capture_path = editor_first_frame_capture_path()?;
+            let _startup_splash = zircon_editor::EditorStartupSplash::launch(
+                gui_startup_request.as_ref().is_some_and(|request| {
+                    matches!(request, EditorGuiStartupRequest::Project { .. })
+                }),
+            );
             let requested_startup = editor_host_startup_request(gui_startup_request.as_ref());
             let runtime_preflight = LoadedRuntime::preflight_default().map_err(|error| {
                 editor_startup_diagnostic_error(
@@ -318,6 +323,9 @@ impl EntryRunner {
                     )));
                 }
             };
+            zircon_editor::EditorStartupSplash::set_stage(
+                zircon_editor::EditorStartupStage::GpuInit,
+            );
             // Editor owns project activation; the gateway session remains projectless.
             let runtime_session = match RuntimeSession::create_with_profile(runtime, b"editor") {
                 Ok(session) => std::sync::Arc::new(session),
@@ -363,6 +371,9 @@ impl EntryRunner {
                     }
                     None => host_config,
                 };
+                zircon_editor::EditorStartupSplash::set_stage(
+                    zircon_editor::EditorStartupStage::ProjectOpen,
+                );
                 run_editor_with_config(core, runtime_gateway, host_config)
                     .map_err(|error| editor_host_startup_error(&editor_host_request, error))?;
                 Ok(())

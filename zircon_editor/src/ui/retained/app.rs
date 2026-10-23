@@ -495,16 +495,19 @@ pub fn run_editor_with_config(
             .report_failure_with_code(HubEditorStartupFailureCodeV1::FocusInboxBinding, error)
             .into());
     }
-    if let Some(receipt) = hub_ready_receipt {
-        let reporter = hub_startup_reporter.clone();
-        ui.on_first_presented(move || match reporter.report_ready(receipt) {
-            Ok(()) => Ok(()),
-            Err(error) => Err(reporter
-                .report_failure_with_code(HubEditorStartupFailureCodeV1::MailboxPublish, error)
-                .to_string()),
-        })
-        .map_err(|error| hub_startup_reporter.report_failure(error))?;
-    }
+    let reporter = hub_startup_reporter.clone();
+    ui.on_first_presented(move || {
+        super::startup_splash::EditorStartupSplash::first_frame_presented();
+        if let Some(receipt) = hub_ready_receipt {
+            reporter.report_ready(receipt).map_err(|error| {
+                reporter
+                    .report_failure_with_code(HubEditorStartupFailureCodeV1::MailboxPublish, error)
+                    .to_string()
+            })?;
+        }
+        Ok(())
+    })
+    .map_err(|error| hub_startup_reporter.report_failure(error))?;
     if product_frame_evidence_requested {
         let retained_host = host.borrow();
         let diagnostic =

@@ -41,3 +41,29 @@ fn welcome_form_header_uses_shared_two_line_typography_and_relative_centering() 
     let bottom_gap = header.y + header.height - (commands[1].frame.y + commands[1].frame.height);
     assert!((top_gap - bottom_gap).abs() <= 1.0);
 }
+
+#[test]
+fn compact_welcome_header_keeps_optional_template_text_out_of_the_form() {
+    let metrics = current_host_metrics();
+    let header = FrameRect {
+        x: 16.0,
+        y: 12.0,
+        width: 328.0,
+        height: metrics
+            .line_height(metrics.font_body)
+            .round()
+            .max(metrics.font_body.ceil()),
+    };
+    let mut frame = HostRgbaFrame::recording_only(360, 64);
+    let clip = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: 360.0,
+        height: 64.0,
+    };
+    draw_welcome_new_project_header(&mut frame, &PaneData::default(), &header, &clip);
+    let commands = frame.into_recorded_commands();
+    assert_eq!(commands.len(), 1);
+    assert!(commands[0].frame.y >= header.y);
+    assert!(commands[0].frame.y + commands[0].frame.height <= header.y + header.height);
+}

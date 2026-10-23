@@ -5,7 +5,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WELCOME_PROJECTION = REPO_ROOT / (
-    "zircon_editor/src/ui/workbench/startup/"
+    "zircon_editor/src/ui/"
     "editor_startup_session_document_welcome_pane_snapshot.rs"
 )
 WELCOME_LAYOUT = REPO_ROOT / "zircon_editor/assets/ui/editor/welcome.zui"
@@ -14,45 +14,45 @@ EDITOR_TOKENS = REPO_ROOT / (
 )
 WORKBENCH_BUTTON = REPO_ROOT / (
     "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/"
-    "workbench_button.zui"
+    "button.zui"
 )
 WORKBENCH_FIELD = REPO_ROOT / (
     "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/"
-    "workbench_field.zui"
+    "field.zui"
 )
 WELCOME_BOOTSTRAP_TEST = REPO_ROOT / (
     "zircon_editor/src/tests/ui/welcome/bootstrap_assets.rs"
 )
 WELCOME_FRAME_RESOLVE = REPO_ROOT / (
     "zircon_editor/src/ui/retained/contract/"
-    "paint_workbench_renderer/welcome/main_column/frames/resolve.rs"
+    "workbench/welcome/frames/resolve.rs"
 )
 WELCOME_TOP_SEQUENCE = REPO_ROOT / (
     "zircon_editor/src/ui/retained/contract/"
-    "paint_workbench_renderer/welcome/main_column/frames/sequence/top.rs"
+    "workbench/welcome/frames/sequence/top.rs"
 )
 WELCOME_FORM_SEQUENCE = REPO_ROOT / (
     "zircon_editor/src/ui/retained/contract/"
-    "paint_workbench_renderer/welcome/main_column/frames/sequence/form.rs"
+    "workbench/welcome/frames/sequence/form.rs"
 )
 WELCOME_MAIN_COLUMN = REPO_ROOT / (
     "zircon_editor/src/ui/retained/contract/"
-    "paint_workbench_renderer/welcome/main_column.rs"
+    "workbench/welcome/main_column.rs"
 )
 WELCOME_NATIVE_PAINT = REPO_ROOT / (
     "zircon_editor/src/ui/retained/contract/"
-    "paint_workbench_renderer/welcome.rs"
+    "workbench/welcome.rs"
 )
 WELCOME_RECENT_HEADER = REPO_ROOT / (
     "zircon_editor/src/ui/retained/contract/"
-    "paint_workbench_renderer/welcome/recent_projects/header.rs"
+    "welcome/recent_projects/header.rs"
 )
 WELCOME_RECENT_GEOMETRY = REPO_ROOT / (
     "zircon_editor/src/ui/retained/welcome_recent_geometry.rs"
 )
 WELCOME_RECENT_POINTER_LAYOUT = REPO_ROOT / (
     "zircon_editor/src/ui/retained/welcome_recent_pointer/"
-    "welcome_recent_pointer_layout.rs"
+    "layout.rs"
 )
 WELCOME_RECENT_POINTER_HELPER = REPO_ROOT / (
     "zircon_editor/src/ui/retained/welcome_recent_pointer/helper.rs"
@@ -61,7 +61,7 @@ WELCOME_RECENT_APP_LAYOUT = REPO_ROOT / (
     "zircon_editor/src/ui/retained/app/pointer_layout/welcome_recent.rs"
 )
 WELCOME_PROFILE_PANE_FRAMES = REPO_ROOT / (
-    "zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/"
+    "zircon_editor/src/ui/retained/contract/"
     "geometry/pane_frames/pane.rs"
 )
 
@@ -88,7 +88,10 @@ class EditorZuiWelcomeVisualDensityContractTests(unittest.TestCase):
         self.assertIn("const RECENT_HEADER_HEIGHT: f32 = 30.0;", source)
         self.assertIn('"Recent Projects"', source)
         self.assertNotIn("Pinned startup workspace", source)
-        self.assertIn("assert_eq!(commands.len(), 1);", source)
+        header_test = REPO_ROOT / (
+            "zircon_editor/src/ui/retained/contract/workbench/welcome/tests/header.rs"
+        )
+        self.assertIn("assert_eq!(commands.len(), 1);", header_test.read_text(encoding="utf-8"))
 
     def test_welcome_content_keeps_a_readable_center_at_wide_and_narrow_widths(self):
         with WELCOME_LAYOUT.open("rb") as source:
@@ -134,12 +137,12 @@ class EditorZuiWelcomeVisualDensityContractTests(unittest.TestCase):
         )
         self.assertIn(
             "res://ui/editor/components/workbench/primitives/inputs/"
-            "workbench_button.zui#WorkbenchButton",
+            "button.zui#WorkbenchButton",
             imports["widgets"],
         )
         self.assertIn(
             "res://ui/editor/components/workbench/primitives/inputs/"
-            "workbench_field.zui#WorkbenchField",
+            "field.zui#WorkbenchField",
             imports["widgets"],
         )
         self.assertNotIn("stylesheets", document)
@@ -158,7 +161,10 @@ class EditorZuiWelcomeVisualDensityContractTests(unittest.TestCase):
         for node_name in ("project_name_field", "location_field"):
             self.assertEqual("WorkbenchField", nodes[node_name]["component"])
 
-        self.assertEqual("Open", nodes["open_existing_button"]["props"]["text"])
+        self.assertEqual(
+            {"text_key": "editor.welcome.open_project", "table": "editor"},
+            nodes["open_existing_button"]["props"]["text"],
+        )
         with WORKBENCH_BUTTON.open("rb") as source:
             button_root = tomllib.load(source)["nodes"]["root"]
         with WORKBENCH_FIELD.open("rb") as source:
@@ -249,7 +255,7 @@ class EditorZuiWelcomeVisualDensityContractTests(unittest.TestCase):
             nodes = tomllib.load(source)["nodes"]
 
         for node_name, width in (
-            ("open_existing_button", 80.0),
+            ("open_existing_button", 118.0),
             ("create_project_button", 118.0),
         ):
             self.assertEqual(
@@ -320,7 +326,7 @@ class EditorZuiWelcomeVisualDensityContractTests(unittest.TestCase):
 
         recent = nodes["recent_panel"]
         main = nodes["main_panel"]
-        self.assertEqual({"responsive_min_tier": "narrow"}, recent["props"])
+        self.assertEqual({"display": {"xs": "none", "md": "block"}}, recent["props"])
 
         logical_width = 640.0 / 1.5
         panel_padding = tokens["density"]["panel_padding"]
@@ -347,7 +353,6 @@ class EditorZuiWelcomeVisualDensityContractTests(unittest.TestCase):
         for node_name in (
             "hero_panel",
             "hero_status_gap",
-            "status_panel",
             "actions_optional_gap",
         ):
             self.assertEqual(
@@ -361,10 +366,15 @@ class EditorZuiWelcomeVisualDensityContractTests(unittest.TestCase):
                 node_name,
             )
 
+        self.assertEqual(
+            "$editor.control.height.large",
+            nodes["status_panel"]["layout"]["height"]["preferred"],
+        )
+
         self.assertEqual(52.0, nodes["preview_panel"]["layout"]["height"]["preferred"])
         main_children = [child["node"] for child in nodes["main_panel"]["children"]]
-        self.assertLess(main_children.index("preview_panel"), main_children.index("validation_panel"))
         self.assertLess(main_children.index("validation_panel"), main_children.index("actions_row"))
+        self.assertLess(main_children.index("actions_row"), main_children.index("preview_panel"))
         self.assertEqual(
             "$editor.density.gap.large",
             nodes["startup_chooser_gap"]["layout"]["height"]["preferred"],

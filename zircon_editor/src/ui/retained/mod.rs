@@ -48,6 +48,8 @@ mod run_config;
 pub(crate) mod scroll_surface_host;
 #[path = "shell_pointer.rs"]
 pub(crate) mod shell_pointer;
+#[path = "startup_splash.rs"]
+pub mod startup_splash;
 #[path = "tab_drag.rs"]
 pub mod tab_drag;
 #[path = "ui.rs"]

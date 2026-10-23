@@ -30,6 +30,13 @@ fn project_chooser_startup_session(
         },
         creation_validation: "Checking project location…".to_string(),
         can_open_existing: false,
-        status_message: "Select a project to open.".to_string(),
+        status_message: crate::ui::retained_host::startup_splash::content::startup_text(
+            "editor.welcome.project_help",
+        )
+        .to_string(),
     }
 }
+
+#[cfg(test)]
+#[path = "tests/resolve_session.rs"]
+mod tests;

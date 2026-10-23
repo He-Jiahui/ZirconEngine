@@ -7,8 +7,19 @@ impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn schedule_welcome_project_probe(&mut self) {
         self.startup_session.creation_validation = "Checking project location…".to_string();
         self.startup_session.can_open_existing = false;
+        let now = Instant::now();
         self.welcome_project_probe
-            .request(self.startup_session.draft.clone(), Instant::now());
+            .request(self.startup_session.draft.clone(), now);
+        // Native field callbacks can run after tick; arm the first wake here.
+        // Preserve an earlier close/watch/heartbeat deadline owned by the host.
+        let deadline = [
+            self.ui.lifecycle_frame_wake_deadline(),
+            self.welcome_project_probe.poll_deadline(now),
+        ]
+        .into_iter()
+        .flatten()
+        .min();
+        self.ui.set_lifecycle_frame_update(deadline);
     }
 
     pub(in crate::ui::retained_host::app) fn clear_welcome_project_probe(&mut self) {
