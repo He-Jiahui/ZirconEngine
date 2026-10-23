@@ -29,6 +29,86 @@ fn redraw_queue_schedules_only_on_empty_to_pending_transition() {
 }
 
 #[test]
+fn update_damage_is_merged_into_one_present_and_next_runtime_work_survives() {
+    let host =
+        crate::ui::retained_host::host_contract::window::UiHostWindow::new().expect("host window");
+    let mut event_loop = UiHostWindowEventLoop::new(host);
+    let _startup = event_loop.take_pending_redraw();
+    let old = FrameRect {
+        x: 4.0,
+        y: 8.0,
+        width: 20.0,
+        height: 16.0,
+    };
+    let new = FrameRect {
+        x: 40.0,
+        y: 48.0,
+        width: 12.0,
+        height: 10.0,
+    };
+    event_loop.host.request_redraw_region(new.clone());
+    event_loop
+        .host
+        .queue_external_redraw(HostRedrawRequest::runtime_tick());
+
+    let present = event_loop.take_present_after_update(HostRedrawRequest::region(old));
+
+    assert!(present.requires_present());
+    assert!(!present.requires_frame_update());
+    assert_eq!(
+        present.damage_region_metrics().unwrap().source_rect_count,
+        2
+    );
+    assert!(present.damage_region().unwrap().right() >= new.right());
+    assert_eq!(
+        event_loop.host.take_external_redraw(),
+        HostRedrawRequest::runtime_tick()
+    );
+}
+
+#[test]
+fn no_change_maintenance_produces_no_present_or_extra_redraw() {
+    let host =
+        crate::ui::retained_host::host_contract::window::UiHostWindow::new().expect("host window");
+    let mut event_loop = UiHostWindowEventLoop::new(host);
+    let _startup = event_loop.take_pending_redraw();
+    let present =
+        event_loop.take_present_after_update(HostRedrawRequest::frame_update_only_for_scenario(
+            crate::ui::retained_host::ui_perf::UiPerfScenario::SessionHeartbeat,
+        ));
+    assert!(!present.requires_present());
+    assert!(!event_loop.host.take_external_redraw().request_redraw());
+}
+
+#[test]
+fn runtime_callback_presents_committed_viewport_damage_in_the_same_redraw() {
+    let host =
+        crate::ui::retained_host::host_contract::window::UiHostWindow::new().expect("host window");
+    let mut event_loop = UiHostWindowEventLoop::new(host);
+    let _startup = event_loop.take_pending_redraw();
+    let viewport = FrameRect {
+        x: 100.0,
+        y: 80.0,
+        width: 640.0,
+        height: 480.0,
+    };
+    event_loop.host.request_redraw_region(viewport.clone());
+    event_loop
+        .host
+        .queue_external_redraw(HostRedrawRequest::runtime_tick());
+
+    let present = event_loop.take_present_after_update(HostRedrawRequest::runtime_tick());
+
+    assert!(present.requires_present());
+    assert!(!present.requires_frame_update());
+    assert_eq!(present.damage_region(), Some(&viewport));
+    assert_eq!(
+        event_loop.host.take_external_redraw(),
+        HostRedrawRequest::runtime_tick()
+    );
+}
+
+#[test]
 fn native_resize_configures_the_latest_surface_before_the_frame_update() {
     let source = include_str!("../redraw.rs");
     let function = source

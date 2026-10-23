@@ -18,6 +18,7 @@ mod editor_state_selection;
 mod editor_state_viewport;
 #[path = "editor_state_viewport_error.rs"]
 mod editor_state_viewport_error;
+mod inspector_rotation;
 #[path = "no_project_open.rs"]
 mod no_project_open;
 #[path = "parse_parent_field.rs"]

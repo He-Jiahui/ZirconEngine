@@ -27,6 +27,8 @@ mod mount;
 mod node_index;
 #[path = "windows/notification_cache.rs"]
 mod notification_cache;
+#[path = "windows/popup_geometry.rs"]
+mod popup_geometry;
 #[path = "windows/previous_node_index.rs"]
 mod previous_node_index;
 #[path = "windows/properties.rs"]
@@ -248,19 +250,17 @@ pub(crate) fn build_host_contract_workbench_window_geometry_patch_at_mount_and_s
         }
 
         let mut projected = previous.clone();
-        bind_published_source(&mut projected, node.source_surface_frame.as_ref());
-        projected.frame = project_frame_into_physical_mount(
-            template_frame(node.frame),
-            mount_frame,
-            scale_factor,
-        );
+        projected.frame = template_frame(node.frame);
         projected.has_clip_frame = node.clip_frame.is_some();
-        projected.clip_frame = node
-            .clip_frame
-            .map(template_frame)
-            .map(|frame| project_frame_into_physical_mount(frame, mount_frame, scale_factor))
-            .unwrap_or_default();
+        projected.clip_frame = node.clip_frame.map(template_frame).unwrap_or_default();
         projected.z_index = node.z_index;
+        bind_published_source(&mut projected, node.source_surface_frame.as_ref());
+        projected.frame =
+            project_frame_into_physical_mount(projected.frame, mount_frame, scale_factor);
+        if projected.has_clip_frame {
+            projected.clip_frame =
+                project_frame_into_physical_mount(projected.clip_frame, mount_frame, scale_factor);
+        }
         row_patches.insert(row, projected);
     }
     let changed_rows = row_patches.keys().copied().collect();
@@ -757,6 +757,7 @@ pub(super) fn bind_published_source(
     {
         return;
     }
+    popup_geometry::apply_published_popup_geometry(node, frame);
     let Some(range) = frame.render_extract.command_range(id) else {
         return;
     };

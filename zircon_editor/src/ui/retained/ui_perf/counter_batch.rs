@@ -12,6 +12,9 @@ pub(crate) fn record_current_ui_perf_counter_batch(
         }
         let mut counters = Vec::with_capacity(52);
         collect(&mut counters);
+        for &(counter, value) in &counters {
+            super::activity_trace::record(counter, value);
+        }
         let scenario = super::current_ui_perf_scenario();
         let named = named_counter_batch(scenario, counters);
         zircon_runtime::core::diagnostics::profiling::record_counter_batch("editor", &named);

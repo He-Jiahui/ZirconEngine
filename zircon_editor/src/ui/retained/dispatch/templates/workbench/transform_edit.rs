@@ -12,6 +12,10 @@ const POSITION_ROW: &str = "WorkbenchTransformPosition";
 const POSITION_X: &str = "WorkbenchTransformPositionX";
 const POSITION_Y: &str = "WorkbenchTransformPositionY";
 const POSITION_Z: &str = "WorkbenchTransformPositionZ";
+const ROTATION_ROW: &str = "WorkbenchTransformRotation";
+const ROTATION_X: &str = "WorkbenchTransformRotationX";
+const ROTATION_Y: &str = "WorkbenchTransformRotationY";
+const ROTATION_Z: &str = "WorkbenchTransformRotationZ";
 const SCALE_ROW: &str = "WorkbenchTransformScale";
 const SCALE_X: &str = "WorkbenchTransformScaleX";
 const SCALE_Y: &str = "WorkbenchTransformScaleY";
@@ -50,6 +54,24 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 "transform.translation.z",
                 "Z",
                 "TransformPositionZCommit",
+            ),
+            "Inspector/TransformRotationXCommit" => (
+                ROTATION_X,
+                "transform.rotation_degrees.x",
+                "X",
+                "TransformRotationXCommit",
+            ),
+            "Inspector/TransformRotationYCommit" => (
+                ROTATION_Y,
+                "transform.rotation_degrees.y",
+                "Y",
+                "TransformRotationYCommit",
+            ),
+            "Inspector/TransformRotationZCommit" => (
+                ROTATION_Z,
+                "transform.rotation_degrees.z",
+                "Z",
+                "TransformRotationZCommit",
             ),
             "Inspector/TransformScaleXCommit" => {
                 (SCALE_X, "transform.scale.x", "X", "TransformScaleXCommit")
@@ -135,6 +157,15 @@ fn transform_axis_edit_for_binding(binding_id: &str) -> Option<TransformAxisEdit
         "Inspector/TransformPositionZEdit" | "Inspector/TransformPositionZCommit" => {
             Some(position_edit(POSITION_Z, "Z"))
         }
+        "Inspector/TransformRotationXEdit" | "Inspector/TransformRotationXCommit" => {
+            Some(rotation_edit(ROTATION_X, "X"))
+        }
+        "Inspector/TransformRotationYEdit" | "Inspector/TransformRotationYCommit" => {
+            Some(rotation_edit(ROTATION_Y, "Y"))
+        }
+        "Inspector/TransformRotationZEdit" | "Inspector/TransformRotationZCommit" => {
+            Some(rotation_edit(ROTATION_Z, "Z"))
+        }
         "Inspector/TransformScaleXEdit" | "Inspector/TransformScaleXCommit" => {
             Some(scale_edit(SCALE_X, "X"))
         }
@@ -153,6 +184,15 @@ fn position_edit(control_id: &'static str, axis_label: &'static str) -> Transfor
         control_id,
         row_control_id: POSITION_ROW,
         row_fields: [POSITION_X, POSITION_Y, POSITION_Z],
+        axis_label,
+    }
+}
+
+fn rotation_edit(control_id: &'static str, axis_label: &'static str) -> TransformAxisEdit {
+    TransformAxisEdit {
+        control_id,
+        row_control_id: ROTATION_ROW,
+        row_fields: [ROTATION_X, ROTATION_Y, ROTATION_Z],
         axis_label,
     }
 }
@@ -195,9 +235,13 @@ fn strip_axis_prefix(value: &str, axis_label: &str) -> String {
 
 fn parse_finite_axis_scalar(value: &str, axis_label: &str) -> Result<f32, String> {
     let scalar = strip_axis_prefix(value, axis_label);
-    let parsed = scalar.parse::<f32>().map_err(|_| {
-        format!("Inspector transform {axis_label} value `{scalar}` must be a finite number")
-    })?;
+    let parsed = scalar
+        .trim_end_matches("deg")
+        .trim()
+        .parse::<f32>()
+        .map_err(|_| {
+            format!("Inspector transform {axis_label} value `{scalar}` must be a finite number")
+        })?;
     if parsed.is_finite() {
         Ok(parsed)
     } else {

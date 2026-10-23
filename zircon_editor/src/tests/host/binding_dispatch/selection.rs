@@ -11,6 +11,9 @@ use crate::ui::binding_dispatch::{apply_selection_binding, dispatch_selection_bi
 fn selection_binding_dispatches_and_applies_scene_node_selection() {
     let mut state = support::test_state();
     let cube = support::cube_id(&state);
+    state
+        .select_node_in_world(WorldDomain::Edit, support::camera_id(&state))
+        .unwrap();
     let binding = EditorUiBinding::new(
         "HierarchyView",
         "SceneNodeSelect",
@@ -32,4 +35,9 @@ fn selection_binding_dispatches_and_applies_scene_node_selection() {
         state.viewport_controller.selection().active_primary(),
         Some(cube)
     );
+    let expected_name = state
+        .world
+        .expect_with_world(|scene| scene.find_node(cube).unwrap().name.clone());
+    assert_eq!(state.name_field, expected_name);
+    assert!(!apply_selection_binding(&mut state, &binding).unwrap());
 }

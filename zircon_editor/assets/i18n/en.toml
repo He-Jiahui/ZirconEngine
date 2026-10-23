@@ -1,6 +1,8 @@
 locale = "en"
 
 [translations]
+"play.starting" = "Starting game preview…"
+"play.stopping" = "Stopping game preview…"
 "editor.startup.brand" = "ZIRCON ENGINE"
 "editor.startup.product" = "Editor"
 "editor.startup.window_title" = "Zircon Editor — Starting"

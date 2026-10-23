@@ -277,6 +277,14 @@ impl UiHostWindow {
         self.queue_external_redraw(HostRedrawRequest::region(frame));
     }
 
+    /// Publish a committed structural change without scheduling another layout.
+    pub(crate) fn request_full_redraw(&self) {
+        self.queue_external_redraw(HostRedrawRequest::full_frame_for_scenario(
+            crate::ui::retained_host::ui_perf::current_ui_perf_scenario(),
+            false,
+        ));
+    }
+
     pub(crate) fn request_frame_update_region(&self, frame: FrameRect) {
         let redraw = HostRedrawRequest::region_with_frame_update(frame);
         if redraw.request_redraw() {

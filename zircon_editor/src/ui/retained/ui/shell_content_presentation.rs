@@ -175,7 +175,7 @@ pub(crate) fn patch_shell_content_presentation_from_state(
         bottom_pane,
         document_pane: host_window::blank_pane(),
     };
-    if changed_dock_for_model(current, model) != Some(target.dock) {
+    if !model_changes_only_target_dock(current, model, target.dock) {
         record_shell_content_patch_fallback(ShellContentPatchFallback::DockCardinality);
         return false;
     }
@@ -209,26 +209,40 @@ pub(crate) fn patch_shell_content_presentation_from_state(
     )
 }
 
-fn changed_dock_for_model(
+fn model_changes_only_target_dock(
     current: &HostWindowPresentationData,
     model: &WorkbenchViewModel,
-) -> Option<HostDockSurfaceId> {
+    target: HostDockSurfaceId,
+) -> bool {
     let pane_id = |slots: &[ActivityDrawerSlot]| {
         host_window::side_pane_selection(model, slots)
             .map(|selection| selection.tab.instance_id.0.as_str())
             .unwrap_or("")
     };
-    changed_dock_from_pane_ids(
-        current.host_scene_data.left_dock.pane.id.as_str(),
-        pane_id(&[ActivityDrawerSlot::LeftTop, ActivityDrawerSlot::LeftBottom]),
-        current.host_scene_data.right_dock.pane.id.as_str(),
-        pane_id(&[
-            ActivityDrawerSlot::RightTop,
-            ActivityDrawerSlot::RightBottom,
-        ]),
-        current.host_scene_data.bottom_dock.pane.id.as_str(),
-        pane_id(&[ActivityDrawerSlot::Bottom]),
-    )
+    // A content refresh can keep the same active pane identity. Its declared
+    // dock may change content, while every other dock must retain its identity.
+    [
+        (
+            HostDockSurfaceId::Left,
+            current.host_scene_data.left_dock.pane.id.as_str(),
+            pane_id(&[ActivityDrawerSlot::LeftTop, ActivityDrawerSlot::LeftBottom]),
+        ),
+        (
+            HostDockSurfaceId::Right,
+            current.host_scene_data.right_dock.pane.id.as_str(),
+            pane_id(&[
+                ActivityDrawerSlot::RightTop,
+                ActivityDrawerSlot::RightBottom,
+            ]),
+        ),
+        (
+            HostDockSurfaceId::Bottom,
+            current.host_scene_data.bottom_dock.pane.id.as_str(),
+            pane_id(&[ActivityDrawerSlot::Bottom]),
+        ),
+    ]
+    .into_iter()
+    .all(|(dock, previous, next)| dock == target || previous == next)
 }
 
 pub(super) fn patch_shell_content_presentation(

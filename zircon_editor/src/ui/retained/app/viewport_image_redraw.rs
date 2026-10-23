@@ -6,6 +6,37 @@ impl RetainedEditorHost {
         let mut image_updated = false;
         if self.ui.direct_viewport_products_active() {
             for (surface_key, product) in self.viewport.poll_viewport_products() {
+                if surface_key.starts_with("editor.play:") {
+                    if let Some((instance, gateway)) = self.play_gpu_identity.as_ref() {
+                        if surface_key == format!("editor.play:{}", instance.raw()) {
+                            let identity =
+                                crate::core::play::PlayPreviewFrameIdentity::for_viewport_product(
+                                    *instance,
+                                    gateway.clone(),
+                                    &product,
+                                );
+                            if self
+                                .runtime
+                                .play_sessions()
+                                .preview_identity_is_current(&identity)
+                            {
+                                zircon_runtime::profile_counter!(
+                                    "editor",
+                                    "play.preview.direct_product_count",
+                                    1
+                                );
+                                image_updated |= self
+                                    .ui
+                                    .global::<crate::ui::retained_host::PaneSurfaceHostContext>()
+                                    .set_game_viewport_product(product, identity);
+                                self.ui.request_redraw_region(
+                                    self.ui.get_host_window_bootstrap().viewport_content_frame,
+                                );
+                            }
+                        }
+                    }
+                    continue;
+                }
                 let target = self.viewport_product_target(&surface_key);
                 if publish_viewport_product(&target, &surface_key, product) {
                     image_updated = true;
@@ -31,6 +62,7 @@ impl RetainedEditorHost {
         }
         zircon_runtime::profile_scope!("editor", "retained_host", "poll_viewport_image");
         self.record_paint_only_invalidation(HostInvalidationMask::VIEWPORT_IMAGE);
+        self.publish_operator_evidence();
     }
 
     fn viewport_product_target(&self, surface_key: &str) -> UiHostWindow {

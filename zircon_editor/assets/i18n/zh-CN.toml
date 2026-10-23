@@ -1,6 +1,8 @@
 locale = "zh-CN"
 
 [translations]
+"play.starting" = "正在启动游戏预览…"
+"play.stopping" = "正在停止游戏预览…"
 "editor.startup.brand" = "ZIRCON ENGINE"
 "editor.startup.product" = "编辑器"
 "editor.startup.window_title" = "Zircon 编辑器 — 正在启动"

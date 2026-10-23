@@ -25,7 +25,7 @@ impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app::host_lifecycle::recompute) fn begin_recompute_invalidation_phase(
         &mut self,
     ) -> Option<RecomputeInvalidationDecision> {
-        let pending_transaction = self.invalidation.take_recompute_transaction();
+        let mut pending_transaction = self.invalidation.take_recompute_transaction();
         let pending_reasons = pending_transaction.reasons();
         let scope_count = pending_transaction.scope_count();
         let legacy_dirty_reasons = HostInvalidationMask::from_dirty_flags(
@@ -34,6 +34,17 @@ impl RetainedEditorHost {
             self.window_metrics_dirty,
             self.render_dirty,
         );
+        crate::ui::retained_host::host_contract::normal_capture_redraw_trace::record(
+            "recompute_invalidation",
+            || format!("pending={pending_transaction:?} legacy={legacy_dirty_reasons:?}"),
+        );
+        // Rendering has its own submission owner. A pending scene frame must
+        // survive a pane patch without forcing unrelated shell reconstruction.
+        // Keep the full reason mask for fallback accounting below.
+        pending_transaction.consume(HostInvalidationMask::RENDER);
+        let presentation_reasons = pending_transaction.reasons();
+        let mut legacy_presentation_reasons = legacy_dirty_reasons;
+        legacy_presentation_reasons.remove(HostInvalidationMask::RENDER);
         record_current_ui_perf_counter(UiPerfCounter::HostInvalidationTransactionCount, 1.0);
         record_current_ui_perf_counter(
             UiPerfCounter::HostInvalidationScopeCount,
@@ -45,12 +56,13 @@ impl RetainedEditorHost {
                 1.0,
             );
         }
-        let reuse_shell_layout = shell_content_reuses_committed_layout(pending_reasons)
+        let reuse_shell_layout = shell_content_reuses_committed_layout(presentation_reasons)
             && !self.layout_dirty
             && !self.window_metrics_dirty;
         let recompute_reasons = pending_reasons.union(legacy_dirty_reasons);
         if let Some(scope) = pending_transaction.shell_content_scope().filter(|_| {
-            reuse_shell_layout && legacy_dirty_allows_shell_content_patch(legacy_dirty_reasons)
+            reuse_shell_layout
+                && legacy_dirty_allows_shell_content_patch(legacy_presentation_reasons)
         }) {
             record_current_ui_perf_counter(
                 UiPerfCounter::HostInvalidationShellContentTargetCount,
@@ -73,7 +85,7 @@ impl RetainedEditorHost {
                 target: RecomputeInvalidationTarget::WorkbenchProjection,
             });
         }
-        if legacy_dirty_reasons.is_empty() {
+        if legacy_presentation_reasons.is_empty() {
             if let Some(view_ids) = pending_transaction.presentation_only_view_ids() {
                 record_current_ui_perf_counter(
                     UiPerfCounter::HostInvalidationViewPresentationTargetCount,

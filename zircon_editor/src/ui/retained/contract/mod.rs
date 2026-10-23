@@ -60,6 +60,7 @@ mod paint_text;
 pub(crate) mod paint_theme;
 #[path = "paint_workbench.rs"]
 mod paint_workbench;
+pub(in crate::ui::retained_host) use paint_workbench::transition_panel_frame;
 #[path = "workbench.rs"]
 mod paint_workbench_renderer;
 #[path = "presenter/mod.rs"]

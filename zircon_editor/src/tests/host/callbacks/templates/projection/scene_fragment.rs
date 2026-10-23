@@ -15,24 +15,25 @@ fn hierarchy_patch_updates_only_its_runtime_rows_at_the_expected_generation() {
     let _guard = env_lock().lock().unwrap();
     let mut bridge =
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
-    bridge
-        .sync_scene_and_inspector(
-            &hierarchy_entries(
-                7,
-                vec![
-                    hierarchy_row(1, None, 0, "World", 11),
-                    hierarchy_row(2, Some(1), 1, "Camera", 12),
-                    hierarchy_row(3, Some(1), 1, "Light", 13),
-                ],
-            ),
-            None,
-        )
-        .unwrap();
+    sync_expanded_hierarchy(
+        &mut bridge,
+        &hierarchy_entries(
+            7,
+            vec![
+                hierarchy_row(1, None, 0, "World", 11),
+                hierarchy_row(2, Some(1), 1, "Camera", 12),
+                hierarchy_row(3, Some(1), 1, "Light", 13),
+            ],
+        ),
+        None,
+    )
+    .unwrap();
 
-    let changed_rows = vec![
+    let mut changed_rows = vec![
         hierarchy_row(1, None, 0, "World", 99),
         hierarchy_row(2, Some(1), 1, "Gameplay Camera", 42),
     ];
+    changed_rows[0].has_children = true;
     let fragment = SceneInspectionHierarchyFragment::patch(
         delta(
             7,
@@ -82,12 +83,12 @@ fn invalidated_hierarchy_projection_rejects_follow_up_sparse_deltas() {
     let _guard = env_lock().lock().unwrap();
     let mut bridge =
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
-    bridge
-        .sync_scene_and_inspector(
-            &hierarchy_entries(7, vec![hierarchy_row(1, None, 0, "World", 11)]),
-            None,
-        )
-        .unwrap();
+    sync_expanded_hierarchy(
+        &mut bridge,
+        &hierarchy_entries(7, vec![hierarchy_row(1, None, 0, "World", 11)]),
+        None,
+    )
+    .unwrap();
     bridge.invalidate_scene_hierarchy_projection();
     let fragment = SceneInspectionHierarchyFragment::patch(
         delta(
@@ -112,20 +113,20 @@ fn hierarchy_reflow_is_explicit_for_a_structural_change() {
     let _guard = env_lock().lock().unwrap();
     let mut bridge =
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
-    bridge
-        .sync_scene_and_inspector(
-            &hierarchy_entries(
-                20,
-                vec![
-                    hierarchy_row(1, None, 0, "World", 21),
-                    hierarchy_row(2, Some(1), 1, "Group", 22),
-                    hierarchy_row(3, Some(2), 2, "Camera", 23),
-                    hierarchy_row(4, Some(1), 1, "Light", 24),
-                ],
-            ),
-            None,
-        )
-        .unwrap();
+    sync_expanded_hierarchy(
+        &mut bridge,
+        &hierarchy_entries(
+            20,
+            vec![
+                hierarchy_row(1, None, 0, "World", 21),
+                hierarchy_row(2, Some(1), 1, "Group", 22),
+                hierarchy_row(3, Some(2), 2, "Camera", 23),
+                hierarchy_row(4, Some(1), 1, "Light", 24),
+            ],
+        ),
+        None,
+    )
+    .unwrap();
 
     let next_entries = hierarchy_entries(
         21,
@@ -171,12 +172,12 @@ fn hierarchy_patch_requires_an_immediate_retained_generation_base() {
     let _guard = env_lock().lock().unwrap();
     let mut bridge =
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
-    bridge
-        .sync_scene_and_inspector(
-            &hierarchy_entries(10, vec![hierarchy_row(1, None, 0, "World", 1)]),
-            None,
-        )
-        .unwrap();
+    sync_expanded_hierarchy(
+        &mut bridge,
+        &hierarchy_entries(10, vec![hierarchy_row(1, None, 0, "World", 1)]),
+        None,
+    )
+    .unwrap();
     let fragment = SceneInspectionHierarchyFragment::patch(
         delta(
             8,
@@ -203,19 +204,19 @@ fn hierarchy_patch_escalates_parent_or_depth_changes_to_an_explicit_reflow() {
     let _guard = env_lock().lock().unwrap();
     let mut bridge =
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
-    bridge
-        .sync_scene_and_inspector(
-            &hierarchy_entries(
-                40,
-                vec![
-                    hierarchy_row(1, None, 0, "World", 41),
-                    hierarchy_row(2, Some(1), 1, "Group", 42),
-                    hierarchy_row(3, Some(2), 2, "Camera", 43),
-                ],
-            ),
-            None,
-        )
-        .unwrap();
+    sync_expanded_hierarchy(
+        &mut bridge,
+        &hierarchy_entries(
+            40,
+            vec![
+                hierarchy_row(1, None, 0, "World", 41),
+                hierarchy_row(2, Some(1), 1, "Group", 42),
+                hierarchy_row(3, Some(2), 2, "Camera", 43),
+            ],
+        ),
+        None,
+    )
+    .unwrap();
     let patch = SceneInspectionHierarchyFragment::patch(
         delta(
             40,
@@ -238,20 +239,20 @@ fn hierarchy_patch_updates_only_the_selection_delta_controls() {
     let _guard = env_lock().lock().unwrap();
     let mut bridge =
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
-    bridge
-        .sync_scene_and_inspector(
-            &hierarchy_entries_with_selection(
-                50,
-                vec![
-                    hierarchy_row(1, None, 0, "World", 51),
-                    hierarchy_row(2, Some(1), 1, "Camera", 52),
-                    hierarchy_row(3, Some(1), 1, "Light", 53),
-                ],
-                [2],
-            ),
-            None,
-        )
-        .unwrap();
+    sync_expanded_hierarchy(
+        &mut bridge,
+        &hierarchy_entries_with_selection(
+            50,
+            vec![
+                hierarchy_row(1, None, 0, "World", 51),
+                hierarchy_row(2, Some(1), 1, "Camera", 52),
+                hierarchy_row(3, Some(1), 1, "Light", 53),
+            ],
+            [2],
+        ),
+        None,
+    )
+    .unwrap();
     let patch = SceneInspectionHierarchyFragment::patch(
         delta(
             50,
@@ -280,19 +281,19 @@ fn coalesced_latest_selection_delta_converges_from_the_retained_revision() {
     let _guard = env_lock().lock().unwrap();
     let mut bridge =
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
-    bridge
-        .sync_scene_and_inspector(
-            &hierarchy_entries(
-                60,
-                vec![
-                    hierarchy_row(1, None, 0, "World", 61),
-                    hierarchy_row(2, Some(1), 1, "Camera", 62),
-                    hierarchy_row(3, Some(1), 1, "Light", 63),
-                ],
-            ),
-            None,
-        )
-        .unwrap();
+    sync_expanded_hierarchy(
+        &mut bridge,
+        &hierarchy_entries(
+            60,
+            vec![
+                hierarchy_row(1, None, 0, "World", 61),
+                hierarchy_row(2, Some(1), 1, "Camera", 62),
+                hierarchy_row(3, Some(1), 1, "Light", 63),
+            ],
+        ),
+        None,
+    )
+    .unwrap();
     let latest = SceneInspectionHierarchyFragment::patch(
         delta(
             60,
@@ -321,18 +322,18 @@ fn selection_revision_gap_repairs_only_the_selection_overlay() {
     let _guard = env_lock().lock().unwrap();
     let mut bridge =
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
-    bridge
-        .sync_scene_and_inspector(
-            &hierarchy_entries(
-                60,
-                vec![
-                    hierarchy_row(1, None, 0, "World", 61),
-                    hierarchy_row(2, Some(1), 1, "Camera", 62),
-                ],
-            ),
-            None,
-        )
-        .unwrap();
+    sync_expanded_hierarchy(
+        &mut bridge,
+        &hierarchy_entries(
+            60,
+            vec![
+                hierarchy_row(1, None, 0, "World", 61),
+                hierarchy_row(2, Some(1), 1, "Camera", 62),
+            ],
+        ),
+        None,
+    )
+    .unwrap();
     let patch = SceneInspectionHierarchyFragment::patch(
         delta(
             60,
@@ -443,9 +444,12 @@ fn ten_thousand_row_patch_does_not_reflow_the_projection() {
     let rows = (0..10_000)
         .map(|entity| hierarchy_row(entity, None, 0, "Entity", entity))
         .collect();
-    bridge
-        .sync_scene_and_inspector(&hierarchy_entries_with_selection(70, rows, 0..10_000), None)
-        .unwrap();
+    sync_expanded_hierarchy(
+        &mut bridge,
+        &hierarchy_entries_with_selection(70, rows, 0..10_000),
+        None,
+    )
+    .unwrap();
     let patch = SceneInspectionHierarchyFragment::patch(
         delta(
             70,
@@ -480,9 +484,7 @@ fn unmaterialized_hierarchy_row_rename_applies_without_reflow() {
     let rows = (1..=11)
         .map(|entity| hierarchy_row(entity, None, 0, "Entity", entity))
         .collect();
-    bridge
-        .sync_scene_and_inspector(&hierarchy_entries(90, rows), None)
-        .unwrap();
+    sync_expanded_hierarchy(&mut bridge, &hierarchy_entries(90, rows), None).unwrap();
 
     let patch = SceneInspectionHierarchyFragment::patch(
         delta(
@@ -524,9 +526,12 @@ fn selection_delta_publishes_unmaterialized_logical_row_state() {
     let rows = (1..=11)
         .map(|entity| hierarchy_row(entity, None, 0, "Entity", entity))
         .collect();
-    bridge
-        .sync_scene_and_inspector(&hierarchy_entries_with_selection(95, rows, [10]), None)
-        .unwrap();
+    sync_expanded_hierarchy(
+        &mut bridge,
+        &hierarchy_entries_with_selection(95, rows, [10]),
+        None,
+    )
+    .unwrap();
     let patch = SceneInspectionHierarchyFragment::patch(
         delta(
             95,
@@ -572,15 +577,42 @@ fn delta(
     )
 }
 
+// Sparse-patch assertions below address visible child controls. Publish valid
+// parent metadata and explicitly expand branches, as the operator would.
+fn sync_expanded_hierarchy(
+    bridge: &mut BuiltinWorkbenchWindowTemplateSurfaceBridge,
+    entries: &SceneEntries,
+    inspector: Option<&crate::ui::workbench::snapshot::InspectorSnapshot>,
+) -> Result<(), String> {
+    let expanded = entries
+        .iter()
+        .filter(|row| row.has_children)
+        .map(|row| row.entity)
+        .collect::<Vec<_>>();
+    bridge
+        .sync_scene_view_state(entries, "", &expanded)
+        .map_err(|error| error.to_string())?;
+    bridge
+        .sync_scene_and_inspector(entries, inspector)
+        .map_err(|error| error.to_string())
+}
+
 fn hierarchy_entries(generation: u64, rows: Vec<WorldInspectionHierarchyRow>) -> SceneEntries {
     hierarchy_entries_with_selection(generation, rows, [])
 }
 
 fn hierarchy_entries_with_selection(
     generation: u64,
-    rows: Vec<WorldInspectionHierarchyRow>,
+    mut rows: Vec<WorldInspectionHierarchyRow>,
     selected: impl IntoIterator<Item = u64>,
 ) -> SceneEntries {
+    let parents = rows
+        .iter()
+        .filter_map(|row| row.parent)
+        .collect::<std::collections::BTreeSet<_>>();
+    for row in &mut rows {
+        row.has_children = parents.contains(&row.entity);
+    }
     SceneEntries::from_hierarchy_rows_at_generation(rows, selected, generation)
 }
 

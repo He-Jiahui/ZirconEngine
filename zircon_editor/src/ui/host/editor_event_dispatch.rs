@@ -36,12 +36,15 @@ use super::editor_event_execution::{
 pub enum EditorEventDispatchError {
     #[error(transparent)]
     Execution(#[from] EditorEventExecutionError),
+    #[error("{0}")]
+    AsyncPlay(String),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum EventRecordPolicy {
     Durable,
     NativeCommandObservation,
+    PendingPlayAdmission,
 }
 
 impl EventRecordPolicy {
@@ -210,15 +213,95 @@ impl EditorHostEventController {
         result_override: Option<EditorEventResult>,
         record_policy: EventRecordPolicy,
     ) -> Result<EditorEventRecord, EditorEventDispatchError> {
+        let queued = if result_override.is_none() {
+            self.queue_async_play_event(&source, &event, &operation, &binding_path, record_policy)?
+        } else {
+            false
+        };
         self.dispatch_normalized_event_with_metadata_using(
             source,
             event,
             operation,
             binding_path,
-            result_override,
-            record_policy,
-            execute_event,
+            if queued {
+                // Admission is observable, but only the worker can publish a
+                // result after the authoritative backend transition finishes.
+                Some(EditorEventResult::default())
+            } else {
+                result_override
+            },
+            if queued {
+                EventRecordPolicy::PendingPlayAdmission
+            } else {
+                record_policy
+            },
+            move |controller, event| {
+                if queued {
+                    Ok(ExecutionOutcome {
+                        changed: false,
+                        effects: vec![
+                            EditorEventEffect::PresentationChanged,
+                            EditorEventEffect::ReflectionChanged,
+                        ],
+                    })
+                } else {
+                    execute_event(controller, event)
+                }
+            },
         )
+    }
+
+    fn queue_async_play_event(
+        &self,
+        source: &EditorEventSource,
+        event: &EditorEvent,
+        operation: &Option<(EditorOperationPath, String, Value, Option<String>)>,
+        binding_path: &Option<String>,
+        record_policy: EventRecordPolicy,
+    ) -> Result<bool, EditorEventDispatchError> {
+        let label = match event {
+            EditorEvent::WorkbenchMenu(MenuAction::EnterPlayMode) => "Starting Play…",
+            EditorEvent::WorkbenchMenu(MenuAction::ExitPlayMode) => "Stopping Play…",
+            _ => return Ok(false),
+        };
+        let mut commands = self
+            .async_play
+            .lock()
+            .unwrap_or_else(|error| error.into_inner());
+        let Some(controller) = commands.owner.upgrade() else {
+            return Ok(false);
+        };
+        if commands.task.is_some() {
+            return Err(EditorEventDispatchError::AsyncPlay(
+                "A Play transition is already in progress.".to_string(),
+            ));
+        }
+        let source = source.clone();
+        let event = event.clone();
+        let operation = operation.clone();
+        let binding_path = binding_path.clone();
+        let wake = commands.wake.clone();
+        let worker = std::thread::Builder::new()
+            .name("editor-play-transition".into())
+            .spawn(move || {
+                let started = std::time::Instant::now();
+                eprintln!("editor_play_transition stage=worker_enter action={label}");
+                let result = controller.dispatch_normalized_event_with_metadata_using(
+                    source, event, operation, binding_path, None, record_policy, execute_event,
+                ).map_err(|error| error.to_string());
+                eprintln!("editor_play_transition stage=worker_return action={label} elapsed_us={} success={}",
+                    started.elapsed().as_micros(), result.is_ok());
+                if let Some(wake) = wake { wake(); }
+                result
+            })
+            .map_err(|error| EditorEventDispatchError::AsyncPlay(error.to_string()))?;
+        commands.task = Some(super::editor_async_play::AsyncPlayTask {
+            label,
+            worker,
+            started: std::time::Instant::now(),
+        });
+        commands.preview_started = None;
+        Ok(true)
     }
 
     fn dispatch_normalized_event_with_metadata_using(
@@ -275,6 +358,9 @@ impl EditorHostEventController {
             Ok(outcome) => outcome,
             Err(error) => {
                 let error_message = error.to_string();
+                if std::env::var_os("ZIRCON_TRACE_EDITOR_INTERACTION").is_some() {
+                    eprintln!("editor_interaction kind=command_failure event={event:?} error={error_message}");
+                }
                 self.shell().lock().state.set_status_line_with_level(
                     error_message.clone(),
                     EditorConsoleMessageLevel::Error,
@@ -308,20 +394,26 @@ impl EditorHostEventController {
 
         let mut authoring_trace_error = None;
         let mut result_override = result_override;
-        let (transaction_id, save_generation) =
-            match self.authoring_trace(&event, execution.changed()) {
-                Ok(trace) => trace,
-                Err(error) => {
-                    let message = error.to_string();
-                    self.shell().lock().state.set_status_line_with_level(
-                        message.clone(),
-                        EditorConsoleMessageLevel::Error,
-                    );
-                    result_override = Some(EditorEventResult::failure(message));
-                    authoring_trace_error = Some(error);
-                    (None, None)
-                }
-            };
+        let authoring_trace = if record_policy == EventRecordPolicy::PendingPlayAdmission {
+            // Admission has no committed authoring transaction and must not
+            // contend with the worker's shell while preparing its scene.
+            Ok((None, None))
+        } else {
+            self.authoring_trace(&event, execution.changed())
+        };
+        let (transaction_id, save_generation) = match authoring_trace {
+            Ok(trace) => trace,
+            Err(error) => {
+                let message = error.to_string();
+                self.shell()
+                    .lock()
+                    .state
+                    .set_status_line_with_level(message.clone(), EditorConsoleMessageLevel::Error);
+                result_override = Some(EditorEventResult::failure(message));
+                authoring_trace_error = Some(error);
+                (None, None)
+            }
+        };
         let record = EditorEventRecord {
             event_id: stamp.event_id,
             sequence: stamp.sequence,
@@ -348,27 +440,42 @@ impl EditorHostEventController {
         if execution.changed() {
             self.publish_scene_inspection_publication();
         }
+        if std::env::var_os("ZIRCON_TRACE_EDITOR_INTERACTION").is_some() {
+            eprintln!(
+                "editor_interaction kind=command_result operation={} changed={} event={:?}",
+                record.operation_id.as_deref().unwrap_or(""),
+                execution.changed(),
+                record.event
+            );
+        }
         self.refresh_workbench_for_event_record(&record);
         emit_mvp_authoring_product_trace(
             self.context().logs(),
             &record,
             if authoring_trace_error.is_some() {
                 "failed"
+            } else if record.result.value.is_none() && record.result.error.is_none() {
+                "pending"
             } else {
                 "completed"
             },
         );
-        let journal_record = if record_policy.retain_result_in_journal() {
-            record.clone()
-        } else {
-            let mut journal_record = record.clone();
-            journal_record.result = EditorEventResult::default();
-            if !record_policy.retain_operation_arguments() {
-                journal_record.operation_arguments = None;
-            }
-            journal_record
-        };
-        self.context().events().record(journal_record);
+        // Replaying an admission as well as its completed worker record would
+        // execute the same Play request twice. The caller observes admission;
+        // only the worker publishes the command's durable completion/failure.
+        if record_policy != EventRecordPolicy::PendingPlayAdmission {
+            let journal_record = if record_policy.retain_result_in_journal() {
+                record.clone()
+            } else {
+                let mut journal_record = record.clone();
+                journal_record.result = EditorEventResult::default();
+                if !record_policy.retain_operation_arguments() {
+                    journal_record.operation_arguments = None;
+                }
+                journal_record
+            };
+            self.context().events().record(journal_record);
+        }
         if let Some(source) = authoring_trace_error {
             emit_failed_event_log(self.context().logs(), &record);
             return Err(EditorEventExecutionError::Animation { source }.into());

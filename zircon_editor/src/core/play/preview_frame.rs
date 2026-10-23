@@ -26,6 +26,20 @@ pub struct PlayPreviewFrameIdentity {
 }
 
 impl PlayPreviewFrameIdentity {
+    pub(crate) fn for_viewport_product(
+        instance: PlayInstanceId,
+        gateway: GatewaySessionIdentity,
+        product: &crate::scene::viewport::RenderViewportProduct,
+    ) -> Self {
+        Self {
+            instance,
+            gateway,
+            width: product.width(),
+            height: product.height(),
+            generation: product.generation(),
+        }
+    }
+
     pub const fn instance(&self) -> PlayInstanceId {
         self.instance
     }
@@ -67,6 +81,22 @@ impl PlayPreviewFrameIdentity {
 }
 
 impl PlayPreviewFrame {
+    pub(crate) fn copy_completed_and_release(
+        instance: PlayInstanceId,
+        gateway: GatewaySessionIdentity,
+        frame: EditorRuntimeFrame,
+    ) -> Result<Option<Self>, PlayPreviewCaptureError> {
+        // The dynamic ABI uses generation zero for its pending-readback
+        // placeholder. Release it without copying or replacing the last image.
+        // A completed transparent frame with a nonzero generation remains valid.
+        if frame.generation() == 0 {
+            frame.release().map_err(PlayPreviewCaptureError::Release)?;
+            zircon_runtime::profile_counter!("editor", "play.preview.pending_frame_count", 1);
+            return Ok(None);
+        }
+        Self::copy_and_release(instance, gateway, frame).map(Some)
+    }
+
     pub(crate) fn copy_and_release(
         instance: PlayInstanceId,
         gateway: GatewaySessionIdentity,

@@ -35,7 +35,7 @@ pub enum GizmoTransactionError {
     InteractiveTransform { message: String },
     #[error(transparent)]
     AuthoringWorld(#[from] AuthoringWorldAccessError),
-    #[error("gizmo transaction {phase:?} failed")]
+    #[error("gizmo transaction {phase:?} failed: {source}")]
     EditCommand {
         phase: GizmoTransactionPhase,
         #[source]
@@ -100,6 +100,7 @@ impl From<InteractiveTransformError> for GizmoTransactionError {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InspectorTransformField {
     Translation,
+    Rotation,
     Scale,
 }
 
@@ -107,6 +108,7 @@ impl fmt::Display for InspectorTransformField {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Translation => formatter.write_str("translation"),
+            Self::Rotation => formatter.write_str("rotation"),
             Self::Scale => formatter.write_str("scale"),
         }
     }

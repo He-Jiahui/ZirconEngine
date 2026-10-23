@@ -61,6 +61,15 @@ impl RetainedEditorHost {
     }
 
     pub(in crate::ui::retained_host::app) fn recompute_if_dirty(&mut self) {
+        if !self.presentation_dirty
+            && !self.layout_dirty
+            && !self.window_metrics_dirty
+            && !self.invalidation.has_pending_presentation_recompute()
+        {
+            // Presenter retirement is tied to a publication. Idle/viewport-only ticks
+            // must not collect input windows or scan generated panes without one.
+            return;
+        }
         // Keep addressed presenters alive across a publication that can retire native children.
         let retained_input_windows = self.retained_pane_input_windows();
         if let Err(error) = self.try_recompute_if_dirty() {

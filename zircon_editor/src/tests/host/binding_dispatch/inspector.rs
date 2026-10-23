@@ -547,7 +547,13 @@ fn inspector_binding_restores_every_boundary_after_late_transaction_application_
         .transactions()
         .history_status(HistoryContextId::Global)
         .unwrap();
-    let world_before = state.world.snapshot();
+    // Rollback restores authored content; mutation generations remain monotonic.
+    let world_before = state
+        .world
+        .expect_with_world(|scene| zircon_runtime::scene::DynamicScene::from_world(scene).unwrap());
+    let generation_before = state
+        .world
+        .expect_with_world(|scene| scene.world_generation());
     let transaction_subscriber = state
         .context
         .bus()
@@ -568,7 +574,12 @@ fn inspector_binding_restores_every_boundary_after_late_transaction_application_
     );
 
     let error = apply_inspector_binding(&mut state, &binding).unwrap_err();
-    assert!(error.to_string().contains("missing parent 999999"));
+    assert!(
+        std::iter::successors(Some(&error as &dyn std::error::Error), |error| error
+            .source())
+        .any(|source| source.to_string().contains("missing parent 999999")),
+        "missing-parent failure must survive in the error chain: {error:?}"
+    );
     let lifecycle = state
         .context
         .bus()
@@ -627,7 +638,13 @@ fn inspector_binding_restores_every_boundary_after_late_transaction_application_
             .unwrap(),
         history_status_before
     );
-    assert_eq!(state.world.snapshot(), world_before);
+    state.world.expect_with_world(|scene| {
+        assert_eq!(
+            zircon_runtime::scene::DynamicScene::from_world(scene).unwrap(),
+            world_before
+        );
+        assert!(scene.world_generation() > generation_before);
+    });
 }
 
 #[test]
@@ -667,7 +684,13 @@ fn inspector_binding_cancels_post_apply_selection_sync_failure_before_history_co
         .transactions()
         .history_status(HistoryContextId::Global)
         .unwrap();
-    let world_before = state.world.snapshot();
+    // Rollback restores authored content; mutation generations remain monotonic.
+    let world_before = state
+        .world
+        .expect_with_world(|scene| zircon_runtime::scene::DynamicScene::from_world(scene).unwrap());
+    let generation_before = state
+        .world
+        .expect_with_world(|scene| scene.world_generation());
     let transaction_subscriber = state
         .context
         .bus()
@@ -755,7 +778,13 @@ fn inspector_binding_cancels_post_apply_selection_sync_failure_before_history_co
             .unwrap(),
         history_status_before
     );
-    assert_eq!(state.world.snapshot(), world_before);
+    state.world.expect_with_world(|scene| {
+        assert_eq!(
+            zircon_runtime::scene::DynamicScene::from_world(scene).unwrap(),
+            world_before
+        );
+        assert!(scene.world_generation() > generation_before);
+    });
 }
 
 #[test]
@@ -842,4 +871,109 @@ fn inspector_binding_rejects_an_active_gizmo_without_cancelling_its_preview() {
         support::transaction_selection_snapshot(&state),
         transaction_selection_snapshot_before
     );
+}
+
+#[test]
+fn inspector_rotation_commit_preserves_other_axes_and_undo_restores_quaternion() {
+    use zircon_runtime_interface::math::{EulerRot, Quat};
+    let mut state = support::test_state();
+    let cube = support::camera_id(&state);
+    let original = Quat::from_euler(EulerRot::XYZ, 0.2, -0.3, 0.1);
+    state.world.expect_with_world_mut(|scene| {
+        let mut transform = scene.local_transform(cube).unwrap();
+        transform.rotation = original;
+        scene.update_transform(cube, transform).unwrap();
+    });
+    state.apply_intent(EditorIntent::SelectNode(cube)).unwrap();
+    let binding = EditorUiBinding::new(
+        "Inspector",
+        "RotationZ",
+        EditorUiEventKind::Submit,
+        EditorUiBindingPayload::inspector_field_batch(
+            "entity://selected",
+            [InspectorFieldChange::new(
+                "transform.rotation_degrees.z",
+                UiBindingValue::Float(30.0),
+            )],
+        ),
+    );
+    assert!(apply_inspector_binding(&mut state, &binding).unwrap());
+    let expected = Quat::from_euler(EulerRot::XYZ, 0.2, -0.3, 30_f32.to_radians());
+    state.world.expect_with_world(|scene| {
+        let actual = scene.local_transform(cube).unwrap().rotation;
+        assert!(actual.dot(expected).abs() > 0.99999);
+    });
+    state.apply_intent(EditorIntent::Undo).unwrap();
+    state.world.expect_with_world(|scene| {
+        assert_eq!(scene.local_transform(cube).unwrap().rotation, original);
+    });
+    let bad = EditorUiBinding::new(
+        "Inspector",
+        "RotationZ",
+        EditorUiEventKind::Submit,
+        EditorUiBindingPayload::inspector_field_batch(
+            "entity://selected",
+            [InspectorFieldChange::new(
+                "transform.rotation_degrees.z",
+                UiBindingValue::Float(f64::NAN),
+            )],
+        ),
+    );
+    assert!(apply_inspector_binding(&mut state, &bad).is_err());
+    state.world.expect_with_world(|scene| {
+        assert_eq!(scene.local_transform(cube).unwrap().rotation, original);
+    });
+}
+
+#[test]
+fn inspector_rotation_and_field_scoped_transform_batch_roundtrips_as_one_edit() {
+    use zircon_runtime_interface::math::{EulerRot, Quat};
+    let mut state = support::test_state();
+    let entity = support::camera_id(&state);
+    let original = state
+        .world
+        .expect_with_world(|scene| scene.local_transform(entity).unwrap());
+    state
+        .apply_intent(EditorIntent::SelectNode(entity))
+        .unwrap();
+    let binding = EditorUiBinding::new(
+        "Inspector",
+        "ApplyBatch",
+        EditorUiEventKind::Submit,
+        EditorUiBindingPayload::inspector_field_batch(
+            "entity://selected",
+            [
+                InspectorFieldChange::new(
+                    "transform.rotation_degrees.z",
+                    UiBindingValue::Float(30.0),
+                ),
+                InspectorFieldChange::new("transform.translation.x", UiBindingValue::Float(2.5)),
+                InspectorFieldChange::new("transform.scale.x", UiBindingValue::Float(1.25)),
+            ],
+        ),
+    );
+    assert!(apply_inspector_binding(&mut state, &binding).unwrap());
+    let changed = state.world.expect_with_world(|scene| {
+        let transform = scene.local_transform(entity).unwrap();
+        let (x, y, _) = original.rotation.to_euler(EulerRot::XYZ);
+        let expected = Quat::from_euler(EulerRot::XYZ, x, y, 30_f32.to_radians());
+        assert!(transform.rotation.dot(expected).abs() > 0.99999);
+        assert_eq!(
+            transform.translation,
+            Vec3::new(2.5, original.translation.y, original.translation.z)
+        );
+        assert_eq!(
+            transform.scale,
+            Vec3::new(1.25, original.scale.y, original.scale.z)
+        );
+        transform
+    });
+    assert!(state.apply_intent(EditorIntent::Undo).unwrap());
+    state.world.expect_with_world(|scene| {
+        assert_eq!(scene.local_transform(entity).unwrap(), original);
+    });
+    assert!(state.apply_intent(EditorIntent::Redo).unwrap());
+    state.world.expect_with_world(|scene| {
+        assert_eq!(scene.local_transform(entity).unwrap(), changed);
+    });
 }

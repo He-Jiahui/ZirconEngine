@@ -1,4 +1,7 @@
-#![cfg_attr(all(windows, feature = "shipping-editor"), windows_subsystem = "windows")]
+#![cfg_attr(
+    all(windows, feature = "shipping-editor"),
+    windows_subsystem = "windows"
+)]
 
 #[path = "editor/startup_diagnostic.rs"]
 mod startup_diagnostic;
@@ -9,8 +12,9 @@ fn main() -> std::process::ExitCode {
         return result;
     }
     use zircon_runtime::diagnostic_log::{
-        initialize_process_log, install_process_log_panic_flush, shutdown_process_log, write_error, write_log,
-        DEFAULT_DIAGNOSTIC_LOG_CRASH_FLUSH_TIMEOUT, DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT,
+        initialize_process_log, install_process_log_panic_flush, shutdown_process_log, write_error,
+        write_log, DEFAULT_DIAGNOSTIC_LOG_CRASH_FLUSH_TIMEOUT,
+        DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT,
     };
 
     install_process_log_panic_flush(DEFAULT_DIAGNOSTIC_LOG_CRASH_FLUSH_TIMEOUT);

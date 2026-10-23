@@ -111,6 +111,18 @@ impl PaneSurfaceHostContext<'_> {
             .replace_scene_viewport_image_for_surface(surface_key, image)
     }
 
+    pub(crate) fn set_game_viewport_product(
+        &self,
+        product: RenderViewportProduct,
+        identity: PlayPreviewFrameIdentity,
+    ) -> bool {
+        let Some(mut image) = HostViewportImageData::from_viewport_product(product) else {
+            return false;
+        };
+        image.play_frame_identity = Some(identity);
+        self.state.borrow_mut().replace_game_viewport_image(image)
+    }
+
     pub(crate) fn set_game_viewport_frame(&self, frame: PlayPreviewFrame) -> bool {
         let Some(image) = HostViewportImageData::from_play_preview_frame(frame) else {
             return false;

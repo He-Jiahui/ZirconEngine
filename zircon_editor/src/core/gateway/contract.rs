@@ -268,6 +268,15 @@ pub trait EditorRuntimeGateway: Send + Sync {
         })
     }
 
+    /// A live extract for a presenter sharing this process. Serialized transports retain
+    /// their explicit frame-capture fallback; Rust renderer resources never cross the ABI.
+    fn render_preview_extract(
+        &self,
+        _size: zircon_runtime_interface::math::UVec2,
+    ) -> Result<zircon_runtime::core::framework::render::RenderFrameExtract, GatewayError> {
+        Err(GatewayError::RequiresSerializedAccess)
+    }
+
     fn capture_frame(
         &self,
         _viewport: ZrRuntimeViewportHandle,

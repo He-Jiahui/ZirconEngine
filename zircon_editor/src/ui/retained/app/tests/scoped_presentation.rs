@@ -18,6 +18,34 @@ props = { text = "Ready" }
 "#;
 
 #[test]
+fn clean_runtime_ticks_preserve_workbench_layout_and_presentation() {
+    let _guard = lock_env();
+    let harness = ChildWindowHostHarness::new("zircon_retained_clean_runtime_tick");
+    harness.activate_workbench_page();
+    let mut host = harness.host.borrow_mut();
+    host.tick_runtime_only();
+    let cursor = host.ui.get_host_presentation_generation().cursor();
+    let layouts = host.workbench_window_bridge.layout_pass_count();
+    let rebuilds = host
+        .invalidation
+        .diagnostics_snapshot()
+        .slow_path_rebuild_count;
+    let _ = host.ui.take_external_redraw_for_test();
+    for _ in 0..60 {
+        host.tick_runtime_only();
+    }
+    assert_eq!(host.ui.get_host_presentation_generation().cursor(), cursor);
+    assert_eq!(host.workbench_window_bridge.layout_pass_count(), layouts);
+    assert_eq!(
+        host.invalidation
+            .diagnostics_snapshot()
+            .slow_path_rebuild_count,
+        rebuilds
+    );
+    assert!(!host.ui.take_external_redraw_for_test().requires_present());
+}
+
+#[test]
 fn active_drawer_pane_presentation_uses_shell_content_without_a_full_rebuild() {
     let _guard = lock_env();
     let harness = ChildWindowHostHarness::new("zircon_retained_scoped_drawer_presentation");
@@ -52,6 +80,7 @@ fn active_drawer_pane_presentation_uses_shell_content_without_a_full_rebuild() {
 fn ui_asset_mode_action_patches_the_presented_view_without_a_full_shell_rebuild() {
     let _guard = lock_env();
     let harness = ChildWindowHostHarness::new("zircon_retained_scoped_presentation");
+    harness.activate_workbench_page();
     let asset_path =
         unique_temp_path("zircon_retained_scoped_presentation_asset").with_extension("ui.toml");
     std::fs::write(&asset_path, SCOPED_PRESENTATION_UI_ASSET).unwrap();
@@ -66,9 +95,20 @@ fn ui_asset_mode_action_patches_the_presented_view_without_a_full_shell_rebuild(
 
     {
         let mut host = harness.host.borrow_mut();
+        // Direct manager admission needs the layout effect used by open_view.
+        host.mark_layout_dirty();
         host.refresh_ui();
         host.recompute_if_dirty();
     }
+    let mounted = harness.root_ui.get_host_presentation();
+    assert_eq!(
+        mounted.host_scene_data.document_dock.pane.id.as_str(),
+        instance_id.0
+    );
+    assert_eq!(
+        mounted.host_scene_data.document_dock.pane.kind.as_str(),
+        "UiAssetEditor"
+    );
     let slow_path_rebuilds_before = harness
         .host
         .borrow()
@@ -93,6 +133,12 @@ fn ui_asset_mode_action_patches_the_presented_view_without_a_full_shell_rebuild(
             .mode,
         "Preview"
     );
+    let document = &presentation.host_scene_data.document_dock.pane;
+    for leaf in &presentation.host_scene_data.document_leaves {
+        if leaf.pane.id == document.id {
+            assert_eq!(leaf.pane.ui_asset.header.mode, "Preview");
+        }
+    }
     assert_eq!(
         harness
             .host

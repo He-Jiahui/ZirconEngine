@@ -8,6 +8,7 @@ mod test_frame;
 use super::paint_theme::PALETTE;
 
 pub(in crate::ui::retained_host::host_contract) use commands::draw_workbench_presentation_commands;
+pub(in crate::ui::retained_host) use commands::transition_panel_frame;
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract) use test_frame::{
     paint_host_frame, repaint_host_frame_region,

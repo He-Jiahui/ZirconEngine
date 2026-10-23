@@ -5,7 +5,36 @@ fn play_native_admission_uses_the_client_runtime_target() {
     let target = play_native_plugin_target();
 
     assert_eq!(target.runtime_mode, RuntimeTargetMode::ClientRuntime);
-    assert_eq!(target.platform, ExportTargetPlatform::Windows);
+    let expected = if cfg!(target_os = "linux") {
+        ExportTargetPlatform::Linux
+    } else if cfg!(target_os = "macos") {
+        ExportTargetPlatform::Macos
+    } else {
+        ExportTargetPlatform::Windows
+    };
+    assert_eq!(target.platform, expected);
+}
+
+#[test]
+fn an_empty_project_enters_and_restores_the_native_plugin_snapshot() {
+    let activation =
+        NativePluginBridgeActivation::new(NativePluginHostHandle::default())
+            .with_admission_resolver(Arc::new(|root, target| {
+                Ok(zircon_runtime::plugin::package_service::resolve_project_native_plugin_admission(
+                root,
+                None,
+                target,
+                &zircon_runtime::core::framework::project::ProjectPluginManifest::default(),
+            ))
+            }));
+    activation
+        .activate(Some(Path::new("project")))
+        .expect("no native selections");
+    assert!(activation.active_snapshot.lock().unwrap().is_some());
+    activation
+        .deactivate()
+        .expect("restore editor plugin snapshot");
+    assert!(activation.active_snapshot.lock().unwrap().is_none());
 }
 
 #[test]

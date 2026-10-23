@@ -28,6 +28,7 @@ impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn show_close_prompt(&self, prompt: &PendingClosePrompt) {
         let ui = self.close_prompt_ui(&prompt.target);
         close_prompt::show_prompt(&ui, prompt);
+        self.publish_operator_evidence();
     }
 
     pub(in crate::ui::retained_host::app) fn clear_close_prompt(&self, target: &ClosePromptTarget) {

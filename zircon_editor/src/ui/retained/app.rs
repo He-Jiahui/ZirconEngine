@@ -122,6 +122,8 @@ mod asset_surface_pointer_state;
 mod asset_tree_pointer;
 #[path = "app/assets.rs"]
 mod assets;
+#[path = "app/async_play.rs"]
+mod async_play;
 #[path = "app/automation.rs"]
 mod automation;
 #[path = "app/autosave.rs"]
@@ -186,6 +188,8 @@ mod native_window_close;
 mod native_windows;
 #[path = "app/opened_view_visibility.rs"]
 mod opened_view_visibility;
+#[path = "app/operator_evidence.rs"]
+mod operator_evidence;
 #[path = "app/pane_payload_visibility.rs"]
 mod pane_payload_visibility;
 #[path = "app/pane_surface_actions.rs"]
@@ -416,6 +420,9 @@ pub fn run_editor_with_config(
             .and_then(|manager| manager.apply_layout_command(LayoutCommand::LoadPreset { name }))
             .map_err(|error| hub_startup_reporter.report_failure(error))?;
     }
+    retained_host
+        .runtime
+        .enable_async_play(ui.background_event_wake_callback());
     let host = Rc::new(RefCell::new(retained_host));
     let notification_context = host.borrow().runtime.context().clone();
     ui.on_toast_presented(move |id, token| {
@@ -734,8 +741,14 @@ struct RetainedEditorHost {
     ui: UiHostWindow,
     self_handle: Option<Weak<RefCell<RetainedEditorHost>>>,
     runtime_lease: RetainedHostRuntimeLease,
-    runtime: EditorHostEventController,
+    runtime: Arc<EditorHostEventController>,
     runtime_shutdown_receipt: Option<EditorRuntimeSessionShutdownReceipt>,
+    close_after_play_transition: bool,
+    play_gpu_identity: Option<(
+        crate::core::play::PlayInstanceId,
+        crate::core::gateway::GatewaySessionIdentity,
+    )>,
+    play_gpu_unavailable: Option<crate::core::play::PlayInstanceId>,
     editor_manager: ServiceHandle<EditorManager>,
     hub_focus_binding: HubFocusBinding,
     hub_focus_request_attention: Arc<dyn Fn() + Send + Sync>,

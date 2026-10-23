@@ -8,6 +8,81 @@ use crate::ui::retained_host::primitives::{ModelRc, VecModel};
 use std::rc::Rc;
 
 #[test]
+fn pane_patch_updates_document_leaf_and_unpainted_dock_alias_atomically() {
+    for shared_alias in [false, true] {
+        let host = UiHostWindow::new().expect("host window should construct for pane patch test");
+        let nodes = |id: &str| {
+            ModelRc::from(Rc::new(VecModel::from(vec![TemplatePaneNodeData {
+                control_id: id.into(),
+                ..TemplatePaneNodeData::default()
+            }])))
+        };
+        let previous_nodes = nodes("document.previous");
+        let alias_nodes = if shared_alias {
+            previous_nodes.clone()
+        } else {
+            nodes("alias.previous")
+        };
+        let mut presentation = HostWindowPresentationData::default();
+        let mut leaf = presentation.host_scene_data.document_dock.clone();
+        leaf.surface_key = "document.leaf".into();
+        leaf.pane = ui_asset_pane("document-pane", previous_nodes.clone());
+        presentation.host_scene_data.document_leaves.push(leaf);
+        presentation.host_scene_data.document_dock.pane =
+            ui_asset_pane("document-pane", alias_nodes);
+        host.set_host_presentation(presentation);
+        let next_nodes = nodes("document.next");
+        let next_alias_nodes = if shared_alias {
+            next_nodes.clone()
+        } else {
+            nodes("alias.next")
+        };
+
+        assert!(host
+            .patch_host_presentation_panes(|current| {
+                let mut patch = HostPanePresentationPatch::new();
+                let leaf = &current.host_scene_data.document_leaves[0];
+                let mut next = leaf.pane.clone();
+                next.ui_asset.nodes = next_nodes.clone();
+                patch.push(
+                    HostPanePresentationLocation::DocumentLeaf {
+                        surface_key: leaf.surface_key.clone(),
+                    },
+                    &leaf.pane,
+                    next,
+                );
+                let alias = &current.host_scene_data.document_dock.pane;
+                let mut next = alias.clone();
+                next.ui_asset.nodes = next_alias_nodes.clone();
+                patch.push(HostPanePresentationLocation::DocumentDock, alias, next);
+                Some((patch, ()))
+            })
+            .is_some());
+
+        let after = host.get_host_presentation_generation();
+        let scene = &after.structure().host_scene_data;
+        assert!(scene.document_leaves[0]
+            .pane
+            .ui_asset
+            .nodes
+            .shares_values_with(&next_nodes));
+        assert!(scene
+            .document_dock
+            .pane
+            .ui_asset
+            .nodes
+            .shares_values_with(&next_alias_nodes));
+        assert!(after.workbench_hit_index().indexes_paint_nodes(&next_nodes));
+        assert!(!after
+            .workbench_hit_index()
+            .indexes_paint_nodes(&previous_nodes));
+        assert!(after
+            .workbench_hit_index()
+            .indexes_presentation(after.structure()));
+    }
+}
+
+#[test]
 fn pane_patch_rebinds_only_the_changed_paint_model_in_one_atomic_publish() {
     let host = UiHostWindow::new().expect("host window should construct for pane patch test");
     let previous_nodes = ModelRc::from(Rc::new(VecModel::from(vec![TemplatePaneNodeData {

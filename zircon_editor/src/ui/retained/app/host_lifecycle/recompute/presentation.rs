@@ -172,7 +172,7 @@ impl RetainedEditorHost {
         )
     }
 
-    pub(super) fn apply_workbench_projection_presentation(
+    pub(in crate::ui::retained_host::app) fn apply_workbench_projection_presentation(
         &mut self,
     ) -> Result<bool, crate::ui::host::EditorError> {
         zircon_runtime::profile_scope!(

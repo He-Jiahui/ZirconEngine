@@ -68,6 +68,7 @@ impl RetainedEditorHost {
     }
 
     pub(in crate::ui::retained_host::app) fn publish_normal_arranged_inventory_after_commit(&self) {
+        self.publish_operator_evidence();
         if std::env::var_os("ZIRCON_EDITOR_WORKBENCH_REVIEW_PROJECT_ROOT").is_some() {
             let inventory = crate::ui::template_runtime::NormalPresentInventory::new(vec![
                 self.template_bridge.normal_arranged_inventory(),

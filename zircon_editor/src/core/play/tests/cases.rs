@@ -134,6 +134,8 @@ impl PlayBackend for PreviewFrameBackend {
         api.capture_frame = Some(capture_preview_frame);
         api.release_allocation = Some(release_preview_frame);
         let session = ZrRuntimeSessionHandle::new(41);
+        // SAFETY: the static test callbacks and their data outlive this owned
+        // gateway; the matching test release callback owns no foreign allocation.
         let gateway = unsafe {
             SessionGateway::new_with_identity(
                 Arc::new(()),
@@ -289,6 +291,8 @@ unsafe extern "C" fn capture_preview_frame(
         request.size.width,
         request.size.height,
     ));
+    // SAFETY: the gateway passes writable storage for one frame descriptor;
+    // the RGBA slice is static and remains alive until its no-op release.
     unsafe {
         frame.write(ZrRuntimeFrameV2 {
             abi_version: ZIRCON_RUNTIME_ABI_VERSION_V2,
@@ -360,6 +364,51 @@ fn start_test_play_gateway(
         Some(WorldDomain::Play(instance)) => instance,
         domain => panic!("attachable test backend did not publish a Play domain: {domain:?}"),
     }
+}
+
+#[test]
+fn gpu_play_preview_extract_uses_the_attached_live_world() {
+    let level = DefaultLevelManager::default().create_default_level();
+    let controller = PlaySessionController::new();
+    let instance = start_test_play_gateway(
+        &controller,
+        Arc::new(crate::core::gateway::InProcessGateway::for_authoring_level(
+            level.clone(),
+        )),
+    );
+    let (actual_instance, identity, extract) = controller
+        .preview_render_extract(zircon_runtime_interface::math::UVec2::new(320, 180))
+        .expect("live extract capability")
+        .expect("GPU route");
+    assert_eq!(actual_instance, instance);
+    assert_eq!(
+        identity,
+        controller.play_gateway(instance).unwrap().identity()
+    );
+    let expected_world = level.with_world(|world| {
+        world
+            .render_world_snapshot_handle()
+            .with_generation(world.world_generation())
+    });
+    assert_eq!(extract.world, expected_world);
+    controller.request_stop().unwrap();
+    assert!(controller
+        .preview_render_extract(zircon_runtime_interface::math::UVec2::new(320, 180))
+        .unwrap()
+        .is_none());
+}
+
+#[test]
+fn serialized_play_preview_explicitly_uses_the_capture_fallback() {
+    let controller = PlaySessionController::new();
+    controller.set_play_backend(Arc::new(PreviewFrameBackend));
+    controller
+        .request_play(PlayStartRequest::immediate(PlayKind::Play, None))
+        .unwrap();
+    assert!(controller
+        .preview_render_extract(zircon_runtime_interface::math::UVec2::new(320, 180))
+        .unwrap()
+        .is_none());
 }
 
 #[test]
@@ -454,6 +503,8 @@ fn play_gateway_attachment_preserves_authoring_world_access_across_detach() {
     let _authoring_facade =
         EditorAuthoringWorld::loaded(&authoring_gateway, authoring_level.clone())
             .expect("the authoring facade should install the edit-domain gateway");
+    // SAFETY: the static test API remains alive for the gateway's entire lifetime
+    // and every callback accepts the synthetic test session handle.
     let session_gateway = unsafe {
         SessionGateway::new_with_identity(
             Arc::new(()),
@@ -1142,3 +1193,6 @@ fn controller_publishes_build_failure_and_backend_crash_after_committing_mode() 
 
 #[path = "terminal_backend_retirement.rs"]
 mod terminal_backend_retirement_tests;
+
+#[path = "transitions.rs"]
+mod transition_tests;

@@ -35,6 +35,15 @@ pub fn apply_inspector_binding(
         state.viewport_controller.selection().active_domain(),
         WorldDomain::Play(_)
     ) {
+        if let Some(change) = batch
+            .changes
+            .iter()
+            .find(|change| change.field_id.starts_with("transform.rotation_degrees."))
+        {
+            return Err(EditorBindingDispatchError::UnsupportedInspectorField(
+                change.field_id.clone(),
+            ));
+        }
         if state.viewport_controller.selection().active_primary() != Some(node_id) {
             return Err(EditorBindingDispatchError::InvalidSubjectPath(
                 batch.subject_path,
@@ -120,6 +129,14 @@ fn apply_inspector_draft_field_value(
         }
         "transform.translation.z" => {
             state.update_translation_field(2, binding_value_to_string(value, field_id)?);
+        }
+        "transform.rotation_degrees.x"
+        | "transform.rotation_degrees.y"
+        | "transform.rotation_degrees.z" => {
+            state.update_dynamic_component_field(
+                field_id,
+                binding_value_to_string(value, field_id)?,
+            );
         }
         "transform.scale.x" => {
             state.update_scale_field(0, binding_value_to_string(value, field_id)?);

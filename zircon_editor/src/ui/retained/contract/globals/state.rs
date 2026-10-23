@@ -400,6 +400,7 @@ impl HostContractState {
         let Some(model_replacements) =
             patch.paint_model_replacements(self.host_presentation.as_ref())
         else {
+            capture_trace::record("pane_patch_fallback", || "paint model validation".into());
             zircon_runtime::profile_counter!(
                 "editor",
                 "ui.pane_presentation_transaction.validation_fallback_count",
@@ -421,6 +422,7 @@ impl HostContractState {
                 .workbench_hit_index
                 .rebind_paint_models(&model_replacements)
             else {
+                capture_trace::record("pane_patch_fallback", || "hit index rebinding".into());
                 zircon_runtime::profile_counter!(
                     "editor",
                     "ui.pane_presentation_transaction.hit_index_fallback_count",

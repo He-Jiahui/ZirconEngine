@@ -48,3 +48,21 @@ fn transform_commit_emits_a_typed_finite_scalar() {
         "Inspector transform Z value `NaN` must be a finite number"
     );
 }
+
+#[test]
+fn rotation_commit_accepts_displayed_degrees_and_rejects_non_finite_values() {
+    let bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+    let binding = bridge
+        .transform_axis_commit_binding(ROTATION_Z, "Inspector/TransformRotationZCommit", "Z 30 deg")
+        .unwrap()
+        .unwrap();
+    let EditorUiBindingPayload::InspectorFieldBatch { changes, .. } = binding.payload() else {
+        panic!("rotation must use the transactional inspector binding");
+    };
+    assert_eq!(changes[0].field_id, "transform.rotation_degrees.z");
+    assert_eq!(changes[0].value, UiBindingValue::Float(30.0));
+    assert!(bridge
+        .transform_axis_commit_binding(ROTATION_Z, "Inspector/TransformRotationZCommit", "inf deg",)
+        .is_err());
+}

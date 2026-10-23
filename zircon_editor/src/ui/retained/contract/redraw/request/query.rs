@@ -5,8 +5,35 @@ use super::super::HostDamageRegionMetrics;
 use super::HostRedrawRequest;
 
 impl HostRedrawRequest {
+    pub(super) fn has_runtime_tick_demand(&self) -> bool {
+        matches!(
+            self,
+            Self::RuntimeTick
+                | Self::FrameUpdate {
+                    runtime_tick: true,
+                    ..
+                }
+                | Self::Full {
+                    runtime_tick: true,
+                    ..
+                }
+                | Self::Region {
+                    runtime_tick: true,
+                    ..
+                }
+        )
+    }
+
     pub(crate) fn requires_runtime_tick(&self) -> bool {
-        matches!(self, Self::RuntimeTick | Self::Region { runtime_tick: true, frame_update: false, .. })
+        matches!(
+            self,
+            Self::RuntimeTick
+                | Self::Region {
+                    runtime_tick: true,
+                    frame_update: false,
+                    ..
+                }
+        )
     }
     pub(crate) fn request_redraw(&self) -> bool {
         !matches!(self, Self::None)

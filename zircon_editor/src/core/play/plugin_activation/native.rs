@@ -233,10 +233,14 @@ impl PluginBridgeActivation for NativePluginBridgeActivation {
 }
 
 fn play_native_plugin_target() -> NativePluginArtifactTarget {
-    NativePluginArtifactTarget::new(
-        RuntimeTargetMode::ClientRuntime,
-        ExportTargetPlatform::Windows,
-    )
+    let platform = if cfg!(target_os = "linux") {
+        ExportTargetPlatform::Linux
+    } else if cfg!(target_os = "macos") {
+        ExportTargetPlatform::Macos
+    } else {
+        ExportTargetPlatform::Windows
+    };
+    NativePluginArtifactTarget::new(RuntimeTargetMode::ClientRuntime, platform)
 }
 
 #[cfg(test)]

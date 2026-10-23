@@ -37,11 +37,11 @@ pub(super) use zircon_runtime_interface::math::UVec2;
 
 pub(super) use super::super::*;
 
-pub(super) struct ChildWindowHostHarness {
+pub(in crate::ui::retained_host::app) struct ChildWindowHostHarness {
     pub(super) _core: CoreRuntime,
     pub(super) config_path: PathBuf,
     cleanup_config_file: bool,
-    pub(super) host: Rc<RefCell<RetainedEditorHost>>,
+    pub(in crate::ui::retained_host::app) host: Rc<RefCell<RetainedEditorHost>>,
     pub(super) root_ui: UiHostWindow,
 }
 
@@ -55,22 +55,18 @@ pub(super) fn host_context(ui: &UiHostWindow) -> UiHostContext<'_> {
 
 #[test]
 fn child_window_harness_reuses_the_manager_context_for_the_authoring_world() {
-    let source = include_str!("support.rs");
-    let constructor_start = concat!("pub(super) fn ", "new(prefix: &str)");
-    let constructor_end = concat!("pub(super) fn ", "detach_view_to_child_window");
-    let constructor = source
-        .split(constructor_start)
-        .nth(1)
-        .and_then(|source| source.split(constructor_end).next())
-        .expect("child-window harness constructor must remain present");
-
+    let _guard = lock_env();
+    let harness = ChildWindowHostHarness::new("authoring-context-generation");
+    let host = harness.host.borrow();
     assert!(
-        constructor.contains("EditorState::with_default_selection_with_context("),
-        "child-window state must share the controller's stable gateway context"
-    );
-    assert!(
-        constructor.contains("manager.context().clone()"),
-        "child-window state must reuse the manager context instead of creating a detached session"
+        host.runtime
+            .shell()
+            .lock()
+            .state
+            .viewport_camera_snapshot()
+            .unwrap()
+            .is_some(),
+        "the final host must retain a live authoring gateway after startup construction"
     );
 }
 
@@ -81,7 +77,7 @@ impl ChildWindowHostHarness {
             .expect("activate the scene module used by the real project fixture");
     }
 
-    pub(super) fn new(prefix: &str) -> Self {
+    pub(in crate::ui::retained_host::app) fn new(prefix: &str) -> Self {
         Self::with_config_path(unique_temp_path(prefix), true)
     }
 
@@ -117,7 +113,11 @@ impl ChildWindowHostHarness {
         let manager = core
             .resolve_manager_handle::<EditorManager>(EDITOR_MANAGER_NAME)
             .unwrap();
+        let mut initial_host =
+            RetainedEditorHost::new_for_test(core.handle(), root_ui.clone_strong())
+                .expect("retained editor host should build with test viewport controller");
         // Mirror production startup: the shell and controller share one stable edit gateway.
+        // Construct the replacement state after startup has installed its gateway generation.
         let mut state = EditorState::with_default_selection_with_context(
             DefaultLevelManager::default().create_default_level(),
             UVec2::new(1280, 720),
@@ -127,16 +127,11 @@ impl ChildWindowHostHarness {
             },
         );
         state.mark_project_open();
-        let host = Rc::new(RefCell::new(
-            RetainedEditorHost::new_for_test(core.handle(), root_ui.clone_strong())
-                .map(|mut host| {
-                    host.runtime = EditorHostEventController::new(state, manager)
-                        .expect("editor controller manager admission");
-                    host.sync_asset_workspace();
-                    host
-                })
-                .expect("retained editor host should build with test viewport controller"),
-        ));
+        initial_host.runtime = EditorHostEventController::new(state, manager)
+            .expect("editor controller manager admission")
+            .into();
+        initial_host.sync_asset_workspace();
+        let host = Rc::new(RefCell::new(initial_host));
         wire_callbacks(&root_ui, &host, None);
         host.borrow_mut().self_handle = Some(Rc::downgrade(&host));
         host.borrow_mut().refresh_ui();
@@ -292,7 +287,7 @@ impl Drop for ChildWindowHostHarness {
     }
 }
 
-pub(super) fn lock_env() -> std::sync::MutexGuard<'static, ()> {
+pub(in crate::ui::retained_host::app) fn lock_env() -> std::sync::MutexGuard<'static, ()> {
     crate::tests::support::env_lock()
         .lock()
         .unwrap_or_else(|poison| poison.into_inner())

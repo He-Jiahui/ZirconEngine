@@ -100,9 +100,10 @@ fn host_dirty_flags_route_through_invalidation_root_outside_lifecycle_owner() {
     assert!(dirty_flags.contains("self.invalidation.invalidate_shell_content(scope, mask);"));
 
     let app_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ui/retained/app");
-    let dirty_flags_path = app_root.join("host_lifecycle/invalidation_bridge/dirty_flags.rs");
+    let dirty_flags_path = app_root.join("invalidation_bridge/dirty_flags.rs");
     for path in collect_rust_files(&app_root) {
-        if path == dirty_flags_path {
+        // Test fixtures quote forbidden assignments to check their ownership.
+        if path == dirty_flags_path || path.components().any(|part| part.as_os_str() == "tests") {
             continue;
         }
         let text =
@@ -171,10 +172,12 @@ fn retained_event_effects_route_dirty_domains_through_invalidation_mask() {
     );
 
     let retained_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ui/retained");
-    let dirty_flags_path =
-        retained_root.join("app/host_lifecycle/invalidation_bridge/dirty_flags.rs");
+    let dirty_flags_path = retained_root.join("app/invalidation_bridge/dirty_flags.rs");
     for path in collect_rust_files(&retained_root) {
-        if path == dirty_flags_path || path == retained_root.join("event_bridge.rs") {
+        if path == dirty_flags_path
+            || path == retained_root.join("event_bridge.rs")
+            || path.components().any(|part| part.as_os_str() == "tests")
+        {
             continue;
         }
         let text =

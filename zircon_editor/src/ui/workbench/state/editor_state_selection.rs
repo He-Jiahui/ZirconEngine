@@ -12,6 +12,7 @@ use crate::core::editing::engine::MergeMode;
 use crate::core::editing::intent::EditorIntent;
 use crate::core::play::WorldDomain;
 
+use super::inspector_rotation::{rotation_axis, rotation_update};
 use super::no_project_open::no_project_open;
 use super::parse_parent_field::parse_parent_field;
 use super::{
@@ -137,6 +138,28 @@ impl EditorState {
         let mut commands = Vec::new();
 
         for node_id in &selected {
+            // Rotation is intentionally read-only in the generic reflection
+            // schema. Use the established undoable transform command, before
+            // the field-scoped name/parent/translation/scale commands.
+            let rotation = self
+                .world
+                .with_world(|scene| {
+                    rotation_update(
+                        scene,
+                        *node_id,
+                        self.inspector_dynamic_fields
+                            .iter()
+                            .map(|(field, value)| (field.as_str(), value.as_str())),
+                    )
+                })?
+                .ok_or_else(no_project_open)??;
+            if let Some(transform) = rotation {
+                if let Some(command) = self.capture_scene_command(|scene| {
+                    EditorCommand::set_transform(scene, *node_id, transform)
+                })? {
+                    commands.push(command);
+                }
+            }
             let mut reflected_updates = self.prepare_reflected_node_updates(
                 *node_id,
                 name.as_deref(),
@@ -309,25 +332,28 @@ impl EditorState {
         let updates = self
             .world
             .with_world(|scene| {
-                dynamic_fields
-                    .iter()
-                    .map(|(field_id, value)| {
-                        let (component_type_path, field_name) = split_reflected_field_id(field_id)?;
-                        let current = read_reflected_inspector_value(
-                            scene,
-                            node_id,
-                            &component_type_path,
-                            &field_name,
-                            field_id,
-                        )?;
-                        let value = reflected_value_from_text(value, &current)?;
-                        Ok(ReflectedInspectorUpdate {
-                            component_type_path,
-                            field_name,
-                            value,
-                        })
-                    })
-                    .collect::<Result<Vec<_>, InspectorEditError>>()
+                let mut prepared = Vec::new();
+                for (field_id, value) in dynamic_fields {
+                    if rotation_axis(field_id).is_some() {
+                        continue;
+                    }
+
+                    let (component_type_path, field_name) = split_reflected_field_id(field_id)?;
+                    let current = read_reflected_inspector_value(
+                        scene,
+                        node_id,
+                        &component_type_path,
+                        &field_name,
+                        field_id,
+                    )?;
+                    let value = reflected_value_from_text(value, &current)?;
+                    prepared.push(ReflectedInspectorUpdate {
+                        component_type_path,
+                        field_name,
+                        value,
+                    });
+                }
+                Ok::<_, InspectorEditError>(prepared)
             })?
             .ok_or_else(no_project_open)??;
         Ok(updates)
@@ -476,6 +502,12 @@ fn capture_play_inspector_commands(
                     InspectorTransformField::Scale,
                 )?);
             }
+            field if rotation_axis(field).is_some() => {
+                return Err(InspectorEditError::InvalidTransformFields {
+                    field: InspectorTransformField::Rotation,
+                }
+                .into());
+            }
             _ => {
                 let (component_type_path, field_name) = split_reflected_field_id(field_id)?;
                 let current = read_reflected_inspector_value(
@@ -577,15 +609,15 @@ fn read_reflected_inspector_value(
 ) -> Result<ReflectedValue, InspectorEditError> {
     let field_stable_id = scene
         .reflect_schema(component_type_path)
-        .ok()
-        .and_then(|schema| {
-            schema
-                .type_info
-                .fields
-                .into_iter()
-                .find(|field| field.name == field_name)
-                .map(|field| field.id)
-        })
+        .map_err(|source| InspectorEditError::ReflectionRead {
+            field_id: field_id.to_owned(),
+            source,
+        })?
+        .type_info
+        .fields
+        .into_iter()
+        .find(|field| field.name == field_name)
+        .map(|field| field.id)
         .ok_or_else(|| InspectorEditError::UnsupportedFieldId {
             field_id: field_id.to_owned(),
         })?;

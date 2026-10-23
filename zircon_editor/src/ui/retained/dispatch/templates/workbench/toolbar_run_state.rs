@@ -27,7 +27,29 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         &mut self,
         model: &WorkbenchViewModel,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        let projection = toolbar_run_projection(model.run_controls);
+        self.apply_run_controls(model.run_controls)
+    }
+
+    pub(crate) fn apply_run_controls(
+        &mut self,
+        controls: RunControlsModel,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        let projection = toolbar_run_projection(controls);
+        // Native Play has a serialized transform contract; generic quaternion
+        // reflection remains read-only. Keep the new numeric Edit controls honest.
+        for control in [
+            "WorkbenchTransformRotationX",
+            "WorkbenchTransformRotationY",
+            "WorkbenchTransformRotationZ",
+        ] {
+            if self.has_control(control) {
+                self.mutate_control_property(
+                    control,
+                    "disabled",
+                    UiValue::Bool(controls.state != PlayStateKind::Edit),
+                )?;
+            }
+        }
         self.set_visible(PLAY_CONTROL_ID, projection.play.visible)?;
         self.mutate_control_property(
             PLAY_CONTROL_ID,
@@ -45,8 +67,16 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             (STOP_CONTROL_ID, projection.stop),
         ] {
             self.mutate_control_property(control, "disabled", UiValue::Bool(!state.enabled))?;
-            self.mutate_control_property(control, "label", UiValue::String(state.label.to_owned()))?;
-            self.mutate_control_property(control, "tooltip", UiValue::String(state.label.to_owned()))?;
+            self.mutate_control_property(
+                control,
+                "label",
+                UiValue::String(state.label.to_owned()),
+            )?;
+            self.mutate_control_property(
+                control,
+                "tooltip",
+                UiValue::String(state.label.to_owned()),
+            )?;
         }
         Ok(())
     }
@@ -55,27 +85,27 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
 fn toolbar_run_projection(model: RunControlsModel) -> ToolbarRunProjection {
     let show_stop = matches!(
         model.state,
-        PlayStateKind::Playing | PlayStateKind::CleanupFailed
+        PlayStateKind::Playing | PlayStateKind::Stopping | PlayStateKind::CleanupFailed
     );
     ToolbarRunProjection {
         play: RunControlProjection {
             visible: !show_stop,
             checked: false,
             enabled: model.enter_enabled,
-            label: if model.state == PlayStateKind::Building {
-                "Building…"
-            } else {
-                "Play"
+            label: match model.state {
+                PlayStateKind::Building => "Building…",
+                PlayStateKind::Starting => "Starting…",
+                _ => "Play",
             },
         },
         stop: RunControlProjection {
             visible: show_stop,
             checked: model.state == PlayStateKind::Playing,
             enabled: model.stop_enabled,
-            label: if model.state == PlayStateKind::CleanupFailed {
-                "Retry Stop"
-            } else {
-                "Stop"
+            label: match model.state {
+                PlayStateKind::CleanupFailed => "Retry Stop",
+                PlayStateKind::Stopping => "Stopping…",
+                _ => "Stop",
             },
         },
     }

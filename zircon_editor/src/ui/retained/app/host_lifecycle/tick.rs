@@ -74,6 +74,9 @@ impl RetainedEditorHost {
     }
 
     pub(in crate::ui::retained_host::app) fn tick(&mut self) {
+        if self.poll_async_play_command() {
+            return;
+        }
         let slow_tick_started = slow_tick_trace_enabled().then(Instant::now);
         zircon_runtime::profile_frame!("editor", "retained_host_tick");
         zircon_runtime::profile_scope!("editor", "retained_host", "tick");
@@ -202,6 +205,12 @@ impl RetainedEditorHost {
     }
 
     fn tick_runtime(&mut self) {
+        zircon_runtime::profile_scope!("editor", "play", "play_tick");
+        if self.runtime.native_preview_in_flight() {
+            self.ui
+                .set_lifecycle_frame_update(Some(Instant::now() + Duration::from_millis(33)));
+            return;
+        }
         self.runtime.update_scene_modes();
         self.sync_play_preview_input_focus();
         self.sync_simulate_preview_camera();
@@ -224,6 +233,9 @@ impl RetainedEditorHost {
     }
 
     pub(in crate::ui::retained_host::app) fn tick_runtime_only(&mut self) {
+        if self.poll_async_play_command() {
+            return;
+        }
         let _scenario = enter_ui_perf_scenario(UiPerfScenario::PlayInEditor);
         let _timer = time_ui_perf_scenario(UiPerfScenario::PlayInEditor);
         self.tick_runtime();
@@ -236,6 +248,9 @@ impl RetainedEditorHost {
     }
 
     pub(in crate::ui::retained_host::app) fn commit_interactive_frame_update(&mut self) {
+        if self.poll_async_play_command() {
+            return;
+        }
         if self.main_window_close_blocks_session_ui() {
             self.ui
                 .set_lifecycle_frame_update(self.main_window_close_poll_deadline());

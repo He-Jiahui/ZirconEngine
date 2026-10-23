@@ -7,8 +7,16 @@ fn every_controller_state_projects_the_same_admission_as_commands() {
     for (state, show_stop, enter_enabled, stop_enabled, label) in [
         (PlayStateKind::Edit, false, true, false, "Play"),
         (PlayStateKind::Building, false, false, false, "Building…"),
+        (PlayStateKind::Starting, false, false, false, "Starting…"),
         (PlayStateKind::Playing, true, false, true, "Stop"),
-        (PlayStateKind::CleanupFailed, true, false, true, "Retry Stop"),
+        (PlayStateKind::Stopping, true, false, false, "Stopping…"),
+        (
+            PlayStateKind::CleanupFailed,
+            true,
+            false,
+            true,
+            "Retry Stop",
+        ),
     ] {
         let context = CommandEvalCtx::interactive()
             .with_project_open(true)
@@ -21,7 +29,14 @@ fn every_controller_state_projects_the_same_admission_as_commands() {
         assert_eq!(projection.play.enabled, enter_enabled, "{state:?}");
         assert_eq!(projection.stop.enabled, stop_enabled, "{state:?}");
         assert_eq!(projection.stop.checked, state == PlayStateKind::Playing);
-        assert_eq!(if show_stop { projection.stop.label } else { projection.play.label }, label);
+        assert_eq!(
+            if show_stop {
+                projection.stop.label
+            } else {
+                projection.play.label
+            },
+            label
+        );
     }
 }
 

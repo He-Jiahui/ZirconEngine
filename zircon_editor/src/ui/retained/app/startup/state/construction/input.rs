@@ -6,7 +6,7 @@ use crate::core::play::NativePluginArtifactAuthorityResolver;
 pub(in crate::ui::retained_host::app::host_lifecycle::startup) struct StartupHostConstruction {
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) ui: UiHostWindow,
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) runtime:
-        EditorHostEventController,
+        Arc<EditorHostEventController>,
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) startup_managers:
         StartupManagers,
     #[cfg(feature = "profiling")]

@@ -9,7 +9,11 @@ use zircon_runtime_interface::profiling::profile_session_basename;
 pub(in crate::ui::retained_host::host_contract) struct ProfileOutputRootError;
 
 pub(in crate::ui::retained_host::host_contract) fn profile_capture_enabled() -> bool {
+    // Counter/timing recordings must be able to observe normal damage rendering:
+    // artifact capture deliberately forces full command collection and text evidence.
     env_truthy("ZIRCON_PROFILE_CAPTURE")
+        && !env_truthy("ZIRCON_PROFILE_COUNTERS_ONLY")
+        && !env_truthy("ZIRCON_PROFILE_TIMELINE_ONLY")
 }
 
 pub(in crate::ui::retained_host::host_contract) fn profile_screenshot_capture_enabled() -> bool {

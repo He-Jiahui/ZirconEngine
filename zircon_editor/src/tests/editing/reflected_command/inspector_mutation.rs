@@ -380,7 +380,7 @@ fn inspector_no_op_name_and_dynamic_edits_preserve_authoritative_transform_bits(
 }
 
 #[test]
-fn actual_selected_scene_rotation_reaches_read_only_authored_inspector_fields() {
+fn actual_selected_scene_rotation_reaches_authored_inspector_fields() {
     use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowTemplateSurfaceBridge;
     use zircon_runtime_interface::math::{EulerRot, Quat};
     use zircon_runtime_interface::ui::layout::UiSize;
@@ -430,10 +430,10 @@ fn actual_selected_scene_rotation_reaches_read_only_authored_inspector_fields() 
                 expected.to_string()
             ))
         );
-        assert!(node.disabled);
-        assert!(
-            node.routes.is_empty(),
-            "read-only runtime rotation has no authored edit command"
-        );
+        assert!(!node.disabled);
+        assert!(node
+            .routes
+            .iter()
+            .any(|route| route.binding_id.ends_with("Commit")));
     }
 }

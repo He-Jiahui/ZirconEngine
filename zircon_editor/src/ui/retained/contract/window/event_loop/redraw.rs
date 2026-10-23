@@ -168,7 +168,6 @@ impl UiHostWindowEventLoop {
             redraw.scenario()
         };
         let requested_frame_update = redraw.requires_frame_update();
-        let requested_present = redraw.requires_present();
         let redraw_scenario_guard = enter_ui_perf_scenario(redraw_scenario);
         let frame_update_started = if requested_frame_update {
             slow_redraw_started.map(|_| Instant::now())
@@ -178,8 +177,10 @@ impl UiHostWindowEventLoop {
         let trace_before =
             capture_trace::cursor_before(|| self.host.get_host_presentation_generation().cursor());
         if redraw.requires_runtime_tick() {
+            record_ui_perf_counter(redraw_scenario, UiPerfCounter::RuntimeTickCount, 1.0);
             self.host.request_runtime_frame_update();
         } else if requested_frame_update {
+            record_ui_perf_counter(redraw_scenario, UiPerfCounter::FrameUpdateCount, 1.0);
             static FRAME_UPDATE_ENTER: Once = Once::new();
             static FRAME_UPDATE_RETURNED: Once = Once::new();
             if trace_runtime_first_redraw {
@@ -200,6 +201,10 @@ impl UiHostWindowEventLoop {
         });
         let frame_update_elapsed =
             frame_update_started.map_or(Duration::ZERO, |started| started.elapsed());
+        // The update can publish viewport/chrome damage. Present that generation now,
+        // rather than presenting the old damage and scheduling a second native redraw.
+        let redraw = self.take_present_after_update(redraw);
+        let requested_present = redraw.requires_present();
         self.sync_native_window_minimum_from_presentation();
         let present_scenario = self
             .host
@@ -241,6 +246,15 @@ impl UiHostWindowEventLoop {
 
     fn take_pending_redraw(&mut self) -> HostRedrawRequest {
         std::mem::replace(&mut self.pending_redraw, HostRedrawRequest::None)
+    }
+
+    fn take_present_after_update(&mut self, redraw: HostRedrawRequest) -> HostRedrawRequest {
+        let (work, ready) = self.host.take_external_redraw().split_ready_present();
+        self.host.queue_external_redraw(work);
+        if redraw.requires_present() && ready.requires_present() {
+            record_ui_perf_counter(redraw.scenario(), UiPerfCounter::CoalescedPresentCount, 1.0);
+        }
+        redraw.merge(ready)
     }
 
     pub(super) fn defer_surface_present_retry(&mut self, redraw: HostRedrawRequest, now: Instant) {

@@ -27,6 +27,7 @@ impl UiHostWindowEventLoop {
         event_loop: &dyn ActiveEventLoop,
         event: WindowEvent,
     ) {
+        zircon_runtime::profile_scope!("editor", "input", "native_event_dispatch");
         if self.try_defer_idle_pointer_move(&event) {
             return;
         }

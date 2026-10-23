@@ -103,6 +103,12 @@ impl HostPanePresentationPatch {
             {
                 return None;
             }
+            // The legacy document dock mirrors a leaf when document leaves
+            // exist. Validate and update it, but only painted surfaces own
+            // hit-index entries and count toward model-rebinding occurrences.
+            if !replacement.location.is_painted(presentation) {
+                continue;
+            }
 
             match (paint_nodes(current), paint_nodes(&replacement.next_pane)) {
                 (None, None) => {}
@@ -126,10 +132,11 @@ impl HostPanePresentationPatch {
                     .replacements
                     .iter()
                     .filter(|replacement| {
-                        replacement
-                            .expected_nodes
-                            .as_ref()
-                            .is_some_and(|nodes| nodes.shares_values_with(previous))
+                        replacement.location.is_painted(presentation)
+                            && replacement
+                                .expected_nodes
+                                .as_ref()
+                                .is_some_and(|nodes| nodes.shares_values_with(previous))
                     })
                     .count();
                 model_occurrence_count(occurrences, previous) != replaced_occurrences
@@ -271,6 +278,11 @@ impl HostPresentationPatch {
 }
 
 impl HostPanePresentationLocation {
+    fn is_painted(&self, presentation: &HostWindowPresentationData) -> bool {
+        !matches!(self, Self::DocumentDock)
+            || presentation.host_scene_data.document_leaves.is_empty()
+    }
+
     fn pane<'a>(&self, presentation: &'a HostWindowPresentationData) -> Option<&'a PaneData> {
         match self {
             Self::LeftDock => Some(&presentation.host_scene_data.left_dock.pane),
