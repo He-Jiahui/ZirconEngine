@@ -16,6 +16,11 @@ import subprocess
 import threading
 import time
 
+if __package__:
+    from .linux_x11_capture import capture_window
+else:
+    from linux_x11_capture import capture_window
+
 
 def windows(pid: int, env: dict[str, str]) -> list[str]:
     result = subprocess.run(
@@ -42,9 +47,20 @@ def splash_children(pid: int) -> list[int]:
 
 
 def capture(window: str, output: Path, env: dict[str, str]) -> None:
-    subprocess.run(
-        ["import", "-window", window, str(output)], env=env, check=True, timeout=20,
-    )
+    capture_window(window, output, env.get("DISPLAY", ":3"))
+
+
+def process_memory_kib(pid: int) -> dict[str, int]:
+    try:
+        return {
+            key: int(value.split()[0])
+            for line in Path(f"/proc/{pid}/smaps_rollup").read_text().splitlines()[1:]
+            if (parts := line.split(":", 1)) and len(parts) == 2
+            for key, value in [parts]
+            if key in {"Rss", "Pss", "Swap"}
+        }
+    except FileNotFoundError:
+        return {}
 
 
 def launch_isolated(command: list[str], staging: Path, evidence: Path,
@@ -126,7 +142,8 @@ def probe_child(staging: Path, evidence: Path) -> dict:
     return results
 
 
-def run(staging: Path, evidence: Path, mode: str, project: Path | None, timeout: float) -> dict:
+def run(staging: Path, evidence: Path, mode: str, project: Path | None, timeout: float,
+        *, dismiss_splash: bool = False, workbench_probe=None) -> dict:
     evidence.mkdir(parents=True, exist_ok=False)
     xdg = evidence / "xdg-runtime"
     xdg.mkdir(mode=0o700)
@@ -161,8 +178,10 @@ def run(staging: Path, evidence: Path, mode: str, project: Path | None, timeout:
             raise ValueError("--project is required for open mode")
         command += ["--project", str(project)]
     started = time.monotonic()
+    started_unix = time.time()
     metrics: dict = {
         "command": command, "mode": mode, "events": [],
+        "dismiss_splash_requested": dismiss_splash,
         "cold_scope": "new process, private app-data mount, profile, UI and Mesa caches; shared OS page cache",
         "first_frame_capture_kind": (
             "native window after first-present callback" if mode == "welcome"
@@ -210,6 +229,10 @@ def run(staging: Path, evidence: Path, mode: str, project: Path | None, timeout:
                         splash_window = found[-1]
                         metrics["splash_window"] = splash_window
                         capture(splash_window, evidence / "splash.png", env)
+                        metrics["loading_memory_kib"] = {
+                            "parent": process_memory_kib(app_pid),
+                            "splash": process_memory_kib(pid),
+                        }
                         break
             if splash_window is not None and not resized and not first_frame:
                 resize_events_before = sum("startup_splash event=resized " in line for line in lines)
@@ -228,6 +251,18 @@ def run(staging: Path, evidence: Path, mode: str, project: Path | None, timeout:
                 subprocess.run(["xdotool", "windowsize", splash_window, "640", "440"],
                                env=env, check=True, timeout=5)
                 resized = True
+                if dismiss_splash:
+                    subprocess.run(["xdotool", "windowactivate", "--sync", splash_window,
+                                    "key", "Escape"], env=env, check=True, timeout=5)
+                    deadline = time.monotonic() + 5
+                    while any(Path(f"/proc/{pid}").exists() for pid in child_pids):
+                        if time.monotonic() > deadline:
+                            raise TimeoutError("Escape did not close and reap the splash")
+                        time.sleep(0.01)
+                    if process.poll() is not None or any(
+                            "startup_splash event=first_frame " in line for line in lines):
+                        raise RuntimeError("Escape was not exercised during active startup")
+                    metrics["escape_hidden_while_parent_loading"] = True
             if first_frame and mode == "welcome" and not (evidence / "first-frame.png").exists():
                 parent_windows = windows(app_pid, env)
                 if parent_windows:
@@ -245,6 +280,14 @@ def run(staging: Path, evidence: Path, mode: str, project: Path | None, timeout:
                 raise TimeoutError("splash child survived the first workbench frame")
             time.sleep(0.025)
         metrics["splash_child_reaped_before_quit"] = True
+        metrics["real_startup_stages"] = [
+            match.group(1) for line in lines
+            if (match := re.search(r"startup_splash event=stage stage=(\w+)", line))
+        ]
+        if metrics["real_startup_stages"] != ["gpu", "project"]:
+            raise RuntimeError("real startup stages did not advance in their expected order")
+        if not any("startup_splash event=closed " in line for line in lines):
+            raise RuntimeError("splash did not acknowledge closing before workbench interaction")
         parent_windows = windows(app_pid, env)
         if not parent_windows:
             raise RuntimeError("workbench has no visible parent-owned native window")
@@ -256,6 +299,8 @@ def run(staging: Path, evidence: Path, mode: str, project: Path | None, timeout:
             time.sleep(1)
         capture(window, evidence / "workbench.png", env)
         metrics["workbench_capture_observed_seconds"] = time.monotonic() - started
+        if workbench_probe is not None:
+            metrics["workbench_probe"] = workbench_probe(window, evidence, env)
         subprocess.run(["xdotool", "windowactivate", "--sync", window, "key", "alt+F4"],
                        env=env, check=True, timeout=10)
         process.wait(timeout=45)
@@ -276,6 +321,9 @@ def run(staging: Path, evidence: Path, mode: str, project: Path | None, timeout:
         stdout.close()
         metrics["returncode"] = process.returncode
         metrics["total_seconds"] = time.monotonic() - started
+        metrics["started_unix"] = started_unix
+        metrics["wall_seconds"] = time.time() - started_unix
+        metrics["clock_discrepancy_seconds"] = metrics["wall_seconds"] - metrics["total_seconds"]
         metrics["owned_splash_pids"] = sorted(child_pids)
         for line in lines:
             if "startup_splash event=first_frame " in line:
@@ -304,12 +352,14 @@ def main() -> int:
     parser.add_argument("--project", type=Path)
     parser.add_argument("--timeout", type=float, default=240)
     parser.add_argument("--probe-child", action="store_true")
+    parser.add_argument("--dismiss-splash", action="store_true")
     args = parser.parse_args()
     if args.probe_child:
         print(json.dumps(probe_child(args.staging.resolve(), args.evidence.resolve()), indent=2))
         return 0
     metrics = run(args.staging.resolve(), args.evidence.resolve(), args.mode,
-                  args.project.resolve() if args.project else None, args.timeout)
+                  args.project.resolve() if args.project else None, args.timeout,
+                  dismiss_splash=args.dismiss_splash)
     print(json.dumps({key: value for key, value in metrics.items() if key != "events"}, indent=2))
     return 0 if metrics.get("clean_quit") and not metrics.get("error") else 1
 
