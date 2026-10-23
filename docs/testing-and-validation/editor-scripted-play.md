@@ -19,6 +19,10 @@ dynamic runtime ABI. All gateway operations and allocation releases use that
 same linked API table/registry. The normal session owner verifies the module
 composition receipt and retains failures for creator-thread cleanup. Staged
 editor/runtime BuildSet preflight remains required for the authoring gateway.
+The host carries both package and concrete feature registrations from its
+first-party catalog. The linked catalog applies the project's feature and target
+selections to those reports; renderer defaults cannot be satisfied by package
+metadata alone.
 
 The existing EmbeddedPlayBackend still owns snapshot retention and Stop/retire.
 Gameplay mutations affect the Play world; stopping restores the editor world.

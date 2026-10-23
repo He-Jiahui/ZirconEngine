@@ -8,7 +8,7 @@ use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::framework::project::ProjectPluginManifest;
 use crate::plugin::{
     CompiledProjectPluginPlan, RuntimePluginCatalog, RuntimePluginCatalogSnapshot,
-    RuntimePluginRegistrationReport,
+    RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
 };
 
 use super::error::{RuntimeDynamicSessionError, RuntimeDynamicSessionResult};
@@ -25,16 +25,18 @@ impl LinkedRuntimePluginPlan {
     ) -> RuntimeDynamicSessionResult<Self> {
         // The stable runtime ABI does not carry plugin registrations. The app host
         // has already admitted the project selections; this DLL owns core modules.
-        Self::prepare_with_manifest(&[], ProjectPluginManifest::default(), target_mode)
+        Self::prepare_with_manifest(&[], &[], ProjectPluginManifest::default(), target_mode)
     }
 
     pub(super) fn prepare(
         registrations: &[RuntimePluginRegistrationReport],
+        feature_registrations: &[RuntimePluginFeatureRegistrationReport],
         project_manifest: Option<&ProjectPluginManifest>,
         target_mode: RuntimeTargetMode,
     ) -> RuntimeDynamicSessionResult<Self> {
         Self::prepare_with_manifest(
             registrations,
+            feature_registrations,
             manifest_with_mode_baseline(target_mode, project_manifest),
             target_mode,
         )
@@ -42,6 +44,7 @@ impl LinkedRuntimePluginPlan {
 
     fn prepare_with_manifest(
         registrations: &[RuntimePluginRegistrationReport],
+        feature_registrations: &[RuntimePluginFeatureRegistrationReport],
         mut effective_manifest: ProjectPluginManifest,
         target_mode: RuntimeTargetMode,
     ) -> RuntimeDynamicSessionResult<Self> {
@@ -65,7 +68,7 @@ impl LinkedRuntimePluginPlan {
 
         let catalog = RuntimePluginCatalog::from_registration_reports(
             registrations.iter().cloned(),
-            std::iter::empty(),
+            feature_registrations.iter().cloned(),
         );
         let compiled_project_plugin_plan =
             catalog.compiled_project_plan(&effective_manifest, target_mode);

@@ -18,7 +18,7 @@ use crate::dynamic_api::session::project::RuntimeProjectConfig;
 use crate::dynamic_api::session::registry::RuntimeWakeRegistration;
 use crate::dynamic_api::session::status::error_status;
 use crate::dynamic_api::session::RuntimeDynamicSession;
-use crate::plugin::RuntimePluginRegistrationReport;
+use crate::plugin::{RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport};
 
 use super::abi_status::OwnedSessionStatus;
 use super::{OwnerDispatchError, OwnerShutdownReceipt, SessionOwner};
@@ -239,6 +239,7 @@ impl RuntimeSessionOwner {
         profile: RuntimeDynamicSessionProfile,
         project: Option<RuntimeProjectConfig>,
         registrations: Vec<RuntimePluginRegistrationReport>,
+        feature_registrations: Vec<RuntimePluginFeatureRegistrationReport>,
         wake: RuntimeWakeRegistration,
         code_owner: Arc<dyn Any + Send + Sync>,
     ) -> Result<Self, RuntimeSessionOwnerCreateError> {
@@ -249,13 +250,18 @@ impl RuntimeSessionOwner {
         let factory_observation = startup_observation.clone();
         let owner = SessionOwner::create(
             move || {
-                RuntimeDynamicSession::new_with_linked_plugins(profile, project, registrations)
-                    .map(|session| session.with_runtime_frame_wake(owner_wake.channel_wake()))
-                    .map_err(|error| {
-                        #[cfg(test)]
-                        startup_observation::record_failure(&factory_observation, &error);
-                        RuntimeSessionStartupFailure::capture(error)
-                    })
+                RuntimeDynamicSession::new_with_linked_plugins(
+                    profile,
+                    project,
+                    registrations,
+                    feature_registrations,
+                )
+                .map(|session| session.with_runtime_frame_wake(owner_wake.channel_wake()))
+                .map_err(|error| {
+                    #[cfg(test)]
+                    startup_observation::record_failure(&factory_observation, &error);
+                    RuntimeSessionStartupFailure::capture(error)
+                })
             },
             code_owner,
         )

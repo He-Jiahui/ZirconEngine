@@ -10,7 +10,10 @@ use crate::core::{
 };
 use crate::diagnostic_log::{write_log, write_log_lazy};
 use crate::operation::RuntimeOperationService;
-use crate::plugin::{RuntimeExtensionRegistryError, RuntimePluginRegistrationReport};
+use crate::plugin::{
+    RuntimeExtensionRegistryError, RuntimePluginFeatureRegistrationReport,
+    RuntimePluginRegistrationReport,
+};
 use crate::scene::components::NodeKind;
 use crate::text::{text_runtime_context_for_core, TEXT_MODULE_NAME};
 
@@ -81,7 +84,10 @@ fn rebase_frame_clock_after_session_activation(runtime: &CoreRuntime) -> FrameCl
 
 pub(super) enum RuntimePluginPlanInput {
     CoreOnly,
-    Linked(Vec<RuntimePluginRegistrationReport>),
+    Linked {
+        plugins: Vec<RuntimePluginRegistrationReport>,
+        features: Vec<RuntimePluginFeatureRegistrationReport>,
+    },
 }
 
 pub(super) fn build(
@@ -114,8 +120,9 @@ pub(super) fn build(
         RuntimePluginPlanInput::CoreOnly => {
             LinkedRuntimePluginPlan::prepare_core_only(profile.target_mode())?
         }
-        RuntimePluginPlanInput::Linked(registrations) => LinkedRuntimePluginPlan::prepare(
-            &registrations,
+        RuntimePluginPlanInput::Linked { plugins, features } => LinkedRuntimePluginPlan::prepare(
+            &plugins,
+            &features,
             project_plugin_manifest,
             profile.target_mode(),
         )?,

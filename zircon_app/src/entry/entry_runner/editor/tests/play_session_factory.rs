@@ -116,6 +116,18 @@ fn scripted_play_runs_materialized_snapshot_and_retires() {
         ProjectPluginSelection::runtime_plugin(RuntimePluginId::ZrVmLanguage, true, true)
             .with_target_modes([RuntimeTargetMode::ClientRuntime]),
     );
+    // Match the renderable-empty GUI project: its base renderer enables three
+    // default feature providers, which must reach the linked session catalog.
+    for id in [
+        RuntimePluginId::Rendering,
+        RuntimePluginId::ObjImporter,
+        RuntimePluginId::ShaderWgslImporter,
+    ] {
+        manifest.plugins.selections.push(
+            ProjectPluginSelection::runtime_plugin(id, true, true)
+                .with_target_modes([RuntimeTargetMode::ClientRuntime]),
+        );
+    }
     manifest.scripts.package_roots = vec!["scripts".into()];
     manifest.scripts.startup_packages = vec!["probe".into()];
     manifest.save(root.join("zircon-project.toml")).unwrap();
