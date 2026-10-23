@@ -271,6 +271,21 @@ impl EditorRuntimeGatewayHandle {
         lease.gateway().with_world_mut(write)
     }
 
+    pub(crate) fn render_preview_extract_at_identity(
+        &self,
+        expected_identity: &GatewaySessionIdentity,
+        size: zircon_runtime_interface::math::UVec2,
+    ) -> Result<zircon_runtime::core::framework::render::RenderFrameExtract, GatewayError> {
+        let lease = self.current_lease();
+        if lease.identity() != expected_identity {
+            return Err(GatewayError::StaleGeneration {
+                expected_generation: expected_identity.gateway_generation(),
+                current_generation: lease.generation(),
+            });
+        }
+        lease.gateway().render_preview_extract(size)
+    }
+
     pub fn query_world(&self, query: WorldQuery) -> Result<WorldQueryResult, GatewayError> {
         self.current_lease().gateway().query_world(query)
     }

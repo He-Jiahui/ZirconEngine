@@ -14,6 +14,8 @@ pub(crate) mod command_eval_projection;
 pub(crate) mod editor_activity_log;
 #[path = "assets/mod.rs"]
 pub(crate) mod editor_asset_manager;
+#[path = "editor_async_play.rs"]
+mod editor_async_play;
 #[path = "editor_capabilities.rs"]
 mod editor_capabilities;
 #[path = "editor_capability_report.rs"]

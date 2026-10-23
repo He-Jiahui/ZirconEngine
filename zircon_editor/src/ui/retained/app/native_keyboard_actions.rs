@@ -14,6 +14,9 @@ impl RetainedEditorHost {
         &mut self,
         keyboard: UiKeyboardInputEvent,
     ) {
+        if self.runtime.pending_play_label().is_some() {
+            return;
+        }
         let shift_f5 = play_stop_trace_enabled() && is_shift_f5(&keyboard);
         if is_escape_pressed(&keyboard) && self.workbench_window_bridge.content_drawer_is_open() {
             match self.workbench_window_bridge.dismiss_content_drawer() {

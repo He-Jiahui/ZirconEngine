@@ -93,7 +93,7 @@ layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed"
 component = "IconButton"
 control_id = "WorkbenchRunStop"
 classes = ["unreal-control", "unreal-toolbar-control", "unreal-icon-control"]
-props = { icon = "editor_pages/scene_viewport/play/stop.svg", label = "Stop", tooltip = "Stop", layout_icon_size = 20.0, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2, input_interactive = true, input_focusable = true }
+props = { icon = "zircon_editor_shell/toolbar/stop.svg", label = "Stop", tooltip = "Stop", layout_icon_size = 20.0, font_family = "Roboto", font_size = 13.333333, font_weight = 400, line_height_ratio = 1.2, input_interactive = true, input_focusable = true }
 layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "Run/Stop", event = "Click", action = { action = "runtime.play_mode.exit" } }]
 

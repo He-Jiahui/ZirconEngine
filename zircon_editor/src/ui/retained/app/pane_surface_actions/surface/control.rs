@@ -24,6 +24,13 @@ impl RetainedEditorHost {
         if !has_workbench_binding && !has_workbench_control {
             return None;
         }
+        if matches!(
+            control_id,
+            "WorkbenchToolbarAddActor" | "UnrealAddMenuPopup"
+        ) {
+            // Opening/closing this popup changes pixels outside its trigger.
+            self.request_scene_interaction_redraw();
+        }
         if let Some(result) = callback_dispatch::dispatch_componentized_workbench_popup_cancelled(
             &mut self.workbench_window_bridge,
             control_id,

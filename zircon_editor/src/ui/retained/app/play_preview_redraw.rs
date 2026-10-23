@@ -37,20 +37,29 @@ impl RetainedEditorHost {
                         .global::<PaneSurfaceHostContext>()
                         .clear_game_viewport_image()
                 } else {
-                    static CAPTURE_ENTERED: std::sync::Once = std::sync::Once::new();
-                    static CAPTURE_RETURNED: std::sync::Once = std::sync::Once::new();
-                    CAPTURE_ENTERED.call_once(|| {
-                        eprintln!("mvp_play_boundary editor_first_preview_capture_entered")
-                    });
-                    let capture = self.capture_preview_frame_for_native_host(size);
-                    CAPTURE_RETURNED.call_once(|| {
-                        eprintln!("mvp_play_boundary editor_first_preview_capture_returned")
-                    });
+                    if let Some(changed) = self.poll_gpu_play_preview() {
+                        if changed {
+                            self.ui.request_redraw_region(
+                                self.ui.get_host_window_bootstrap().viewport_content_frame,
+                            );
+                        }
+                        return;
+                    }
+                    let Some(capture) = self.poll_cpu_preview_frame(size) else {
+                        return;
+                    };
                     match capture {
-                        Ok(Some(frame)) => self
-                            .ui
-                            .global::<PaneSurfaceHostContext>()
-                            .set_game_viewport_frame(frame),
+                        Ok(Some(frame))
+                            if self
+                                .runtime
+                                .play_sessions()
+                                .preview_identity_is_current(frame.identity()) =>
+                        {
+                            self.ui
+                                .global::<PaneSurfaceHostContext>()
+                                .set_game_viewport_frame(frame)
+                        }
+                        Ok(Some(_)) => false,
                         Ok(None) => self
                             .ui
                             .global::<PaneSurfaceHostContext>()
@@ -90,8 +99,19 @@ impl RetainedEditorHost {
                         .global::<PaneSurfaceHostContext>()
                         .clear_simulate_viewport_image()
                 } else {
-                    match self.capture_preview_frame_for_native_host(size) {
-                        Ok(Some(frame)) => self.set_simulate_viewport_frame_with_gizmo(frame),
+                    let Some(capture) = self.poll_cpu_preview_frame(size) else {
+                        return;
+                    };
+                    match capture {
+                        Ok(Some(frame))
+                            if self
+                                .runtime
+                                .play_sessions()
+                                .preview_identity_is_current(frame.identity()) =>
+                        {
+                            self.set_simulate_viewport_frame_with_gizmo(frame)
+                        }
+                        Ok(Some(_)) => false,
                         Ok(None) => self
                             .ui
                             .global::<PaneSurfaceHostContext>()
@@ -108,7 +128,13 @@ impl RetainedEditorHost {
                 };
                 game_cleared | simulate_changed
             }
-            PlayMode::Edit | PlayMode::Building { .. } | PlayMode::CleanupFailed { .. } => {
+            PlayMode::Edit
+            | PlayMode::Building { .. }
+            | PlayMode::Starting { .. }
+            | PlayMode::Stopping { .. }
+            | PlayMode::CleanupFailed { .. } => {
+                self.play_gpu_identity = None;
+                self.play_gpu_unavailable = None;
                 let pane = self.ui.global::<PaneSurfaceHostContext>();
                 pane.clear_game_viewport_image() | pane.clear_simulate_viewport_image()
             }
@@ -118,6 +144,59 @@ impl RetainedEditorHost {
             let frame = self.ui.get_host_window_bootstrap().viewport_content_frame;
             self.record_paint_only_invalidation(HostInvalidationMask::VIEWPORT_IMAGE);
             self.ui.request_redraw_region(frame);
+        }
+    }
+
+    fn poll_gpu_play_preview(&mut self) -> Option<bool> {
+        if !self.ui.direct_viewport_products_active() {
+            return None;
+        }
+        let Some(crate::core::play::WorldDomain::Play(instance)) =
+            self.runtime.play_sessions().attached_world_domain()
+        else {
+            return None;
+        };
+        if self.play_gpu_unavailable == Some(instance) {
+            return None;
+        }
+        match self
+            .runtime
+            .play_sessions()
+            .preview_render_extract(self.viewport_size)
+        {
+            Ok(Some((instance, gateway, extract))) => {
+                let surface_key = crate::core::play::PlayPreviewFrameIdentity::viewport_surface_key(
+                    instance, &gateway,
+                );
+                self.play_gpu_identity = Some((instance, gateway));
+                if let Err(error) =
+                    self.viewport
+                        .submit_play_extract(&surface_key, extract, self.viewport_size)
+                {
+                    self.set_status_line(error.to_string());
+                }
+                // Product polling owns publication; do not fall back to RGBA while it is pending.
+                Some(false)
+            }
+            Ok(None) => {
+                self.play_gpu_unavailable = Some(instance);
+                None
+            }
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                Some(false)
+            }
+        }
+    }
+
+    fn poll_cpu_preview_frame(
+        &self,
+        size: ZrRuntimeViewportSizeV1,
+    ) -> Option<Result<Option<PlayPreviewFrame>, PlayPreviewCaptureError>> {
+        if self.runtime.async_play_enabled() {
+            self.runtime.poll_native_preview_frame(size)
+        } else {
+            Some(self.capture_preview_frame_for_native_host(size))
         }
     }
 

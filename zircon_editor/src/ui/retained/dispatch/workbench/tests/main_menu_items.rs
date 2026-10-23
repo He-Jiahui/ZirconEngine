@@ -1,5 +1,6 @@
 use super::super::super::popup_primitives::template_popup_menu_item_state;
 use super::*;
+use crate::ui::template_runtime::RetainedUiHostValue;
 
 const FILE_MENU_CONTROL_ID: &str = "UnrealFileMenuPopup";
 use zircon_runtime_interface::ui::{binding::UiEventKind, component::UiValue, layout::UiSize};
@@ -202,4 +203,69 @@ fn closed_authored_menus_are_not_visible_or_pointer_targets_at_startup() {
             "closed menu {menu} intercepts pointer input"
         );
     }
+}
+
+#[test]
+fn native_add_popup_projects_the_current_arranged_trigger_anchor() {
+    let mut bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1672.0, 941.0)).unwrap();
+    bridge
+        .mutate_control_property(
+            "UnrealAddMenuPopup",
+            "menu_items",
+            UiValue::Array(vec![UiValue::String(
+                "Create Cube|action=scene.node.create_cube|".into(),
+            )]),
+        )
+        .unwrap();
+    bridge
+        .dispatch_control_state("WorkbenchToolbarAddActor", UiEventKind::Click)
+        .unwrap()
+        .unwrap();
+    let trigger = bridge
+        .host_projection()
+        .node_by_control_id("WorkbenchToolbarAddActor")
+        .unwrap();
+    let popup = bridge
+        .host_projection()
+        .node_by_control_id("UnrealAddMenuPopup")
+        .unwrap();
+    assert!(popup.has_popup_anchor);
+    assert_eq!(popup.popup_anchor_x, trigger.frame.x as f64);
+    assert_eq!(popup.popup_anchor_y, trigger.frame.y as f64);
+    assert!(popup.menu_items[0].contains("action=scene.node.create_cube"));
+    let mut projection = bridge.host_projection().clone();
+    // The runtime's first-row text summary must not become a second native label.
+    let popup = projection
+        .nodes
+        .iter_mut()
+        .find(|node| node.control_id.as_deref() == Some("UnrealAddMenuPopup"))
+        .unwrap();
+    popup.text = Some("Create Cube".into());
+    popup.properties.insert(
+        "text".into(),
+        RetainedUiHostValue::String("Create Cube".into()),
+    );
+    let nodes =
+        crate::ui::retained_host::ui::to_host_contract_workbench_window_nodes(Some(&projection));
+    let native_popup = nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == "UnrealAddMenuPopup")
+        .unwrap();
+    assert_eq!(native_popup.component_role.as_str(), "menu");
+    assert_eq!(native_popup.frame.x, trigger.frame.x);
+    assert_eq!(native_popup.frame.y, trigger.frame.y + trigger.frame.height);
+    eprintln!("native_add_popup role={} open={} frame=({}, {}, {}, {}) clip=({}, {}, {}, {}) surface={} rows={}",
+        native_popup.component_role, native_popup.popup_open,
+        native_popup.frame.x, native_popup.frame.y, native_popup.frame.width, native_popup.frame.height,
+        native_popup.clip_frame.x, native_popup.clip_frame.y, native_popup.clip_frame.width, native_popup.clip_frame.height,
+        native_popup.surface_variant, native_popup.structured_menu_items.row_count());
+    let mut popup_with_summary = native_popup.clone();
+    popup_with_summary.options_text = std::rc::Rc::new("Create Cube".to_owned());
+    let summary =
+        crate::ui::retained_host::template_node_command_summary_for_test(&popup_with_summary);
+    assert_eq!(
+        summary.text_count, 1,
+        "the native popup must paint its real command row"
+    );
 }

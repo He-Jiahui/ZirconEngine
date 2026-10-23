@@ -21,6 +21,12 @@ pub(in crate::ui::retained_host::host_contract) fn dispatch_hierarchy_button(
         pointer.height,
     );
     if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary {
+        if std::env::var_os("ZIRCON_TRACE_EDITOR_INTERACTION").is_some() {
+            eprintln!(
+                "editor_interaction kind=hierarchy_press x={} y={} width={} height={}",
+                pointer.local_x, pointer.local_y, pointer.width, pointer.height
+            );
+        }
         pane_host.invoke_hierarchy_pointer_clicked(
             pointer.local_x,
             pointer.local_y,
