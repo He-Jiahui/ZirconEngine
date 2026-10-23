@@ -31,9 +31,14 @@ use super::{
     RuntimeLibraryError, RuntimeLibraryPathError, RuntimeLibraryPathSelection,
 };
 
+#[cfg(feature = "editor-scripting")]
+#[path = "loaded_runtime/linked.rs"]
+mod linked;
+
 /// 持有已验证的 V8 表及库句柄；RuntimeSession 和编辑器网关间接调用期间必须保持存活。
 pub(crate) struct LoadedRuntime {
-    _library: Library,
+    // None only for the process-lifetime linked API table.
+    _library: Option<Library>,
     _artifact_manifest:
         Option<zircon_runtime_interface::runtime_build_set::ZrRuntimeArtifactManifestV1>,
     api: NonNull<ZrRuntimeApiV8>,
@@ -84,7 +89,8 @@ struct ValidatedRuntimeApiV8 {
     required: RequiredRuntimeApiV8,
 }
 
-// The selected API table is immutable and remains valid while `_library` is held.
+// The table is immutable; dynamic tables retain `_library`, while linked tables
+// are process-lifetime statics. RuntimeSession enforces creator-thread calls.
 unsafe impl Send for LoadedRuntime {}
 unsafe impl Sync for LoadedRuntime {}
 
@@ -149,7 +155,7 @@ impl LoadedRuntime {
         Self::load_dynamic_library(path, path.display().to_string(), None)
     }
 
-    pub(super) fn preflight_for_request(
+    pub(in crate::entry) fn preflight_for_request(
         path: &Path,
         requested_path: String,
     ) -> Result<RuntimeLibraryPreflight, RuntimeLibraryError> {
@@ -221,7 +227,7 @@ impl LoadedRuntime {
         let runtime_instance = allocate_runtime_instance_id(&NEXT_RUNTIME_INSTANCE_ID)
             .map_err(|error| runtime_library_startup_error_for_request(&requested_path, error))?;
         Ok(Self {
-            _library: library,
+            _library: Some(library),
             _artifact_manifest: artifact_manifest,
             api,
             size_bytes: validated.size_bytes,
@@ -401,6 +407,20 @@ impl RuntimeLibraryPreflight {
     /// Load the preflighted library only after validating its current sidecar
     /// and artifact digest again immediately before dynamic code can execute.
     pub(crate) fn load_after_preflight(&self) -> Result<LoadedRuntime, RuntimeLibraryError> {
+        let artifact_manifest = self.validate_after_preflight()?;
+        LoadedRuntime::load_dynamic_library(
+            &self.path,
+            self.requested_path.clone(),
+            Some(artifact_manifest),
+        )
+    }
+
+    fn validate_after_preflight(
+        &self,
+    ) -> Result<
+        zircon_runtime_interface::runtime_build_set::ZrRuntimeArtifactManifestV1,
+        RuntimeLibraryError,
+    > {
         let artifact_manifest = validate_runtime_library_artifact(&self.path).map_err(|error| {
             runtime_library_startup_error_for_request(&self.requested_path, error)
         })?;
@@ -414,11 +434,7 @@ impl RuntimeLibraryPreflight {
                 ),
             ));
         }
-        LoadedRuntime::load_dynamic_library(
-            &self.path,
-            self.requested_path.clone(),
-            Some(artifact_manifest),
-        )
+        Ok(artifact_manifest)
     }
 }
 

@@ -6,5 +6,7 @@ mod component_support;
 mod hierarchy;
 #[path = "registration.rs"]
 mod registration;
+#[path = "script_bindings.rs"]
+mod script_bindings;
 
 pub(super) use registration::register;

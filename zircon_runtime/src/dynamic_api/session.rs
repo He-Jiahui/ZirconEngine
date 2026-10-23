@@ -81,7 +81,7 @@ use zircon_runtime_interface::{
 const DEFAULT_VIEWPORT: ZrRuntimeViewportHandle = ZIRCON_RUNTIME_DEFAULT_VIEWPORT_HANDLE_V1;
 
 pub use error::{RuntimeDynamicSessionError, RuntimeProjectError};
-pub use linked_session::create_linked_runtime_session;
+pub use linked_session::{create_linked_runtime_play_session, create_linked_runtime_session};
 
 use error::RuntimeDynamicSessionResult;
 pub(in crate::dynamic_api) use event_mirror::{
