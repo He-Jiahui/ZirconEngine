@@ -28,7 +28,8 @@ use crate::input::{
 };
 use crate::operation::RuntimeOperationService;
 use crate::plugin::{
-    CompiledProjectPluginPlan, RuntimePluginCatalogSnapshot, RuntimePluginRegistrationReport,
+    CompiledProjectPluginPlan, RuntimePluginCatalogSnapshot,
+    RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
 };
 use crate::runtime_diagnostics::collect_runtime_diagnostic_current_store;
 use crate::scene::{
@@ -265,11 +266,15 @@ impl RuntimeDynamicSession {
         profile: RuntimeDynamicSessionProfile,
         project_config: Option<RuntimeProjectConfig>,
         linked_plugin_registrations: Vec<RuntimePluginRegistrationReport>,
+        linked_feature_registrations: Vec<RuntimePluginFeatureRegistrationReport>,
     ) -> Result<Self, RuntimeConstructionFailure> {
         construction::build(
             profile,
             project_config,
-            construction::RuntimePluginPlanInput::Linked(linked_plugin_registrations),
+            construction::RuntimePluginPlanInput::Linked {
+                plugins: linked_plugin_registrations,
+                features: linked_feature_registrations,
+            },
         )
     }
 

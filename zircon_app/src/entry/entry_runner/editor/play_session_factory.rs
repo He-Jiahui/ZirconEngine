@@ -91,11 +91,13 @@ impl AppPlaySessionFactory {
             .map_err(|error| error.to_string())?;
         let manifest =
             manifest_with_mode_baseline(RuntimeTargetMode::ClientRuntime, Some(&project.plugins));
-        let mut registrations =
-            crate::entry::first_party_runtime_plugin_registrations_for_manifest(
+        let catalog =
+            crate::entry::first_party_runtime_plugins::first_party_runtime_catalog_for_manifest(
                 RuntimeTargetMode::ClientRuntime,
                 &manifest,
-            )
+            );
+        let mut registrations = catalog
+            .runtime_plugins
             .into_registrations_if_required_resolved_where(|selection| {
                 !selection.is_runtime_builtin_domain()
             })
@@ -115,6 +117,7 @@ impl AppPlaySessionFactory {
             request.project_root(),
             request.scene(),
             registrations.into_iter().collect(),
+            catalog.runtime_plugin_features,
         )
         .map_err(|error| error.diagnostic_with_recovery())?;
         eprintln!("mvp_play_boundary app_factory_linked_session_created");

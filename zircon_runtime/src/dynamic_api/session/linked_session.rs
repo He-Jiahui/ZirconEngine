@@ -3,7 +3,7 @@ use std::path::Path;
 use zircon_runtime_interface::project::RelPath;
 use zircon_runtime_interface::ZrRuntimeSessionHandle;
 
-use crate::plugin::RuntimePluginRegistrationReport;
+use crate::plugin::{RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport};
 
 use super::profile::RuntimeDynamicSessionProfile;
 use super::project::RuntimeProjectConfig;
@@ -23,7 +23,7 @@ pub fn create_linked_runtime_session(
             step: "resolve linked runtime project root",
             source,
         })?;
-    create_linked_session(profile, project_config, registrations)
+    create_linked_session(profile, project_config, registrations, Vec::new())
 }
 
 /// Creates a linked session from the editor's materialized Play snapshot.
@@ -33,6 +33,7 @@ pub fn create_linked_runtime_play_session(
     project_root: &Path,
     play_scene: &RelPath,
     registrations: Vec<RuntimePluginRegistrationReport>,
+    feature_registrations: Vec<RuntimePluginFeatureRegistrationReport>,
 ) -> Result<ZrRuntimeSessionHandle, RuntimeDynamicSessionError> {
     let profile = parse_profile(profile)?;
     let project = RuntimeProjectConfig::from_root(project_root)
@@ -41,15 +42,22 @@ pub fn create_linked_runtime_play_session(
             source,
         })?
         .with_play_scene(play_scene.clone());
-    create_linked_session(profile, Some(project), registrations)
+    create_linked_session(profile, Some(project), registrations, feature_registrations)
 }
 
 fn create_linked_session(
     profile: RuntimeDynamicSessionProfile,
     project_config: Option<RuntimeProjectConfig>,
     registrations: Vec<RuntimePluginRegistrationReport>,
+    feature_registrations: Vec<RuntimePluginFeatureRegistrationReport>,
 ) -> Result<ZrRuntimeSessionHandle, RuntimeDynamicSessionError> {
-    try_create_linked_session(profile, project_config, registrations).map_err(|error| match error {
+    try_create_linked_session(
+        profile,
+        project_config,
+        registrations,
+        feature_registrations,
+    )
+    .map_err(|error| match error {
         SessionRegistryInsertError::HandleSpaceExhausted => {
             RuntimeDynamicSessionError::SessionHandleSpaceExhausted
         }

@@ -224,6 +224,7 @@ fn linked_catalog_uses_runtime_prepared_project_before_pm_drop_and_revoke() {
         RuntimeDynamicSessionProfile::Minimal,
         Some(config),
         reports,
+        Vec::new(),
     )
     .expect("minimal linked session");
 

@@ -50,6 +50,7 @@ fn abi_core_session_does_not_claim_unlinked_host_plugins() {
 fn linked_runtime_plugin_plan_materializes_each_selected_module_once() {
     let plan = LinkedRuntimePluginPlan::prepare(
         &[linked_registration_with_module()],
+        &[],
         None,
         RuntimeTargetMode::ClientRuntime,
     )
@@ -87,7 +88,7 @@ fn linked_runtime_plugin_plan_materializes_each_selected_module_once() {
 #[cfg(feature = "ui")]
 #[test]
 fn linked_runtime_plugin_plan_preserves_client_baseline_without_project_manifest() {
-    let plan = LinkedRuntimePluginPlan::prepare(&[], None, RuntimeTargetMode::ClientRuntime)
+    let plan = LinkedRuntimePluginPlan::prepare(&[], &[], None, RuntimeTargetMode::ClientRuntime)
         .expect("client baseline plan compiles");
     let completed_manifest = plan.compiled_project_plugin_plan.completed_manifest();
 

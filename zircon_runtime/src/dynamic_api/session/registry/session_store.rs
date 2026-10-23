@@ -23,7 +23,7 @@ use crate::dynamic_api::session::profile::RuntimeDynamicSessionProfile;
 use crate::dynamic_api::session::project::RuntimeProjectConfig;
 use crate::dynamic_api::session::status::{invalid_argument, not_found, teardown_incomplete};
 use crate::dynamic_api::session::RuntimeDynamicSession;
-use crate::plugin::RuntimePluginRegistrationReport;
+use crate::plugin::{RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport};
 
 static SESSION_REGISTRY: OnceLock<Mutex<SessionRegistry>> = OnceLock::new();
 /// 一次销毁尝试共享的等待预算，涵盖查找、排空、owner 关闭与最终删除。
@@ -181,20 +181,25 @@ pub(in crate::dynamic_api::session) fn try_create_linked_session(
     profile: RuntimeDynamicSessionProfile,
     project: Option<RuntimeProjectConfig>,
     registrations: Vec<RuntimePluginRegistrationReport>,
+    feature_registrations: Vec<RuntimePluginFeatureRegistrationReport>,
 ) -> Result<ZrRuntimeSessionHandle, SessionRegistryInsertError> {
     let handle = lock_registry().try_allocate_handle()?;
     #[cfg(test)]
     super::session_owner::runtime::startup_observation::record_allocated_handle(handle);
-    let slot = SessionSlot::create_with_linked_plugins(profile, project, registrations).map_err(
-        |error| match error {
-            RuntimeSessionOwnerCreateError::Owner(message) => {
-                SessionRegistryInsertError::OwnerUnavailable(message)
-            }
-            RuntimeSessionOwnerCreateError::Session(status) => {
-                SessionRegistryInsertError::OwnerUnavailable(status.into_message())
-            }
-        },
-    )?;
+    let slot = SessionSlot::create_with_linked_plugins(
+        profile,
+        project,
+        registrations,
+        feature_registrations,
+    )
+    .map_err(|error| match error {
+        RuntimeSessionOwnerCreateError::Owner(message) => {
+            SessionRegistryInsertError::OwnerUnavailable(message)
+        }
+        RuntimeSessionOwnerCreateError::Session(status) => {
+            SessionRegistryInsertError::OwnerUnavailable(status.into_message())
+        }
+    })?;
     lock_registry().sessions.insert(handle, Arc::new(slot));
     Ok(ZrRuntimeSessionHandle::new(handle))
 }

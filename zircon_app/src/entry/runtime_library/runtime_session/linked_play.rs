@@ -1,6 +1,8 @@
 use super::*;
 use crate::entry::runtime_library::RuntimeLibraryPreflight;
-use zircon_runtime::plugin::RuntimePluginRegistrationReport;
+use zircon_runtime::plugin::{
+    RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
+};
 
 impl RuntimeSession {
     pub(in crate::entry) fn create_linked_play(
@@ -8,6 +10,7 @@ impl RuntimeSession {
         project_root: &Path,
         scene: &RelPath,
         registrations: Vec<RuntimePluginRegistrationReport>,
+        feature_registrations: Vec<RuntimePluginFeatureRegistrationReport>,
     ) -> Result<Self, RuntimeSessionCreateFailure> {
         RuntimeSessionCreateFailure::ensure_available()?;
         let runtime = preflight.linked_after_preflight()?;
@@ -17,6 +20,7 @@ impl RuntimeSession {
             project_root,
             scene,
             registrations,
+            feature_registrations,
         )
         .map_err(|error| RuntimeLibraryError::new(error.to_string()))?;
         // This owner uses the same linked table/registry that created the handle.
