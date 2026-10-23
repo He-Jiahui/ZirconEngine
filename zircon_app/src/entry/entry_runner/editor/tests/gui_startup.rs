@@ -210,7 +210,7 @@ fn create_startup_request_remains_unmaterialized_until_editor_admission() {
 
     let prepared = prepare_editor_gui_startup(Some(create_project_request(
         "StartupProject",
-        location.to_string_lossy(),
+        &location,
     )))
     .unwrap();
 
