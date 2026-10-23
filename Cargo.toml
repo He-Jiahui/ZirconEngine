@@ -109,3 +109,8 @@ rpath = false
 inherits = "shipping"
 strip = false
 debug = true
+
+# Keep the pinned ZrVM ABI; the local sys build admits explicit Linux output roots.
+[patch."https://github.com/He-Jiahui/zr_vm.git"]
+zr_vm_rust_binding_sys = { path = "tools/vendor/zr_vm_rust_binding_sys" }
+zr_vm_rust_binding = { path = "tools/vendor/zr_vm_rust_binding" }
