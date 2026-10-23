@@ -47,6 +47,10 @@ mod request_encoding;
 #[path = "runtime_session/surface_bindings.rs"]
 mod surface_bindings;
 
+#[cfg(feature = "editor-scripting")]
+#[path = "runtime_session/linked_play.rs"]
+mod linked_play;
+
 pub(crate) use frame_demand::{RuntimeFrameDemand, MAX_HOST_RUNTIME_FRAME_DELAY};
 
 use foreign_output::{
@@ -177,6 +181,22 @@ impl RuntimeSession {
         };
         eprintln!("mvp_play_boundary app_runtime_create_ffi_returned");
         ensure_status(status, "create runtime session")?;
+        Self::adopt_handle(
+            runtime,
+            profile,
+            handle,
+            project_identity,
+            wake_registration,
+        )
+    }
+
+    fn adopt_handle(
+        runtime: LoadedRuntime,
+        profile: &'static [u8],
+        handle: ZrRuntimeSessionHandle,
+        project_identity: Option<Arc<str>>,
+        wake_registration: Option<RuntimeWakeRegistration>,
+    ) -> Result<Self, RuntimeSessionCreateFailure> {
         if !handle.is_valid() {
             return Err(
                 RuntimeLibraryError::new("runtime returned an invalid session handle").into(),

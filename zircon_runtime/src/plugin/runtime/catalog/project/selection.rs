@@ -238,7 +238,14 @@ fn required_selection_admission_diagnostic(
     });
     let diagnostic = resolution
         .required_failures()
-        .next()
+        // Built-in UI is admitted by runtime module availability, not a plugin
+        // catalog registration. Keep external UI and all other required IDs
+        // on the provider check, including unknown IDs claiming builtin crates.
+        .find(|outcome| {
+            !(outcome.status == PluginSelectionResolutionStatus::Unsupported
+                && outcome.selection.id == RuntimePluginId::Ui.key()
+                && outcome.selection.is_runtime_builtin_domain())
+        })
         .map(|outcome| match outcome.status {
             PluginSelectionResolutionStatus::Duplicate => format!(
                 "required runtime plugin selection `{}` is Duplicate",

@@ -30,6 +30,11 @@ pub(super) struct RuntimeProjectConfig {
 }
 
 impl RuntimeProjectConfig {
+    pub(super) fn with_play_scene(mut self, scene: RelPath) -> Self {
+        self.play_scene = Some(scene);
+        self
+    }
+
     /// Resolves the caller-owned project path once at the dynamic-runtime boundary.
     ///
     /// The configuration retains both resolver views so project preparation can open the same

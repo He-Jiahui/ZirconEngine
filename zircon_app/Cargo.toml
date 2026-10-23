@@ -104,6 +104,9 @@ backend-zr-vm = [
     "first-party-zr-vm-language-runtime-plugin",
     "zircon_first_party_runtime_catalog/backend-zr-vm",
 ]
+# Scripted Play runs in the host's linked runtime so Rust registrations never
+# cross the dynamic runtime ABI. Keep the native VM opt-in for editor installs.
+editor-scripting = ["target-editor-host", "backend-zr-vm"]
 default-platform = [
     "native-host",
     "zircon_runtime/default-platform",
