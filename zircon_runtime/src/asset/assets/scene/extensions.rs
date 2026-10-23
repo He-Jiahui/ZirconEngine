@@ -30,3 +30,14 @@ pub struct SceneScriptBindingAsset {
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     pub properties: BTreeMap<String, serde_json::Value>,
 }
+
+impl SceneScriptBindingAsset {
+    /// Built-in array storage shared by scene persistence, reflection and editor commands.
+    pub const COMPONENT_TYPE_PATH: &'static str = "script.bindings";
+}
+
+zircon_runtime_interface::impl_retained_owner_v1!(SceneScriptBindingAsset {
+    package,
+    module,
+    properties
+});
