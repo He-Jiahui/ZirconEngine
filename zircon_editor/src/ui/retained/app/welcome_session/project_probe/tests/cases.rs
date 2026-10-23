@@ -72,6 +72,44 @@ fn replacement_generation_rejects_a_late_completion_without_worker_timing_assump
 }
 
 #[test]
+fn idle_probe_wakes_for_admission_and_completion_then_releases_its_deadline() {
+    let jobs = test_job_system();
+    let mut state = WelcomeProjectProbeState::default();
+    let now = Instant::now();
+    assert_eq!(state.poll_deadline(now), None);
+    state.request(draft("idle"), now);
+    assert_eq!(
+        state.poll_deadline(now),
+        Some(now + WELCOME_PROJECT_PROBE_DEBOUNCE)
+    );
+    let due = state.poll_deadline(now).unwrap();
+    assert!(state.submit_due(&jobs, due).unwrap());
+    assert_eq!(
+        state.poll_deadline(due),
+        Some(due + WELCOME_PROJECT_PROBE_DEBOUNCE)
+    );
+    let _ = poll_until_ready(&mut state);
+    assert_eq!(state.poll_deadline(due), None);
+}
+
+#[test]
+fn probe_deadline_caps_input_bursts_and_does_not_schedule_past_instants() {
+    let mut state = WelcomeProjectProbeState::default();
+    let now = Instant::now();
+    state.request(draft("first"), now);
+    let later = now + WELCOME_PROJECT_PROBE_MAX_FEEDBACK_DELAY - Duration::from_millis(1);
+    state.request(draft("latest"), later);
+    assert_eq!(
+        state.poll_deadline(later),
+        Some(now + WELCOME_PROJECT_PROBE_MAX_FEEDBACK_DELAY)
+    );
+    let overdue = now + Duration::from_secs(1);
+    assert_eq!(state.poll_deadline(overdue), Some(overdue));
+    state.clear();
+    assert_eq!(state.poll_deadline(overdue), None);
+}
+
+#[test]
 fn first_draft_waits_for_the_probe_debounce_before_submission() {
     let jobs = test_job_system();
     let mut state = WelcomeProjectProbeState::default();

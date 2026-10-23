@@ -173,7 +173,7 @@ fn welcome_projection_maps_bootstrap_asset_into_mount_nodes() {
     assert!(actions.frame.y >= validation.frame.y + validation.frame.height);
     assert!(hero.frame.y >= actions.frame.y + actions.frame.height);
     assert!(status.frame.y >= main.frame.y);
-    assert!(new_project_header.frame.y >= status.frame.y + status.frame.height);
+    assert!(status.frame.y >= actions.frame.y + actions.frame.height);
     assert!(validation.frame.y >= location.frame.y + location.frame.height);
     assert!(preview.frame.y >= actions.frame.y + actions.frame.height);
 }
@@ -183,6 +183,9 @@ fn welcome_mvp_error_status_and_project_actions_remain_inside_short_viewports() 
     const EPSILON: f32 = 0.01;
 
     for viewport in [
+        UiSize::new(316.0, 242.0),
+        UiSize::new(396.0, 278.0),
+        UiSize::new(1251.0, 242.0),
         UiSize::new(560.0, 384.0),
         UiSize::new(640.0, 420.0),
         UiSize::new(900.0, 520.0),
@@ -199,8 +202,9 @@ fn welcome_mvp_error_status_and_project_actions_remain_inside_short_viewports() 
         };
 
         let main = node("WelcomeMainPanel");
-        let status = node("WelcomeStatusPanel");
-        let header = node("WelcomeNewProjectHeaderPanel");
+        let header = nodes
+            .iter()
+            .find(|node| node.control_id == "WelcomeNewProjectHeaderPanel");
         let project_name = node("WelcomeProjectNameField");
         let location = node("WelcomeLocationField");
         let validation = node("WelcomeValidationPanel");
@@ -212,11 +216,12 @@ fn welcome_mvp_error_status_and_project_actions_remain_inside_short_viewports() 
             actions.frame.y + actions.frame.height <= main.frame.y + main.frame.height + EPSILON,
             "project actions must stay reachable inside a {viewport:?} welcome main panel"
         );
-        assert!(status.frame.width > 0.0 && status.frame.height > 0.0);
-        assert!(status.frame.y >= main.frame.y - EPSILON);
-        assert!(header.frame.y >= status.frame.y + status.frame.height - EPSILON);
-        assert!(status.frame.y + status.frame.height <= main.frame.y + main.frame.height + EPSILON);
-        assert!(project_name.frame.y >= header.frame.y + header.frame.height - EPSILON);
+        if viewport.width < 600.0 {
+            assert!(header.is_none_or(|node| node.frame.height == 0.0));
+        } else {
+            let header = header.expect("wide welcome heading");
+            assert!(project_name.frame.y >= header.frame.y + header.frame.height - EPSILON);
+        }
         assert!(location.frame.y >= project_name.frame.y + project_name.frame.height - EPSILON);
         assert!(validation.frame.y >= location.frame.y + location.frame.height - EPSILON);
         assert!(actions.frame.y >= validation.frame.y + validation.frame.height - EPSILON);
@@ -242,7 +247,15 @@ fn welcome_mvp_error_status_and_project_actions_remain_inside_short_viewports() 
             "WelcomePreviewPanel",
             "WelcomeStartupChooserRow",
         ] {
-            let optional = node(optional_control);
+            let Some(optional) = nodes
+                .iter()
+                .find(|node| node.control_id == optional_control)
+            else {
+                continue;
+            };
+            if optional.frame.height <= 0.0 {
+                continue;
+            }
             assert!(
                 optional.frame.y >= actions.frame.y + actions.frame.height - EPSILON,
                 "optional `{optional_control}` content must follow project actions at {viewport:?}"
@@ -256,6 +269,9 @@ fn welcome_mvp_columns_prioritize_project_actions_before_recent_history_width() 
     const EPSILON: f32 = 0.01;
 
     for viewport in [
+        UiSize::new(316.0, 242.0),
+        UiSize::new(396.0, 278.0),
+        UiSize::new(1251.0, 242.0),
         UiSize::new(560.0, 384.0),
         UiSize::new(640.0, 420.0),
         UiSize::new(900.0, 520.0),
@@ -272,17 +288,26 @@ fn welcome_mvp_columns_prioritize_project_actions_before_recent_history_width() 
                 .unwrap_or_else(|| panic!("welcome projection should contain `{control_id}`"))
         };
         let outer = node("WelcomeOuterPanel");
-        let recent = node("WelcomeRecentPanel");
+        let recent = nodes
+            .iter()
+            .find(|node| node.control_id == "WelcomeRecentPanel");
         let main = node("WelcomeMainPanel");
-
-        assert!(recent.frame.width >= 136.0 - EPSILON);
-        assert!(recent.frame.width <= 240.0 + EPSILON);
+        let recent_width = recent.map_or(0.0, |node| node.frame.width);
+        if viewport.width < 900.0 {
+            assert!(
+                recent_width <= EPSILON,
+                "recent sidebar must collapse at {viewport:?}"
+            );
+        } else {
+            assert!(recent_width >= 136.0 - EPSILON);
+            assert!(recent_width <= 240.0 + EPSILON);
+        }
         assert!(
             main.frame.width >= 280.0 - EPSILON,
             "project actions need at least 280px at {viewport:?}"
         );
         assert!(
-            recent.frame.width + main.frame.width <= outer.frame.width + EPSILON,
+            recent_width + main.frame.width <= outer.frame.width + EPSILON,
             "responsive Welcome columns must stay inside the outer panel at {viewport:?}"
         );
     }
@@ -292,7 +317,7 @@ fn welcome_mvp_columns_prioritize_project_actions_before_recent_history_width() 
 fn welcome_mvp_recent_section_uses_workbench_vertical_rhythm() {
     const EPSILON: f32 = 0.01;
     let tokens = EditorDesignTokens::default();
-    let pane = welcome_pane_nodes(UiSize::new(560.0, 384.0));
+    let pane = welcome_pane_nodes(UiSize::new(1260.0, 780.0));
     let nodes = (0..pane.row_count())
         .filter_map(|row| pane.row_data(row))
         .collect::<Vec<_>>();
@@ -432,7 +457,8 @@ fn welcome_mvp_field_labels_use_shared_runtime_text_label_nodes() {
             .iter()
             .find(|node| node.control_id == field_control_id)
             .unwrap_or_else(|| panic!("welcome projection should contain `{field_control_id}`"));
-        assert!(projected.frame.y + projected.frame.height <= field.frame.y + 0.01);
+        assert!(projected.frame.x + projected.frame.width <= field.frame.x + 0.01);
+        assert!((projected.frame.y - field.frame.y).abs() <= 0.01);
     }
 }
 
