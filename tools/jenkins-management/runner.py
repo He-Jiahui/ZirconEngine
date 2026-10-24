@@ -720,6 +720,7 @@ def plugin_workspace_inputs(root, recipe, captured):
     selected_manifest = root / "zircon_plugins/Cargo.toml"
     selected = manifest(selected_manifest)
     members = {"zircon_plugin_material_editor_editor": "material_editor/editor",
+               "zircon_plugin_prefab_tools_editor": "prefab_tools/editor",
                "zircon_plugin_gltf_importer_runtime": "gltf_importer/runtime"}
     selected_packages = recipe.get("packages")
     if (not isinstance(selected_packages, list) or len(selected_packages) != 1
@@ -786,11 +787,11 @@ def plugin_workspace_inputs(root, recipe, captured):
     selected_package = packages[selected_manifest.parent / member / "Cargo.toml"]
     if not selected_package["presentInSelectedLock"]:
         raise ValueError("The selected plugin package is absent from the plugin lockfile")
-    if selected_name == "zircon_plugin_material_editor_editor" and not (
+    if selected_name in {"zircon_plugin_material_editor_editor", "zircon_plugin_prefab_tools_editor"} and not (
             any(edge["package"] == "zircon_runtime" and "native-host" in edge["declaredFeatures"] for edge in edges)
             and any(edge["fromPackage"] == "zircon_editor" and edge["package"] == "zircon_runtime"
                     and "target-editor-host" in edge["declaredFeatures"] for edge in edges)):
-        raise ValueError("The material route lost its declared native/editor runtime feature edges")
+        raise ValueError("The selected plugin editor route lost its declared native/editor runtime feature edges")
     if selected_name == "zircon_plugin_gltf_importer_runtime" and not any(
             edge["fromPackage"] == selected_name and edge["package"] == "zircon_runtime"
             and "native-host" in edge["declaredFeatures"] for edge in edges):
@@ -4049,18 +4050,20 @@ class Management:
         if verb == "test" and not ((options["lib"] and not tests) or (not options["lib"] and len(tests) == 1)):
             raise ValueError("build_scope_policy: select lib or exactly one test target")
         if manifest_fields.get("manifestPath") == "zircon_plugins/Cargo.toml":
-            material = (packages == ["zircon_plugin_material_editor_editor"] and not features
-                        and options["lib"] and not tests and test_filter == "material_graph_")
+            editor_filters = {"zircon_plugin_material_editor_editor": "material_graph_",
+                              "zircon_plugin_prefab_tools_editor": "prefab_"}
+            plugin_lib = (len(packages) == 1 and packages[0] in editor_filters and not features
+                          and options["lib"] and not tests and test_filter == editor_filters[packages[0]])
             gltf = (packages == ["zircon_plugin_gltf_importer_runtime"]
                     and sorted(features) == sorted([
                         "runtime", "zircon_runtime/native-host", "zircon_runtime/animation"])
                     and ((not options["lib"] and tests == ["character_skinning_sources"] and test_filter is None)
                          or (options["lib"] and not tests and test_filter
                              == "source_snapshot_tests::importer_rejects_required_extensions_outside_its_stable_policy")))
-            if not ((material or gltf) and verb == "test" and profile == "test" and options["locked"]
+            if not ((plugin_lib or gltf) and verb == "test" and profile == "test" and options["locked"]
                     and not options["noRun"] and jobs == threads == 1
                     and not filters and not any(extra.values())):
-                raise ValueError("build_scope_policy: plugin manifest permits only the material_graph_ lib recipe or the two bounded glTF source test recipes")
+                raise ValueError("build_scope_policy: plugin manifest permits only the material_graph_ or prefab_ single-package lib recipes, or the two bounded glTF source test recipes")
         command = [verb, "--jobs", str(jobs), "--message-format=json"]
         if manifest_fields:
             command[1:1] = ["--manifest-path", manifest_fields["manifestPath"]]

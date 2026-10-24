@@ -144,6 +144,56 @@ class PluginManifestTests(unittest.TestCase):
         self.assertEqual(observed[1]["cargoWorkspaceManifest"], "zircon_plugins/Cargo.toml")
 
 
+class PrefabManifestTests(unittest.TestCase):
+    def argv(self):
+        return ["test", "--manifest-path", str(ROOT / "zircon_plugins/Cargo.toml"),
+                "-p", "zircon_plugin_prefab_tools_editor", "--no-default-features", "--locked",
+                "--lib", "--profile", "test", "--jobs", "1", "prefab_", "--", "--test-threads", "1"]
+
+    def recipe(self, value):
+        return PluginManifestTests().recipe(value)
+
+    def test_exact_prefab_cli_matches_receiver_recipe_and_native_arguments(self):
+        value = self.recipe(entry.parse_cargo(self.argv(), repo=ROOT))
+        self.assertEqual(value["packages"], ["zircon_plugin_prefab_tools_editor"])
+        self.assertEqual(value["features"], [])
+        self.assertEqual(value["profile"], "test")
+        self.assertEqual(value["testFilter"], "prefab_")
+        self.assertTrue(value["lib"] and value["locked"] and value["noDefaultFeatures"])
+        self.assertEqual(value["tests"], [])
+        command = local.prepare_command(value["command"], Path("E:/cargo-targets/zircon-local/manifest-test/target"))
+        self.assertEqual(command[command.index("--manifest-path") + 1], "zircon_plugins/Cargo.toml")
+        self.assertEqual(command[command.index("--profile") + 1], "test")
+        self.assertEqual(command[-4:], ["prefab_", "--", "--test-threads", "1"])
+        self.assertNotIn("--features", command)
+        self.assertFalse(set(command) & {"--workspace", "--all-features", "--all-targets", "--tests", "--bins"})
+
+    def test_prefab_receiver_cannot_borrow_another_package_filter_or_widen_scope(self):
+        original = entry.parse_cargo(self.argv(), repo=ROOT)
+        for change in [{"packages": ["zircon_plugin_material_editor_editor"]},
+                       {"packages": ["zircon_plugin_prefab_tools_editor", "zircon_editor"]},
+                       {"packages": ["zircon_editor"]}, {"features": ["runtime"]},
+                       {"profile": "dev"}, {"profile": "release"}, {"verb": "check"},
+                       {"testFilter": "material_graph_"}, {"testFilter": "prefab"}, {"testFilter": None},
+                       {"lib": False, "tests": ["other"]}, {"tests": ["other"]},
+                       {"noDefaultFeatures": False}, {"allFeatures": True}, {"allTests": True},
+                       {"bins": True}, {"locked": False}, {"jobs": 2}, {"testThreads": 2},
+                       {"noRun": True}, {"harnessFilters": ["other"]}, {"exact": True}, {"ignored": True},
+                       {"nocapture": True}, {"cwd": str(ROOT)}, {"workingDirectory": "zircon_plugins"},
+                       {"manifestPath": "zircon_plugins/prefab_tools/editor/Cargo.toml"}]:
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                self.recipe({**original, **change})
+
+    def test_prefab_cli_catalog_policy_remains_active_without_the_general_policy(self):
+        for old, new in [("prefab_", "material_graph_"), ("prefab_", "prefab"),
+                         ("zircon_plugin_prefab_tools_editor", "zircon_plugin_ai_editor"),
+                         ("--lib", "--bins"), ("--no-default-features", "--all-features")]:
+            argv = self.argv()
+            argv[argv.index(old)] = new
+            with self.subTest(old=old, new=new), self.assertRaises(entry.EntryError):
+                entry.parse_cargo(argv, repo=ROOT, enforce_policy=False)
+
+
 class GltfManifestTests(unittest.TestCase):
     FEATURES = ["runtime", "zircon_runtime/native-host", "zircon_runtime/animation"]
     LIB_FILTER = "source_snapshot_tests::importer_rejects_required_extensions_outside_its_stable_policy"
@@ -423,6 +473,66 @@ name = "zircon_plugin_gltf_importer_runtime"
 version = "0.1.0"
 ''', encoding="utf-8")
         self.recipe = entry.parse_cargo(GltfManifestTests().argv(lib=lib), repo=ROOT)
+
+    def select_prefab(self):
+        path = self.root / "zircon_plugins/Cargo.toml"
+        path.write_text(path.read_text().replace('members = ["material_editor/editor"]',
+                        'members = ["material_editor/editor", "prefab_tools/editor"]'), encoding="utf-8")
+        self.write("zircon_plugins/prefab_tools/editor/Cargo.toml", '''[package]
+name = "zircon_plugin_prefab_tools_editor"
+version.workspace = true
+[dependencies]
+zircon_editor.workspace = true
+zircon_runtime.workspace = true
+''')
+        path = self.root / "zircon_plugins/Cargo.lock"
+        path.write_text(path.read_text() + '''[[package]]
+name = "zircon_plugin_prefab_tools_editor"
+version = "0.1.0"
+''', encoding="utf-8")
+        self.recipe = entry.parse_cargo(PrefabManifestTests().argv(), repo=ROOT)
+
+    def test_prefab_source_closure_selects_its_own_member_and_both_runtime_host_edges(self):
+        self.select_prefab()
+        value = self.inputs()
+        self.assertEqual(value["selectedPackage"], "zircon_plugin_prefab_tools_editor")
+        self.assertEqual(value["selectedLockfile"], str(self.root / "zircon_plugins/Cargo.lock"))
+        self.assertEqual({p["name"] for p in value["packageManifests"].values()},
+                         {"zircon_plugin_prefab_tools_editor", "zircon_editor", "zircon_runtime"})
+        self.assertEqual(len(value["workspaceManifests"]), 2)
+        self.assertEqual({f for edge in value["pathDependencyEdges"] for f in edge["declaredFeatures"]},
+                         {"native-host", "target-editor-host"})
+        self.assertIn(str(self.root / "zircon_plugins/prefab_tools/editor/Cargo.toml"), value["files"])
+        self.assertIsNone(value["files"][str(self.root / "zircon_plugins/.cargo/config.toml")])
+        self.assertFalse(value["cargoResolutionPerformed"])
+        captured = self.capture()
+        self.write("zircon_editor/Cargo.toml", '[package]\nname = "foreign_change"\nversion = "0.1.0"\n')
+        with self.assertRaisesRegex(ValueError, "captured source"):
+            self.inputs(captured)
+
+    def test_prefab_source_member_and_lock_never_fall_back_to_material(self):
+        self.select_prefab()
+        manifest = self.root / "zircon_plugins/Cargo.toml"
+        original = manifest.read_text()
+        manifest.write_text(original.replace(', "prefab_tools/editor"', ''), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "not a member"):
+            self.inputs()
+        manifest.write_text(original, encoding="utf-8")
+        lock = self.root / "zircon_plugins/Cargo.lock"
+        lock.write_text(lock.read_text().replace("zircon_plugin_prefab_tools_editor", "other"), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "absent from the plugin lockfile"):
+            self.inputs()
+
+    def test_prefab_source_guard_requires_native_and_editor_host_edges_independently(self):
+        self.select_prefab()
+        for relative, feature in [("zircon_plugins/Cargo.toml", "native-host"),
+                                  ("zircon_editor/Cargo.toml", "target-editor-host")]:
+            path = self.root / relative
+            original = path.read_text()
+            path.write_text(original.replace('features = ["' + feature + '"]', 'features = []'), encoding="utf-8")
+            with self.subTest(feature=feature), self.assertRaisesRegex(ValueError, "native/editor"):
+                self.inputs()
+            path.write_text(original, encoding="utf-8")
 
     def test_gltf_closure_starts_at_selected_member_and_binds_cross_workspace_inputs(self):
         self.select_gltf()
