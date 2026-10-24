@@ -620,6 +620,186 @@ def cargo_manifest_environment(root, recipe):
     return {"cargoWorkspaceManifest": relative}
 
 
+def plugin_workspace_inputs(root, recipe, captured):
+    """Bind the bounded plugin route to captured manifests, lock and local edges.
+
+    This is conservative input discovery, not Cargo resolution: optional, target,
+    build and dev path declarations are all covered. Cargo still resolves actual
+    features under --locked. No source is copied and cwd remains the checkout.
+    """
+    import tomllib
+    if recipe.get("manifestPath") != "zircon_plugins/Cargo.toml":
+        return None
+    root = plain(root)
+    if captured.get("sourceView") != "checkout" or plain(captured["sourceRoot"]) != root:
+        raise ValueError("The plugin workspace requires the actual canonical checkout")
+    helper = source_helper()
+    sources = [(root, captured["source"])] + [
+        (plain(value["path"]), value["source"]) for value in captured.get("externalRoots", [])]
+    evidence = {}
+    for directory, snapshot in sources:
+        for name, checksum in helper.source_files(snapshot).items():
+            path = str(plain(directory / name))
+            if path in evidence and evidence[path] != checksum:
+                raise ValueError("Conflicting captured workspace inputs")
+            evidence[path] = checksum
+    roots = sorted({directory for directory, _ in sources}, key=lambda path: len(str(path)), reverse=True)
+    files, parsed, workspaces, packages, edges = {}, {}, {}, {}, []
+
+    def boundary(path):
+        path = plain(path)
+        if not any(path.is_relative_to(directory) for directory in roots):
+            raise ValueError("A plugin path dependency escapes the captured source roots: " + str(path))
+        return path
+
+    def read(path, *, optional=False, configuration=False):
+        path = boundary(path)
+        name = str(path)
+        try:
+            raw = path.read_bytes()
+        except FileNotFoundError:
+            if not optional:
+                raise ValueError("A required plugin workspace input is absent: " + name)
+            raw = None
+        checksum = sha(raw) if raw is not None else None
+        if (not configuration and (raw is not None and name not in evidence
+                                  or name in evidence and evidence[name] != checksum)):
+            raise ValueError("A plugin workspace input is not bound to its captured source: " + name)
+        if name in files and files[name] != checksum:
+            raise ValueError("A plugin workspace input changed during discovery: " + name)
+        files[name] = checksum
+        return raw
+
+    def manifest(path, *, optional=False):
+        path = boundary(path)
+        raw = read(path, optional=optional)
+        if raw is None:
+            return None
+        value = tomllib.loads(raw.decode("utf-8"))
+        if path in parsed and parsed[path] != value:
+            raise ValueError("A plugin manifest changed during discovery")
+        parsed[path] = value
+        return value
+
+    def relative_path(base, value):
+        # Cargo permits ../ path dependencies. Inspect every traversed component
+        # before normalization so a reparse point cannot be hidden by '..'.
+        if (not isinstance(value, str) or not value or "\\" in value or ":" in value
+                or value.startswith("/") or any(c in value for c in "\0\r\n")):
+            raise ValueError("Noncanonical plugin dependency path")
+        path = plain(base)
+        for part in value.split("/"):
+            if not part:
+                raise ValueError("Noncanonical plugin dependency path")
+            path = plain(path.parent if part == ".." else path if part == "." else path / part)
+        return boundary(path)
+
+    def workspace(path, data):
+        explicit = data.get("package", {}).get("workspace")
+        if explicit is not None:
+            candidates = [relative_path(path.parent, explicit) / "Cargo.toml"]
+        else:
+            limit = next(directory for directory in roots if path.is_relative_to(directory))
+            candidates, directory = [], path.parent
+            while directory.is_relative_to(limit):
+                candidates.append(directory / "Cargo.toml")
+                if directory == limit:
+                    break
+                directory = directory.parent
+        for candidate in candidates:
+            value = manifest(candidate, optional=True)
+            if value is not None and isinstance(value.get("workspace"), dict):
+                # Overrides can introduce inputs outside this path graph. Do not
+                # silently call an incomplete graph a guarded dependency closure.
+                if value.get("patch") or value.get("replace"):
+                    raise ValueError("Plugin workspace overrides require an explicit source closure")
+                workspaces[str(candidate)] = files[str(candidate)]
+                return candidate, value["workspace"]
+        raise ValueError("A plugin path package has no captured owning workspace: " + str(path))
+
+    selected_manifest = root / "zircon_plugins/Cargo.toml"
+    selected = manifest(selected_manifest)
+    member = "material_editor/editor"
+    if member not in selected.get("workspace", {}).get("members", []):
+        raise ValueError("The material package is not a member of the selected plugin workspace")
+    lock_path = selected_manifest.with_name("Cargo.lock")
+    lock = tomllib.loads(read(lock_path).decode("utf-8"))
+    lock_packages = {(value.get("name"), value.get("version"))
+                     for value in lock.get("package", []) if value.get("source") is None}
+    pending = [(selected_manifest.parent / member / "Cargo.toml", "zircon_plugin_material_editor_editor")]
+    while pending:
+        path, expected_name = pending.pop()
+        path = boundary(path)
+        if path in packages:
+            if packages[path]["name"] != expected_name:
+                raise ValueError("Plugin dependency package/manifest mismatch")
+            continue
+        if len(packages) >= 256 or len(edges) > 4096:
+            raise ValueError("Plugin dependency input discovery exceeded its bound")
+        data = manifest(path)
+        package = data.get("package", {})
+        if package.get("name") != expected_name:
+            raise ValueError("Plugin dependency package/manifest mismatch: " + str(path))
+        owner, inherited = workspace(path, data)
+        version = package.get("version")
+        if isinstance(version, dict) and version.get("workspace") is True:
+            version = inherited.get("package", {}).get("version")
+        if not isinstance(version, str):
+            raise ValueError("Plugin package version is not captured")
+        packages[path] = {"name": expected_name, "version": version,
+                          "workspaceManifest": str(owner), "sha256": files[str(path)],
+                          "presentInSelectedLock": (expected_name, version) in lock_packages}
+        tables = [(kind, data.get(kind, {})) for kind in ("dependencies", "build-dependencies", "dev-dependencies")]
+        for target, target_data in data.get("target", {}).items():
+            tables.extend(("target." + target + "." + kind, target_data.get(kind, {}))
+                          for kind in ("dependencies", "build-dependencies", "dev-dependencies"))
+        for kind, declarations in tables:
+            for alias, declaration in declarations.items():
+                if not isinstance(declaration, dict):
+                    continue
+                origin, dependency = path, declaration
+                if declaration.get("workspace") is True:
+                    shared = inherited.get("dependencies", {}).get(alias)
+                    if shared is None:
+                        raise ValueError("Missing inherited plugin dependency: " + alias)
+                    if not isinstance(shared, dict):
+                        continue
+                    dependency, origin = shared, owner
+                if "path" not in dependency:
+                    continue
+                destination = relative_path(origin.parent, dependency["path"]) / "Cargo.toml"
+                target_name = dependency.get("package", alias)
+                features = sorted(set(dependency.get("features", []) + declaration.get("features", [])))
+                edges.append({"from": str(path), "fromPackage": expected_name, "kind": kind, "alias": alias,
+                              "to": str(destination), "package": target_name, "declarationManifest": str(origin),
+                              "declaredFeatures": features, "optional": declaration.get("optional", False),
+                              "defaultFeatures": dependency.get("default-features", True)
+                                                 and declaration.get("default-features", True)})
+                pending.append((destination, target_name))
+    selected_package = packages[selected_manifest.parent / member / "Cargo.toml"]
+    if not selected_package["presentInSelectedLock"]:
+        raise ValueError("The selected material package is absent from the plugin lockfile")
+    if not (any(edge["package"] == "zircon_runtime" and "native-host" in edge["declaredFeatures"] for edge in edges)
+            and any(edge["fromPackage"] == "zircon_editor" and edge["package"] == "zircon_runtime"
+                    and "target-editor-host" in edge["declaredFeatures"] for edge in edges)):
+        raise ValueError("The material route lost its declared native/editor runtime feature edges")
+    configuration = []
+    for manifest_name in sorted(workspaces):
+        for name in ("config", "config.toml"):
+            path = Path(manifest_name).parent / ".cargo" / name
+            read(path, optional=True, configuration=True)
+            configuration.append({"path": str(path), "sha256": files[str(path)],
+                                  "effectiveFromCanonicalCwd": path.parent.parent == root})
+    value = {"schemaVersion": 1, "manifestPath": recipe["manifestPath"], "cwd": str(root),
+             "selectedPackage": selected_package["name"], "selectedLockfile": str(lock_path),
+             "capturedSourceRoots": sorted(str(directory) for directory in roots),
+             "workspaceManifests": dict(sorted(workspaces.items())),
+             "packageManifests": {str(path): packages[path] for path in sorted(packages)},
+             "pathDependencyEdges": sorted(edges, key=encoded), "cargoConfiguration": configuration,
+             "files": dict(sorted(files.items())), "cargoResolutionPerformed": False}
+    return {**value, "inputDigest": sha(encoded(value))}
+
+
 def client_path(config, repo, name, *, capsule=None):
     """Resolve one pinned client; an absent clientRoot keeps canonical semantics."""
     clients = config.get("clientSources", {})
@@ -1150,6 +1330,11 @@ class Management:
         candidate = getattr(self, "_branch_candidate", None)
         view = "integration-candidate" if candidate is not None else payload.get("sourceView", "worktree")
         root = self.validation_root(payload=payload)
+        recipes = payload.get("batch", {}).get("recipes", [payload])
+        plugin_recipe = next((value for value in recipes
+                              if value.get("manifestPath") == "zircon_plugins/Cargo.toml"), None)
+        if plugin_recipe is not None and (view != "checkout" or root != plain(self.repo)):
+            raise ValueError("The plugin workspace requires the actual canonical checkout")
         requested = payload.get("externalRoots", [])
         canonical = plain(self.repo.parent / "zr_vm")
         if (not isinstance(requested, list) or len(requested) > 1
@@ -1227,6 +1412,8 @@ class Management:
         if prepared_context is not None:
             value["externalInputPolicy"] = "prepared-sealed-CAS"
             value["preparedSealedInput"] = prepared_context["provenance"]
+        if plugin_recipe is not None:
+            value["cargoWorkspaceInputs"] = plugin_workspace_inputs(root, plugin_recipe, value)
         return root, {**value, "sourceDigest": sha(encoded(value)) if not observation_errors else None}
 
     def worktree_writer_binding(self):
@@ -3847,6 +4034,13 @@ class Management:
             raise ValueError("build_scope_policy: require explicit features with noDefaultFeatures=true; broad feature/test selection prohibited")
         if verb == "test" and not ((options["lib"] and not tests) or (not options["lib"] and len(tests) == 1)):
             raise ValueError("build_scope_policy: select lib or exactly one test target")
+        if manifest_fields.get("manifestPath") == "zircon_plugins/Cargo.toml":
+            if not (packages == ["zircon_plugin_material_editor_editor"] and not features
+                    and verb == "test" and profile == "test" and options["locked"]
+                    and options["lib"] and not tests and not options["noRun"]
+                    and jobs == threads == 1 and test_filter == "material_graph_"
+                    and not filters and not any(extra.values())):
+                raise ValueError("build_scope_policy: plugin manifest permits only the material_graph_ single-package lib test recipe")
         command = [verb, "--jobs", str(jobs), "--message-format=json"]
         if manifest_fields:
             command[1:1] = ["--manifest-path", manifest_fields["manifestPath"]]
@@ -4597,6 +4791,11 @@ class Management:
         policy_file = getattr(self, "_checkout_policy_file", None)
         if policy_file is not None:
             file(policy_file)
+        workspace_inputs = before.get("cargoWorkspaceInputs")
+        if workspace_inputs is not None:
+            for path, checksum in workspace_inputs["files"].items():
+                if file(path) != checksum:
+                    raise ValueError("A plugin workspace input changed before native guard acquisition")
         if "batch" in self.payload:
             contract = self.payload["batch"]["contractRef"]
             if file(contract["path"]) != contract["sha256"]:
@@ -4615,6 +4814,8 @@ class Management:
                  "compiler": compiler, "nativeToolchain": native_inputs,
                  "trustedNativeInputs": trusted_native_inputs,
                  "watchRoots": roots, "watchInterests": interests}
+        if workspace_inputs is not None:
+            value["cargoWorkspaceInputs"] = workspace_inputs
         return value, roots
 
     @staticmethod
@@ -4915,6 +5116,9 @@ class Management:
             name: value for name, value in recipes[0].items() if name != "command"}
         build_root, output = self.build_root(), self.outputs()
         approved = canonical_build_root(build_root)
+        if (any(recipe.get("manifestPath") == "zircon_plugins/Cargo.toml" for recipe in recipes)
+                and approved.path != plain(Path("E:/cargo-targets"))):
+            raise ValueError("The plugin recipe requires the physical E:/cargo-targets build root")
         report = plain(output / "reports" / self.key)
         policy = self.state.get("resource_policy", "default")["payload"]
         resources = ResourceManager(self.state, Capacity(
