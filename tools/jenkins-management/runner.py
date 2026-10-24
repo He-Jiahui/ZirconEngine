@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 import hashlib
 import importlib.util
 import json
@@ -77,6 +77,316 @@ AUTH = {PREVIEW_ACTION: "validation", "create-branch": "implementation", "create
         "recover-worktree": "gc", "validate": "validation", "prepare-flow": "validation",
         "submit-flow": "validation", "prepare-worktree": "validation",
         "inspect-worktree": "validation", "retire-worktree-reader": "validation"}
+
+# This generation contract is separate from every product validation identity.
+# Only Cargo may produce candidate bytes; this code never repairs a lock by hand.
+PLUGIN_LOCK_RECIPE = "plugin-lock-resolution-v1"
+PLUGIN_LOCK_PATH = "zircon_plugins/Cargo.lock"
+PLUGIN_LOCK_ADDITIONS = {"zircon_plugin_ai_editor": ["toml"],
+                         "zircon_plugin_particles_editor": ["serde", "toml", "uuid"]}
+PLUGIN_LOCK_MAX_BYTES = 8 * 1024**2
+PLUGIN_LOCK_RESOURCE = {"cpu": 1, "memory_bytes": 2 * 1024**3, "disk_bytes": 256 * 1024**2}
+
+
+def plugin_lock_request(payload):
+    return payload.get("action") == "generate" and payload.get("recipe") == PLUGIN_LOCK_RECIPE
+
+
+def plugin_lock_plan(repo, payload):
+    """Read the reviewed combined plan; it confers no new session grant."""
+    if (payload.get("sourceView") != "checkout" or payload.get("worktreeId") is not None
+            or payload.get("ownedPaths") != [PLUGIN_LOCK_PATH]
+            or payload.get("buildRoot") != "E:/cargo-targets"
+            or payload.get("generationPhase") not in {"prepare", "admit", "resolve", "publish", "recover"}):
+        raise ValueError("Lock generation requires its sole canonical output and explicit phase")
+    plan = read_reference(payload.get("lockPlan"))
+    writes = plan.get("sourceWriteSet", [])
+    if (plan.get("schemaVersion") != 1
+            or plan.get("kind") != "combined-ai-particles-managed-lock-resolution-plan-amendment"
+            or len(writes) != 1 or plain(writes[0].get("path", "")) != plain(repo / PLUGIN_LOCK_PATH)
+            or plan.get("expectedSemanticAdditions") != 4
+            or plan.get("expectedRegistryPackageAdditions") != []
+            or plan.get("expectedRegistryVersionSourceChecksumChanges") != []
+            or writes[0].get("otherBytesAndEntriesPreserved") is not True):
+        raise ValueError("Lock generation must retain the reviewed combined four-edge contract")
+    entries = writes[0].get("permittedEntries", [])
+    if (len(entries) != 2 or {item.get("package"): item.get("addDependencies") for item in entries}
+            != PLUGIN_LOCK_ADDITIONS or any(item.get("version") != "0.1.0"
+            or item.get("removeDependencies") != [] for item in entries)):
+        raise ValueError("Only the two reviewed package dependency lists may change")
+    before = writes[0].get("before", {})
+    if (plain(before.get("path", "")) != plain(repo / PLUGIN_LOCK_PATH)
+            or not re.fullmatch(r"[0-9a-f]{64}", str(before.get("sha256", "")))
+            or type(before.get("bytes")) is not int or not 0 < before["bytes"] <= PLUGIN_LOCK_MAX_BYTES):
+        raise ValueError("A bounded exact original lock identity is required")
+    protected = plan.get("readOnlyInputs", {})
+    fixed = {"aiManifest": "zircon_plugins/ai/editor/Cargo.toml",
+             "particlesManifest": "zircon_plugins/particles/editor/Cargo.toml",
+             "workspaceManifest": "zircon_plugins/Cargo.toml", "rootLockProtected": "Cargo.lock"}
+    for name, relative in fixed.items():
+        fact = protected.get(name, {})
+        path = plain(repo / relative)
+        if (plain(fact.get("path", "")) != path or not path.is_file()
+                or sha(path.read_bytes()) != fact.get("sha256")):
+            raise ValueError("Protected resolution input changed: " + relative)
+    return plan
+
+
+def plugin_lock_version(stdout):
+    """Alternate lock output must work on the pinned stable tool, without bootstrap."""
+    match = re.fullmatch(r"cargo (\d+)\.(\d+)\.(\d+)(?: \([^\r\n]+\))?\s*", stdout)
+    return bool(match and tuple(map(int, match.groups())) >= (1, 97, 0))
+
+
+def plugin_lock_delta(before, after):
+    """Verify complete resolver output, including raw bytes of foreign records."""
+    import difflib
+    import tomllib
+    if not 0 < len(before) <= PLUGIN_LOCK_MAX_BYTES or not 0 < len(after) <= PLUGIN_LOCK_MAX_BYTES:
+        raise ValueError("Resolver lock output exceeds the admitted byte limit")
+    documents = [tomllib.loads(value.decode("utf-8")) for value in (before, after)]
+    records = [value.pop("package") for value in documents]
+    if documents[0] != documents[1] or len(records[0]) != len(records[1]):
+        raise ValueError("Resolver changed lock format or package membership")
+    split = re.compile(rb"(?m)^\[\[package\]\]\r?$")
+    blocks = [split.split(raw) for raw in (before, after)]
+    if (len(blocks[0]) != len(records[0]) + 1 or len(blocks[1]) != len(records[1]) + 1
+            or blocks[0][0] != blocks[1][0]):
+        raise ValueError("Resolver changed lock preamble or package structure")
+    seen, changed = set(), []
+    for index, (old, new) in enumerate(zip(*records), 1):
+        identity = tuple(old.get(k) for k in ("name", "version", "source"))
+        if identity in seen or identity != tuple(new.get(k) for k in ("name", "version", "source")):
+            raise ValueError("Resolver changed package identity or order")
+        seen.add(identity)
+        additions = PLUGIN_LOCK_ADDITIONS.get(old.get("name"))
+        if additions is None:
+            if old != new or blocks[0][index] != blocks[1][index]:
+                raise ValueError("Resolver changed a protected package: " + str(old.get("name")))
+            continue
+        if old.get("version") != "0.1.0" or old.get("source") is not None:
+            raise ValueError("Reviewed package identity differs")
+        old_deps, new_deps = old.get("dependencies", []), new.get("dependencies", [])
+        if (not isinstance(old_deps, list) or not isinstance(new_deps, list)
+                or len(set(old_deps)) != len(old_deps) or len(set(new_deps)) != len(new_deps)
+                or set(new_deps) - set(old_deps) != set(additions)
+                or set(old_deps) - set(new_deps)
+                or {k: v for k, v in old.items() if k != "dependencies"}
+                != {k: v for k, v in new.items() if k != "dependencies"}):
+            raise ValueError("Resolver delta exceeds the four approved dependency additions")
+        verified = blocks[1][index]
+        # This only checks the complete native output; it never creates/filters a candidate.
+        for dependency in additions:
+            pattern = rb'(?m)^ "' + re.escape(dependency.encode()) + rb'",\r?\n'
+            verified, count = re.subn(pattern, b"", verified)
+            if count != 1:
+                raise ValueError("Resolver dependency spelling/format differs from the approved edge")
+        if verified != blocks[0][index]:
+            raise ValueError("Resolver changed unrelated bytes in a reviewed package")
+        changed.append({"package": old["name"], "added": additions, "removed": []})
+    if {item["package"] for item in changed} != set(PLUGIN_LOCK_ADDITIONS):
+        raise ValueError("Resolver did not produce both reviewed package deltas")
+    return {"beforeSha256": sha(before), "afterSha256": sha(after), "additions": changed,
+            "otherRecordBytesUnchanged": True,
+            "diff": "".join(difflib.unified_diff(before.decode().splitlines(True), after.decode().splitlines(True),
+                fromfile="a/" + PLUGIN_LOCK_PATH, tofile="b/" + PLUGIN_LOCK_PATH))}
+
+
+def plugin_lock_inputs(repo, cargo_home):
+    """Resolution metadata closure; separate from product full-file-index-v2 capture."""
+    import tomllib
+    repo, cargo_home = plain(repo), plain(cargo_home)
+    roots = [repo, plain(repo.parent / "zr_vm")]
+    files, pending, documents, target_membership = {}, [repo / "zircon_plugins/Cargo.toml"], {}, {}
+
+    def local(base, relative):
+        if not isinstance(relative, str) or not relative or Path(relative).is_absolute() or "\0" in relative:
+            raise ValueError("Resolution path declarations must be local and bounded")
+        path = base
+        for part in Path(relative).parts:
+            path = path.parent if part == ".." else plain(path / part)
+        path = plain(path)
+        if not any(path.is_relative_to(root) for root in roots):
+            raise ValueError("Resolution needs an unregistered source root: " + str(path))
+        return path
+
+    def capture(path):
+        path = plain(path)
+        if path.is_file():
+            if path.stat().st_size > PLUGIN_LOCK_MAX_BYTES:
+                raise ValueError("Resolution input exceeds the bounded metadata limit")
+            data = path.read_bytes()
+            files[str(path)] = sha(data)
+            return data
+        if path.exists():
+            raise ValueError("Resolution input is not a regular file")
+        files[str(path)] = None
+        return None
+
+    # Cargo reads config from cwd ancestors and CARGO_HOME, not member cwd aliases.
+    for directory in [repo, *repo.parents, cargo_home]:
+        for name in (".cargo/config", ".cargo/config.toml") if directory != cargo_home else ("config", "config.toml"):
+            data = capture(directory / name)
+            if data is not None:
+                config = tomllib.loads(data.decode("utf-8"))
+                if any(config.get(k) for k in ("include", "paths", "patch", "replace", "source")):
+                    raise ValueError("Resolver config needs an additional explicit input contract")
+                if config.get("resolver", {}).get("lockfile-path"):
+                    raise ValueError("Ambient alternate lock path is not permitted")
+    capture(repo / PLUGIN_LOCK_PATH)
+    capture(repo / "Cargo.lock")
+    while pending:
+        path = plain(pending.pop())
+        if str(path) in documents:
+            continue
+        data = capture(path)
+        if data is None:
+            raise ValueError("Declared resolution manifest is missing: " + str(path))
+        manifest = tomllib.loads(data.decode("utf-8"))
+        documents[str(path)] = manifest
+        if len(documents) > 1024:
+            raise ValueError("Resolution manifest closure exceeds the admitted limit")
+        workspace = manifest.get("workspace", {})
+        if workspace.get("exclude"):
+            raise ValueError("Workspace excludes require a qualified membership contract")
+        for name in workspace.get("members", []):
+            if any(c in name for c in "*?["):
+                raise ValueError("Dynamic Cargo workspace membership is not admitted by this recipe")
+            pending.append(local(path.parent, name) / "Cargo.toml")
+        package = manifest.get("package", {})
+        if package:
+            if package.get("workspace"):
+                pending.append(local(path.parent, package["workspace"]) / "Cargo.toml")
+            else:
+                for parent in path.parent.parents:
+                    if not any(parent.is_relative_to(root) for root in roots):
+                        break
+                    ancestor = parent / "Cargo.toml"
+                    raw = capture(ancestor)
+                    if raw is not None and "workspace" in tomllib.loads(raw.decode("utf-8")):
+                        pending.append(ancestor)
+                        break
+            for name in ("build.rs", "src/lib.rs", "src/main.rs"):
+                capture(path.parent / name)
+            if isinstance(package.get("build"), str):
+                capture(local(path.parent, package["build"]))
+            for name in ("src/bin", "tests", "examples", "benches"):
+                directory = local(path.parent, name)
+                names = []
+                stack = [directory] if directory.is_dir() else []
+                while stack:
+                    for child in sorted(stack.pop().iterdir()):
+                        child = plain(child)
+                        if child.is_dir():
+                            stack.append(child)
+                        elif child.suffix == ".rs":
+                            capture(child)
+                            names.append(str(child))
+                target_membership[str(directory)] = sorted(names)
+            for kind in ("lib", "bin", "test", "bench", "example"):
+                targets = manifest.get(kind, [])
+                for target in [targets] if isinstance(targets, dict) else targets:
+                    if isinstance(target, dict) and "path" in target:
+                        capture(local(path.parent, target["path"]))
+
+        def dependencies(table):
+            for key, value in table.items():
+                if key in {"dependencies", "dev-dependencies", "build-dependencies", "replace"}:
+                    for declaration in value.values():
+                        if isinstance(declaration, dict) and "path" in declaration:
+                            pending.append(local(path.parent, declaration["path"]) / "Cargo.toml")
+                elif key == "patch":
+                    for declarations in value.values():
+                        dependencies({"dependencies": declarations})
+                elif isinstance(value, dict):
+                    dependencies(value)
+        dependencies(manifest)
+    return {"schemaVersion": 1, "policy": "cargo-resolution-metadata-v1", "sourceRoot": str(repo),
+            "manifestPaths": sorted(documents), "files": dict(sorted(files.items())),
+            "targetMembership": target_membership,
+            "inputDigest": sha(encoded({"files": files, "targetMembership": target_membership})), "productSourceCapture": False,
+            "sourceCopies": 0, "cargoHome": str(cargo_home)}
+
+
+@contextmanager
+def exclusive_generation_file(path):
+    """Same handle CAS; sharing is disabled, including aliases of this file."""
+    if os.name != "nt":
+        raise ValueError("Canonical lock publication requires the Windows exclusive file contract")
+    import ctypes
+    from ctypes import wintypes
+    import msvcrt
+    api = ctypes.WinDLL("kernel32", use_last_error=True)
+    api.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
+        wintypes.LPVOID, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+    api.CreateFileW.restype = wintypes.HANDLE
+    handle = api.CreateFileW(str(plain(path)), 0x80000000 | 0x40000000, 0, None, 3, 0x00200000, None)
+    if handle == wintypes.HANDLE(-1).value:
+        raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        descriptor = msvcrt.open_osfhandle(handle, os.O_RDWR | os.O_BINARY)
+    except BaseException:
+        api.CloseHandle.argtypes = [wintypes.HANDLE]
+        api.CloseHandle(handle)
+        raise
+    with os.fdopen(descriptor, "r+b", buffering=0) as stream:
+        info = os.fstat(stream.fileno())
+        if info.st_nlink != 1 or getattr(info, "st_file_attributes", 0) & 0x410:
+            raise ValueError("Canonical lock must be a physical non-aliased regular file")
+        yield stream
+
+
+def plugin_lock_publish(path, before, after, report, *, recover=False):
+    """A crash without a known postimage stays open; never overwrite foreign bytes."""
+    report = plain(report)
+    intent = report / "publish-intent.json"
+    binding = {"path": str(plain(path)), "beforeSha256": sha(before), "afterSha256": sha(after)}
+    with exclusive_generation_file(path) as stream:
+        current = stream.read(PLUGIN_LOCK_MAX_BYTES + 1)
+        if recover:
+            if not intent.is_file() or json.loads(intent.read_bytes()) != binding:
+                raise ValueError("Recovery requires the original immutable publication journal")
+            if current == before:
+                return {"status": "recovered", "writePerformed": False, **binding}
+            completed = report / "published.json"
+            if current != after or not completed.is_file() or json.loads(completed.read_bytes()) != binding:
+                raise ValueError("Unknown or foreign publication postimage must remain protected")
+            wanted = before
+        else:
+            if current != before:
+                raise ValueError("Canonical lock before-hash CAS failed; preserve changed bytes")
+            if intent.exists():
+                raise ValueError("Original publication intent must be reconciled, not replayed")
+            write_json(intent, binding)
+            wanted = after
+        try:
+            stream.seek(0)
+            written = stream.write(wanted)
+            if written != len(wanted):
+                raise OSError("Incomplete canonical lock write")
+            stream.truncate()
+            stream.flush()
+            os.fsync(stream.fileno())
+            stream.seek(0)
+            if stream.read(PLUGIN_LOCK_MAX_BYTES + 1) != wanted:
+                raise ValueError("Canonical lock postimage verification failed")
+        except BaseException:
+            # We still own the exclusive handle, so this postimage is attributable.
+            stream.seek(0)
+            observed = stream.read(PLUGIN_LOCK_MAX_BYTES + 1)
+            write_json(report / "owned-write-failure.json", {**binding, "ownedPostimageSha256": sha(observed)})
+            stream.seek(0)
+            stream.write(current)
+            stream.truncate()
+            stream.flush()
+            os.fsync(stream.fileno())
+            stream.seek(0)
+            if stream.read(PLUGIN_LOCK_MAX_BYTES + 1) != current:
+                raise ValueError("Owned publication rollback failed; keep original writer protected")
+            write_json(report / "rollback.json", {**binding, "restoredSha256": sha(current)})
+            raise
+        write_json(report / ("recovered.json" if recover else "published.json"), binding)
+        return {"status": "recovered" if recover else "published", "writePerformed": True, **binding}
 
 
 def compact_build_environment(environment):
@@ -928,6 +1238,11 @@ def boot(capsule):
 
 def route_request_context(config, repo, manager, payload, *, state=None, query_only=False):
     """Bind managed writer/reader identities before durable request claims."""
+    if plugin_lock_request(payload):
+        # Canonical generation uses the existing owner authority, never the
+        # unrelated nine-path implementation worktree writer.
+        plugin_lock_plan(repo, payload)
+        return dict(payload), None
     if payload.get("action") not in {
             "create-worktree", "prepare-merge", "prepare-worktree", "prepare-flow",
             "submit-flow", "inspect-worktree", "apply-patch", "generate"}:
@@ -1153,7 +1468,7 @@ class Management:
         self.source_view = payload.get("sourceView", "worktree")
         if self.source_view not in {"worktree", "checkout"}:
             raise ValueError("Unsupported validation source view")
-        if self.source_view == "checkout" and self.action != "validate":
+        if self.source_view == "checkout" and self.action != "validate" and not plugin_lock_request(payload):
             raise ValueError("The current checkout source view is validation-only")
         if self.action not in {"validate", "prepare-worktree", "inspect-worktree"} and "externalRoots" in payload:
             raise ValueError("External roots are validation-only")
@@ -3089,6 +3404,8 @@ class Management:
                 "mainHeadBefore": main_head, "mainHeadAfter": main_head, "pushPerformed": False}
 
     def generate(self):
+        if plugin_lock_request(self.payload):
+            return self.generate_plugin_lock()
         _record, root = self.wt(self.payload["worktreeId"])
         before = self.source(root)
         destination = self.outputs() / "generated" / self.key
@@ -3129,6 +3446,370 @@ class Management:
         manifest = self.artifact_manifest(root, {"generated": destination}, finished=True)
         return {"status": "complete", "recipe": recipe, "artifact": fact,
                 "artifactManifest": manifest, "sourceDigest": before["sourceDigest"]}
+
+    def lock_native_helper(self):
+        path = client_path(self.config, self.repo, "tools/dev/local_cargo.py")
+        if sha(path.read_bytes()) != self.config["clientSources"]["tools/dev/local_cargo.py"]:
+            raise ValueError("Pinned native command helper changed")
+        spec = importlib.util.spec_from_file_location("managed_lock_native", path)
+        helper = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(helper)
+        return helper
+
+    def lock_environment(self, report):
+        environment, trusted, _policy = self.validation_environment()
+        for name in ("cargo", "rustc"):
+            if sha(plain(trusted[name + "Path"]).read_bytes()) != trusted[name + "Sha256"]:
+                raise ValueError("Trusted resolver tool identity changed")
+        from tools.jenkins.resources.paths import canonical_build_root, physical_path_under
+        approved = canonical_build_root("E:/cargo-targets")
+        home = physical_path_under(approved, approved.namespace() / "cache/cargo-home")
+        scratch = physical_path_under(approved, report / "tmp")
+        scratch.mkdir(parents=True, exist_ok=True)
+        system = {k: v for k, v in os.environ.items() if k.upper() in {
+            "SYSTEMROOT", "WINDIR", "COMSPEC", "PATHEXT", "USERPROFILE", "RUSTUP_HOME"}}
+        environment = {**system, **environment, "CARGO_HOME": str(home),
+            "CARGO_NET_OFFLINE": "true", "CARGO_BUILD_JOBS": "1",
+            "CARGO_CACHE_AUTO_CLEAN_FREQUENCY": "never",
+            "CARGO_TARGET_DIR": str(report / "unused-target"),
+            "CARGO_BUILD_BUILD_DIR": str(report / "unused-build"),
+            "TEMP": str(scratch), "TMP": str(scratch), "TMPDIR": str(scratch)}
+        if any(name in environment for name in ("RUSTC_BOOTSTRAP", "CARGO_RESOLVER_LOCKFILE_PATH")):
+            raise ValueError("Ambient bootstrap or alternate lock output is not permitted")
+        return environment, trusted
+
+    def lock_input_guard(self, inputs, *, publication=False):
+        files = dict(inputs["files"])
+        if publication:
+            files.pop(str(plain(self.repo / PLUGIN_LOCK_PATH)))
+        groups = {}
+        for name in files:
+            path = plain(name)
+            if path.is_relative_to(self.repo):
+                root = self.repo
+            else:
+                root = path.parent
+                while not root.is_dir():
+                    root = root.parent
+            groups.setdefault(str(root), []).append(path.relative_to(root).as_posix())
+        for name in inputs.get("targetMembership", {}):
+            path = plain(name)
+            root = self.repo if path.is_relative_to(self.repo) else path.parent
+            while not root.is_dir():
+                root = root.parent
+            groups.setdefault(str(root), []).append(path.relative_to(root).as_posix())
+        return checkout_guard_helper().CheckoutReadGuard(self.repo, files=files,
+            watch_roots=list(groups), watch_interests=groups)
+
+    def prepare_plugin_lock(self, plan, report):
+        environment, trusted = self.lock_environment(report)
+        before = plain(self.repo / PLUGIN_LOCK_PATH).read_bytes()
+        if sha(before) != plan["sourceWriteSet"][0]["before"]["sha256"]:
+            raise ValueError("Reviewed canonical lock before hash changed")
+        inputs = plugin_lock_inputs(self.repo, Path(environment["CARGO_HOME"]))
+        command = [trusted["cargoPath"], "--version"]
+        native = self.lock_native_helper()._run_owned_command(command, self.repo, environment, report / "tool-version", 60)
+        native_ref = write_json(report / "tool-version/native-terminal.json", native)
+        proof = native_terminal_proof(native, native_ref)
+        if native["command"] != command or native["cwd"] != str(self.repo) or not proof["complete"]:
+            return {"status": "unknown", "reasonCode": "resolver_identity_native_unproven", "native": native_ref}
+        version = (report / "tool-version/stdout.bin").read_text(encoding="utf-8", errors="replace").strip()
+        if plugin_lock_inputs(self.repo, Path(environment["CARGO_HOME"])) != inputs:
+            raise ValueError("Resolution metadata changed during generation preparation")
+        from tools.jenkins.resources.capacity import Capacity, ResourceManager
+        policy = self.state.get("resource_policy", "default")
+        resource = ResourceManager(self.state, Capacity(policy["payload"]["cpuBudget"],
+            policy["payload"]["memoryBudget"], policy["payload"]["diskBudget"]))
+        inventory = resource.capture_inventory("E:/cargo-targets")
+        authority = self.state.check_authorization(self.repo_id, self.session, "implementation", [PLUGIN_LOCK_PATH])
+        generation = "lockgen-" + sha(encoded({"repositoryId": self.repo_id, "sessionId": self.session,
+                                              "lockPlan": self.payload["lockPlan"]}))[:56]
+        blocked = []
+        if native["rootExitCode"] != 0 or not plugin_lock_version(version):
+            blocked.append("resolver_alternate_lock_path_requires_stable_cargo_1_97")
+        if inventory["diskBytes"] < policy["payload"]["diskReserveBytes"] + PLUGIN_LOCK_RESOURCE["disk_bytes"]:
+            blocked.append("resolver_disk_reserve_and_budget_unavailable")
+        prepared = {"schemaVersion": 1, "kind": PLUGIN_LOCK_RECIPE, "phase": "prepared",
+            "generationRequestId": generation, "preparationOperationKey": self.key,
+            "repositoryId": self.repo_id, "sessionId": self.session,
+            "lockPlan": self.payload["lockPlan"], "sourceRoot": str(self.repo),
+            "driverDigest": self.config["driverDigest"], "runtimeOperationId": self.config["runtimeOperationId"],
+            "authoritySnapshot": authority["snapshotDigest"], "principal": authority["principal"],
+            "ownedPaths": [PLUGIN_LOCK_PATH], "writerKey": "canonical-lock-" + sha(str(self.repo / PLUGIN_LOCK_PATH).casefold().encode()),
+            "beforeSha256": sha(before), "sourceInputs": inputs,
+            "environmentDigest": sha(encoded({k: v for k, v in environment.items() if k not in {"TEMP", "TMP", "TMPDIR", "CARGO_TARGET_DIR", "CARGO_BUILD_BUILD_DIR"}})),
+            "trustedToolchain": trusted, "toolVersion": version, "toolVersionNative": native_ref,
+            "toolVersionNativeProof": proof, "resourceEstimate": PLUGIN_LOCK_RESOURCE,
+            "resourceEstimateBasis": "Offline metadata resolver only: one CPU, 2 GiB memory, 256 MiB disk budget; lock capped at 8 MiB; no downloads, compiler or source copies. Separate from all build recipes.",
+            "resourcePolicyVersion": policy["version"], "resourceInventory": inventory,
+            "blockedBy": blocked, "captureReady": False, "inputMetadataReady": True,
+            "soleLockWriterAdmitted": False, "resourceReservation": None,
+            "productSourceCapture": False, "cargoResolutionPerformed": False, "formalAcceptance": False}
+        reference = write_json(report / "preparation.json", prepared)
+        self.state.put("generation_preparation", self.key, {"generationRequestId": generation,
+            "inputDigest": self.input_digest, "receipt": reference}, expected_version=0)
+        return {"status": "complete", "generationStatus": "blocked" if blocked else "prepared",
+                "generationRequestId": generation, "generationRef": reference,
+                "blockedBy": blocked, "captureReady": False, "inputMetadataReady": True, "resolverStarted": False,
+                "formalAcceptance": False}
+
+    def plugin_lock_preparation(self):
+        reference = self.payload.get("generationRef")
+        prepared = read_reference(reference)
+        original = self.state.get("generation_preparation", prepared.get("preparationOperationKey", ""))
+        if (not original or original["payload"].get("receipt") != reference
+                or any(prepared.get(k) != v for k, v in {"kind": PLUGIN_LOCK_RECIPE,
+                    "phase": "prepared", "repositoryId": self.repo_id, "sessionId": self.session,
+                    "sourceRoot": str(self.repo), "lockPlan": self.payload["lockPlan"],
+                    "driverDigest": self.config["driverDigest"], "runtimeOperationId": self.config["runtimeOperationId"]}.items())):
+            raise ValueError("Generation must retain its real server-issued preparation and original owner")
+        authority = self.state.check_authorization(self.repo_id, self.session, "implementation", [PLUGIN_LOCK_PATH])
+        if (authority["snapshotDigest"] != prepared["authoritySnapshot"]
+                or authority["principal"] != prepared["principal"]):
+            raise ValueError("Original generation authority changed")
+        return prepared
+
+    def plugin_lock_admit(self, prepared, report):
+        from tools.jenkins.resources.capacity import Capacity, ResourceManager
+        policy = self.state.get("resource_policy", "default")
+        resource = ResourceManager(self.state, Capacity(policy["payload"]["cpuBudget"],
+            policy["payload"]["memoryBudget"], policy["payload"]["diskBudget"]))
+        amount = Capacity(**PLUGIN_LOCK_RESOURCE)
+        owner = prepared["generationRequestId"]
+        resource.queue(owner, request_id=self.key, amount=amount, build_root="E:/cargo-targets",
+                       writer_key=prepared["writerKey"], heavy_writer=True)
+        inventory, generation = resource.scan_inventory("E:/cargo-targets")
+        admitted = resource.admit(owner, amount, inventory_generation=generation,
+            request_id=self.key, build_root="E:/cargo-targets", writer_key=prepared["writerKey"], heavy_writer=True)
+        receipt = write_json(report / ("resource-" + str(inventory["version"]) + "-" + generation + ".json"),
+            {"generationRequestId": owner, "operationKey": self.key, "policyVersion": policy["version"],
+             "resourceEstimate": PLUGIN_LOCK_RESOURCE, "inventory": inventory,
+             "reservation": admitted, "admitted": admitted is not None,
+             "writerKey": prepared["writerKey"], "compilerBudgetUsed": False})
+        return resource, admitted, receipt
+
+    def plugin_lock_release(self, prepared, resource, admitted, *, native_proof=None, unlaunched=False):
+        owner, writer = prepared["generationRequestId"], prepared["writerKey"]
+        if unlaunched:
+            # A durable absence of launch, not invented EOF or an empty process list.
+            self.state.put("execution", owner, {"status": "failed", "failedBeforeLaunch": True,
+                "kind": "management_lock_resolver", "generationRequestId": owner})
+            return resource.release_unlaunched(admitted["key"], writer_key=writer, execution_id=owner)
+        return resource.release(admitted["key"], writer_key=writer, native_proof_ref=native_proof)
+
+    def generate_plugin_lock(self):
+        from tools.jenkins.state.locks import process_lock
+        plan = plugin_lock_plan(self.repo, self.payload)
+        report = self.outputs() / "reports" / self.key
+        self.artifact_manifest(self.repo, {"reports": report})
+        report.mkdir(parents=True, exist_ok=True)
+        phase = self.payload["generationPhase"]
+        if phase == "prepare":
+            return self.prepare_plugin_lock(plan, report)
+        prepared = self.plugin_lock_preparation()
+        with process_lock(self.repo / ".jenkins/state/locks" / (prepared["writerKey"] + ".lock"), timeout=0):
+            # Durable unknown native/CAS ownership always wins over a new request.
+            previous = self.state.get("generation_file_writer", prepared["writerKey"])
+            if previous and previous["payload"].get("status") != "released":
+                return {"status": "unknown", "reasonCode": "original_generation_writer_requires_reconciliation",
+                        "writer": previous, "generationRequestId": prepared["generationRequestId"]}
+            if phase == "admit" and self.state.get("generation_execution", prepared["generationRequestId"]):
+                raise ValueError("Read the original execution resource receipts instead of opening a new admission")
+            if phase == "resolve" and (self.state.get("generation_candidate", prepared["generationRequestId"])
+                    or self.state.get("generation_execution", prepared["generationRequestId"])):
+                raise ValueError("The original resolver result must be read, not executed twice")
+            resource, admitted, resource_ref = self.plugin_lock_admit(prepared, report)
+            if phase == "admit":
+                # A bounded real admission inspection, never an implicit resolver launch.
+                # A successful reservation is returned through the no-launch release path.
+                release = None
+                if admitted is not None:
+                    release = self.plugin_lock_release(prepared, resource, admitted, unlaunched=True)
+                return {"status": "complete", "generationStatus": "admission-inspected",
+                    "generationRequestId": prepared["generationRequestId"], "resourceReceipt": resource_ref,
+                    "resourceAdmitted": admitted is not None, "resourceRelease": release,
+                    "soleLockWriterAdmitted": admitted is not None,
+                    "fileWriterAcquired": False, "captureReady": False,
+                    "sourceCaptureStarted": False, "resolverStarted": False,
+                    "blockedBy": prepared["blockedBy"], "formalAcceptance": False}
+            if admitted is None:
+                return {"status": "waiting", "reasonCode": "resolver_resource_capacity",
+                    "generationRequestId": prepared["generationRequestId"], "resourceReceipt": resource_ref,
+                    "blockedBy": prepared["blockedBy"], "captureReady": False,
+                    "sourceCaptureStarted": False, "resolverStarted": False, "formalAcceptance": False}
+            if phase == "resolve" and not plugin_lock_version(prepared["toolVersion"]):
+                self.plugin_lock_release(prepared, resource, admitted, unlaunched=True)
+                return {"status": "failed", "reasonCode": "resolver_alternate_lock_path_requires_stable_cargo_1_97",
+                    "generationRequestId": prepared["generationRequestId"], "resourceReceipt": resource_ref,
+                    "resolverStarted": False, "formalAcceptance": False}
+            writer = {"status": "active", "generationRequestId": prepared["generationRequestId"],
+                "operationKey": self.key, "phase": phase, "inputDigest": self.input_digest,
+                "reservationKey": admitted["key"], "authoritySnapshot": prepared["authoritySnapshot"],
+                "path": str(self.repo / PLUGIN_LOCK_PATH), "beforeSha256": prepared["beforeSha256"]}
+            self.state.put("generation_file_writer", prepared["writerKey"], writer,
+                expected_version=previous["version"] if previous else 0)
+            return self.execute_plugin_lock(prepared, report, resource, admitted, resource_ref, writer)
+
+    def execute_plugin_lock(self, prepared, report, resource, admitted, resource_ref, writer):
+        owner, writer_key = prepared["generationRequestId"], prepared["writerKey"]
+        phase = self.payload["generationPhase"]
+        guard, proof_id, launched, completed = None, None, False, False
+        try:
+            environment, trusted = self.lock_environment(report)
+            environment_identity = {k: v for k, v in environment.items() if k not in {
+                "TEMP", "TMP", "TMPDIR", "CARGO_TARGET_DIR", "CARGO_BUILD_BUILD_DIR"}}
+            if sha(encoded(environment_identity)) != prepared["environmentDigest"] or trusted != prepared["trustedToolchain"]:
+                raise ValueError("Prepared resolver toolchain/environment changed; prepare a reviewed revision")
+            inputs = plugin_lock_inputs(self.repo, Path(environment["CARGO_HOME"]))
+            expected = prepared["sourceInputs"]
+            if phase == "recover":
+                actual_files, expected_files = dict(inputs["files"]), dict(expected["files"])
+                for value in (actual_files, expected_files):
+                    value.pop(str(self.repo / PLUGIN_LOCK_PATH))
+                if actual_files != expected_files:
+                    raise ValueError("Recovery protected resolution inputs changed")
+            elif inputs != expected:
+                raise ValueError("Complete resolution input closure changed; preserve original preparation")
+            guard = self.lock_input_guard(expected, publication=phase != "resolve").acquire()
+            if phase == "resolve":
+                before = (self.repo / PLUGIN_LOCK_PATH).read_bytes()
+                if sha(before) != prepared["beforeSha256"]:
+                    raise ValueError("Prepared lock before hash changed")
+                candidate = report / "candidate/Cargo.lock"
+                candidate.parent.mkdir()
+                with candidate.open("xb") as stream:
+                    stream.write(before)
+                (report / "before.lock.bytes").write_bytes(before)
+                environment["CARGO_RESOLVER_LOCKFILE_PATH"] = str(candidate)
+                command = [trusted["cargoPath"], "update", "--manifest-path",
+                    str(self.repo / "zircon_plugins/Cargo.toml"), "--offline",
+                    "zircon_plugin_ai_editor", "zircon_plugin_particles_editor"]
+                self.state.put("generation_execution", owner, {"status": "launch-claimed",
+                    "operationKey": self.key, "requestId": self.request, "operationId": self.operation,
+                    "generationRequestId": owner, "command": command, "cwd": str(self.repo),
+                    "report": str(report), "resourceReceipt": resource_ref}, expected_version=0)
+                launched = True
+                native = self.lock_native_helper()._run_owned_command(command, self.repo, environment, report / "resolver", 600)
+                native_ref = write_json(report / "resolver/native-terminal.json", native)
+                proof = native_terminal_proof(native, native_ref)
+                if native["command"] != command or native["cwd"] != str(self.repo) or not proof["complete"]:
+                    return {"status": "unknown", "reasonCode": "resolver_native_unproven", "native": native_ref}
+                proof_id = owner + "-native"
+                self.state.put("native_job", proof_id, {"owner": owner, "executionId": owner,
+                    "role": "management_lock_resolver", "status": "terminal", "completeProof": proof,
+                    "nativeEvidence": native, "generationRequestId": owner}, expected_version=0)
+                monitoring = guard.finish()
+                if monitoring.get("complete") is not True or monitoring.get("stable") is not True:
+                    raise ValueError("Resolver input guard did not prove complete stable metadata through native EOF")
+                if plugin_lock_inputs(self.repo, Path(environment["CARGO_HOME"])) != expected:
+                    raise ValueError("Resolution input membership changed during the resolver")
+                if candidate.stat().st_size > PLUGIN_LOCK_MAX_BYTES:
+                    raise ValueError("Native candidate exceeds the reviewed eight MiB limit; retain it unmodified")
+                after = candidate.read_bytes()
+                import difflib
+                actual_diff = "".join(difflib.unified_diff(before.decode().splitlines(True), after.decode().splitlines(True),
+                    fromfile="a/" + PLUGIN_LOCK_PATH, tofile="b/" + PLUGIN_LOCK_PATH))
+                (report / "actual-candidate.diff").write_text(actual_diff, encoding="utf-8", newline="")
+                delta, rejection = None, None
+                try:
+                    if native["rootExitCode"] != 0:
+                        raise ValueError("Cargo resolver failed; retain its complete candidate and native result")
+                    delta = plugin_lock_delta(before, after)
+                except ValueError as error:
+                    rejection = str(error)
+                receipt = {"schemaVersion": 1, "kind": PLUGIN_LOCK_RECIPE, "phase": "candidate",
+                    "generationRequestId": owner, "generationRef": self.payload["generationRef"],
+                    "sourceInputsDigest": expected["inputDigest"], "candidatePath": str(candidate),
+                    "candidateSha256": sha(after), "beforePath": str(report / "before.lock.bytes"),
+                    "beforeSha256": sha(before), "native": native_ref, "nativeProofRef": proof_id,
+                    "inputGuard": monitoring, "resourceReceipt": resource_ref,
+                    "delta": delta, "rejection": rejection, "accepted": delta is not None,
+                    "canonicalWritePerformed": False, "compilerExecuted": False, "formalAcceptance": False}
+                reference = write_json(report / "candidate.json", receipt)
+                self.state.put("generation_candidate", owner, {"receipt": reference,
+                    "resolverOperationKey": self.key, "accepted": delta is not None}, expected_version=0)
+                completed = True
+                return {"status": "complete" if delta is not None else "failed", "generationRequestId": owner,
+                    "candidateRef": reference, "reasonCode": None if delta is not None else "resolver_delta_rejected",
+                    "canonicalWritePerformed": False, "formalAcceptance": False}
+            reference = self.payload.get("candidateRef")
+            candidate = read_reference(reference)
+            stored = self.state.get("generation_candidate", owner)
+            native = self.state.get("native_job", candidate.get("nativeProofRef", ""))
+            if (not stored or stored["payload"].get("receipt") != reference
+                    or candidate.get("kind") != PLUGIN_LOCK_RECIPE or candidate.get("phase") != "candidate"
+                    or candidate.get("generationRef") != self.payload["generationRef"]
+                    or candidate.get("generationRequestId") != owner or candidate.get("accepted") is not True
+                    or not native or native["payload"].get("owner") != owner
+                    or native["payload"].get("role") != "management_lock_resolver"
+                    or native["payload"].get("status") != "terminal"
+                    or native["payload"].get("completeProof", {}).get("complete") is not True
+                    or self.payload.get("reviewedCandidateSha256") != candidate.get("candidateSha256")):
+                raise ValueError("Publication/recovery requires the reviewed original native candidate")
+            resolver_root = self.outputs() / "reports" / stored["payload"]["resolverOperationKey"]
+            if (plain(candidate["beforePath"]) != plain(resolver_root / "before.lock.bytes")
+                    or plain(candidate["candidatePath"]) != plain(resolver_root / "candidate/Cargo.lock")):
+                raise ValueError("Resolver candidate escaped the original operation outputs")
+            actual_native = read_reference(candidate["native"], expected_path=resolver_root / "resolver/native-terminal.json")
+            actual_proof = native_terminal_proof(actual_native, candidate["native"])
+            if (not actual_proof["complete"] or actual_native["rootExitCode"] != 0
+                    or actual_native["cwd"] != str(self.repo)
+                    or actual_native["command"] != [trusted["cargoPath"], "update", "--manifest-path",
+                        str(self.repo / "zircon_plugins/Cargo.toml"), "--offline",
+                        "zircon_plugin_ai_editor", "zircon_plugin_particles_editor"]):
+                raise ValueError("Original resolver Native/EOF/argv identity changed")
+            before, after = plain(candidate["beforePath"]).read_bytes(), plain(candidate["candidatePath"]).read_bytes()
+            if sha(before) != prepared["beforeSha256"] or sha(after) != candidate["candidateSha256"]:
+                raise ValueError("Original native candidate or preimage evidence changed")
+            plugin_lock_delta(before, after)
+            proof_id = candidate["nativeProofRef"]
+            publication = report
+            if phase == "recover":
+                key = self.payload.get("publicationOperationKey")
+                row = self.state.get("management_operation", key) if isinstance(key, str) and re.fullmatch(r"[0-9a-f]{64}", key) else None
+                payload = row["payload"].get("payload", {}) if row else {}
+                if (payload.get("generationPhase") != "publish" or payload.get("generationRef") != self.payload["generationRef"]
+                        or payload.get("candidateRef") != reference or payload.get("sessionId") != self.session):
+                    raise ValueError("Recovery retains the original canonical publication operation")
+                publication = self.outputs() / "reports" / key
+            guard.assert_stable()
+            result = plugin_lock_publish(self.repo / PLUGIN_LOCK_PATH, before, after, publication, recover=phase == "recover")
+            monitoring = guard.finish()
+            if monitoring.get("complete") is not True or monitoring.get("stable") is not True:
+                raise ValueError("Publication guard failed; retain the original writer and recovery journal")
+            result.update(generationRequestId=owner, nativeProofRef=proof_id,
+                          inputGuard=monitoring, resourceReceipt=resource_ref, formalAcceptance=False)
+            result["receipt"] = write_json(report / "generation-result.json", result)
+            completed = True
+            return {**result, "status": "complete"}
+        finally:
+            # A durable unknown launch/postimage never becomes a released writer.
+            native_known = not launched or proof_id is not None
+            guard_complete = native_known and (guard is None or guard.finish().get("complete") is True)
+            if not native_known:
+                self._retained_generation_guard = guard
+            if guard_complete and guard is not None:
+                guard.close()
+            releasable = (completed or phase == "resolve" and proof_id is not None
+                          or not launched and not (report / "publish-intent.json").exists()
+                          or (report / "rollback.json").is_file())
+            if guard_complete and releasable:
+                if proof_id is not None:
+                    self.plugin_lock_release(prepared, resource, admitted, native_proof=proof_id)
+                elif not launched:
+                    previous_native = self.state.get("native_job", owner + "-native")
+                    if (previous_native and previous_native["payload"].get("owner") == owner
+                            and previous_native["payload"].get("completeProof", {}).get("complete") is True):
+                        self.plugin_lock_release(prepared, resource, admitted, native_proof=owner + "-native")
+                    else:
+                        self.plugin_lock_release(prepared, resource, admitted, unlaunched=True)
+                else:
+                    releasable = False
+            if releasable and guard_complete:
+                current = self.state.get("generation_file_writer", writer_key)
+                if current and current["payload"] == writer:
+                    self.state.put("generation_file_writer", writer_key, {**writer, "status": "released"},
+                                   expected_version=current["version"])
 
     def build_root(self, *, payload=None):
         from tools.jenkins.resources.paths import canonical_build_root, physical_path_under

@@ -2,6 +2,7 @@
 from __future__ import annotations
 import importlib.util
 import hashlib
+import json
 import os
 from pathlib import Path
 import tempfile
@@ -20,6 +21,291 @@ def load(name, relative):
 entry = load("plugin_manifest_entry", "tools/jenkins-management/entry.py")
 runner = load("plugin_manifest_runner", "tools/jenkins-management/runner.py")
 local = load("plugin_manifest_local", "tools/dev/local_cargo.py")
+
+
+class LockResolutionContractsTests(unittest.TestCase):
+    def setUp(self):
+        self.folder = tempfile.TemporaryDirectory(prefix="lock-resolution-", dir=os.environ["ZR_COMMIT_TEST_ROOT"])
+        self.addCleanup(self.folder.cleanup)
+        self.root = Path(self.folder.name)
+        self.repo, self.home = self.root / "repo", self.root / "cargo-home"
+        self.repo.mkdir()
+        self.home.mkdir()
+
+    def file(self, name, data):
+        path = self.repo / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data.encode() if isinstance(data, str) else data)
+        return path
+
+    def locks(self):
+        before = (b'# native fixture\nversion = 4\n\n[[package]]\nname = "zircon_plugin_ai_editor"\n'
+                  b'version = "0.1.0"\ndependencies = [\n "zircon_editor",\n]\n\n'
+                  b'[[package]]\nname = "zircon_plugin_particles_editor"\nversion = "0.1.0"\n'
+                  b'dependencies = [\n "zircon_editor",\n]\n\n'
+                  b'[[package]]\nname = "protected"\nversion = "9.0.0"\nchecksum = "keep"\n')
+        after = before.replace(b'dependencies = [\n', b'dependencies = [\n "toml",\n', 1)
+        start = after.index(b'name = "zircon_plugin_particles_editor"')
+        after = after[:start] + after[start:].replace(b'dependencies = [\n',
+            b'dependencies = [\n "serde",\n "toml",\n "uuid",\n', 1)
+        return before, after
+
+    def workspace(self):
+        self.file("zircon_plugins/Cargo.toml", '[workspace]\nmembers = ["ai/editor", "particles/editor"]\n')
+        self.file("Cargo.toml", '[workspace]\nmembers = ["shared"]\n')
+        for name in ("ai", "particles"):
+            self.file(f"zircon_plugins/{name}/editor/Cargo.toml",
+                f'[package]\nname="zircon_plugin_{name}_editor"\nversion="0.1.0"\n'
+                '[dependencies.shared]\npath="../../../shared"\n')
+            self.file(f"zircon_plugins/{name}/editor/src/lib.rs", "// stable input\n")
+        self.file("shared/Cargo.toml", '[package]\nname="shared"\nversion="0.1.0"\n')
+        self.file("shared/src/lib.rs", "// stable dependency\n")
+        self.file("Cargo.lock", "# protected root lock\n")
+        self.file(runner.PLUGIN_LOCK_PATH, self.locks()[0])
+
+    def test_stable_alternate_lock_path_gate_never_enables_bootstrap_or_nightly(self):
+        for value in ("cargo 1.97.0 (abc 2026-07-09)", "cargo 1.100.0", "cargo 2.0.0\n"):
+            self.assertTrue(runner.plugin_lock_version(value))
+        for value in ("cargo 1.94.1 (abc 2026-03-27)", "cargo 1.97.0-nightly (abc)",
+                      "cargo 1.97.0-beta.1", "cargo 1.97.0\nextra", "other 9.0.0"):
+            self.assertFalse(runner.plugin_lock_version(value))
+
+    def test_full_native_candidate_accepts_exact_four_edges_and_rejects_foreign_deltas(self):
+        before, after = self.locks()
+        delta = runner.plugin_lock_delta(before, after)
+        self.assertTrue(delta["otherRecordBytesUnchanged"])
+        self.assertEqual(sum(len(item["added"]) for item in delta["additions"]), 4)
+        for changed in (after.replace(b'checksum = "keep"', b'checksum = "changed"'),
+                        after.replace(b'9.0.0', b'9.1.0'), after.replace(b' "uuid",\n', b''),
+                        after.replace(b' "uuid",', b' "uuid 1.23.4",'),
+                        after.replace(b' "zircon_editor",', b' "zircon_editor",\n "foreign",', 1),
+                        after.replace(b'# native fixture', b'# rewritten'), after.replace(b'\n', b'\r\n'),
+                        after + b'\n[[package]]\nname="foreign"\nversion="1"\n'):
+            with self.subTest(changed=hashlib.sha256(changed).hexdigest()), self.assertRaises(ValueError):
+                runner.plugin_lock_delta(before, changed)
+        self.assertEqual(before, self.locks()[0])
+        self.assertEqual(after, self.locks()[1])  # Verification never filters native candidate bytes.
+
+    def test_resolution_closure_includes_other_members_parent_workspace_and_missing_configs(self):
+        self.workspace()
+        inputs = runner.plugin_lock_inputs(self.repo, self.home)
+        self.assertEqual(len(inputs["manifestPaths"]), 5)
+        self.assertIn(str(self.repo / "Cargo.toml"), inputs["files"])
+        self.assertIsNone(inputs["files"][str(self.home / "config.toml")])
+        self.file("unrelated-document.md", "not consumed by the resolver\n")
+        self.assertEqual(inputs, runner.plugin_lock_inputs(self.repo, self.home))
+        self.file("shared/src/lib.rs", "// different target input\n")
+        self.assertNotEqual(inputs, runner.plugin_lock_inputs(self.repo, self.home))
+
+    def test_unregistered_path_dynamic_membership_and_config_override_fail_closed(self):
+        self.workspace()
+        manifest = self.repo / "zircon_plugins/ai/editor/Cargo.toml"
+        original = manifest.read_bytes()
+        manifest.write_bytes(original.replace(b'../../../shared', b'../../../../../foreign'))
+        with self.assertRaises(ValueError):
+            runner.plugin_lock_inputs(self.repo, self.home)
+        manifest.write_bytes(original)
+        self.file("zircon_plugins/Cargo.toml", '[workspace]\nmembers=["*/editor"]\n')
+        with self.assertRaises(ValueError):
+            runner.plugin_lock_inputs(self.repo, self.home)
+        self.workspace()
+        (self.home / "config.toml").write_text('paths=["foreign"]\n', encoding="utf-8")
+        with self.assertRaises(ValueError):
+            runner.plugin_lock_inputs(self.repo, self.home)
+
+    def test_exclusive_cas_preserves_foreign_changes_and_recovers_only_known_postimages(self):
+        before, after = self.locks()
+        path = self.file(runner.PLUGIN_LOCK_PATH, before)
+        report = self.root / "journal"
+        report.mkdir()
+        path.write_bytes(b"foreign")
+        with self.assertRaises(ValueError):
+            runner.plugin_lock_publish(path, before, after, report)
+        self.assertEqual(path.read_bytes(), b"foreign")
+        self.assertFalse((report / "publish-intent.json").exists())
+        path.write_bytes(before)
+        with runner.exclusive_generation_file(path):
+            with self.assertRaises(OSError):
+                runner.plugin_lock_publish(path, before, after, report)
+        result = runner.plugin_lock_publish(path, before, after, report)
+        self.assertEqual(result["status"], "published")
+        self.assertEqual(path.read_bytes(), after)
+        runner.plugin_lock_publish(path, before, after, report, recover=True)
+        self.assertEqual(path.read_bytes(), before)
+        path.write_bytes(b"unattributed partial write")
+        with self.assertRaises(ValueError):
+            runner.plugin_lock_publish(path, before, after, report, recover=True)
+        self.assertEqual(path.read_bytes(), b"unattributed partial write")
+
+    def test_interrupted_publication_intent_is_never_blindly_replayed(self):
+        before, after = self.locks()
+        path = self.file(runner.PLUGIN_LOCK_PATH, before)
+        report = self.root / "interrupted"
+        report.mkdir()
+        runner.write_json(report / "publish-intent.json", {"path": str(path),
+            "beforeSha256": runner.sha(before), "afterSha256": runner.sha(after)})
+        with self.assertRaises(ValueError):
+            runner.plugin_lock_publish(path, before, after, report)
+        self.assertEqual(path.read_bytes(), before)
+        self.assertFalse(runner.plugin_lock_publish(path, before, after, report, recover=True)["writePerformed"])
+
+    def actor(self):
+        from unittest.mock import Mock
+        ordinary = load("lock_resolution_memory_fixture", "tools/jenkins-management/tests/test_ordinary_flow.py")
+        actor = object.__new__(runner.Management)
+        actor.repo, actor.state, actor.session = self.repo, ordinary.MemoryState(), "original-generation-owner"
+        actor.repo_id, actor.key = "repo-fixture", "a" * 64
+        actor.request, actor.operation, actor.input_digest = "combined-r2", "resolve-original", "b" * 64
+        actor.config = {"driverDigest": "c" * 64, "runtimeOperationId": "current-fixture-runtime"}
+        actor.payload = {"action": "generate", "recipe": runner.PLUGIN_LOCK_RECIPE,
+                         "generationPhase": "resolve", "generationRef": {"path": "prepared", "sha256": "d" * 64}}
+        actor.lock_environment = Mock(return_value=({}, {}))
+        actor.plugin_lock_release = Mock(return_value=True)
+        return actor
+
+    def execution(self, *, native_complete=True, foreign_candidate=False):
+        from unittest.mock import Mock
+        actor = self.actor()
+        before, after = self.locks()
+        self.file(runner.PLUGIN_LOCK_PATH, before)
+        report = self.root / "execution"
+        report.mkdir()
+        inputs = {"files": {str(actor.repo / runner.PLUGIN_LOCK_PATH): runner.sha(before)}, "inputDigest": "e" * 64}
+        environment = {"CARGO_HOME": str(self.home)}
+        prepared = {"generationRequestId": "lockgen-fixture", "writerKey": "single-lock-writer",
+                    "beforeSha256": runner.sha(before), "sourceInputs": inputs,
+                    "environmentDigest": runner.sha(runner.encoded(environment)), "trustedToolchain": {"cargoPath": str(self.root / "cargo.exe")}}
+        actor.lock_environment.return_value = (environment, prepared["trustedToolchain"])
+        guard = Mock()
+        guard.acquire.return_value = guard
+        guard.finish.return_value = {"complete": True, "stable": True}
+        actor.lock_input_guard = Mock(return_value=guard)
+        writer = {"status": "active", "operationKey": actor.key}
+        actor.state.put("generation_file_writer", prepared["writerKey"], writer)
+
+        def run(command, cwd, environment, native_report, timeout):
+            if foreign_candidate:
+                candidate = after.replace(b'checksum = "keep"', b'checksum = "foreign"')
+            else:
+                candidate = after
+            Path(environment["CARGO_RESOLVER_LOCKFILE_PATH"]).write_bytes(candidate)
+            return {"command": command, "cwd": str(cwd), "rootExitCode": 0}
+        actor.lock_native_helper = Mock(return_value=SimpleNamespace(_run_owned_command=run))
+        with patch.object(runner, "plugin_lock_inputs", return_value=inputs), \
+             patch.object(runner, "native_terminal_proof", return_value={"complete": native_complete}):
+            result = actor.execute_plugin_lock(prepared, report, object(), {"key": "reservation"},
+                                                {"path": "resource-receipt", "sha256": "f" * 64}, writer)
+        return actor, result, guard, report, before
+
+    def test_unknown_native_retains_writer_resources_and_guard_without_claimed_eof(self):
+        actor, result, guard, report, before = self.execution(native_complete=False)
+        self.assertEqual(result["status"], "unknown")
+        actor.plugin_lock_release.assert_not_called()
+        guard.finish.assert_not_called()
+        guard.close.assert_not_called()
+        self.assertEqual(actor.state.get("generation_file_writer", "single-lock-writer")["payload"]["status"], "active")
+        self.assertIsNone(actor.state.get("generation_candidate", "lockgen-fixture"))
+        self.assertEqual((actor.repo / runner.PLUGIN_LOCK_PATH).read_bytes(), before)
+
+    def test_complete_native_candidate_is_retained_and_resource_released_without_canonical_write(self):
+        actor, result, guard, report, before = self.execution()
+        self.assertEqual(result["status"], "complete")
+        candidate = json.loads((report / "candidate.json").read_bytes())
+        self.assertTrue(candidate["accepted"])
+        self.assertFalse(candidate["canonicalWritePerformed"])
+        actor.plugin_lock_release.assert_called_once()
+        self.assertEqual(actor.state.get("generation_file_writer", "single-lock-writer")["payload"]["status"], "released")
+        self.assertEqual((actor.repo / runner.PLUGIN_LOCK_PATH).read_bytes(), before)
+        guard.close.assert_called_once()
+
+    def test_wider_native_candidate_returns_complete_diff_without_filtering_or_publication(self):
+        actor, result, guard, report, before = self.execution(foreign_candidate=True)
+        self.assertEqual(result["status"], "failed")
+        self.assertIn("foreign", (report / "actual-candidate.diff").read_text())
+        self.assertIn(b'checksum = "foreign"', (report / "candidate/Cargo.lock").read_bytes())
+        self.assertFalse(json.loads((report / "candidate.json").read_bytes())["accepted"])
+        actor.plugin_lock_release.assert_called_once()
+        self.assertEqual((actor.repo / runner.PLUGIN_LOCK_PATH).read_bytes(), before)
+
+    def test_generation_plan_requires_exact_single_lock_scope_and_unchanged_protected_inputs(self):
+        self.workspace()
+        def fact(relative):
+            path = self.repo / relative
+            return {"path": str(path), "sha256": runner.sha(path.read_bytes()), "bytes": path.stat().st_size}
+        plan = {"schemaVersion": 1, "kind": "combined-ai-particles-managed-lock-resolution-plan-amendment",
+            "expectedSemanticAdditions": 4, "expectedRegistryPackageAdditions": [],
+            "expectedRegistryVersionSourceChecksumChanges": [],
+            "sourceWriteSet": [{"path": str(self.repo / runner.PLUGIN_LOCK_PATH),
+                "before": fact(runner.PLUGIN_LOCK_PATH), "otherBytesAndEntriesPreserved": True,
+                "permittedEntries": [{"package": name, "version": "0.1.0", "addDependencies": adds,
+                    "removeDependencies": []} for name, adds in runner.PLUGIN_LOCK_ADDITIONS.items()]}],
+            "readOnlyInputs": {key: fact(relative) for key, relative in {
+                "aiManifest": "zircon_plugins/ai/editor/Cargo.toml",
+                "particlesManifest": "zircon_plugins/particles/editor/Cargo.toml",
+                "workspaceManifest": "zircon_plugins/Cargo.toml", "rootLockProtected": "Cargo.lock"}.items()}}
+        payload = {"action": "generate", "recipe": runner.PLUGIN_LOCK_RECIPE,
+            "sourceView": "checkout", "ownedPaths": [runner.PLUGIN_LOCK_PATH],
+            "buildRoot": "E:/cargo-targets", "generationPhase": "prepare"}
+        with patch.object(runner, "read_reference", return_value=plan):
+            self.assertEqual(runner.plugin_lock_plan(self.repo, payload), plan)
+            for override in ({"ownedPaths": ["Cargo.lock"]}, {"worktreeId": "borrowed"},
+                             {"buildRoot": "E:/Git/ZirconEngine/target"}, {"generationPhase": "unknown"}):
+                with self.subTest(override=override), self.assertRaises(ValueError):
+                    runner.plugin_lock_plan(self.repo, {**payload, **override})
+            self.file("Cargo.lock", "foreign change\n")
+            with self.assertRaises(ValueError):
+                runner.plugin_lock_plan(self.repo, payload)
+
+    def admission_actor(self, phase, admitted=None):
+        from unittest.mock import Mock
+        actor = self.actor()
+        actor.payload["generationPhase"] = phase
+        actor.outputs = Mock(return_value=self.root / "outputs")
+        actor.artifact_manifest = Mock()
+        prepared = {"generationRequestId": "lockgen-fixture", "writerKey": "single-lock-writer",
+                    "toolVersion": "cargo 1.94.1", "blockedBy": ["toolchain", "disk-reserve"]}
+        actor.plugin_lock_preparation = Mock(return_value=prepared)
+        actor.plugin_lock_admit = Mock(return_value=(object(), admitted, {"path": "actual-admission-receipt"}))
+        actor.execute_plugin_lock = Mock()
+        return actor
+
+    def test_resource_waiting_never_claims_writer_capture_or_resolver(self):
+        actor = self.admission_actor("resolve")
+        with patch.object(runner, "plugin_lock_plan", return_value={}):
+            result = actor.generate_plugin_lock()
+        self.assertEqual(result["status"], "waiting")
+        self.assertFalse(result["resolverStarted"])
+        self.assertFalse(result["sourceCaptureStarted"])
+        self.assertIsNone(actor.state.get("generation_file_writer", "single-lock-writer"))
+        actor.execute_plugin_lock.assert_not_called()
+        actor.plugin_lock_release.assert_not_called()
+
+    def test_bounded_admission_inspection_releases_real_unused_reservation_without_launch(self):
+        actor = self.admission_actor("admit", {"key": "real-unused-reservation"})
+        with patch.object(runner, "plugin_lock_plan", return_value={}):
+            result = actor.generate_plugin_lock()
+        self.assertEqual(result["status"], "complete")
+        self.assertTrue(result["resourceAdmitted"])
+        self.assertFalse(result["fileWriterAcquired"])
+        self.assertFalse(result["captureReady"])
+        self.assertFalse(result["resolverStarted"])
+        actor.plugin_lock_release.assert_called_once()
+        self.assertTrue(actor.plugin_lock_release.call_args.kwargs["unlaunched"])
+        actor.execute_plugin_lock.assert_not_called()
+
+    def test_unknown_original_writer_blocks_new_admission_and_duplicate_execution_is_preserved(self):
+        actor = self.admission_actor("admit")
+        actor.state.put("generation_file_writer", "single-lock-writer", {"status": "active", "owner": "original"})
+        with patch.object(runner, "plugin_lock_plan", return_value={}):
+            result = actor.generate_plugin_lock()
+        self.assertEqual(result["status"], "unknown")
+        actor.plugin_lock_admit.assert_not_called()
+        actor.plugin_lock_release.assert_not_called()
+        actor = self.admission_actor("resolve")
+        actor.state.put("generation_execution", "lockgen-fixture", {"status": "launch-claimed"})
+        with patch.object(runner, "plugin_lock_plan", return_value={}), self.assertRaises(ValueError):
+            actor.generate_plugin_lock()
+        actor.plugin_lock_admit.assert_not_called()
 
 class CaptureMetadataObservationTests(unittest.TestCase):
     def sample(self, *, head="1", names=("a.rs",), obj="2", debug=b"stat-before"):
