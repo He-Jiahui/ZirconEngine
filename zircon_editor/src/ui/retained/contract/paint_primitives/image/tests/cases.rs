@@ -175,6 +175,7 @@ fn shared_rgba_recording_reuses_the_cached_pixel_allocation() {
         },
         None,
         "icon:shared-test",
+        23,
         1,
         1,
         &rgba,
@@ -182,12 +183,14 @@ fn shared_rgba_recording_reuses_the_cached_pixel_allocation() {
 
     let command = frame.into_recorded_commands().pop().expect("image command");
     let HostRecordedPaintKind::Image {
+        resource_generation,
         rgba: Some(recorded),
         ..
     } = command.kind
     else {
         panic!("expected recorded image pixels");
     };
+    assert_eq!(resource_generation, 23);
     assert!(Arc::ptr_eq(&rgba, &recorded));
 }
 

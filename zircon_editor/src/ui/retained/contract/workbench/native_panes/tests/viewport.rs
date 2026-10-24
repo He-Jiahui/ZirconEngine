@@ -5,6 +5,51 @@ use super::super::super::super::paint_frame::HostRecordedPaintKind;
 use super::*;
 
 #[test]
+fn game_viewport_image_records_each_cpu_generation() {
+    let mut images = HostViewportImageSet::default();
+    let pane = PaneData {
+        kind: "Game".into(),
+        ..PaneData::default()
+    };
+    let body = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: 1.0,
+        height: 1.0,
+    };
+    for generation in [23, 24] {
+        let rgba: Arc<[u8]> = vec![generation as u8, 0, 0, 255].into();
+        assert!(images.replace_game(HostViewportImageData {
+            resource_key: "play-viewport:stream".to_owned(),
+            resource_generation: generation,
+            width: 1,
+            height: 1,
+            rgba: Some(Arc::clone(&rgba)),
+            play_frame_identity: None,
+            overlay: None,
+        }));
+        let mut frame = HostRgbaFrame::recording_only(1, 1);
+        assert!(draw_viewport_image(
+            &mut frame, &pane, &body, &body, &images, None
+        ));
+        let commands = frame.into_recorded_commands();
+        assert_eq!(commands.len(), 1);
+        let HostRecordedPaintKind::Image {
+            resource_key,
+            resource_generation,
+            rgba: Some(recorded),
+            ..
+        } = &commands[0].kind
+        else {
+            panic!("Game must record CPU pixels");
+        };
+        assert_eq!(resource_key, "play-viewport:stream");
+        assert_eq!(*resource_generation, generation);
+        assert!(Arc::ptr_eq(&rgba, recorded));
+    }
+}
+
+#[test]
 fn simulate_gizmo_overlay_records_after_the_base_viewport_image() {
     let mut images = HostViewportImageSet::default();
     images.replace_scene(HostViewportImageData {

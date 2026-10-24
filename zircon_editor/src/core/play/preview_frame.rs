@@ -74,6 +74,14 @@ impl PlayPreviewFrameIdentity {
         self.generation
     }
 
+    /// One immutable-image stream per Play/gateway session, including across resize.
+    pub(crate) fn image_stream_key(&self, prefix: &str) -> String {
+        format!(
+            "{prefix}:{}",
+            Self::viewport_surface_key(self.instance(), self.gateway())
+        )
+    }
+
     pub(crate) fn resource_scope(&self, prefix: &str) -> String {
         let gateway = self.gateway();
         let project = gateway

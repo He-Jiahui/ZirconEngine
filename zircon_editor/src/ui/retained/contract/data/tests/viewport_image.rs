@@ -116,11 +116,70 @@ fn play_preview_resource_key_separates_replaced_gateway_generations() {
     assert_ne!(first.resource_key, replacement.resource_key);
     assert_eq!(
         first.resource_key,
-        "play-viewport:7:11:13:17:19:some:7:1:1:23:none"
+        "play-viewport:editor.play:7:11:13:17:19:Some(7):None"
     );
     assert_eq!(
         replacement.resource_key,
-        "play-viewport:7:11:13:17:29:some:7:1:1:23:none"
+        "play-viewport:editor.play:7:11:13:17:29:Some(7):None"
+    );
+}
+
+#[test]
+fn play_viewport_image_stream_updates_generations_and_survives_resize() {
+    let gateway = zircon_runtime_interface::GatewaySessionIdentity::new(
+        11,
+        zircon_runtime_interface::ZrRuntimeSessionHandle::new(13),
+        17,
+        Some(Arc::from("res://orb-run")),
+    )
+    .with_gateway_generation(19)
+    .with_play_instance(Some(7));
+    let make = |instance, width, generation| {
+        HostViewportImageData::from_play_preview_frame(PlayPreviewFrame::for_test(
+            crate::core::play::PlayInstanceId::for_test(instance),
+            gateway.clone(),
+            width,
+            1,
+            generation,
+            vec![255; width as usize * 4],
+        ))
+    };
+    let first = make(7, 1, 23).expect("completed preview");
+    let resized = make(7, 2, 24).expect("resized preview");
+    assert_eq!(first.resource_key, resized.resource_key);
+    assert_eq!(first.resource_generation, 23);
+    assert_eq!(resized.resource_generation, 24);
+    assert_ne!(
+        first.play_frame_identity().unwrap().resource_scope("gizmo"),
+        resized
+            .play_frame_identity()
+            .unwrap()
+            .resource_scope("gizmo"),
+        "overlay provenance still identifies the complete frame"
+    );
+    assert_ne!(first.resource_key, make(8, 1, 1).unwrap().resource_key);
+    assert!(
+        make(7, 1, 0).is_none(),
+        "pending readback must not replace a completed image"
+    );
+
+    let mut images = HostViewportImageSet::default();
+    assert!(images.replace_game(first.clone()));
+    assert!(!images.replace_game(first.clone()));
+    assert!(images.replace_game(resized.clone()));
+    assert!(!images.replace_game(resized.clone()));
+    assert_eq!(images.game().unwrap().resource_generation, 24);
+    assert_eq!(images.game().unwrap().width, 2);
+
+    assert!(images.replace_scene_for_surface("document:left", first.clone()));
+    assert!(!images.replace_scene_for_surface("document:left", first));
+    assert!(images.replace_scene_for_surface("document:left", resized));
+    assert_eq!(
+        images
+            .for_surface("document:left", "Scene")
+            .unwrap()
+            .resource_generation,
+        24
     );
 }
 

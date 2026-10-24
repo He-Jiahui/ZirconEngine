@@ -8,14 +8,14 @@ use super::super::super::paint_frame::{HostPaintAtlasImage, HostRgbaFrame};
 #[derive(Clone, Copy)]
 pub(in crate::ui::retained_host::host_contract) enum ImageRecordingMetadata<'a> {
     ResourceKey(Option<&'a str>),
-    SharedResourceKey(Option<&'a str>, &'a Arc<[u8]>),
+    SharedResourceKey(Option<&'a str>, u64, &'a Arc<[u8]>),
     Atlas(&'a HostPaintAtlasImage),
 }
 
 impl ImageRecordingMetadata<'_> {
     pub(in crate::ui::retained_host::host_contract) fn is_valid(self) -> bool {
         match self {
-            Self::ResourceKey(_) | Self::SharedResourceKey(_, _) => true,
+            Self::ResourceKey(_) | Self::SharedResourceKey(_, _, _) => true,
             Self::Atlas(atlas) => {
                 !atlas.resource_key.is_empty() && atlas.width > 0 && atlas.height > 0
             }
@@ -46,14 +46,15 @@ impl ImageRecordingMetadata<'_> {
                     None,
                 );
             }
-            Self::SharedResourceKey(resource_key, shared_rgba) => {
+            Self::SharedResourceKey(resource_key, resource_generation, shared_rgba) => {
                 let resource_key = resource_key
                     .map(str::to_string)
                     .unwrap_or_else(|| rgba_resource_key(image_width, image_height, rgba));
-                frame.record_image(
+                frame.record_image_with_generation(
                     rect,
                     clip,
                     resource_key,
+                    resource_generation,
                     image_width,
                     image_height,
                     Some(Arc::clone(shared_rgba)),

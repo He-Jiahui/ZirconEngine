@@ -50,6 +50,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn draw_im
             command.frame.clone(),
             command.clip_frame.as_ref(),
             resource_key,
+            0,
             image.width,
             image.height,
             shared_rgba,

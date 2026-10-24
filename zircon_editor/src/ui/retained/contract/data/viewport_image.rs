@@ -163,8 +163,8 @@ impl HostViewportImageData {
         }
         let identity = frame.identity().clone();
         let image = Self {
-            resource_key: identity.resource_scope("play-viewport"),
-            resource_generation: 0,
+            resource_key: identity.image_stream_key("play-viewport"),
+            resource_generation: frame.generation(),
             width: frame.width(),
             height: frame.height(),
             rgba: Some(Arc::clone(frame.rgba())),
@@ -218,9 +218,10 @@ impl HostViewportImageData {
                 .is_none_or(|overlay| overlay.is_valid_for(self.width, self.height))
     }
 
-    fn composite_resource_key(&self) -> (&str, Option<&str>) {
+    fn composite_resource_key(&self) -> (&str, u64, Option<&str>) {
         (
             self.resource_key.as_str(),
+            self.resource_generation,
             self.overlay
                 .as_ref()
                 .map(|overlay| overlay.resource_key.as_str()),

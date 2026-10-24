@@ -55,6 +55,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_shared_rgba_image_clippe
     rect: FrameRect,
     clip: Option<&FrameRect>,
     resource_key: &str,
+    resource_generation: u64,
     image_width: u32,
     image_height: u32,
     rgba: &Arc<[u8]>,
@@ -66,7 +67,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_shared_rgba_image_clippe
         image_width,
         image_height,
         rgba.as_ref(),
-        ImageRecordingMetadata::SharedResourceKey(Some(resource_key), rgba),
+        ImageRecordingMetadata::SharedResourceKey(Some(resource_key), resource_generation, rgba),
     )
 }
 
