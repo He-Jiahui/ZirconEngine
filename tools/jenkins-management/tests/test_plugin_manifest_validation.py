@@ -144,6 +144,96 @@ class PluginManifestTests(unittest.TestCase):
         self.assertEqual(observed[1]["cargoWorkspaceManifest"], "zircon_plugins/Cargo.toml")
 
 
+class GltfManifestTests(unittest.TestCase):
+    FEATURES = ["runtime", "zircon_runtime/native-host", "zircon_runtime/animation"]
+    LIB_FILTER = "source_snapshot_tests::importer_rejects_required_extensions_outside_its_stable_policy"
+
+    def argv(self, *, lib=False):
+        target = ["--lib", self.LIB_FILTER] if lib else ["--test", "character_skinning_sources"]
+        return ["test", "--manifest-path", str(ROOT / "zircon_plugins/Cargo.toml"),
+                "-p", "zircon_plugin_gltf_importer_runtime", "--no-default-features", "--locked",
+                "--features", ",".join(self.FEATURES), "--profile", "test", "--jobs", "1",
+                *target, "--", "--test-threads", "1"]
+
+    def recipe(self, value):
+        return PluginManifestTests().recipe(value)
+
+    def test_both_exact_targets_reach_the_native_command_without_expanding_scope(self):
+        for lib in (False, True):
+            with self.subTest(lib=lib):
+                parsed = entry.parse_cargo(self.argv(lib=lib), repo=ROOT)
+                value = self.recipe(parsed)
+                self.assertEqual(value["manifestPath"], "zircon_plugins/Cargo.toml")
+                self.assertEqual(value["packages"], ["zircon_plugin_gltf_importer_runtime"])
+                self.assertEqual(value["features"], self.FEATURES)
+                self.assertEqual(value["profile"], "test")
+                self.assertEqual(value["lib"], lib)
+                self.assertEqual(value["tests"], [] if lib else ["character_skinning_sources"])
+                self.assertEqual(value["testFilter"], self.LIB_FILTER if lib else None)
+                command = local.prepare_command(value["command"], Path("E:/cargo-targets/zircon-local/manifest-test/target"))
+                self.assertEqual(command[command.index("--manifest-path") + 1], "zircon_plugins/Cargo.toml")
+                self.assertEqual(command[command.index("--profile") + 1], "test")
+                self.assertEqual(command[command.index("--features") + 1], ",".join(self.FEATURES))
+                self.assertEqual(command[-3:], ["--", "--test-threads", "1"])
+                self.assertIn("--no-default-features", command)
+                self.assertIn("--locked", command)
+                self.assertFalse(set(command) & {"--workspace", "--all", "--tests", "--bins", "--all-features", "--all-targets"})
+
+    def test_cli_and_receiver_reject_recipe_widening_independently(self):
+        for lib in (False, True):
+            original = entry.parse_cargo(self.argv(lib=lib), repo=ROOT)
+            changes = [{"packages": ["zircon_plugin_ai_editor"]},
+                       {"packages": ["zircon_plugin_particles_editor"]},
+                       {"packages": ["zircon_plugin_gltf_importer_runtime", "zircon_editor"]},
+                       {"profile": "dev"}, {"profile": "release"}, {"verb": "check"},
+                       {"noDefaultFeatures": False}, {"locked": False}, {"features": []},
+                       {"features": self.FEATURES[:-1]}, {"features": self.FEATURES + ["gpu"]},
+                       {"features": self.FEATURES + ["runtime"]}, {"jobs": 2}, {"testThreads": 2},
+                       {"noRun": True}, {"bins": True}, {"allTests": True}, {"allFeatures": True},
+                       {"harnessFilters": ["other"]}, {"ignored": True}, {"exact": True}, {"nocapture": True},
+                       {"tests": ["other"]}, {"testFilter": "source_snapshot_tests::"},
+                       {"cwd": str(ROOT / "zircon_plugins")}, {"workingDirectory": str(ROOT)},
+                       {"manifestPath": "zircon_plugins/gltf_importer/runtime/Cargo.toml"}]
+            for change in changes:
+                with self.subTest(lib=lib, change=change), self.assertRaises(ValueError):
+                    self.recipe({**original, **change})
+            argv = self.argv(lib=lib)
+            for old, new in [("test", "build"), ("character_skinning_sources" if not lib else self.LIB_FILTER, "other"),
+                             (",".join(self.FEATURES), "runtime"), ("--no-default-features", "--all-features")]:
+                changed = argv.copy()
+                changed[changed.index(old)] = new
+                with self.subTest(lib=lib, old=old), self.assertRaises(entry.EntryError):
+                    entry.parse_cargo(changed, repo=ROOT, enforce_policy=False)
+
+    def test_glTF_target_shapes_cannot_be_mixed_or_broadened(self):
+        for lib in (False, True):
+            value = entry.parse_cargo(self.argv(lib=lib), repo=ROOT)
+            for change in [{"lib": not lib}, {"lib": True, "tests": ["character_skinning_sources"]},
+                           {"lib": False, "tests": []}, {"tests": ["character_skinning_sources", "other"]}]:
+                with self.subTest(lib=lib, change=change), self.assertRaises(ValueError):
+                    self.recipe({**value, **change})
+        value = entry.parse_cargo(self.argv(), repo=ROOT)
+        with self.assertRaises(ValueError):
+            self.recipe({**value, "testFilter": self.LIB_FILTER})
+        value = entry.parse_cargo(self.argv(lib=True), repo=ROOT)
+        with self.assertRaises(ValueError):
+            self.recipe({**value, "testFilter": None})
+
+    def test_feature_order_is_semantic_but_duplicate_features_are_not_accepted(self):
+        argv = self.argv()
+        argv[argv.index(",".join(self.FEATURES))] = ",".join(reversed(self.FEATURES))
+        self.assertEqual(set(self.recipe(entry.parse_cargo(argv, repo=ROOT))["features"]), set(self.FEATURES))
+
+    def test_glTF_manifest_aliases_and_foreign_workspaces_still_fail(self):
+        for manifest in ["../Cargo.toml", "./zircon_plugins/Cargo.toml", "zircon_plugins//Cargo.toml",
+                         "zircon_plugins/../Cargo.toml", "C:/foreign/Cargo.toml",
+                         "zircon_plugins/gltf_importer/runtime/Cargo.toml"]:
+            argv = self.argv()
+            argv[2] = manifest
+            with self.subTest(manifest=manifest), self.assertRaises(entry.EntryError):
+                entry.parse_cargo(argv, repo=ROOT)
+
+
 class PluginWorkspaceInputTests(unittest.TestCase):
     def setUp(self):
         base = Path(os.environ["ZR_COMMIT_TEST_ROOT"])
@@ -296,6 +386,94 @@ foreign = {path = "../../unregistered"}
             finished = guard.finish()
             self.assertTrue(finished["complete"])
             self.assertFalse(finished["stable"])
+        finally:
+            guard.close()
+
+    def select_gltf(self, *, lib=False):
+        path = self.root / "zircon_plugins/Cargo.toml"
+        path.write_text(path.read_text().replace('members = ["material_editor/editor"]',
+                        'members = ["material_editor/editor", "gltf_importer/runtime"]'), encoding="utf-8")
+        self.write("zircon_plugins/gltf_importer/runtime/Cargo.toml", '''[package]
+name = "zircon_plugin_gltf_importer_runtime"
+version.workspace = true
+[features]
+runtime = ["dep:zircon_runtime"]
+[dependencies]
+zircon_runtime = { workspace = true, optional = true }
+''')
+        path = self.root / "zircon_plugins/Cargo.lock"
+        path.write_text(path.read_text() + '''[[package]]
+name = "zircon_plugin_gltf_importer_runtime"
+version = "0.1.0"
+''', encoding="utf-8")
+        self.recipe = entry.parse_cargo(GltfManifestTests().argv(lib=lib), repo=ROOT)
+
+    def test_gltf_closure_starts_at_selected_member_and_binds_cross_workspace_inputs(self):
+        self.select_gltf()
+        value = self.inputs()
+        self.assertEqual(value["selectedPackage"], "zircon_plugin_gltf_importer_runtime")
+        self.assertEqual(value["selectedLockfile"], str(self.root / "zircon_plugins/Cargo.lock"))
+        self.assertEqual({p["name"] for p in value["packageManifests"].values()},
+                         {"zircon_plugin_gltf_importer_runtime", "zircon_runtime"})
+        self.assertEqual(len(value["workspaceManifests"]), 2)
+        self.assertTrue(any(e["fromPackage"] == value["selectedPackage"] and e["declaredFeatures"] == ["native-host"]
+                            for e in value["pathDependencyEdges"]))
+        self.assertIsNone(value["files"][str(self.root / "zircon_plugins/.cargo/config.toml")])
+        self.assertFalse(value["cargoResolutionPerformed"])
+        self.assertEqual(value["inputDigest"], runner.sha(runner.encoded({k: v for k, v in value.items()
+                                                                        if k != "inputDigest"})))
+
+    def test_gltf_selected_member_name_membership_and_lock_cannot_fall_back_to_material(self):
+        self.select_gltf(lib=True)
+        path = self.root / "zircon_plugins/gltf_importer/runtime/Cargo.toml"
+        original = path.read_text()
+        path.write_text(original.replace("zircon_plugin_gltf_importer_runtime", "wrong_package"), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "mismatch"):
+            self.inputs()
+        path.write_text(original, encoding="utf-8")
+        lock = self.root / "zircon_plugins/Cargo.lock"
+        lock_original = lock.read_text()
+        lock.write_text(lock_original.replace("zircon_plugin_gltf_importer_runtime", "other"), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "absent from the plugin lockfile"):
+            self.inputs()
+        lock.write_text(lock_original, encoding="utf-8")
+        path = self.root / "zircon_plugins/Cargo.toml"
+        path.write_text(path.read_text().replace(', "gltf_importer/runtime"', ''), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "not a member"):
+            self.inputs()
+
+    def test_gltf_source_guard_rejects_uncaptured_or_changed_cross_workspace_manifest(self):
+        self.select_gltf()
+        captured = self.capture()
+        runtime = self.root / "zircon_runtime/Cargo.toml"
+        runtime.write_text(runtime.read_text() + '\n[features]\nanimation = []\n', encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "captured source"):
+            self.inputs(captured)
+        captured = self.capture()
+        del captured["source"]["files"]["zircon_runtime/Cargo.toml"]
+        with self.assertRaisesRegex(ValueError, "captured source"):
+            self.inputs(captured)
+
+    def test_gltf_runtime_edge_cannot_silently_lose_inherited_native_feature(self):
+        self.select_gltf()
+        path = self.root / "zircon_plugins/Cargo.toml"
+        path.write_text(path.read_text().replace('features = ["native-host"]', 'features = []'), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "native runtime feature edge"):
+            self.inputs()
+
+    def test_gltf_native_guard_keeps_its_lock_and_runtime_manifest_until_finish(self):
+        self.select_gltf()
+        value = self.inputs()
+        helper = runner.checkout_guard_helper()
+        guard = helper.CheckoutReadGuard(self.root, files=value["files"], watch_roots=[self.root]).acquire()
+        try:
+            for relative in ("zircon_plugins/Cargo.lock", "zircon_runtime/Cargo.toml",
+                             "zircon_plugins/gltf_importer/runtime/Cargo.toml"):
+                with self.subTest(relative=relative), self.assertRaises(PermissionError):
+                    (self.root / relative).write_bytes(b"concurrent mutation")
+            guard.assert_stable()
+            finished = guard.finish()
+            self.assertTrue(finished["complete"] and finished["stable"])
         finally:
             guard.close()
 
