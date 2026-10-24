@@ -6,7 +6,7 @@ version = 2
 display_name = "Unreal Details Panel"
 
 [imports]
-widgets = ["res://ui/editor/workbench/primitives/inputs/dropdown.zui#WorkbenchDropdown", "res://ui/editor/workbench/primitives/inputs/search_input.zui#WorkbenchSearchInput", "res://ui/editor/workbench/primitives/chrome/axis_value_field.zui#WorkbenchAxisValueField", "res://ui/editor/workbench/data/component_property_row.zui#WorkbenchComponentPropertyRow", "res://ui/editor/components/workbench/primitives/inputs/button.zui#WorkbenchButton"]
+widgets = ["res://ui/editor/unreal/components/script_binding_fields.zui#InspectorScriptBindingFields", "res://ui/editor/unreal/components/script_bindings.zui#InspectorScriptsSection", "res://ui/editor/workbench/primitives/inputs/dropdown.zui#WorkbenchDropdown", "res://ui/editor/workbench/primitives/inputs/search_input.zui#WorkbenchSearchInput", "res://ui/editor/workbench/primitives/chrome/axis_value_field.zui#WorkbenchAxisValueField", "res://ui/editor/workbench/data/component_property_row.zui#WorkbenchComponentPropertyRow", "res://ui/editor/components/workbench/primitives/inputs/button.zui#WorkbenchButton"]
 styles = ["res://ui/editor/unreal/starship.zui"]
 
 [components.UnrealDetailsPanel]
@@ -75,7 +75,7 @@ component = "ScrollableBox"
 control_id = "RightDrawerContentRoot"
 props = { input_hoverable = true, visibility = "collapsed" }
 layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "component_add" }, { node = "metadata" }, { node = "transform" }, { node = "component" }, { node = "empty" }]
+children = [{ node = "component_add" }, { node = "metadata" }, { node = "transform" }, { node = "scripts" }, { node = "component" }, { node = "empty" }]
 
 [nodes.metadata]
 component = "HorizontalGroup"
@@ -244,7 +244,7 @@ component = "VerticalGroup"
 control_id = "WorkbenchComponentAddPanel"
 props = { visibility = "collapsed" }
 layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = 0.0, stretch = "Stretch" }, height = { stretch = "Fixed" } }
-children = [{ node = "component_add_title" }, { node = "component_add_type" }, { node = "component_add_name" }, { node = "component_add_pages" }, { node = "component_add_required_label" }, { node = "component_add_required" }, { node = "component_add_values" }, { node = "component_add_feedback" }, { node = "component_add_actions" }]
+children = [{ node = "component_add_title" }, { node = "component_add_type" }, { node = "component_add_name" }, { node = "component_add_script_fields" }, { node = "component_add_pages" }, { node = "component_add_required_label" }, { node = "component_add_required" }, { node = "component_add_values" }, { node = "component_add_feedback" }, { node = "component_add_actions" }]
 
 [nodes.component_add_title]
 component = "Label"
@@ -334,3 +334,9 @@ control_id = "WorkbenchComponentAddConfirm"
 props = { text = { text_key = "editor.inspector.component_add.confirm", table = "editor" }, font_size = 13.333333, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
 layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
 events = [{ id = "Inspector/ComponentAddConfirm", event = "Click" }]
+
+[nodes.scripts]
+component = "InspectorScriptsSection"
+
+[nodes.component_add_script_fields]
+component = "InspectorScriptBindingFields"

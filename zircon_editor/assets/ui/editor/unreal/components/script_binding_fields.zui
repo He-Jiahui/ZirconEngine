@@ -1,0 +1,56 @@
+# Typed script authoring fields; the Details pane owns scrolling.
+[asset]
+kind = "component"
+id = "res://ui/editor/unreal/components/script_binding_fields.zui"
+version = 2
+display_name = "Inspector Script Binding Fields"
+
+[imports]
+widgets = ["res://ui/editor/workbench/primitives/inputs/dropdown.zui#WorkbenchDropdown", "res://ui/editor/workbench/primitives/inputs/search_input.zui#WorkbenchSearchInput", "res://ui/editor/components/workbench/primitives/inputs/button.zui#WorkbenchButton"]
+styles = ["res://ui/editor/unreal/starship.zui"]
+
+[components.InspectorScriptBindingFields]
+root = "script_fields"
+
+[nodes.script_fields]
+component = "VerticalGroup"
+control_id = "WorkbenchComponentAddScriptFields"
+props = { visibility = "collapsed" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = 0.0, stretch = "Stretch" }, height = { stretch = "Fixed" } }
+children = [{ node = "package" }, { node = "module" }, { node = "enabled" }, { node = "update" }, { node = "fixed_update" }]
+
+[nodes.package]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchComponentAddPackage"
+props = { options = [], value = "", value_text = "", label = { text_key = "editor.inspector.script_binding.package", table = "editor" }, popup_open = false, disabled = true, font_size = "$editor.typography.body.size", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = "$editor.typography.line_height" }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+events = [{ id = "Inspector/ScriptBindingPackage", event = "Click" }]
+
+[nodes.module]
+component = "WorkbenchSearchInput"
+control_id = "WorkbenchComponentAddModule"
+props = { query = "", placeholder = { text_key = "editor.inspector.script_binding.module", table = "editor" }, has_clear_action = false, font_size = "$editor.typography.body.size", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = "$editor.typography.line_height" }
+widget = { value_property = "query" }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+events = [{ id = "Inspector/ScriptBindingModuleEdit", event = "Change", component_event = "ValueChanged" }, { id = "Inspector/ScriptBindingModuleCommit", event = "Submit", component_event = "Commit" }]
+
+[nodes.enabled]
+component = "WorkbenchButton"
+control_id = "WorkbenchComponentAddEnabled"
+props = { text = { text_key = "editor.inspector.script_binding.enabled", table = "editor" }, font_size = "$editor.typography.body.size", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = "$editor.typography.line_height" }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+events = [{ id = "Inspector/ScriptBindingDraftEnabled", event = "Click" }]
+
+[nodes.update]
+component = "WorkbenchButton"
+control_id = "WorkbenchComponentAddUpdate"
+props = { text = { text_key = "editor.inspector.script_binding.update_on", table = "editor" }, font_size = "$editor.typography.body.size", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = "$editor.typography.line_height" }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+events = [{ id = "Inspector/ScriptBindingDraftUpdate", event = "Click" }]
+
+[nodes.fixed_update]
+component = "WorkbenchButton"
+control_id = "WorkbenchComponentAddFixedUpdate"
+props = { text = { text_key = "editor.inspector.script_binding.fixed_update_on", table = "editor" }, font_size = "$editor.typography.body.size", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = "$editor.typography.line_height" }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+events = [{ id = "Inspector/ScriptBindingDraftFixedUpdate", event = "Click" }]

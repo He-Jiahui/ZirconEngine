@@ -1,0 +1,92 @@
+# Typed script binding list; the Details pane owns scrolling.
+[asset]
+kind = "component"
+id = "res://ui/editor/unreal/components/script_bindings.zui"
+version = 2
+display_name = "Inspector Scripts"
+
+[imports]
+widgets = ["res://ui/editor/workbench/primitives/inputs/dropdown.zui#WorkbenchDropdown", "res://ui/editor/components/workbench/primitives/inputs/button.zui#WorkbenchButton"]
+styles = ["res://ui/editor/unreal/starship.zui"]
+
+[components.InspectorScriptsSection]
+root = "scripts"
+
+[nodes.scripts]
+component = "VerticalGroup"
+control_id = "WorkbenchInspectorScripts"
+props = { visibility = "collapsed" }
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = 0.0, stretch = "Stretch" }, height = { stretch = "Fixed" } }
+children = [{ node = "scripts_title" }, { node = "status" }, { node = "script_controls" }]
+
+[nodes.scripts_title]
+component = "Label"
+control_id = "WorkbenchScriptBindingsTitle"
+props = { text = { text_key = "editor.inspector.script_binding.title", table = "editor" }, font_size = "$editor.typography.body.size", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = "$editor.typography.line_height" }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+
+[nodes.status]
+component = "Label"
+control_id = "WorkbenchScriptBindingStatus"
+props = { text = "", text_overflow = "ellipsis", font_size = "$editor.typography.body.size", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = "$editor.typography.line_height" }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+
+[nodes.script_controls]
+component = "VerticalGroup"
+control_id = "WorkbenchScriptBindingControls"
+layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { min = 0.0, stretch = "Stretch" }, height = { stretch = "Fixed" } }
+children = [{ node = "select" }, { node = "enable" }, { node = "actions" }, { node = "pages" }]
+
+[nodes.select]
+component = "WorkbenchDropdown"
+control_id = "WorkbenchScriptBindingSelect"
+props = { options = [], value = "", value_text = "", label = { text_key = "editor.inspector.script_binding.binding", table = "editor" }, popup_open = false, disabled = true, font_size = "$editor.typography.body.size", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = "$editor.typography.line_height" }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+events = [{ id = "Inspector/ScriptBindingSelect", event = "Click" }]
+
+[nodes.enable]
+component = "WorkbenchButton"
+control_id = "WorkbenchScriptBindingEnable"
+props = { text = { text_key = "editor.inspector.script_binding.enabled", table = "editor" }, font_size = "$editor.typography.body.size", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = "$editor.typography.line_height" }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+events = [{ id = "Inspector/ScriptBindingEnable", event = "Click" }]
+
+[nodes.actions]
+component = "HorizontalGroup"
+control_id = "WorkbenchScriptBindingActions"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { min = 0.0, stretch = "Stretch" }, height = { stretch = "Fixed" } }
+children = [{ node = "edit" }, { node = "remove" }]
+
+[nodes.edit]
+component = "WorkbenchButton"
+control_id = "WorkbenchScriptBindingEdit"
+props = { text = { text_key = "editor.inspector.script_binding.edit", table = "editor" }, font_size = "$editor.typography.body.size", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = "$editor.typography.line_height" }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+events = [{ id = "Inspector/ScriptBindingEdit", event = "Click" }]
+
+[nodes.remove]
+component = "WorkbenchButton"
+control_id = "WorkbenchScriptBindingRemove"
+props = { text = { text_key = "editor.inspector.script_binding.remove", table = "editor" }, font_size = "$editor.typography.body.size", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = "$editor.typography.line_height" }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+events = [{ id = "Inspector/ScriptBindingRemove", event = "Click" }]
+
+[nodes.pages]
+component = "HorizontalGroup"
+control_id = "WorkbenchScriptBindingPages"
+layout = { container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { min = 0.0, stretch = "Stretch" }, height = { stretch = "Fixed" } }
+children = [{ node = "previous" }, { node = "next" }]
+
+[nodes.previous]
+component = "WorkbenchButton"
+control_id = "WorkbenchScriptBindingPrevious"
+props = { text = { text_key = "editor.inspector.component_add.previous", table = "editor" }, font_size = "$editor.typography.body.size", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = "$editor.typography.line_height" }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+events = [{ id = "Inspector/ScriptBindingPrevious", event = "Click" }]
+
+[nodes.next]
+component = "WorkbenchButton"
+control_id = "WorkbenchScriptBindingNext"
+props = { text = { text_key = "editor.inspector.component_add.next", table = "editor" }, font_size = "$editor.typography.body.size", font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = "$editor.typography.line_height" }
+layout = { width = { min = 0.0, stretch = "Stretch" }, height = { min = "$editor.control.height.default", preferred = "$editor.control.height.default", max = "$editor.control.height.default", stretch = "Fixed" } }
+events = [{ id = "Inspector/ScriptBindingNext", event = "Click" }]

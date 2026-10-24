@@ -24,6 +24,65 @@ use crate::ui::{
 };
 
 #[test]
+fn script_binding_controls_load_from_single_component_assets() {
+    let _guard = env_lock().lock().unwrap();
+    let assets = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
+    let mut cache = UiV2PrototypeStoreFileCache::new();
+    let loaded = cache
+        .load_store([assets.join("ui/editor/unreal/level_editor_window.zui")])
+        .expect("the actual Details imports must compile with single-component assets");
+    let prepared = prepare_editor_v2_document(loaded.root_document.as_ref());
+    let surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
+        UiTreeId::new("details.script_binding.regression"),
+        &prepared,
+        loaded.compiled.as_ref(),
+    )
+    .expect("the imported script binding controls must mount in the retained surface");
+
+    for (asset_id, component) in [
+        (
+            "res://ui/editor/unreal/components/script_binding_fields.zui",
+            "InspectorScriptBindingFields",
+        ),
+        (
+            "res://ui/editor/unreal/components/script_bindings.zui",
+            "InspectorScriptsSection",
+        ),
+    ] {
+        let physical_path = assets
+            .join(asset_id.strip_prefix("res://").expect("resource asset"))
+            .canonicalize()
+            .expect("the actual script binding asset must exist");
+        assert!(loaded.source_receipts.iter().any(|receipt| {
+            receipt.asset_id == asset_id && receipt.physical_path == physical_path
+        }));
+        let document = loaded.store.get(asset_id).expect("imported script asset");
+        assert_eq!(document.components.len(), 1);
+        assert!(document.components.contains_key(component));
+
+        for authored in document.nodes.values() {
+            let control_id = authored.control_id.as_deref().expect("script control id");
+            let mut mounted = surface.tree.nodes.values().filter_map(|node| {
+                node.template_metadata
+                    .as_ref()
+                    .filter(|metadata| metadata.control_id.as_deref() == Some(control_id))
+            });
+            let metadata = mounted.next().unwrap_or_else(|| {
+                panic!("{control_id} must mount through the actual Details imports")
+            });
+            assert!(mounted.next().is_none(), "duplicate control {control_id}");
+            for event in &authored.events {
+                assert!(
+                    metadata.bindings.contains(event),
+                    "{control_id} must retain its actual {} binding",
+                    event.id
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn unreal_details_axes_inherit_resolved_width_tokens_and_editability_contract() {
     let _guard = env_lock().lock().unwrap();
     let assets = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
