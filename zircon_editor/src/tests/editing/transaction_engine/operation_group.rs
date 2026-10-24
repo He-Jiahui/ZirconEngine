@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -229,15 +230,21 @@ fn operation_group_uses_the_play_history_route() {
         )
         .unwrap();
 
+    assert!(matches!(
+        engine.with_context::<FixtureContext, _>(|context| context.world_domain),
+        Err(EditCommandError::InvariantViolation {
+            invariant: "public context inspection requires no active transaction scope"
+        })
+    ));
+    assert_eq!(
+        engine.flush_operation_group().unwrap(),
+        Some(transaction.transaction_id)
+    );
     assert_eq!(
         engine
             .with_context::<FixtureContext, _>(|context| context.world_domain)
             .unwrap(),
         Some(WorldDomain::Play(instance))
-    );
-    assert_eq!(
-        engine.flush_operation_group().unwrap(),
-        Some(transaction.transaction_id)
     );
 }
 
@@ -359,6 +366,147 @@ fn operation_group_initialization_blocks_concurrent_flush() {
         engine.history_status(HistoryContextId::Global).unwrap().len,
         1
     );
+}
+
+#[test]
+fn refused_non_group_operation_leaves_no_active_scope() {
+    let sink = Arc::new(RecordingEventSink::default());
+    let engine = EditorTransactionEngine::with_event_sink(FixtureContext::default(), sink.clone());
+    let finalized = finalized_counter();
+    let history = HistoryContextId::Global;
+
+    let error = engine
+        .execute_operation(
+            "refused edit",
+            history,
+            None,
+            MergeMode::Disable,
+            Box::new(DeltaCommand::new("refused edit", 1, 5, finalized.clone()).plan_refusing()),
+        )
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        EditCommandError::InvariantViolation {
+            invariant: "fixture plan refusal"
+        }
+    ));
+    // Public inspection and undo require an empty active scope, as in G-02.
+    assert_eq!(
+        engine
+            .with_context::<FixtureContext, _>(|c| c.value)
+            .unwrap(),
+        Some(0)
+    );
+    assert_eq!(engine.history_status(history).unwrap().len, 0);
+    assert!(!engine.undo(history).unwrap());
+    assert_eq!(finalized.load(Ordering::SeqCst), 0);
+    assert!(engine.take_drop_error().is_none());
+    assert_eq!(
+        sink.kinds(),
+        vec![
+            TransactionEventKind::Started,
+            TransactionEventKind::Canceled
+        ]
+    );
+
+    // A following edit must own a new root record instead of nesting in a leak.
+    engine
+        .execute_operation(
+            "accepted edit",
+            history,
+            None,
+            MergeMode::Disable,
+            Box::new(DeltaCommand::new("accepted edit", 1, 5, finalized.clone())),
+        )
+        .unwrap();
+    assert_eq!(engine.history_status(history).unwrap().len, 1);
+    assert_eq!(sink.kinds().last(), Some(&TransactionEventKind::Committed));
+    assert!(engine.undo(history).unwrap());
+    assert_eq!(
+        engine
+            .with_context::<FixtureContext, _>(|c| c.value)
+            .unwrap(),
+        Some(0)
+    );
+}
+
+#[test]
+fn non_group_first_push_preserves_rollback_failure() {
+    let engine = EditorTransactionEngine::new(FixtureContext::default());
+
+    let error = engine
+        .execute_operation(
+            "failing edit",
+            HistoryContextId::Global,
+            None,
+            MergeMode::Disable,
+            Box::new(
+                DeltaCommand::new("failing edit", 1, 5, finalized_counter())
+                    .mutating_then_failing()
+                    .revert_failing_before_mutation(),
+            ),
+        )
+        .unwrap_err();
+
+    match error {
+        EditCommandError::RollbackFailed {
+            command_error,
+            rollback_error,
+        } => {
+            assert!(matches!(
+                *command_error,
+                EditCommandError::TargetMissing { ref target }
+                    if target == "fixture after mutation"
+            ));
+            assert!(matches!(
+                *rollback_error,
+                EditCommandError::TargetMissing { ref target }
+                    if target == "fixture revert before mutation"
+            ));
+        }
+        other => panic!("expected rollback failure, got {other:?}"),
+    }
+    assert!(matches!(
+        engine.history_status(HistoryContextId::Global),
+        Err(EditCommandError::EngineFaulted { .. })
+    ));
+}
+
+#[test]
+fn refused_non_group_operation_reports_cleanup_failure() {
+    let engine = EditorTransactionEngine::new(FixtureContext {
+        fail_selection_restore: Some(0),
+        ..FixtureContext::default()
+    });
+
+    let error = engine
+        .execute_operation(
+            "refused edit",
+            HistoryContextId::Global,
+            None,
+            MergeMode::Disable,
+            Box::new(DeltaCommand::new("refused edit", 1, 5, finalized_counter()).plan_refusing()),
+        )
+        .unwrap_err();
+    let EditCommandError::RollbackFailed {
+        command_error,
+        rollback_error,
+    } = error
+    else {
+        panic!("expected cleanup rollback failure, got {error:?}");
+    };
+    for failure in [command_error, rollback_error] {
+        assert!(matches!(
+            *failure,
+            EditCommandError::InvariantViolation {
+                invariant: "fixture selection restore failure"
+            }
+        ));
+    }
+    assert!(matches!(
+        engine.history_status(HistoryContextId::Global),
+        Err(EditCommandError::EngineFaulted { .. })
+    ));
 }
 
 #[test]

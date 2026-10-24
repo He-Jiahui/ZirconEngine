@@ -202,12 +202,28 @@ impl EditorTransactionEngine {
         self.flush_operation_group()?;
         let transaction = self.begin_transaction(label, history, None)?;
         self.set_merge_mode(transaction, merge_mode);
-        self.push(transaction, command)?;
-        self.commit(transaction)?;
-        Ok(OperationTransactionResult {
-            transaction_id: transaction,
-            group_open: false,
-        })
+        let error = match self
+            .push(transaction, command)
+            .and_then(|()| self.commit(transaction))
+        {
+            Ok(_) => {
+                return Ok(OperationTransactionResult {
+                    transaction_id: transaction,
+                    group_open: false,
+                })
+            }
+            Err(error) => error,
+        };
+        // Refused operations close their root scope; faulted engines retain their
+        // recovery frame and report the original fault instead of a cleanup error.
+        let preserve_original =
+            matches!(&error, EditCommandError::RollbackFailed { .. }) || error.is_interrupted();
+        if let Err(cleanup_error) = self.cleanup_initializing_operation_group(transaction) {
+            if !preserve_original {
+                return Err(cleanup_error);
+            }
+        }
+        Err(error)
     }
 
     pub fn flush_operation_group(&self) -> Result<Option<TransactionId>, EditCommandError> {
