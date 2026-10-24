@@ -360,9 +360,8 @@ class LockResolutionContractsTests(unittest.TestCase):
         for changed in ({**raw, "pid": 123}, {**raw, "command": ["pinned-cargo.exe", "update"]},
                         {**raw, "nativeJobEvidence": {"errors": [], "records": {"beforeResume": {}}}},
                         {**raw, "terminalErrors": []}):
-            original(changed)
-            self.assertFalse(actor.plugin_lock_prelaunch_recovery_ready())
-        original(raw)
+            with patch.object(runner, "read_reference", return_value=changed):
+                self.assertFalse(actor.plugin_lock_prelaunch_recovery_ready())
         (folder / "started.json").write_text("{}", encoding="utf-8")
         self.assertFalse(actor.plugin_lock_prelaunch_recovery_ready())
         self.assertEqual(actor.state.get("management_operation", actor.key)["payload"]["phase"], "unknown")
