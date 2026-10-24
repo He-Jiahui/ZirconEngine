@@ -27,7 +27,8 @@ pub struct EditorCommandRegistry {
     #[serde(skip)]
     palette_catalog: OnceLock<Arc<EditorCommandPaletteCatalog>>,
     #[serde(skip)]
-    effective_palette_catalog: Mutex<Option<(super::EditorKeymap, Arc<EditorCommandPaletteCatalog>)>>,
+    effective_palette_catalog:
+        Mutex<Option<(super::EditorKeymap, Arc<EditorCommandPaletteCatalog>)>>,
     #[serde(skip)]
     executors: EditorCommandExecutorRegistry,
 }
@@ -111,6 +112,17 @@ impl EditorCommandRegistry {
         );
         // Self::new admitted the matching descriptor. This stateless factory
         // captures no shell or context, so registration creates no owner cycle.
+        registry.operation_factories.insert(operation, registration);
+        let operation = EditorOperationPath::parse(
+            crate::core::editing::command::SET_SCRIPT_BINDINGS_OPERATION,
+        )
+        .expect("builtin script binding operation is valid");
+        let registration = OperationCommandFactoryRegistration::new(
+            operation.clone(),
+            "Set script bindings",
+            crate::core::editing::operation::EditOperationTarget::EditWorkspace,
+            Arc::new(crate::core::editing::command::SetScriptBindingsFactory),
+        );
         registry.operation_factories.insert(operation, registration);
         registry.advance_generation();
         registry
@@ -351,7 +363,9 @@ impl EditorCommandRegistry {
         &self,
         keymap: &super::EditorKeymap,
     ) -> Arc<EditorCommandPaletteCatalog> {
-        let mut cache = self.effective_palette_catalog.lock()
+        let mut cache = self
+            .effective_palette_catalog
+            .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         if let Some((current, catalog)) = cache.as_ref() {
             if current == keymap && catalog.generation() == self.generation {

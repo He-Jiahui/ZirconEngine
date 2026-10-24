@@ -396,7 +396,7 @@ impl EditCommand for AddDynamicComponentCommand {
     }
 }
 
-fn validate_gateway(
+pub(super) fn validate_gateway(
     core: &CoreEditContext,
     expected: &GatewayStamp,
 ) -> Result<(), EditCommandError> {
