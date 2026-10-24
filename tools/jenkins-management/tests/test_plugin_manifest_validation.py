@@ -164,7 +164,8 @@ class PrefabManifestTests(unittest.TestCase):
         command = local.prepare_command(value["command"], Path("E:/cargo-targets/zircon-local/manifest-test/target"))
         self.assertEqual(command[command.index("--manifest-path") + 1], "zircon_plugins/Cargo.toml")
         self.assertEqual(command[command.index("--profile") + 1], "test")
-        self.assertEqual(command[-4:], ["prefab_", "--", "--test-threads", "1"])
+        self.assertEqual(command[-3:], ["--", "--test-threads", "1"])
+        self.assertEqual(command[:command.index("--")].count("prefab_"), 1)
         self.assertNotIn("--features", command)
         self.assertFalse(set(command) & {"--workspace", "--all-features", "--all-targets", "--tests", "--bins"})
 
