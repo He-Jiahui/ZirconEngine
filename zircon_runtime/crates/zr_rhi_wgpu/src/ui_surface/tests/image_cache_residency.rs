@@ -7,6 +7,237 @@ use super::{
 };
 use zr_rhi::{UiSurfaceDrawList, UiSurfaceImageResource, UiSurfaceImageResourceTable};
 
+struct G42Gpu {
+    device: wgpu::Device,
+    queue: wgpu::Queue,
+    layout: wgpu::BindGroupLayout,
+    sampler: wgpu::Sampler,
+    shared: super::WgpuUiSharedImageRegistry,
+}
+
+impl G42Gpu {
+    fn new() -> Self {
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());
+        let adapter =
+            pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
+                .expect("G-42 regression requires an offscreen WGPU adapter");
+        let (device, queue) =
+            pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
+                .expect("G-42 regression requires an offscreen WGPU device");
+        let layout = super::super::pipeline::create_image_bind_group_layout(&device);
+        let sampler = super::super::pipeline::create_image_sampler(&device);
+        Self {
+            device,
+            queue,
+            layout,
+            sampler,
+            shared: super::WgpuUiSharedImageRegistry::default(),
+        }
+    }
+
+    fn present(
+        &self,
+        cache: &mut super::WgpuUiImageCache,
+        present: u64,
+        key: &str,
+        generation: u64,
+        size: (u32, u32),
+    ) -> super::WgpuUiImageResourceStats {
+        self.present_with_active(cache, present, key, generation, size, &[])
+    }
+
+    fn present_with_active(
+        &self,
+        cache: &mut super::WgpuUiImageCache,
+        present: u64,
+        key: &str,
+        generation: u64,
+        (width, height): (u32, u32),
+        active: &[(&str, u64)],
+    ) -> super::WgpuUiImageResourceStats {
+        let bytes = u64::from(width) * u64::from(height) * 4;
+        let command = zr_rhi::UiSurfaceCommand {
+            z_index: 0,
+            frame: zr_rhi::UiSurfaceRect {
+                x: 0.0,
+                y: 0.0,
+                width: width as f32,
+                height: height as f32,
+            },
+            clip: None,
+            kind: zr_rhi::UiSurfaceCommandKind::Image {
+                payload: zr_rhi::UiSurfaceImagePayload {
+                    resource_key: key.to_owned(),
+                    resource_generation: generation,
+                    width,
+                    height,
+                    upload_bytes: bytes,
+                    rgba: None,
+                    atlas_uv: None,
+                },
+            },
+        };
+        let mut staged = UiSurfaceImageResourceTable::default();
+        staged.insert(
+            key.to_owned(),
+            UiSurfaceImageResource {
+                generation,
+                width,
+                height,
+                upload_bytes: bytes,
+                rgba: vec![0x40; bytes as usize].into(),
+            },
+        );
+        let draw_list =
+            UiSurfaceDrawList::with_generation((width, height), None, vec![command], present);
+        let mut sources = vec![super::ImageUploadSource {
+            resource_key: key.to_owned(),
+            resource_generation: generation,
+            command_indices: vec![0],
+        }];
+        sources.extend(
+            active
+                .iter()
+                .map(|(key, generation)| super::ImageUploadSource {
+                    resource_key: (*key).to_owned(),
+                    resource_generation: *generation,
+                    command_indices: Vec::new(),
+                }),
+        );
+        sources.sort_unstable_by(|left, right| {
+            (&left.resource_key, left.resource_generation)
+                .cmp(&(&right.resource_key, right.resource_generation))
+        });
+        cache.prepare(
+            &self.device,
+            &self.queue,
+            &self.layout,
+            &self.sampler,
+            present,
+            &draw_list,
+            &sources,
+            None,
+            &self.shared,
+            &mut staged,
+        )
+    }
+}
+
+fn g42_stream(per_frame_keys: bool, resize: bool) {
+    let gpu = G42Gpu::new();
+    let mut cache = super::WgpuUiImageCache::default();
+    let mut submissions = std::collections::VecDeque::new();
+    for present in 1..=30 {
+        let key = if per_frame_keys {
+            format!("play-viewport:test:{present}")
+        } else {
+            "play-viewport:stream".to_owned()
+        };
+        let generation = if per_frame_keys { 0 } else { present };
+        let size = if resize && present >= 12 {
+            (1437, 1004)
+        } else {
+            (1251, 769)
+        };
+        let stats = gpu.present(&mut cache, present, &key, generation, size);
+        assert!(
+            cache.is_resident(&key, generation),
+            "present {present} lost the image: {stats:?}"
+        );
+        assert_eq!(stats.cache_admission_reject_count, 0, "present {present}");
+        assert_eq!(
+            stats.shared_upload_write_count, 1,
+            "present {present} must upload new pixels"
+        );
+        assert!(stats.device_allocation_bytes <= super::MAX_UI_IMAGE_CACHE_BYTES);
+        assert!(gpu.shared.resident_bytes() <= super::MAX_UI_IMAGE_CACHE_BYTES);
+        if !per_frame_keys {
+            assert_eq!(cache.entry_count(), 1, "present {present}");
+            assert_eq!(stats.cache_superseded_release_count, u64::from(present > 1));
+        }
+        // Keep two submissions alive, matching the present-retirement lifetime contract.
+        submissions.push_back(
+            cache
+                .pin_prepared_allocations_for_submission()
+                .expect("uploaded allocation"),
+        );
+        if submissions.len() > 2 {
+            submissions.pop_front();
+        }
+    }
+    if !per_frame_keys {
+        assert_eq!(
+            cache.entry_count(),
+            1,
+            "only the current stream generation stays window-resident"
+        );
+    }
+}
+
+#[test]
+fn g42_per_frame_keys_stay_resident_past_registry_budget() {
+    g42_stream(true, false);
+}
+
+#[test]
+fn g42_stream_key_replaces_superseded_generations() {
+    g42_stream(false, false);
+}
+
+#[test]
+fn g42_resize_mid_stream_stays_resident() {
+    g42_stream(false, true);
+}
+
+#[test]
+fn g42_superseded_release_preserves_an_active_older_generation() {
+    let gpu = G42Gpu::new();
+    let mut cache = super::WgpuUiImageCache::default();
+    let key = "play-viewport:stream";
+    gpu.present(&mut cache, 1, key, 1, (1, 1));
+    let stats = gpu.present_with_active(&mut cache, 2, key, 2, (1, 1), &[(key, 1)]);
+    assert_eq!(stats.cache_superseded_release_count, 0);
+    assert!(cache.is_resident(key, 1));
+    assert!(cache.is_resident(key, 2));
+    assert_eq!(cache.entry_count(), 2);
+
+    let stats = gpu.present(&mut cache, 3, key, 3, (1, 1));
+    assert_eq!(stats.cache_superseded_release_count, 2);
+    assert!(cache.is_resident(key, 3));
+    assert_eq!(cache.entry_count(), 1);
+}
+
+#[test]
+fn g42_registry_recovery_preserves_active_window_entries() {
+    let gpu = G42Gpu::new();
+    let mut cache = super::WgpuUiImageCache::default();
+    let active_key = "play-viewport:active";
+    gpu.present(&mut cache, 1, active_key, 0, (1251, 769));
+    for present in 2..=17 {
+        let key = format!("play-viewport:test:{present}");
+        assert_eq!(
+            gpu.present(&mut cache, present, &key, 0, (1251, 769))
+                .cache_admission_reject_count,
+            0
+        );
+    }
+    let stats = gpu.present_with_active(
+        &mut cache,
+        18,
+        "play-viewport:new",
+        0,
+        (1251, 769),
+        &[(active_key, 0)],
+    );
+    assert_eq!(stats.cache_registry_reject_recovery_count, 1);
+    assert_eq!(stats.cache_admission_reject_count, 0);
+    assert_eq!(stats.shared_upload_write_count, 1);
+    assert!(cache.is_resident(active_key, 0));
+    assert!(cache.is_resident("play-viewport:new", 0));
+    assert_eq!(cache.entry_count(), 2);
+    assert!(stats.device_allocation_bytes <= super::MAX_UI_IMAGE_CACHE_BYTES);
+}
+
 #[test]
 fn external_provider_cache_preserves_confirmations_until_revision_changes() {
     struct Provider {
