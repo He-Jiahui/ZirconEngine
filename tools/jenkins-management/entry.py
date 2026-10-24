@@ -609,6 +609,132 @@ def capture_drift_diagnostics(module, source_root, before, after_root, after):
             print("[ordinary-entry] pre-submit capture drift diagnostics unavailable", file=sys.stderr)
 
 
+class CaptureMetadataObserver:
+    """Observe the existing Git reads without changing capture or its comparison.
+
+    Full-index capture can reject before returning either source snapshot. Keep
+    its exact metadata reads for failure diagnostics, separate from source proof.
+    """
+    commands = (("rev-parse", "HEAD"),
+                ("ls-files", "--cached", "--others", "--exclude-standard", "-z"),
+                ("ls-files", "--stage", "-z"),
+                ("ls-files", "--stage", "--debug", "-z"))
+
+    def __init__(self, original_git, *, limit=64 * 1024 * 1024):
+        self.original_git, self.limit = original_git, limit
+        self.used, self.incomplete = 0, False
+        self.pending, self.records = {}, []
+
+    def __call__(self, root, *arguments, **options):
+        result = self.original_git(root, *arguments, **options)
+        # Observability must neither replace a successful command nor suppress
+        # the original command/capture exception.
+        try:
+            if arguments not in self.commands or result.returncode != 0:
+                return result
+            ordinal = self.commands.index(arguments)
+            name = str(root)
+            if ordinal == 0:
+                self.pending[name] = []
+            group = self.pending.get(name)
+            if group is None or len(group) != ordinal:
+                return result
+            raw = result.stdout
+            if not isinstance(raw, bytes) or self.used + len(raw) > self.limit or len(self.records) >= 64:
+                self.incomplete = True
+                self.pending.pop(name, None)
+                return result
+            self.used += len(raw)
+            group.append({"argv": list(arguments), "stdout": raw,
+                          "nativeProof": getattr(result, "nativeProof", None)})
+            if ordinal == 3:
+                self.records.append({"root": name, "reads": group})
+                self.pending.pop(name, None)
+        except Exception:
+            self.incomplete = True
+        return result
+
+    def observation(self, module):
+        import base64
+        roots = {}
+        for record in self.records:
+            reads = record["reads"]
+            raw = [item["stdout"] for item in reads]
+            metadata = {"head": raw[0].decode("utf-8", "strict").strip(),
+                        "names": sorted(set(raw[1].decode("utf-8", "strict").split("\0")) - {""}),
+                        "gitIndex": {"entries": module.source_helper()._source_index_entries(raw[2]),
+                                     "metadataSha256": sha(raw[3])}}
+            roots.setdefault(record["root"], []).append({"metadata": metadata,
+                "rawReads": [{"argv": item["argv"], "stdoutBase64": base64.b64encode(item["stdout"]).decode("ascii"),
+                              "sha256": sha(item["stdout"]), "bytes": len(item["stdout"]),
+                              "nativeProof": item["nativeProof"]} for item in reads]})
+        differences = []
+        for root, snapshots in roots.items():
+            if len(snapshots) < 2:
+                continue
+            left, right = (item["metadata"] for item in snapshots[-2:])
+            before = {(item["path"], item["stage"]): item for item in left["gitIndex"]["entries"]}
+            after = {(item["path"], item["stage"]): item for item in right["gitIndex"]["entries"]}
+            changes = [{"path": key[0], "stage": key[1], "before": before.get(key), "after": after.get(key)}
+                       for key in sorted(set(before) | set(after)) if before.get(key) != after.get(key)]
+            differences.append({"root": root, "headBefore": left["head"], "headAfter": right["head"],
+                "headChanged": left["head"] != right["head"],
+                "membershipBeforeCount": len(left["names"]), "membershipAfterCount": len(right["names"]),
+                "membershipBeforeSha256": sha(encoded(left["names"])),
+                "membershipAfterSha256": sha(encoded(right["names"])),
+                "addedPaths": sorted(set(right["names"]) - set(left["names"])),
+                "removedPaths": sorted(set(left["names"]) - set(right["names"])),
+                "indexEntryChanges": changes,
+                "indexDebugBeforeSha256": left["gitIndex"]["metadataSha256"],
+                "indexDebugAfterSha256": right["gitIndex"]["metadataSha256"],
+                "indexDebugChanged": left["gitIndex"]["metadataSha256"] != right["gitIndex"]["metadataSha256"],
+                "attribution": None})
+        return {"schemaVersion": 1, "kind": "observed-capture-git-metadata-not-source-or-server-receipt",
+                "complete": not self.incomplete and not self.pending,
+                "rawBytesObserved": self.used, "roots": roots, "differences": differences,
+                "lastCompletedRoot": self.records[-1]["root"] if self.records else None}
+
+    def save_failure(self, context, payload, error):
+        import gzip
+        if str(error) != "HEAD, full index or complete source membership changed during capture":
+            return
+        try:
+            from tools.jenkins.resources.paths import canonical_build_root, physical_path_under
+            data = {**self.observation(context["module"]),
+                    "identity": {name: payload[name] for name in (
+                        "repositoryId", "sessionId", "requestId", "operationId", "driverDigest", "runtimeOperationId")},
+                    "originalError": str(error), "validationResubmitted": False}
+            packed = gzip.compress(encoded(data), mtime=0)
+            approved = canonical_build_root("E:/cargo-targets")
+            key = sha(encoded(data["identity"]))
+            destination = physical_path_under(approved, approved.path /
+                "zircon-local/reports/jenkins-transition-monitor/capture-diagnostics" / key / sha(packed))
+            destination.mkdir(parents=True, exist_ok=True)
+            artifact = destination / "metadata.json.gz"
+            manifest = destination / "artifacts.json"
+            ownership = {"ownerThreadId": payload["sessionId"], "identity": data["identity"],
+                         "kind": data["kind"], "sourceCopies": False,
+                         "artifacts": [{"path": str(artifact), "sha256": sha(packed), "bytes": len(packed)}],
+                         "retention": "Preserve original failure and metadata until original-request reconciliation; no automatic deletion."}
+            if not manifest.exists():
+                with manifest.open("xb") as stream:
+                    stream.write(encoded(ownership) + b"\n")
+            require(manifest.read_bytes() == encoded(ownership) + b"\n", "Capture diagnostic ownership changed")
+            if not artifact.exists():
+                with artifact.open("xb") as stream:
+                    stream.write(packed)
+            require(sha(artifact.read_bytes()) == sha(packed), "Capture diagnostic bytes changed")
+            # Exact paths and untruncated metadata stay in the compressed file.
+            # Stderr remains small and never claims the observer identified a writer.
+            notice = {"path": str(artifact), "sha256": sha(packed), "bytes": len(packed),
+                      "complete": data["complete"], "rootCount": len(data["roots"]),
+                      "lastCompletedRoot": data["lastCompletedRoot"], "attribution": None}
+            print("[ordinary-entry] full-index capture metadata " + encoded(notice).decode("utf-8"), file=sys.stderr)
+        except Exception:
+            with contextlib.suppress(Exception):
+                print("[ordinary-entry] full-index capture metadata unavailable; original failure retained", file=sys.stderr)
+
+
 def source_digest(context, payload):
     """Reuse the pinned job's complete read-only source capture; create no copy."""
     from tools.jenkins.state import State
@@ -620,6 +746,8 @@ def source_digest(context, payload):
     actor.state = object.__new__(State)
     actor.state.path = actor.repo / ".jenkins/state/coordination.sqlite3"
     actor.state.connect = lambda: connection(actor.repo)
+    observer = CaptureMetadataObserver(actor.git)
+    actor.git = observer
     previous = os.environ.get("GIT_OPTIONAL_LOCKS")
     os.environ["GIT_OPTIONAL_LOCKS"] = "0"
     try:
@@ -638,6 +766,9 @@ def source_digest(context, payload):
         require(_after_root == source_root and after == before, "Source changed during pre-submit capture")
         actor.verify_declared_inputs(before, payload)
         return before["sourceDigest"], source_root, context["module"].source_components(before)
+    except Exception as error:
+        observer.save_failure(context, payload, error)
+        raise
     finally:
         if previous is None: os.environ.pop("GIT_OPTIONAL_LOCKS", None)
         else: os.environ["GIT_OPTIONAL_LOCKS"] = previous
