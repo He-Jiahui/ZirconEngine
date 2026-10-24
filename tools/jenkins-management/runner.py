@@ -3508,12 +3508,16 @@ class Management:
             raise ValueError("Reviewed canonical lock before hash changed")
         inputs = plugin_lock_inputs(self.repo, Path(environment["CARGO_HOME"]))
         command = [trusted["cargoPath"], "--version"]
-        native = self.lock_native_helper()._run_owned_command(command, self.repo, environment, report / "tool-version", 60)
-        native_ref = write_json(report / "tool-version/native-terminal.json", native)
+        row = self.state.get("management_operation", self.key)
+        history = row["payload"].get("generationPreparationHistory", []) if row else []
+        native_dir = report / ("tool-version" if not history else "tool-version-r" + str(len(history) + 1))
+        native_dir.mkdir(exist_ok=False)
+        native = self.lock_native_helper()._run_owned_command(command, self.repo, environment, native_dir, 60)
+        native_ref = write_json(native_dir / "native-terminal.json", native)
         proof = native_terminal_proof(native, native_ref)
         if native["command"] != command or native["cwd"] != str(self.repo) or not proof["complete"]:
             return {"status": "unknown", "reasonCode": "resolver_identity_native_unproven", "native": native_ref}
-        version = (report / "tool-version/stdout.bin").read_text(encoding="utf-8", errors="replace").strip()
+        version = (native_dir / "stdout.bin").read_text(encoding="utf-8", errors="replace").strip()
         if plugin_lock_inputs(self.repo, Path(environment["CARGO_HOME"])) != inputs:
             raise ValueError("Resolution metadata changed during generation preparation")
         from tools.jenkins.resources.capacity import Capacity, ResourceManager
@@ -3552,6 +3556,43 @@ class Management:
                 "generationRequestId": generation, "generationRef": reference,
                 "blockedBy": blocked, "captureReady": False, "inputMetadataReady": True, "resolverStarted": False,
                 "formalAcceptance": False}
+
+    def plugin_lock_prelaunch_recovery_ready(self):
+        """Only the reviewed log-open failure is a known absence of native launch.
+
+        This is not an EOF proof. Keep the raw failed receipt and require the
+        original Jenkins delivery's actual terminal before client continuation.
+        """
+        if (not plugin_lock_request(self.payload) or self.payload.get("generationPhase") != "prepare"
+                or self.config.get("clientSources", {}).get("tools/dev/local_cargo.py")
+                != "af0741bfdae00b452a6c7ffe0a78740cf7db1414e6182ce5f6f17e224698b087"):
+            return False
+        row = self.state.get("management_operation", self.key)
+        if (not row or row["payload"].get("phase") != "unknown"
+                or row["payload"].get("inputDigest") != self.input_digest
+                or len(row["payload"].get("generationPreparationHistory", [])) >= 8
+                or self.state.get("generation_preparation", self.key)):
+            return False
+        result = row["payload"].get("result", {})
+        if result.get("reasonCode") != "resolver_identity_native_unproven":
+            return False
+        reference = result.get("native")
+        report = self.outputs() / "reports" / self.key
+        history = row["payload"].get("generationPreparationHistory", [])
+        native_dir = report / ("tool-version" if not history else "tool-version-r" + str(len(history) + 1))
+        native = read_reference(reference, expected_path=native_dir / "native-terminal.json")
+        trusted = self.validation_environment()[1]
+        # In this pinned helper, opening stdout with xb precedes CreateProcess
+        # and CreateJobObject. The exact FileNotFoundError is independently
+        # retained, and neither outputs nor a launch record may have appeared.
+        expected_error = {"stage": "command_or_pipe", "type": "FileNotFoundError",
+            "message": str(FileNotFoundError(2, os.strerror(2), str(native_dir / "stdout.bin")))}
+        return (native.get("command") == [trusted["cargoPath"], "--version"]
+                and native.get("cwd") == str(self.repo)
+                and all(native.get(k) is None for k in ("pid", "creationTime", "rootExitCode"))
+                and native.get("terminalErrors") == [expected_error]
+                and native.get("nativeJobEvidence") == {"errors": [], "records": {}}
+                and not any((native_dir / name).exists() for name in ("started.json", "stdout.bin", "stderr.bin")))
 
     def plugin_lock_preparation(self):
         reference = self.payload.get("generationRef")
@@ -3688,6 +3729,7 @@ class Management:
                     "operationKey": self.key, "requestId": self.request, "operationId": self.operation,
                     "generationRequestId": owner, "command": command, "cwd": str(self.repo),
                     "report": str(report), "resourceReceipt": resource_ref}, expected_version=0)
+                (report / "resolver").mkdir(exist_ok=False)
                 launched = True
                 native = self.lock_native_helper()._run_owned_command(command, self.repo, environment, report / "resolver", 600)
                 native_ref = write_json(report / "resolver/native-terminal.json", native)
@@ -6632,6 +6674,7 @@ class Management:
                     return previous
                 if (row["payload"]["phase"] != "waiting"
                         and not ("batch" in self.payload and self.batch_recovery_ready())
+                        and not self.plugin_lock_prelaunch_recovery_ready()
                         and not (self.action == "retire-worktree-reader"
                                  and isinstance(self.payload.get("unlaunchedRecovery"), dict)
                                  and self.payload["unlaunchedRecovery"].get("schemaVersion") == 1
@@ -6641,6 +6684,10 @@ class Management:
             record = {**(row["payload"] if row else {}), "requestId": self.request, "operationId": self.operation,
                       "sessionId": self.session, "action": self.action, "inputDigest": self.input_digest,
                       "phase": "running", "startedAt": time.time(), "payload": self.payload}
+            if row and self.plugin_lock_prelaunch_recovery_ready():
+                record["generationPreparationHistory"] = [*row["payload"].get("generationPreparationHistory", []),
+                    {"phase": row["payload"]["phase"], "result": row["payload"]["result"],
+                     "finishedAt": row["payload"].get("finishedAt"), "recoveryKind": "pinned-log-open-failed-before-native-launch"}]
             self.state.put("management_operation", self.key, record, expected_version=row["version"] if row else 0)
             try:
                 if self.action in GIT_ACTIONS:

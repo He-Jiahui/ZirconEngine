@@ -944,8 +944,10 @@ def input_payload(context, payload, *, identity=None, recipe=None, target_dir=No
 
 def resume_delivery(context, payload, marker, original, operation, input_digest):
     """Prove the last exact Jenkins delivery terminal before one explicit retry."""
-    require("batch" in payload and operation is not None,
-            "Only a durably checkpointed batch can resume its original delivery")
+    lock_prepare = (payload.get("action") == "generate" and payload.get("recipe") == "plugin-lock-resolution-v1"
+                    and payload.get("generationPhase") == "prepare")
+    require(("batch" in payload or lock_prepare) and operation is not None,
+            "Only a checkpointed batch or proven unlaunched lock preparation can resume its original delivery")
     repo, manager = context["repo"], context["manager"]
     deliveries = sorted(marker.parent.glob(marker.stem + ".resume-*.json"))
     require(len(deliveries) < 64, "Original resume delivery bound reached")
@@ -1013,7 +1015,8 @@ def resume_delivery(context, payload, marker, original, operation, input_digest)
     actor.state = object.__new__(State)
     actor.state.path = repo / ".jenkins/state/coordination.sqlite3"
     actor.state.connect = lambda: connection(repo)
-    require(actor.batch_recovery_ready(), "Original batch has an unproven Native/EOF or preparation claim")
+    require(actor.plugin_lock_prelaunch_recovery_ready() if lock_prepare else actor.batch_recovery_ready(),
+            "Original request has an unproven native launch, EOF or preparation claim")
     destination = marker.with_name(marker.stem + ".resume-%04d.json" % (len(deliveries) + 1))
     return destination, {"resumeOf": {"path": str(previous_path), "sha256": sha(previous_raw)},
                          "previousQueueUrl": queue, "previousBuild": number}
