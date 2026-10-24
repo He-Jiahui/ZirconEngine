@@ -409,8 +409,8 @@ fn missing_or_invalid_viewport_image_keeps_the_fallback_scene() {
     invalid
         .viewport_images
         .replace_scene(HostViewportImageData::default());
-    for presentation in [missing, invalid] {
-        let filter = ComponentizedChromeFallbackTransform::from_presentation(&presentation);
+    for presentation in [&missing, &invalid] {
+        let filter = ComponentizedChromeFallbackTransform::from_presentation(presentation);
         assert!(filter
             .transform_row(
                 0,
