@@ -367,6 +367,32 @@ class LockResolutionContractsTests(unittest.TestCase):
         self.assertEqual(actor.state.get("management_operation", actor.key)["payload"]["phase"], "unknown")
         actor.plugin_lock_release.assert_not_called()
 
+    def test_original_delivery_accepts_only_server_injected_false_observation_without_changing_input(self):
+        payload = {"repositoryId": "repo", "sessionId": "owner", "requestId": "original",
+            "operationId": "prepare", "action": "generate", "recipe": "plugin-lock-resolution-v1",
+            "driverDigest": "a" * 64, "runtimeOperationId": "original-runtime"}
+        digest = entry.sha(entry.encoded(payload))
+        marker = self.root / "original-delivery.json"
+        marker.write_bytes(entry.encoded({"payload": payload, "phase": "submitted"}))
+        context = {"repo": self.repo, "manager": object(), "publicTransport": True}
+        for extra, accepted in (({"observationOnly": False}, True), ({"observationOnly": True}, False),
+                                ({"observationOnly": False, "foreign": "changed"}, False)):
+            stored = {"payload": {"payload": {**payload, **extra}, "inputDigest": digest,
+                                  "phase": "unknown", "result": {"status": "unknown"}}}
+            with patch.object(entry, "_replay_route", return_value=(payload, None)), \
+                 patch.object(entry, "_delivery_marker", return_value=marker), \
+                 patch.object(entry, "_stored_public_delivery", return_value=payload), \
+                 patch.object(entry, "record", return_value=stored):
+                if accepted:
+                    result = entry.submit_payload(context, payload, query_only=True)
+                    self.assertFalse(result["resubmitted"])
+                    self.assertEqual(result["inputDigest"], digest)
+                    self.assertEqual(result["result"], {"status": "unknown"})
+                else:
+                    with self.assertRaises(entry.EntryError):
+                        entry.submit_payload(context, payload, query_only=True)
+        self.assertNotIn("observationOnly", payload)
+
 class CaptureMetadataObservationTests(unittest.TestCase):
     def sample(self, *, head="1", names=("a.rs",), obj="2", debug=b"stat-before"):
         return [(head * 40 + "\n").encode(), b"".join(name.encode() + b"\0" for name in names),

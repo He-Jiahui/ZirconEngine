@@ -1035,7 +1035,8 @@ def submit_payload(context, payload, *, query_only=False, dry_run=False, resume_
     original = (old or {}).get("payload") or (existing["payload"].get("payload") if existing else None)
     if old is not None and context.get("publicTransport") is True:
         original = _stored_public_delivery(context, old, route)
-        require(existing is None or existing["payload"].get("payload") == original,
+        require(existing is None or existing["payload"].get("payload") == original
+                or existing["payload"].get("payload") == {**original, "observationOnly": False},
                 "Original State and delivery payloads differ")
     if original is not None:
         candidate = dict(payload)
