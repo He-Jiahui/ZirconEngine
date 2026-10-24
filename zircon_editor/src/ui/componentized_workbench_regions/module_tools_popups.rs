@@ -44,9 +44,8 @@ impl ModuleToolsMenuSpec {
         let Some(editor_source_prefix) = root_path.strip_suffix(self.source_suffix) else {
             return false;
         };
-        let primitive_source = format!(
-            "{editor_source_prefix}/components/workbench/primitives/inputs/workbench_button.zui"
-        );
+        let primitive_source =
+            format!("{editor_source_prefix}/components/workbench/primitives/inputs/button.zui");
         prefix == root_instance_path
             && caller.source_path == root_source_path
             && caller.source_node_id == self.trigger_source_node_id
@@ -86,8 +85,7 @@ const MENUS: &[ModuleToolsMenuSpec] = &[
         root_control_id: "WorkbenchModuleAbilityWorkspace",
         trigger_source_node_id: "ability_animation_tools_button",
         popup_source_node_id: "ability_animation_tools_menu",
-        source_suffix:
-            "/components/workbench/modules/core/gameplay/workbench_ability_workspace.zui",
+        source_suffix: "/modules/core/gameplay/ability_workspace.zui",
     },
     ModuleToolsMenuSpec {
         menu_control_id: "WorkbenchRenderToolsMenu",

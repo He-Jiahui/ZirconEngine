@@ -30,25 +30,8 @@ impl EditorUiHostRuntime {
             asset_id: document_id.to_string(),
             detail,
         };
-        let relative = document_id
-            .strip_prefix("res://ui/editor/components/workbench/modules/")
-            .ok_or_else(|| invalid("workspace URI is outside the builtin module owner".into()))?;
-        if !(relative.starts_with("core/") || relative.starts_with("extensions/")) {
-            return Err(invalid(
-                "workspace URI is outside the selected core/extension owner".into(),
-            )
-            .into());
-        }
-        if relative
-            .split('/')
-            .any(|part| part == ".." || part.is_empty())
-        {
-            return Err(invalid("workspace URI contains an invalid path segment".into()).into());
-        }
+        let module_relative = workspace_asset_relative_path(document_id)?;
         let asset_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
-        let module_relative = format!("ui/editor/components/workbench/modules/{relative}");
-        let module_relative = AssetRelativePath::parse(&module_relative)
-            .map_err(|error| invalid(format!("invalid workspace asset path: {error}")))?;
         let module_path = runtime_asset_path_with_dev_asset_root(&module_relative, &asset_root);
         let theme_relative = AssetRelativePath::parse("ui/theme/editor_workbench_strict.zui")
             .map_err(|error| invalid(format!("invalid workspace theme path: {error}")))?;
@@ -106,3 +89,29 @@ impl EditorUiHostRuntime {
             .map_err(Into::into)
     }
 }
+
+fn workspace_asset_relative_path(
+    document_id: &str,
+) -> Result<AssetRelativePath<'_>, UiV2AssetError> {
+    let invalid = |detail: &str| UiV2AssetError::InvalidDocument {
+        asset_id: document_id.to_string(),
+        detail: detail.to_string(),
+    };
+    let relative = document_id
+        .strip_prefix("res://")
+        .ok_or_else(|| invalid("workspace URI is outside the builtin module owner"))?;
+    // Core modules and animation workspaces use their current authored asset owners.
+    if !(relative.starts_with("ui/editor/modules/core/")
+        || relative.starts_with("ui/editor/animation/"))
+    {
+        return Err(invalid(
+            "workspace URI is outside the selected core/animation owner",
+        ));
+    }
+    AssetRelativePath::parse(relative)
+        .map_err(|error| invalid(&format!("invalid workspace asset path: {error}")))
+}
+
+#[cfg(test)]
+#[path = "module_workspace/tests.rs"]
+mod tests;

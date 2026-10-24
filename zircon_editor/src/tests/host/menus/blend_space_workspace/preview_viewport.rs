@@ -108,21 +108,18 @@ fn blend_space_preview_toolbar_projects_shared_chip_variants() {
 
 #[test]
 fn blend_space_preview_uses_shared_chips_without_starving_the_viewport_image() {
-    let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let workspace = std::fs::read_to_string(manifest.join(
-        "assets/ui/editor/components/workbench/modules/extensions/animation/\
-             workbench_extension_blend_space_workspace.zui",
-    ))
-    .expect("Blend Space workspace asset should be readable");
+    let relative = BLEND_SPACE_SOURCE_URI
+        .strip_prefix("res://")
+        .expect("Blend Space source must use the editor resource scheme");
+    let workspace = read_editor_asset_source(relative);
     // `.zui` accepts trailing commas in arrays through the editor resource parser;
     // keep this source-level assertion aligned with the existing asset-contract tests
     // instead of applying stricter generic TOML syntax here.
     for required in [
-        "workbench_chip.zui#WorkbenchChip",
+        "res://ui/editor/components/workbench/primitives/chrome/chip.zui#WorkbenchChip",
         "[nodes.blend_space_preview_camera]",
         "control_id = \"WorkbenchExtensionBlendSpacePreviewCamera\"",
         "component = \"WorkbenchChip\"",
-        "component_variant = \"chip\"",
         "[nodes.blend_space_preview_lighting]",
         "control_id = \"WorkbenchExtensionBlendSpacePreviewLighting\"",
         "[nodes.blend_space_preview_toolbar]",
@@ -135,6 +132,13 @@ fn blend_space_preview_uses_shared_chips_without_starving_the_viewport_image() {
             "Blend Space preview must retain the shared compact-toolbar contract: {required}"
         );
     }
+
+    let chip =
+        read_editor_asset_source("ui/editor/components/workbench/primitives/chrome/chip.zui");
+    assert!(
+        chip.contains("component_variant = \"chip\""),
+        "the imported WorkbenchChip must author the shared chip variant",
+    );
 
     let bridge = open_blend_space_bridge(1260, 780);
     let viewport = required_frame(&bridge, "WorkbenchExtensionBlendSpacePreviewViewport");
