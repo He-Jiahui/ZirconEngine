@@ -500,6 +500,50 @@ class CaptureMetadataObservationTests(unittest.TestCase):
             save.assert_called_once_with(context, payload, error)
         self.assertEqual(os.environ.get("GIT_OPTIONAL_LOCKS"), previous)
 
+    def test_selected_advisory_policy_keeps_latest_capture_and_reports_drift(self):
+        before = {"sourceDigest": "1" * 64, "source": {"files": {"a.rs": "2" * 64}}}
+        after = {"sourceDigest": "3" * 64, "source": {"files": {"a.rs": "4" * 64}}}
+        verified = []
+
+        class Actor:
+            def git(self, *_args, **_options):
+                raise AssertionError("The capture fixture performs no Git operation")
+
+            def validation_with_cache(self):
+                return ROOT, next(captures)
+
+            def verify_declared_inputs(self, captured, payload):
+                verified.append((captured, payload))
+
+        captures = iter((before, after))
+        components = object()
+        module = SimpleNamespace(Management=Actor, source_components=lambda captured: components)
+        context = {"repo": ROOT, "config": {}, "manager": object(), "module": module}
+        payload = {"repositoryId": "repo", "sessionId": "original-session", "ownedPaths": ["a.rs"],
+                   "sourceHashes": {"a.rs": "5" * 64}}
+        previous = os.environ.get("GIT_OPTIONAL_LOCKS")
+        with patch.object(entry, "capture_drift_diagnostics") as diagnose:
+            self.assertEqual(entry.source_digest(context, payload), (after["sourceDigest"], ROOT, components))
+        diagnose.assert_called_once_with(module, ROOT, before, ROOT, after)
+        self.assertEqual(verified, [(after, payload)])
+        self.assertEqual(os.environ.get("GIT_OPTIONAL_LOCKS"), previous)
+
+    def test_selected_advisory_policy_still_rejects_foreign_or_malformed_declarations(self):
+        class Actor:
+            def git(self, *_args, **_options):
+                raise AssertionError("The capture fixture performs no Git operation")
+
+            def validation_with_cache(self):
+                return ROOT, {"sourceDigest": "1" * 64, "source": {"files": {"a.rs": "2" * 64}}}
+
+        context = {"repo": ROOT, "config": {}, "manager": object(), "module": SimpleNamespace(Management=Actor)}
+        for hashes in ({"foreign.rs": "3" * 64}, {"a.rs": "malformed"}):
+            payload = {"repositoryId": "repo", "sessionId": "original-session", "ownedPaths": ["a.rs"],
+                       "sourceHashes": hashes}
+            with self.subTest(hashes=hashes), patch.object(entry.CaptureMetadataObserver, "save_failure"):
+                with self.assertRaisesRegex(entry.EntryError, "declaration is invalid"):
+                    entry.source_digest(context, payload)
+
 
 class PluginManifestTests(unittest.TestCase):
     def argv(self, manifest="zircon_plugins/Cargo.toml"):
@@ -737,6 +781,67 @@ class ParticlesManifestTests(unittest.TestCase):
              patch.object(Path, "read_bytes", return_value=b"config"):
             pools = [actor.batch_pool([recipe], preparation, {}, {}, ROOT, {})[0]
                      for recipe in [particles, ai, root_recipe]]
+        self.assertEqual(len(set(pools)), 3)
+
+
+class SoundManifestTests(unittest.TestCase):
+    def argv(self):
+        return ["test", "--manifest-path", str(ROOT / "zircon_plugins/Cargo.toml"),
+                "-p", "zircon_plugin_sound_editor", "--no-default-features", "--locked",
+                "--lib", "--profile", "test", "--jobs", "1", "mixer_authoring_", "--", "--test-threads", "1"]
+
+    def test_sound_cli_receiver_and_native_arguments_keep_one_exact_filter(self):
+        value = PluginManifestTests().recipe(entry.parse_cargo(self.argv(), repo=ROOT))
+        self.assertEqual(value["packages"], ["zircon_plugin_sound_editor"])
+        self.assertEqual(value["features"], [])
+        self.assertEqual(value["profile"], "test")
+        self.assertEqual((value["jobs"], value["testThreads"]), (1, 1))
+        self.assertTrue(value["locked"] and value["lib"] and value["noDefaultFeatures"])
+        command = local.prepare_command(value["command"], Path("E:/cargo-targets/zircon-local/sound-route/target"))
+        self.assertEqual(command[command.index("--manifest-path") + 1], "zircon_plugins/Cargo.toml")
+        self.assertEqual(command[:command.index("--")].count("mixer_authoring_"), 1)
+        self.assertEqual(command[-3:], ["--", "--test-threads", "1"])
+        self.assertFalse(set(command) & {"--features", "--workspace", "--all-features", "--all-targets", "--tests"})
+
+    def test_sound_receiver_rejects_other_packages_filters_and_scope_widening(self):
+        original = entry.parse_cargo(self.argv(), repo=ROOT)
+        for change in [{"packages": ["zircon_plugin_ai_editor"]},
+                       {"packages": ["zircon_plugin_sound_editor", "zircon_editor"]},
+                       {"packages": ["zircon_editor"]}, {"features": ["sound-contracts"]},
+                       {"profile": "dev"}, {"profile": "release"}, {"verb": "check"},
+                       {"testFilter": "authoring_tests::"}, {"testFilter": "material_graph_"},
+                       {"testFilter": "mixer_authoring"}, {"testFilter": None},
+                       {"lib": False, "tests": ["other"]}, {"noDefaultFeatures": False},
+                       {"allFeatures": True}, {"locked": False}, {"jobs": 2}, {"testThreads": 2},
+                       {"noRun": True}, {"harnessFilters": ["other"]}, {"exact": True}, {"ignored": True},
+                       {"nocapture": True}, {"cwd": str(ROOT)},
+                       {"manifestPath": "zircon_plugins/sound/editor/Cargo.toml"}]:
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                PluginManifestTests().recipe({**original, **change})
+
+    def test_sound_cli_catalog_guard_applies_to_queries_and_cannot_be_disabled(self):
+        for old, new in [("mixer_authoring_", "mixer_authoring"), ("mixer_authoring_", "source_tests::"),
+                         ("zircon_plugin_sound_editor", "zircon_plugin_particles_editor"),
+                         ("--lib", "--bins"), ("--no-default-features", "--all-features"),
+                         (str(ROOT / "zircon_plugins/Cargo.toml"), "zircon_plugins/sound/editor/Cargo.toml"),
+                         (str(ROOT / "zircon_plugins/Cargo.toml"), "./zircon_plugins/Cargo.toml")]:
+            argv = self.argv()
+            argv[argv.index(old)] = new
+            with self.subTest(old=old, new=new), self.assertRaises(entry.EntryError):
+                entry.parse_cargo(argv, repo=ROOT, enforce_policy=False)
+
+    def test_sound_pool_never_reuses_a_different_package_or_root_workspace(self):
+        actor = object.__new__(runner.Management)
+        actor.repo_id, actor.payload = "repo", {}
+        preparation = SimpleNamespace(preparation_key=lambda *args: runner.sha(runner.encoded(args)))
+        sound = PluginManifestTests().recipe(entry.parse_cargo(self.argv(), repo=ROOT))
+        particles = PluginManifestTests().recipe(entry.parse_cargo(ParticlesManifestTests().argv(), repo=ROOT))
+        root_recipe = {k: v for k, v in sound.items() if k != "manifestPath"}
+        with patch.object(runner, "plain", side_effect=lambda value: Path(value)), \
+             patch.object(Path, "is_file", return_value=True), \
+             patch.object(Path, "read_bytes", return_value=b"config"):
+            pools = [actor.batch_pool([recipe], preparation, {}, {}, ROOT, {})[0]
+                     for recipe in [sound, particles, root_recipe]]
         self.assertEqual(len(set(pools)), 3)
 
 
@@ -1242,6 +1347,91 @@ version = "0.1.0"
         finally:
             guard.close()
         self.assertNotEqual(self.inputs()["inputDigest"], inputs["inputDigest"])
+
+    def select_sound(self):
+        path = self.root / "zircon_plugins/Cargo.toml"
+        path.write_text(path.read_text().replace('members = ["material_editor/editor"]',
+                        'members = ["material_editor/editor", "sound/editor", "sound/runtime"]'), encoding="utf-8")
+        self.write("zircon_plugins/sound/editor/Cargo.toml", '''[package]
+name = "zircon_plugin_sound_editor"
+version.workspace = true
+[dependencies]
+zircon_editor.workspace = true
+zircon_runtime.workspace = true
+zircon_plugin_sound_runtime = { path = "../runtime" }
+''')
+        self.write("zircon_plugins/sound/runtime/Cargo.toml", '''[package]
+name = "zircon_plugin_sound_runtime"
+version.workspace = true
+[dependencies]
+zircon_runtime.workspace = true
+''')
+        path = self.root / "zircon_plugins/Cargo.lock"
+        path.write_text(path.read_text() + '''[[package]]
+name = "zircon_plugin_sound_editor"
+version = "0.1.0"
+[[package]]
+name = "zircon_plugin_sound_runtime"
+version = "0.1.0"
+''', encoding="utf-8")
+        self.recipe = entry.parse_cargo(SoundManifestTests().argv(), repo=ROOT)
+
+    def test_sound_closure_keeps_its_runtime_nested_lock_and_cross_workspace_hosts(self):
+        self.select_sound()
+        value = self.inputs()
+        self.assertEqual(value["selectedPackage"], "zircon_plugin_sound_editor")
+        self.assertEqual({p["name"] for p in value["packageManifests"].values()},
+                         {"zircon_plugin_sound_editor", "zircon_plugin_sound_runtime", "zircon_editor", "zircon_runtime"})
+        self.assertEqual(len(value["workspaceManifests"]), 2)
+        self.assertEqual(value["selectedLockfile"], str(self.root / "zircon_plugins/Cargo.lock"))
+        self.assertEqual({f for edge in value["pathDependencyEdges"] for f in edge["declaredFeatures"]},
+                         {"native-host", "target-editor-host"})
+        self.assertFalse(value["cargoResolutionPerformed"])
+
+    def test_sound_member_package_and_lock_cannot_fall_back_to_another_plugin(self):
+        self.select_sound()
+        for relative, old, new, message in [
+                ("zircon_plugins/sound/editor/Cargo.toml", "zircon_plugin_sound_editor", "zircon_plugin_ai_editor", "mismatch"),
+                ("zircon_plugins/Cargo.toml", ', "sound/editor"', '', "not a member"),
+                ("zircon_plugins/Cargo.lock", "zircon_plugin_sound_editor", "other", "absent from the plugin lockfile")]:
+            path = self.root / relative
+            original = path.read_text()
+            path.write_text(original.replace(old, new), encoding="utf-8")
+            with self.subTest(relative=relative), self.assertRaisesRegex(ValueError, message):
+                self.inputs()
+            path.write_text(original, encoding="utf-8")
+
+    def test_sound_native_and_editor_host_edges_are_independently_required(self):
+        self.select_sound()
+        for relative, feature in [("zircon_plugins/Cargo.toml", "native-host"),
+                                  ("zircon_editor/Cargo.toml", "target-editor-host")]:
+            path = self.root / relative
+            original = path.read_text()
+            path.write_text(original.replace('features = ["' + feature + '"]', 'features = []'), encoding="utf-8")
+            with self.subTest(feature=feature), self.assertRaisesRegex(ValueError, "native/editor"):
+                self.inputs()
+            path.write_text(original, encoding="utf-8")
+
+    def test_sound_transitive_change_and_added_nested_config_invalidate_guard(self):
+        self.select_sound()
+        captured = self.capture()
+        path = self.root / "zircon_plugins/sound/runtime/Cargo.toml"
+        original = path.read_text()
+        path.write_text(original + '\n# changed dependency\n', encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "captured source"):
+            self.inputs(captured)
+        path.write_text(original, encoding="utf-8")
+        inputs = self.inputs()
+        helper = runner.checkout_guard_helper()
+        guard = helper.CheckoutReadGuard(self.root, files=inputs["files"], watch_roots=[self.root]).acquire()
+        try:
+            self.write("zircon_plugins/.cargo/config.toml", '[build]\njobs = 1\n')
+            self.assertTrue(guard.wait_for_change(5))
+            with self.assertRaises(helper.CheckoutGuardChanged):
+                guard.assert_stable()
+            self.assertFalse(guard.finish()["stable"])
+        finally:
+            guard.close()
 
     def select_prefab(self):
         path = self.root / "zircon_plugins/Cargo.toml"

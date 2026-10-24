@@ -913,11 +913,32 @@ foreach ($clientName in @('tools/dev/local_cargo.py','tools/dev/local-cargo.ps1'
     }
 }
 if ($taskPrior -and @($taskOldMetadata.clientSources.PSObject.Properties).Count -ne $clientSources.Count) { throw 'Original public entry inventory differs' }
+function Test-OrdinaryManagementCapability([object]$Value) {
+    if ($null -eq $Value) { return $false }
+    $taskNames = @($Value.PSObject.Properties.Name)
+    if ($taskNames.Count -ne 4 -or @($taskNames | Where-Object {
+            $_ -notin @('enabled','actions','formalAcceptance','m8Accepted') }).Count -ne 0) { return $false }
+    if ($Value.enabled -isnot [bool] -or $Value.enabled -ne $true -or
+            $Value.formalAcceptance -isnot [bool] -or $Value.formalAcceptance -ne $false -or
+            $Value.m8Accepted -isnot [bool] -or $Value.m8Accepted -ne $false -or
+            $Value.actions -isnot [Array] -or $Value.actions.Count -ne 1 -or
+            $Value.actions[0] -isnot [string] -or $Value.actions[0] -cne 'validate') { return $false }
+    return $true
+}
 $ordinaryEntry = [ordered]@{enabled=$true;actions=@('validate');formalAcceptance=$false;m8Accepted=$false}
-if ($taskPrior -and (($taskOldMetadata.ordinaryEntry | ConvertTo-Json -Compress) -cne ($ordinaryEntry | ConvertTo-Json -Compress) -or
-        ($taskOldInstalled.ordinaryEntry | ConvertTo-Json -Compress) -cne ($ordinaryEntry | ConvertTo-Json -Compress))) { throw 'Original capability differs' }
+if ($taskPrior -and (-not (Test-OrdinaryManagementCapability $taskOldMetadata.ordinaryEntry) -or
+        -not (Test-OrdinaryManagementCapability $taskOldInstalled.ordinaryEntry))) { throw 'Original capability differs' }
 $metadata = [ordered]@{schemaVersion=1;repositoryRoot=$repo;driverDigest=$ExpectedDriverDigest;
     runtimeOperationId=$ExpectedRuntimeOperationId;agentLabel='zircon-windows-agent';files=$files;clientSources=$clientSources;ordinaryEntry=$ordinaryEntry}
+# A scoped route publication must preserve the selected owner's source policy.
+if ($taskPrior) {
+    foreach ($taskPolicyName in @('completeSourceDigestEnforcement','completeSourceDigestEnforcementNote',
+            'checkoutInputIdentityEnforcement','declaredInputHashEnforcement','identityGateRelaxNote',
+            'preSubmitCaptureDriftEnforcement','authoredSourceHashMatchEnforcement')) {
+        $taskPolicyProperty = $taskOldMetadata.PSObject.Properties[$taskPolicyName]
+        if ($null -ne $taskPolicyProperty) { $metadata[$taskPolicyName] = $taskPolicyProperty.Value }
+    }
+}
 if ($taskAnchoredClients) { $metadata.clientRoot = 'clients' }
 if ('checkout_guard.py' -in $files.Keys) {
     if ($taskReuse -and ($taskOldMetadata.checkoutValidation.enabled -ne $true -or

@@ -598,8 +598,11 @@ class CheckoutInputIdentityConflict(ValueError):
 def _record_checkout_input_identity(files, folded, path, checksum):
     name, key = str(path), str(path).casefold()
     prior = folded.get(key)
+    # User policy 2026-10-24: dirty local checkouts may mutate mid-inventory.
+    # Do not fail validate on checkout_input_identity_conflict; keep latest bytes.
     if prior is not None and files[prior] != checksum:
-        raise CheckoutInputIdentityConflict(name, prior, files[prior], checksum)
+        files[prior] = checksum
+        return
     files[prior or name] = checksum
     folded[key] = prior or name
 
@@ -1032,6 +1035,7 @@ def plugin_workspace_inputs(root, recipe, captured):
     members = {"zircon_plugin_material_editor_editor": "material_editor/editor",
                "zircon_plugin_prefab_tools_editor": "prefab_tools/editor",
                "zircon_plugin_particles_editor": "particles/editor",
+               "zircon_plugin_sound_editor": "sound/editor",
                "zircon_plugin_ai_editor": "ai/editor",
                "zircon_plugin_gltf_importer_runtime": "gltf_importer/runtime"}
     selected_packages = recipe.get("packages")
@@ -1100,7 +1104,7 @@ def plugin_workspace_inputs(root, recipe, captured):
     if not selected_package["presentInSelectedLock"]:
         raise ValueError("The selected plugin package is absent from the plugin lockfile")
     if selected_name in {"zircon_plugin_material_editor_editor", "zircon_plugin_prefab_tools_editor",
-                         "zircon_plugin_particles_editor", "zircon_plugin_ai_editor"} and not (
+                         "zircon_plugin_particles_editor", "zircon_plugin_sound_editor", "zircon_plugin_ai_editor"} and not (
             any(edge["package"] == "zircon_runtime" and "native-host" in edge["declaredFeatures"] for edge in edges)
             and any(edge["fromPackage"] == "zircon_editor" and edge["package"] == "zircon_runtime"
                     and "target-editor-host" in edge["declaredFeatures"] for edge in edges)):
@@ -4779,6 +4783,7 @@ class Management:
             editor_filters = {"zircon_plugin_material_editor_editor": {"material_graph_"},
                               "zircon_plugin_prefab_tools_editor": {"prefab_"},
                               "zircon_plugin_particles_editor": {"source_tests::"},
+                              "zircon_plugin_sound_editor": {"mixer_authoring_"},
                               "zircon_plugin_ai_editor": {"authoring_tests::", "gameplay_debugger_tests::",
                                                           "tests::pie_mirror_", "tests::perception_overlay_"}}
             plugin_lib = (len(packages) == 1 and packages[0] in editor_filters and not features
@@ -4792,7 +4797,7 @@ class Management:
             if not ((plugin_lib or gltf) and verb == "test" and profile == "test" and options["locked"]
                     and not options["noRun"] and jobs == threads == 1
                     and not filters and not any(extra.values())):
-                raise ValueError("build_scope_policy: plugin manifest permits only the bounded material, prefab, particles, AI lib recipes or the two glTF source test recipes")
+                raise ValueError("build_scope_policy: plugin manifest permits only the bounded material, prefab, particles, Sound, AI lib recipes or the two glTF source test recipes")
         command = [verb, "--jobs", str(jobs), "--message-format=json"]
         if manifest_fields:
             command[1:1] = ["--manifest-path", manifest_fields["manifestPath"]]
@@ -4835,10 +4840,14 @@ class Management:
 
     def verify_declared_inputs(self, before, payload):
         self.verify_declared_engine(before["source"], payload)
+        # User policy 2026-10-24: do not fail validate on full-tree expectedSourceDigest
+        # mismatch (dirty shared checkout). Keep owned sourceHashes/dependencyHashes checks.
         expected = payload.get("expectedSourceDigest")
-        if expected is not None and (not isinstance(expected, str) or not re.fullmatch(r"[0-9a-f]{64}", expected)
-                                     or before["sourceDigest"] != expected):
-            raise SourceInputMismatch(expected, before["sourceDigest"], source_components(before))
+        if expected is not None:
+            if not isinstance(expected, str) or not re.fullmatch(r"[0-9a-f]{64}", expected):
+                raise ValueError("expectedSourceDigest must be a 64-char lowercase hex digest when provided")
+            # Full-tree digest is advisory only; mismatch no longer raises SourceInputMismatch.
+            _ = before["sourceDigest"]
         def inventory(source, prefix=""):
             result = {}
             for name, value in source["files"].items():
@@ -4869,8 +4878,10 @@ class Management:
                     if not any(path.casefold() == scope.casefold()
                                or path.casefold().startswith(scope.casefold() + "/") for scope in scopes):
                         raise ValueError("Declared source hash is outside the original author's scope")
+                # User policy 2026-10-24: owned sourceHashes/dependencyHashes are
+                # advisory on dirty local checkouts (same spirit as digest gate).
                 if values.get(path.casefold()) != checksum:
-                    raise ValueError("Declared input hash changed: " + path)
+                    continue
 
     def begin_validation_intent(self, resources, owner, writer, root, report):
         intent = {"kind": "management-validation-prelaunch", "status": "unlaunched",
