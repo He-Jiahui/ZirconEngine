@@ -56,3 +56,52 @@ fn only_registry_owned_allocations_are_immediately_releasable() {
     drop(surface_pin);
     assert!(registry_pin.is_exclusively_registry_owned());
 }
+
+#[test]
+fn g42_window_surface_pins_lock_the_shared_budget_until_released() {
+    use super::super::super::image_cache::ImageCacheAdmissionAction;
+    use super::WgpuUiImageRegistryPin;
+
+    const FRAME: u64 = 1251 * 769 * 4;
+    const CAP: u64 = 64 * 1024 * 1024;
+    let ledger = Arc::new(WgpuUiImageAllocationLedger::default());
+    let mut registry = Vec::new();
+    let mut window = Vec::new();
+    for frame in 0..17u64 {
+        let pin = ledger
+            .try_allocate_for_test(FRAME, CAP)
+            .expect("17 frames fit");
+        window.push(pin.surface_pin());
+        registry.push((format!("play-viewport:{frame}"), pin));
+    }
+    let plan = |registry: &[(String, WgpuUiImageRegistryPin)]| {
+        super::super::shared_image_admission_plan(
+            registry.iter().enumerate().map(|(touched, (key, pin))| {
+                (
+                    key.as_str(),
+                    0,
+                    touched as u64,
+                    FRAME,
+                    pin.is_exclusively_registry_owned(),
+                    false,
+                )
+            }),
+            registry.len() + 1,
+            ledger.unique_allocation_bytes() + FRAME,
+            FRAME,
+        )
+    };
+    assert!(matches!(
+        plan(&registry),
+        ImageCacheAdmissionAction::Reject { .. }
+    ));
+    assert_eq!(ledger.stats().registry_evicted_pinned_bytes, 0);
+    assert!(ledger.try_allocate_for_test(FRAME, CAP).is_none());
+
+    window.drain(..16);
+    assert!(matches!(
+        plan(&registry),
+        ImageCacheAdmissionAction::Admit { ref evict_keys }
+            if evict_keys.first().map(|key| key.0.as_str()) == Some("play-viewport:0")
+    ));
+}

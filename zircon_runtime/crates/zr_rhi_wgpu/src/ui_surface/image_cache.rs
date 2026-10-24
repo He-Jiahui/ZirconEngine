@@ -35,6 +35,8 @@ pub(super) struct WgpuUiImageResourceStats {
     pub(super) cache_key_allocation_count: u64,
     pub(super) cache_prune_visit_count: u64,
     pub(super) cache_admission_reject_count: u64,
+    pub(super) cache_superseded_release_count: u64,
+    pub(super) cache_registry_reject_recovery_count: u64,
     pub(super) invalid_payload_count: u64,
     pub(super) cache_resident_bytes: u64,
     pub(super) cpu_resident_bytes: u64,
@@ -225,6 +227,15 @@ impl WgpuUiImageCache {
             if invalidate_size_mismatch {
                 self.invalidate(cache_key, image_generation);
             }
+            // Release this window's stale stream pins before the shared budget gate.
+            // Active generations and in-flight submissions retain their own pins.
+            stats.cache_superseded_release_count = stats
+                .cache_superseded_release_count
+                .saturating_add(self.release_superseded_generations(
+                    cache_key,
+                    image_generation,
+                    image_upload_sources,
+                ));
             if let Some(shared_image) =
                 shared_images
                     .resolve(cache_key, image_generation)
@@ -308,7 +319,7 @@ impl WgpuUiImageCache {
                     continue;
                 };
                 let source_pixels = encode_linear_premultiplied_srgba8(source_pixels);
-                match shared_images.prepare_pixels(
+                let mut prepared = shared_images.prepare_pixels(
                     device,
                     queue,
                     cache_key,
@@ -316,7 +327,30 @@ impl WgpuUiImageCache {
                     width,
                     height,
                     &source_pixels,
-                ) {
+                );
+                // The registry cannot reclaim allocations pinned by this window.
+                // Break that tier inversion once, without releasing active images
+                // or bypassing the device-wide accounting for in-flight pins.
+                if matches!(&prepared, SharedImagePrepareResult::Rejected)
+                    && self.release_inactive_entries(
+                        present_index,
+                        image_upload_sources,
+                        &mut stats,
+                    ) > 0
+                {
+                    stats.cache_registry_reject_recovery_count =
+                        stats.cache_registry_reject_recovery_count.saturating_add(1);
+                    prepared = shared_images.prepare_pixels(
+                        device,
+                        queue,
+                        cache_key,
+                        image_generation,
+                        width,
+                        height,
+                        &source_pixels,
+                    );
+                }
+                match prepared {
                     SharedImagePrepareResult::Cached(image) => {
                         stats.shared_resolve_count = stats.shared_resolve_count.saturating_add(1);
                         self.prepare_external_image(
@@ -567,6 +601,62 @@ impl WgpuUiImageCache {
                 false
             }
         }
+    }
+
+    fn release_superseded_generations(
+        &mut self,
+        cache_key: &str,
+        generation: u64,
+        active_sources: &[ImageUploadSource],
+    ) -> u64 {
+        let Some(generations) = self.resources.get(cache_key) else {
+            return 0;
+        };
+        let superseded = generations
+            .range(..generation)
+            .map(|(generation, _)| *generation)
+            .filter(|generation| {
+                active_sources
+                    .binary_search_by(|source| {
+                        (source.resource_key.as_str(), source.resource_generation)
+                            .cmp(&(cache_key, *generation))
+                    })
+                    .is_err()
+            })
+            .collect::<Vec<_>>();
+        for generation in &superseded {
+            self.invalidate(cache_key, *generation);
+        }
+        superseded.len() as u64
+    }
+
+    fn release_inactive_entries(
+        &mut self,
+        present_index: u64,
+        active_sources: &[ImageUploadSource],
+        stats: &mut WgpuUiImageResourceStats,
+    ) -> u64 {
+        let mut inactive = Vec::new();
+        for (key, generations) in &self.resources {
+            for (generation, resource) in generations {
+                stats.cache_prune_visit_count = stats.cache_prune_visit_count.saturating_add(1);
+                if resource.last_touched_present < present_index
+                    && active_sources
+                        .binary_search_by(|source| {
+                            (source.resource_key.as_str(), source.resource_generation)
+                                .cmp(&(key.as_str(), *generation))
+                        })
+                        .is_err()
+                {
+                    inactive.push((resource.last_touched_present, key.clone(), *generation));
+                }
+            }
+        }
+        inactive.sort_unstable();
+        for (_, key, generation) in &inactive {
+            self.invalidate(key, *generation);
+        }
+        inactive.len() as u64
     }
 
     fn invalidate(&mut self, cache_key: &str, generation: u64) -> bool {
