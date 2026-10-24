@@ -195,6 +195,58 @@ class PrefabManifestTests(unittest.TestCase):
                 entry.parse_cargo(argv, repo=ROOT, enforce_policy=False)
 
 
+class AiManifestTests(unittest.TestCase):
+    filters = ("authoring_tests::", "gameplay_debugger_tests::", "tests::pie_mirror_", "tests::perception_overlay_")
+
+    def argv(self, selected="authoring_tests::"):
+        return ["test", "--manifest-path", str(ROOT / "zircon_plugins/Cargo.toml"),
+                "-p", "zircon_plugin_ai_editor", "--no-default-features", "--locked",
+                "--lib", "--profile", "test", "--jobs", "1", selected, "--", "--test-threads", "1"]
+
+    def test_four_ai_filters_preserve_receiver_scope_and_physical_native_arguments(self):
+        for selected in self.filters:
+            with self.subTest(selected=selected):
+                value = PluginManifestTests().recipe(entry.parse_cargo(self.argv(selected), repo=ROOT))
+                self.assertEqual(value["packages"], ["zircon_plugin_ai_editor"])
+                self.assertEqual(value["features"], [])
+                self.assertEqual(value["testFilter"], selected)
+                self.assertEqual(value["profile"], "test")
+                self.assertEqual(value["jobs"], 1)
+                self.assertEqual(value["testThreads"], 1)
+                self.assertTrue(value["locked"] and value["lib"] and value["noDefaultFeatures"])
+                command = local.prepare_command(value["command"], Path("E:/cargo-targets/zircon-local/ai-route/target"))
+                self.assertEqual(command[command.index("--manifest-path") + 1], "zircon_plugins/Cargo.toml")
+                self.assertEqual(command[:command.index("--")].count(selected), 1)
+                self.assertEqual(command[-3:], ["--", "--test-threads", "1"])
+                self.assertNotIn("--features", command)
+                self.assertFalse(set(command) & {"--workspace", "--all-features", "--all-targets", "--tests", "--bins"})
+
+    def test_ai_raw_receiver_rejects_cross_package_filters_and_scope_widening(self):
+        original = entry.parse_cargo(self.argv(), repo=ROOT)
+        for change in [{"packages": ["zircon_plugin_particles_editor"]},
+                       {"packages": ["zircon_plugin_material_editor_editor"]},
+                       {"packages": ["zircon_plugin_ai_editor", "zircon_editor"]},
+                       {"features": ["runtime"]}, {"profile": "dev"}, {"profile": "release"},
+                       {"testFilter": "material_graph_"}, {"testFilter": "prefab_"},
+                       {"testFilter": "authoring_tests"}, {"testFilter": None},
+                       {"lib": False, "tests": ["other"]}, {"locked": False}, {"noDefaultFeatures": False},
+                       {"jobs": 2}, {"testThreads": 2}, {"noRun": True}, {"harnessFilters": ["other"]},
+                       {"exact": True}, {"ignored": True}, {"nocapture": True},
+                       {"cwd": str(ROOT)}, {"manifestPath": "zircon_plugins/ai/editor/Cargo.toml"}]:
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                PluginManifestTests().recipe({**original, **change})
+
+    def test_ai_cli_scope_cannot_be_disabled_for_query_or_borrowed_by_another_package(self):
+        for old, new in [("authoring_tests::", "authoring_tests"), ("authoring_tests::", "prefab_"),
+                         ("authoring_tests::", "gameplay_debugger_tests"),
+                         ("zircon_plugin_ai_editor", "zircon_plugin_particles_editor"),
+                         ("--lib", "--bins"), ("--no-default-features", "--all-features")]:
+            argv = self.argv()
+            argv[argv.index(old)] = new
+            with self.subTest(old=old, new=new), self.assertRaises(entry.EntryError):
+                entry.parse_cargo(argv, repo=ROOT, enforce_policy=False)
+
+
 class GltfManifestTests(unittest.TestCase):
     FEATURES = ["runtime", "zircon_runtime/native-host", "zircon_runtime/animation"]
     LIB_FILTER = "source_snapshot_tests::importer_rejects_required_extensions_outside_its_stable_policy"
@@ -474,6 +526,89 @@ name = "zircon_plugin_gltf_importer_runtime"
 version = "0.1.0"
 ''', encoding="utf-8")
         self.recipe = entry.parse_cargo(GltfManifestTests().argv(lib=lib), repo=ROOT)
+
+    def select_ai(self):
+        path = self.root / "zircon_plugins/Cargo.toml"
+        path.write_text(path.read_text().replace('members = ["material_editor/editor"]',
+                        'members = ["material_editor/editor", "ai/editor", "ai/runtime"]'), encoding="utf-8")
+        self.write("zircon_plugins/ai/editor/Cargo.toml", '''[package]
+name = "zircon_plugin_ai_editor"
+version.workspace = true
+[dependencies]
+zircon_editor.workspace = true
+zircon_runtime.workspace = true
+zircon_plugin_ai_runtime = { path = "../runtime" }
+''')
+        self.write("zircon_plugins/ai/runtime/Cargo.toml", '''[package]
+name = "zircon_plugin_ai_runtime"
+version.workspace = true
+[dependencies]
+zircon_runtime.workspace = true
+''')
+        path = self.root / "zircon_plugins/Cargo.lock"
+        path.write_text(path.read_text() + '''[[package]]
+name = "zircon_plugin_ai_editor"
+version = "0.1.0"
+[[package]]
+name = "zircon_plugin_ai_runtime"
+version = "0.1.0"
+''', encoding="utf-8")
+        self.recipe = entry.parse_cargo(AiManifestTests().argv(), repo=ROOT)
+
+    def test_ai_closure_recurses_through_runtime_and_binds_both_workspace_host_inputs(self):
+        self.select_ai()
+        value = self.inputs()
+        self.assertEqual(value["selectedPackage"], "zircon_plugin_ai_editor")
+        self.assertEqual(value["selectedLockfile"], str(self.root / "zircon_plugins/Cargo.lock"))
+        self.assertEqual({p["name"] for p in value["packageManifests"].values()},
+                         {"zircon_plugin_ai_editor", "zircon_plugin_ai_runtime", "zircon_editor", "zircon_runtime"})
+        self.assertEqual(len(value["workspaceManifests"]), 2)
+        self.assertEqual({f for edge in value["pathDependencyEdges"] for f in edge["declaredFeatures"]},
+                         {"native-host", "target-editor-host"})
+        self.assertIsNone(value["files"][str(self.root / "zircon_plugins/.cargo/config.toml")])
+        self.assertFalse(value["cargoResolutionPerformed"])
+        for selected in AiManifestTests.filters:
+            self.recipe = entry.parse_cargo(AiManifestTests().argv(selected), repo=ROOT)
+            self.assertEqual(self.inputs()["inputDigest"], value["inputDigest"])
+
+    def test_ai_member_and_selected_lock_cannot_fall_back_to_another_plugin(self):
+        self.select_ai()
+        path = self.root / "zircon_plugins/Cargo.toml"
+        original = path.read_text()
+        path.write_text(original.replace(', "ai/editor"', ''), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "not a member"):
+            self.inputs()
+        path.write_text(original, encoding="utf-8")
+        path = self.root / "zircon_plugins/Cargo.lock"
+        path.write_text(path.read_text().replace('name = "zircon_plugin_ai_editor"', 'name = "other"'), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "absent from the plugin lockfile"):
+            self.inputs()
+
+    def test_ai_native_and_editor_host_edges_are_each_required(self):
+        self.select_ai()
+        for relative, feature in [("zircon_plugins/Cargo.toml", "native-host"),
+                                  ("zircon_editor/Cargo.toml", "target-editor-host")]:
+            path = self.root / relative
+            original = path.read_text()
+            path.write_text(original.replace('features = ["' + feature + '"]', 'features = []'), encoding="utf-8")
+            with self.subTest(feature=feature), self.assertRaisesRegex(ValueError, "native/editor"):
+                self.inputs()
+            path.write_text(original, encoding="utf-8")
+
+    def test_ai_uncaptured_transitive_manifest_or_added_config_invalidates_source_guard(self):
+        self.select_ai()
+        for relative, changed in [("zircon_plugins/ai/runtime/Cargo.toml", '\n[features]\nextra = []\n'),
+                                  ("zircon_plugins/.cargo/config.toml", '[build]\njobs = 1\n')]:
+            path = self.root / relative
+            original = path.read_text() if path.exists() else None
+            captured = self.capture()
+            self.write(relative, (original or '') + changed)
+            with self.subTest(relative=relative), self.assertRaisesRegex(ValueError, "captured source"):
+                self.inputs(captured)
+            if original is None:
+                path.unlink()
+            else:
+                path.write_text(original, encoding="utf-8")
 
     def select_prefab(self):
         path = self.root / "zircon_plugins/Cargo.toml"

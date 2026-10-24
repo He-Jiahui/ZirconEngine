@@ -470,11 +470,13 @@ def parse_cargo(arguments, *, enforce_policy=True, repo=None):
     if recipe["verb"] == "test":
         recipe.setdefault("testThreads", 1)
     if recipe.get("manifestPath") == "zircon_plugins/Cargo.toml":
-        editor_filters = {"zircon_plugin_material_editor_editor": "material_graph_",
-                          "zircon_plugin_prefab_tools_editor": "prefab_"}
+        editor_filters = {"zircon_plugin_material_editor_editor": {"material_graph_"},
+                          "zircon_plugin_prefab_tools_editor": {"prefab_"},
+                          "zircon_plugin_ai_editor": {"authoring_tests::", "gameplay_debugger_tests::",
+                                                      "tests::pie_mirror_", "tests::perception_overlay_"}}
         plugin_lib = (len(recipe["packages"]) == 1 and recipe["packages"][0] in editor_filters
                     and not recipe["features"] and recipe["lib"] and not recipe["tests"]
-                    and recipe.get("testFilter") == editor_filters[recipe["packages"][0]])
+                    and recipe.get("testFilter") in editor_filters[recipe["packages"][0]])
         gltf = (recipe["packages"] == ["zircon_plugin_gltf_importer_runtime"]
                 and sorted(recipe["features"]) == sorted([
                     "runtime", "zircon_runtime/native-host", "zircon_runtime/animation"])
@@ -487,7 +489,7 @@ def parse_cargo(arguments, *, enforce_policy=True, repo=None):
                 and recipe["jobs"] == recipe["testThreads"] == 1
                 and not any(recipe.get(name) for name in (
                     "allFeatures", "allTests", "bins", "noRun", "harnessFilters", "exact", "ignored", "nocapture")),
-                "The plugin manifest permits only the material_graph_ or prefab_ single-package lib recipes, or the two bounded glTF source test recipes",
+                "The plugin manifest permits only the bounded material, prefab, AI lib recipes or the two glTF source test recipes",
                 "build_scope_policy")
     require(not (recipe["allFeatures"] and recipe["noDefaultFeatures"]),
             "--all-features cannot be combined with --no-default-features")
