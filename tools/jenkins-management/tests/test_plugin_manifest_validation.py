@@ -307,6 +307,67 @@ class LockResolutionContractsTests(unittest.TestCase):
             actor.generate_plugin_lock()
         actor.plugin_lock_admit.assert_not_called()
 
+    def test_prepare_creates_native_output_before_helper_and_issues_blocked_server_receipt(self):
+        from unittest.mock import Mock
+        from tools.jenkins.resources.capacity import ResourceManager
+        actor = self.actor()
+        before = self.locks()[0]
+        self.file(runner.PLUGIN_LOCK_PATH, before)
+        actor.payload.update(generationPhase="prepare", lockPlan={"path": "immutable-plan", "sha256": "c" * 64})
+        actor.state.put("resource_policy", "default", {"cpuBudget": 1, "memoryBudget": 8 * 1024**3,
+            "diskBudget": 1024**3, "diskReserveBytes": 35 * 1024**3})
+        actor.state.check_authorization = Mock(return_value={"snapshotDigest": "d" * 64, "principal": "original-owner"})
+        actor.lock_environment.return_value = ({"CARGO_HOME": str(self.home)}, {"cargoPath": str(self.root / "cargo.exe")})
+        report = self.root / "prepared"
+        report.mkdir()
+        def run(command, cwd, environment, native_report, timeout):
+            self.assertTrue(native_report.is_dir())
+            (native_report / "stdout.bin").write_bytes(b"cargo 1.94.1\n")
+            return {"command": command, "cwd": str(cwd), "rootExitCode": 0}
+        actor.lock_native_helper = Mock(return_value=SimpleNamespace(_run_owned_command=run))
+        with patch.object(runner, "plugin_lock_inputs", return_value={"files": {}, "inputDigest": "e" * 64}), \
+             patch.object(runner, "native_terminal_proof", return_value={"complete": True}), \
+             patch.object(ResourceManager, "capture_inventory", return_value={"diskBytes": 20 * 1024**3}):
+            result = actor.prepare_plugin_lock({"sourceWriteSet": [{"before": {"sha256": runner.sha(before)}}]}, report)
+        self.assertEqual(result["generationStatus"], "blocked")
+        self.assertFalse(result["captureReady"])
+        self.assertFalse(result["resolverStarted"])
+        self.assertTrue(result["generationRequestId"].startswith("lockgen-"))
+        self.assertEqual(len(result["blockedBy"]), 2)
+        self.assertEqual((actor.repo / runner.PLUGIN_LOCK_PATH).read_bytes(), before)
+        self.assertIsNotNone(actor.state.get("generation_preparation", actor.key))
+
+    def test_prelaunch_continuation_requires_exact_pinned_log_open_failure_and_keeps_raw_unknown(self):
+        from unittest.mock import Mock
+        actor = self.actor()
+        actor.payload["generationPhase"] = "prepare"
+        actor.config["clientSources"] = {"tools/dev/local_cargo.py": "af0741bfdae00b452a6c7ffe0a78740cf7db1414e6182ce5f6f17e224698b087"}
+        actor.outputs = Mock(return_value=self.root / "outputs")
+        actor.validation_environment = Mock(return_value=({}, {"cargoPath": "pinned-cargo.exe"}, {}))
+        folder = actor.outputs() / "reports" / actor.key / "tool-version"
+        folder.mkdir(parents=True)
+        raw = {"command": ["pinned-cargo.exe", "--version"], "cwd": str(actor.repo),
+            "pid": None, "creationTime": None, "rootExitCode": None,
+            "nativeJobEvidence": {"errors": [], "records": {}}, "terminalErrors": [{
+                "stage": "command_or_pipe", "type": "FileNotFoundError",
+                "message": str(FileNotFoundError(2, os.strerror(2), str(folder / "stdout.bin")))}]}
+        def original(value):
+            reference = runner.write_json(folder / "native-terminal.json", value)
+            actor.state.put("management_operation", actor.key, {"phase": "unknown", "inputDigest": actor.input_digest,
+                "result": {"reasonCode": "resolver_identity_native_unproven", "native": reference}})
+        original(raw)
+        self.assertTrue(actor.plugin_lock_prelaunch_recovery_ready())
+        for changed in ({**raw, "pid": 123}, {**raw, "command": ["pinned-cargo.exe", "update"]},
+                        {**raw, "nativeJobEvidence": {"errors": [], "records": {"beforeResume": {}}}},
+                        {**raw, "terminalErrors": []}):
+            original(changed)
+            self.assertFalse(actor.plugin_lock_prelaunch_recovery_ready())
+        original(raw)
+        (folder / "started.json").write_text("{}", encoding="utf-8")
+        self.assertFalse(actor.plugin_lock_prelaunch_recovery_ready())
+        self.assertEqual(actor.state.get("management_operation", actor.key)["payload"]["phase"], "unknown")
+        actor.plugin_lock_release.assert_not_called()
+
 class CaptureMetadataObservationTests(unittest.TestCase):
     def sample(self, *, head="1", names=("a.rs",), obj="2", debug=b"stat-before"):
         return [(head * 40 + "\n").encode(), b"".join(name.encode() + b"\0" for name in names),
