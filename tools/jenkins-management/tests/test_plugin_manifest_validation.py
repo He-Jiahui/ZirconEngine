@@ -597,18 +597,27 @@ version = "0.1.0"
 
     def test_ai_uncaptured_transitive_manifest_or_added_config_invalidates_source_guard(self):
         self.select_ai()
-        for relative, changed in [("zircon_plugins/ai/runtime/Cargo.toml", '\n[features]\nextra = []\n'),
-                                  ("zircon_plugins/.cargo/config.toml", '[build]\njobs = 1\n')]:
-            path = self.root / relative
-            original = path.read_text() if path.exists() else None
-            captured = self.capture()
-            self.write(relative, (original or '') + changed)
-            with self.subTest(relative=relative), self.assertRaisesRegex(ValueError, "captured source"):
-                self.inputs(captured)
-            if original is None:
-                path.unlink()
-            else:
-                path.write_text(original, encoding="utf-8")
+        path = self.root / "zircon_plugins/ai/runtime/Cargo.toml"
+        original = path.read_text()
+        captured = self.capture()
+        self.write("zircon_plugins/ai/runtime/Cargo.toml", original + '\n[features]\nextra = []\n')
+        with self.assertRaisesRegex(ValueError, "captured source"):
+            self.inputs(captured)
+        path.write_text(original, encoding="utf-8")
+        # Config inputs have their own digest/absence binding and native watcher,
+        # distinct from the engine source inventory's manifest coverage.
+        inputs = self.inputs()
+        helper = runner.checkout_guard_helper()
+        guard = helper.CheckoutReadGuard(self.root, files=inputs["files"], watch_roots=[self.root]).acquire()
+        try:
+            self.write("zircon_plugins/.cargo/config.toml", '[build]\njobs = 1\n')
+            self.assertTrue(guard.wait_for_change(5))
+            with self.assertRaises(helper.CheckoutGuardChanged):
+                guard.assert_stable()
+            self.assertFalse(guard.finish()["stable"])
+        finally:
+            guard.close()
+        self.assertNotEqual(self.inputs()["inputDigest"], inputs["inputDigest"])
 
     def select_prefab(self):
         path = self.root / "zircon_plugins/Cargo.toml"
