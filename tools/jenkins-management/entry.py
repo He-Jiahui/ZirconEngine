@@ -463,14 +463,23 @@ def parse_cargo(arguments, *, enforce_policy=True, repo=None):
         else:
             raise EntryError("cargo_option_unsupported", "No Jenkins recipe for Cargo argument: " + token)
     require(1 <= len(recipe["packages"]) <= 8, "Select one to eight scoped packages with -p/--package")
-    require(recipe.get("manifestPath") != "zircon_plugins/Cargo.toml" or len(recipe["packages"]) == 1,
-            "The plugin workspace requires exactly one explicit package", "build_scope_policy")
     require(not (recipe["allFeatures"] and recipe["features"]), "--all-features cannot be mixed with --features")
     require(recipe["verb"] == "test" or not (recipe["noRun"] or "testFilter" in recipe),
             "Test selectors require cargo test")
     require(not (recipe["noRun"] and after), "--no-run cannot use test harness arguments")
     if recipe["verb"] == "test":
         recipe.setdefault("testThreads", 1)
+    if recipe.get("manifestPath") == "zircon_plugins/Cargo.toml":
+        require(recipe["packages"] == ["zircon_plugin_material_editor_editor"]
+                and recipe["verb"] == "test" and recipe["profile"] == "test"
+                and recipe["noDefaultFeatures"] and not recipe["features"]
+                and recipe["locked"] and recipe["lib"] and not recipe["tests"]
+                and recipe["jobs"] == recipe["testThreads"] == 1
+                and recipe.get("testFilter") == "material_graph_"
+                and not any(recipe.get(name) for name in (
+                    "allFeatures", "allTests", "bins", "noRun", "harnessFilters", "exact", "ignored", "nocapture")),
+                "The plugin manifest permits only the material_graph_ single-package lib test recipe",
+                "build_scope_policy")
     require(not (recipe["allFeatures"] and recipe["noDefaultFeatures"]),
             "--all-features cannot be combined with --no-default-features")
     if enforce_policy:
@@ -496,6 +505,9 @@ def output_policy(repo, payload, *, target_dir=None, build_root=None):
         requested_root = str(root.path)
     else:
         root = canonical_build_root(requested_root or document(repo / ".jenkins/deployment-spec.json")[0]["storage"]["buildRoot"])
+    require(payload.get("manifestPath") != "zircon_plugins/Cargo.toml"
+            or root.path == plain(Path("E:/cargo-targets")),
+            "The plugin recipe requires the physical E:/cargo-targets build root", "build_scope_policy")
     result = {"buildRoot": str(root.path)}
     if target:
         result["requestedTargetDir"] = str(physical)

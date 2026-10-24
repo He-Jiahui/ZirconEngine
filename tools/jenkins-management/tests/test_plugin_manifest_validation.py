@@ -1,6 +1,7 @@
 """Bounded nested-workspace admission and cache identity; no compiler runs."""
 from __future__ import annotations
 import importlib.util
+import hashlib
 import os
 from pathlib import Path
 import tempfile
@@ -84,6 +85,24 @@ class PluginManifestTests(unittest.TestCase):
             with self.subTest(extra=extra), self.assertRaises(ValueError):
                 self.recipe({**value, **extra})
 
+    def test_plugin_json_recipe_rejects_package_profile_feature_and_harness_widening(self):
+        value = entry.parse_cargo(self.argv())
+        for extra in [{"packages": ["zircon_editor"]}, {"profile": "release"}, {"profile": "dev"},
+                      {"features": ["native-host"]}, {"locked": False}, {"jobs": 2}, {"testThreads": 2},
+                      {"noRun": True}, {"bins": True}, {"testFilter": "other_"}, {"testFilter": None},
+                      {"exact": True}, {"ignored": True}, {"harnessFilters": ["other_"]},
+                      {"lib": False, "tests": ["other"]}]:
+            with self.subTest(extra=extra), self.assertRaises(ValueError):
+                self.recipe({**value, **extra})
+
+    def test_plugin_cli_uses_the_same_narrow_policy_even_when_general_policy_is_disabled(self):
+        for old, new in [("zircon_plugin_material_editor_editor", "zircon_editor"), ("test", "check"),
+                         ("material_graph_", "other_"), ("--lib", "--bins")]:
+            argv = self.argv()
+            argv[argv.index(old)] = new
+            with self.subTest(old=old), self.assertRaises(entry.EntryError):
+                entry.parse_cargo(argv, enforce_policy=False)
+
     def test_existing_root_recipes_keep_their_original_shape(self):
         value = entry.parse_cargo(["check", "-p", "zr_math", "--no-default-features", "--lib", "--locked"])
         result = self.recipe(value)
@@ -123,6 +142,162 @@ class PluginManifestTests(unittest.TestCase):
         self.assertNotEqual(root_pool, nested_pool)
         self.assertNotIn("cargoWorkspaceManifest", observed[0])
         self.assertEqual(observed[1]["cargoWorkspaceManifest"], "zircon_plugins/Cargo.toml")
+
+
+class PluginWorkspaceInputTests(unittest.TestCase):
+    def setUp(self):
+        base = Path(os.environ["ZR_COMMIT_TEST_ROOT"])
+        self.folder = tempfile.TemporaryDirectory(prefix="plugin-inputs-", dir=base)
+        self.addCleanup(self.folder.cleanup)
+        self.root = Path(self.folder.name)
+        self.write("Cargo.toml", '''[workspace]
+members = ["zircon_editor", "zircon_runtime"]
+[workspace.package]
+version = "0.1.0"
+''')
+        self.write("zircon_plugins/Cargo.toml", '''[workspace]
+members = ["material_editor/editor"]
+[workspace.package]
+version = "0.1.0"
+[workspace.dependencies]
+zircon_editor = { path = "../zircon_editor" }
+zircon_runtime = { path = "../zircon_runtime", default-features = false, features = ["native-host"] }
+''')
+        self.write("zircon_plugins/material_editor/editor/Cargo.toml", '''[package]
+name = "zircon_plugin_material_editor_editor"
+version.workspace = true
+[dependencies]
+zircon_editor.workspace = true
+zircon_runtime.workspace = true
+''')
+        self.write("zircon_editor/Cargo.toml", '''[package]
+name = "zircon_editor"
+version.workspace = true
+[dependencies]
+zircon_runtime = { path = "../zircon_runtime", default-features = false, features = ["target-editor-host"] }
+''')
+        self.write("zircon_runtime/Cargo.toml", '[package]\nname = "zircon_runtime"\nversion.workspace = true\n')
+        self.write("zircon_plugins/Cargo.lock", '''version = 4
+[[package]]
+name = "zircon_plugin_material_editor_editor"
+version = "0.1.0"
+''')
+        self.recipe = entry.parse_cargo(PluginManifestTests().argv())
+
+    def write(self, name, value):
+        path = self.root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(value, encoding="utf-8")
+        return path
+
+    def capture(self):
+        return {"sourceView": "checkout", "sourceRoot": str(self.root), "externalRoots": [],
+                "source": {"files": {path.relative_to(self.root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+                                     for path in self.root.rglob("*") if path.is_file()}}}
+
+    def inputs(self, captured=None):
+        return runner.plugin_workspace_inputs(self.root, self.recipe, self.capture() if captured is None else captured)
+
+    def test_inherited_cross_workspace_edges_lock_and_explicit_config_absences_are_bound(self):
+        value = self.inputs()
+        self.assertEqual(value["selectedLockfile"], str(self.root / "zircon_plugins/Cargo.lock"))
+        self.assertEqual(len(value["packageManifests"]), 3)
+        editor = value["packageManifests"][str(self.root / "zircon_editor/Cargo.toml")]
+        self.assertEqual(editor["workspaceManifest"], str(self.root / "Cargo.toml"))
+        self.assertEqual({feature for edge in value["pathDependencyEdges"] for feature in edge["declaredFeatures"]},
+                         {"native-host", "target-editor-host"})
+        self.assertIn(str(self.root / "zircon_plugins/.cargo/config.toml"), value["files"])
+        self.assertIsNone(value["files"][str(self.root / "zircon_plugins/.cargo/config.toml")])
+        self.assertFalse(value["cargoResolutionPerformed"])
+
+    def test_nested_lock_is_required_even_when_root_lock_exists(self):
+        (self.root / "zircon_plugins/Cargo.lock").unlink()
+        self.write("Cargo.lock", 'version = 4\n')
+        with self.assertRaisesRegex(ValueError, "absent"):
+            self.inputs()
+
+    def test_selected_package_and_workspace_membership_must_match(self):
+        path = self.root / "zircon_plugins/material_editor/editor/Cargo.toml"
+        path.write_text(path.read_text().replace("zircon_plugin_material_editor_editor", "wrong_package"))
+        with self.assertRaisesRegex(ValueError, "mismatch"):
+            self.inputs()
+        path.write_text(path.read_text().replace("wrong_package", "zircon_plugin_material_editor_editor"))
+        path = self.root / "zircon_plugins/Cargo.toml"
+        path.write_text(path.read_text().replace('members = ["material_editor/editor"]', 'members = []'))
+        with self.assertRaisesRegex(ValueError, "not a member"):
+            self.inputs()
+
+    def test_discovery_rejects_changed_or_uncaptured_manifests(self):
+        capture = self.capture()
+        self.write("zircon_editor/Cargo.toml", '[package]\nname = "changed"\nversion = "0.1.0"\n')
+        with self.assertRaisesRegex(ValueError, "captured source"):
+            self.inputs(capture)
+        capture = self.capture()
+        del capture["source"]["files"]["zircon_editor/Cargo.toml"]
+        with self.assertRaisesRegex(ValueError, "captured source"):
+            self.inputs(capture)
+
+    def test_path_declarations_cannot_escape_to_unregistered_source(self):
+        self.write("zircon_editor/Cargo.toml", '''[package]
+name = "zircon_editor"
+version.workspace = true
+[dependencies]
+foreign = {path = "../../unregistered"}
+''')
+        with self.assertRaisesRegex(ValueError, "escapes"):
+            self.inputs()
+
+    def test_worktree_and_sealed_source_views_are_not_silently_reinterpreted(self):
+        captured = self.capture()
+        captured["sourceView"] = "worktree"
+        with self.assertRaisesRegex(ValueError, "canonical checkout"):
+            self.inputs(captured)
+
+    def test_mixed_batch_cannot_widen_the_plugin_request_to_other_packages(self):
+        actor = object.__new__(runner.Management)
+        actor.repo = self.root
+        actor.payload = {"sourceView": "checkout", "batch": {"recipes": [self.recipe,
+            {"verb": "check", "packages": ["zircon_editor"]}]}}
+        with self.assertRaisesRegex(ValueError, "one recipe per request"):
+            actor.validation_source()
+
+    def test_config_bytes_change_source_digest_but_are_ineffective_below_cwd(self):
+        before = self.inputs()
+        self.write("zircon_plugins/.cargo/config.toml", '[build]\njobs = 1\n')
+        after = self.inputs()
+        self.assertNotEqual(before["inputDigest"], after["inputDigest"])
+        nested = next(item for item in after["cargoConfiguration"] if "zircon_plugins" in item["path"] and item["path"].endswith("config.toml"))
+        self.assertFalse(nested["effectiveFromCanonicalCwd"])
+
+    def test_native_guard_holds_nested_lock_and_cross_workspace_manifests(self):
+        guard_module = runner.checkout_guard_helper()
+        inputs = self.inputs()
+        guard = guard_module.CheckoutReadGuard(self.root, files=inputs["files"], watch_roots=[self.root]).acquire()
+        try:
+            for name in ("zircon_plugins/Cargo.lock", "zircon_editor/Cargo.toml"):
+                with self.subTest(name=name), self.assertRaises(PermissionError):
+                    (self.root / name).write_bytes(b"attempted concurrent mutation")
+            guard.assert_stable()
+            finished = guard.finish()
+            self.assertTrue(finished["complete"])
+            self.assertTrue(finished["stable"])
+        finally:
+            guard.close()
+
+    def test_native_guard_detects_new_nested_configuration(self):
+        guard_module = runner.checkout_guard_helper()
+        inputs = self.inputs()
+        guard = guard_module.CheckoutReadGuard(self.root, files=inputs["files"], watch_roots=[self.root]).acquire()
+        try:
+            self.write("zircon_plugins/.cargo/config.toml", '[build]\njobs = 1\n')
+            self.assertTrue(guard.wait_for_change(5))
+            with self.assertRaises(guard_module.CheckoutGuardChanged):
+                guard.assert_stable()
+            finished = guard.finish()
+            self.assertTrue(finished["complete"])
+            self.assertFalse(finished["stable"])
+        finally:
+            guard.close()
 
 if __name__ == "__main__":
     unittest.main()
