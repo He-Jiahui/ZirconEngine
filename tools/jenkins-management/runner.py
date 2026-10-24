@@ -719,14 +719,21 @@ def plugin_workspace_inputs(root, recipe, captured):
 
     selected_manifest = root / "zircon_plugins/Cargo.toml"
     selected = manifest(selected_manifest)
-    member = "material_editor/editor"
+    members = {"zircon_plugin_material_editor_editor": "material_editor/editor",
+               "zircon_plugin_gltf_importer_runtime": "gltf_importer/runtime"}
+    selected_packages = recipe.get("packages")
+    if (not isinstance(selected_packages, list) or len(selected_packages) != 1
+            or selected_packages[0] not in members):
+        raise ValueError("The plugin source route requires one catalog package")
+    selected_name = selected_packages[0]
+    member = members[selected_name]
     if member not in selected.get("workspace", {}).get("members", []):
-        raise ValueError("The material package is not a member of the selected plugin workspace")
+        raise ValueError("The selected package is not a member of the selected plugin workspace")
     lock_path = selected_manifest.with_name("Cargo.lock")
     lock = tomllib.loads(read(lock_path).decode("utf-8"))
     lock_packages = {(value.get("name"), value.get("version"))
                      for value in lock.get("package", []) if value.get("source") is None}
-    pending = [(selected_manifest.parent / member / "Cargo.toml", "zircon_plugin_material_editor_editor")]
+    pending = [(selected_manifest.parent / member / "Cargo.toml", selected_name)]
     while pending:
         path, expected_name = pending.pop()
         path = boundary(path)
@@ -778,11 +785,16 @@ def plugin_workspace_inputs(root, recipe, captured):
                 pending.append((destination, target_name))
     selected_package = packages[selected_manifest.parent / member / "Cargo.toml"]
     if not selected_package["presentInSelectedLock"]:
-        raise ValueError("The selected material package is absent from the plugin lockfile")
-    if not (any(edge["package"] == "zircon_runtime" and "native-host" in edge["declaredFeatures"] for edge in edges)
+        raise ValueError("The selected plugin package is absent from the plugin lockfile")
+    if selected_name == "zircon_plugin_material_editor_editor" and not (
+            any(edge["package"] == "zircon_runtime" and "native-host" in edge["declaredFeatures"] for edge in edges)
             and any(edge["fromPackage"] == "zircon_editor" and edge["package"] == "zircon_runtime"
                     and "target-editor-host" in edge["declaredFeatures"] for edge in edges)):
         raise ValueError("The material route lost its declared native/editor runtime feature edges")
+    if selected_name == "zircon_plugin_gltf_importer_runtime" and not any(
+            edge["fromPackage"] == selected_name and edge["package"] == "zircon_runtime"
+            and "native-host" in edge["declaredFeatures"] for edge in edges):
+        raise ValueError("The glTF route lost its declared native runtime feature edge")
     configuration = []
     for manifest_name in sorted(workspaces):
         for name in ("config", "config.toml"):
@@ -4037,12 +4049,18 @@ class Management:
         if verb == "test" and not ((options["lib"] and not tests) or (not options["lib"] and len(tests) == 1)):
             raise ValueError("build_scope_policy: select lib or exactly one test target")
         if manifest_fields.get("manifestPath") == "zircon_plugins/Cargo.toml":
-            if not (packages == ["zircon_plugin_material_editor_editor"] and not features
-                    and verb == "test" and profile == "test" and options["locked"]
-                    and options["lib"] and not tests and not options["noRun"]
-                    and jobs == threads == 1 and test_filter == "material_graph_"
+            material = (packages == ["zircon_plugin_material_editor_editor"] and not features
+                        and options["lib"] and not tests and test_filter == "material_graph_")
+            gltf = (packages == ["zircon_plugin_gltf_importer_runtime"]
+                    and sorted(features) == sorted([
+                        "runtime", "zircon_runtime/native-host", "zircon_runtime/animation"])
+                    and ((not options["lib"] and tests == ["character_skinning_sources"] and test_filter is None)
+                         or (options["lib"] and not tests and test_filter
+                             == "source_snapshot_tests::importer_rejects_required_extensions_outside_its_stable_policy")))
+            if not ((material or gltf) and verb == "test" and profile == "test" and options["locked"]
+                    and not options["noRun"] and jobs == threads == 1
                     and not filters and not any(extra.values())):
-                raise ValueError("build_scope_policy: plugin manifest permits only the material_graph_ single-package lib test recipe")
+                raise ValueError("build_scope_policy: plugin manifest permits only the material_graph_ lib recipe or the two bounded glTF source test recipes")
         command = [verb, "--jobs", str(jobs), "--message-format=json"]
         if manifest_fields:
             command[1:1] = ["--manifest-path", manifest_fields["manifestPath"]]

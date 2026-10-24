@@ -470,15 +470,22 @@ def parse_cargo(arguments, *, enforce_policy=True, repo=None):
     if recipe["verb"] == "test":
         recipe.setdefault("testThreads", 1)
     if recipe.get("manifestPath") == "zircon_plugins/Cargo.toml":
-        require(recipe["packages"] == ["zircon_plugin_material_editor_editor"]
-                and recipe["verb"] == "test" and recipe["profile"] == "test"
-                and recipe["noDefaultFeatures"] and not recipe["features"]
-                and recipe["locked"] and recipe["lib"] and not recipe["tests"]
+        material = (recipe["packages"] == ["zircon_plugin_material_editor_editor"]
+                    and not recipe["features"] and recipe["lib"] and not recipe["tests"]
+                    and recipe.get("testFilter") == "material_graph_")
+        gltf = (recipe["packages"] == ["zircon_plugin_gltf_importer_runtime"]
+                and sorted(recipe["features"]) == sorted([
+                    "runtime", "zircon_runtime/native-host", "zircon_runtime/animation"])
+                and ((not recipe["lib"] and recipe["tests"] == ["character_skinning_sources"]
+                      and recipe.get("testFilter") is None)
+                     or (recipe["lib"] and not recipe["tests"] and recipe.get("testFilter")
+                         == "source_snapshot_tests::importer_rejects_required_extensions_outside_its_stable_policy")))
+        require((material or gltf) and recipe["verb"] == "test" and recipe["profile"] == "test"
+                and recipe["noDefaultFeatures"] and recipe["locked"]
                 and recipe["jobs"] == recipe["testThreads"] == 1
-                and recipe.get("testFilter") == "material_graph_"
                 and not any(recipe.get(name) for name in (
                     "allFeatures", "allTests", "bins", "noRun", "harnessFilters", "exact", "ignored", "nocapture")),
-                "The plugin manifest permits only the material_graph_ single-package lib test recipe",
+                "The plugin manifest permits only the material_graph_ lib recipe or the two bounded glTF source test recipes",
                 "build_scope_policy")
     require(not (recipe["allFeatures"] and recipe["noDefaultFeatures"]),
             "--all-features cannot be combined with --no-default-features")
