@@ -21,6 +21,114 @@ entry = load("plugin_manifest_entry", "tools/jenkins-management/entry.py")
 runner = load("plugin_manifest_runner", "tools/jenkins-management/runner.py")
 local = load("plugin_manifest_local", "tools/dev/local_cargo.py")
 
+class CaptureMetadataObservationTests(unittest.TestCase):
+    def sample(self, *, head="1", names=("a.rs",), obj="2", debug=b"stat-before"):
+        return [(head * 40 + "\n").encode(), b"".join(name.encode() + b"\0" for name in names),
+                ("100644 " + obj * 40 + " 0\ta.rs\0").encode(), debug]
+
+    def observe(self, samples, *, limit=64 * 1024 * 1024):
+        values = iter([raw for sample in samples for raw in sample])
+        calls, results = [], []
+
+        def original(root, *arguments, **options):
+            value = SimpleNamespace(stdout=next(values), returncode=0)
+            calls.append((root, arguments, options))
+            results.append(value)
+            return value
+
+        observer = entry.CaptureMetadataObserver(original, limit=limit)
+        for _sample in samples:
+            for command in observer.commands:
+                result = observer(ROOT, *command, check=True)
+                self.assertIs(result, results[-1])
+        self.assertEqual(len(calls), len(samples) * 4)
+        self.assertTrue(all(options == {"check": True} for _, _, options in calls))
+        return observer
+
+    def test_observer_preserves_git_calls_and_reports_unchanged_pairs_without_attribution(self):
+        observer = self.observe([self.sample(), self.sample()])
+        data = observer.observation(runner)
+        self.assertTrue(data["complete"])
+        delta = data["differences"][0]
+        self.assertFalse(delta["headChanged"] or delta["indexDebugChanged"])
+        self.assertEqual(delta["addedPaths"], [])
+        self.assertEqual(delta["removedPaths"], [])
+        self.assertEqual(delta["indexEntryChanges"], [])
+        self.assertIsNone(delta["attribution"])
+
+    def test_observer_keeps_exact_head_index_membership_and_untruncated_raw_debug(self):
+        import base64
+        before = self.sample(names=("a.rs", "old.rs"))
+        after = self.sample(head="3", obj="4", names=("a.rs", *[f"added-{i}.rs" for i in range(25)]), debug=b"all-stat-bytes\x00\xff")
+        data = self.observe([before, after]).observation(runner)
+        delta = data["differences"][0]
+        self.assertEqual(delta["headBefore"], "1" * 40)
+        self.assertEqual(delta["headAfter"], "3" * 40)
+        self.assertEqual(len(delta["addedPaths"]), 25)
+        self.assertEqual(delta["removedPaths"], ["old.rs"])
+        self.assertEqual(delta["indexEntryChanges"][0]["before"]["object"], "2" * 40)
+        self.assertEqual(delta["indexEntryChanges"][0]["after"]["object"], "4" * 40)
+        self.assertTrue(delta["indexDebugChanged"])
+        record = data["roots"][str(ROOT)][-1]["rawReads"][-1]
+        self.assertEqual(base64.b64decode(record["stdoutBase64"]), after[-1])
+        self.assertEqual(record["sha256"], entry.sha(after[-1]))
+
+    def test_budget_exhaustion_marks_diagnostics_incomplete_without_changing_results(self):
+        data = self.observe([self.sample(), self.sample()], limit=1).observation(runner)
+        self.assertFalse(data["complete"])
+        self.assertEqual(data["roots"], {})
+        self.assertEqual(data["differences"], [])
+
+    def test_failed_capture_metadata_is_owned_compressed_and_idempotent(self):
+        import gzip
+        import io
+        import json
+        from tools.jenkins.resources import paths
+        base = Path(os.environ["ZR_COMMIT_TEST_ROOT"])
+        with tempfile.TemporaryDirectory(prefix="capture-diagnostic-", dir=base) as folder:
+            root = Path(folder)
+            observer = self.observe([self.sample(), self.sample(head="3")])
+            payload = {name: name + "-fixture" for name in (
+                "repositoryId", "sessionId", "requestId", "operationId", "driverDigest", "runtimeOperationId")}
+            error = ValueError("HEAD, full index or complete source membership changed during capture")
+            stderr = io.StringIO()
+            with patch.object(paths, "canonical_build_root", return_value=SimpleNamespace(path=root)), \
+                 patch.object(paths, "physical_path_under", side_effect=lambda approved, value: Path(value)), \
+                 patch.object(entry.sys, "stderr", stderr):
+                observer.save_failure({"module": runner}, payload, error)
+                observer.save_failure({"module": runner}, payload, error)
+            artifacts = list(root.rglob("metadata.json.gz"))
+            self.assertEqual(len(artifacts), 1)
+            data = json.loads(gzip.decompress(artifacts[0].read_bytes()))
+            self.assertEqual(data["identity"], payload)
+            self.assertEqual(data["originalError"], str(error))
+            self.assertFalse(data["validationResubmitted"])
+            ownership = json.loads((artifacts[0].parent / "artifacts.json").read_text())
+            self.assertEqual(ownership["artifacts"][0]["sha256"], entry.sha(artifacts[0].read_bytes()))
+            self.assertFalse(ownership["sourceCopies"])
+            self.assertLess(len(stderr.getvalue()), 4096)
+
+    def test_source_capture_rethrows_the_original_failure_and_restores_git_environment(self):
+        error = ValueError("HEAD, full index or complete source membership changed during capture")
+
+        class Actor:
+            def git(self, *_args, **_options):
+                raise AssertionError("No extra Git calls are needed to report a rejected capture")
+
+            def validation_with_cache(self):
+                raise error
+
+        context = {"repo": ROOT, "config": {}, "manager": object(), "module": SimpleNamespace(Management=Actor)}
+        payload = {"repositoryId": "repo", "sessionId": "original-session", "ownedPaths": ["a.rs"]}
+        previous = os.environ.get("GIT_OPTIONAL_LOCKS")
+        with patch.object(entry.CaptureMetadataObserver, "save_failure") as save:
+            with self.assertRaises(ValueError) as raised:
+                entry.source_digest(context, payload)
+            self.assertIs(raised.exception, error)
+            save.assert_called_once_with(context, payload, error)
+        self.assertEqual(os.environ.get("GIT_OPTIONAL_LOCKS"), previous)
+
+
 class PluginManifestTests(unittest.TestCase):
     def argv(self, manifest="zircon_plugins/Cargo.toml"):
         return ["test", "--manifest-path", manifest, "-p", "zircon_plugin_material_editor_editor",
