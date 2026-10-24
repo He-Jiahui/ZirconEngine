@@ -1,0 +1,27 @@
+name = "OrbRun"
+format_version = 3
+project_guid = "de6f88ea-1eb7-4694-9072-cc411f493f02"
+engine_version_req = ">=0.1.0, <0.2.0"
+default_scene = "res://scenes/main.scene.toml"
+asset_roots = ["assets"]
+library_version = 1
+
+[[plugins.selections]]
+id = "rendering"
+enabled = true
+required = true
+target_modes = ["editor_host", "client_runtime"]
+packaging = "library_embed"
+runtime_crate = "zircon_plugin_rendering_runtime"
+
+[[plugins.selections]]
+id = "zr_vm_language"
+enabled = true
+required = false
+target_modes = ["editor_host", "client_runtime"]
+packaging = "library_embed"
+runtime_crate = "zircon_plugin_zr_vm_language_runtime"
+
+[scripts]
+package_roots = ["scripts"]
+startup_packages = ["orb_run"]

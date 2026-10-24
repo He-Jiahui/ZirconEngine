@@ -1,0 +1,424 @@
+[[entities]]
+components = []
+active = true
+entity = 1
+mobility = "Dynamic"
+name = "Camera"
+render_layer_mask = 1
+
+[entities.camera]
+active = true
+clear_color = "Default"
+core_pipeline = "Core3d"
+exposure_ev100 = 9.699999809265137
+fov_y_radians = 1.7453292608261108
+hdr = false
+msaa_samples = 1
+order = 0
+ortho_size = 5.0
+projection_mode = "Perspective"
+z_far = 200.0
+z_near = 0.10000000149011612
+
+[entities.camera.target]
+kind = "primary_surface"
+
+[[entities.script_bindings]]
+enabled = false
+fixed_update = false
+module = "main"
+package = "orb_run"
+update = true
+
+[entities.script_bindings.properties]
+role = "camera"
+
+[entities.transform]
+rotation = [
+    -0.3338068723678589,
+    0.0,
+    0.0,
+    0.9426414966583252,
+]
+scale = [
+    1.0,
+    1.0,
+    1.0,
+]
+translation = [
+    0.0,
+    9.0,
+    11.0,
+]
+
+[[entities]]
+components = []
+active = true
+entity = 2
+mobility = "Static"
+name = "Sun"
+render_layer_mask = 1
+
+[entities.directional_light]
+casts_shadow = false
+color = [
+    1.0,
+    1.0,
+    1.0,
+]
+direction = [
+    -0.3617725074291229,
+    -0.9044312834739685,
+    -0.22610782086849213,
+]
+intensity = 3.0
+volumetric = false
+
+[entities.transform]
+rotation = [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+]
+scale = [
+    1.0,
+    1.0,
+    1.0,
+]
+translation = [
+    0.0,
+    4.0,
+    0.0,
+]
+
+[[entities]]
+components = []
+active = true
+entity = 4
+mobility = "Dynamic"
+name = "Player"
+render_layer_mask = 1
+
+[entities.mesh]
+primitives = []
+lods = []
+
+[entities.mesh.model]
+kind = "builtin"
+locator = "builtin://cube"
+
+[entities.mesh.material]
+kind = "builtin"
+locator = "builtin://material/default"
+
+[[entities.script_bindings]]
+enabled = true
+fixed_update = false
+module = "main"
+package = "orb_run"
+update = true
+
+[entities.script_bindings.properties]
+orb_total = 8.0
+role = "player"
+
+[entities.transform]
+rotation = [
+    0.0,
+    0.0,
+    0.0,
+    1.0,
+]
+scale = [
+    1.0,
+    1.0,
+    1.0,
+]
+translation = [
+    0.0,
+    0.5,
+    0.0,
+]
+
+[[entities]]
+entity = 5
+name = "Arena Ground"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+transform = { translation = [0.0, -0.25, 0.0], rotation = [0.0, 0.0, 0.0, 1.0], scale = [24.0, 0.5, 24.0] }
+mesh = { model = { kind = "builtin", locator = "builtin://cube" }, material = { kind = "builtin", locator = "builtin://material/default" } }
+
+[[entities]]
+entity = 6
+name = "North Rail"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+transform = { translation = [0.0, 0.25, -12.0], rotation = [0.0, 0.0, 0.0, 1.0], scale = [24.0, 0.5, 0.4] }
+mesh = { model = { kind = "builtin", locator = "builtin://cube" }, material = { kind = "builtin", locator = "builtin://material/default" } }
+
+[[entities]]
+entity = 7
+name = "South Rail"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+transform = { translation = [0.0, 0.25, 12.0], rotation = [0.0, 0.0, 0.0, 1.0], scale = [24.0, 0.5, 0.4] }
+mesh = { model = { kind = "builtin", locator = "builtin://cube" }, material = { kind = "builtin", locator = "builtin://material/default" } }
+
+[[entities]]
+entity = 8
+name = "West Rail"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+transform = { translation = [-12.0, 0.25, 0.0], rotation = [0.0, 0.0, 0.0, 1.0], scale = [0.4, 0.5, 24.0] }
+mesh = { model = { kind = "builtin", locator = "builtin://cube" }, material = { kind = "builtin", locator = "builtin://material/default" } }
+
+[[entities]]
+entity = 9
+name = "East Rail"
+active = true
+render_layer_mask = 1
+mobility = "Static"
+transform = { translation = [12.0, 0.25, 0.0], rotation = [0.0, 0.0, 0.0, 1.0], scale = [0.4, 0.5, 24.0] }
+mesh = { model = { kind = "builtin", locator = "builtin://cube" }, material = { kind = "builtin", locator = "builtin://material/default" } }
+
+[[entities]]
+entity = 10
+name = "Orb 01"
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+transform = { translation = [0.0, 0.6, -4.0], rotation = [0.0, 0.0, 0.3826834323650898, 0.9238795325112867], scale = [0.65, 0.65, 0.65] }
+mesh = { model = { kind = "builtin", locator = "builtin://cube" }, material = { kind = "builtin", locator = "builtin://material/default" } }
+
+[[entities.script_bindings]]
+package = "orb_run"
+module = "main"
+enabled = true
+update = true
+fixed_update = false
+
+[entities.script_bindings.properties]
+role = "pickup"
+home_x = 0.0
+home_y = 0.6
+home_z = -4.0
+
+[[entities]]
+entity = 11
+name = "Orb 02"
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+transform = { translation = [-4.0, 0.6, -4.0], rotation = [0.0, 0.0, 0.3826834323650898, 0.9238795325112867], scale = [0.65, 0.65, 0.65] }
+mesh = { model = { kind = "builtin", locator = "builtin://cube" }, material = { kind = "builtin", locator = "builtin://material/default" } }
+
+[[entities.script_bindings]]
+package = "orb_run"
+module = "main"
+enabled = true
+update = true
+fixed_update = false
+
+[entities.script_bindings.properties]
+role = "pickup"
+home_x = -4.0
+home_y = 0.6
+home_z = -4.0
+
+[[entities]]
+entity = 12
+name = "Orb 03"
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+transform = { translation = [-7.0, 0.6, 0.0], rotation = [0.0, 0.0, 0.3826834323650898, 0.9238795325112867], scale = [0.65, 0.65, 0.65] }
+mesh = { model = { kind = "builtin", locator = "builtin://cube" }, material = { kind = "builtin", locator = "builtin://material/default" } }
+
+[[entities.script_bindings]]
+package = "orb_run"
+module = "main"
+enabled = true
+update = true
+fixed_update = false
+
+[entities.script_bindings.properties]
+role = "pickup"
+home_x = -7.0
+home_y = 0.6
+home_z = 0.0
+
+[[entities]]
+entity = 13
+name = "Orb 04"
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+transform = { translation = [-4.0, 0.6, 4.0], rotation = [0.0, 0.0, 0.3826834323650898, 0.9238795325112867], scale = [0.65, 0.65, 0.65] }
+mesh = { model = { kind = "builtin", locator = "builtin://cube" }, material = { kind = "builtin", locator = "builtin://material/default" } }
+
+[[entities.script_bindings]]
+package = "orb_run"
+module = "main"
+enabled = true
+update = true
+fixed_update = false
+
+[entities.script_bindings.properties]
+role = "pickup"
+home_x = -4.0
+home_y = 0.6
+home_z = 4.0
+
+[[entities]]
+entity = 14
+name = "Orb 05"
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+transform = { translation = [0.0, 0.6, 7.0], rotation = [0.0, 0.0, 0.3826834323650898, 0.9238795325112867], scale = [0.65, 0.65, 0.65] }
+mesh = { model = { kind = "builtin", locator = "builtin://cube" }, material = { kind = "builtin", locator = "builtin://material/default" } }
+
+[[entities.script_bindings]]
+package = "orb_run"
+module = "main"
+enabled = true
+update = true
+fixed_update = false
+
+[entities.script_bindings.properties]
+role = "pickup"
+home_x = 0.0
+home_y = 0.6
+home_z = 7.0
+
+[[entities]]
+entity = 15
+name = "Orb 06"
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+transform = { translation = [4.0, 0.6, 4.0], rotation = [0.0, 0.0, 0.3826834323650898, 0.9238795325112867], scale = [0.65, 0.65, 0.65] }
+mesh = { model = { kind = "builtin", locator = "builtin://cube" }, material = { kind = "builtin", locator = "builtin://material/default" } }
+
+[[entities.script_bindings]]
+package = "orb_run"
+module = "main"
+enabled = true
+update = true
+fixed_update = false
+
+[entities.script_bindings.properties]
+role = "pickup"
+home_x = 4.0
+home_y = 0.6
+home_z = 4.0
+
+[[entities]]
+entity = 16
+name = "Orb 07"
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+transform = { translation = [7.0, 0.6, 0.0], rotation = [0.0, 0.0, 0.3826834323650898, 0.9238795325112867], scale = [0.65, 0.65, 0.65] }
+mesh = { model = { kind = "builtin", locator = "builtin://cube" }, material = { kind = "builtin", locator = "builtin://material/default" } }
+
+[[entities.script_bindings]]
+package = "orb_run"
+module = "main"
+enabled = true
+update = true
+fixed_update = false
+
+[entities.script_bindings.properties]
+role = "pickup"
+home_x = 7.0
+home_y = 0.6
+home_z = 0.0
+
+[[entities]]
+entity = 17
+name = "Orb 08"
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+transform = { translation = [4.0, 0.6, -4.0], rotation = [0.0, 0.0, 0.3826834323650898, 0.9238795325112867], scale = [0.65, 0.65, 0.65] }
+mesh = { model = { kind = "builtin", locator = "builtin://cube" }, material = { kind = "builtin", locator = "builtin://material/default" } }
+
+[[entities.script_bindings]]
+package = "orb_run"
+module = "main"
+enabled = true
+update = true
+fixed_update = false
+
+[entities.script_bindings.properties]
+role = "pickup"
+home_x = 4.0
+home_y = 0.6
+home_z = -4.0
+
+[[entities]]
+entity = 18
+name = "Drone"
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+transform = { translation = [10.0, 0.6, -10.0], rotation = [0.0, 0.0, 0.0, 1.0], scale = [0.8, 0.45, 0.8] }
+mesh = { model = { kind = "builtin", locator = "builtin://cube" }, material = { kind = "builtin", locator = "builtin://material/default" } }
+
+[[entities.script_bindings]]
+package = "orb_run"
+module = "main"
+enabled = true
+update = true
+fixed_update = false
+
+[entities.script_bindings.properties]
+role = "drone"
+home_x = 10.0
+home_y = 0.6
+home_z = -10.0
+speed = 2.2
+
+[[entities]]
+entity = 19
+name = "Clock"
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+transform = { translation = [0.0, 0.0, 0.0], rotation = [0.0, 0.0, 0.0, 1.0], scale = [1.0, 1.0, 1.0] }
+
+[[entities.script_bindings]]
+package = "orb_run"
+module = "main"
+enabled = true
+update = false
+fixed_update = false
+
+[entities.script_bindings.properties]
+role = "clock"
+hp = 61.0
+
+[[entities]]
+entity = 20
+name = "Score"
+active = true
+render_layer_mask = 1
+mobility = "Dynamic"
+transform = { translation = [0.0, 0.0, 0.0], rotation = [0.0, 0.0, 0.0, 1.0], scale = [1.0, 1.0, 1.0] }
+
+[[entities.script_bindings]]
+package = "orb_run"
+module = "main"
+enabled = true
+update = false
+fixed_update = false
+
+[entities.script_bindings.properties]
+role = "score"
+hp = 1.0
