@@ -253,6 +253,14 @@ foreign = {path = "../../unregistered"}
         with self.assertRaisesRegex(ValueError, "canonical checkout"):
             self.inputs(captured)
 
+    def test_mixed_batch_cannot_widen_the_plugin_request_to_other_packages(self):
+        actor = object.__new__(runner.Management)
+        actor.repo = self.root
+        actor.payload = {"sourceView": "checkout", "batch": {"recipes": [self.recipe,
+            {"verb": "check", "packages": ["zircon_editor"]}]}}
+        with self.assertRaisesRegex(ValueError, "one recipe per request"):
+            actor.validation_source()
+
     def test_config_bytes_change_source_digest_but_are_ineffective_below_cwd(self):
         before = self.inputs()
         self.write("zircon_plugins/.cargo/config.toml", '[build]\njobs = 1\n')

@@ -1333,6 +1333,8 @@ class Management:
         recipes = payload.get("batch", {}).get("recipes", [payload])
         plugin_recipe = next((value for value in recipes
                               if value.get("manifestPath") == "zircon_plugins/Cargo.toml"), None)
+        if plugin_recipe is not None and len(recipes) != 1:
+            raise ValueError("The plugin workspace permits only one recipe per request")
         if plugin_recipe is not None and (view != "checkout" or root != plain(self.repo)):
             raise ValueError("The plugin workspace requires the actual canonical checkout")
         requested = payload.get("externalRoots", [])
