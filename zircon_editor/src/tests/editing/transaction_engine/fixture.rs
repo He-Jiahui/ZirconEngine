@@ -84,6 +84,7 @@ pub(super) struct DeltaCommand {
     delta: i32,
     selection_after: Option<u64>,
     significant: bool,
+    fail_plan: bool,
     fail_apply: bool,
     mutate_before_apply_error: bool,
     fail_revert_before_mutation: bool,
@@ -104,6 +105,7 @@ impl DeltaCommand {
             delta,
             selection_after: None,
             significant: true,
+            fail_plan: false,
             fail_apply: false,
             mutate_before_apply_error: false,
             fail_revert_before_mutation: false,
@@ -124,6 +126,11 @@ impl DeltaCommand {
 
     pub(super) fn failing(mut self) -> Self {
         self.fail_apply = true;
+        self
+    }
+
+    pub(super) fn plan_refusing(mut self) -> Self {
+        self.fail_plan = true;
         self
     }
 
@@ -164,6 +171,11 @@ impl EditCommand for DeltaCommand {
         crate::core::editing::engine::CommandRetentionPlanV1,
         crate::core::editing::engine::EditCommandError,
     > {
+        if self.fail_plan {
+            return Err(EditCommandError::InvariantViolation {
+                invariant: "fixture plan refusal",
+            });
+        }
         crate::core::editing::engine::CommandRetentionPlanV1::for_owner(
             self, context, phase, model, limit,
         )
