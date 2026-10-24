@@ -190,7 +190,18 @@ pub(super) fn required_frame(
 pub(super) const BLEND_SPACE_SOURCE_URI: &str =
     "res://ui/editor/animation/extension_blend_space_workspace.zui";
 
+pub(super) fn read_editor_asset_source(relative: &str) -> String {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("assets")
+        .join(relative);
+    std::fs::read_to_string(&path)
+        .unwrap_or_else(|error| panic!("cannot read {}: {error}", path.display()))
+}
+
 fn activate_blend_space_workspace(bridge: &mut BuiltinWorkbenchWindowTemplateSurfaceBridge) {
+    bridge
+        .set_preview_features(true)
+        .expect("preview workspace fixture");
     bridge
         .dispatch_control_state("MenuSlot2", UiEventKind::Click)
         .expect("Window menu should open through its live template control")
