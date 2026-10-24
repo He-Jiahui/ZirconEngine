@@ -29,6 +29,7 @@ pub(crate) fn register_scene_command_codecs(
     codecs.register(BatchTransformCodec)?;
     codecs.register(SetReflectedSceneFieldCodec)?;
     codecs.register(AddDynamicComponentCodec)?;
+    codecs.register(SetScriptBindingsCodec)?;
     Ok(())
 }
 
@@ -164,4 +165,21 @@ fn command_decode_error(
     error: crate::core::editing::engine::EditCommandError,
 ) -> JournalCodecDecodeError {
     JournalCodecDecodeError::invalid_payload(error.to_string())
+}
+
+struct SetScriptBindingsCodec;
+impl EditCommandCodec for SetScriptBindingsCodec {
+    fn command_type(&self) -> &str {
+        crate::core::editing::command::SET_SCRIPT_BINDINGS_JOURNAL
+    }
+    fn schema_version(&self) -> u16 {
+        SCHEMA_VERSION
+    }
+    fn decode(&self, payload: &serde_json::Value) -> Result<CommandBox, JournalCodecDecodeError> {
+        use crate::core::editing::command::SetScriptBindingsCommand;
+        let payload = decode_payload(payload, self.command_type())?;
+        SetScriptBindingsCommand::from_journal(payload)
+            .map(|command| Box::new(EditorCommand::SetScriptBindings(command)) as CommandBox)
+            .map_err(command_decode_error)
+    }
 }

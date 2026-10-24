@@ -140,6 +140,21 @@ impl EditorHostEventController {
         })
     }
 
+    pub(crate) fn preflight_inspector_script_binding_set(
+        &self,
+        invocation: &EditorOperationInvocation,
+    ) -> Result<(), OperationCommandFactoryError> {
+        let request =
+            crate::core::editing::command::SetScriptBindingsRequest::from_invocation(invocation)?;
+        self.with_inspector_component_add_context(Some(&request.scope), |core, _| {
+            request.validate(core)
+        })
+        .map_err(|reason| OperationCommandFactoryError::InvalidArguments {
+            operation: invocation.operation_id.clone(),
+            reason,
+        })
+    }
+
     pub(crate) fn preflight_inspector_component_add(
         &self,
         invocation: &EditorOperationInvocation,

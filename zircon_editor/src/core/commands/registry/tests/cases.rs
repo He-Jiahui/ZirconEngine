@@ -194,7 +194,7 @@ fn default_palette_keeps_contextual_operations_registered_without_exposing_rows(
     let locale = i18n.active_locale();
     let context = CommandEvalCtx::interactive();
 
-    assert_eq!(registry.commands().count(), 75);
+    assert_eq!(registry.commands().count(), 76);
     assert_eq!(catalog.len(), 69);
     for id in [
         "view.editor.ui_asset.open",
@@ -203,6 +203,7 @@ fn default_palette_keeps_contextual_operations_registered_without_exposing_rows(
         "animation_graph.authoring.open_state_machine",
         "inspector.field.apply_batch",
         "inspector.component.add",
+        "inspector.script_binding.set",
     ] {
         let descriptor = registry
             .command(id)
