@@ -303,6 +303,71 @@ class PrefabManifestTests(unittest.TestCase):
                 entry.parse_cargo(argv, repo=ROOT, enforce_policy=False)
 
 
+class ParticlesManifestTests(unittest.TestCase):
+    def argv(self):
+        return ["test", "--manifest-path", str(ROOT / "zircon_plugins/Cargo.toml"),
+                "-p", "zircon_plugin_particles_editor", "--no-default-features", "--locked",
+                "--lib", "--profile", "test", "--jobs", "1", "source_tests::", "--", "--test-threads", "1"]
+
+    def test_particles_cli_receiver_and_physical_native_arguments_agree(self):
+        value = PluginManifestTests().recipe(entry.parse_cargo(self.argv(), repo=ROOT))
+        self.assertEqual(value["packages"], ["zircon_plugin_particles_editor"])
+        self.assertEqual(value["features"], [])
+        self.assertEqual(value["tests"], [])
+        self.assertEqual(value["testFilter"], "source_tests::")
+        self.assertEqual(value["profile"], "test")
+        self.assertEqual((value["jobs"], value["testThreads"]), (1, 1))
+        self.assertTrue(value["locked"] and value["lib"] and value["noDefaultFeatures"])
+        command = local.prepare_command(value["command"], Path("E:/cargo-targets/zircon-local/particles-route/target"))
+        self.assertEqual(command[command.index("--manifest-path") + 1], "zircon_plugins/Cargo.toml")
+        self.assertEqual(command[:command.index("--")].count("source_tests::"), 1)
+        self.assertEqual(command[-3:], ["--", "--test-threads", "1"])
+        self.assertNotIn("--features", command)
+        self.assertFalse(set(command) & {"--workspace", "--all-features", "--all-targets", "--tests", "--bins"})
+
+    def test_particles_receiver_rejects_foreign_filters_and_scope_widening(self):
+        original = entry.parse_cargo(self.argv(), repo=ROOT)
+        for change in [{"packages": ["zircon_plugin_ai_editor"]},
+                       {"packages": ["zircon_plugin_particles_editor", "zircon_editor"]},
+                       {"packages": ["zircon_editor"]}, {"features": ["runtime"]},
+                       {"profile": "dev"}, {"profile": "release"}, {"verb": "check"},
+                       {"testFilter": "authoring_tests::"}, {"testFilter": "material_graph_"},
+                       {"testFilter": "source_tests"}, {"testFilter": "source_curve_tests::"}, {"testFilter": None},
+                       {"lib": False, "tests": ["other"]}, {"noDefaultFeatures": False},
+                       {"allFeatures": True}, {"locked": False}, {"jobs": 2}, {"testThreads": 2},
+                       {"noRun": True}, {"harnessFilters": ["other"]}, {"exact": True}, {"ignored": True},
+                       {"nocapture": True}, {"cwd": str(ROOT)},
+                       {"manifestPath": "zircon_plugins/particles/editor/Cargo.toml"}]:
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                PluginManifestTests().recipe({**original, **change})
+
+    def test_particles_cli_policy_cannot_be_disabled_or_borrow_another_manifest(self):
+        for old, new in [("source_tests::", "source_tests"), ("source_tests::", "authoring_tests::"),
+                         ("source_tests::", "material_graph_"),
+                         ("zircon_plugin_particles_editor", "zircon_plugin_ai_editor"),
+                         ("--lib", "--bins"), ("--no-default-features", "--all-features"),
+                         (str(ROOT / "zircon_plugins/Cargo.toml"), "zircon_plugins/particles/editor/Cargo.toml"),
+                         (str(ROOT / "zircon_plugins/Cargo.toml"), "./zircon_plugins/Cargo.toml")]:
+            argv = self.argv()
+            argv[argv.index(old)] = new
+            with self.subTest(old=old, new=new), self.assertRaises(entry.EntryError):
+                entry.parse_cargo(argv, repo=ROOT, enforce_policy=False)
+
+    def test_particles_pool_identity_cannot_reuse_ai_or_root_workspace_outputs(self):
+        actor = object.__new__(runner.Management)
+        actor.repo_id, actor.payload = "repo", {}
+        preparation = SimpleNamespace(preparation_key=lambda *args: runner.sha(runner.encoded(args)))
+        particles = PluginManifestTests().recipe(entry.parse_cargo(self.argv(), repo=ROOT))
+        ai = PluginManifestTests().recipe(entry.parse_cargo(AiManifestTests().argv(), repo=ROOT))
+        root_recipe = {k: v for k, v in particles.items() if k != "manifestPath"}
+        with patch.object(runner, "plain", side_effect=lambda value: Path(value)), \
+             patch.object(Path, "is_file", return_value=True), \
+             patch.object(Path, "read_bytes", return_value=b"config"):
+            pools = [actor.batch_pool([recipe], preparation, {}, {}, ROOT, {})[0]
+                     for recipe in [particles, ai, root_recipe]]
+        self.assertEqual(len(set(pools)), 3)
+
+
 class AiManifestTests(unittest.TestCase):
     filters = ("authoring_tests::", "gameplay_debugger_tests::", "tests::pie_mirror_", "tests::perception_overlay_")
 
@@ -714,6 +779,85 @@ version = "0.1.0"
         path.write_text(original, encoding="utf-8")
         # Config inputs have their own digest/absence binding and native watcher,
         # distinct from the engine source inventory's manifest coverage.
+        inputs = self.inputs()
+        helper = runner.checkout_guard_helper()
+        guard = helper.CheckoutReadGuard(self.root, files=inputs["files"], watch_roots=[self.root]).acquire()
+        try:
+            self.write("zircon_plugins/.cargo/config.toml", '[build]\njobs = 1\n')
+            self.assertTrue(guard.wait_for_change(5))
+            with self.assertRaises(helper.CheckoutGuardChanged):
+                guard.assert_stable()
+            self.assertFalse(guard.finish()["stable"])
+        finally:
+            guard.close()
+        self.assertNotEqual(self.inputs()["inputDigest"], inputs["inputDigest"])
+
+    def select_particles(self):
+        path = self.root / "zircon_plugins/Cargo.toml"
+        path.write_text(path.read_text().replace('members = ["material_editor/editor"]',
+                        'members = ["material_editor/editor", "particles/editor"]'), encoding="utf-8")
+        self.write("zircon_plugins/particles/editor/Cargo.toml", '''[package]
+name = "zircon_plugin_particles_editor"
+version.workspace = true
+[dependencies]
+zircon_editor.workspace = true
+zircon_runtime.workspace = true
+''')
+        path = self.root / "zircon_plugins/Cargo.lock"
+        path.write_text(path.read_text() + '''[[package]]
+name = "zircon_plugin_particles_editor"
+version = "0.1.0"
+''', encoding="utf-8")
+        self.recipe = entry.parse_cargo(ParticlesManifestTests().argv(), repo=ROOT)
+
+    def test_particles_closure_binds_its_member_nested_lock_and_both_workspace_host_edges(self):
+        self.select_particles()
+        value = self.inputs()
+        self.assertEqual(value["selectedPackage"], "zircon_plugin_particles_editor")
+        self.assertEqual(value["selectedLockfile"], str(self.root / "zircon_plugins/Cargo.lock"))
+        self.assertEqual({p["name"] for p in value["packageManifests"].values()},
+                         {"zircon_plugin_particles_editor", "zircon_editor", "zircon_runtime"})
+        self.assertEqual(len(value["workspaceManifests"]), 2)
+        self.assertEqual({f for edge in value["pathDependencyEdges"] for f in edge["declaredFeatures"]},
+                         {"native-host", "target-editor-host"})
+        self.assertIsNone(value["files"][str(self.root / "zircon_plugins/.cargo/config.toml")])
+        self.assertFalse(value["cargoResolutionPerformed"])
+        self.assertEqual(value["inputDigest"], runner.sha(runner.encoded({k: v for k, v in value.items()
+                                                                        if k != "inputDigest"})))
+
+    def test_particles_member_name_membership_and_lock_cannot_fall_back_to_ai_or_material(self):
+        self.select_particles()
+        for relative, old, new, message in [
+                ("zircon_plugins/particles/editor/Cargo.toml", "zircon_plugin_particles_editor", "zircon_plugin_ai_editor", "mismatch"),
+                ("zircon_plugins/Cargo.toml", ', "particles/editor"', '', "not a member"),
+                ("zircon_plugins/Cargo.lock", "zircon_plugin_particles_editor", "other", "absent from the plugin lockfile")]:
+            path = self.root / relative
+            original = path.read_text()
+            path.write_text(original.replace(old, new), encoding="utf-8")
+            with self.subTest(relative=relative), self.assertRaisesRegex(ValueError, message):
+                self.inputs()
+            path.write_text(original, encoding="utf-8")
+
+    def test_particles_native_and_editor_host_edges_are_independently_required(self):
+        self.select_particles()
+        for relative, feature in [("zircon_plugins/Cargo.toml", "native-host"),
+                                  ("zircon_editor/Cargo.toml", "target-editor-host")]:
+            path = self.root / relative
+            original = path.read_text()
+            path.write_text(original.replace('features = ["' + feature + '"]', 'features = []'), encoding="utf-8")
+            with self.subTest(feature=feature), self.assertRaisesRegex(ValueError, "native/editor"):
+                self.inputs()
+            path.write_text(original, encoding="utf-8")
+
+    def test_particles_cross_workspace_change_and_added_config_invalidate_the_read_guard(self):
+        self.select_particles()
+        captured = self.capture()
+        original = (self.root / "zircon_editor/Cargo.toml").read_text()
+        self.write("zircon_editor/Cargo.toml", '[package]\nname = "foreign_change"\nversion = "0.1.0"\n')
+        with self.assertRaisesRegex(ValueError, "captured source"):
+            self.inputs(captured)
+        # Restore the foreign dependency before checking independently watched config absence.
+        self.write("zircon_editor/Cargo.toml", original)
         inputs = self.inputs()
         helper = runner.checkout_guard_helper()
         guard = helper.CheckoutReadGuard(self.root, files=inputs["files"], watch_roots=[self.root]).acquire()
