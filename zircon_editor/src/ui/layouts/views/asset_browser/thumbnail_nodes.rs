@@ -52,6 +52,15 @@ pub(super) fn append_asset_browser_thumbnail_slots(
 
     let additional_nodes =
         thumbnail_node_capacity(snapshot.visible_assets.len(), materialized_item_count);
+    // These slots have no authored layer. Keep them above the template surfaces
+    // that provide their viewport, preserving the order within each card.
+    let content_layer = nodes
+        .iter()
+        .map(|node| node.z_index)
+        .max()
+        .unwrap_or_default()
+        .saturating_add(1);
+    let slot_start = nodes.len();
     nodes.reserve(additional_nodes);
     nodes.push(thumbnail_grid_panel());
     for (index, asset) in snapshot
@@ -83,6 +92,9 @@ pub(super) fn append_asset_browser_thumbnail_slots(
         nodes.push(thumbnail_type_badge_node(index));
         nodes.push(thumbnail_type_node(index, asset, selected));
         nodes.push(thumbnail_meta_node(index, asset, selected));
+    }
+    for node in &mut nodes[slot_start..] {
+        node.z_index = content_layer;
     }
 }
 

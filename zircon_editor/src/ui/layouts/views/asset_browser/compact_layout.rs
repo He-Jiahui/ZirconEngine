@@ -91,6 +91,19 @@ pub(super) fn apply_asset_browser_compact_layout(
     let compact_width = !size.width.is_finite() || size.width < COMPACT_LAYOUT_WIDTH_THRESHOLD;
     let compact_height = !size.height.is_finite() || size.height < COMPACT_LAYOUT_HEIGHT_THRESHOLD;
     if !compact_width && !compact_height {
+        // Runtime thumbnail slots also need geometry in the authored wide layout.
+        if view_mode == AssetViewMode::Thumbnail {
+            if let Some(content) = node_frame(nodes, "AssetBrowserContentPanel") {
+                apply_compact_content_panel_layout(
+                    nodes,
+                    content.x,
+                    content.y,
+                    content.width,
+                    content.height,
+                    view_mode,
+                );
+            }
+        }
         return;
     }
 

@@ -46,6 +46,96 @@ fn browser_list_geometry_matches_the_painted_table_header_and_rows() {
 }
 
 #[test]
+fn browser_list_viewport_ignores_collapsed_duplicate_table_container() {
+    let metadata = asset_content_paint_metadata(
+        [
+            AssetContentPaintNodeInput::new(
+                "AssetBrowserAssetTablePanel",
+                158.0,
+                66.0,
+                531.0,
+                52.0,
+                280.0,
+            ),
+            AssetContentPaintNodeInput::new(
+                "WorkbenchAssetBrowserTableHeader",
+                158.0,
+                66.0,
+                531.0,
+                24.0,
+                0.0,
+            ),
+            AssetContentPaintNodeInput::new(
+                "WorkbenchAssetBrowserAssetRow01",
+                158.0,
+                90.0,
+                531.0,
+                28.0,
+                0.0,
+            ),
+            // Chrome surface copy of the same container after compact collapse.
+            AssetContentPaintNodeInput::new(
+                "AssetBrowserAssetTablePanel",
+                158.0,
+                66.0,
+                0.0,
+                0.0,
+                28.0,
+            ),
+            AssetContentPaintNodeInput::new(
+                "AssetBrowserContentPreviewCard",
+                158.0,
+                460.0,
+                531.0,
+                50.0,
+                0.0,
+            ),
+        ]
+        .into_iter(),
+        AssetContentSurface::Browser,
+    );
+
+    assert_eq!(
+        metadata.viewport(),
+        Some(AssetContentRect {
+            x: 158.0,
+            y: 90.0,
+            width: 531.0,
+            height: 28.0,
+        })
+    );
+    assert_eq!(
+        metadata.content_panel(),
+        Some(AssetContentRect {
+            x: 158.0,
+            y: 66.0,
+            width: 531.0,
+            height: 52.0,
+        })
+    );
+    assert_eq!(metadata.content_extent(), 280.0);
+    let (rows, visible_items) = metadata.visible_browser_node_rows(
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        AssetContentRect {
+            x: 0.0,
+            y: 0.0,
+            width: 900.0,
+            height: 620.0,
+        },
+    );
+    assert_eq!(visible_items, 1);
+    assert!(
+        rows.contains(&2),
+        "row 01 must be in the visit list: {rows:?}"
+    );
+}
+
+#[test]
 fn thumbnail_geometry_is_derived_from_the_same_dense_token_profile() {
     let metrics = AssetContentLayoutMetrics::for_surface(
         AssetContentSurfaceProfile::Activity,

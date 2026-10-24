@@ -142,8 +142,12 @@ impl AssetContentGeometry {
             AssetContentRowDescriptor::BrowserContent(BrowserContentNodeIdentity::TablePanel)
                 if surface == AssetContentSurface::Browser =>
             {
-                self.content_panel = Some(node.frame);
-                self.browser_table = Some((node.frame, node.value_number));
+                // Projection emits one row per render command and compact layout zeroes every
+                // container copy after the first, so only the first table defines the list.
+                if self.browser_table.is_none() {
+                    self.content_panel = Some(node.frame);
+                    self.browser_table = Some((node.frame, node.value_number));
+                }
             }
             AssetContentRowDescriptor::BrowserContent(BrowserContentNodeIdentity::Header)
                 if surface == AssetContentSurface::Browser =>

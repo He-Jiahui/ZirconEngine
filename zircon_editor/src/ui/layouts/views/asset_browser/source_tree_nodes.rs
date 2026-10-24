@@ -13,13 +13,22 @@ pub(super) fn sync_asset_browser_source_tree_nodes(
     nodes: &mut Vec<ViewTemplateNodeData>,
     snapshot: &AssetWorkspaceSnapshot,
 ) {
-    let Some(prototype) = nodes
+    let Some(mut prototype) = nodes
         .iter()
         .find(|node| node.control_id == SOURCE_ROW_PANEL_CONTROL_ID)
         .cloned()
     else {
         return;
     };
+
+    // Runtime rows replace an authored surface, so they must paint above the
+    // template backgrounds rather than inherit the prototype's background layer.
+    prototype.z_index = nodes
+        .iter()
+        .map(|node| node.z_index)
+        .max()
+        .unwrap_or_default()
+        .saturating_add(1);
 
     nodes.retain(|node| {
         !is_source_tree_row(node.control_id.as_str())
