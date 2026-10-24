@@ -41,7 +41,7 @@ RECIPE_FIELDS = frozenset({
     "verb", "packages", "features", "profile", "offline", "noDefaultFeatures",
     "allFeatures", "locked", "jobs", "lib", "tests", "testFilter", "noRun", "testThreads",
     "buildRoot", "requestedTargetDir", "bins", "allTests", "harnessFilters",
-    "exact", "ignored", "nocapture",
+    "exact", "ignored", "nocapture", "manifestPath",
 })
 
 
@@ -351,7 +351,29 @@ def authorize(repo, payload, *, context=None, automatic=False, origin_session=No
     return relative
 
 
-def parse_cargo(arguments, *, enforce_policy=True):
+def normalize_cargo_manifest(value, *, repo=None):
+    """Bind the CLI manifest to a catalog entry below the admitted source root.
+
+    Native cwd stays the admitted source root. Caller-selected cwd and arbitrary
+    manifests are not part of this bounded recipe.
+    """
+    choices = ("Cargo.toml", "zircon_plugins/Cargo.toml")
+    require(isinstance(value, str) and value and not any(c in value for c in "\0\r\n"),
+            "A catalog Cargo manifest is required", "cargo_manifest_unsupported")
+    if value in choices:
+        return value
+    if repo is not None:
+        root = plain(repo)
+        for relative in choices:
+            expected = root / relative
+            if value in {str(expected), expected.as_posix()}:
+                plain(expected)
+                return relative
+    raise EntryError("cargo_manifest_unsupported",
+                     "Select Cargo.toml or zircon_plugins/Cargo.toml below the selected repository")
+
+
+def parse_cargo(arguments, *, enforce_policy=True, repo=None):
     """Accept bounded Cargo options; explicit test profile requires cargo test."""
     args = list(arguments)
     require(args and args[0] in {"check", "build", "test"}, "Only check/build/test have a Jenkins recipe")
@@ -362,7 +384,8 @@ def parse_cargo(arguments, *, enforce_policy=True):
              "--all-features": "allFeatures", "--locked": "locked", "--lib": "lib", "--no-run": "noRun",
              "--bins": "bins", "--tests": "allTests"}
     options = {"-p": "packages", "--package": "packages", "--features": "features", "-F": "features",
-               "--profile": "profile", "-j": "jobs", "--jobs": "jobs", "--test": "tests"}
+               "--profile": "profile", "-j": "jobs", "--jobs": "jobs", "--test": "tests",
+               "--manifest-path": "manifestPath"}
     seen, after, index = set(), False, 0
     while index < len(args):
         token = args[index]
@@ -414,6 +437,10 @@ def parse_cargo(arguments, *, enforce_policy=True):
                         and inline not in recipe[field],
                         "Invalid or repeated Cargo selector")
                 recipe[field].append(inline)
+            elif field == "manifestPath":
+                require(field not in seen, "Repeated Cargo option: " + key)
+                recipe[field] = normalize_cargo_manifest(inline, repo=repo)
+                seen.add(field)
             elif field == "features":
                 features = re.split(r"[,\s]+", inline)
                 require(all(re.fullmatch(r"[A-Za-z0-9_:/.-]{1,120}", f) for f in features),
@@ -436,6 +463,8 @@ def parse_cargo(arguments, *, enforce_policy=True):
         else:
             raise EntryError("cargo_option_unsupported", "No Jenkins recipe for Cargo argument: " + token)
     require(1 <= len(recipe["packages"]) <= 8, "Select one to eight scoped packages with -p/--package")
+    require(recipe.get("manifestPath") != "zircon_plugins/Cargo.toml" or len(recipe["packages"]) == 1,
+            "The plugin workspace requires exactly one explicit package", "build_scope_policy")
     require(not (recipe["allFeatures"] and recipe["features"]), "--all-features cannot be mixed with --features")
     require(recipe["verb"] == "test" or not (recipe["noRun"] or "testFilter" in recipe),
             "Test selectors require cargo test")
@@ -1089,7 +1118,7 @@ def cargo_entry(repo, arguments, *, identity_file=None, target_dir=None, build_r
         # A named runtime preset explicitly selects its own feature set.
         require("--" not in scoped_arguments, "Runtime preset needs explicit --no-default-features before harness arguments")
         scoped_arguments.append("--no-default-features")
-    recipe = parse_cargo(scoped_arguments, enforce_policy=not query_only)
+    recipe = parse_cargo(scoped_arguments, enforce_policy=not query_only, repo=repo)
     if unlocked:
         require("--locked" not in arguments, "Unlocked input conflicts with --locked")
         recipe["locked"] = False
