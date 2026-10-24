@@ -233,6 +233,22 @@ class GltfManifestTests(unittest.TestCase):
             with self.subTest(manifest=manifest), self.assertRaises(entry.EntryError):
                 entry.parse_cargo(argv, repo=ROOT)
 
+    def test_gltf_targets_share_the_same_graph_pool_but_never_the_root_or_material_pool(self):
+        actor = object.__new__(runner.Management)
+        actor.repo_id, actor.payload = "repo", {}
+        preparation = SimpleNamespace(preparation_key=lambda *args: runner.sha(runner.encoded(args)))
+        gltf = [self.recipe(entry.parse_cargo(self.argv(lib=lib), repo=ROOT)) for lib in (False, True)]
+        material = self.recipe(entry.parse_cargo(PluginManifestTests().argv()))
+        root_recipe = {k: v for k, v in gltf[0].items() if k != "manifestPath"}
+        with patch.object(runner, "plain", side_effect=lambda value: Path(value)), \
+             patch.object(Path, "is_file", return_value=True), \
+             patch.object(Path, "read_bytes", return_value=b"config"):
+            pools = [actor.batch_pool([recipe], preparation, {}, {}, ROOT, {})[0]
+                     for recipe in [*gltf, material, root_recipe]]
+        self.assertEqual(pools[0], pools[1])
+        self.assertNotEqual(pools[0], pools[2])
+        self.assertNotEqual(pools[0], pools[3])
+
 
 class PluginWorkspaceInputTests(unittest.TestCase):
     def setUp(self):
