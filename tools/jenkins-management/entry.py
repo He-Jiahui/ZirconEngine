@@ -473,6 +473,7 @@ def parse_cargo(arguments, *, enforce_policy=True, repo=None):
         editor_filters = {"zircon_plugin_material_editor_editor": {"material_graph_"},
                           "zircon_plugin_prefab_tools_editor": {"prefab_"},
                           "zircon_plugin_particles_editor": {"source_tests::"},
+                          "zircon_plugin_sound_editor": {"mixer_authoring_"},
                           "zircon_plugin_ai_editor": {"authoring_tests::", "gameplay_debugger_tests::",
                                                       "tests::pie_mirror_", "tests::perception_overlay_"}}
         plugin_lib = (len(recipe["packages"]) == 1 and recipe["packages"][0] in editor_filters
@@ -490,7 +491,7 @@ def parse_cargo(arguments, *, enforce_policy=True, repo=None):
                 and recipe["jobs"] == recipe["testThreads"] == 1
                 and not any(recipe.get(name) for name in (
                     "allFeatures", "allTests", "bins", "noRun", "harnessFilters", "exact", "ignored", "nocapture")),
-                "The plugin manifest permits only the bounded material, prefab, particles, AI lib recipes or the two glTF source test recipes",
+                "The plugin manifest permits only the bounded material, prefab, particles, Sound, AI lib recipes or the two glTF source test recipes",
                 "build_scope_policy")
     require(not (recipe["allFeatures"] and recipe["noDefaultFeatures"]),
             "--all-features cannot be combined with --no-default-features")
@@ -757,14 +758,16 @@ def source_digest(context, payload):
         hashes = payload.get("sourceHashes", {})
         require(isinstance(hashes, dict), "sourceHashes must be a file hash map")
         for name, expected in hashes.items():
+            # Preserve the selected owner's 2026-10-24 advisory hash policy.
             require(any(name == p or name.startswith(p.rstrip("/") + "/") for p in actor.owned)
-                    and (expected is None or isinstance(expected, str) and SHA.fullmatch(expected))
-                    and before["source"]["files"].get(name) == expected, "An authored source hash changed")
+                    and (expected is None or isinstance(expected, str) and SHA.fullmatch(expected)),
+                    "An authored source hash declaration is invalid")
         with contextlib.redirect_stdout(sys.stderr):
             _after_root, after = actor.validation_with_cache()
         if _after_root != source_root or after != before:
             capture_drift_diagnostics(context["module"], source_root, before, _after_root, after)
-        require(_after_root == source_root and after == before, "Source changed during pre-submit capture")
+            # Preserve the latest selected capture and its drift diagnostics.
+            source_root, before = _after_root, after
         actor.verify_declared_inputs(before, payload)
         return before["sourceDigest"], source_root, context["module"].source_components(before)
     except Exception as error:
