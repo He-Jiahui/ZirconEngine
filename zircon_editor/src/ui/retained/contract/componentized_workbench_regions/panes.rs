@@ -88,29 +88,34 @@ fn mounted_module_workspace<'a>(
         {
             return false;
         }
-        let (source_node_id, source_suffix) = if let Some((source_node, suffix)) =
-            extension_workspace_source_identity(node.control_id.as_str())
-        {
-            (source_node.to_string(), suffix.to_string())
-        } else {
-            let (category, module) = match node.control_id.as_str() {
-                "WorkbenchModuleEffectWorkspace" => ("gameplay", "effect"),
-                "WorkbenchModuleMaterialWorkspace" => ("rendering", "material"),
-                "WorkbenchModuleBehaviorWorkspace" => ("ai", "behavior"),
-                "WorkbenchModuleAssetsWorkspace" => ("assets", "assets"),
-                "WorkbenchModuleVfxWorkspace" => ("rendering", "vfx"),
-                "WorkbenchModuleAbilityWorkspace" => ("gameplay", "ability"),
-                "WorkbenchModuleTagsWorkspace" => ("gameplay", "tags"),
-                "WorkbenchModulePerceptionWorkspace" => ("ai", "perception"),
-                "WorkbenchModuleRenderWorkspace" => ("rendering", "render"),
-                "WorkbenchModuleHudWorkspace" => ("ui", "hud"),
-                _ => return false,
+        let (source_node_id, source_suffix) =
+            if node.control_id.as_str() == "WorkbenchModuleAbilityWorkspace" {
+                (
+                    "ability_workspace".to_string(),
+                    "/modules/core/gameplay/ability_workspace.zui".to_string(),
+                )
+            } else if let Some((source_node, suffix)) =
+                extension_workspace_source_identity(node.control_id.as_str())
+            {
+                (source_node.to_string(), suffix.to_string())
+            } else {
+                let (category, module) = match node.control_id.as_str() {
+                    "WorkbenchModuleEffectWorkspace" => ("gameplay", "effect"),
+                    "WorkbenchModuleMaterialWorkspace" => ("rendering", "material"),
+                    "WorkbenchModuleBehaviorWorkspace" => ("ai", "behavior"),
+                    "WorkbenchModuleAssetsWorkspace" => ("assets", "assets"),
+                    "WorkbenchModuleVfxWorkspace" => ("rendering", "vfx"),
+                    "WorkbenchModuleTagsWorkspace" => ("gameplay", "tags"),
+                    "WorkbenchModulePerceptionWorkspace" => ("ai", "perception"),
+                    "WorkbenchModuleRenderWorkspace" => ("rendering", "render"),
+                    "WorkbenchModuleHudWorkspace" => ("ui", "hud"),
+                    _ => return false,
+                };
+                (
+                    format!("{module}_workspace"),
+                    format!("/workbench/modules/core/{category}/workbench_{module}_workspace.zui"),
+                )
             };
-            (
-                format!("{module}_workspace"),
-                format!("/workbench/modules/core/{category}/workbench_{module}_workspace.zui"),
-            )
-        };
         let Some(source) = node.source_surface_frame.as_ref() else {
             return false;
         };
@@ -167,7 +172,7 @@ fn extension_workspace_source_identity(control_id: &str) -> Option<(&'static str
         "WorkbenchExtensionSaveDataWorkspace" => Some(("save_data_workspace", "/workbench/modules/extensions/data/workbench_extension_save_data_workspace.zui")),
         "WorkbenchExtensionSequencerWorkspace" => Some(("sequencer_workspace", "/workbench/modules/extensions/animation/workbench_extension_sequencer_workspace.zui")),
         "WorkbenchExtensionMontageEditorWorkspace" => Some(("montage_editor_workspace", "/workbench/modules/extensions/animation/workbench_extension_montage_editor_workspace.zui")),
-        "WorkbenchExtensionBlendSpaceWorkspace" => Some(("blend_space_workspace", "/workbench/modules/extensions/animation/workbench_extension_blend_space_workspace.zui")),
+        "WorkbenchExtensionBlendSpaceWorkspace" => Some(("blend_space_workspace", "/animation/extension_blend_space_workspace.zui")),
         "WorkbenchExtensionPoseLibraryWorkspace" => Some(("pose_library_workspace", "/workbench/modules/extensions/animation/workbench_extension_pose_library_workspace.zui")),
         "WorkbenchExtensionRetargetWorkspace" => Some(("retarget_workspace", "/workbench/modules/extensions/animation/workbench_extension_retarget_workspace.zui")),
         "WorkbenchExtensionControlRigWorkspace" => Some(("control_rig_workspace", "/workbench/modules/extensions/animation/workbench_extension_control_rig_workspace.zui")),

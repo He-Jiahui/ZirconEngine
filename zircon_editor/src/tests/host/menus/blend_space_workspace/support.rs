@@ -199,9 +199,10 @@ pub(super) fn read_editor_asset_source(relative: &str) -> String {
 }
 
 fn activate_blend_space_workspace(bridge: &mut BuiltinWorkbenchWindowTemplateSurfaceBridge) {
+    // Ability navigation requires Preview before the Window menu is populated.
     bridge
         .set_preview_features(true)
-        .expect("preview workspace fixture");
+        .expect("Blend Space fixture should enable its Preview workspace");
     bridge
         .dispatch_control_state("MenuSlot2", UiEventKind::Click)
         .expect("Window menu should open through its live template control")
@@ -214,13 +215,53 @@ fn activate_blend_space_workspace(bridge: &mut BuiltinWorkbenchWindowTemplateSur
         .expect("Window menu should mount the selected Ability workspace")
         .expect("Ability menu item should expose its real module selection binding");
     assert!(
-        bridge.has_control("WorkbenchAbilityBlendSpaceButton"),
-        "the selected Ability workspace must own the live Blend Space gateway"
+        bridge.has_control("WorkbenchAbilityAnimationTools"),
+        "the selected Ability workspace must own its live Animation Tools menu"
     );
     bridge
-        .dispatch_control_state("WorkbenchAbilityBlendSpaceButton", UiEventKind::Click)
-        .expect("Blend Space gateway should mount its canonical extension workspace")
-        .expect("Blend Space gateway should expose its existing typed open binding");
+        .dispatch_control_state("WorkbenchAbilityAnimationTools", UiEventKind::Click)
+        .expect("Animation Tools should open through its authored control")
+        .expect("Animation Tools should expose its typed popup binding");
+    bridge
+        .dispatch_module_tools_menu_item_state(
+            "WorkbenchAbilityAnimationToolsMenu",
+            "menu.item.ability.blend_space",
+        )
+        .expect("Blend Space menu item should mount its canonical extension workspace")
+        .expect("the open Animation Tools menu should admit its Blend Space binding");
+}
+
+fn mounted_blend_space_bridge(
+    model: &WorkbenchViewModel,
+    width: u32,
+    height: u32,
+) -> BuiltinWorkbenchWindowTemplateSurfaceBridge {
+    // Select through the visible details-pane menu before exercising narrower tiers.
+    let navigation_width = width.max(1260);
+    let navigation_height = height.max(780);
+    let mut bridge =
+        workbench_window_bridge_for_visual_artifact(model, navigation_width, navigation_height);
+    activate_blend_space_workspace(&mut bridge);
+    if (width, height) != (navigation_width, navigation_height) {
+        let shell_size = UiSize::new(width as f32, height as f32);
+        let runtime = Arc::new(
+            load_startup_builtin_template_runtime()
+                .expect("startup template runtime should load for Blend Space resize"),
+        );
+        let host_bridge = BuiltinHostWindowTemplateBridge::new_with_runtime(runtime, shell_size)
+            .expect("host template should provide the target mount frame");
+        let mount_frame = host_bridge
+            .root_shell_frames()
+            .componentized_workbench_mount_frame(shell_size);
+        bridge
+            .recompute_mounted_layout_with_workbench_model_at_scale(
+                mount_frame,
+                1.0,
+                model,
+                &WorkbenchChromeMetrics::default(),
+            )
+            .expect("Blend Space should arrange inside the requested host mount");
+    }
 
     let nodes = crate::ui::retained_host::to_host_contract_workbench_window_nodes(Some(
         bridge.host_projection(),
@@ -229,6 +270,7 @@ fn activate_blend_space_workspace(bridge: &mut BuiltinWorkbenchWindowTemplateSur
     .cloned()
     .collect::<Vec<_>>();
     assert_blend_space_native_source_parent_chain(&nodes, &bridge.surface().surface_frame());
+    bridge
 }
 
 pub(super) fn assert_blend_space_native_source_parent_chain(
@@ -314,9 +356,7 @@ pub(super) fn open_blend_space_bridge(
         &crate::core::commands::EditorCommandRegistry::default_workbench(),
         &chrome,
     );
-    let mut bridge = workbench_window_bridge_for_visual_artifact(&model, width, height);
-    activate_blend_space_workspace(&mut bridge);
-    bridge
+    mounted_blend_space_bridge(&model, width, height)
 }
 
 pub(in super::super) fn blend_space_window(width: u32, height: u32) -> UiHostWindow {
@@ -339,8 +379,7 @@ pub(in super::super) fn blend_space_window(width: u32, height: u32) -> UiHostWin
         None,
     );
     let floating_windows = build_floating_window_projection_bundle(&model, None, &metrics, &[]);
-    let mut bridge = workbench_window_bridge_for_visual_artifact(&model, width, height);
-    activate_blend_space_workspace(&mut bridge);
+    let bridge = mounted_blend_space_bridge(&model, width, height);
     let ui = UiHostWindow::new().expect("workbench shell should instantiate for screenshot");
     ui.show()
         .expect("workbench shell should show for screenshot");
