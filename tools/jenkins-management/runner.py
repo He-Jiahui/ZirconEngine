@@ -607,6 +607,19 @@ def checkout_product_helper(config, *, required_schema=1):
     return module
 
 
+def cargo_manifest_environment(root, recipe):
+    """Keep workspace selection in the pool identity and admitted source tree."""
+    if "manifestPath" not in recipe:
+        return {}
+    relative = recipe["manifestPath"]
+    if not isinstance(relative, str) or relative not in {"Cargo.toml", "zircon_plugins/Cargo.toml"}:
+        raise ValueError("Unsupported catalog Cargo manifest")
+    manifest = plain(Path(root) / relative)
+    if not manifest.is_file():
+        raise ValueError("Selected Cargo manifest is absent from the admitted source root")
+    return {"cargoWorkspaceManifest": relative}
+
+
 def client_path(config, repo, name, *, capsule=None):
     """Resolve one pinned client; an absent clientRoot keeps canonical semantics."""
     clients = config.get("clientSources", {})
@@ -2941,7 +2954,7 @@ class Management:
         batch = payload.get("batch")
         fields = {"verb", "packages", "features", "profile", "offline", "noDefaultFeatures", "lib",
                   "tests", "testFilter", "noRun", "allFeatures", "locked", "jobs", "testThreads",
-                  "bins", "allTests", "harnessFilters", "exact", "ignored", "nocapture"}
+                  "bins", "allTests", "harnessFilters", "exact", "ignored", "nocapture", "manifestPath"}
         if (not isinstance(batch, dict)
                 or set(batch) - {"schemaVersion", "sharedSingleBatchRequired", "contractRef", "recipes", "stepEnvironments", "reuseValidation"}
                 or batch.get("schemaVersion") != 1 or batch.get("sharedSingleBatchRequired") is not True
@@ -3094,7 +3107,7 @@ class Management:
                 cargo_configuration[name] = sha(path.read_bytes())
         keys = set()
         for recipe in recipes:
-            compatibility = {**environment,
+            compatibility = {**environment, **cargo_manifest_environment(root, recipe),
                 **({"cargoAllFeatures": True} if recipe["allFeatures"] else {}),
                 "sourceCargoConfiguration": cargo_configuration}
             keys.add(preparation.preparation_key(self.repo_id, trusted, compatibility,
@@ -3768,7 +3781,7 @@ class Management:
                    "expectedSourceDigest", "expectedEngineSourceDigest", "externalCapturePolicy",
                    "sourceHashes", "dependencyHashes", "bins", "allTests", "harnessFilters",
                    "exact", "ignored", "nocapture", "worktreePreparationRef", "sourceEvidencePolicy",
-                   "fixedHistoryArchiveInput"}
+                   "fixedHistoryArchiveInput", "manifestPath"}
         if set(self.payload) - allowed:
             raise ValueError("Unsupported Cargo fields: " + ", ".join(sorted(set(self.payload) - allowed)))
         if ("sourceEvidencePolicy" in self.payload
@@ -3794,6 +3807,13 @@ class Management:
                 or not isinstance(tests, list) or len(tests) > 16
                 or any(not isinstance(t, str) or not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", t) for t in tests)):
             raise ValueError("Explicit bounded Cargo packages/features/test targets required")
+        manifest_fields = {}
+        if "manifestPath" in self.payload:
+            manifest = self.payload["manifestPath"]
+            if (not isinstance(manifest, str) or manifest not in {"Cargo.toml", "zircon_plugins/Cargo.toml"}
+                    or manifest == "zircon_plugins/Cargo.toml" and len(packages) != 1):
+                raise ValueError("A catalog Cargo manifest and one explicit plugin package are required")
+            manifest_fields["manifestPath"] = manifest
         verb, profile = self.payload.get("verb", "test"), self.payload.get("profile", "dev")
         if (verb not in {"check", "build", "test"} or profile not in {"dev", "release", "test"}
                 or profile == "test" and verb != "test"):
@@ -3828,6 +3848,8 @@ class Management:
         if verb == "test" and not ((options["lib"] and not tests) or (not options["lib"] and len(tests) == 1)):
             raise ValueError("build_scope_policy: select lib or exactly one test target")
         command = [verb, "--jobs", str(jobs), "--message-format=json"]
+        if manifest_fields:
+            command[1:1] = ["--manifest-path", manifest_fields["manifestPath"]]
         for name, flag in (("bins", "--bins"), ("allTests", "--tests")):
             if extra.get(name):
                 command.append(flag)
@@ -3856,7 +3878,7 @@ class Management:
             command += filters
         return {"verb": verb, "profile": profile, "packages": packages, "features": features,
                 "tests": tests, "testFilter": test_filter, "jobs": jobs, "testThreads": threads,
-                **options, **extra, "command": command,
+                **options, **extra, **manifest_fields, "command": command,
                 **({"fixedHistoryArchiveInput": archive_input} if archive_input is not None else {})}
 
     def verify_declared_engine(self, engine, payload):
@@ -4953,7 +4975,7 @@ class Management:
                         recipes, preparation, trusted, environment, root, before["dependencyCache"])
                 else:
                     recipe = recipes[0]
-                    compatibility = {**environment,
+                    compatibility = {**environment, **cargo_manifest_environment(root, recipe),
                         **({"cargoAllFeatures": True} if recipe["allFeatures"] else {}),
                         "sourceCargoConfiguration": {
                             name: value for name, value in before["source"]["files"].items()
@@ -5360,7 +5382,7 @@ class Management:
         amount = Capacity(parallelism, 2 * parallelism * 1024**3, 4 * 1024**3)
         environment, trusted, _policy_file = self.validation_environment()
         preparation = source_helper()
-        compatibility_environment = {**environment,
+        compatibility_environment = {**environment, **cargo_manifest_environment(root, recipe),
                                      **({"cargoAllFeatures": True} if recipe["allFeatures"] else {}),
                                      "sourceCargoConfiguration": {
             path: checksum for path, checksum in before["source"]["files"].items()
