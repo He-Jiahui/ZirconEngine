@@ -77,7 +77,7 @@ fn dynamic_component_registration_preflights_all_participants_before_publication
     let reflection_registration =
         position("crate::scene::reflect::registration_from_component_descriptor(&descriptor)?");
     let descriptor_validation =
-        position("self.component_types.validate_new_descriptor(&descriptor)?;");
+        position("self.component_types.validate_new_descriptor(&descriptor)");
     let duplicate_type_path = position("return Err(ReflectError::DuplicateTypePath");
     let component_adapter =
         position("crate::scene::reflect::reflect_component_for_dynamic_descriptor(&descriptor);");
@@ -100,6 +100,8 @@ fn dynamic_component_registration_preflights_all_participants_before_publication
     assert!(
         register.contains("component: Some(component),")
             && register.contains("resource: None,")
+            && register.contains("SceneError::DuplicateComponentType { type_id }")
+            && register.contains("ReflectError::DuplicateTypePath { type_path: type_id }.into()")
             && !register.contains("self.component_types.register(")
             && !register.contains("self.type_registry.register(")
             && !register.contains("error.to_string()")

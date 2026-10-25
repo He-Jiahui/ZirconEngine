@@ -6,7 +6,7 @@ use crate::scene::components::{
 };
 use crate::scene::{derived_component_registration, TypeRegistry};
 
-use super::{active_in_hierarchy, hierarchy, script_bindings};
+use super::{active_in_hierarchy, gameplay, hierarchy, script_bindings};
 
 pub(in crate::scene::reflect) fn register(registry: &mut TypeRegistry) -> Result<(), ReflectError> {
     registry.register(derived_component_registration::<Name>()?)?;
@@ -25,5 +25,6 @@ pub(in crate::scene::reflect) fn register(registry: &mut TypeRegistry) -> Result
     registry.register(derived_component_registration::<SpotLight>()?)?;
     registry.register(derived_component_registration::<RigidBodyComponent>()?)?;
     registry.register(script_bindings::registration()?)?;
+    gameplay::register(registry)?;
     Ok(())
 }

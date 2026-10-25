@@ -2,6 +2,8 @@
 mod active_in_hierarchy;
 #[path = "component_support.rs"]
 mod component_support;
+#[path = "gameplay.rs"]
+mod gameplay;
 #[path = "hierarchy.rs"]
 mod hierarchy;
 #[path = "registration.rs"]

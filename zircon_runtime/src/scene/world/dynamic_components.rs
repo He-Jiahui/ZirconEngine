@@ -121,7 +121,15 @@ impl World {
     ) -> SceneResult<()> {
         let registration =
             crate::scene::reflect::registration_from_component_descriptor(&descriptor)?;
-        self.component_types.validate_new_descriptor(&descriptor)?;
+        if let Err(error) = self.component_types.validate_new_descriptor(&descriptor) {
+            // World exposes reflection identity errors; keep descriptor-only errors intact.
+            return Err(match error {
+                SceneError::DuplicateComponentType { type_id } => {
+                    ReflectError::DuplicateTypePath { type_path: type_id }.into()
+                }
+                error => error,
+            });
+        }
         if self.type_registry.contains(&descriptor.type_id) {
             return Err(ReflectError::DuplicateTypePath {
                 type_path: descriptor.type_id.clone(),
