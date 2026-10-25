@@ -31,6 +31,24 @@ function catalogFixture() {
   return { sets: [{ active: true, tokens: [{ name: 'editor.surface.base', type: 'color', resolvedValue: '#151515' }] }] };
 }
 
+test('shared exporter starts without Web globals and preserves Unicode manifest and ZIP bytes', async () => {
+  const original = Object.getOwnPropertyDescriptor(globalThis, 'TextEncoder');
+  try {
+    Object.defineProperty(globalThis, 'TextEncoder', { value: undefined, configurable: true });
+    const sandboxBundle = await import('./bundle.mjs?without-web-text-encoder');
+    const file = { id: '中文界面-é-😀-\ud800', revision: 7 };
+    const entries = { 'screens/board.json': Uint8Array.from([0, 127, 128, 255]) };
+    const sandbox = await sandboxBundle.createBundle(entries, [file], async bytes => sha256(bytes));
+    assert.deepEqual(sandbox.entries['manifest.json'],
+      new Uint8Array(Buffer.from(stableJson(sandbox.manifest) + '\n', 'utf8')));
+    const reference = await createBundle(entries, [file], async bytes => sha256(bytes));
+    assert.deepEqual(sandboxBundle.zipBundle(sandbox.entries), zipBundle(reference.entries));
+  } finally {
+    if (original) Object.defineProperty(globalThis, 'TextEncoder', original);
+    else delete globalThis.TextEncoder;
+  }
+});
+
 test('a fresh Penpot board originates a normalized bundle without imported ZUI metadata', async () => {
   const board = boardFixture();
   const screen = normalizeBoard(board, contract, 'project', 'shell/project_browser.zui', ['file-fixture']);

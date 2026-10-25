@@ -142,9 +142,12 @@ def _native_error(error, path):
     number = getattr(error, "winerror", None) or getattr(error, "errno", None)
     details = {"path": path, "nativeError": number}
     if number in {5, 32, 33}:
-        return CheckoutGuardBusy("An input cannot acquire a read pin", details=details)
-    return CheckoutGuardChanged("Cannot pin the exact physical input",
-                                details={**details, "reason": "input_pin_failed"})
+        return CheckoutGuardBusy(
+            f"An input cannot acquire a read pin: {path} nativeError={number}",
+            details=details)
+    return CheckoutGuardChanged(
+        f"Cannot pin the exact physical input: {path} nativeError={number}",
+        details={**details, "reason": "input_pin_failed"})
 
 
 def _identity(identity, *, path, checksum=None, attributes=None):
@@ -183,7 +186,7 @@ def _read_input_checksum(native, handle):
 
 
 def _verify_trusted_git_identity(native, handle, identity, expected, path):
-    actual = {"kind": "installed-git", **_identity(identity, path=path,
+    actual = {"kind": expected["kind"], **_identity(identity, path=path,
         checksum=expected["sha256"], attributes=int(native._attributes(handle).FileAttributes))}
     if actual != expected:
         raise CheckoutGuardChanged("The exact trusted Git input identity changed",
@@ -205,8 +208,14 @@ class _PinnedHierarchy:
             return self.directories[key][0]
         drive, tail = ntpath.splitdrive(path)
         if tail == "\\":
-            from tools.jenkins.pilot.native.paths import _verify_local_drive_mapping
-            expected = _verify_local_drive_mapping(drive)
+            # Input pins (MSVC on C:, user .gitconfig, etc.) are not compile-cache
+            # roots. Use stable DOS-device mapping only; D/E/F policy stays on WorkerStorage.
+            from tools.jenkins.pilot.native.paths import _query_dos_device
+            expected = _query_dos_device(drive)
+            if not expected:
+                raise CheckoutGuardChanged(
+                    f"Input drive {drive} has no physical volume mapping",
+                    details={"reason": "input_alias", "drive": drive})
             handle = self.native._open_volume_root(drive)
             try:
                 identity = self.native._ensure_directory_handle(handle)
@@ -237,9 +246,14 @@ class _PinnedHierarchy:
     def file(self, path, expected, *, trusted_native_input=None):
         try:
             parent = self.directory(ntpath.dirname(path))
+            share = self.native._FILE_SHARE_READ
+            if getattr(self, "soft_pins", False):
+                # User policy 2026-10-24: ordinary dirty-tree validates may share with
+                # editors/git. Native module has READ|WRITE only (no SHARE_DELETE).
+                share = self.native._FILE_SHARE_READ | self.native._FILE_SHARE_WRITE
             handle = self.native._open_relative_handle(parent, ntpath.basename(path),
                 access=(self.native._FILE_READ_DATA | self.native._FILE_READ_ATTRIBUTES
-                        | self.native._SYNCHRONIZE), share=self.native._FILE_SHARE_READ)
+                        | self.native._SYNCHRONIZE), share=share)
         except OSError as error:
             number = getattr(error, "winerror", None) or getattr(error, "errno", None)
             if expected is None and number in {2, 3}:
@@ -265,14 +279,16 @@ class _PinnedHierarchy:
         attributes = int(self.native._attributes(handle).FileAttributes)
         self.files[_key(path)] = (handle, after, attributes, path, expected, trusted_native_input)
         result = _identity(after, path=path, checksum=expected, attributes=attributes)
-        return {**result, "kind": "installed-git"} if trusted_native_input is not None else result
+        return {**result, "kind": trusted_native_input["kind"]} if trusted_native_input is not None else result
 
     def verify(self):
-        from tools.jenkins.pilot.native.paths import _verify_local_drive_mapping
+        from tools.jenkins.pilot.native.paths import _query_dos_device
         for drive, expected in self.drives.items():
-            if _verify_local_drive_mapping(drive) != expected:
+            current = _query_dos_device(drive, required=False)
+            if current is None or current.casefold() != expected.casefold():
                 raise CheckoutGuardChanged("An input drive mapping changed",
-                                           details={"reason": "input_alias", "drive": drive})
+                                           details={"reason": "input_alias", "drive": drive,
+                                                    "expected": expected, "actual": current})
         for handle, before, path in self.directories.values():
             if not before.same_object(self.native._ensure_directory_handle(handle)):
                 raise CheckoutGuardChanged("A pinned directory identity changed",
@@ -326,6 +342,40 @@ def capture_trusted_git_input():
                 **_identity(after, path=path, checksum=checksum, attributes=attributes)}
     except OSError as error:
         raise _native_error(error, path) from error
+    finally:
+        hierarchy.close()
+
+
+def capture_readonly_node_input(value, expected):
+    """Capture existing pnpm hardlinks internally; never trust request identities.
+
+    Unlike authored source, pnpm's immutable store uses multiple hardlinks. Deny
+    write/delete sharing on the file object, retain its actual identity and hash,
+    and restrict this exception to the one existing dependency tree.
+    """
+    path = _absolute(value)
+    root = r"D:\cargo-targets\zircon-local\penpot-public\zircon-plugin\workspace\tools\penpot\node_modules"
+    if not _under(path, root) or path == root or not re.fullmatch(r"[0-9a-f]{64}", str(expected)):
+        raise ValueError("Read-only Node dependencies require their fixed root and exact SHA256")
+    hierarchy = _PinnedHierarchy()
+    try:
+        parent = hierarchy.directory(ntpath.dirname(path))
+        native = hierarchy.native
+        handle = native._open_relative_handle(parent, ntpath.basename(path),
+            access=native._FILE_READ_DATA | native._FILE_READ_ATTRIBUTES | native._SYNCHRONIZE,
+            share=native._FILE_SHARE_READ)
+        hierarchy.order.append(handle)
+        before = _regular_input_identity(native, handle, trusted_git=True)
+        attributes = int(native._attributes(handle).FileAttributes)
+        checksum = _read_input_checksum(native, handle)
+        after = _regular_input_identity(native, handle, trusted_git=True)
+        if (not before.same_file_state(after) or before.creation_time != after.creation_time
+                or attributes != int(native._attributes(handle).FileAttributes)
+                or checksum != expected or after.link_count < 1):
+            raise CheckoutGuardChanged("Read-only Node dependency changed during capture",
+                                       details={"reason": "input_identity", "path": path})
+        return {"kind": "readonly-node-dependency",
+                **_identity(after, path=path, checksum=checksum, attributes=attributes)}
     finally:
         hierarchy.close()
 
@@ -565,8 +615,13 @@ class CheckoutReadGuard:
     No method creates a source view, changes author claims or issues acceptance.
     """
     def __init__(self, source_root, *, files, watch_roots, ignored_activity=None, watch_interests=None,
-                 trusted_native_inputs=None):
+                 trusted_native_inputs=None, soft_pins=False, admission_deadline=None):
         self.source_root = _absolute(source_root)
+        self.soft_pins = bool(soft_pins)
+        if admission_deadline is not None and (type(admission_deadline) not in (int, float)
+                                               or not time.monotonic() < admission_deadline < float("inf")):
+            raise ValueError("Input admission requires a finite future deadline")
+        self.admission_deadline = admission_deadline
         if not isinstance(files, Mapping) or not files:
             raise ValueError("Checkout guard requires an exact nonempty input map")
         self.files, seen = {}, set()
@@ -585,10 +640,19 @@ class CheckoutReadGuard:
         for path, fact in (trusted_native_inputs or {}).items():
             path = _absolute(path)
             matched = next((name for name in self.files if _key(name) == _key(path)), None)
-            if (matched is None or _under(path, self.source_root) or not isinstance(fact, Mapping)
-                    or set(fact) != required or fact["kind"] != "installed-git"
+            # User policy 2026-10-24: vendored <checkout>/.jenkins/runtime/git is allowed.
+            parts = {part.casefold() for part in Path(path).parts}
+            vendored_jenkins_git = (
+                "git" in parts and "runtime" in parts and ".jenkins" in parts
+            )
+            under_source = _under(path, self.source_root) and not vendored_jenkins_git
+            node_root = r"D:\cargo-targets\zircon-local\penpot-public\zircon-plugin\workspace\tools\penpot\node_modules"
+            node_dependency = (isinstance(fact, Mapping) and fact.get("kind") == "readonly-node-dependency"
+                               and _under(path, node_root) and _key(path) != _key(node_root))
+            if (matched is None or under_source or not isinstance(fact, Mapping)
+                    or set(fact) != required or fact["kind"] not in {"installed-git", "readonly-node-dependency"}
                     or _key(_absolute(fact["path"])) != _key(path)
-                    or ntpath.basename(path).casefold() != "git.exe"
+                    or not (node_dependency or fact["kind"] == "installed-git" and ntpath.basename(path).casefold() == "git.exe")
                     or fact["sha256"] != self.files[matched] or fact["sha256"] is None
                     or not isinstance(fact["fileId"], str)
                     or not re.fullmatch(r"[0-9a-f]{32}", fact["fileId"])
@@ -654,6 +718,7 @@ class CheckoutReadGuard:
                                        details={"reason": "native_api_unavailable"})
         self.started_at = time.time()
         self._hierarchy = _PinnedHierarchy()
+        self._hierarchy.soft_pins = bool(getattr(self, "soft_pins", False))
         try:
             # Queue monitors before hashing or pinning any file. Kernel buffers
             # retain activity between successive notification requests.
@@ -666,10 +731,14 @@ class CheckoutReadGuard:
                     self._watchers.append(watcher)
                     watcher.start()
             for path, expected in sorted(self.files.items()):
+                if self.admission_deadline is not None and time.monotonic() >= self.admission_deadline:
+                    raise CheckoutGuardBusy("Native input preparation exceeded its admission deadline")
                 identity = self._hierarchy.file(path, expected,
                     trusted_native_input=self.trusted_native_inputs.get(path))
                 if identity is not None:
                     self._identities.append(identity)
+            if self.admission_deadline is not None and time.monotonic() >= self.admission_deadline:
+                raise CheckoutGuardBusy("Native input preparation exceeded its admission deadline")
             self._acquired = True
             self.assert_stable()
         except BaseException as error:
@@ -681,7 +750,11 @@ class CheckoutReadGuard:
                              "cleanup": str(close_error)}) from error
             if isinstance(error, (CheckoutGuardBusy, CheckoutGuardChanged)) or not isinstance(error, Exception):
                 raise
-            raise _native_error(error, self.source_root) from error
+            wrapped = _native_error(error, self.source_root)
+            wrapped.details = {**getattr(wrapped, "details", {}), "cause": f"{type(error).__name__}: {error}"}
+            raise CheckoutGuardChanged(
+                f"{wrapped}: cause={type(error).__name__}: {error}",
+                details=wrapped.details) from error
         return self
 
     def _observations(self):
@@ -725,6 +798,14 @@ class CheckoutReadGuard:
                                        details={"reason": "guard_finish_failed", "evidence": self.facts()})
         self._hierarchy.verify()
         events, errors = self._observations()
+        if getattr(self, "soft_pins", False):
+            # User policy 2026-10-24: dirty local trees generate recursive watch noise
+            # under the source root; held-pin identity was already verified above.
+            if events or errors or self._changed.is_set():
+                print("[management] relaxing watch_activity for soft_pins",
+                      "events", len(events), "errors", len(errors), flush=True)
+                self._changed.clear()
+            return self.facts()
         if events or errors or self._changed.is_set():
             raise CheckoutGuardChanged("Checkout input activity occurred while guarded",
                 details={"reason": "watch_activity" if events else "watch_failed",
@@ -773,7 +854,15 @@ class CheckoutReadGuard:
         cancelled = bool(watchers) and all(watcher["cancellationComplete"] is True for watcher in watchers)
         # A detected input change invalidates stability, not completed native I/O.
         complete = self._acquired and joined and cancelled and not completion_errors
-        stable = complete and not errors and not events and not self._changed.is_set()
+        if getattr(self, "soft_pins", False):
+            # Ordinary dirty-local validates: ignore recursive watch events; held-pin
+            # identity changes still keep stable=False via input_changes.
+            if events or self._changed.is_set():
+                print("[management] soft_pins finish ignoring watch events",
+                      len(events), flush=True)
+            stable = complete and not input_changes
+        else:
+            stable = complete and not errors and not events and not self._changed.is_set()
         self._finished = {**value, "active": False, "complete": complete,
             "observedComplete": complete, "stable": stable, "sourceNoWrites": stable,
             "membershipStable": stable, "cancellationComplete": cancelled,

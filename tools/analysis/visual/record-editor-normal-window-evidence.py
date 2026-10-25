@@ -56,6 +56,37 @@ def source_identity(value: dict) -> tuple | None:
     return result if all(isinstance(part, str) and part for part in result) else None
 
 
+def paint_identity(value: dict) -> tuple | None:
+    """Keep authored provenance and qualify real property rows by owner/item.
+
+    A physical slot or generated control name cannot identify the model item
+    after scrolling. Missing repeat metadata stays unknown rather than joining
+    the last style painted for the same prefab.
+    """
+    authored = source_identity(value)
+    if authored is None:
+        return None
+    item, field = value.get("itemKey"), value.get("propertyFieldId")
+    if item in (None, "") and field in (None, ""):
+        return authored
+    if (not isinstance(item, str) or not item.isascii() or not item.isdecimal() or
+            str(int(item)) != item or int(item) >= 1 << 128 or
+            not isinstance(field, str) or not field.strip()):
+        return None
+    owner = tuple(value.get(key) for key in
+                  ("parentSourcePath", "parentSourceNodeId", "parentInstancePath"))
+    if not all(isinstance(part, str) and part for part in owner):
+        return None
+    return (*authored, (*owner, item))
+
+
+def same_paint_identity(first: dict, second: dict) -> bool:
+    identity = paint_identity(first)
+    return (identity is not None and identity == paint_identity(second) and
+            (first.get("itemKey") in (None, "") or
+             first.get("propertyFieldId") == second.get("propertyFieldId")))
+
+
 def native_row_identity_valid(value: object) -> bool:
     return (isinstance(value, dict) and isinstance(value.get("nodeId"), str) and bool(value["nodeId"]) and
             isinstance(value.get("index"), int) and not isinstance(value["index"], bool) and value["index"] >= 0)
@@ -75,7 +106,7 @@ def shaped_line_text(line: dict) -> str:
     return text
 
 
-def present_observations(profile: dict, repo: Path, scale: float) -> dict:
+def present_observations(profile: dict, repo: Path, scale: float, scene_media_proof: dict | None = None) -> dict:
     """Join actual submitted commands, source owners, faces and resolver receipts.
 
     A successful GPU image residency receipt and a verified resolver receipt
@@ -93,18 +124,21 @@ def present_observations(profile: dict, repo: Path, scale: float) -> dict:
         issues.append("No complete source-bound successful GPU present snapshot")
     styles = {}
     for style in paint.get("styles") or []:
-        identity = source_identity(style)
+        identity = paint_identity(style)
         if identity in styles:
             issues.append(f"Duplicate resolved style owner: {identity}")
         if identity:
             styles[identity] = style
     semantic = []
     for node in normal.get("semanticNodes") or []:
-        identity = source_identity(node)
+        identity = paint_identity(node)
         if not identity:
             issues.append("A painted semantic node has no immutable source identity")
             continue
         style = styles.get(identity) or {}
+        if not same_paint_identity(node, style):
+            issues.append(f"No unique resolved style for the current painted owner: {identity}")
+            style = {}
         semantic.append({**node, "bounds": logical_rect(node.get("bounds"), scale),
                          "clip": logical_rect(node.get("clip"), scale),
                          "effectiveStyle": style.get("effectiveStyle"),
@@ -140,7 +174,7 @@ def present_observations(profile: dict, repo: Path, scale: float) -> dict:
     nodes, fingerprints, faces, font_issues = [], {}, {}, []
     for run in submitted.get("runs") or []:
         source = run.get("source") or {}
-        identity = source_identity(source)
+        identity = paint_identity(source)
         command = commands.get(run.get("commandIndex")) or {}
         native_identity = None
         command_source = command.get("source") or {}
@@ -158,7 +192,7 @@ def present_observations(profile: dict, repo: Path, scale: float) -> dict:
             else:
                 font_issues.append("A submitted native row text run lacks its actual draw and source owner closure")
                 continue
-        if not identity or (native_identity is None and source_identity(command_source) != identity):
+        if not identity or (native_identity is None and not same_paint_identity(source, command_source)):
             font_issues.append("A submitted text run has no unique matching source command")
             continue
         observed_faces = []
@@ -220,10 +254,24 @@ def present_observations(profile: dict, repo: Path, scale: float) -> dict:
     media_issues = []
     for command in image_commands:
         payload = command["paint"]
-        identity = source_identity(command.get("source") or {})
+        command_source = command.get("source") or {}
+        identity = paint_identity(command_source)
+        if scene_media_proof and scene_media_proof.get("sceneVerified") is True and command.get("commandIndex") == scene_media_proof.get("commandIndex"):
+            scene = scene_media_proof["sceneImage"]
+            if (scene.get("resourceKey") != payload.get("resourceKey") or scene.get("resourceGeneration") != payload.get("generation") or
+                    scene.get("sourceRef") != command_source.get("sourceRef") or source_identity(scene.get("owner") or {}) != source_identity(command_source) or
+                    payload.get("residentAfterSuccessfulPresent") is not True):
+                raise ValueError("Verified runtime scene does not own this actual submitted image command")
+            resources.append({"kind": "runtime-product-scene", "authority": scene_media_proof["authority"],
+                              "sceneVerified": True, "resourceKey": payload["resourceKey"], "gpuGeneration": payload["generation"],
+                              "residentAfterSuccessfulPresent": True, "owner": scene["owner"], "viewportRoot": scene["viewportRoot"],
+                              "sourceRef": scene["sourceRef"], "rawSha256": scene["rawSha256"], "pngSha256": scene["pngSha256"],
+                              "rgba8Sha256": scene["rgba8Sha256"], "conversion": scene["conversion"],
+                              "nonce": scene_media_proof["nonce"], "bootstrapNonce": scene_media_proof["bootstrapNonce"]})
+            continue
         matches = [receipt for receipt in receipts
                    if receipt.get("resourceKey") == payload.get("resourceKey") and
-                   source_identity(receipt) == identity and identity is not None]
+                   same_paint_identity(receipt, command_source) and identity is not None]
         if len(matches) != 1:
             media_issues.append(f"No unique actual resolver receipt for GPU image {payload.get('resourceKey')}")
             continue
@@ -246,7 +294,8 @@ def present_observations(profile: dict, repo: Path, scale: float) -> dict:
             "fontAudit": {"loaded": complete and bool(nodes) and not font_issues,
                           "issues": font_issues, "faces": list(faces.values())},
             "mediaReadiness": {"complete": complete and not media_issues,
-                               "resources": resources, "issues": media_issues},
+                               "resources": resources, "issues": media_issues,
+                               "sceneVerified": bool(scene_media_proof and scene_media_proof.get("sceneVerified") is True)},
             "semanticAudit": {"complete": complete and bool(semantic) and not issues,
                               "coverage": "painted-template-models", "issues": issues},
             "focusPublication": normal.get("focusPublication"), "normal": normal,
@@ -302,6 +351,7 @@ def record(args: argparse.Namespace) -> Path:
             {axis: capture["screenshot"][axis] for axis in expected_physical} != expected_physical):
         raise ValueError("GPU present and desktop PNG must match the physical case extent")
     pixel_proof = None
+    scene_media_proof = {}
     pixel_proof_path = getattr(args, "pixel_association", None)
     if pixel_proof_path is not None:
         pixel_proof_path = pixel_proof_path.resolve(strict=True)
@@ -309,7 +359,7 @@ def record(args: argparse.Namespace) -> Path:
         pixel_proof, screenshot, profile_path, profile = validate_association(
             pixel_proof_path, canonical_sha(case),
             (expected_physical["width"], expected_physical["height"]), scale,
-            manifest["binaries"]["editor"], bound_focus, case)
+            manifest["binaries"]["editor"], bound_focus, case, scene_media_proof)
         validate_capture_instance(pixel_proof, capture, project, pixel_proof_path)
         if (pixel_proof.get("actualMonitor") or {}).get("deviceName") != capture["capture_monitor_device_name"]:
             raise ValueError("Matched normal pixel frame moved to a different actual display")
@@ -327,7 +377,9 @@ def record(args: argparse.Namespace) -> Path:
     image_path = output / "editor-normal-window.png"
     shutil.copyfile(screenshot, image_path)
     submitted = profile.get("submitted_gpu_text") or {}
-    observations = present_observations(profile, repo, scale)
+    if "runtimeSceneMedia" in ((case.get("data") or {}).get("normal_window_evidence") or {}) and not scene_media_proof.get("sceneVerified"):
+        raise ValueError("Runtime scene case requires two actual source-bound nonce readbacks")
+    observations = present_observations(profile, repo, scale, scene_media_proof)
     semantic = observations["semanticNodes"]
     case_hash = canonical_sha(case)
     reasons = [
@@ -346,6 +398,7 @@ def record(args: argparse.Namespace) -> Path:
                 "coordinateSpace": "logical", "captureSequence": profile["capture_sequence"],
                 "rawProfilePath": str(profile_path), "rawProfileSha256": sha(profile_path),
                 "pixelFrameVerified": pixel_proof is not None,
+                "sceneVerified": scene_media_proof.get("sceneVerified") is True,
                 "pixelAssociation": pixel_proof,
                 "pixelAssociationReceiptPath": str(pixel_proof_path) if pixel_proof_path else None,
                 "pixelAssociationReceiptSha256": sha(pixel_proof_path) if pixel_proof_path else None}

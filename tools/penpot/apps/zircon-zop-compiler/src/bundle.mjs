@@ -1,6 +1,19 @@
 import { safeEntry, stableJson, VERSION } from './contract.mjs';
 
-const utf8 = new TextEncoder();
+// Penpot's SES compartment provides ECMAScript intrinsics, without TextEncoder.
+// Keep this shared bundle encoder independent of browser and Node globals.
+const utf8 = { encode(value) {
+  const bytes = [];
+  for (const character of value) {
+    let point = character.codePointAt(0);
+    if (point >= 0xd800 && point <= 0xdfff) point = 0xfffd;
+    if (point < 0x80) bytes.push(point);
+    else if (point < 0x800) bytes.push(0xc0 | (point >>> 6), 0x80 | (point & 0x3f));
+    else if (point < 0x10000) bytes.push(0xe0 | (point >>> 12), 0x80 | ((point >>> 6) & 0x3f), 0x80 | (point & 0x3f));
+    else bytes.push(0xf0 | (point >>> 18), 0x80 | ((point >>> 12) & 0x3f), 0x80 | ((point >>> 6) & 0x3f), 0x80 | (point & 0x3f));
+  }
+  return Uint8Array.from(bytes);
+} };
 export async function createBundle(entries, files, digest) {
   if (!files.length || files.some(file => !file.id || !Number.isSafeInteger(file.revision) || file.revision < 0)) throw new Error('Export needs actual Penpot file IDs and revisions');
   const hashes = {};

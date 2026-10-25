@@ -2424,6 +2424,25 @@ def managed_prepare_worktree(management, *, preparation_helper):
 # evidence of local validation intent; it is never a fabricated user grant.
 _LOCAL_REQUEST_POLICY = "local-validation-v1"
 _LOCAL_CONTROL_ROOTS = {".git", ".jenkins", ".codex", ".opencode", "dev", "target", "build", "agents.md"}
+_NODE_READONLY_SDK_DEPENDENCIES = frozenset({
+    "dev/penpot/common/src/app/common/geom/shapes/constraints.cljc",
+    "dev/penpot/frontend/src/app/plugins/shape.cljs",
+})
+
+
+def _palette_readonly_cargo_config(payload):
+    """Recognize only the published palette lib recipe, never a writable scope."""
+    expected = {"action": "validate", "sourceView": "checkout", "verb": "test",
+                "manifestPath": "zircon_plugins/Cargo.toml",
+                "packages": ["zircon_plugin_animation_graph_editor"],
+                "features": [], "profile": "test",
+                "testFilter": "tests::graph_palette_matches_creatable_editor_capabilities"}
+    return (all(payload.get(name) == value for name, value in expected.items())
+            and all(payload.get(name) is True for name in ("noDefaultFeatures", "lib", "locked"))
+            and all(payload.get(name, False) is False for name in ("allFeatures", "noRun", "offline"))
+            and all(type(payload.get(name)) is int and payload[name] == 1 for name in ("jobs", "testThreads"))
+            and payload.get("tests", []) == [] and payload.get("target") is None
+            and payload.get("formalAcceptance", False) is False and payload.get("m8Accepted", False) is False)
 
 
 def local_request_principal(manager):
@@ -2598,6 +2617,16 @@ def admit_ordinary_context(state, repo, payload, *, principal, driver_digest, ru
     owned = payload.get("ownedPaths")
     if not isinstance(owned, list) or not owned:
         raise JenkinsError("invalid_source_path", "Local validation requires explicit owned paths")
+    node_recipe = payload.get("nodeRecipe")
+    readonly_sdk = (_NODE_READONLY_SDK_DEPENDENCIES
+                    if payload.get("action") in {"prepare-node", "validate-node"}
+                    and isinstance(node_recipe, dict)
+                    and type(node_recipe.get("schemaVersion")) is int
+                    and node_recipe["schemaVersion"] == 1
+                    and node_recipe.get("id") == "penpot-search-native-fill-tests-r1"
+                    else frozenset())
+    readonly_cargo_config = _palette_readonly_cargo_config(payload)
+    readonly_dependencies = {}
     requested = set()
     for path in [*owned, *payload.get("declaredDependencies", [])]:
         relative = _relative_path(path)
@@ -2613,6 +2642,31 @@ def admit_ordinary_context(state, repo, payload, *, principal, driver_digest, ru
             raise JenkinsError("local_input_invalid", "Source hashes must be explicit objects")
         for path, checksum in hashes.items():
             relative = _relative_path(path)
+            if (readonly_cargo_config and field == "dependencyHashes"
+                    and path == relative == ".cargo/config.toml"):
+                # Absence is a compiler input too. Keep it in the exact request
+                # digest without granting validation or implementation of .cargo.
+                reference = repo / relative
+                _plain(reference)
+                if checksum is None:
+                    matches = not reference.exists()
+                else:
+                    require_digest(checksum, field)
+                    matches = reference.is_file() and hashlib.sha256(reference.read_bytes()).hexdigest() == checksum
+                if not matches:
+                    raise JenkinsError("local_input_changed", "The read-only palette Cargo configuration changed")
+                readonly_dependencies[relative] = checksum
+                continue
+            if field == "dependencyHashes" and path == relative and relative in readonly_sdk:
+                # Retain the exact SDK input in this request's digest and Node
+                # capture, without adding dev to either validation or write scope.
+                require_digest(checksum, field)
+                reference = repo / relative
+                _plain(reference)
+                if not reference.is_file() or hashlib.sha256(reference.read_bytes()).hexdigest() != checksum:
+                    raise JenkinsError("local_input_changed", "The read-only Node SDK dependency changed: " + relative)
+                readonly_dependencies[relative] = checksum
+                continue
             if relative.split("/")[0] in _LOCAL_CONTROL_ROOTS or relative.startswith("."):
                 raise JenkinsError("invalid_source_path", "Control files are outside ordinary local validation")
             _plain(repo / relative)
@@ -2662,6 +2716,8 @@ def admit_ordinary_context(state, repo, payload, *, principal, driver_digest, ru
                  "inputDigest": contract_digest(payload), "requestedPaths": sorted(requested),
                  "driverDigest": driver_digest, "runtimeOperationId": runtime_operation_id,
                  "contextSnapshot": context["snapshotDigest"], "principal": context["principal"]}
+    if readonly_dependencies:
+        admission["readOnlyDependencyHashes"] = readonly_dependencies
     key = contract_digest(admission["identity"])
     with state.transaction() as connection:
         prior = state.get("local_request_admission", key, connection=connection)

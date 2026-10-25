@@ -9,6 +9,8 @@ Use this skill for any ZirconEngine application-facing layout work: Hub pages, e
 
 Apply [flow semantics](../zr-flow-layout-semantics/guide.md) when authoring or reviewing layout. Select [icon sizing](../zr-icon-size-scale/guide.md) for icon changes and [content contracts](../zr-i18n-content-contracts/guide.md) for visible copy, editable values, or collections. Reuse these references when already read. The ReactBits links remain the functional-design reference.
 
+For UE window reproduction through Penpot, read [shared components and fidelity](references/ue-penpot-fidelity.md). It covers editable component reuse, global customization, source-based comparison, and reporting incomplete reproduction. A user-selected reference engine takes precedence for that task's visual and behavioral target; retain the applicable local ownership and layout contracts.
+
 The two top-level catalogue views are the design index: [ReactBits Blocks](https://pro.reactbits.dev/docs/blocks) is the source for reusable marketing/product section composition, while [ReactBits Application UI](https://pro.reactbits.dev/docs/app-ui) is the source for application shells, controls, data surfaces, and workflow states. The detailed links in the reference map are the approved choices for a concrete surface.
 
 ## Non-negotiable reference rule

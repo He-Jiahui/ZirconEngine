@@ -30,6 +30,13 @@ try {
     foreach ($taskFeature in $Features) {
         if ($taskFeature -notmatch '^[A-Za-z0-9_][A-Za-z0-9_./+-]*$') { throw 'Select explicit Cargo feature names.' }
     }
+    $taskPalette = $Package -ceq 'zircon_plugin_animation_graph_editor'
+    if ($taskPalette -and ($Action -ne 'test' -or -not $LibTests -or $TestTarget -or
+            $TestFilter -cne 'tests::graph_palette_matches_creatable_editor_capabilities' -or
+            $Features.Count -ne 0 -or $Jobs -ne 1 -or $TestThreads -ne 1 -or
+            $NoRun -or $Release -or $Offline)) {
+        throw 'Animation palette validation requires the single bounded plugin lib test recipe.'
+    }
     $taskRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
     $taskPython = Join-Path $taskRepo '.jenkins\runtime\python\python.exe'
     $taskEntry = Join-Path $taskRepo 'tools\jenkins-management\entry.py'
@@ -38,6 +45,9 @@ try {
     if ($DryRun) { $taskArguments += '--dry-run' }
     if ($QueryOnly) { $taskArguments += '--query-only' }
     $taskCargo = @($Action, '--package', $Package, '--no-default-features', '--locked', '--jobs', [string]$Jobs)
+    if ($taskPalette) {
+        $taskCargo += @('--manifest-path', (Join-Path $taskRepo 'zircon_plugins\Cargo.toml'), '--profile', 'test')
+    }
     if ($Features) { $taskCargo += @('--features', ($Features -join ',')) }
     if ($Offline) { $taskCargo += '--offline' }
     if ($Release) { $taskCargo += '--release' }

@@ -170,7 +170,7 @@
         server  (create-server handler)
         port    (cf/get :http-server-port 6061)]
 
-    (.listen server port)
+    (.listen server port (cf/get :http-server-host "127.0.0.1"))
     (l/info :hint "welcome to penpot"
             :module "exporter"
             :flags cf/flags
