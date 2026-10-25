@@ -10,6 +10,7 @@ import {
   applyZuiExportToCanonicalSource,
 } from './zui-export-apply';
 import { parseZuiDocument, serializeZuiDocument } from './zui-document';
+import { validateSourcePath } from './zui-export-apply-contract';
 
 const repo = (process.env['ZUI_LAYOUT_REPO_ROOT'] ?? fileURLToPath(new URL('../../../../../../', import.meta.url)));
 const pluginRoot = fileURLToPath(new URL('../..', import.meta.url));
@@ -323,5 +324,26 @@ describe('applyZuiExportToCanonicalSource', () => {
         { expectedCanonicalSha256: sha256(canonical) },
       ),
     ).toThrow('Asset identity changed');
+  });
+});
+
+describe('registered private AI source boundary', () => {
+  it('accepts only the exact registered private owner without changing public asset paths', () => {
+    expect(validateSourcePath('zircon_plugins/ai/editor/behavior_tree.zui'))
+      .toEqual(['zircon_plugins', 'ai', 'editor', 'behavior_tree.zui']);
+    expect(() => validateSourcePath('zircon_editor/assets/ui/theme/editor_base.zui')).not.toThrow();
+  });
+  it.each([
+    'zircon_plugins/ai/editor/perception_debug.zui',
+    'zircon_plugins/other/editor/behavior_tree.zui',
+    'zircon_plugins/ai/editor/../editor/behavior_tree.zui',
+    'zircon_plugins/ai/editor//behavior_tree.zui',
+    'zircon_plugins/ai/editor/behavior_tree.zui/extra.zui',
+    '/zircon_plugins/ai/editor/behavior_tree.zui',
+    'E:/Git/ZirconEngine/zircon_plugins/ai/editor/behavior_tree.zui',
+    'zircon_plugins\\\\ai\\\\editor\\\\behavior_tree.zui',
+    'plugins://ai/editor/behavior_tree.zui',
+  ])('rejects an unregistered owner or noncanonical alias: %s', sourcePath => {
+    expect(() => validateSourcePath(sourcePath)).toThrow('Source path must be');
   });
 });

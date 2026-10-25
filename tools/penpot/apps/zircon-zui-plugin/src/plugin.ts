@@ -1,3 +1,4 @@
+import { inspectCanvasPng } from './penpot-canvas-png';
 import { captureViewportToolbarSlotPadding } from './penpot-viewport-toolbar';
 import { viewportToolbarContract, canonicalViewportToolbarParent } from './bridge/zui-viewport-toolbar';
 import { allocatedAuthoredGeometry } from './penpot-layout-allocation';
@@ -14,15 +15,19 @@ import { fitNativeSingleLineTexts } from './penpot-text-overflow';
 import { findPenpotShapeAncestor } from './penpot-shape-ancestors';
 import {
   authoredGeometry,
+  assertCanonicalCopyPaintUnchanged,
+  createSourcePaintCaptureContext,
+  singleSolidFill,
+  singleSolidStroke,
+  capturedHeightMin,
   validateCapturedWrapAlignment,
   authoredAnchoredPosition,
   layoutSizingIsCompatible,
   resolvedParentContainerKinds,
-  singleSolidFill,
-  singleSolidStroke,
   stableSemanticChildOrder,
   type CapturedContainerKind,
   type CapturedLayoutSizing,
+  type SourcePaintCaptureContext,
 } from './penpot-capture-validation.js';
 import {
   PENPOT_BRIDGE_VERSION,
@@ -185,6 +190,7 @@ penpot.ui.onMessage<PluginUiMessage>((message) => {
       message.replaceSelection,
       message.nativeComponentMode ?? pendingNativeComponentMode,
       message.fontResources,
+      message.createComponentMaster,
     );
     return;
   }
@@ -233,12 +239,15 @@ penpot.ui.onMessage<PluginUiMessage>((message) => {
     }
     void authoringLayout
       .flush(assetBoard)
-      .then(() => {
+      .then(async () => {
+        const runtimeSceneMediaAudit = lastImportedDocument
+          ? await auditRuntimeSceneMedia(assetBoard, lastImportedDocument) : undefined;
         sendMessage({
           type: 'preview-audit',
           requestId: message.requestId,
           previewBoardId: assetBoard.id,
-          layoutAudit: auditRenderedAssetBoard(assetBoard),
+          layoutAudit: { ...auditRenderedAssetBoard(assetBoard),
+            ...(runtimeSceneMediaAudit ? { runtimeSceneMediaAudit } : {}) },
         });
         penpot.viewport.zoomIntoView([assetBoard]);
       })
@@ -505,9 +514,10 @@ function applyReviewCasePresentation(
   });
 }
 
-import { loadAssetImages } from './penpot-image-content';
+import { loadAssetImages, auditRuntimeSceneMedia } from './penpot-image-content';
 import { bindFontResources, copyFontResources, parseFontResourceManifest, fontResourcesForShape, type PenpotFontResourceManifest } from './bridge/penpot-font-selection';
 import { linearContentMeasurementsReady } from './penpot-linear-content';
+import { createCanonicalComponentMaster } from './penpot-canonical-library';
 
 async function importZui(
   fileName: string,
@@ -515,6 +525,7 @@ async function importZui(
   replaceSelection = false,
   nativeComponentMode: 'full' | 'leaf' | 'semantic' = 'full',
   fontResources?: PenpotFontResourceManifest,
+  createComponentMaster = false,
 ): Promise<void> {
   reportImportProgress(fileName, 'parsing source');
   const undoBlock = penpot.history.undoBlockBegin();
@@ -523,7 +534,10 @@ async function importZui(
   const previousDocument = lastImportedDocument;
   const replaced = replaceSelection ? selectedAssetBoard() : null;
   let assetBoard: Board | null = null;
+  let createdCanonicalComponentId: string | undefined;
   try {
+    if (replaced?.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'canonical-component'))
+      throw new Error('Keep the published component main; import the new asset without replacing it.');
     const parsed = parseZuiDocument(source);
     if (originalZuiSource(parsed.document) === undefined)
       parsed.document['penpot_original_source'] = source;
@@ -540,7 +554,7 @@ async function importZui(
     reportImportProgress(fileName, 'loading image resources');
     await loadAssetImages(assetBoard, document);
     reportImportProgress(fileName, 'materializing native component instances');
-    await materializeNativeComponents(
+    if (!createComponentMaster) await materializeNativeComponents(
       assetBoard,
       document,
       ({ index, total, nodeId, source, createdMaster }) => {
@@ -667,6 +681,10 @@ async function importZui(
         }),
     );
     reportImportProgress(fileName, 'writing reversible metadata');
+    if (createComponentMaster) {
+      reportImportProgress(fileName, 'creating canonical component main');
+      createdCanonicalComponentId = createCanonicalComponentMaster(assetBoard, document).componentId;
+    }
     setMetadata(
       assetBoard,
       ZUI_METADATA_DOCUMENT,
@@ -693,6 +711,10 @@ async function importZui(
     sendSelectionState();
   } catch (error) {
     console.error('[zircon-import-error]', error && typeof error === 'object' && 'stack' in error && typeof error.stack === 'string' ? error.stack : errorMessage(error));
+    if (createdCanonicalComponentId) {
+      const component = penpot.library.local.components.find(entry => entry.id === createdCanonicalComponentId);
+      if (component && 'remove' in component && typeof component.remove === 'function') component.remove();
+    }
     if (assetBoard) removeNativeComponentAsset(assetBoard);
     lastImportedAssetBoard = previousBoard;
     lastImportedDocument = previousDocument;
@@ -829,25 +851,9 @@ async function exportSelectedCanvasPng(expectedBoardId: string): Promise<void> {
 
     // Penpot's public shape renderer/exporter returns PNG bytes without changing
     // the saved Board or replaying its source document.
-    const bytes = await assetBoard.export({ type: 'png', scale: 1 });
-    const pngSignature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-    if (
-      !(bytes instanceof Uint8Array) ||
-      bytes.byteLength < 24 ||
-      !pngSignature.every((value, index) => bytes[index] === value) ||
-      bytes[12] !== 0x49 ||
-      bytes[13] !== 0x48 ||
-      bytes[14] !== 0x44 ||
-      bytes[15] !== 0x52
-    ) {
-      throw new Error('Penpot shape export did not return a valid PNG byte stream.');
-    }
-    const header = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-    const width = header.getUint32(16, false);
-    const height = header.getUint32(20, false);
-    if (width === 0 || height === 0) {
-      throw new Error('Penpot shape export returned an empty PNG canvas.');
-    }
+    const { bytes, width, height } = inspectCanvasPng(
+      await assetBoard.export({ type: 'png', scale: 1 }),
+    );
     const fileName = sanitizeCanvasPngFileName(assetBoard.name);
     sendMessage({
       type: 'canvas-png-ready',
@@ -882,6 +888,7 @@ function writeSemanticBaselines(
   assetBoard: Board,
   document: ZuiDocument,
 ): void {
+  const paintContext = createSourcePaintCaptureContext(document);
   const baselines = Object.create(null) as PenpotBaselineIndex;
   const virtual = JSON.parse(
     metadata(assetBoard, 'virtual-nodes') || '[]',
@@ -900,7 +907,7 @@ function writeSemanticBaselines(
       ZUI_METADATA_LAYOUT_SIZING_GUARD,
       JSON.stringify(layoutSizing(shape)),
     );
-    const baseline = captureEditableState(shape, document);
+    const baseline = captureEditableState(shape, document, undefined, undefined, paintContext);
     baselines[nodeId] = baseline;
     setMetadata(shape, ZUI_METADATA_BASELINE, JSON.stringify(baseline));
   });
@@ -913,6 +920,7 @@ function captureAssetSnapshot(
   document: ZuiDocument,
 ): PenpotAssetSnapshot {
   assertExportShapeGuard(assetBoard);
+  const paintContext = createSourcePaintCaptureContext(document);
   const shapes: PenpotShapeSnapshot[] = [];
   const recordByNode = new Map<string, PenpotShapeSnapshot>();
   const baselineIndex = parseBaselineIndex(
@@ -980,6 +988,7 @@ function captureAssetSnapshot(
         document,
         baseline,
         parentKinds,
+        paintContext,
       );
       const record: PenpotShapeSnapshot = {
         nodeId,
@@ -1052,6 +1061,7 @@ function captureAssetSnapshot(
     shapes,
   };
   assertSnapshotBaselines(snapshot, baselineIndex);
+  paintContext.attach(snapshot);
   return snapshot;
 }
 
@@ -1063,15 +1073,24 @@ function captureEditableState(
     baseline: CapturedContainerKind;
     current: CapturedContainerKind;
   },
+  paintContext: SourcePaintCaptureContext = createSourcePaintCaptureContext(document),
 ): ProjectionEditableState {
   const nodeId = metadata(board, ZUI_METADATA_NODE_ID) || board.name;
   const paintShape = fieldPaintShape(board);
-  const fill = singleSolidFill(paintShape.fills, `Semantic node ${nodeId}`);
+  const identity = {
+    nodeId, sourcePath: metadata(board, 'sourcePath'),
+    sourceNodeId: metadata(board, 'sourceNodeId'),
+    controlId: metadata(board, 'controlId') || null,
+    instancePath: metadata(board, 'instancePath'),
+  };
+  const fill = singleSolidFill(paintShape.fills, `Semantic node ${nodeId}`,
+    paintContext.binding(identity, 'background_color'));
   const stroke = singleSolidStroke(
     paintShape.strokes,
     `Semantic node ${nodeId}`,
+    paintContext.binding(identity, 'border_color'),
   );
-  const capturedTexts = captureNodeTexts(board, baseline);
+  const capturedTexts = captureNodeTexts(board, baseline, document, paintContext);
   const flex = board.flex;
   const grid = board.grid;
   validateCapturedWrapAlignment(
@@ -1108,8 +1127,20 @@ function captureEditableState(
       hasAutoLayoutParent(board) &&
       metadata(board.parent!, ZUI_METADATA_ROLE) === ZUI_ROLE_NODE,
   ));
-  return {
+  const sourceHeight = zuiNodes(document)[nodeId]?.layout?.['height'];
+  const authoredHeightMin = sourceHeight && typeof sourceHeight === 'object' &&
+      !Array.isArray(sourceHeight) && !(sourceHeight instanceof Date)
+    ? resolveDesignNumber(document, sourceHeight['min']) : null;
+  const heightMin = capturedHeightMin(
+    nodeId,
+    authoredHeightMin,
+    hasAutoLayoutParent(board),
+    board.layoutChild,
+    baseline,
+  );
+  const current: ProjectionEditableState = {
     geometry,
+    ...(heightMin !== undefined ? { heightMin } : {}),
     ...(slotPadding ? { slotPadding } : {}),
     paint: {
       fillColor: fill?.fillColor ?? null,
@@ -1148,6 +1179,9 @@ function captureEditableState(
       clip: board.clipContent,
     },
   };
+  assertCanonicalCopyPaintUnchanged(document, nodeId, board.isComponentCopyInstance(),
+    baseline, current);
+  return current;
 }
 
 function capturedAuthoredPosition(

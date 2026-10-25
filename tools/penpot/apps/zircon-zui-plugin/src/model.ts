@@ -32,6 +32,8 @@ export type PluginUiMessage =
        * editable semantic boards while primitive instances remain native.
        */
       nativeComponentMode?: 'full' | 'leaf' | 'semantic';
+      /** Keep the authored composite root as an editable local library main. */
+      createComponentMaster?: boolean;
       fontResources?: PenpotFontResourceManifest;
     }
   | {

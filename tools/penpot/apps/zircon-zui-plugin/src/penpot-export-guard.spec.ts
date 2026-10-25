@@ -1,13 +1,16 @@
 import type { Board, Shape } from '@penpot/plugin-types';
 import {
   assertExportShapeGuard,
+  migrateSearchFieldWidthGuard,
   writeExportShapeGuard,
 } from './penpot-export-guard';
 import {
   ZUI_METADATA_NAMESPACE,
+  ZUI_METADATA_BASELINE,
   ZUI_METADATA_ROLE,
   ZUI_ROLE_ASSET,
   ZUI_ROLE_AUXILIARY,
+  ZUI_ROLE_NODE,
 } from './metadata';
 
 function guardedIcon(): {
@@ -81,6 +84,52 @@ function guardedIcon(): {
   };
 }
 
+function guardedHeightMin(mapped = true, role = ZUI_ROLE_NODE) {
+  const { root, path } = guardedIcon();
+  const board = {
+    id: 'outliner', name: 'Outliner', type: 'board', parent: root,
+    x: 0, y: 0, width: 240, height: 176, children: [],
+    layoutChild: { minHeight: 96, maxHeight: 400, minWidth: 0, maxWidth: 500 },
+    getSharedPluginData: (_namespace: string, key: string) =>
+      key === ZUI_METADATA_ROLE ? role : key === ZUI_METADATA_BASELINE
+        ? JSON.stringify(mapped ? { heightMin: 96 } : {}) : '',
+  } as unknown as Board;
+  root.children.push(board);
+  writeExportShapeGuard(root);
+  return { root, board, path };
+}
+
+it('allows only a semantic height.min with an imported optional baseline mapping', () => {
+  const { root, board } = guardedHeightMin();
+  board.layoutChild!.minHeight = 128;
+  expect(() => assertExportShapeGuard(root)).not.toThrow();
+  board.layoutChild!.maxHeight = 401;
+  expect(() => assertExportShapeGuard(root)).toThrow(/changed maxHeight/);
+});
+
+it('keeps unmapped and auxiliary minHeight edits guarded', () => {
+  for (const [mapped, role] of [[false, ZUI_ROLE_NODE], [true, ZUI_ROLE_AUXILIARY]] as const) {
+    const { root, board } = guardedHeightMin(mapped, role);
+    board.layoutChild!.minHeight = 128;
+    expect(() => assertExportShapeGuard(root)).toThrow(/changed minHeight/);
+  }
+});
+
+it('keeps unrelated shape geometry protected while height.min is mapped', () => {
+  const { root, board, path } = guardedHeightMin();
+  board.layoutChild!.minHeight = 128;
+  path.width = 2;
+  expect(() => assertExportShapeGuard(root)).toThrow(/changed geometry/);
+});
+
+it('requires re-import for the previous constraint guard baseline', () => {
+  const { root } = guardedHeightMin();
+  const stored = JSON.parse(root.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'export-shapes-guard'));
+  stored.version = 6;
+  root.setSharedPluginData(ZUI_METADATA_NAMESPACE, 'export-shapes-guard', JSON.stringify(stored));
+  expect(() => assertExportShapeGuard(root)).toThrow(/re-import/);
+});
+
 it('identifies the unmapped SVG path without permitting its changed content', () => {
   const { root, path } = guardedIcon();
   path.content = 'M 0 0 L 2 2';
@@ -94,6 +143,18 @@ it('allows only Penpot numeric normalization on generated icon paths', () => {
   const { root, path } = guardedIcon();
   path.content = 'M 0 0 L 1.000030517578125 1';
   expect(() => assertExportShapeGuard(root)).not.toThrow();
+});
+
+it('allows the measured save/reopen caret drift at the exact Float32 boundary', () => {
+  const { root, path } = guardedIcon();
+  // Actual saved baseline; the second form is inferred from the export error's
+  // unchanged skeleton and measured 0.0001220703125 maximum vector difference.
+  path.content = 'M0,0L3,3L6,0';
+  writeExportShapeGuard(root);
+  path.content = 'M0,0L3,3L5.9998779296875,0';
+  expect(() => assertExportShapeGuard(root)).not.toThrow();
+  path.content = 'M0,0L3,3L5.9998779,0';
+  expect(() => assertExportShapeGuard(root)).toThrow(/changed content/);
 });
 
 it('still rejects the same tiny change on a path without generated-icon ownership', () => {
@@ -355,4 +416,103 @@ it('keeps arithmetic overflow during coordinate normalization exact', () => {
     path.content = after;
     expect(() => assertExportShapeGuard(root)).toThrow(/changed content/);
   }
+});
+
+
+describe('source-mapped SearchField width guard transaction', () => {
+  function fixture() {
+    const { root, path } = guardedIcon();
+    const make = (id: string, type: string, role: string, part = '') => ({
+      id, type, name: id, x: 0, y: 0, width: 240, height: 32, hidden: false,
+      constraintsHorizontal: 'left', constraintsVertical: 'top',
+      ...(type === 'board' ? { children: [] } : {}),
+      getSharedPluginData: (_namespace: string, key: string) =>
+        key === 'role' ? role : key === 'field-part' ? part : '',
+    });
+    const field = make('field', 'board', 'node') as unknown as Board;
+    const surface = make('surface', 'board', 'auxiliary', 'surface') as unknown as Board;
+    const text = make('primary', 'text', 'text') as unknown as Shape;
+    Object.assign(field, { parent: root, children: [surface, text] });
+    Object.assign(surface, { parent: field }); Object.assign(text, { parent: field });
+    root.children.push(field);
+    writeExportShapeGuard(root);
+    const changes = [surface, text].map((shape) => ({ shape, before: shape.constraintsHorizontal,
+      after: 'leftright' as const }));
+    return { root, path, surface, text, changes };
+  }
+  it('changes only two constraint baselines and keeps the existing strict guard', async () => {
+    const { root, path, changes } = fixture();
+    const before = JSON.parse(root.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'export-shapes-guard'));
+    await expect(migrateSearchFieldWidthGuard(root, changes, async () => {})).resolves.toBe(true);
+    const after = JSON.parse(root.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'export-shapes-guard'));
+    for (const { shape } of changes) before.shapes[shape.id].constraintsHorizontal = 'leftright';
+    expect(after).toEqual(before);
+    expect(() => assertExportShapeGuard(root)).not.toThrow();
+    path.content = 'M 0 0 L 2 1';
+    expect(() => assertExportShapeGuard(root)).toThrow('without a ZUI source mapping');
+  });
+  it('keeps exact guarded identity when SDK children reads return fresh proxies', async () => {
+    const { root, surface, changes } = fixture();
+    const field = surface.parent as Board;
+    const children = [...field.children];
+    Object.defineProperty(field, 'children', { get: () => children.map((child) => new Proxy(child, {})) });
+    expect(field.children[0]).not.toBe(field.children[0]);
+    const before = JSON.parse(root.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'export-shapes-guard'));
+    await expect(migrateSearchFieldWidthGuard(root, changes, async () => {})).resolves.toBe(true);
+    for (const { shape } of changes) before.shapes[shape.id].constraintsHorizontal = 'leftright';
+    expect(JSON.parse(root.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'export-shapes-guard'))).toEqual(before);
+    expect(() => assertExportShapeGuard(root)).not.toThrow();
+    surface.fills = [{ fillColor: '#abcdef', fillOpacity: 1 }];
+    expect(() => assertExportShapeGuard(root)).toThrow('without a ZUI source mapping');
+  });
+  it('rejects an input with the native ID but a different parent before any write', async () => {
+    const { root, surface, text, changes } = fixture();
+    const foreign = { ...surface, parent: { id: 'foreign-parent' } } as unknown as Shape;
+    const settle = vi.fn(async () => {});
+    await expect(migrateSearchFieldWidthGuard(root, [{ ...changes[0], shape: foreign }, changes[1]], settle))
+      .rejects.toThrow('input changed');
+    expect(surface.constraintsHorizontal).toBe('left');
+    expect(text.constraintsHorizontal).toBe('left');
+    expect(settle).not.toHaveBeenCalled();
+  });
+  it('rejects stale proxy constraint values even when the live native constraint matches', async () => {
+    const { root, surface, text, changes } = fixture();
+    const stale = { ...surface, constraintsHorizontal: 'right' } as unknown as Shape;
+    const settle = vi.fn(async () => {});
+    await expect(migrateSearchFieldWidthGuard(root, [{ ...changes[0], shape: stale }, changes[1]], settle))
+      .rejects.toThrow('input changed');
+    expect(surface.constraintsHorizontal).toBe('left');
+    expect(text.constraintsHorizontal).toBe('left');
+    expect(settle).not.toHaveBeenCalled();
+  });
+  it('rolls back constraints and retains the baseline if other content changes while settling', async () => {
+    const { root, path, changes } = fixture();
+    const before = root.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'export-shapes-guard');
+    let first = true;
+    await expect(migrateSearchFieldWidthGuard(root, changes, async () => {
+      if (first) { first = false; path.content = 'M 0 0 L 2 1'; }
+    })).rejects.toThrow('without a ZUI source mapping');
+    expect(changes.every(({ shape }) => shape.constraintsHorizontal === 'left')).toBe(true);
+    expect(root.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'export-shapes-guard')).toBe(before);
+    expect(() => assertExportShapeGuard(root)).toThrow('without a ZUI source mapping');
+  });
+  it('rejects an authored constraint edit before touching another shape', async () => {
+    const { root, surface, text, changes } = fixture();
+    surface.constraintsVertical = 'center';
+    const settle = vi.fn(async () => {});
+    await expect(migrateSearchFieldWidthGuard(root, changes, settle)).rejects.toThrow('constraintsVertical');
+    expect(text.constraintsHorizontal).toBe('left');
+    expect(settle).not.toHaveBeenCalled();
+  });
+  it('retains a conflicting native constraint edit instead of overwriting it during rollback', async () => {
+    const { root, surface, text, changes } = fixture();
+    const before = root.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'export-shapes-guard');
+    let first = true;
+    await expect(migrateSearchFieldWidthGuard(root, changes, async () => {
+      if (first) { first = false; surface.constraintsHorizontal = 'right'; }
+    })).rejects.toThrow('rollback failed');
+    expect(surface.constraintsHorizontal).toBe('right');
+    expect(text.constraintsHorizontal).toBe('left');
+    expect(root.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'export-shapes-guard')).toBe(before);
+  });
 });

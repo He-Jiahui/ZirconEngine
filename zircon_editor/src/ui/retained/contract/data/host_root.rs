@@ -8,6 +8,8 @@ use super::{
 use crate::ui::retained_host::primitives::ModelRc;
 #[derive(Clone, Default)]
 pub(crate) struct HostWindowPresentationData {
+    pub canvas_anchor_popup:
+        Option<std::rc::Rc<super::super::window::canvas_anchor_popup::CanvasAnchorPopupVisual>>,
     /// Full arranged observations; only the exact immutable presentation may publish them.
     pub(crate) normal_arranged_inventory: Option<(
         super::HostPresentationGenerationCursor,
@@ -72,6 +74,7 @@ impl HostWindowGeometryPresentationData {
         current: &HostWindowPresentationData,
     ) -> HostWindowPresentationData {
         let mut next = HostWindowPresentationData {
+            canvas_anchor_popup: current.canvas_anchor_popup.clone(),
             normal_arranged_inventory: None,
             normal_workbench_business: None,
             normal_viewport_toolbar: None,

@@ -10,6 +10,7 @@ import {
   type ZuiTable,
 } from '../src/bridge/zui-document';
 import type { LayoutDependencies } from './zui-layout-dependencies';
+import { resolveDesignNumber } from '../src/bridge/zui-prefab-system';
 import {
   prepareUnrealDockHeaderViews,
   UNREAL_DOCK_HEADER_SOURCE,
@@ -569,7 +570,57 @@ export async function prepareComponentReviewHost(
       throw new Error(
         `${component.asset.id} requires an explicit review host for ${required.join(', ')}`,
       );
-    return null;
+    const definitions = Object.entries(component.components ?? {});
+    if (component.asset.kind !== 'component' || definitions.length !== 1)
+      return null;
+    const [name, exported] = definitions[0];
+    if (!component.nodes?.[exported.root])
+      throw new Error(`Component review source has no root: ${component.asset.id}#${name}`);
+    // A component has no view [root]. Invoke its original export through the
+    // same dependency expansion used by the specialized hosts. Do not copy
+    // source nodes, fill missing slots, or promote defaults to observed state.
+    const host: ZuiDocument = {
+      asset: {
+        kind: 'view',
+        version: 2,
+        id: `${component.asset.id}#review-host`,
+        display_name: component.asset.display_name,
+      },
+      imports: {
+        widgets: uniqueStrings([
+          `${component.asset.id}#${name}`,
+          ...strings(component.imports?.['widgets']),
+        ]),
+        styles: strings(component.imports?.['styles']),
+      },
+      tokens: component.tokens,
+      stylesheets: component.stylesheets,
+      root: { node: 'review_component' },
+      nodes: {
+        review_component: { component: `${component.asset.id}#${name}` },
+      },
+    };
+    const source = serializeZuiDocument(host);
+    const projection = cloneZuiDocument(host);
+    dependencies.embed(projection, sourcePath, themeSourcePath);
+    // The sole invocation belongs to this generated review host, not to the
+    // canonical component. Keep real nested callsites, but do not advertise
+    // review_component as an authored node in the original source owner.
+    for (const node of Object.values(projection.nodes ?? {})) {
+      const rawPath = node['penpot_review_instance_path'];
+      if (typeof rawPath !== 'string') continue;
+      const steps = JSON.parse(rawPath) as Array<{
+        sourcePath: string; sourceNodeId: string;
+      }>;
+      if (steps[0]?.sourcePath === sourcePath &&
+          steps[0]?.sourceNodeId === 'review_component')
+        node['penpot_review_instance_path'] = JSON.stringify(steps.slice(1));
+    }
+    return {
+      source,
+      projection,
+      consumers: [{ sourcePath, component: name }],
+    };
   }
   const root = component.nodes?.[definition.root];
   const slot = (definition['slots'] as ZuiTable | undefined)?.['default'] as
@@ -799,6 +850,9 @@ async function prepareEditorMainFrameReviewHost(
   embedRoot(WORKBENCH_WINDOW_SOURCE);
   const dockHeaders = await prepareUnrealDockHeaderViews(repoRoot, workbenchPresentation);
   const mountedKinds = new Set<string>();
+  const windowInstancePath = instancePathForCallsite(
+    WORKBENCH_SHELL_SOURCE, 'pane_surface', shellMountParentPath,
+  );
   for (const [index, prepared] of dockHeaders.entries()) {
     const observation = prepared.observation;
     // These are the two actual authored mount slots in the level-editor view.
@@ -807,46 +861,94 @@ async function prepareEditorMainFrameReviewHost(
       throw new Error('Actual Header surface has no unique authored level-editor mount: ' +
         observation.kind + ':' + observation.surfaceKey);
     mountedKinds.add(observation.kind);
-    const control = observation.kind === 'document'
-      ? 'UnrealLevelViewport' : 'BottomDrawerHeaderRoot';
-    const matches = Object.values(projection.nodes ?? {}).filter((node) => node.control_id === control ||
-      (observation.kind === 'document' && node['penpot_prefab_source'] ===
-        'zircon_editor/assets/ui/editor/unreal/components/viewport.zui#UnrealLevelViewport' &&
-        node['penpot_review_source_node_id'] === 'root'));
-    if (matches.length !== 1)
-      throw new Error('Actual Header authored mount is missing or ambiguous: ' + control);
-    const target = matches[0];
-    const viewportChildren = observation.kind === 'document' ? [...(target.children ?? [])] : undefined;
-    if (viewportChildren && (viewportChildren.length !== 1 ||
-        projection.nodes?.[viewportChildren[0].node]?.control_id !== 'UnrealSceneViewViewport'))
-      throw new Error('Actual document Header lost its original viewport Overlay child');
-    target.component = viewportChildren ? 'VerticalGroup' : 'Overlay';
-    target.layout = { ...(target.layout ?? {}),
-      container: viewportChildren ? { kind: 'VerticalBox', gap: 0 } : { kind: 'Overlay' },
-      ...(!viewportChildren ? { height: { min: observation.viewport.height, preferred: observation.viewport.height,
-        max: observation.viewport.height, stretch: 'Fixed' } } : {}) };
-    if (observation.kind === 'bottom') {
-      const drawers = workbenchPresentation?.['drawers'];
-      const bottom = Array.isArray(drawers)
-        ? drawers.find((drawer) => drawer && drawer.slot === 'bottom') : undefined;
-      if (!bottom || bottom.visible !== true || typeof bottom.extent !== 'number' ||
-          !Number.isFinite(bottom.extent) || bottom.extent <= 0)
-        throw new Error('Consumed bottom Header has no visible logical business drawer extent');
-      const shells = Object.values(projection.nodes ?? {})
-        .filter((node) => node.control_id === 'BottomDrawerShellRoot');
-      if (shells.length !== 1) throw new Error('Actual bottom Header lost its authored drawer shell');
-      shells[0].props = { ...(shells[0].props ?? {}), visibility: 'visible' };
-      shells[0].layout = { ...(shells[0].layout ?? {}),
-        height: { min: bottom.extent, preferred: bottom.extent, max: bottom.extent, stretch: 'Fixed' } };
+    if (observation.kind === 'document') {
+      // Native owns_authored_level_viewport bypasses the old document-dock
+      // painter. Its cached Header Source is still published, but is not an
+      // extra painted child of this exact authored viewport invocation.
+      assertAuthoredLevelViewport(projection, windowInstancePath);
+      continue;
     }
+    const bottomSource = 'zircon_editor/assets/ui/editor/unreal/components/bottom_activity_dock.zui';
+    const bottomInstance = instancePathForCallsite(WORKBENCH_WINDOW_SOURCE, 'bottom_activity_dock', windowInstancePath);
+    const root = requiredMountedSource(projection, WORKBENCH_WINDOW_SOURCE, 'root', windowInstancePath,
+      'WorkbenchWindowRoot', 'Overlay');
+    const content = requiredMountedSource(projection, WORKBENCH_WINDOW_SOURCE, 'editor_content', windowInstancePath,
+      'UnrealLevelEditorContent', 'VerticalGroup');
+    const shellEntry = requiredMountedSource(projection, bottomSource, 'shell', bottomInstance,
+      'BottomDrawerShellRoot', 'VerticalGroup');
+    const headerEntry = requiredMountedSource(projection, bottomSource, 'header', bottomInstance,
+      'BottomDrawerHeaderRoot', 'HorizontalGroup');
+    const separatorEntry = requiredMountedSource(projection, bottomSource, 'separator', bottomInstance,
+      'BottomDrawerSeparator', 'Container');
+    const bodyEntry = requiredMountedSource(projection, bottomSource, 'content', bottomInstance,
+      'BottomDrawerContentRoot', 'VerticalGroup');
+    for (const [parent, child] of [[root, content], [content, shellEntry], [shellEntry, headerEntry],
+      [shellEntry, separatorEntry], [shellEntry, bodyEntry]]) {
+      const parents = Object.values(projection.nodes ?? {}).filter((node) =>
+        node.children?.some((item) => item.node === child[0]));
+      if (parents.length !== 1 || parents[0] !== parent[1] ||
+          parent[1].children?.filter((item) => item.node === child[0]).length !== 1)
+        throw new Error('Actual bottom Header is outside its authored drawer shell owner chain');
+    }
+    const shell = shellEntry[1], target = headerEntry[1];
+    const panelHeight = resolveDesignNumber(projection, '$editor.chrome.panel_header.height');
+    const authoredHeight = target.layout?.['height'];
+    if (panelHeight === null || panelHeight <= 0 || !authoredHeight || typeof authoredHeight !== 'object' ||
+        Array.isArray(authoredHeight) || authoredHeight instanceof Date || authoredHeight['stretch'] !== 'Fixed' ||
+        ['min', 'preferred', 'max'].some((axis) => resolveDesignNumber(projection, authoredHeight[axis]) !== panelHeight))
+      throw new Error('Actual bottom Header lost its loaded Source panel-header height');
+    const mounts = shell.children ?? [];
+    const container = shell.layout?.['container'] as ZuiTable | undefined;
+    const separatorHeight = separatorEntry[1].layout?.['height'] as ZuiTable | undefined;
+    const separatorExtent = resolveDesignNumber(projection, separatorHeight?.['preferred']);
+    const bodyHeight = bodyEntry[1].layout?.['height'] as ZuiTable | undefined;
+    if (mounts.length !== 3 || [headerEntry, separatorEntry, bodyEntry].some((entry, i) => mounts[i]?.node !== entry[0]) ||
+        shell.layout?.['clip'] !== true || container?.['kind'] !== 'VerticalBox' ||
+        resolveDesignNumber(projection, container['gap']) !== 0 || separatorExtent === null || separatorExtent <= 0 ||
+        separatorHeight?.['stretch'] !== 'Fixed' ||
+        ['min', 'max'].some((axis) => resolveDesignNumber(projection, separatorHeight?.[axis]) !== separatorExtent) ||
+        bodyHeight?.['stretch'] !== 'Stretch' || resolveDesignNumber(projection, bodyHeight['min']) !== 0 ||
+        bodyHeight['preferred'] !== undefined || bodyHeight['max'] !== undefined ||
+        mounts.some((mount, i) => {
+          const layout = mount.slot?.['layout'] as ZuiTable | undefined;
+          const linear = layout?.['linear_size'] as ZuiTable | undefined;
+          return !layout || Object.keys(layout).some((key) => key !== 'linear_size') ||
+            (i < 2 ? linear?.['rule'] !== 'Auto' || linear['shrink_value'] !== 0 :
+              linear?.['rule'] !== 'Stretch' || linear['value'] !== 1 || linear['shrink_value'] !== undefined);
+        }))
+      throw new Error('Actual bottom Header lost its loaded Source clipped-body layout');
+    const drawers = workbenchPresentation?.['drawers'];
+    const bottom = Array.isArray(drawers)
+      ? drawers.find((drawer) => drawer && drawer.slot === 'bottom') : undefined;
+    if (!bottom || bottom.visible !== true || !Array.isArray(bottom.tabs) || !bottom.tabs.length ||
+        !['collapsed', 'pinned', 'autoHide'].includes(bottom.mode) || typeof bottom.extent !== 'number' ||
+        !Number.isFinite(bottom.extent) || bottom.extent < 0)
+      throw new Error('Consumed bottom Header has no visible logical business drawer extent');
+    // Match drawer_region_input: the stored expanded extent does not allocate
+    // space while collapsed. No observed rectangle becomes a layout input.
+    const extent = bottom.mode === 'collapsed' ? panelHeight : Math.max(bottom.extent, panelHeight);
+    // Native keeps these nodes self-visible but clips their arranged frames.
+    // Penpot cannot allocate a zero-height board. Project only the effective
+    // visibility from the proven Source stack; retain every authored dimension.
+    for (const [entry, start] of [[separatorEntry, panelHeight], [bodyEntry, panelHeight + separatorExtent]] as const) {
+      const visible = extent > start, node = entry[1];
+      const visibility = visible ? 'visible' : 'collapsed';
+      node.props = { ...(node.props ?? {}), visible, visibility };
+      node.state = { ...(node.state ?? {}), visible, visibility };
+      node['penpot_review_derived_drawer_visibility'] = {
+        authority: 'loaded-source-and-business-drawer', slot: 'bottom', mode: bottom.mode,
+        extent, panelHeight, separatorExtent, visible,
+      };
+    }
+    shell.props = { ...(shell.props ?? {}), visibility: 'visible', visible: true };
+    shell.layout = { ...(shell.layout ?? {}),
+      height: { min: extent, preferred: extent, max: extent, stretch: 'Fixed' } };
+    target.component = 'Overlay';
+    target.layout = { ...(target.layout ?? {}), container: { kind: 'Overlay' } };
     const view = cloneZuiDocument(prepared.document);
     dependencies.embed(view, UNREAL_DOCK_HEADER_SOURCE, themeSourcePath, {
       preserveUnselectedBranchDefaults: true,
     });
-    const headerRoot = view.nodes![view.root!.node];
-    headerRoot.layout = { ...(headerRoot.layout ?? {}),
-      height: { min: observation.viewport.height, preferred: observation.viewport.height,
-        max: observation.viewport.height, stretch: 'Fixed' } };
     projection.imports = {
       widgets: uniqueStrings([...strings(projection.imports?.['widgets']), ...strings(view.imports?.['widgets'])]),
       styles: uniqueStrings([...strings(projection.imports?.['styles']), ...strings(view.imports?.['styles'])]),
@@ -859,15 +961,6 @@ async function prepareEditorMainFrameReviewHost(
     // and mount rectangles remain evidence and are never copied into this view.
     const headerPrefix = 'review_consumed_dock_header_' + index;
     mountViewIntoContainer(projection, target, view, headerPrefix);
-    if (viewportChildren) {
-      const headerMount = target.children![target.children!.length - 1];
-      const separatorId = headerPrefix + '__viewport_separator';
-      projection.nodes![separatorId] = { component: 'Separator',
-        props: { background_color: '$editor.border', penpot_generated_host_structure: true },
-        layout: { width: { stretch: 'Stretch' },
-          height: { min: 1, preferred: 1, max: 1, stretch: 'Fixed' } } };
-      target.children = [headerMount, { node: separatorId }, ...viewportChildren];
-    }
   }
   await prepareUnrealReviewTranslations(
     repoRoot,
@@ -898,6 +991,47 @@ async function prepareEditorMainFrameReviewHost(
       component,
     })),
   };
+}
+
+function requiredMountedSource(document: ZuiDocument, sourcePath: string, sourceNodeId: string,
+  instancePath: string, controlId: string, component: string): [string, ZuiNode] {
+  const matches = Object.entries(document.nodes ?? {}).filter(([, node]) =>
+    node['penpot_review_source_path'] === sourcePath && node['penpot_review_source_node_id'] === sourceNodeId &&
+    node['penpot_review_instance_path'] === instancePath);
+  if (matches.length !== 1 || matches[0][1].control_id !== controlId || matches[0][1].component !== component)
+    throw new Error('Actual Header authored mount is missing or ambiguous: ' + sourcePath + '#' + sourceNodeId);
+  return matches[0];
+}
+
+/** Prove the same authored media ownership that bypasses Native's old dock painter. */
+function assertAuthoredLevelViewport(document: ZuiDocument, ownerInstance: string): void {
+  const root = requiredMountedSource(document, WORKBENCH_WINDOW_SOURCE, 'root', ownerInstance,
+    'WorkbenchWindowRoot', 'Overlay');
+  const content = requiredMountedSource(document, WORKBENCH_WINDOW_SOURCE, 'editor_content', ownerInstance,
+    'UnrealLevelEditorContent', 'VerticalGroup');
+  const main = requiredMountedSource(document, WORKBENCH_WINDOW_SOURCE, 'main_band', ownerInstance,
+    'WorkbenchWindowMainBandRegion', 'HorizontalGroup');
+  const source = 'zircon_editor/assets/ui/editor/unreal/components/viewport.zui';
+  const instance = instancePathForCallsite(WORKBENCH_WINDOW_SOURCE, 'viewport', ownerInstance);
+  const viewport = requiredMountedSource(document, source, 'root', instance,
+    'WorkbenchMainBandViewportPanel', 'VerticalGroup');
+  const overlay = requiredMountedSource(document, source, 'viewport', instance,
+    'UnrealSceneViewViewport', 'Overlay');
+  const media = requiredMountedSource(document, source, 'scene_media', instance,
+    'WorkbenchViewportSurface', 'SceneViewViewport');
+  const toolbar = requiredMountedSource(document, source, 'toolbar_layer', instance,
+    'UnrealViewportToolbarLayer', 'Overlay');
+  for (const [parent, child] of [[root, content], [content, main], [main, viewport],
+    [viewport, overlay], [overlay, media], [overlay, toolbar]]) {
+    const parents = Object.values(document.nodes ?? {}).filter((node) =>
+      node.children?.some((item) => item.node === child[0]));
+    if (parents.length !== 1 || parents[0] !== parent[1] ||
+        parent[1].children?.filter((item) => item.node === child[0]).length !== 1)
+      throw new Error('Actual document Header lost its complete authored viewport owner chain');
+  }
+  if (viewport[1].children?.length !== 1 || overlay[1].children?.length !== 2 ||
+      overlay[1].children?.[0].node !== media[0] || overlay[1].children?.[1].node !== toolbar[0])
+    throw new Error('Actual document Header lost its original authored viewport subtree');
 }
 
 /** Keep authored node identity on the design-only host projection for case selectors. */
@@ -1029,6 +1163,7 @@ async function prepareActivityDrawerReviewHost(
       view,
       `review_${slotNodeId}`,
       selectedChildren,
+      viewPath,
     );
     host.imports!['widgets'] = uniqueStrings([
       ...strings(host.imports?.['widgets']),
@@ -1055,6 +1190,7 @@ function mountViewIntoContainer(
   view: ZuiDocument,
   prefix: string,
   selectedNodes?: readonly string[],
+  sourceOwner?: string,
 ): void {
   const rootId = view.root?.node;
   if (!rootId || !view.nodes?.[rootId])
@@ -1072,6 +1208,11 @@ function mountViewIntoContainer(
   for (const [id, sourceNode] of Object.entries(sourceNodes)) {
     const node: ZuiNode = {
       ...sourceNode,
+      ...(sourceOwner ? {
+        penpot_review_source_path: sourceOwner,
+        penpot_review_source_node_id: id,
+        penpot_review_instance_path: '[]',
+      } : {}),
       ...(sourceNode.children
         ? {
             children: sourceNode.children.map((child) => ({

@@ -7,6 +7,7 @@ import type { TableProjection } from './bridge/zui-table-projection';
 import { applyPenpotTextStyle } from './penpot-text-style';
 import { fontResourcesForShape } from './bridge/penpot-font-selection';
 import { updateControlTextGeometryGuard } from './penpot-control-guard';
+import { recordNativeSemanticLayoutGeometry } from './penpot-native-semantic-layout-geometry';
 import {
   ZUI_METADATA_NAMESPACE,
   ZUI_METADATA_ROLE,
@@ -146,5 +147,8 @@ export function layoutTableText(
     text.x = board.x + target.x;
     text.y = board.y + target.y;
     updateControlTextGeometryGuard(board, text);
+    // Record only this source cell after its measured allocation was applied.
+    // The global export guard still rejects edits after this exact geometry.
+    recordNativeSemanticLayoutGeometry(text);
   }
 }

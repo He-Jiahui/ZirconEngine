@@ -7,6 +7,7 @@ import { authoredGeometry } from './penpot-capture-validation';
 import {
   allocateNativeLayoutSize,
   allocatedAuthoredGeometry,
+  nativeLayoutAllocationForCopy,
 } from './penpot-layout-allocation';
 function board(): Board {
   const data = new Map<string, string>();
@@ -36,6 +37,34 @@ const captured = (b: Board) =>
     ),
     baseline,
   );
+describe('importer-owned native allocation copies', () => {
+  it('binds a validated source allocation to the actual target parent without changing either shape', () => {
+    const source = board(), target = board();
+    Object.assign(source, { parent: { id: 'source-host' } });
+    Object.assign(target, { parent: { id: 'consumer-host' } });
+    allocateNativeLayoutSize(source, 240, 32, 'anchored');
+    const before = source.getSharedPluginData('dev.zircon.zui', 'native-layout-allocation');
+    expect(JSON.parse(nativeLayoutAllocationForCopy(source, target))).toEqual({
+      kind: 'anchored', parent: 'consumer-host', width: 240, height: 32,
+    });
+    expect(source.getSharedPluginData('dev.zircon.zui', 'native-layout-allocation')).toBe(before);
+    expect(target.getSharedPluginData('dev.zircon.zui', 'native-layout-allocation')).toBe('');
+  });
+
+  it('refuses a previously copied parent or unrecorded resize instead of granting it ownership', () => {
+    const source = board(), target = board();
+    allocateNativeLayoutSize(source, 240, 32, 'anchored');
+    Object.assign(source, { parent: { id: 'foreign-parent' } });
+    expect(() => nativeLayoutAllocationForCopy(source, target)).toThrow('allocation is stale');
+    Object.assign(source, { parent: null });
+    source.resize(832, 32);
+    expect(() => nativeLayoutAllocationForCopy(source, target)).toThrow('allocation is stale');
+  });
+
+  it('does not synthesize allocation ownership when the source has none', () => {
+    expect(nativeLayoutAllocationForCopy(board(), board())).toBe('');
+  });
+});
 describe('derived native allocation stays separate from authored dimensions', () => {
   it('excludes a gap-driven allocation change from source geometry', () => {
     const b = board();

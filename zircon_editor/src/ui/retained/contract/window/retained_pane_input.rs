@@ -31,6 +31,9 @@ impl UiHostWindow {
         if !self.window().is_visible() {
             return None;
         }
+        if let Some(result) = self.dispatch_canvas_anchor_popup_input(&event) {
+            return Some(result);
+        }
         let generation = self.get_host_presentation_generation();
         let presentation = generation.structure();
         if presentation.menu_state.open_menu_index >= 0
@@ -342,7 +345,7 @@ fn preview_target<'a>(
     })
 }
 
-fn find_retained_input_pane<'a>(
+pub(super) fn find_retained_input_pane<'a>(
     presentation: &'a HostWindowPresentationData,
     id: &str,
 ) -> Option<(&'a PaneData, FrameRect)> {

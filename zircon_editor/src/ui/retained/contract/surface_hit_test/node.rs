@@ -80,11 +80,11 @@ pub(crate) fn hit_test_pane_template_node_borrowed<'a>(
         } else {
             hit_test_console_static_template_nodes(nodes, metadata, body, x, y, popup_rows)
         }?;
-        return Some(hit.with_pane_id(pane.id.as_str()));
+        return Some(hit.with_pane(pane));
     }
     let surface_frame = pane.body_surface_frame.as_ref()?;
     hit_test_template_nodes(nodes, surface_frame, body, x, y, popup_rows)
-        .map(|hit| hit.with_pane_id(pane.id.as_str()))
+        .map(|hit| hit.with_pane(pane))
 }
 
 pub(crate) fn hit_test_workbench_window_template_node_with_index(

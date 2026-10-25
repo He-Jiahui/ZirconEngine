@@ -7,25 +7,34 @@ import { realpathSync, statSync } from 'node:fs';
 import { basename, dirname, extname, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium, request, type APIRequestContext, type BrowserContext, type Frame, type FrameLocator, type Page } from 'playwright';
-import { cloneZuiDocument, decodeZuiMetadata, normalizeZuiDocument, parseZuiDocument, type ZuiDocument } from '../../../../../dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/zui-document.js';
-import { applyZuiExportFileToCanonicalSourceOwners } from '../../../../../dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/zui-export-apply-files';
-import { applyZuiExportToSourceFiles } from '../../../../../dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/zui-export-apply-sources';
-import { parseSourceExportManifest, validateSourcePath } from '../../../../../dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/zui-export-apply-contract';
-import { clickAndWaitForDownload } from '../../../../../dev/penpot/plugins/apps/zircon-zui-plugin/tools/zui-layout-download';
-import { reviewHost } from '../../../../../dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/zui-review-host';
-import { importedActualNormalReviewCase, reviewCaseFromSavedMetadata } from '../../../../../dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/zui-review-case';
-import { viewportToolbarContract } from '../../../../../dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/zui-viewport-toolbar';
-import { readViewportToolbarPublication } from '../../../../../dev/penpot/plugins/apps/zircon-zui-plugin/src/bridge/zui-viewport-toolbar-publication';
-import { persistenceClaim, persistedZuiMetadata, persistedViewportToolbarGroupMetadata, requireRealSessionDirectory,
-  sha256, verifyReopenedFile, verifySaveResponse, workspaceIdentity } from './zui-layout-real-session-contract.mjs';
+import { cloneZuiDocument, decodeZuiMetadata, normalizeZuiDocument, parseZuiDocument, type ZuiDocument } from '../src/bridge/zui-document.js';
+import { applyZuiExportFileToCanonicalSourceOwners } from '../src/bridge/zui-export-apply-files';
+import { applyZuiExportToSourceFiles } from '../src/bridge/zui-export-apply-sources';
+import { parseFingerprintList, parseSourceExportManifest, validateSourcePath } from '../src/bridge/zui-export-apply-contract';
+import { clickAndWaitForDownload } from './zui-layout-download';
+import { reviewHost } from '../src/bridge/zui-review-host';
+import { importedActualNormalReviewCase, reviewCaseFromSavedMetadata, runtimeSceneMediaForCase,
+  runtimeSceneMediaReviewTarget } from '../src/bridge/zui-review-case';
+import { viewportToolbarContract, viewportToolbarSourceMapping } from '../src/bridge/zui-viewport-toolbar';
+import { assertExistingPenpotContentPreserved, assertNativeInstanceGeometryPreserved, verifySourceOwnerAppendAdmission,
+  sourceColorRevisionSnapshot, assertSourceColorRevisionPreserved,
+  persistenceClaim, persistedZuiMetadata, persistedViewportToolbarGroupMetadata, requireRealSessionDirectory,
+  sha256, verifyReopenedFile, verifyReviewScrollCleanupAdmission, verifySaveResponse, workspaceIdentity, realSessionExecutionPlan } from './zui-layout-real-session-contract.mjs';
 import { createRealPenpotProfile } from './zui-layout-real-profile.mjs';
-import { prepareRealWorkbenchInput } from './zui-layout-real-workbench-input';
-import { validateLayoutReviewCase } from '../../../../../dev/penpot/plugins/apps/zircon-zui-plugin/tools/zui-layout-review-contract';
-import { editWorkbenchSpacingInPenpot } from '../../../../../dev/penpot/plugins/apps/zircon-zui-plugin/tools/penpot-workbench-canvas-edit';
+import {
+  prepareRealOwnerInput, prepareRealWorkbenchInput, prepareRealOwnerGapEdit,
+  validateRealOwnerGapExport, validateRealWorkbenchExportSources,
+} from './zui-layout-real-workbench-input';
+import { validateLayoutReviewCase } from './zui-layout-review-contract';
+import { editWorkbenchSpacingInPenpot, editSourceOwnerSpacingInPenpot, editOutlinerMinimumHeightInPenpot } from './penpot-workbench-canvas-edit';
 import { observeRealSaveHttp, type ActualSaveHttp } from './zui-layout-real-save-observer';
 import { compareStoredZuiMetadata } from './zui-layout-real-metadata';
 import { observeActualExportClick } from './zui-layout-real-export-observer';
-import { verifyCurrentPluginUi } from './zui-layout-real-ui.mjs';
+import { verifyCurrentPluginUi, verifyCurrentPluginWorker, verifyCurrentPluginWorkerBuild } from './zui-layout-real-ui.mjs';
+import { pluginRegistrationFingerprint, pluginRegistrationFingerprintProtocol, pluginRegistrationPermissions,
+  verifyExistingPluginRegistration, verifyPluginRegistryUnchanged } from './zui-layout-real-plugin-registration';
+import { requestPreviewLayoutAudit, previewLayoutAuditTimeoutForNodes } from './penpot-preview-layout-audit';
+import { projectZuiDocument } from '../src/bridge/penpot-projection';
 
 type RecordValue = Record<string, unknown>;
 interface IdentifiedRecord { id: string }
@@ -308,10 +317,58 @@ async function rpc<T = IdentifiedRecord>(context: { request: Pick<APIRequestCont
   throw new Error(`${command} returned an unsupported actual response content type`);
 }
 
+/** Fence an official export with authenticated file/library revisions. This
+ * supplies the authority absent from SDK Library and never writes sync status.
+ * A concurrent or unacknowledged save remains a failure to reconcile.
+ */
+export async function withSourceColorRevisionFence<T>(
+  context: { request: Pick<APIRequestContext, 'post'> },
+  identity: { origin: string; fileId: string; pageId: string }, boardId: string,
+  document: ZuiDocument, decode: (body: string) => unknown, receipt: RecordValue,
+  operation: () => Promise<T>,
+): Promise<T> {
+  const fences = receipt['sourceColorRevisionFences'] ?? [];
+  assert.ok(Array.isArray(fences)); receipt['sourceColorRevisionFences'] = fences;
+  const fence: RecordValue = { boardId, startedAtUtc: new Date().toISOString(), status: 'reading-before' };
+  fences.push(fence);
+  const readSnapshot = async () => {
+    const file = await rpc(context, identity.origin, 'get-file', { id: identity.fileId }, decode);
+    assert.equal(file.id, identity.fileId);
+    const connected = await rpc<IdentifiedRecord[]>(context, identity.origin, 'get-file-libraries',
+      { 'file-id': identity.fileId }, decode);
+    assert.ok(Array.isArray(connected), 'Read the actual connected library list');
+    assert.equal(new Set(connected.map(library => library.id)).size, connected.length);
+    const libraries = await Promise.all(connected.map(async library => {
+      const actual = await rpc(context, identity.origin, 'get-file', { id: library.id }, decode);
+      assert.equal(actual.id, library.id, 'Color library API returned another file'); return actual;
+    }));
+    return sourceColorRevisionSnapshot(file, libraries, identity.pageId, boardId, document);
+  };
+  try {
+    const before = await readSnapshot(); fence['before'] = before; fence['status'] = 'exporting';
+    const result = await operation();
+    const after = await readSnapshot(); fence['after'] = after;
+    assertSourceColorRevisionPreserved(before, after);
+    fence['status'] = 'exported-with-stable-source-color-revisions'; return result;
+  } catch (error) {
+    fence['status'] = 'failed'; throw error;
+  } finally { fence['finishedAtUtc'] = new Date().toISOString(); }
+}
+
 async function openWorkspace(context: BrowserContext, workspaceUrl: string, host: string, manifest: RecordValue,
   bundleSha256: string, errors: string[], decode: (body: string) => unknown,
-  beforePluginOpen?: (page: Page) => Promise<void>): Promise<{ page: Page;
+  beforePluginOpen?: (page: Page) => Promise<void>,
+  reuseRegistration?: { pluginId: string; registryEntrySha256: string; registrySha256?: string },
+  executionMode: 'reuse-existing' | 'managed-bootstrap' = 'reuse-existing'): Promise<{ page: Page;
     frame: ReturnType<Page['frameLocator']>; installation: RecordValue }> {
+  assert.ok(reuseRegistration || executionMode === 'managed-bootstrap',
+    'Opening an unregistered plugin requires explicit managed-bootstrap mode');
+  assert.ok(!reuseRegistration || executionMode === 'reuse-existing', 'Bootstrap cannot adopt an existing registration');
+  const beforeRegistration = reuseRegistration ? verifyExistingPluginRegistration(
+    await rpc(context, workspaceIdentity(workspaceUrl).origin, 'get-profile', {}, decode),
+    new URL('manifest.json', host).href, manifest['permissions'], reuseRegistration) : undefined;
+  const pinnedRegistration = reuseRegistration && beforeRegistration
+    ? { ...reuseRegistration, registrySha256: beforeRegistration.registrySha256 } : undefined;
   const page = await context.newPage();
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (message) => {
@@ -339,11 +396,14 @@ async function openWorkspace(context: BrowserContext, workspaceUrl: string, host
   const servedBundle = await context.request.get(new URL(manifest['code'], host).href);
   assert.equal(servedBundle.status(), 200);
   assert.equal(sha256(await servedBundle.body()), bundleSha256);
-  // The official manager installs the registry entry and saves the real permissions.
+  // Explicit reuse never installs a registry entry or grants permissions again.
   await page.locator('[data-tool="plugins"]').click();
-  await page.getByPlaceholder('Write a plugin URL').fill(new URL('manifest.json', host).href);
-  await page.getByRole('button', { name: 'Install', exact: true }).click();
-  await page.getByRole('button', { name: 'Allow', exact: true }).click();
+  if (!pinnedRegistration) {
+    assert.equal(executionMode, 'managed-bootstrap', 'UI installation is bootstrap-only');
+    await page.getByPlaceholder('Write a plugin URL').fill(new URL('manifest.json', host).href);
+    await page.getByRole('button', { name: 'Install', exact: true }).click();
+    await page.getByRole('button', { name: 'Allow', exact: true }).click();
+  }
   const pluginRows = page.locator('[class*="plugins-list-element"]');
   await pluginRows.first().waitFor({ timeout: 30_000 });
   const manifestUrl = new URL('manifest.json', host).href;
@@ -367,17 +427,31 @@ async function openWorkspace(context: BrowserContext, workspaceUrl: string, host
   assert.ok(installedPlugin, 'Official UI installation must persist the plugin registry in the real account');
   assert.ok(typeof installedPlugin['plugin-id'] === 'string'
     && installedPlugin['plugin-id'] !== '00000000-0000-0000-0000-000000000000');
-  assert.deepEqual([...installedPlugin['permissions'] as string[]].sort(), [...manifest['permissions'] as string[]].sort());
+  assert.ok(Array.isArray(manifest['permissions']), 'Manifest permissions must be the actual JSON array');
+  const installedPermissions = pluginRegistrationPermissions(installedPlugin['permissions']);
+  assert.deepEqual(installedPermissions, pluginRegistrationPermissions(manifest['permissions']));
   assert.ok(installedIndex >= 0);
+  if (pinnedRegistration) {
+    const profile = await rpc<RecordValue>(context, workspaceIdentity(workspaceUrl).origin, 'get-profile', {}, decode);
+    const verified = verifyExistingPluginRegistration(profile, manifestUrl, manifest['permissions'], pinnedRegistration);
+    assert.equal(verified.index, installedIndex);
+  }
   const pluginRow = pluginRows.nth(installedIndex);
   assert.ok((await pluginRow.innerText()).includes(manifest['name']));
-  await pluginRow.getByRole('button', { name: 'Open', exact: true }).click();
+  await pluginRow.getByRole('button', { name: /^(?:Open|打开)$/ }).click();
   const frame = page.frameLocator('plugin-modal iframe');
-  await frame.locator('input[type="file"][accept*=".zui"]').waitFor({ state: 'attached', timeout: 30_000 });
+  await frame.locator('input[type="file"][accept*=".zui"]').first().waitFor({ state: 'attached', timeout: 30_000 });
   await frame.getByRole('button', { name: 'Import .zui', exact: true }).waitFor({ timeout: 30_000 });
+  if (pinnedRegistration) {
+    const profile = await rpc<RecordValue>(context, workspaceIdentity(workspaceUrl).origin, 'get-profile', {}, decode);
+    verifyExistingPluginRegistration(profile, manifestUrl, manifest['permissions'], pinnedRegistration);
+  }
   return { page, frame, installation: { registryBackendVerified: true, manifestUrl,
-    pluginId: installedPlugin['plugin-id'], permissions: installedPlugin['permissions'],
-    registryEntrySha256: sha256(JSON.stringify(installedPlugin)) } };
+    reusedExistingRegistration: Boolean(reuseRegistration), installedByThisRun: !reuseRegistration,
+    pluginId: installedPlugin['plugin-id'], permissions: installedPermissions,
+    registryFingerprintProtocol: pluginRegistrationFingerprintProtocol,
+    registryEntrySha256: pluginRegistrationFingerprint(installedPlugin),
+    registrySha256: beforeRegistration?.registrySha256, registryEntryCount: beforeRegistration?.entryCount } };
 }
 
 async function selectActualAssetBoard(page: Page, boardId: string, receipt: RecordValue): Promise<void> {
@@ -395,37 +469,20 @@ async function selectActualAssetBoard(page: Page, boardId: string, receipt: Reco
 }
 
 async function capturePreviewLayoutAudit(
-  frame: FrameLocator, expectedBoardId: string, output: string, receipt: RecordValue,
-): Promise<void> {
-  const requestId = randomUUID();
-  const response = record(await frame.locator('html').evaluate((_, id) =>
-    new Promise<Record<string, unknown>>((resolve, reject) => {
-      const cleanup = () => {
-        window.removeEventListener('message', onMessage);
-        window.clearTimeout(timer);
-      };
-      const onMessage = (event: MessageEvent) => {
-        const data: unknown = event.data;
-        if (event.source !== window.parent || !data || typeof data !== 'object' || Array.isArray(data)) return;
-        const payload = data as Record<string, unknown>;
-        if (payload['type'] !== 'preview-audit' || payload['requestId'] !== id) return;
-        cleanup();
-        resolve(payload);
-      };
-      const timer = window.setTimeout(() => {
-        cleanup();
-        reject(new Error('The saved Penpot board did not return its layout audit before the deadline'));
-      }, 30_000);
-      window.addEventListener('message', onMessage);
-      try {
-        window.parent.postMessage({ type: 'audit-preview-layout', requestId: id }, '*');
-      } catch (error) {
-        cleanup();
-        reject(error);
-      }
-    }), requestId, { timeout: 35_000 }));
+  frame: FrameLocator, expectedBoardId: string, output: string, receipt: RecordValue, expectedInput: ZuiDocument,
+): Promise<RecordValue> {
+  const source = reviewHost(expectedInput) ?? expectedInput;
+  const projectedNodeCount = projectZuiDocument(source).shapes.length;
+  const auditTimeoutMs = previewLayoutAuditTimeoutForNodes(projectedNodeCount);
+  receipt['postReopenLayoutAuditRequest'] = {
+    projectedNodeCount,
+    timeoutMs: auditTimeoutMs,
+    budgetAuthority: 'two-native-settlement-phases-and-minimum-refresh-draft',
+  };
+  const reply = await requestPreviewLayoutAudit(frame, auditTimeoutMs);
+  const response = record(reply);
+  const requestId = reply.requestId;
   assert.equal(response['type'], 'preview-audit');
-  assert.equal(response['requestId'], requestId);
   assert.equal(response['previewBoardId'], expectedBoardId,
     'The layout audit must describe the same saved and reopened asset board');
   const layoutAudit = record(response['layoutAudit']);
@@ -438,6 +495,31 @@ async function capturePreviewLayoutAudit(
   assert.ok(Array.isArray(layoutAudit['contentMeasurements']), 'Actual text measurements are missing from the reopened audit');
   assert.ok(Array.isArray(layoutAudit['semanticNodes']), 'Actual semantic bounds are missing from the reopened audit');
   record(layoutAudit['assetBounds']);
+  const actual = importedActualNormalReviewCase(source);
+  const media = actual ? runtimeSceneMediaForCase(actual) : undefined;
+  if (media && actual) {
+    const target = runtimeSceneMediaReviewTarget(source, actual)!;
+    const audit = record(layoutAudit['runtimeSceneMediaAudit']);
+    assert.equal(audit['schema'], 'dev.zircon.penpot.runtime-scene-media-audit');
+    assert.equal(audit['version'], 1);
+    assert.equal(audit['authority'], 'official-original-media-data-after-layout-refresh');
+    assert.equal(audit['verified'], true);
+    assert.equal(audit['caseId'], actual.id);
+    assert.equal(audit['nodeId'], target.nodeId);
+    assert.equal(audit['pngSha256'], media.image.pngSha256);
+    assert.equal(audit['byteLength'], media.image.byteLength);
+    assert.deepEqual(audit['physicalSize'], target.image.runtimeScene.physicalSize);
+    assert.equal(audit['bootstrapCaseJsonSha256'], media.bootstrapCase.caseJsonSha256);
+    assert.equal(audit['bootstrapCaseSha256'], media.bootstrapCase.caseSha256);
+    assert.equal(audit['bootstrapPixelAssociationSha256'], media.bootstrapPixelAssociation.sha256);
+    assert.ok(typeof audit['mediaId'] === 'string' && audit['mediaId'].length > 0);
+    assert.ok(typeof audit['shapeId'] === 'string' && audit['shapeId'].length > 0);
+    const owners = (layoutAudit['semanticNodes'] as unknown[]).map(record).filter((node) => node['nodeId'] === target.nodeId);
+    assert.equal(owners.length, 1, 'Reopened scene needs one actual semantic owner');
+    assert.equal(owners[0]!['shapeId'], audit['ownerShapeId']);
+    receipt['runtimeSceneMediaAudit'] = audit;
+  }
+  return layoutAudit;
 }
 
 async function captureExportUi(frame: FrameLocator, page: Page): Promise<RecordValue> {
@@ -537,7 +619,8 @@ function persistedToolbarGroups(file: BackendFile, pageId: string,
   const contract = viewportToolbarContract(host);
   if (!contract) return [];
   const groups = persistedViewportToolbarGroupMetadata(file, pageId, asset.boardId, contract);
-  const packet = actual ? readViewportToolbarPublication(actual.data['normal_window_evidence']) : undefined;
+  const mapping = actual ? viewportToolbarSourceMapping(host, actual.data['normal_window_evidence'], actual.dpi) : undefined;
+  const packet = mapping?.packet;
   if (actual) assert.ok(packet, 'Actual imported normal review lacks its exact toolbar publication');
   for (const [index, group] of groups.entries()) {
     const node = host.nodes?.[group.nodeId];
@@ -553,9 +636,8 @@ function persistedToolbarGroups(file: BackendFile, pageId: string,
     if (packet) {
       const raw = packet.nodes.find(node => node.nodeId === packet.groupNodeIds[index]);
       assert.ok(raw, 'Actual original group publication is missing');
-      assert.equal(group.metadata['sourcePath'], raw.sourcePath);
-      assert.equal(group.metadata['sourceNodeId'], raw.sourceNodeId);
-      assert.equal(group.metadata['instancePath'], raw.instancePath);
+      assert.equal(mapping!.sourceByNativeId.get(raw.nodeId), group.nodeId,
+        'Actual saved group differs from its complete authenticated Source identity');
       const expectedParent: string | undefined = raw.parentNodeId === packet.rowNodeId ? contract.row
         : raw.parentNodeId === packet.popupNodeId ? contract.popup : undefined;
       assert.ok(expectedParent, 'Actual original group has an unrelated published parent');
@@ -565,8 +647,19 @@ function persistedToolbarGroups(file: BackendFile, pageId: string,
   return groups;
 }
 
+export interface RealPenpotPersistenceOptions {
+  mode?: 'reuse-existing' | 'managed-bootstrap';
+  expectedWorkspace?: { origin: string; teamId: string; fileId: string; pageId: string };
+  existingPlugin?: { host: string; pluginId: string; registryEntrySha256: string; manifestSha256: string;
+    bundleSha256: string; registrySha256?: string };
+  append?: { fileId: string; pageId: string; revn: number; vern: number };
+}
+
 /** Actual import -> HTTP save acknowledgement -> fresh context -> backend metadata -> existing export. */
-export async function runRealPenpotPersistence(): Promise<void> {
+export async function runRealPenpotPersistence(options: RealPenpotPersistenceOptions = {}): Promise<void> {
+  const editSourceGap = process.argv.includes('--edit-source-gap');
+  assert.ok(['--edit-outliner-min-height', '--edit-workbench-gap', '--edit-source-gap']
+    .filter(flag => process.argv.includes(flag)).length <= 1, 'Choose exactly one real Inspector edit.');
   const root = requireRealSessionDirectory(required('PENPOT_REAL_EVIDENCE_ROOT'));
   const output = resolve(root, `session-${randomUUID()}`);
   await mkdir(output);
@@ -636,12 +729,21 @@ export async function runRealPenpotPersistence(): Promise<void> {
   let context: BrowserContext | undefined;
   let importDebuggerCdp: ImportDebuggerSession | undefined;
   let api: APIRequestContext | undefined;
+  let runFailed = false;
+  let finalRegistryCheck: (() => Promise<RecordValue>) | undefined;
+  let originalAuthenticationFile: { path: string; sha256: string } | undefined;
+  const resources: RecordValue = { browser: { ownership: 'session', started: false },
+    pluginHost: { ownership: 'none', startedByThisSession: false } };
+  receipt['resources'] = resources;
   try {
     await checkpointReceipt('session-created');
     const previousReceiptPath = process.env['PENPOT_REAL_PREVIOUS_RECEIPT']
       ? artifactFile(process.env['PENPOT_REAL_PREVIOUS_RECEIPT']) : undefined;
     const previousReceiptBytes = previousReceiptPath ? await readFile(previousReceiptPath) : undefined;
     const previousReceipt = previousReceiptBytes ? record(JSON.parse(previousReceiptBytes.toString('utf8'))) : undefined;
+    const refreshExistingWorkbench = process.argv.includes('--refresh-existing-workbench');
+    assert.ok(!refreshExistingWorkbench || (previousReceipt && process.argv.includes('--full-workbench')),
+      'Refreshing an existing workbench requires its actual acknowledged-save receipt and complete owning input');
     let workspaceUrl = process.env['PENPOT_REAL_WORKSPACE_URL'];
     if (previousReceipt) {
       assert.equal(previousReceipt['backend'], 'real');
@@ -656,12 +758,35 @@ export async function runRealPenpotPersistence(): Promise<void> {
       receipt['importPerformedInThisContext'] = false;
       receipt['saveRequestReplayed'] = false;
     }
+    const execution = realSessionExecutionPlan(options, {
+      workspaceUrl, authenticatedStorage: Boolean(process.env['PENPOT_REAL_STORAGE_STATE']),
+      uiBuildReceipt: Boolean(process.env['PENPOT_REAL_UI_BUILD_RECEIPT']),
+      workerBuildReceipt: Boolean(process.env['PENPOT_REAL_WORKER_BUILD_RECEIPT']),
+    });
+    receipt['executionMode'] = execution.mode;
+    receipt['expectedWorkspace'] = options.expectedWorkspace;
     const origin = workspaceUrl ? workspaceIdentity(workspaceUrl).origin : new URL(required('PENPOT_BASE_URL')).origin;
     assert.ok(['127.0.0.1', 'localhost', '[::1]'].includes(new URL(origin).hostname), 'Use the authorized local Penpot runtime');
     const sourcePath = resolve(required('PENPOT_REAL_ZUI_SOURCE'));
     const source = await readFile(sourcePath, 'utf8');
     const original = parseZuiDocument(source).document;
     const sourceClosure = process.argv.includes('--source-closure');
+    if (editSourceGap) {
+      assert.ok(options.append && sourceClosure && execution.mode === 'reuse-existing',
+        'A source gap edit requires a source-owned append with the existing registered plugin');
+      assert.equal(options.expectedWorkspace?.fileId, 'b4a1e3ce-9e6a-81fe-8008-d69d60dbec5a');
+      assert.equal(options.expectedWorkspace?.pageId, 'b4a1e3ce-9e6a-81fe-8008-d69d60dbec5b');
+    }
+    if (options.append) {
+      assert.ok(workspaceUrl && options.existingPlugin && process.env['PENPOT_REAL_STORAGE_STATE'] &&
+        process.env['PENPOT_REAL_UI_BUILD_RECEIPT'],
+      'Append requires the assigned workspace, authenticated storage and current managed plugin build evidence');
+      assert.ok(sourceClosure && !previousReceipt && !refreshExistingWorkbench &&
+        !process.argv.includes('--full-workbench') &&
+        !process.argv.includes('--edit-outliner-min-height') && !process.argv.includes('--edit-workbench-gap'),
+      'Source append cannot refresh or edit a managed LevelEditor case');
+      receipt['append'] = { ...options.append, savedForeignContentPreserved: false, reopenedForeignContentPreserved: false };
+    }
     let actualCaseInput: { path: string; sha256: string } | undefined;
     let actualCase;
     if (process.argv.includes('--full-workbench') && !sourceClosure) {
@@ -677,14 +802,37 @@ export async function runRealPenpotPersistence(): Promise<void> {
       receipt['actualNormalViewport'] = actualCase.viewport;
       receipt['actualNormalDpi'] = actualCase.dpi;
     }
-    const prepared = process.argv.includes('--full-workbench') || sourceClosure
-      ? await prepareRealWorkbenchInput(resolve(required('ZUI_LAYOUT_REPO_ROOT')), sourcePath, source, original, !sourceClosure, actualCase)
-      : undefined;
+    let expectedOwnerSources: ReturnType<typeof parseFingerprintList> | undefined;
+    if (process.env['PENPOT_REAL_SOURCE_FINGERPRINTS_JSON']) {
+      assert.ok(sourceClosure, 'An explicit owner closure requires source-closure mode');
+      const fingerprintPath = artifactFile(required('PENPOT_REAL_SOURCE_FINGERPRINTS_JSON'));
+      const fingerprintBytes = await readFile(fingerprintPath);
+      const fingerprintSha256 = required('PENPOT_REAL_SOURCE_FINGERPRINTS_SHA256');
+      assert.match(fingerprintSha256, /^[0-9a-f]{64}$/);
+      assert.equal(sha256(fingerprintBytes), fingerprintSha256, 'Admitted owner fingerprint input changed');
+      expectedOwnerSources = parseFingerprintList(JSON.parse(fingerprintBytes.toString('utf8')), 'admitted owner sources');
+      receipt['admittedOwnerSources'] = { path: fingerprintPath, sha256: fingerprintSha256, sources: expectedOwnerSources };
+    } else {
+      assert.ok(!process.env['PENPOT_REAL_SOURCE_FINGERPRINTS_SHA256'], 'Owner fingerprint hash has no input file');
+    }
+    const prepared = sourceClosure
+      ? await prepareRealOwnerInput(resolve(required('ZUI_LAYOUT_REPO_ROOT')), sourcePath, source, original,
+        { ...(process.env['PENPOT_REAL_THEME_SOURCE_PATH']
+          ? { themeSourcePath: process.env['PENPOT_REAL_THEME_SOURCE_PATH']! } : {}),
+          ...(expectedOwnerSources ? { expectedSources: expectedOwnerSources } : {}) })
+      : process.argv.includes('--full-workbench')
+        ? await prepareRealWorkbenchInput(resolve(required('ZUI_LAYOUT_REPO_ROOT')), sourcePath, source, original, true, actualCase)
+        : undefined;
+    const sourceGapEditTarget = editSourceGap
+      ? prepareRealOwnerGapEdit(String(prepared!.input['penpot_original_source_path']), original) : undefined;
+    if (sourceGapEditTarget) receipt['sourceGapEditTarget'] = sourceGapEditTarget;
     const importedDocument = prepared?.input ?? original;
     receipt['completeWorkbenchPrepared'] = Boolean(prepared?.managedPresentationPrepared);
     receipt['authoredSourceClosurePrepared'] = Boolean(prepared);
     receipt['actualManagedPresentationPrepared'] = Boolean(prepared?.managedPresentationPrepared);
     receipt['sourceOwners'] = prepared?.sourceFingerprints ?? [];
+    if (prepared && 'themeSourcePath' in prepared)
+      receipt['authoredThemeSourcePath'] = prepared.themeSourcePath;
     receipt['sourcePath'] = sourcePath;
     const sourceSha256 = sha256(source);
     receipt['sourceSha256'] = sourceSha256;
@@ -711,14 +859,58 @@ export async function runRealPenpotPersistence(): Promise<void> {
     const bundle = artifactFile(required('ZUI_PLUGIN_BUNDLE_PATH'));
     const executablePath = artifactFile(required('PLAYWRIGHT_CHROMIUM_EXECUTABLE'));
     const storagePath = process.env['PENPOT_REAL_STORAGE_STATE'] ? artifactFile(process.env['PENPOT_REAL_STORAGE_STATE']) : undefined;
+    if (storagePath) originalAuthenticationFile = { path: storagePath, sha256: sha256(await readFile(storagePath)) };
     const fontResourcePath = process.env['PENPOT_REAL_FONT_RESOURCE_MANIFEST']
       ? artifactFile(process.env['PENPOT_REAL_FONT_RESOURCE_MANIFEST']) : undefined;
     const decode = transitDecoder(artifactFile(process.env['PENPOT_REAL_TRANSIT_PACKAGE'] ?? required('PENPOT_REAL_FRONTEND_PACKAGE')));
-    const manifest = JSON.parse(await readFile(resolve(dist, 'manifest.json'), 'utf8'));
-    const bundleSha256 = sha256(await readFile(bundle));
-    assert.equal(sha256(await readFile(resolve(dist, 'assets/plugin.js'))), bundleSha256,
+    const manifestBytes = await readFile(resolve(dist, 'manifest.json'));
+    const manifest = JSON.parse(manifestBytes.toString('utf8'));
+    const bundleBytes = await readFile(bundle);
+    const distributionWorkerBytes = await readFile(resolve(dist, 'assets/plugin.js'));
+    const bundleSha256 = sha256(bundleBytes);
+    assert.equal(sha256(distributionWorkerBytes), bundleSha256,
       'The actual served distribution must contain the current independent plugin bundle');
+    if (options.existingPlugin) {
+      assert.equal(sha256(manifestBytes), options.existingPlugin.manifestSha256, 'Selected manifest differs from reuse pin');
+      assert.equal(bundleSha256, options.existingPlugin.bundleSha256, 'Selected worker differs from reuse pin');
+    }
     receipt['pluginBundleSha256'] = bundleSha256;
+    receipt['pluginWorkerBuildEvidence'] = await verifyCurrentPluginWorkerBuild({
+      buildReceiptPath: artifactFile(required('PENPOT_REAL_WORKER_BUILD_RECEIPT')),
+      buildReceiptSha256: required('PENPOT_REAL_WORKER_BUILD_RECEIPT_SHA256'),
+      repositoryRoot: resolve(required('ZUI_LAYOUT_REPO_ROOT')), bundleBytes,
+    });
+    const verifySelectedPluginHost = async (host: string,
+      get: (url: string) => ReturnType<APIRequestContext['get']>): Promise<void> => {
+      const hostUrl = new URL(host);
+      const manifestCode = manifest['code'];
+      assert.ok(typeof manifestCode === 'string' && manifestCode.length > 0, 'The selected manifest needs a worker code URL');
+      assert.equal(new URL(manifestCode, hostUrl).href, new URL('assets/plugin.js', hostUrl).href,
+        'The selected manifest must reference its own pinned worker');
+      const manifestResponse = await get(new URL('manifest.json', hostUrl).href);
+      assert.equal(manifestResponse.status(), 200, 'The selected plugin manifest must be reachable');
+      assert.equal(manifestResponse.url(), new URL('manifest.json', hostUrl).href, 'Plugin manifest redirected');
+      assert.equal(sha256(await manifestResponse.body()), sha256(manifestBytes), 'HTTP manifest differs from selected distribution');
+      receipt['pluginWorkerHttpEvidence'] = await verifyCurrentPluginWorker({
+        host, bundleBytes, distributionWorkerBytes, get,
+      });
+      const probe = await get(host);
+      assert.equal(probe.status(), 200, 'The selected plugin host must serve its built index.html');
+      assert.equal(probe.url(), host, 'Plugin index redirected');
+      assert.equal(sha256(await probe.body()), sha256(await readFile(resolve(dist, 'index.html'))));
+      receipt['pluginIndexHttpVerified'] = true;
+      receipt['pluginIndexResponseHeaders'] = probe.headers();
+      if (process.env['PENPOT_REAL_UI_BUILD_RECEIPT']) {
+        receipt['pluginUiBuildEvidence'] = await verifyCurrentPluginUi({
+          buildReceiptPath: artifactFile(required('PENPOT_REAL_UI_BUILD_RECEIPT')),
+          repositoryRoot: resolve(required('ZUI_LAYOUT_REPO_ROOT')), dist,
+          host, indexBytes: await probe.body(), get,
+        });
+      }
+      receipt['pluginHost'] = host;
+      await checkpointReceipt('plugin-host-verified');
+    };
+
     const downloads = resolve(output, 'downloads');
     const temp = resolve(output, 'browser-temp');
     const browserUser = resolve(output, 'browser-user');
@@ -738,6 +930,7 @@ export async function runRealPenpotPersistence(): Promise<void> {
     const bootstrap = { request: api };
     let createdProfileId: string | undefined;
     if (!storagePath) {
+      assert.ok(execution.bootstrapAllowed, 'Account authentication or creation is bootstrap-only');
       let credentialsPath = process.env['PENPOT_REAL_CREDENTIALS'];
       if (!credentialsPath) {
         const created = await createRealPenpotProfile(required('PENPOT_REAL_PREPL_URL'), resolve(output, 'credentials.json'));
@@ -758,7 +951,22 @@ export async function runRealPenpotPersistence(): Promise<void> {
     if (createdProfileId) assert.equal(profile.id, createdProfileId);
     receipt['profileId'] = profile.id;
     if (previousReceipt) assert.equal(profile.id, previousReceipt['profileId']);
+    let existingRegistration: (NonNullable<RealPenpotPersistenceOptions['existingPlugin']> & { registrySha256: string }) | undefined;
+    if (options.existingPlugin) {
+      const manifestUrl = new URL('manifest.json', options.existingPlugin.host).href;
+      const verified = verifyExistingPluginRegistration(profile, manifestUrl, manifest['permissions'], options.existingPlugin);
+      existingRegistration = { ...options.existingPlugin, registrySha256: verified.registrySha256 };
+      receipt['pluginRegistryBefore'] = { sha256: verified.registrySha256, entryCount: verified.entryCount,
+        pluginId: options.existingPlugin.pluginId, registryEntrySha256: verified.fingerprint };
+      receipt['pluginRegistryUnchanged'] = false;
+      finalRegistryCheck = async () => {
+        const finalProfile = await rpc<RecordValue>(bootstrap, origin, 'get-profile', {}, decode);
+        assert.equal(finalProfile.id, profile.id, 'Final registry account differs from preflight');
+        return verifyPluginRegistryUnchanged(finalProfile, verified.registrySha256);
+      };
+    }
     if (!workspaceUrl) {
+      assert.ok(execution.bootstrapAllowed, 'Workspace creation is bootstrap-only');
       const teams = await rpc<BackendTeam[]>(bootstrap, origin, 'get-teams', {}, decode);
       assert.ok(Array.isArray(teams));
       const defaultTeam = teams.find((team) => team['is-default']) ?? (teams.length === 1 ? teams[0] : undefined);
@@ -774,6 +982,7 @@ export async function runRealPenpotPersistence(): Promise<void> {
         'file-id': actualFile.id, 'page-id': pageId })}`;
     }
     const identity = workspaceIdentity(workspaceUrl);
+    if (options.expectedWorkspace) assert.deepEqual(identity, options.expectedWorkspace, 'Created or restored workspace differs');
     if (previousReceipt) assert.deepEqual(identity, previousReceipt['identity']);
     receipt['identity'] = identity;
     receipt['workspaceUrl'] = workspaceUrl;
@@ -784,41 +993,87 @@ export async function runRealPenpotPersistence(): Promise<void> {
     assert.ok(Number.isSafeInteger(initial.revn) && Number.isSafeInteger(initial.vern));
     const objects = initial.data?.['pages-index']?.[identity.pageId]?.objects;
     assert.ok(objects);
-    if (!previousReceipt) assert.ok(Object.keys(objects).length <= 1,
+    if (options.append) {
+      verifySourceOwnerAppendAdmission(initial, identity, options.append, {
+        sourceClosure, existingPlugin: Boolean(options.existingPlugin), authenticatedStorage: Boolean(storagePath),
+        previousReceipt: Boolean(previousReceipt), fullWorkbench: process.argv.includes('--full-workbench'),
+        editRequested: process.argv.includes('--edit-outliner-min-height') || process.argv.includes('--edit-workbench-gap'),
+      });
+      receipt['appendInitialObjectCount'] = Object.keys(objects).length;
+    } else if (!previousReceipt) assert.ok(Object.keys(objects).length <= 1,
       'Use a fresh actual file page to make restored Select All unambiguous');
     receipt['initialRevision'] = { revn: initial.revn, vern: initial.vern };
     receipt['apiBootstrapVerified'] = true;
-    const initialAuthentication = await api.storageState({ path: resolve(output, 'authenticated-storage-state.json') });
+    // Authentication remains in memory across isolated contexts; never duplicate cookies to evidence.
+    const initialAuthentication = await api.storageState();
+    receipt['authenticationStorage'] = { persistedBySession: false,
+      ...(originalAuthenticationFile ? { originalPath: originalAuthenticationFile.path,
+        originalSha256: originalAuthenticationFile.sha256 } : {}) };
     await checkpointReceipt('api-bootstrap-verified');
-    await api.dispose();
-    api = undefined;
+    let selectedPlugin: { host: string } | undefined;
+    if (options.existingPlugin) {
+      selectedPlugin = { host: new URL(options.existingPlugin.host).href };
+      await verifySelectedPluginHost(selectedPlugin.host, url => api!.get(url));
+      receipt['existingPlugin'] = { ...options.existingPlugin, startedByThisSession: false,
+        stoppedByThisSession: false, nativeBirthVerifiedByThisRunner: false };
+      resources['pluginHost'] = { ownership: 'external', startedByThisSession: false,
+        stoppedByThisSession: false };
+    }
     if (process.argv.includes('--api-only')) {
       receipt['pendingReason'] = 'Actual backend account and file verified; browser import, save, reopen and export remain unverified.';
       return;
     }
+    if (!selectedPlugin) {
+      assert.ok(execution.bootstrapAllowed, 'Only explicit managed bootstrap can create a plugin host');
+      const started = await pluginServer(dist, bundle);
+      server = started.server;
+      selectedPlugin = { host: started.host };
+      resources['pluginHost'] = { ownership: 'session', startedByThisSession: true,
+        pid: process.pid, host: started.host, stoppedByThisSession: false };
+      await verifySelectedPluginHost(started.host, url => api!.get(url));
+    }
+    const plugin = selectedPlugin;
+    assert.ok(plugin);
     browser = await chromium.launch({ executablePath, headless: true, downloadsPath: downloads,
       env: { ...process.env, TMP: temp, TEMP: temp, TMPDIR: temp, USERPROFILE: browserUser,
         APPDATA: browserAppData, LOCALAPPDATA: browserCache }, args: ['--disable-dev-shm-usage'] });
+    resources['browser'] = { ownership: 'session', started: true, nativeTerminationReceiptRequired: true };
     const contextOptions = { acceptDownloads: true, serviceWorkers: 'block' as const,
       viewport: { width: 1920, height: 1200 }, locale: 'en-US' };
     context = await browser.newContext({ ...contextOptions, storageState: initialAuthentication });
     watchFonts(context, 'initial-context');
-    const plugin = await pluginServer(dist, bundle);
-    server = plugin.server;
-    receipt['pluginHost'] = plugin.host;
-    const probe = await context.request.get(plugin.host);
-    assert.equal(probe.status(), 200, 'The real plugin server must serve its built index.html');
-    assert.equal(sha256(await probe.body()), sha256(await readFile(resolve(dist, 'index.html'))));
-    receipt['pluginIndexHttpVerified'] = true;
-    receipt['pluginIndexResponseHeaders'] = probe.headers();
-    const uiBuildReceiptPath = process.env['PENPOT_REAL_UI_BUILD_RECEIPT'];
-    if (uiBuildReceiptPath) {
-      receipt['pluginUiBuildEvidence'] = await verifyCurrentPluginUi({
-        buildReceiptPath: artifactFile(uiBuildReceiptPath), repositoryRoot: resolve(required('ZUI_LAYOUT_REPO_ROOT')), dist,
-        host: plugin.host, indexBytes: await probe.body(), get: (url) => context!.request.get(url),
+    const saves: SaveEvidence[] = [];
+    let saveError: unknown;
+    const startSaveObservation = async (page: Page): Promise<void> => {
+      receipt['saveResponses'] = saves;
+      const onSave = async (response: ActualSaveHttp): Promise<void> => {
+        receipt['lastObservedSaveHttp'] = { httpStatus: response.httpStatus, url: response.url,
+          requestId: response.requestId, contentType: response.contentType,
+          requestFile: response.requestFile, responseFile: response.responseFile,
+          requestSha256: sha256(response.requestBody), responseSha256: sha256(response.responseBody),
+          observedAtUtc: new Date().toISOString() };
+        await checkpointReceipt('save-http-response-observed');
+        const url = new URL(response.url);
+        const { requestBody, requestFile, responseFile } = response;
+        const saveRequest = decode(requestBody.toString('utf8')) as SaveRequest;
+        assert.equal(saveRequest.id, identity.fileId, 'The observed save must identify the actual file');
+        assert.equal(url.searchParams.get('id'), saveRequest.id, 'The actual save URL and request must identify the same file');
+        const body = response.responseBody.toString('utf8');
+        assert.ok(response.httpStatus >= 200 && response.httpStatus < 300,
+          `Actual update-file returned HTTP ${response.httpStatus}`);
+        assert.ok(response.contentType.includes('transit+json'), 'The real save ACK must use actual Transit content');
+        const revision = verifySaveResponse(decode(body), identity, initial.revn, saveRequest);
+        saves.push({ httpStatus: response.httpStatus, url: response.url, requestId: response.requestId, responseSha256: sha256(response.responseBody),
+          requestSha256: sha256(requestBody), requestFile, responseFile, revn: revision, observedAt: Date.now() });
+        receipt['saveAcknowledged'] = true;
+        await checkpointReceipt('save-acknowledged');
+      };
+      receipt['saveCaptureConfiguration'] = await observeRealSaveHttp(page, {
+        fileId: identity.fileId, output, pending: savePending, diagnostics: saveHttpResponses,
+        onResponse: onSave, onError: (error) => { saveError = error; },
       });
-    }
-    await checkpointReceipt('plugin-host-verified');
+      await checkpointReceipt('save-observer-ready');
+    };
     if (previousReceipt && previousReceiptPath) {
       const originalRevision = record(previousReceipt['initialRevision']);
       assert.ok(Number.isSafeInteger(originalRevision['revn']) && Number.isSafeInteger(originalRevision['vern']));
@@ -853,9 +1108,11 @@ export async function runRealPenpotPersistence(): Promise<void> {
           responseSha256: sha256(responseBytes), acknowledgedRevision });
       }
       receipt['acknowledgedSaveEvidenceRevalidated'] = acknowledgedEvidence;
-      receipt['saveAcknowledged'] = true;
-      receipt['closedOriginalContext'] = true;
-      receipt['newAuthenticatedContext'] = true;
+      if (!refreshExistingWorkbench) {
+        receipt['saveAcknowledged'] = true;
+        receipt['closedOriginalContext'] = true;
+        receipt['newAuthenticatedContext'] = true;
+      }
       const savedMetadataPath = artifactFile(resolve(dirname(previousReceiptPath), 'saved-zui-metadata.json'));
       const savedMetadataBytes = await readFile(savedMetadataPath);
       const archivedMetadata = JSON.parse(savedMetadataBytes.toString('utf8')) as ReturnType<typeof persistedZuiMetadata>;
@@ -871,23 +1128,110 @@ export async function runRealPenpotPersistence(): Promise<void> {
         receipt['priorSavedViewportToolbarGroupEvidence'] = { path: groupPath, sha256: sha256(groupBytes) };
       }
       await checkpointReceipt('prior-save-evidence-revalidated');
-      const reopened = await openWorkspace(context, workspaceUrl, plugin.host, manifest, bundleSha256, pageErrors, decode,
-        (page) => selectActualAssetBoard(page, archivedMetadata[0].boardId, receipt));
+      if (refreshExistingWorkbench) {
+        const currentMetadata = persistedZuiMetadata(initial, identity.pageId);
+        const removals = verifyReviewScrollCleanupAdmission(archivedMetadata, currentMetadata);
+        const currentGroups = persistedToolbarGroups(initial, identity.pageId, currentMetadata[0], importedDocument);
+        const groupRemovals = archivedGroups.length
+          ? verifyReviewScrollCleanupAdmission(archivedGroups, currentGroups) : [];
+        receipt['reviewScrollCleanupAdmission'] = { removals, groupRemovals,
+          metadataBefore: currentMetadata, formalAcceptance: false,
+          action: 'source-owned layout refresh; exact metadata or known empty markers; fresh actual save ACK required' };
+        await checkpointReceipt('existing-scroll-cleanup-admitted');
+      }
+      let reopened = await openWorkspace(context, workspaceUrl, plugin.host, manifest, bundleSha256, pageErrors, decode,
+        async (page) => {
+          if (refreshExistingWorkbench) await startSaveObservation(page);
+          await selectActualAssetBoard(page, archivedMetadata[0].boardId, receipt);
+        }, existingRegistration, execution.mode);
+      let continuedMetadata = archivedMetadata;
+      let continuedGroups = archivedGroups;
+      let continuedFile = initial;
+      let continuedAcknowledgedRevision = Math.max(...acknowledgedRevisions);
+      if (refreshExistingWorkbench) {
+        const refreshOutput = resolve(output, 'existing-workbench-refresh');
+        await mkdir(refreshOutput);
+        const refreshReceipt: RecordValue = {};
+        receipt['existingWorkbenchRefresh'] = refreshReceipt;
+        const refreshButton = reopened.frame.getByRole('button', { name: 'Export selected' });
+        await refreshButton.waitFor({ timeout: 30_000 });
+        const refreshDownload = await withSourceColorRevisionFence(context, identity, archivedMetadata[0].boardId,
+          importedDocument, decode, refreshReceipt, () => clickAndWaitForDownload(
+          () => reopened.page.waitForEvent('download', { timeout: timeoutMs }),
+          () => observeActualExportClick(reopened.page, refreshButton, refreshOutput, refreshReceipt)));
+        const refreshExportPath = resolve(refreshOutput, 'exported.zui');
+        await refreshDownload.saveAs(refreshExportPath);
+        assert.equal(await refreshDownload.failure(), null);
+        const refreshedSource = await readFile(refreshExportPath, 'utf8');
+        assert.deepEqual(normalizeZuiDocument(parseZuiDocument(refreshedSource).document), normalizeZuiDocument(original),
+          'The real cleanup export must preserve the complete original ZUI contract');
+        refreshReceipt['exportPath'] = refreshExportPath;
+        refreshReceipt['exportSha256'] = sha256(refreshedSource);
+        refreshReceipt['exportSemanticMatch'] = true;
+        await reopened.page.locator('plugin-modal').locator('button').first().click();
+        await reopened.page.locator('plugin-modal').waitFor({ state: 'detached' });
+        refreshReceipt['pluginClosedViaUi'] = true;
+        let refreshedFile: BackendFile | undefined;
+        const refreshDeadline = Date.now() + timeoutMs;
+        while (Date.now() < refreshDeadline) {
+          if (saveError) throw saveError;
+          if (!saves.length || Date.now() - saves[saves.length - 1].observedAt < 1_500) {
+            await reopened.page.waitForTimeout(500);
+            continue;
+          }
+          const file = await rpc<BackendFile>(context, identity.origin, 'get-file', { id: identity.fileId }, decode);
+          const metadata = persistedZuiMetadata(file, identity.pageId);
+          const acknowledgedRevision = Math.max(...saves.map(save => save.revn));
+          if (file.revn >= acknowledgedRevision && Date.now() - saves[saves.length - 1].observedAt >= 1_500) {
+            verifyReopenedFile(initial, file, identity, acknowledgedRevision, archivedMetadata, metadata);
+            const groups = persistedToolbarGroups(file, identity.pageId, metadata[0], importedDocument);
+            assert.deepEqual(groups, archivedGroups, 'Actual cleanup changed original toolbar group metadata');
+            continuedMetadata = metadata;
+            continuedGroups = groups;
+            continuedFile = file;
+            continuedAcknowledgedRevision = acknowledgedRevision;
+            refreshedFile = file;
+            break;
+          }
+          await reopened.page.waitForTimeout(500);
+        }
+        assert.ok(refreshedFile, 'The cleanup requires a fresh actual UI save ACK and exact persisted metadata');
+        await Promise.all(savePending);
+        if (saveError) throw saveError;
+        await writeFile(resolve(output, 'saved-zui-metadata.json'), `${JSON.stringify(continuedMetadata, null, 2)}\n`);
+        await writeFile(resolve(output, 'saved-toolbar-group-metadata.json'), `${JSON.stringify(continuedGroups, null, 2)}\n`);
+        receipt['savedRevision'] = { revn: refreshedFile.revn, vern: refreshedFile.vern };
+        await checkpointReceipt('existing-scroll-cleanup-saved');
+        const authentication = await context.storageState();
+        await context.close();
+        receipt['closedOriginalContext'] = true;
+        await checkpointReceipt('original-context-closed');
+        context = await browser.newContext({ ...contextOptions, storageState: authentication });
+        watchFonts(context, 'fresh-reopened-context');
+        const reopenedProfile = await rpc(context, identity.origin, 'get-profile', {}, decode);
+        assert.equal(reopenedProfile.id, profile.id);
+        receipt['newAuthenticatedContext'] = true;
+        await checkpointReceipt('fresh-context-authenticated');
+        reopened = await openWorkspace(context, workspaceUrl, plugin.host, manifest, bundleSha256, pageErrors, decode,
+          page => selectActualAssetBoard(page, continuedMetadata[0].boardId, receipt), existingRegistration, execution.mode);
+      }
       const reopenedFile = await rpc<BackendFile>(context, identity.origin, 'get-file', { id: identity.fileId }, decode);
       const restoredMetadata = persistedZuiMetadata(reopenedFile, identity.pageId);
       verifyReopenedFile({ id: identity.fileId, vern: originalRevision['vern'] as number }, reopenedFile, identity,
-        Math.max(...acknowledgedRevisions), archivedMetadata, restoredMetadata);
+        continuedAcknowledgedRevision, continuedMetadata, restoredMetadata);
+      receipt['nativeCopyFreshReopen'] = assertNativeInstanceGeometryPreserved(continuedFile, reopenedFile);
       assert.equal(restoredMetadata.length, 1);
       const comparison = compareStoredZuiMetadata(decodeZuiMetadata(restoredMetadata[0].metadata.document), importedDocument);
       await writeFile(resolve(output, 'reopened-metadata-comparison.json'), `${JSON.stringify(comparison, null, 2)}\n`);
       assert.ok(comparison.wireMatched, 'The continued file differs from the complete owning metadata codec');
       const restoredGroups = persistedToolbarGroups(reopenedFile, identity.pageId, restoredMetadata[0], importedDocument);
-      assert.deepEqual(restoredGroups, archivedGroups, 'Actual continued original group metadata differs from the acknowledged saved file');
+      assert.deepEqual(restoredGroups, continuedGroups, 'Actual continued original group metadata differs from the acknowledged saved file');
       await writeFile(resolve(output, 'reopened-toolbar-group-metadata.json'), `${JSON.stringify(restoredGroups, null, 2)}\n`);
       receipt['viewportToolbarGroupsMatched'] = true;
       receipt['reopenedViewportToolbarGroupCount'] = restoredGroups.length;
       receipt['reopenedSameFile'] = true;
       receipt['metadataMatched'] = true;
+      receipt['importedBoardId'] = restoredMetadata[0].boardId;
       receipt['reopenedRevision'] = { revn: reopenedFile.revn, vern: reopenedFile.vern };
       await writeFile(resolve(output, 'reopened-zui-metadata.json'), `${JSON.stringify(restoredMetadata, null, 2)}\n`);
       await checkpointReceipt('continued-reopened-metadata-verified');
@@ -895,10 +1239,11 @@ export async function runRealPenpotPersistence(): Promise<void> {
       await exportButton.waitFor({ timeout: 30_000 });
       receipt['actualExportUiBeforeClick'] = await captureExportUi(reopened.frame, reopened.page);
       await checkpointReceipt('actual-export-ui-ready');
-      await capturePreviewLayoutAudit(reopened.frame, restoredMetadata[0].boardId, output, receipt);
+      await capturePreviewLayoutAudit(reopened.frame, restoredMetadata[0].boardId, output, receipt, importedDocument);
       await checkpointReceipt('post-reopen-layout-audit-written');
-      const download = await clickAndWaitForDownload(
-        () => reopened.page.waitForEvent('download', { timeout: timeoutMs }), () => observeActualExportClick(reopened.page, exportButton, output, receipt));
+      const download = await withSourceColorRevisionFence(context, identity, restoredMetadata[0].boardId,
+        importedDocument, decode, receipt, () => clickAndWaitForDownload(
+        () => reopened.page.waitForEvent('download', { timeout: timeoutMs }), () => observeActualExportClick(reopened.page, exportButton, output, receipt)));
       const exportPath = resolve(output, 'exported.zui');
       receipt['exportDownloadObserved'] = true;
       await checkpointReceipt('export-download-observed');
@@ -935,9 +1280,10 @@ export async function runRealPenpotPersistence(): Promise<void> {
       assert.equal(receipt['persistenceClaim'], true);
       return;
     }
-    const session = await openWorkspace(context, workspaceUrl, plugin.host, manifest, bundleSha256, pageErrors, decode);
+    const session = await openWorkspace(context, workspaceUrl, plugin.host, manifest, bundleSha256, pageErrors, decode,
+      undefined, existingRegistration, execution.mode);
     receipt['pluginInstallationViaUi'] = session.installation;
-    await checkpointReceipt('plugin-installed-via-ui');
+    await checkpointReceipt('plugin-opened');
     receipt['pluginFrameStylesBeforeImport'] = await captureFrameStyles(session.frame);
     const styleLinks = await session.frame.locator('link[rel="stylesheet"]').evaluateAll((elements) =>
       elements.map((element) => (element as HTMLLinkElement).href));
@@ -959,36 +1305,7 @@ export async function runRealPenpotPersistence(): Promise<void> {
     await cdp.detach();
     receipt['browserRuntime'] = { ...browserVersion, executablePath,
       executableSha256: sha256(await readFile(executablePath)) };
-    const saves: SaveEvidence[] = [];
-    receipt['saveResponses'] = saves;
-    const onSave = async (response: ActualSaveHttp): Promise<void> => {
-      receipt['lastObservedSaveHttp'] = { httpStatus: response.httpStatus, url: response.url,
-        requestId: response.requestId, contentType: response.contentType,
-        requestFile: response.requestFile, responseFile: response.responseFile,
-        requestSha256: sha256(response.requestBody), responseSha256: sha256(response.responseBody),
-        observedAtUtc: new Date().toISOString() };
-      await checkpointReceipt('save-http-response-observed');
-      const url = new URL(response.url);
-      const { requestBody, requestFile, responseFile } = response;
-      const saveRequest = decode(requestBody.toString('utf8')) as SaveRequest;
-      assert.equal(saveRequest.id, identity.fileId, 'The observed save must identify the actual file');
-      assert.equal(url.searchParams.get('id'), saveRequest.id, 'The actual save URL and request must identify the same file');
-      const body = response.responseBody.toString('utf8');
-      assert.ok(response.httpStatus >= 200 && response.httpStatus < 300,
-        `Actual update-file returned HTTP ${response.httpStatus}`);
-      assert.ok(response.contentType.includes('transit+json'), 'The real save ACK must use actual Transit content');
-      const revision = verifySaveResponse(decode(body), identity, initial.revn, saveRequest);
-      saves.push({ httpStatus: response.httpStatus, url: response.url, requestId: response.requestId, responseSha256: sha256(response.responseBody),
-        requestSha256: sha256(requestBody), requestFile, responseFile, revn: revision, observedAt: Date.now() });
-      receipt['saveAcknowledged'] = true;
-      await checkpointReceipt('save-acknowledged');
-    };
-    let saveError: unknown;
-    receipt['saveCaptureConfiguration'] = await observeRealSaveHttp(session.page, {
-      fileId: identity.fileId, output, pending: savePending, diagnostics: saveHttpResponses,
-      onResponse: onSave, onError: (error) => { saveError = error; },
-    });
-    await checkpointReceipt('save-observer-ready');
+    await startSaveObservation(session.page);
     if (fontResourcePath) {
       await session.frame.locator('input[data-font-resource-manifest]').setInputFiles(fontResourcePath);
       const fontStatus = session.frame.locator('.status-panel');
@@ -1044,7 +1361,15 @@ export async function runRealPenpotPersistence(): Promise<void> {
         importDebuggerCdp = undefined;
       }
     }
-    await session.frame.locator('input[type="file"][accept*=".zui"]').setInputFiles(prepared ? {
+    if (options.append) {
+      const replaceSelection = session.frame.locator('input[data-import-replace-selection]');
+      assert.equal(await replaceSelection.count(), 1, 'Append requires the current public import policy control');
+      await replaceSelection.uncheck();
+      assert.equal(await replaceSelection.isChecked(), false, 'Append must not replace any selected business canvas');
+      receipt['importPolicy'] = { replaceSelection: false, createComponentMaster: false,
+        nativeComponentMode: 'full', selectedVia: 'existing official Import .zui public checkbox' };
+    }
+    await session.frame.locator('input[type="file"][accept*=".zui"]').first().setInputFiles(prepared ? {
       name: basename(sourcePath), mimeType: 'text/plain', buffer: Buffer.from(prepared.source, 'utf8'),
     } : sourcePath);
     const importStatus = session.frame.locator('.status-panel');
@@ -1182,6 +1507,13 @@ export async function runRealPenpotPersistence(): Promise<void> {
       await session.page.waitForTimeout(500);
     }
     assert.ok(saved, 'No actual saved backend revision and matching ZUI metadata were observed');
+    if (options.append) {
+      assert.equal(metadata[0].boardId, importedBoardId, 'Append saved a different source-owned asset');
+      assertExistingPenpotContentPreserved(initial, saved);
+      if (sourceGapEditTarget) assert.deepEqual(record(saved.data)['components'] ?? {}, record(initial.data)['components'] ?? {},
+        'The admitted AI source must not create or change any component master');
+      record(receipt['append'])['savedForeignContentPreserved'] = true;
+    }
     await Promise.all(savePending);
     if (saveError) throw saveError;
     receipt['saveResponses'] = saves;
@@ -1206,11 +1538,18 @@ export async function runRealPenpotPersistence(): Promise<void> {
     receipt['newAuthenticatedContext'] = true;
     await checkpointReceipt('fresh-context-authenticated');
     let reopened = await openWorkspace(context, workspaceUrl, plugin.host, manifest, bundleSha256, pageErrors, decode,
-      (page) => selectActualAssetBoard(page, metadata[0].boardId, receipt));
+      (page) => selectActualAssetBoard(page, metadata[0].boardId, receipt), existingRegistration, execution.mode);
     // No import or review rendering is performed in this new context.
     const reloadedFile = await rpc<BackendFile>(context, identity.origin, 'get-file', { id: identity.fileId }, decode);
     const reloadedMetadata = persistedZuiMetadata(reloadedFile, identity.pageId);
     verifyReopenedFile(initial, reloadedFile, identity, Math.max(...saves.map((save) => save.revn)), metadata, reloadedMetadata);
+    receipt['nativeCopyFreshReopen'] = assertNativeInstanceGeometryPreserved(saved, reloadedFile);
+    if (options.append) {
+      assertExistingPenpotContentPreserved(initial, reloadedFile);
+      if (sourceGapEditTarget) assert.deepEqual(record(reloadedFile.data)['components'] ?? {}, record(initial.data)['components'] ?? {},
+        'Fresh AI source reopen must preserve the exact component master set');
+      record(receipt['append'])['reopenedForeignContentPreserved'] = true;
+    }
     const reopenedGroups = persistedToolbarGroups(reloadedFile, identity.pageId, reloadedMetadata[0], importedDocument);
     assert.deepEqual(reopenedGroups, toolbarGroups, 'Actual fresh-context original group metadata differs from the acknowledged saved file');
     await writeFile(resolve(output, 'reopened-toolbar-group-metadata.json'), `${JSON.stringify(reopenedGroups, null, 2)}\n`);
@@ -1225,10 +1564,11 @@ export async function runRealPenpotPersistence(): Promise<void> {
     await exportButton.waitFor({ timeout: 30_000 });
     receipt['actualExportUiBeforeClick'] = await captureExportUi(reopened.frame, reopened.page);
     await checkpointReceipt('actual-export-ui-ready');
-    await capturePreviewLayoutAudit(reopened.frame, reloadedMetadata[0].boardId, output, receipt);
+    await capturePreviewLayoutAudit(reopened.frame, reloadedMetadata[0].boardId, output, receipt, importedDocument);
     await checkpointReceipt('post-reopen-layout-audit-written');
-    const download = await clickAndWaitForDownload(
-      () => reopened.page.waitForEvent('download', { timeout: timeoutMs }), () => observeActualExportClick(reopened.page, exportButton, output, receipt));
+    const download = await withSourceColorRevisionFence(context, identity, reloadedMetadata[0].boardId,
+      importedDocument, decode, receipt, () => clickAndWaitForDownload(
+      () => reopened.page.waitForEvent('download', { timeout: timeoutMs }), () => observeActualExportClick(reopened.page, exportButton, output, receipt)));
     const exportPath = resolve(output, 'exported.zui');
     receipt['exportDownloadObserved'] = true;
     await checkpointReceipt('export-download-observed');
@@ -1242,6 +1582,10 @@ export async function runRealPenpotPersistence(): Promise<void> {
     assert.deepEqual(normalizeZuiDocument(parseZuiDocument(exported).document), normalizeZuiDocument(original),
       'The existing selected-asset export must preserve the complete original ZUI contract');
     receipt['exportSemanticMatch'] = true;
+    if (options.append) {
+      assert.equal(sha256(exported), sourceSha256, 'Source append no-op export must preserve the exact original bytes');
+      receipt['exportByteMatch'] = true;
+    }
     assert.equal(sha256(await readFile(sourcePath)), receipt['sourceSha256'], 'The owning source changed during the real session');
     receipt['sourceFingerprintMatched'] = true;
     if (prepared) {
@@ -1254,18 +1598,24 @@ export async function runRealPenpotPersistence(): Promise<void> {
     receipt['exportPath'] = exportPath;
     receipt['exportSha256'] = sha256(exported);
     receipt['exportSuggestedFileName'] = basename(download.suggestedFilename());
-    await downloadActualCanvasPng(
-      reopened.page,
-      reopened.frame,
-      reloadedMetadata[0].boardId,
-      output,
-      receipt,
-    );
-    await checkpointReceipt('actual-canvas-png-export-saved');
+    if (options.append) {
+      receipt['canvasPngExport'] = { requested: false,
+        reason: 'Bounded source-owner append verifies the official ZUI bytes; no raster evidence claimed' };
+    } else {
+      await downloadActualCanvasPng(
+        reopened.page,
+        reopened.frame,
+        reloadedMetadata[0].boardId,
+        output,
+        receipt,
+      );
+      await checkpointReceipt('actual-canvas-png-export-saved');
+    }
     await checkpointReceipt('persistence-gates-verified');
     await reopened.page.screenshot({ path: resolve(output, 'reopened-penpot.png'), fullPage: true, timeout: 30_000 });
-    if (process.argv.includes('--edit-workbench-gap')) {
-      assert.ok(prepared, 'A real source-owned workbench edit requires --full-workbench');
+    const editMinimumHeight = process.argv.includes('--edit-outliner-min-height');
+    if (process.argv.includes('--edit-workbench-gap') || editMinimumHeight || sourceGapEditTarget) {
+      assert.ok(prepared, 'A real Inspector edit requires its prepared canonical source owner');
       const postEditOutput = resolve(output, 'post-edit');
       await mkdir(postEditOutput);
       const editSaves: SaveEvidence[] = [];
@@ -1299,33 +1649,78 @@ export async function runRealPenpotPersistence(): Promise<void> {
       });
       await checkpointReceipt('post-edit-save-observer-ready');
       const runtime = { page: reopened.page, pluginFrame: reopened.frame,
-        fileInput: reopened.frame.locator('input[type="file"][accept*=".zui"]'), statusPanel: reopened.frame.locator('.status-panel'),
+        fileInput: reopened.frame.locator('input[type="file"][accept*=".zui"]').first(), statusPanel: reopened.frame.locator('.status-panel'),
         exportButton } as unknown as Parameters<typeof editWorkbenchSpacingInPenpot>[0];
-      // This edits the actual normal Penpot layout inspector and verifies child geometry changes.
-      const edit = await editWorkbenchSpacingInPenpot(runtime);
-      assert.equal(edit.identity.sourceNodeId, 'editor_content');
-      assert.equal(edit.identity.controlId, 'UnrealLevelEditorContent');
-      receipt['workbenchEdit'] = edit;
-      await reopened.page.screenshot({ path: resolve(output, 'edited-gap-penpot.png'), fullPage: true, timeout: 30_000 });
+      const minimumEdit = editMinimumHeight ? await editOutlinerMinimumHeightInPenpot(runtime) : null;
+      const gapEdit = editMinimumHeight ? null : sourceGapEditTarget
+        ? await editSourceOwnerSpacingInPenpot(runtime, sourceGapEditTarget)
+        : await editWorkbenchSpacingInPenpot(runtime);
+      const edit = minimumEdit ?? gapEdit;
+      assert.ok(edit);
+      if (minimumEdit) {
+        assert.equal(edit.identity.sourcePath, 'zircon_editor/assets/ui/editor/unreal/components/outliner.zui');
+        assert.equal(edit.identity.sourceNodeId, 'panel');
+      } else if (sourceGapEditTarget) {
+        assert.equal(edit.identity.sourcePath, sourceGapEditTarget.sourcePath);
+        assert.equal(edit.identity.sourceNodeId, sourceGapEditTarget.sourceNodeId);
+        assert.equal(edit.identity.controlId, sourceGapEditTarget.controlId);
+        assert.deepEqual(edit.identity.instancePath, []);
+      } else {
+        assert.equal(edit.identity.sourceNodeId, 'editor_content');
+        assert.equal(edit.identity.controlId, 'UnrealLevelEditorContent');
+      }
+      receipt[sourceGapEditTarget ? 'sourceOwnerEdit' : 'workbenchEdit'] = edit;
+      await reopened.page.screenshot({ path: resolve(output, minimumEdit ? 'edited-min-height-penpot.png' : 'edited-gap-penpot.png'), fullPage: true, timeout: 30_000 });
       const expected = cloneZuiDocument(original);
-      const target = expected.nodes?.['editor_content'];
+      const targetNodeId = minimumEdit ? 'outliner' : sourceGapEditTarget?.sourceNodeId ?? 'editor_content';
+      const target = expected.nodes?.[targetNodeId];
       assert.ok(target);
-      const container = record(record(target['layout'])['container']);
-      const changedGap = edit.after.rowGap !== edit.before.rowGap
-        ? edit.after.rowGap : edit.after.columnGap;
-      assert.ok(Number.isFinite(changedGap));
-      assert.equal(changedGap, edit.before.rowGap + 1,
-        'The actual inspector edit must change the scalar owning gap by one logical pixel');
-      container['gap'] = changedGap;
+      const expectedAppliedPath = minimumEdit ? 'nodes.outliner.layout.height.min' : `nodes.${targetNodeId}.layout.container.gap`;
+      if (minimumEdit) {
+        const dimension = record(record(target['layout'])['height']);
+        assert.equal(dimension['min'], minimumEdit.before.heightMin);
+        assert.equal(dimension['min'], 96);
+        assert.equal(minimumEdit.after.heightMin, 128);
+        dimension['min'] = minimumEdit.after.heightMin;
+      } else {
+        assert.ok(gapEdit);
+        const container = record(record(target['layout'])['container']);
+        const changedGap = gapEdit.after.rowGap !== gapEdit.before.rowGap
+          ? gapEdit.after.rowGap : gapEdit.after.columnGap;
+        assert.ok(Number.isFinite(changedGap));
+        assert.equal(changedGap, gapEdit.before.rowGap + 1,
+          'The actual inspector edit must change the scalar owning gap by one logical pixel');
+        if (sourceGapEditTarget) {
+          assert.equal(container['gap'], sourceGapEditTarget.beforeGap);
+          assert.equal(changedGap, sourceGapEditTarget.afterGap);
+        }
+        container['gap'] = changedGap;
+      }
       const editedShapeState = (file: BackendFile): RecordValue => {
         const shape = record(file.data['pages-index'][identity.pageId].objects[edit.shapeId]);
-        const gap = record(shape['layout-gap']);
-        assert.equal(gap['row-gap'], edit.after.rowGap, 'Saved row gap differs from the actual inspector edit');
-        assert.equal(gap['column-gap'], edit.after.columnGap, 'Saved column gap differs from the actual inspector edit');
         const geometry = Object.fromEntries(['x', 'y', 'width', 'height'].map((key) => {
           assert.ok(typeof shape[key] === 'number' && Number.isFinite(shape[key]), `Saved shape has invalid ${key}`);
           return [key, shape[key]];
         }));
+        if (minimumEdit) {
+          const baseline = record(reloadedFile.data['pages-index'][identity.pageId].objects[edit.shapeId]);
+          assert.equal(baseline['layout-item-min-h'], minimumEdit.before.heightMin);
+          assert.equal(baseline['layout-item-v-sizing'], 'fix');
+          assert.equal(shape['layout-item-min-h'], minimumEdit.after.heightMin, 'Saved minimum height must match the actual Inspector edit.');
+          assert.equal(shape['layout-item-v-sizing'], 'fix', 'Saved Outliner must retain Fixed sizing.');
+          assert.equal(shape['layout-item-h-sizing'], baseline['layout-item-h-sizing']);
+          for (const key of ['x', 'y', 'width', 'height']) {
+            assert.ok(typeof baseline[key] === 'number' && Number.isFinite(baseline[key]));
+            assert.ok(Math.abs(Number(geometry[key]) - Number(baseline[key])) <= 0.01,
+              `The saved Fixed Outliner geometry differs from baseline: ${key}`);
+          }
+          return { shapeId: edit.shapeId, heightMin: shape['layout-item-min-h'],
+            verticalSizing: shape['layout-item-v-sizing'], horizontalSizing: shape['layout-item-h-sizing'], geometry };
+        }
+        assert.ok(gapEdit);
+        const gap = record(shape['layout-gap']);
+        assert.equal(gap['row-gap'], gapEdit.after.rowGap, 'Saved row gap differs from the actual inspector edit');
+        assert.equal(gap['column-gap'], gapEdit.after.columnGap, 'Saved column gap differs from the actual inspector edit');
         return { shapeId: edit.shapeId, gap, geometry };
       };
       let savedAfterEdit: BackendFile | undefined;
@@ -1350,6 +1745,12 @@ export async function runRealPenpotPersistence(): Promise<void> {
             });
             verifyReopenedFile(reloadedFile, file, identity, acknowledgedRevision,
               sourceMetadata(reloadedMetadata), sourceMetadata(stored));
+            if (sourceGapEditTarget) {
+              assertExistingPenpotContentPreserved(initial, file);
+              assert.deepEqual(record(file.data)['components'] ?? {}, record(initial.data)['components'] ?? {},
+                'Editing the isolated AI source must not create or change component masters');
+              postEdit['savedForeignContentPreserved'] = true;
+            }
             postEdit['savedShape'] = editedShapeState(file);
             savedAfterEdit = file;
             savedEditMetadata = stored;
@@ -1375,34 +1776,74 @@ export async function runRealPenpotPersistence(): Promise<void> {
       assert.equal(editedReopenedProfile.id, profile.id);
       postEdit['newAuthenticatedContext'] = true;
       reopened = await openWorkspace(context, workspaceUrl, plugin.host, manifest, bundleSha256, pageErrors, decode,
-        (page) => selectActualAssetBoard(page, reloadedMetadata[0].boardId, postEdit));
+        (page) => selectActualAssetBoard(page, reloadedMetadata[0].boardId, postEdit), existingRegistration, execution.mode);
       const editedReopenedFile = await rpc<BackendFile>(context, identity.origin, 'get-file', { id: identity.fileId }, decode);
       const editedReopenedMetadata = persistedZuiMetadata(editedReopenedFile, identity.pageId);
       verifyReopenedFile(savedAfterEdit, editedReopenedFile, identity,
         Math.max(...editSaves.map((save) => save.revn)), savedEditMetadata, editedReopenedMetadata);
+      postEdit['nativeCopyFreshReopen'] = assertNativeInstanceGeometryPreserved(savedAfterEdit, editedReopenedFile);
       assert.equal(editedReopenedMetadata[0].boardId, reloadedMetadata[0].boardId);
+      if (sourceGapEditTarget) {
+        assertExistingPenpotContentPreserved(initial, editedReopenedFile);
+        assert.deepEqual(record(editedReopenedFile.data)['components'] ?? {}, record(initial.data)['components'] ?? {},
+          'Edited source fresh reopen must preserve the exact original masters');
+        postEdit['reopenedForeignContentPreserved'] = true;
+      }
       assert.deepEqual(editedShapeState(editedReopenedFile), postEdit['savedShape'],
         'The fresh authenticated context must reopen the same persisted edited shape and geometry');
       postEdit['reopenedSameFile'] = true;
       postEdit['metadataMatched'] = true;
       postEdit['reopenedRevision'] = { revn: editedReopenedFile.revn, vern: editedReopenedFile.vern };
       await writeFile(resolve(postEditOutput, 'reopened-zui-metadata.json'), `${JSON.stringify(editedReopenedMetadata, null, 2)}\n`);
-      await capturePreviewLayoutAudit(reopened.frame, editedReopenedMetadata[0].boardId, postEditOutput, postEdit);
+      const editedReopenedAudit = await capturePreviewLayoutAudit(reopened.frame, editedReopenedMetadata[0].boardId, postEditOutput, postEdit, importedDocument);
+      if (sourceGapEditTarget) {
+        assert.deepEqual(editedReopenedAudit['invalidGeometryNodeIds'], []);
+        assert.deepEqual(editedReopenedAudit['overflowNodeIds'], []);
+        const matching = (editedReopenedAudit['semanticNodes'] as unknown[]).map(record).filter(node =>
+          node['shapeId'] === edit.shapeId && node['sourcePath'] === sourceGapEditTarget.sourcePath &&
+          node['sourceNodeId'] === sourceGapEditTarget.sourceNodeId && node['controlId'] === sourceGapEditTarget.controlId &&
+          node['instancePath'] === '[]' && node['visible'] === true && node['detached'] === false);
+        assert.equal(matching.length, 1, 'Fresh source edit audit must retain the exact admitted source and shape');
+        postEdit['freshReopenedSourceIdentityVerified'] = true;
+      }
+      if (minimumEdit) {
+        assert.deepEqual(editedReopenedAudit['invalidGeometryNodeIds'], []);
+        assert.deepEqual(editedReopenedAudit['overflowNodeIds'], []);
+        const candidates = (editedReopenedAudit['semanticNodes'] as unknown[]).map(record).filter((node) =>
+          node['shapeId'] === edit.shapeId && node['sourcePath'] === edit.identity.sourcePath &&
+          node['sourceNodeId'] === edit.identity.sourceNodeId &&
+          node['instancePath'] === JSON.stringify(edit.identity.instancePath));
+        assert.equal(candidates.length, 1, 'The fresh reopened audit must retain the exact Outliner source and shape.');
+        const actual = candidates[0]!;
+        assert.equal(actual['visible'], true);
+        assert.equal(actual['detached'], false);
+        const bounds = record(actual['bounds']);
+        for (const axis of ['x', 'y', 'width', 'height'] as const) {
+          assert.ok(typeof bounds[axis] === 'number' && Number.isFinite(bounds[axis]));
+          assert.ok(Math.abs(Number(bounds[axis]) - minimumEdit.before.bounds[axis]) <= 0.01,
+            `The fresh reopened Outliner must retain its baseline Fixed bounds: ${axis}`);
+        }
+        postEdit['freshReopenedOutlinerBoundsVerified'] = true;
+      }
       await checkpointReceipt('post-edit-fresh-reopened-shape-verified');
       const postExportButton = reopened.frame.getByRole('button', { name: 'Export selected' });
       await postExportButton.waitFor({ timeout: 30_000 });
-      const editedDownload = await clickAndWaitForDownload(
+      const editedDownload = await withSourceColorRevisionFence(context, identity, editedReopenedMetadata[0].boardId,
+        importedDocument, decode, postEdit, () => clickAndWaitForDownload(
         () => reopened.page.waitForEvent('download', { timeout: timeoutMs }),
-        () => observeActualExportClick(reopened.page, postExportButton, postEditOutput, postEdit));
-      const editedPath = resolve(output, 'workbench-gap-edited.penpot-export.zui');
+        () => observeActualExportClick(reopened.page, postExportButton, postEditOutput, postEdit)));
+      const editedPath = resolve(output, minimumEdit ? 'outliner-min-height-edited.penpot-export.zui'
+        : sourceGapEditTarget ? 'source-gap-edited.penpot-export.zui' : 'workbench-gap-edited.penpot-export.zui');
       await editedDownload.saveAs(editedPath);
       assert.equal(await editedDownload.failure(), null);
       const editedSource = await readFile(editedPath, 'utf8');
-      const owner = 'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
+      const owner = sourceGapEditTarget?.sourcePath ?? 'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
       const appliedRoot = resolve(required('ZUI_LAYOUT_REPO_ROOT'));
       assert.ok(prepared);
-      assert.equal(prepared.sourceFingerprints.length, 20, 'Validate the complete prepared owner closure');
-      assert.equal(new Set(prepared.sourceFingerprints.map((item) => item.sourcePath)).size, 20);
+      const sourceExportManifest = parseSourceExportManifest(parseZuiDocument(editedSource).document['penpot_source_exports']);
+      const sourceOwnerCount = sourceGapEditTarget
+        ? validateRealOwnerGapExport(sourceExportManifest, prepared.sourceFingerprints, sourceSha256, sourceGapEditTarget)
+        : validateRealWorkbenchExportSources(sourceExportManifest, prepared.sourceFingerprints, sourceSha256);
       // Trust the prepared canonical closure, never source contents claimed by the downloaded envelope.
       const canonicalSources: Record<string, string> = Object.fromEntries(await Promise.all(
         prepared.sourceFingerprints.map(async (fingerprint) => {
@@ -1411,11 +1852,9 @@ export async function runRealPenpotPersistence(): Promise<void> {
           return [fingerprint.sourcePath, canonicalSource] as const;
         })));
       assert.equal(canonicalSources[owner], source, 'Validate the original owning source');
-      const sourceExportManifest = parseSourceExportManifest(parseZuiDocument(editedSource).document['penpot_source_exports']);
-      assert.equal(sourceExportManifest.rootSourcePath, owner, 'The export must retain the original root owner');
       const planned = applyZuiExportToSourceFiles(editedSource, canonicalSources, prepared.sourceFingerprints);
       assert.deepEqual(planned.outputs.map((item) => item.sourcePath), [owner]);
-      assert.deepEqual(planned.appliedPathsBySource, { [owner]: ['nodes.editor_content.layout.container.gap'] });
+      assert.deepEqual(planned.appliedPathsBySource, { [owner]: [expectedAppliedPath] });
       const projectedSources = { ...canonicalSources,
         ...Object.fromEntries(planned.outputs.map((item) => [item.sourcePath, item.source])) };
       for (const fingerprint of prepared.sourceFingerprints) {
@@ -1429,36 +1868,52 @@ export async function runRealPenpotPersistence(): Promise<void> {
           canonicalSources[fingerprint.sourcePath], 'No-write owner validation must preserve all canonical sources');
       }
       assert.deepEqual(normalizeZuiDocument(parseZuiDocument(planned.outputs[0].source).document),
-        normalizeZuiDocument(expected), 'The fresh-reopened actual export must preserve exactly the owning gap edit');
-      postEdit['sourceOwnerExportValidation'] = { ownerCount: 20, unchangedOtherOwnerCount: 19,
+        normalizeZuiDocument(expected), 'The fresh-reopened actual export must preserve exactly the owning Inspector edit');
+      postEdit['sourceOwnerExportValidation'] = { ownerCount: sourceOwnerCount, unchangedOtherOwnerCount: sourceOwnerCount - 1,
         appliedPathsBySource: planned.appliedPathsBySource, filesystemWrites: false,
         plannedRootSha256: sha256(planned.outputs[0].source) };
       postEdit['exportSemanticMatch'] = true;
       postEdit['exportPath'] = editedPath;
       postEdit['exportSha256'] = sha256(editedSource);
-      await downloadActualCanvasPng(reopened.page, reopened.frame, editedReopenedMetadata[0].boardId, postEditOutput, postEdit);
+      if (!sourceGapEditTarget) {
+        await downloadActualCanvasPng(reopened.page, reopened.frame, editedReopenedMetadata[0].boardId, postEditOutput, postEdit);
+      } else {
+        postEdit['canvasPngExport'] = { requested: false, reason: 'This source-owner edit proves ZUI bytes, not raster or Engine acceptance' };
+      }
       await reopened.page.screenshot({ path: resolve(postEditOutput, 'reopened-penpot.png'), fullPage: true, timeout: 30_000 });
       await checkpointReceipt('post-edit-official-exports-verified');
       assert.equal(await readFile(sourcePath, 'utf8'), source, 'Owning source changed before real Penpot apply');
       assert.equal(sha256(await readFile(editedPath)), postEdit['exportSha256'], 'Validated export changed before real Penpot apply');
-      const applied = await applyZuiExportFileToCanonicalSourceOwners({ exportedPath: editedPath,
-        sourceRootPath: appliedRoot, writableSourcePaths: [owner],
-        expectedSources: prepared.sourceFingerprints, expectedRootSha256: sourceSha256 });
-      assert.deepEqual(applied.outputs.map((item) => item.outputPath), [resolve(appliedRoot, owner)]);
-      assert.deepEqual(applied.appliedPathsBySource[owner], ['nodes.editor_content.layout.container.gap']);
-      const appliedSource = await readFile(resolve(appliedRoot, owner), 'utf8');
-      assert.deepEqual(normalizeZuiDocument(parseZuiDocument(appliedSource).document), normalizeZuiDocument(expected),
-        'Only the owning gap may change; stable IDs, references, events, bindings and other fields must remain exact');
-      receipt['editedExportPath'] = editedPath;
-      receipt['editedExportSha256'] = sha256(await readFile(editedPath));
-      receipt['appliedSourceRoot'] = appliedRoot;
-      receipt['appliedSourcePath'] = resolve(appliedRoot, owner);
-      receipt['appliedSourceSha256'] = sha256(appliedSource);
-      receipt['engineVerificationAfterApply'] = 'pending-new-normal-window-capture';
-      receipt['sourceOwnerApplyVerified'] = true;
-      receipt['protectedFieldsPreserved'] = true;
-      postEdit['completePostEditChainVerified'] = true;
-      await checkpointReceipt('post-edit-persistence-and-owner-apply-verified');
+      if (sourceGapEditTarget) {
+        // The original domain owner applies the validated export in a separate authorized step.
+        receipt['editedExportPath'] = editedPath;
+        receipt['editedExportSha256'] = sha256(editedSource);
+        receipt['sourceOwnerEditedExportVerified'] = true;
+        receipt['sourceOwnerApplyVerified'] = false;
+        receipt['protectedFieldsPreserved'] = true;
+        postEdit['canonicalSourceApplyPerformed'] = false;
+        postEdit['completeEditedSourceRoundtripVerified'] = true;
+        await checkpointReceipt('post-edit-source-owner-validated-no-write');
+      } else {
+        const applied = await applyZuiExportFileToCanonicalSourceOwners({ exportedPath: editedPath,
+          sourceRootPath: appliedRoot, writableSourcePaths: [owner],
+          expectedSources: prepared.sourceFingerprints, expectedRootSha256: sourceSha256 });
+        assert.deepEqual(applied.outputs.map((item) => item.outputPath), [resolve(appliedRoot, owner)]);
+        assert.deepEqual(applied.appliedPathsBySource[owner], [expectedAppliedPath]);
+        const appliedSource = await readFile(resolve(appliedRoot, owner), 'utf8');
+        assert.deepEqual(normalizeZuiDocument(parseZuiDocument(appliedSource).document), normalizeZuiDocument(expected),
+          'Only the owning Inspector leaf may change; stable IDs, references, events, bindings and other fields must remain exact');
+        receipt['editedExportPath'] = editedPath;
+        receipt['editedExportSha256'] = sha256(await readFile(editedPath));
+        receipt['appliedSourceRoot'] = appliedRoot;
+        receipt['appliedSourcePath'] = resolve(appliedRoot, owner);
+        receipt['appliedSourceSha256'] = sha256(appliedSource);
+        receipt['engineVerificationAfterApply'] = 'pending-new-normal-window-capture';
+        receipt['sourceOwnerApplyVerified'] = true;
+        receipt['protectedFieldsPreserved'] = true;
+        postEdit['completePostEditChainVerified'] = true;
+        await checkpointReceipt('post-edit-persistence-and-owner-apply-verified');
+      }
     }
     if (process.env['PENPOT_VERIFY_WASM_FONT_REGISTRATION'] === '1') {
       let manifestSha256: string | null = null;
@@ -1579,6 +2034,12 @@ export async function runRealPenpotPersistence(): Promise<void> {
       await checkpointReceipt('wasm-font-registration-observed');
     }
     receipt['domFontStates'] = await Promise.all((context?.pages() ?? []).map(captureDomFonts));
+    if (sourceGapEditTarget) {
+      assert.equal(receipt['sourceOwnerEditedExportVerified'], true);
+      assert.equal(record(receipt['postEditPersistence'])['completeEditedSourceRoundtripVerified'], true);
+      assert.equal(receipt['sourceOwnerApplyVerified'], false);
+      assert.equal(await readFile(sourcePath, 'utf8'), source, 'AI source stays unchanged until its original owner applies the real export');
+    }
     if (actualCaseInput)
       assert.equal(sha256(await readFile(actualCaseInput.path)), actualCaseInput.sha256,
         'Actual normal case changed during real Penpot persistence');
@@ -1586,12 +2047,18 @@ export async function runRealPenpotPersistence(): Promise<void> {
     receipt['persistenceClaim'] = persistenceClaim(receipt);
     assert.equal(receipt['persistenceClaim'], true);
   } catch (error) {
+    runFailed = true;
+    if (error && typeof error === 'object' && 'nativeCopyDelta' in error)
+      receipt['nativeCopyFailureDelta'] = error.nativeCopyDelta;
     // Playwright error call logs can contain authentication request headers.
     // Keep the concrete first-line failure without forwarding those headers.
     const failure = new Error((error instanceof Error ? error.message : String(error)).split(/\r?\n/, 1)[0]);
     receipt['status'] = 'failed';
     receipt['persistenceClaim'] = false;
     receipt['error'] = failure.message;
+    receipt['failureStackLocations'] = error instanceof Error
+      ? (error.stack ?? '').split(/\r?\n/).filter((line) => /^\s+at /.test(line)).slice(0, 12)
+        .map((line) => line.replace(/(?:https?|file):\/\/[^\s)]+/g, safeDebuggerScriptURL)) : [];
     await checkpointReceipt('session-failed');
     const diagnostics: RecordValue[] = [];
     const observedImportProgress = receipt['importProgress'];
@@ -1669,19 +2136,76 @@ export async function runRealPenpotPersistence(): Promise<void> {
         cleanupStartedAt + 1_000, cleanupStartedAt + 2_000);
       importDebuggerCdp = undefined;
     }
-    await api?.dispose().catch(() => undefined);
-    await context?.close().catch(() => undefined);
-    await browser?.close().catch(() => undefined);
+    const cleanupErrors: string[] = [];
+    const closeOwned = async (name: string, operation: () => Promise<unknown>): Promise<void> => {
+      let detail: string | undefined;
+      const outcome = await settleBeforeNodeDeadline(
+        operation().catch(error => { detail = String(error).split(/\r?\n/, 1)[0]; throw error; }), Date.now() + 15_000);
+      resources[name] = { ...(resources[name] ? record(resources[name]) : {}), ownership: 'session', closeOutcome: outcome.status,
+        ...(detail ? { error: detail } : {}), closedByThisSession: outcome.status === 'completed',
+        ...(name === 'pluginHost' ? { stoppedByThisSession: outcome.status === 'completed' } : {}) };
+      if (outcome.status !== 'completed') cleanupErrors.push(name + ': ' + (detail ?? outcome.status));
+    };
+    if (finalRegistryCheck) {
+      try {
+        receipt['pluginRegistryAfter'] = await finalRegistryCheck();
+        receipt['pluginRegistryUnchanged'] = true;
+      } catch (error) {
+        receipt['pluginRegistryUnchanged'] = false;
+        receipt['pluginRegistryVerificationError'] = String(error).split(/\r?\n/, 1)[0];
+        cleanupErrors.push('Final registry verification: ' + String(error).split(/\r?\n/, 1)[0]);
+      }
+    }
+    if (context) await closeOwned('browserContext', () => context!.close());
+    if (browser) await closeOwned('browser', () => browser!.close());
     await Promise.allSettled([...fontPending]);
-    if (server) await new Promise<void>((done) => server!.close(() => done()));
+    if (api) await closeOwned('apiContext', () => api!.dispose());
+    if (server) {
+      await closeOwned('pluginHost', () => new Promise<void>((done, reject) =>
+        server!.close(error => error ? reject(error) : done())));
+    }
+    if (originalAuthenticationFile) {
+      try {
+        assert.equal(sha256(await readFile(originalAuthenticationFile.path)), originalAuthenticationFile.sha256,
+          'Original authentication storage changed during the session');
+        receipt['originalAuthenticationUnchanged'] = true;
+      } catch (error) {
+        receipt['originalAuthenticationUnchanged'] = false;
+        cleanupErrors.push('Original authentication verification: ' + String(error).split(/\r?\n/, 1)[0]);
+      }
+    }
+    receipt['resourceCleanupErrors'] = cleanupErrors;
+    receipt['nativeProcessTerminationVerifiedByRunner'] = false;
+    if (cleanupErrors.length) {
+      receipt['status'] = 'failed';
+      receipt['persistenceClaim'] = false;
+    }
+
     receipt['finishedAtUtc'] = new Date().toISOString();
     await receiptWrites;
     await writeFile(receiptTemporaryPath, `${JSON.stringify(receipt, null, 2)}\n`, { flush: true });
     await rename(receiptTemporaryPath, receiptPath);
     console.log(JSON.stringify({ realSessionReceipt: receiptPath, status: receipt['status'], persistenceClaim: receipt['persistenceClaim'] }));
+    if (cleanupErrors.length && !runFailed) throw new Error('Real session cleanup/registry verification failed: ' + cleanupErrors.join('; '));
   }
 }
 
+export { pluginServer, transitDecoder, rpc, openWorkspace, selectActualAssetBoard, downloadActualCanvasPng };
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  runRealPenpotPersistence().catch((error) => { console.error(error); process.exitCode = 1; });
+  const run = async (): Promise<void> => {
+    const optionsPath = process.env['PENPOT_REAL_SESSION_OPTIONS_JSON'];
+    if (!optionsPath) {
+      assert.ok(!process.env['PENPOT_REAL_SESSION_OPTIONS_SHA256'], 'Session options hash has no input file');
+      return runRealPenpotPersistence();
+    }
+    const bytes = await readFile(artifactFile(optionsPath));
+    const expected = required('PENPOT_REAL_SESSION_OPTIONS_SHA256');
+    assert.match(expected, /^[0-9a-f]{64}$/);
+    assert.equal(sha256(bytes), expected, 'Explicit session options changed');
+    const options = record(JSON.parse(bytes.toString('utf8')));
+    assert.ok(Object.keys(options).every(key => ['mode', 'expectedWorkspace', 'existingPlugin', 'append'].includes(key)), 'Unknown session option');
+    await runRealPenpotPersistence(options as RealPenpotPersistenceOptions);
+  };
+  run().catch((error) => { console.error(error); process.exitCode = 1; });
 }

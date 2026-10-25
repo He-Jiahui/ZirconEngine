@@ -49,7 +49,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tr
         return true;
     }
     // Content rows expose the data and selection surface without action affordances.
-    if node.component_variant.as_str() != "content" {
+    if !matches!(
+        node.component_variant.as_str(),
+        "content" | "asset-folder-leaf"
+    ) {
         push_tree_disclosure_glyph(
             commands,
             node,
@@ -84,7 +87,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tr
         label_order(order),
         opacity,
     );
-    if node.component_variant.as_str() != "content" && tree_row_has_action_space(rect) {
+    if node.component_variant.as_str() != "content"
+        && !node.component_variant.as_str().starts_with("asset-folder")
+        && tree_row_has_action_space(rect)
+    {
         push_tree_actions(
             commands,
             node,

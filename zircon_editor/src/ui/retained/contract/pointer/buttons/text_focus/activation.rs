@@ -21,6 +21,7 @@ pub(in crate::ui::retained_host::host_contract) fn focus_template_node_text_inpu
             commit_action_id: hit.commit_action_id.clone(),
             value_text: hit.value_text.clone(),
             edit_frame: hit.frame.clone(),
+            palette_search_target: hit.palette_search_target.clone(),
             ..HostTextInputFocusData::default()
         });
     true

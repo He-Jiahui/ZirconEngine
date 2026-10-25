@@ -77,6 +77,34 @@ pub(super) fn append_detail_section_nodes(
             },
             ..host_contract::TemplatePaneNodeData::default()
         });
+        if row.action_id == "slot.canvas.anchors.open" {
+            let source = &nodes[section_index];
+            nodes.push(host_contract::TemplatePaneNodeData {
+                node_id: format!("{}/canvas-anchor-opener", source.node_id).into(),
+                parent_node_id: source.node_id.clone(),
+                source_path: source.source_path.clone(),
+                source_node_id: source.source_node_id.clone(),
+                instance_path: source.instance_path.clone(),
+                inspector_property_field_id: "slot.canvas.anchors".into(),
+                control_id: host_contract::ui_asset_canvas_anchor_opener_control_id(instance_id),
+                role: "Button".into(),
+                component_role: "button".into(),
+                button_variant: "secondary".into(),
+                dispatch_kind: "ui_asset_anchor_popup_open".into(),
+                action_id: "canvas.anchor.open".into(),
+                text: row.value.clone().into(),
+                disabled: row.disabled,
+                font_size: EditorTypographyTokens::WORKBENCH_BODY_SIZE,
+                frame: host_contract::TemplateNodeFrameData {
+                    x: value_x,
+                    y,
+                    width: value_width,
+                    height: EditorDensityTokens::WORKBENCH_ROW_HEIGHT,
+                },
+                ..host_contract::TemplatePaneNodeData::default()
+            });
+            continue;
+        }
         nodes.push(host_contract::TemplatePaneNodeData {
             node_id: format!("{}/detail/{row_index}/value", section.detail_id).into(),
             control_id: row.value_control_id.clone().into(),

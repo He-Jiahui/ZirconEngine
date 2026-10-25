@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashSet};
 
-use crate::ui::asset_editor::palette::node_accepts_palette_children;
+use crate::ui::asset_editor::palette::{default_native_mount, node_accepts_palette_children};
 use crate::ui::asset_editor::UiDesignerSelectionModel;
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::{
@@ -10,6 +10,8 @@ use zircon_runtime_interface::ui::{
         UiNodeDefinitionKind, UiStyleScope,
     },
 };
+
+use super::slot_migration::migrate_native_slot_attributes;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum UiTreeMoveDirection {
@@ -111,27 +113,48 @@ pub(crate) fn wrap_selected_node(
     widget_type: &str,
 ) -> Option<String> {
     let node_id = selection.primary_node_id.as_deref()?;
-    let (parent_id, child_index) = child_index_in_parent(document, node_id)?;
-    let parent_mount = document.child_mount(node_id)?.mount.clone();
-    let parent_slot = document.child_mount(node_id)?.slot.clone();
-    let wrapped_node = document.remove_node(node_id)?;
+    let parent_location =
+        if let Some((parent_id, child_index)) = child_index_in_parent(document, node_id) {
+            let child_mount = document.child_mount(node_id)?;
+            Some((
+                parent_id,
+                child_index,
+                child_mount.mount.clone(),
+                child_mount.slot.clone(),
+            ))
+        } else if document
+            .root
+            .as_ref()
+            .is_some_and(|root| root.node_id == node_id)
+        {
+            None
+        } else {
+            return None;
+        };
+    // The wrapped subtree keeps its identities after insertion under the wrapper.
+    // Reserve against it too, before removal hides its nodes from these lookups.
     let wrapper_id = unique_node_id(document, &base_node_id(widget_type));
-    let mut wrapper = UiDefaultNodeTemplate::native(widget_type).instantiate(
-        wrapper_id.clone(),
-        Some(unique_control_id(document, widget_type)),
-    );
+    let wrapper_control_id = unique_control_id(document, widget_type);
+    let wrapped_node = document.remove_node(node_id)?;
+    let mut wrapper = UiDefaultNodeTemplate::native(widget_type)
+        .instantiate(wrapper_id.clone(), Some(wrapper_control_id));
     wrapper.children = vec![new_child_mount(wrapped_node)];
-    document
-        .insert_child(
-            &parent_id,
-            child_index,
-            UiChildMount {
-                mount: parent_mount,
-                slot: parent_slot,
-                node: wrapper,
-            },
-        )
-        .then_some(wrapper_id)
+    if let Some((parent_id, child_index, parent_mount, parent_slot)) = parent_location {
+        document
+            .insert_child(
+                &parent_id,
+                child_index,
+                UiChildMount {
+                    mount: parent_mount,
+                    slot: parent_slot,
+                    node: wrapper,
+                },
+            )
+            .then_some(wrapper_id)
+    } else {
+        document.root = Some(wrapper);
+        Some(wrapper_id)
+    }
 }
 
 pub(crate) fn unwrap_selected_node(
@@ -143,23 +166,43 @@ pub(crate) fn unwrap_selected_node(
     if wrapper.children.len() != 1 {
         return None;
     }
-    let (parent_id, child_index) = child_index_in_parent(document, wrapper_id)?;
-    let parent_mount = document.child_mount(wrapper_id)?.mount.clone();
-    let parent_slot = document.child_mount(wrapper_id)?.slot.clone();
+    let parent_location =
+        if let Some((parent_id, child_index)) = child_index_in_parent(document, wrapper_id) {
+            let child_mount = document.child_mount(wrapper_id)?;
+            Some((
+                parent_id,
+                child_index,
+                child_mount.mount.clone(),
+                child_mount.slot.clone(),
+            ))
+        } else if document
+            .root
+            .as_ref()
+            .is_some_and(|root| root.node_id == wrapper_id)
+        {
+            None
+        } else {
+            return None;
+        };
     let mut wrapper_node = document.remove_node(wrapper_id)?;
     let child_mount = wrapper_node.children.pop()?;
     let child_id = child_mount.node.node_id.clone();
-    document
-        .insert_child(
-            &parent_id,
-            child_index,
-            UiChildMount {
-                mount: parent_mount,
-                slot: parent_slot,
-                node: child_mount.node,
-            },
-        )
-        .then_some(child_id)
+    if let Some((parent_id, child_index, parent_mount, parent_slot)) = parent_location {
+        document
+            .insert_child(
+                &parent_id,
+                child_index,
+                UiChildMount {
+                    mount: parent_mount,
+                    slot: parent_slot,
+                    node: child_mount.node,
+                },
+            )
+            .then_some(child_id)
+    } else {
+        document.root = Some(child_mount.node);
+        Some(child_id)
+    }
 }
 
 pub(crate) fn reparent_selected_node(
@@ -227,11 +270,17 @@ fn reparent_selected_node_into_sibling(
         return None;
     }
 
-    let mount = reset_mount_for_new_parent(UiChildMount {
-        mount: None,
-        slot: BTreeMap::new(),
+    // Resolve destination admission and compatible edge data before removing the node.
+    let parent = document.node(&parent_id)?;
+    let target = document.node(&target_id)?;
+    let target_mount = default_native_mount(target)?;
+    let slot =
+        migrate_native_slot_attributes(parent, target, &parent.children.get(child_index)?.slot);
+    let mount = UiChildMount {
+        mount: Some(target_mount),
+        slot,
         node: document.remove_node(node_id)?,
-    });
+    };
     if into_previous {
         if !document.push_child(&target_id, mount) {
             return None;
@@ -243,13 +292,21 @@ fn reparent_selected_node_into_sibling(
 }
 
 fn reparent_selected_node_outdent(document: &mut UiAssetDocument, node_id: &str) -> Option<String> {
-    let (parent_id, _) = child_index_in_parent(document, node_id)?;
+    let (parent_id, child_index) = child_index_in_parent(document, node_id)?;
     let (grandparent_id, parent_index) = child_index_in_parent(document, &parent_id)?;
-    let mount = reset_mount_for_new_parent(UiChildMount {
-        mount: None,
-        slot: BTreeMap::new(),
+    let parent = document.node(&parent_id)?;
+    let grandparent = document.node(&grandparent_id)?;
+    let target_mount = default_native_mount(grandparent)?;
+    let slot = migrate_native_slot_attributes(
+        parent,
+        grandparent,
+        &parent.children.get(child_index)?.slot,
+    );
+    let mount = UiChildMount {
+        mount: Some(target_mount),
+        slot,
         node: document.remove_node(node_id)?,
-    });
+    };
     if !document.insert_child(&grandparent_id, parent_index + 1, mount) {
         return None;
     }
@@ -258,12 +315,6 @@ fn reparent_selected_node_outdent(document: &mut UiAssetDocument, node_id: &str)
 
 fn node_accepts_children(node: &UiNodeDefinition) -> bool {
     node_accepts_palette_children(node)
-}
-
-fn reset_mount_for_new_parent(mut mount: UiChildMount) -> UiChildMount {
-    mount.mount = None;
-    mount.slot = BTreeMap::new();
-    mount
 }
 
 fn unique_node_id(document: &UiAssetDocument, base: &str) -> String {

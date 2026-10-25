@@ -83,6 +83,10 @@ impl RetainedEditorHost {
         control_id: &str,
         action_id: &str,
     ) {
+        if action_id.starts_with("canvas.anchor.") || control_id == "UiAssetSlotFieldAnchorsValue" {
+            // This compatibility callback has no typed native-open/popup identity.
+            return;
+        }
         self.focus_callback_source_window();
         if self.dispatch_generated_bottom_action_token(control_id, action_id, None) {
             return;

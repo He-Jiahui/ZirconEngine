@@ -19,6 +19,35 @@ use super::hover::{apply_template_hover_to_node, template_hover_targets_node};
 use super::press::{apply_template_press_to_node, template_press_targets_node};
 use super::transform::TemplateNodePaintTransform;
 
+fn canvas_anchor_focus_targets_node(
+    node: &TemplatePaneNodeData,
+    origin: &FrameRect,
+    interaction: &HostPaneInteractionStateData,
+) -> bool {
+    let focus_frame = &interaction.template_button_frame;
+    !node.disabled
+        && node.dispatch_kind.as_str() == "ui_asset_anchor_popup_open"
+        && node.action_id.as_str() == "canvas.anchor.open"
+        && interaction.template_focus_visible
+        && node.control_id == interaction.focused_template_control_id
+        && origin.x + node.frame.x == focus_frame.x
+        && origin.y + node.frame.y == focus_frame.y
+        && node.frame.width == focus_frame.width
+        && node.frame.height == focus_frame.height
+}
+
+fn apply_canvas_anchor_focus_to_node(
+    node: &mut TemplatePaneNodeData,
+    origin: &FrameRect,
+    interaction: &HostPaneInteractionStateData,
+) {
+    if canvas_anchor_focus_targets_node(node, origin, interaction) {
+        node.focused = true;
+        node.focus_visible = true;
+        node.focus_visible_known = true;
+    }
+}
+
 fn push_untransformed_template_node_commands(
     commands: &mut Vec<HostPaintCommand>,
     source_node: &TemplatePaneNodeData,
@@ -32,10 +61,12 @@ fn push_untransformed_template_node_commands(
     if let Some(interaction) = interaction.filter(|interaction| {
         template_hover_targets_node(source_node, interaction)
             || template_press_targets_node(source_node, origin, interaction)
+            || canvas_anchor_focus_targets_node(source_node, origin, interaction)
     }) {
         let mut node = source_node.clone();
         apply_template_hover_to_node(&mut node, interaction);
         apply_template_press_to_node(&mut node, origin, interaction);
+        apply_canvas_anchor_focus_to_node(&mut node, origin, interaction);
         push_template_node_commands(commands, &node, origin, clip, text_input_focus, row);
         attach_owner(commands, before, source_node);
         true
@@ -75,6 +106,8 @@ fn attach_owner(
         source_path,
         source_node_id,
         instance_path,
+        item_key: nonempty_string(&source_node.inspector_property_item_key),
+        property_field_id: nonempty_string(&source_node.inspector_property_field_id),
         parent_source_path: nonempty_string(&source_node.parent_source_path),
         parent_source_node_id: nonempty_string(&source_node.parent_source_node_id),
         parent_instance_path: nonempty_string(&source_node.parent_instance_path),
@@ -160,6 +193,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_template_nodes_with_tran
             if let Some(interaction) = frame.pane_interaction_state().filter(|interaction| {
                 template_hover_targets_node(node, interaction)
                     || template_press_targets_node(node, origin, interaction)
+                    || canvas_anchor_focus_targets_node(node, origin, interaction)
             }) {
                 if patched.is_none() {
                     patched = Some(source_node.clone());
@@ -168,6 +202,7 @@ pub(in crate::ui::retained_host::host_contract) fn draw_template_nodes_with_tran
                 let node = patched.as_mut().expect("interaction patch");
                 apply_template_hover_to_node(node, interaction);
                 apply_template_press_to_node(node, origin, interaction);
+                apply_canvas_anchor_focus_to_node(node, origin, interaction);
             }
             let node = patched.as_ref().unwrap_or(source_node);
             // Region repaint must avoid generating commands for off-damage nodes:
@@ -231,6 +266,10 @@ pub(in crate::ui::retained_host::host_contract) fn draw_template_nodes_with_tran
         draw_host_paint_commands(frame, &commands)
     }
 }
+
+#[cfg(test)]
+#[path = "tests/canvas_anchor_focus.rs"]
+mod canvas_anchor_focus_tests;
 
 pub(in crate::ui::retained_host::host_contract) fn has_template_nodes(
     nodes: &ModelRc<TemplatePaneNodeData>,

@@ -38,7 +38,7 @@ fn animation_graph_authoring_registration_exposes_menu_items_and_payload_schemas
 }
 
 #[test]
-fn blend_space_graph_nodes_are_registered() {
+fn graph_palette_matches_creatable_editor_capabilities() {
     let mut registry = zircon_editor::core::editor_extension::EditorExtensionRegistry::default();
     editor_plugin()
         .register_editor_extensions(&mut registry)
@@ -49,12 +49,23 @@ fn blend_space_graph_nodes_are_registered() {
         .iter()
         .find(|palette| palette.asset_type().as_str() == "animation.graph")
         .expect("animation graph palette");
-    for node_id in ["blend_space_1d", "blend_space_2d"] {
-        assert!(graph_palette
-            .nodes()
+    let advertised: std::collections::BTreeSet<_> =
+        graph_palette.nodes().iter().map(|node| node.id()).collect();
+    let creatable: std::collections::BTreeSet<_> =
+        zircon_editor::ui::animation_editor::animation_editor_capability_table()
             .iter()
-            .any(|node| node.id() == node_id));
-    }
+            .filter(|capability| capability.available())
+            .filter_map(|capability| capability.id().strip_prefix("animation.graph.node."))
+            .collect();
+
+    assert!(
+        !creatable.is_empty(),
+        "node creation capabilities must be explicit"
+    );
+    assert_eq!(
+        advertised, creatable,
+        "the creation palette must neither advertise unavailable nodes nor hide creatable nodes"
+    );
 }
 
 #[test]

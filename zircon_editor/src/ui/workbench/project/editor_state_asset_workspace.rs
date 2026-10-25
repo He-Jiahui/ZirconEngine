@@ -50,6 +50,16 @@ impl EditorState {
         self.asset_workspace.select_folder(folder_id)
     }
 
+    pub fn set_asset_folder_expanded(
+        &mut self,
+        folder_id: &str,
+        expanded: bool,
+        expected_catalog_revision: u64,
+    ) -> bool {
+        self.asset_workspace
+            .set_folder_expanded(folder_id, expanded, expected_catalog_revision)
+    }
+
     pub fn select_asset(&mut self, asset_uuid: Option<String>) -> bool {
         self.asset_workspace.select_asset(asset_uuid)
     }

@@ -7,6 +7,19 @@ pub struct UiAssetSourceBuffer {
     revision: u64,
 }
 
+/// Retains the actual buffer allocation so closing/reopening or undo cannot reuse a ticket.
+#[derive(Clone, Debug)]
+pub(crate) struct UiAssetSourceSnapshot {
+    text: Arc<String>,
+    revision: u64,
+}
+
+impl UiAssetSourceSnapshot {
+    pub(crate) fn same_identity(&self, other: &Self) -> bool {
+        self.revision == other.revision && Arc::ptr_eq(&self.text, &other.text)
+    }
+}
+
 impl UiAssetSourceBuffer {
     pub fn new(text: impl Into<String>) -> Self {
         let text = Arc::new(text.into());
@@ -32,6 +45,17 @@ impl UiAssetSourceBuffer {
 
     pub(crate) fn revision(&self) -> u64 {
         self.revision
+    }
+
+    pub(crate) fn snapshot(&self) -> UiAssetSourceSnapshot {
+        UiAssetSourceSnapshot {
+            text: Arc::clone(&self.text),
+            revision: self.revision,
+        }
+    }
+
+    pub(crate) fn is_current_snapshot(&self, snapshot: &UiAssetSourceSnapshot) -> bool {
+        self.revision == snapshot.revision && Arc::ptr_eq(&self.text, &snapshot.text)
     }
 
     pub fn mark_saved(&mut self) {

@@ -86,6 +86,10 @@ pub(crate) struct HostContractState {
     pub(crate) text_input_focus: Arc<HostTextInputFocusData>,
     /// Routing address only; the session's Runtime Surface owns focus and capture.
     pub(crate) retained_pane_input_pane: Option<crate::ui::retained_host::primitives::SharedString>,
+    pub(crate) canvas_anchor_popup:
+        Option<super::super::window::canvas_anchor_popup::CanvasAnchorPopupState>,
+    pub(crate) canvas_anchor_popup_pointer_tail:
+        Option<zircon_runtime_interface::ui::dispatch::UiPointerId>,
     pub(crate) welcome_pane: WelcomePaneData,
     pub(in crate::ui::retained_host::host_contract) ui_callbacks: UiHostCallbacks,
     pub(in crate::ui::retained_host::host_contract) pane_callbacks: PaneSurfaceCallbacks,
@@ -148,6 +152,8 @@ impl HostContractState {
             resize_state: HostResizeStateData::default(),
             text_input_focus: Arc::new(HostTextInputFocusData::default()),
             retained_pane_input_pane: None,
+            canvas_anchor_popup: None,
+            canvas_anchor_popup_pointer_tail: None,
             welcome_pane: WelcomePaneData::default(),
             ui_callbacks: UiHostCallbacks::default(),
             pane_callbacks: PaneSurfaceCallbacks::default(),
@@ -185,6 +191,17 @@ impl HostContractState {
     }
 
     fn advance_structure_generation(&mut self) {
+        // Only this palette field is retired here. Preview leases, capture/IME
+        // lifecycle and close-reason restoration remain with their existing owners.
+        if self.text_input_focus.palette_search_target.is_some()
+            && (!self.window_visible
+                || !super::super::window::palette_search_focus_current(
+                    self.host_presentation.as_ref(),
+                    self.text_input_focus.as_ref(),
+                ))
+        {
+            self.replace_text_input_focus(HostTextInputFocusData::default());
+        }
         self.presentation_structure_generation =
             self.presentation_structure_generation.saturating_add(1);
         record_current_ui_perf_counter(

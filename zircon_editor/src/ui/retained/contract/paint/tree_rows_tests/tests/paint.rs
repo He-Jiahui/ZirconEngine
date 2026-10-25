@@ -11,6 +11,51 @@ use super::super::style::{tree_action_color, tree_icon_color};
 use super::support::{changed_pixel_count, pixel_at, tree_node};
 
 #[test]
+fn asset_tree_disclosure_paints_real_svg_arrows_and_no_leaf_or_unrouted_actions() {
+    for (variant, expanded, expected) in [
+        ("asset-folder", false, Some("chevron-right.svg")),
+        ("asset-folder-expanded", true, Some("dropdown.svg")),
+        ("asset-folder-leaf", false, None),
+    ] {
+        let mut node = tree_node(
+            "AssetBrowserSourcesRowPanel",
+            "TreeRow",
+            "workbench-tree-row",
+            "Content",
+            1,
+            false,
+        );
+        node.component_variant = variant.into();
+        node.expanded = expanded;
+        let rect = FrameRect {
+            x: node.frame.x,
+            y: node.frame.y,
+            width: node.frame.width,
+            height: node.frame.height,
+        };
+        let mut commands = Vec::new();
+        assert!(push_tree_row_commands(
+            &mut commands,
+            &node,
+            &rect,
+            &rect,
+            0,
+            1.0
+        ));
+        for icon in ["dropdown.svg", "chevron-right.svg"] {
+            assert_eq!(
+                tree_action_image_command(&commands, icon).is_some(),
+                expected == Some(icon)
+            );
+        }
+        for icon in ["eye.svg", "lock.svg", "more-vertical.svg"] {
+            assert!(tree_action_image_command(&commands, icon).is_none());
+        }
+        assert!(tree_action_button_slot_commands(&commands).is_empty());
+    }
+}
+
+#[test]
 fn native_hierarchy_content_rows_do_not_paint_unrouted_adornments() {
     let mut node = tree_node(
         "NativeHierarchyEntity:25",

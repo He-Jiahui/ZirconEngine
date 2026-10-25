@@ -2,7 +2,10 @@ import { createHash, randomUUID } from 'node:crypto';
 import { readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, resolve } from 'node:path';
 import { patchCanonicalZuiSource } from './zui-export-apply-source';
-export { applyZuiExportFileToSourceRoot } from './zui-export-apply-files';
+export {
+  applyZuiExportFileToCanonicalSourceOwners,
+  applyZuiExportFileToSourceRoot,
+} from './zui-export-apply-files';
 export { applyZuiExportToSourceFiles } from './zui-export-apply-sources';
 export {
   ZUI_SOURCE_EXPORTS_SCHEMA,
@@ -12,6 +15,7 @@ export type {
   AppliedZuiSourceExports,
   AppliedZuiSourceExportOutput,
   ApplyZuiExportFileToSourceRootOptions,
+  ApplyZuiExportFileToCanonicalSourceOwnersOptions,
   ZuiSourceExportEdit,
   ZuiSourceExportIdentity,
   ZuiSourceExportManifest,

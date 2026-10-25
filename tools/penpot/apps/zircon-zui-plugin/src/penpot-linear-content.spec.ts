@@ -149,6 +149,47 @@ describe('native desired sizes before weighted allocation', () => {
     ).get('row');
     expect(size).toEqual({ width: 118, height: 20 });
   });
+  it('preserves fractional text metrics through material padding, slots and min/max constraints', () => {
+    const doc: ZuiDocument = {
+      asset: { kind: 'view', id: 'res://tests/fractional-content.zui', version: 2 },
+      root: { node: 'row' },
+      nodes: {
+        row: {
+          component: 'HorizontalBox',
+          layout: {
+            container: { kind: 'HorizontalBox', gap: 2.25 },
+            padding: { left: 1.5, right: 2.75 },
+          },
+          children: [
+            { node: 'a', slot: { layout: { padding: { left: 0.25, right: 0.5 } } } },
+            { node: 'b' },
+          ],
+        },
+        a: {
+          component: 'Button',
+          props: { text: 'Arbitrary label', layout_padding_left: 3.5, layout_padding_right: 4.25 },
+          layout: { width: { min: 10, max: 100, stretch: 'Fixed' } },
+        },
+        b: {
+          component: 'Label',
+          props: { text: 'Another value' },
+          layout: { width: { min: 20.125, max: 30.25, stretch: 'Fixed' } },
+        },
+      },
+    };
+    const before = JSON.stringify(doc);
+    const measure = () => measureLinearDesiredSizes(doc, projectZuiDocument(doc),
+      (node, projected) => measureNativeLeafContent(doc, node,
+        projected.nodeId === 'a' ? { width: 21.1875, height: 16.0625 } :
+          { width: 18.8125, height: 16.0625 }));
+    const sizes = measure();
+    expect(sizes.get('a')).toEqual({ width: 28.9375, height: 16.0625 });
+    expect(sizes.get('b')).toEqual({ width: 20.125, height: 16.0625 });
+    expect(sizes.get('row')).toEqual({ width: 56.3125, height: 16.0625 });
+    expect(JSON.stringify(doc)).toBe(before);
+    doc.nodes!['b'].layout!['width'] = { min: 0, max: 18.5, stretch: 'Fixed' };
+    expect(measure().get('b')?.width).toBe(18.5);
+  });
 });
 
 describe('dropdown desired size uses the same effective style as painting', () => {

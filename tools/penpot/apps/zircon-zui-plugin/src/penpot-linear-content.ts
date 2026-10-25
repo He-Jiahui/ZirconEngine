@@ -27,6 +27,10 @@ import {
   measureNativeLeafContent,
   measureNativeMaterialContent,
 } from './penpot-content-material';
+import {
+  currentContentMeasurementScale,
+  LINEAR_CONTENT_MEASUREMENT_SCALE,
+} from './penpot-content-measurement-guard';
 
 const CONTENT_MEASUREMENT = 'linear-content-measurement';
 const CONTENT_SIGNATURE = 'linear-content-measurement-signature';
@@ -97,6 +101,19 @@ function contentMeasurements(asset: Board): Text[] {
       ),
   );
 }
+function measurementScale(text: Text): number {
+  const scale = currentContentMeasurementScale(text);
+  if (scale === undefined)
+    throw new Error(
+      'Invalid native content font measurement: ' +
+        text.getSharedPluginData(ZUI_METADATA_NAMESPACE, CONTENT_MEASUREMENT),
+    );
+  return scale;
+}
+function logicalMeasurementSize(text: Text): LinearDesiredSize {
+  const scale = measurementScale(text);
+  return { width: text.width / scale, height: text.height / scale };
+}
 /** Keep intrinsic text probes current when the existing review board is reused. */
 export function synchronizeLinearContentMeasurements(
   asset: Board,
@@ -104,10 +121,15 @@ export function synchronizeLinearContentMeasurements(
   projection: ZuiAssetProjection,
 ): void {
   const existing = new Map(
-    contentMeasurements(asset).map((text) => [
-      text.getSharedPluginData(ZUI_METADATA_NAMESPACE, CONTENT_MEASUREMENT),
-      text,
-    ]),
+    contentMeasurements(asset).map((text) => {
+      // Refresh a valid old source signature, never overwrite a direct edit or
+      // an unsupported scale. Legacy 1x signatures upgrade through this path.
+      measurementScale(text);
+      return [
+        text.getSharedPluginData(ZUI_METADATA_NAMESPACE, CONTENT_MEASUREMENT),
+        text,
+      ] as const;
+    }),
   );
   const active = new Set<string>();
   for (const projected of projection.shapes) {
@@ -118,6 +140,7 @@ export function synchronizeLinearContentMeasurements(
     const style = resolvePenpotTextStyle(document, node, projected.text);
     const signature = JSON.stringify({
       text: projected.text.characters,
+      measurementScale: LINEAR_CONTENT_MEASUREMENT_SCALE,
       style,
       runs: projected.text.richTextRuns ?? [],
     });
@@ -153,8 +176,14 @@ export function synchronizeLinearContentMeasurements(
     ) {
       if (text.characters !== projected.text.characters)
         text.characters = projected.text.characters;
-      applyPenpotTextStyle(text, style);
-      applyPenpotTextRuns(text, style, projected.text.richTextRuns);
+      // Font size is in pixels; lineHeight is a ratio and letterSpacing is
+      // zero pixels in applyPenpotTextStyle. Inline ranges only change weight.
+      const measurementStyle = {
+        ...style,
+        size: style.size * LINEAR_CONTENT_MEASUREMENT_SCALE,
+      };
+      applyPenpotTextStyle(text, measurementStyle);
+      applyPenpotTextRuns(text, measurementStyle, projected.text.richTextRuns);
       // Native intrinsic text measurement is unbounded. Authored dimensions
       // constrain the desired size afterwards; an allocated width must not wrap it.
       text.growType = 'auto-width';
@@ -170,13 +199,15 @@ export function synchronizeLinearContentMeasurements(
   }
 }
 export function linearContentMeasurementsReady(asset: Board): boolean {
-  return contentMeasurements(asset).every(
-    ({ width, height }) =>
+  return contentMeasurements(asset).every((text) => {
+    const { width, height } = logicalMeasurementSize(text);
+    return (
       Number.isFinite(width) &&
       width > 1 &&
       Number.isFinite(height) &&
-      height > 1,
-  );
+      height > 1
+    );
+  });
 }
 
 /** Native desired sizes are measured bottom-up and never read allocated fill extents. */
@@ -295,7 +326,7 @@ export function measuredLinearDesiredSizes(
   const measured = new Map(
     contentMeasurements(asset).map((text) => [
       text.getSharedPluginData(ZUI_METADATA_NAMESPACE, CONTENT_MEASUREMENT),
-      { width: text.width, height: text.height },
+      logicalMeasurementSize(text),
     ]),
   );
   return measureLinearDesiredSizes(document, projection, (node, projected) => {
@@ -305,6 +336,15 @@ export function measuredLinearDesiredSizes(
     if (!size)
       throw new Error(
         `Native content font measurement unavailable: ${projected.nodeId}`,
+      );
+    if (
+      !Number.isFinite(size.width) ||
+      size.width < 0 ||
+      !Number.isFinite(size.height) ||
+      size.height < 0
+    )
+      throw new Error(
+        `Invalid native content font measurement dimensions: ${projected.nodeId}`,
       );
     return measureNativeLeafContent(document, node, size);
   });
@@ -327,7 +367,6 @@ export function linearContentMeasurementSnapshot(asset: Board): {
       ZUI_METADATA_NAMESPACE,
       CONTENT_SIGNATURE,
     ),
-    width: shape.width,
-    height: shape.height,
+    ...logicalMeasurementSize(shape),
   }));
 }

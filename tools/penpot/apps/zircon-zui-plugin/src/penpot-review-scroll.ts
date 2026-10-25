@@ -35,7 +35,9 @@ export interface ReviewScrollShape {
   flex?: unknown;
   grid?: unknown;
   getSharedPluginData(namespace: string, key: string): string;
-  setSharedPluginData(namespace: string, key: string, value: string): void;
+  getSharedPluginDataKeys(namespace: string): string[];
+  // The native SDK accepts null to remove a key; an empty string persists it.
+  setSharedPluginData(namespace: string, key: string, value: string | null): void;
 }
 
 function isReviewScrollShape(value: unknown): value is ReviewScrollShape {
@@ -49,6 +51,7 @@ function isReviewScrollShape(value: unknown): value is ReviewScrollShape {
     typeof shape.height === 'number' &&
     (shape.children === undefined || Array.isArray(shape.children)) &&
     typeof shape.getSharedPluginData === 'function' &&
+    typeof shape.getSharedPluginDataKeys === 'function' &&
     typeof shape.setSharedPluginData === 'function'
   );
 }
@@ -69,6 +72,20 @@ const REVIEW_SCROLL_TARGET_Y = 'review-scroll-target-y';
 const REVIEW_SCROLL_CAPTURED_X = 'review-scroll-captured-x';
 const REVIEW_SCROLL_CAPTURED_Y = 'review-scroll-captured-y';
 const REVIEW_SCROLL_CAPTURED_POSITIONS = 'review-scroll-captured-positions';
+const REVIEW_SCROLL_TEMPORARY_KEYS = [
+  REVIEW_SCROLL_POSITION,
+  REVIEW_SCROLL_OFFSET_X,
+  REVIEW_SCROLL_OFFSET_Y,
+  REVIEW_SCROLL_ORIGINAL_CLIP,
+  REVIEW_SCROLL_ORIGINAL_X,
+  REVIEW_SCROLL_ORIGINAL_Y,
+  REVIEW_SCROLL_ORIGINAL_ABSOLUTE,
+  REVIEW_SCROLL_TARGET_X,
+  REVIEW_SCROLL_TARGET_Y,
+  REVIEW_SCROLL_CAPTURED_X,
+  REVIEW_SCROLL_CAPTURED_Y,
+  REVIEW_SCROLL_CAPTURED_POSITIONS,
+] as const;
 
 export interface CapturedReviewScrollPosition {
   x: number;
@@ -489,26 +506,6 @@ export function restoreReviewScrollPresentation(root: unknown): number {
         originalClipValue === 'unset'
           ? undefined
           : originalClipValue === 'true';
-      shape.setSharedPluginData(
-        ZUI_METADATA_NAMESPACE,
-        REVIEW_SCROLL_ORIGINAL_CLIP,
-        '',
-      );
-      shape.setSharedPluginData(
-        ZUI_METADATA_NAMESPACE,
-        REVIEW_SCROLL_POSITION,
-        '',
-      );
-      shape.setSharedPluginData(
-        ZUI_METADATA_NAMESPACE,
-        REVIEW_SCROLL_OFFSET_X,
-        '',
-      );
-      shape.setSharedPluginData(
-        ZUI_METADATA_NAMESPACE,
-        REVIEW_SCROLL_OFFSET_Y,
-        '',
-      );
     }
     const originalX = metadata(shape, REVIEW_SCROLL_ORIGINAL_X);
     const originalY = metadata(shape, REVIEW_SCROLL_ORIGINAL_Y);
@@ -518,47 +515,14 @@ export function restoreReviewScrollPresentation(root: unknown): number {
       const originalAbsolute = metadata(shape, REVIEW_SCROLL_ORIGINAL_ABSOLUTE);
       if (shape.layoutChild && originalAbsolute)
         shape.layoutChild.absolute = originalAbsolute === 'true';
-      shape.setSharedPluginData(
-        ZUI_METADATA_NAMESPACE,
-        REVIEW_SCROLL_ORIGINAL_X,
-        '',
-      );
-      shape.setSharedPluginData(
-        ZUI_METADATA_NAMESPACE,
-        REVIEW_SCROLL_ORIGINAL_Y,
-        '',
-      );
-      shape.setSharedPluginData(
-        ZUI_METADATA_NAMESPACE,
-        REVIEW_SCROLL_ORIGINAL_ABSOLUTE,
-        '',
-      );
-      shape.setSharedPluginData(
-        ZUI_METADATA_NAMESPACE,
-        REVIEW_SCROLL_TARGET_X,
-        '',
-      );
-      shape.setSharedPluginData(
-        ZUI_METADATA_NAMESPACE,
-        REVIEW_SCROLL_TARGET_Y,
-        '',
-      );
     }
-    shape.setSharedPluginData(
-      ZUI_METADATA_NAMESPACE,
-      REVIEW_SCROLL_CAPTURED_X,
-      '',
+    const recordedKeys = new Set(
+      shape.getSharedPluginDataKeys(ZUI_METADATA_NAMESPACE),
     );
-    shape.setSharedPluginData(
-      ZUI_METADATA_NAMESPACE,
-      REVIEW_SCROLL_CAPTURED_Y,
-      '',
-    );
-    shape.setSharedPluginData(
-      ZUI_METADATA_NAMESPACE,
-      REVIEW_SCROLL_CAPTURED_POSITIONS,
-      '',
-    );
+    for (const key of REVIEW_SCROLL_TEMPORARY_KEYS) {
+      if (recordedKeys.has(key))
+        shape.setSharedPluginData(ZUI_METADATA_NAMESPACE, key, null);
+    }
     for (const child of shape.children ?? []) {
       if (isReviewScrollShape(child)) visit(child);
     }

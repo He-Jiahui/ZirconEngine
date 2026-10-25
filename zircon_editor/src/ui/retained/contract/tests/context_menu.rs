@@ -41,6 +41,7 @@ fn popup_rows_do_not_spawn_nested_context_menus() {
 
 fn hit(control_id: &str) -> TemplateNodePointerHit {
     TemplateNodePointerHit {
+        palette_search_target: None,
         pane_id: SharedString::new(),
         control_id: control_id.into(),
         action_id: SharedString::new(),

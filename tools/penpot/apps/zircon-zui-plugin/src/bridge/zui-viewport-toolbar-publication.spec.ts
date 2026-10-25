@@ -32,6 +32,33 @@ function fixture(open=false, mask=2) {
 }
 const clone=<T>(value:T):T=>JSON.parse(JSON.stringify(value)) as T;
 describe('same-present prepared viewport toolbar evidence',()=>{
+  it('preserves the actual authored component invocation path from the normal GPU source',()=>{
+    const input=fixture();
+    const path=JSON.stringify([{sourcePath:'res://ui/editor/unreal/level_editor_window.zui',sourceNodeId:'viewport'}]);
+    for(const node of input.viewportToolbarPublication.nodes){
+      node.instancePath=path;
+      if(node.parentNodeId!==null)node.parentInstancePath=path;
+    }
+    const actual=readViewportToolbarPublication(input)!;
+    expect(actual.nodes.every(node=>node.instancePath===path)).toBe(true);
+    expect(actual.nodes.filter(node=>node.parentNodeId!==null).every(node=>node.parentInstancePath===path)).toBe(true);
+  });
+  it('rejects string aliases, malformed invocation steps and noncanonical source paths',()=>{
+    const valid={sourcePath:'res://ui/editor/unreal/level_editor_window.zui',sourceNodeId:'viewport'};
+    for(const path of [
+      JSON.stringify(['viewport']),
+      JSON.stringify([{source_path:valid.sourcePath,source_node_id:valid.sourceNodeId}]),
+      JSON.stringify([{...valid,slot:0}]),
+      JSON.stringify([{sourcePath:valid.sourcePath}]),
+      JSON.stringify([{...valid,sourceNodeId:' '}]),
+      JSON.stringify([{sourceNodeId:valid.sourceNodeId,sourcePath:valid.sourcePath}]),
+      JSON.stringify([valid],null,2),
+      JSON.stringify(Array.from({length:65},()=>valid)),
+    ]){
+      const input=fixture();input.viewportToolbarPublication.nodes[0]!.instancePath=path;
+      expect(()=>readViewportToolbarPublication(input)).toThrow(/call-site list|compact source identity/);
+    }
+  });
   it('keeps absence unknown and returns an immutable detached observed subtree with nulls',()=>{
     expect(readViewportToolbarPublication({})).toBeUndefined();
     const input=fixture(),actual=readViewportToolbarPublication(input)!;

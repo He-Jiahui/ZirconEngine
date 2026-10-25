@@ -81,6 +81,12 @@ pub enum EditorAssetEvent {
     SelectFolder {
         folder_id: String,
     },
+    SetFolderExpanded {
+        folder_id: String,
+        expanded: bool,
+        /// Current asset surface publication, not a document or source revision.
+        expected_catalog_revision: u64,
+    },
     SelectItem {
         asset_uuid: String,
     },

@@ -1,4 +1,5 @@
 import type { Board, Shape, Text } from '@penpot/plugin-types';
+import type { ZuiDocument } from './bridge/zui-document';
 import { semanticTextCharacters } from './penpot-text-overflow';
 import {
   assertControlParts,
@@ -12,7 +13,9 @@ import {
   capturedMappedTextStyle,
   capturedFontTypography,
   capturedSemanticText,
+  createSourcePaintCaptureContext,
   singleSolidFill,
+  type SourcePaintCaptureContext,
 } from './penpot-capture-validation';
 import {
   ZUI_METADATA_NAMESPACE,
@@ -29,6 +32,10 @@ export const TEXT_FRAGMENT_KEY = 'text-fragment';
 
 export function unsupportedTextStyle(text: Text): unknown {
   return {
+    // Family names do not establish provider/variant equivalence. Existing
+    // baselines without this evidence must be re-imported, never re-signed.
+    fontId: text.fontId,
+    fontVariantId: text.fontVariantId,
     fontStyle: text.fontStyle,
     letterSpacing: text.letterSpacing,
     textTransform: text.textTransform,
@@ -42,6 +49,9 @@ export function unsupportedTextStyle(text: Text): unknown {
 export function captureNodeTexts(
   board: Board,
   baseline?: ProjectionEditableState,
+  document?: ZuiDocument,
+  paintContext: SourcePaintCaptureContext | undefined = document
+    ? createSourcePaintCaptureContext(document) : undefined,
 ): Pick<ProjectionEditableState, 'text' | 'textFragments'> {
   const nodeId = metadata(board, ZUI_METADATA_NODE_ID) || board.name;
   assertControlParts(board);
@@ -67,6 +77,12 @@ export function captureNodeTexts(
     const textFill = singleSolidFill(
       candidate.fills,
       `Editable text for node ${nodeId}`,
+      paintContext?.binding({
+        nodeId, sourcePath: metadata(board, 'sourcePath'),
+        sourceNodeId: metadata(board, 'sourceNodeId'),
+        controlId: metadata(board, 'controlId') || null,
+        instancePath: metadata(board, 'instancePath'),
+      }, 'foreground_color', metadata(candidate, ZUI_METADATA_TEXT_PROPERTY), key),
     );
     const expected = metadata(candidate, ZUI_METADATA_TEXT_STYLE_GUARD);
     const currentUnsupportedStyle = JSON.stringify(

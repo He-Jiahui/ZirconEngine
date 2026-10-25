@@ -14,6 +14,11 @@ pub(super) fn dispatch_workbench_template_primary_button(
 ) -> NativePointerDispatchResult {
     let pane_host = ui.global::<PaneSurfaceHostContext>();
     let damage = hit_damage(cleared_text_input_frame, &hit);
+    let popup_only = hit.dispatch_kind.as_str() == "ui_asset_anchor_popup_open";
     dispatch_template_node_primary_press(&pane_host, hit);
-    NativePointerDispatchResult::region_with_frame_update(damage)
+    if popup_only {
+        NativePointerDispatchResult::region(damage)
+    } else {
+        NativePointerDispatchResult::region_with_frame_update(damage)
+    }
 }

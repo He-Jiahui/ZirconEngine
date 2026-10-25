@@ -66,12 +66,14 @@ export function treeRowContent(
     y: number,
     w: number,
     h: number,
+    horizontalConstraint: NativePainterPlacement['horizontalConstraint'] = 'left',
   ): NativePainterPlacement => ({
     x: x / width,
     y: y / height,
     width: w / width,
     height: h / height,
     exactBounds: true,
+    horizontalConstraint,
   });
   const contains = (x: number, y: number, w: number, h: number) =>
     w > 0 && h > 0 && x >= 0 && y >= 0 && x + w <= width && y + h <= height;
@@ -91,10 +93,11 @@ export function treeRowContent(
         radius: 0,
       });
   if (!contains(dx, dy, l, l)) return content;
-  const icon = (name: string, x: number, y: number, size: number) =>
+  const icon = (name: string, x: number, y: number, size: number,
+    horizontalConstraint: NativePainterPlacement['horizontalConstraint'] = 'left') =>
     content.icons!.push({
       name,
-      placement: placement(x, y, size, size),
+      placement: placement(x, y, size, size, horizontalConstraint),
       tone: 'primary',
       size: 's',
       color: iconColor,
@@ -118,7 +121,7 @@ export function treeRowContent(
   if (text && contains(labelX, labelY, labelWidth, lineHeight))
     content.texts.push({
       value: text,
-      placement: placement(labelX, labelY, labelWidth, lineHeight),
+      placement: placement(labelX, labelY, labelWidth, lineHeight, 'leftright'),
       tone: 'primary',
       size: fontSize,
       weight,
@@ -139,7 +142,7 @@ export function treeRowContent(
     const action = (name: string, index: number) => {
       content.panels.push({
         kind: 'tree-action-slot',
-        placement: placement(buttonX(index), buttonY, buttonSize, buttonSize),
+        placement: placement(buttonX(index), buttonY, buttonSize, buttonSize, 'right'),
         tone: 'surface',
         color: palette.color(['surface_hover'], '#333333'),
         borderColor: palette.color(['border'], '#484848'),
@@ -152,6 +155,7 @@ export function treeRowContent(
         buttonX(index) + Math.max(0, buttonSize - actionSize) / 2,
         buttonY + Math.max(0, buttonSize - actionSize) / 2,
         actionSize,
+        'right',
       );
     };
     action('eye', 1);

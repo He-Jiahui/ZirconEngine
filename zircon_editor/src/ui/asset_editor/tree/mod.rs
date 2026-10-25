@@ -6,3 +6,6 @@ pub(crate) mod palette_drop;
 pub(crate) mod tree_editing;
 
 pub use drag_drop_policy::UiAssetDragDropPolicy;
+
+#[path = "slot_migration.rs"]
+mod slot_migration;

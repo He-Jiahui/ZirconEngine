@@ -38,6 +38,12 @@ struct HostPanePresentationReplacement {
 }
 
 impl HostPanePresentationPatch {
+    pub(crate) fn changes_canvas_anchor_target(&self, instance_id: &str) -> bool {
+        self.replacements
+            .iter()
+            .any(|replacement| replacement.expected_id.as_str() == instance_id)
+    }
+
     pub(crate) fn new() -> Self {
         Self {
             replacements: Vec::new(),
@@ -218,6 +224,10 @@ impl HostPanePresentationPatch {
 }
 
 impl HostPresentationPatch {
+    pub(crate) fn changes_canvas_anchor_target(&self, instance_id: &str) -> bool {
+        self.panes.changes_canvas_anchor_target(instance_id)
+    }
+
     pub(crate) const fn new(panes: HostPanePresentationPatch) -> Self {
         Self {
             panes,

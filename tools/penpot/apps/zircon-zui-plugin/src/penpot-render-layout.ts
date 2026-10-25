@@ -100,7 +100,26 @@ export interface LayoutBoundsCandidate {
   height: number;
 }
 
+export interface RuntimeSceneMediaAudit {
+  schema: 'dev.zircon.penpot.runtime-scene-media-audit';
+  version: 1;
+  authority: 'official-original-media-data-after-layout-refresh';
+  verified: true;
+  caseId: string;
+  nodeId: string;
+  ownerShapeId: string;
+  shapeId: string;
+  mediaId: string;
+  pngSha256: string;
+  byteLength: number;
+  physicalSize: [number, number];
+  bootstrapCaseJsonSha256: string;
+  bootstrapCaseSha256: string;
+  bootstrapPixelAssociationSha256: string;
+}
+
 export interface RenderedLayoutAudit {
+  runtimeSceneMediaAudit?: RuntimeSceneMediaAudit;
   /** Current geometry is diagnostic only when supported source reflow failed. */
   refreshError?: string;
   assetBounds?: { x: number; y: number; width: number; height: number };
@@ -129,6 +148,8 @@ export interface RenderedLayoutAudit {
     parentSourcePath?: string | null;
     parentSourceNodeId?: string | null;
     parentInstancePath?: string;
+    itemKey?: string;
+    propertyFieldId?: string;
     parentNodeId: string | null;
     component: string;
     visible: boolean;

@@ -11,6 +11,8 @@ import {
   applyError,
   isRecord,
   isSupportedVisualPath,
+  isHeightMinFieldPath,
+  resolveRootHeightMinOwner,
   parseSourceExportManifest,
   same,
   staleSourceError,
@@ -114,6 +116,7 @@ export function applyZuiExportToSourceFiles(
   );
   const resolvedEdits = resolveEdits(
     manifest,
+    baseline.document,
     exportedProjection.document,
     documentChanges,
     canonicalSources,
@@ -182,6 +185,7 @@ export function applyZuiExportToSourceFiles(
 
 function resolveEdits(
   manifest: ZuiSourceExportManifest,
+  baseline: ZuiDocument,
   exported: ZuiDocument,
   changes: DocumentChange[],
   canonicalSources: Readonly<Record<string, string>>,
@@ -253,8 +257,23 @@ function resolveEdits(
         'source-export-value-unmapped',
         `Mapped Penpot field ${displayPath} has no matching exported value.`,
       );
+    let heightMinOwner: ZuiSourceExportEdit['heightMinOwner'];
+    if (isHeightMinFieldPath(fieldPath)) {
+      if (typeof edit.value !== 'number' || !Number.isFinite(edit.value) || edit.value < 0)
+        throw applyError('source-export-height-min-invalid',
+          `Mapped height.min must be finite and nonnegative: ${displayPath}.`);
+      heightMinOwner = resolveRootHeightMinOwner(manifest.rootSourcePath,
+        parseZuiDocument(canonicalSources[manifest.rootSourcePath]).document,
+        identity, baseline.nodes![exportNodeId], ownerDocument);
+      if (!same(heightMinOwner, edit.heightMinOwner))
+        throw applyError('source-export-height-min-owner-mismatch',
+          `Mapped height.min owner differs from its proven original-root callsite: ${displayPath}.`);
+    }
     used.add(key);
-    resolved.push({ ...edit, fieldPathKey: JSON.stringify(edit.fieldPath) });
+    resolved.push({ ...edit,
+      ...(heightMinOwner ? { sourcePath: heightMinOwner.sourcePath,
+        sourceNodeId: heightMinOwner.sourceNodeId } : {}),
+      fieldPathKey: JSON.stringify(edit.fieldPath) });
   }
   for (const [key, edit] of editsByPath) {
     if (!used.has(key))

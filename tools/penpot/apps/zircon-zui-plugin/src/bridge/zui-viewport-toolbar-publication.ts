@@ -44,8 +44,12 @@ function instance(value: unknown, label: string): void {
   requireValue(string(value),label+' is missing');
   let decoded: unknown;
   try { decoded = JSON.parse(value); } catch { throw new Error('Viewport toolbar publication: '+label+' is not a compact JSON call-site list'); }
-  requireValue(Array.isArray(decoded) && decoded.length <= 64 && decoded.every(string),label+' is not a call-site list');
-  requireValue(JSON.stringify(decoded) === value,label+' is not the exact compact source identity');
+  requireValue(Array.isArray(decoded) && decoded.length <= 64 && decoded.every(step =>
+    record(step) && Object.keys(step).length === 2 &&
+    Object.hasOwn(step,'sourcePath') && Object.hasOwn(step,'sourceNodeId') &&
+    string(step['sourcePath']) && string(step['sourceNodeId'])),label+' is not a call-site list');
+  const canonical = decoded.map(step => ({sourcePath:step['sourcePath'],sourceNodeId:step['sourceNodeId']}));
+  requireValue(JSON.stringify(canonical) === value,label+' is not the exact compact source identity');
 }
 function rect(value: unknown, label: string): void {
   requireValue(record(value),label+' is missing'); exact(value,['x','y','width','height'],label);

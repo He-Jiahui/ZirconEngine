@@ -205,6 +205,11 @@ function validateEditableState(
   value: Record<string, unknown>,
   path: string,
 ): void {
+  if (Object.hasOwn(value, 'heightMin')) {
+    assertFiniteNumber(value['heightMin'], `${path}.heightMin`);
+    if (value['heightMin'] < 0)
+      throw bridgeError(`${path}.heightMin must not be negative.`);
+  }
   const geometry = recordAt(value, 'geometry', path);
   assertFiniteNumbers(
     geometry,

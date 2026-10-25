@@ -161,8 +161,8 @@ fn ui_asset_editor_session_projects_canvas_insert_and_wrap_availability() {
     assert!(root_pane.can_insert_after);
     assert!(!root_pane.can_move_up);
     assert!(!root_pane.can_move_down);
-    assert!(!root_pane.can_wrap_in_vertical_box);
-    assert!(!root_pane.can_unwrap);
+    assert!(root_pane.can_wrap_in_vertical_box);
+    assert!(root_pane.can_unwrap);
 
     session
         .select_hierarchy_index(1)

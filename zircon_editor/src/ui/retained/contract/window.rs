@@ -10,8 +10,13 @@ use zircon_runtime_interface::ui::dispatch::UiWindowId;
 
 #[path = "window/attention.rs"]
 mod attention;
+#[path = "window/canvas_anchor_popup.rs"]
+pub(crate) mod canvas_anchor_popup;
 #[path = "window/capture.rs"]
 mod capture;
+pub(crate) use canvas_anchor_popup::{
+    CanvasAnchorPopupEvent, CanvasAnchorPopupId, CanvasAnchorPopupKind, CanvasAnchorPopupOpen,
+};
 #[path = "window/constants.rs"]
 mod constants;
 #[path = "window/diagnostics.rs"]
@@ -34,6 +39,8 @@ mod hierarchy_pointer_route;
 mod lifecycle;
 #[path = "window/metadata.rs"]
 mod metadata;
+#[path = "window/palette_search_input.rs"]
+mod palette_search_input;
 #[path = "window/presentation.rs"]
 mod presentation;
 #[path = "window/redraw.rs"]
@@ -52,6 +59,7 @@ pub(crate) use first_present::FirstPresentNotificationError;
 pub(crate) use focus_observer::NativeWindowFocusObserverError;
 pub(crate) use handle::{HostWindowHandle, HostWindowSnapshot};
 pub(crate) use hierarchy_pointer_route::HierarchyPointerSource;
+pub(super) use palette_search_input::palette_search_focus_current;
 
 pub(crate) fn primary_host_window_id() -> UiWindowId {
     UiWindowId::new(constants::NATIVE_HOST_WINDOW_ID)

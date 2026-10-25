@@ -1,6 +1,9 @@
 import { posix } from 'node:path';
 import type { LayoutReviewCase } from './zui-layout-review-contract';
-import type { ExpectedResourceUse } from './zui-layout-semantic-parity';
+import {
+  sourceSemanticIdentity,
+  type ExpectedResourceUse,
+} from './zui-layout-semantic-parity';
 import {
   zuiRootNodeIds,
   type ZuiDocument,
@@ -50,6 +53,7 @@ export function deriveSourceRenderInventory(
   const visit = (
     renderId: string,
     parentVisible: boolean | undefined,
+    parent?: SourceIdentityNode,
   ): void => {
     if (visiting.has(renderId)) {
       errors.push(`${reviewCase.id}: prepared host has a node cycle ${renderId}`);
@@ -82,7 +86,50 @@ export function deriveSourceRenderInventory(
       visiting.delete(renderId);
       return;
     }
-    const identity = JSON.stringify([sourcePath, sourceNodeId, instancePath]);
+    const props = node.props ?? {};
+    const marker = record(node['penpot_review_generated_product_row']);
+    const itemKey = props['inspector_property_item_key'];
+    const propertyFieldId = props['inspector_property_field_id'];
+    let identity: string;
+    try {
+      if (marker['kind'] === 'inspectorProperty' ||
+          itemKey !== undefined || propertyFieldId !== undefined) {
+        if (marker['kind'] !== 'inspectorProperty' ||
+            typeof itemKey !== 'string' || typeof propertyFieldId !== 'string' ||
+            marker['itemKey'] !== itemKey ||
+            record(marker['property'])['id'] !== propertyFieldId)
+          throw new Error('materialized property is missing or has inconsistent marker/key/field');
+        const repeat = record(parent?.repeat);
+        const prototypes = Object.values(nodes).filter((candidate) =>
+          typeof repeat['prototype'] === 'string' &&
+          candidate.control_id === repeat['prototype'] &&
+          candidate['penpot_review_source_path'] === sourcePath &&
+          candidate['penpot_review_source_node_id'] === sourceNodeId &&
+          candidate['penpot_review_instance_path'] === instancePath &&
+          !candidate['penpot_review_generated_product_row']);
+        if (!parent || repeat['kind'] !== 'virtual_rows' || prototypes.length !== 1)
+          throw new Error('materialized property has no unique authored prototype under its virtual_rows owner');
+        const parentInstancePath = parent.penpot_review_instance_path;
+        if (typeof parentInstancePath !== 'string' || !isCanonicalInstancePath(parentInstancePath))
+          throw new Error('materialized property has no original parent instance path');
+        const steps = JSON.parse(instancePath) as Array<{ sourcePath: string; sourceNodeId: string }>;
+        if (steps.at(-1)?.sourcePath !== parent.penpot_review_source_path ||
+            JSON.stringify(steps.slice(0, -1)) !== parentInstancePath)
+          throw new Error('materialized property prototype belongs to a different source owner');
+        identity = sourceSemanticIdentity({
+          sourcePath, sourceNodeId, instancePath, itemKey, propertyFieldId,
+          parentSourcePath: parent.penpot_review_source_path as string,
+          parentSourceNodeId: parent.penpot_review_source_node_id as string,
+          parentInstancePath,
+        });
+      } else {
+        identity = sourceSemanticIdentity({ sourcePath, sourceNodeId, instancePath });
+      }
+    } catch (error) {
+      errors.push(`${reviewCase.id}: invalid prepared materialized source identity ${renderId}: ${String(error)}`);
+      visiting.delete(renderId);
+      return;
+    }
     if (seenIdentity.has(identity)) {
       errors.push(`${reviewCase.id}: duplicate prepared source identity ${identity}`);
       visiting.delete(renderId);
@@ -94,7 +141,6 @@ export function deriveSourceRenderInventory(
     if (!currentSourceHash || !/^[0-9a-f]{64}$/.test(currentSourceHash))
       errors.push(`${reviewCase.id}: prepared source has no current file hash ${sourcePath}`);
 
-    const props = node.props ?? {};
     const visible = isNodeVisibleForCase(node, props, parentVisible);
     if (visible === undefined) {
       errors.push(`${reviewCase.id}: source visibility is unresolved for ${identity}`);
@@ -158,7 +204,7 @@ export function deriveSourceRenderInventory(
         errors.push(`${reviewCase.id}: prepared host has an invalid child mount under ${renderId}`);
         continue;
       }
-      visit(mount.node, visible);
+      visit(mount.node, visible, node);
     }
     visiting.delete(renderId);
   };
@@ -168,6 +214,11 @@ export function deriveSourceRenderInventory(
     JSON.stringify(a).localeCompare(JSON.stringify(b)),
   );
   return { semanticNodeIdentities: identities, resourceUses: resources, errors };
+}
+
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown> : {};
 }
 
 function isCanonicalInstancePath(value: string): boolean {

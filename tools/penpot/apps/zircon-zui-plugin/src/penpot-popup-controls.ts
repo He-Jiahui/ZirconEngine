@@ -47,6 +47,7 @@ export interface PopupOption {
   focused: boolean;
   hovered: boolean;
   pressed?: boolean;
+  loading?: boolean;
   separator: boolean;
   danger?: boolean;
 }
@@ -55,8 +56,9 @@ const POPUP_MENU_PALETTE = {
   popup: '#383838',
   border: '#383838',
   selected: '#383838',
-  hovered: '#575757',
+  hovered: '#0070e0',
   text: '#c0c0c0',
+  textSelected: '#ffffff',
   disabled: '#808080',
   danger: '#ef3535',
   accent: '#0070e0',
@@ -94,31 +96,32 @@ export function popupMenuRowPaint(option: PopupOption): PopupMenuRowPaint {
     };
   }
 
-  const selected = option.selected && !option.disabled;
-  const pressed = option.pressed === true && !option.disabled;
-  const hovered =
-    option.hovered && !option.disabled && !selected && !pressed;
+  const unavailable = option.disabled || option.loading === true;
+  const selected = option.selected && !unavailable;
+  const pressed = option.pressed === true && !unavailable;
+  const hot = (option.hovered || pressed) && !unavailable;
   const focusedOnly =
     option.focused &&
-    !option.disabled &&
+    !unavailable &&
     !selected &&
-    !option.hovered &&
     !pressed;
   return {
-    fillColor: option.disabled
+    fillColor: unavailable
       ? null
-      : selected || pressed
-        ? POPUP_MENU_PALETTE.selected
-        : hovered
-          ? POPUP_MENU_PALETTE.hovered
+      : hot
+        ? POPUP_MENU_PALETTE.hovered
+        : selected
+          ? POPUP_MENU_PALETTE.selected
           : null,
     strokeColor:
       selected || focusedOnly ? POPUP_MENU_PALETTE.accent : null,
-    textColor: option.disabled
+    textColor: unavailable
       ? POPUP_MENU_PALETTE.disabled
       : option.danger
         ? POPUP_MENU_PALETTE.danger
-        : POPUP_MENU_PALETTE.text,
+        : hot
+          ? POPUP_MENU_PALETTE.textSelected
+          : POPUP_MENU_PALETTE.text,
     borderRadius: POPUP_MENU_PALETTE.rowRadius,
     separatorInsetX: 0,
   };
@@ -847,6 +850,7 @@ function parsePopupOption(value: unknown): PopupOption | null {
       hovered: flags.has('hovered') || flags.has('pressed'),
       separator: false,
       ...(flags.has('pressed') ? { pressed: true } : {}),
+      ...(flags.has('loading') ? { loading: true } : {}),
       ...(flags.has('danger') ? { danger: true } : {}),
     };
   }
@@ -867,6 +871,7 @@ function parsePopupOption(value: unknown): PopupOption | null {
     hovered: value['hovered'] === true || value['pressed'] === true,
     separator: value['separator'] === true,
     ...(value['pressed'] === true ? { pressed: true } : {}),
+    ...(value['loading'] === true ? { loading: true } : {}),
     ...(value['danger'] === true ? { danger: true } : {}),
   };
 }

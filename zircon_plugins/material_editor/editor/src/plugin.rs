@@ -227,15 +227,17 @@ fn material_authoring_batch() -> EditorAuthoringContributionBatch {
     }
 }
 
-fn material_node_palette() -> GraphNodePaletteDescriptor {
+pub(super) fn material_node_palette() -> GraphNodePaletteDescriptor {
+    let mut output = GraphNodeDescriptor::new("output", "Output", "Material");
+    for (pin, kind) in crate::graph_contract::OUTPUT_PINS {
+        output =
+            output.with_input(GraphPinDescriptor::new(*pin, *kind).required(*pin == "base_color"));
+    }
     GraphNodePaletteDescriptor::new(
         "material_editor.palette",
         AssetTypeId::from_resource_kind(ResourceKind::MaterialGraph),
     )
-    .with_node(
-        GraphNodeDescriptor::new("output", "Output", "Material")
-            .with_input(GraphPinDescriptor::new("base_color", "vec4").required(true)),
-    )
+    .with_node(output)
     .with_node(
         GraphNodeDescriptor::new("texture_sample", "Texture Sample", "Texture")
             .with_output(GraphPinDescriptor::new("color", "vec4")),

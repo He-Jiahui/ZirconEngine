@@ -43,6 +43,10 @@ export function refreshControlParts(
       if (shape.layoutChild) shape.layoutChild.absolute = true;
     }
     existing.delete(key);
+    // Install the native width policy for reused parts as well as new parts.
+    // Assets fill/resize must retain both source insets without another refresh.
+    if (kind === 'field' && key === 'surface')
+      shape.constraintsHorizontal = 'leftright';
     shape.hidden = false;
     shape.resize(part.width, part.height);
     shape.x = board.x + part.x;

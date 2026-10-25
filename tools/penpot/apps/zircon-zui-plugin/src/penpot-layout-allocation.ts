@@ -33,6 +33,16 @@ function allocation(board: Board): Allocation | null {
     throw new Error('Invalid native layout allocation metadata');
   return value;
 }
+/** Only the importer that owns both shapes may transfer a derived allocation. */
+export function nativeLayoutAllocationForCopy(source: Board, target: Board): string {
+  const previous = allocation(source);
+  if (!previous) return '';
+  if (previous.parent !== (source.parent?.id ?? null) ||
+      Math.abs(source.width - previous.width) > EPSILON ||
+      Math.abs(source.height - previous.height) > EPSILON)
+    throw new Error('Native component source allocation is stale.');
+  return JSON.stringify({ ...previous, parent: target.parent?.id ?? null });
+}
 /** Keep engine allocation separate from a designer's fixed-size edits. */
 export function allocateNativeLayoutSize(
   board: Board,

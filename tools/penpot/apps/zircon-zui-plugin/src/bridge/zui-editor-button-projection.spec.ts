@@ -15,9 +15,11 @@ describe('Editor retained Workbench button projection', () => {
   const themePath = 'zircon_editor/assets/ui/editor/theme/editor_tokens.zui';
   const showcasePath =
     'zircon_editor/assets/ui/editor/components/showcase/showcase_input_section.zui';
+  const toolbarPath = 'zircon_editor/assets/ui/editor/unreal/components/toolbar.zui';
   const dependencies = new LayoutDependencies();
   beforeAll(async () =>
-    dependencies.load(root, [assetPath, themePath, showcasePath]),
+    dependencies.load(root, [assetPath, themePath, showcasePath, toolbarPath,
+      'zircon_editor/assets/ui/editor/unreal/starship.zui']),
   );
   const source = () => {
     const document = parseZuiDocument(
@@ -63,6 +65,21 @@ describe('Editor retained Workbench button projection', () => {
     const shape = projectZuiDocument(document).rootNodes[0];
     expect(shape.paint.fillColor).toBe('#242424');
     expect(shape.text?.color).toBe('#C0C0C0');
+  });
+
+  it.each(['modes', 'settings'])('keeps the actual %s text-variant stylesheet foreground across the native button boundary', (id) => {
+    const document = parseZuiDocument(readFileSync(`${root}/${toolbarPath}`, 'utf8')).document;
+    dependencies.embed(document, toolbarPath, themePath);
+    const node = document.nodes![id];
+    expect(node.props?.['foreground_color']).toBeUndefined();
+    node.state = { hovered: true };
+    const original = cloneZuiDocument(document);
+    const projection = projectZuiDocument(document);
+    const shape = projection.shapes.find((value) => value.nodeId === id)!;
+    expect(shape.text?.color).toBe('#FFFFFF');
+    expect(shape.paint.fillColor).toBe('#575757');
+    expect(reconcileZuiDocument(document, cloneProjectionSnapshot(projection)).changes).toEqual([]);
+    expect(document).toEqual(original);
   });
 
   it('rejects a primary surface edit that the native selector cannot consume', () => {

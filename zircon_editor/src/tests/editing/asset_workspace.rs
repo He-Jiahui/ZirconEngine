@@ -1,5 +1,8 @@
 use std::sync::Arc;
 
+#[path = "asset_workspace/tree_disclosure.rs"]
+mod tree_disclosure;
+
 use crate::ui::host::editor_asset_manager::{
     EditorAssetCatalogGeneration, EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord,
     EditorAssetDetailsGeneration, EditorAssetDetailsRecord, EditorAssetFolderRecord,

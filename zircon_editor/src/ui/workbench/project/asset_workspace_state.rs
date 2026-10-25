@@ -63,6 +63,7 @@ struct AssetWorkspaceItemProjectionCacheEntry {
 pub(crate) struct AssetWorkspaceState {
     catalog: Option<Arc<EditorAssetCatalogGeneration>>,
     selected_folder_id: String,
+    collapsed_folder_ids: BTreeSet<String>,
     selected_asset_uuid: Option<String>,
     synced_asset_uuids: BTreeSet<String>,
     selected_details: Option<Arc<EditorAssetDetailsGeneration>>,
@@ -84,6 +85,7 @@ impl Default for AssetWorkspaceState {
         Self {
             catalog: None,
             selected_folder_id: "res://".to_string(),
+            collapsed_folder_ids: BTreeSet::new(),
             selected_asset_uuid: None,
             synced_asset_uuids: BTreeSet::new(),
             selected_details: None,
@@ -128,6 +130,21 @@ impl AssetWorkspaceState {
         &mut self,
         catalog: Arc<EditorAssetCatalogGeneration>,
     ) {
+        if !self
+            .catalog
+            .as_ref()
+            .is_some_and(|previous| Arc::ptr_eq(previous, &catalog))
+        {
+            // An identical numeric catalog revision is not the identity of its publication.
+            self.projection_input.set(None);
+        }
+        if self
+            .catalog
+            .as_ref()
+            .is_some_and(|previous| previous.project_root != catalog.project_root)
+        {
+            self.collapsed_folder_ids.clear();
+        }
         let selected_locator_change = self.selected_asset_uuid.as_deref().and_then(|uuid| {
             let previous = self.catalog.as_ref()?.asset(uuid)?;
             let current = catalog.asset(uuid)?;
@@ -156,6 +173,17 @@ impl AssetWorkspaceState {
             }
         }
         self.reconcile_catalog_selection();
+        if let Some(catalog) = self.catalog.as_ref() {
+            let parents = catalog
+                .folders
+                .iter()
+                .filter_map(|folder| folder.parent_folder_id.as_deref())
+                .collect::<BTreeSet<_>>();
+            self.collapsed_folder_ids
+                .retain(|id| catalog.folder(id).is_some() && parents.contains(id.as_str()));
+        }
+        let selected = self.selected_folder_id.clone();
+        self.reveal_folder_ancestors(&selected);
     }
 
     fn reconcile_catalog_selection(&mut self) {
@@ -217,6 +245,7 @@ impl AssetWorkspaceState {
         if !self.folder_exists(&folder_id) {
             return false;
         }
+        let revealed = self.reveal_folder_ancestors(&folder_id);
         let clears_selection = self
             .selected_asset_uuid
             .as_ref()
@@ -225,7 +254,7 @@ impl AssetWorkspaceState {
             && !clears_selection
             && self.synced_asset_uuids.is_empty()
         {
-            return false;
+            return revealed;
         }
         self.selected_folder_id = folder_id;
         if !self.synced_asset_uuids.is_empty() {
@@ -237,6 +266,67 @@ impl AssetWorkspaceState {
             self.selected_details = None;
         }
         true
+    }
+
+    /// Applies an explicit state to the exact folder from the current surface publication.
+    /// This is presentation state, not a document edit or an asset revision.
+    pub fn set_folder_expanded(
+        &mut self,
+        folder_id: &str,
+        expanded: bool,
+        expected_catalog_revision: u64,
+    ) -> bool {
+        let Some(catalog) = self.catalog.as_ref() else {
+            return false;
+        };
+        if self.asset_workspace_projection_generation(catalog) != expected_catalog_revision
+            || catalog.folder(folder_id).is_none()
+            || !catalog
+                .folders
+                .iter()
+                .any(|folder| folder.parent_folder_id.as_deref() == Some(folder_id))
+        {
+            return false;
+        }
+        let contains_selection =
+            !expanded && folder_has_ancestor(catalog, &self.selected_folder_id, folder_id);
+        let changed = if expanded {
+            self.collapsed_folder_ids.remove(folder_id)
+        } else {
+            self.collapsed_folder_ids.insert(folder_id.to_string())
+        };
+        if !changed {
+            return false;
+        }
+        if contains_selection {
+            self.select_folder(folder_id.to_string());
+        }
+        self.projection_input.set(None);
+        true
+    }
+
+    fn reveal_folder_ancestors(&mut self, folder_id: &str) -> bool {
+        let Some(catalog) = self.catalog.as_ref() else {
+            return false;
+        };
+        let mut current = catalog
+            .folder(folder_id)
+            .and_then(|folder| folder.parent_folder_id.as_deref());
+        let mut changed = false;
+        // A malformed parent cycle must not trap input handling.
+        for _ in 0..catalog.folders.len() {
+            let Some(parent) = current else {
+                break;
+            };
+            changed |= self.collapsed_folder_ids.remove(parent);
+            current = catalog
+                .folder(parent)
+                .and_then(|folder| folder.parent_folder_id.as_deref());
+        }
+        if changed {
+            self.projection_input.set(None);
+        }
+        changed
     }
 
     pub fn select_asset(&mut self, asset_uuid: Option<String>) -> bool {
@@ -264,11 +354,12 @@ impl AssetWorkspaceState {
         else {
             return false;
         };
+        let revealed = self.reveal_folder_ancestors(&selected_folder_id);
         if self.selected_folder_id == selected_folder_id
             && self.selected_asset_uuid.as_deref() == Some(asset_uuid)
             && self.synced_asset_uuids.is_empty()
         {
-            return false;
+            return revealed;
         }
         self.selected_folder_id = selected_folder_id;
         self.selected_asset_uuid = Some(asset_uuid.to_string());
@@ -361,7 +452,11 @@ impl AssetWorkspaceState {
         };
 
         let normalized_search_query = self.normalized_search_query.as_str();
-        let folder_tree = build_folder_tree(catalog.folders.as_ref(), &self.selected_folder_id);
+        let folder_tree = build_folder_tree(
+            catalog.folders.as_ref(),
+            &self.selected_folder_id,
+            &self.collapsed_folder_ids,
+        );
         let visible_folders = catalog
             .folders
             .iter()
@@ -376,6 +471,9 @@ impl AssetWorkspaceState {
                 recursive_asset_count: folder.recursive_asset_count,
                 depth: 0,
                 selected: folder.folder_id == self.selected_folder_id,
+                has_children: !folder.child_folder_ids.is_empty(),
+                expanded: !folder.child_folder_ids.is_empty()
+                    && !self.collapsed_folder_ids.contains(&folder.folder_id),
             })
             .collect::<Vec<_>>();
         let catalog_revision = self.asset_workspace_projection_generation(catalog);
@@ -689,6 +787,7 @@ fn resource_state(resource: Option<&ResourceManagementRow>) -> Option<ResourceSt
 fn build_folder_tree(
     folders: &[EditorAssetFolderRecord],
     selected_folder_id: &str,
+    collapsed_folder_ids: &BTreeSet<String>,
 ) -> Vec<AssetFolderSnapshot> {
     let mut folders_by_parent =
         HashMap::<Option<&str>, Vec<&EditorAssetFolderRecord>>::with_capacity(folders.len());
@@ -709,6 +808,7 @@ fn build_folder_tree(
             root_folders,
             &folders_by_parent,
             selected_folder_id,
+            collapsed_folder_ids,
             0,
         );
     }
@@ -720,9 +820,13 @@ fn append_folder_branch(
     branch: &[&EditorAssetFolderRecord],
     folders_by_parent: &HashMap<Option<&str>, Vec<&EditorAssetFolderRecord>>,
     selected_folder_id: &str,
+    collapsed_folder_ids: &BTreeSet<String>,
     depth: usize,
 ) {
     for folder in branch {
+        let children = folders_by_parent.get(&Some(folder.folder_id.as_str()));
+        let has_children = children.is_some_and(|children| !children.is_empty());
+        let expanded = has_children && !collapsed_folder_ids.contains(&folder.folder_id);
         out.push(AssetFolderSnapshot {
             folder_id: folder.folder_id.clone(),
             parent_folder_id: folder.parent_folder_id.clone(),
@@ -730,17 +834,42 @@ fn append_folder_branch(
             recursive_asset_count: folder.recursive_asset_count,
             depth,
             selected: folder.folder_id == selected_folder_id,
+            has_children,
+            expanded,
         });
-        if let Some(children) = folders_by_parent.get(&Some(folder.folder_id.as_str())) {
+        if let Some(children) = children.filter(|_| expanded) {
             append_folder_branch(
                 out,
                 children,
                 folders_by_parent,
                 selected_folder_id,
+                collapsed_folder_ids,
                 depth + 1,
             );
         }
     }
+}
+
+fn folder_has_ancestor(
+    catalog: &EditorAssetCatalogGeneration,
+    folder_id: &str,
+    ancestor_id: &str,
+) -> bool {
+    let mut current = catalog
+        .folder(folder_id)
+        .and_then(|folder| folder.parent_folder_id.as_deref());
+    for _ in 0..catalog.folders.len() {
+        let Some(parent) = current else {
+            return false;
+        };
+        if parent == ancestor_id {
+            return true;
+        }
+        current = catalog
+            .folder(parent)
+            .and_then(|folder| folder.parent_folder_id.as_deref());
+    }
+    false
 }
 
 fn asset_belongs_to_folder(asset: &EditorAssetCatalogRecord, folder_id: &str) -> bool {

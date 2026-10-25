@@ -4,6 +4,9 @@ use super::super::UiHostWindow;
 
 impl UiHostWindow {
     pub(crate) fn set_close_prompt(&self, prompt: HostClosePromptData) {
+        if prompt.visible {
+            self.retire_current_canvas_anchor_popup();
+        }
         let damage = {
             let mut state = self.state.borrow_mut();
             let close_prompt = &state.host_presentation.close_prompt;

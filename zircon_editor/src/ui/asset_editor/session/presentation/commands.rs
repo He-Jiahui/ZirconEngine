@@ -171,9 +171,16 @@ fn readonly_tree_command_availability(
     );
     let can_reparent_outdent = child_location
         .as_ref()
-        .is_some_and(|(parent_id, _)| document.child_index_in_parent(parent_id).is_some());
+        .and_then(|(parent_id, _)| document.child_index_in_parent(parent_id))
+        .and_then(|(grandparent_id, _)| document.node(&grandparent_id))
+        .is_some_and(node_accepts_palette_children);
     let has_parent_mount = child_location.is_some() && document.child_mount(node_id).is_some();
-    let can_unwrap = has_parent_mount
+    let is_document_root = document
+        .root
+        .as_ref()
+        .is_some_and(|root| root.node_id == node_id);
+    let can_wrap = has_parent_mount || is_document_root;
+    let can_unwrap = can_wrap
         && document
             .node(node_id)
             .is_some_and(|node| node.children.len() == 1);
@@ -184,7 +191,7 @@ fn readonly_tree_command_availability(
         can_reparent_into_previous,
         can_reparent_into_next,
         can_reparent_outdent,
-        can_wrap_in_vertical_box: has_parent_mount,
+        can_wrap_in_vertical_box: can_wrap,
         can_unwrap,
     }
 }

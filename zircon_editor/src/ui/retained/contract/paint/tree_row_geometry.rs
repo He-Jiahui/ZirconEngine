@@ -9,6 +9,8 @@ mod metrics;
 #[path = "tree_row_geometry/rows.rs"]
 mod rows;
 
+pub(in crate::ui::retained_host) use rows::tree_disclosure_rect_for_indent;
+
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use actions::{
     tree_action_button_rect, tree_action_icon_rect, tree_action_rect,
 };

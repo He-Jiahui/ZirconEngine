@@ -9,6 +9,8 @@ export interface RenderedSourceIdentity {
   parentSourcePath: string | null;
   parentSourceNodeId: string | null;
   parentInstancePath: string;
+  itemKey?: string;
+  propertyFieldId?: string;
 }
 
 /** Read the mounted shape's owner metadata without inventing missing identity. */
@@ -26,5 +28,8 @@ export function renderedSourceIdentity(
     parentSourcePath: metadata(parent, 'sourcePath') || null,
     parentSourceNodeId: metadata(parent, 'sourceNodeId') || null,
     parentInstancePath: metadata(parent, 'instancePath'),
+    ...(metadata(shape, 'itemKey') ? { itemKey: metadata(shape, 'itemKey') } : {}),
+    ...(metadata(shape, 'propertyFieldId')
+      ? { propertyFieldId: metadata(shape, 'propertyFieldId') } : {}),
   };
 }

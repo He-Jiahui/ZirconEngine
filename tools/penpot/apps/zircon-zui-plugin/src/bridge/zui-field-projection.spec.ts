@@ -8,13 +8,17 @@ import { fieldGeometry } from './zui-field-geometry';
 import { FIELD_ICON_PATHS } from './zui-field-projection';
 
 const repo = (process.env['ZUI_LAYOUT_REPO_ROOT'] ?? fileURLToPath(new URL('../../../../../../', import.meta.url)));
-const folder = 'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs';
+const sources = {
+  field: 'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/field.zui',
+  number_field: 'zircon_editor/assets/ui/editor/workbench/primitives/inputs/number_field.zui',
+  search_input: 'zircon_editor/assets/ui/editor/workbench/primitives/inputs/search_input.zui',
+} as const;
 const theme = 'zircon_editor/assets/ui/editor/theme/editor_tokens.zui';
 const dependencies = new LayoutDependencies();
-beforeAll(async () => dependencies.load(repo, [theme, ...['field', 'number_field', 'search_input'].map((name) => `${folder}/workbench_${name}.zui`),
+beforeAll(async () => dependencies.load(repo, [theme, ...Object.values(sources),
   'zircon_editor/assets/ui/editor/workbench/data/component_property_row.zui']));
-async function load(name: string) {
-  const sourcePath = `${folder}/workbench_${name}.zui`;
+async function load(name: keyof typeof sources) {
+  const sourcePath = sources[name];
   const document = parseZuiDocument(await readFile(resolve(repo, sourcePath), 'utf8')).document;
   dependencies.embed(document, sourcePath, theme);
   return document;
@@ -121,7 +125,7 @@ describe('native Editor text fields', () => {
   it('uses native validation colors and exports an authored font edit', async () => {
     const document = await load('field');
     document.nodes!['root'].state = { disabled: true };
-    expect(projectZuiDocument(document).shapes[0].paint.fillColor).toBe('#2f2f2f');
+    expect(projectZuiDocument(document).shapes[0].paint.fillColor).toBe(document.tokens!['editor.surface.disabled']);
     document.nodes!['root'].state = {};
     document.nodes!['root'].props!['validation_level'] = 'error';
     expect(projectZuiDocument(document).shapes[0].paint.strokeColor).toBe('#EF3535');
@@ -131,6 +135,40 @@ describe('native Editor text fields', () => {
     expect(edited.nodes!['root'].props!['font_size']).toBe(25);
     expect(projectZuiDocument(edited).shapes[0].text!.fontSize).toBe(25);
     expect(document.nodes!['root'].props!['font_size']).toBe('$editor.typography.body.size');
+  });
+
+  it.each(['field', 'search_input', 'number_field'] as const)(
+    'authored disabled field colors win over normal/error/hover colors and preserve editable %s Source', async (name) => {
+      const document = await load(name), root = document.nodes!['root'];
+      document.tokens = { ...document.tokens, 'unit.disabled.foreground': '#A1B2C380' };
+      Object.assign(root.props!, { disabled: true, hovered: true, focused: true, validation_level: 'error',
+        background_color: '#010203', foreground_color: '#040506',
+        disabled_background_color: '#11223340', disabled_foreground_color: '$unit.disabled.foreground' });
+      const before = structuredClone(document), projection = projectZuiDocument(document), shape = projection.shapes[0];
+      expect(shape.field!.paint).toMatchObject({ fillColor: '#112233', fillOpacity: 64 / 255 });
+      expect(shape.text).toMatchObject({ color: '#A1B2C3', colorOpacity: 128 / 255 });
+      expect(shape.field!.iconColor).toBe('#A1B2C380');
+      expect(shape.text?.property).not.toBeNull();
+      expect(reconcileZuiDocument(document, cloneProjectionSnapshot(projection)).changes).toEqual([]);
+      expect(document).toEqual(before);
+    },
+  );
+
+  it('authored disabled field colors retain palette fallback when the Source has no disabled declarations', async () => {
+    const document = await load('field'), root = document.nodes!['root'];
+    delete root.props!['disabled_background_color'];
+    delete root.props!['disabled_foreground_color'];
+    root.state = { disabled: true };
+    const shape = projectZuiDocument(document).shapes[0];
+    const palette = document['penpot_host_palette'] as { surface: string[]; text_disabled: string };
+    expect(shape.field!.paint.fillColor).toBe(palette.surface[2]);
+    expect(shape.text?.color).toBe(palette.text_disabled);
+    root.state = { loading: true };
+    root.props!['disabled_background_color'] = '#112233';
+    root.props!['disabled_foreground_color'] = '#445566';
+    const loading = projectZuiDocument(document).shapes[0];
+    expect(loading.field!.paint.fillColor).toBe('#112233');
+    expect(loading.text?.color).toBe('#445566');
   });
 
   it('preserves alpha and element opacity through a no-edit field roundtrip', async () => {

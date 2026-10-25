@@ -1,8 +1,10 @@
 use super::{
     aligned_node_moves, default_connection_verdict, required_input_diagnostics, route_connection,
-    GraphAlignment, GraphCanvasState, GraphDeltaCommand, GraphEdgeView, GraphEditContext,
-    GraphMutationEffect, GraphNodeBounds, GraphNodeView, GraphPinDirection, GraphPinView,
-    GraphPoint, GraphPortRef, GraphRouteStyle, StructureConstraint,
+    route_connection_with_directions, GraphAlignment, GraphAttachmentPresentation,
+    GraphAttachmentView, GraphCanvasState, GraphDeltaCommand, GraphEdgeView, GraphEditContext,
+    GraphMutationEffect, GraphNodeBounds, GraphNodePresentation, GraphNodeView, GraphPinDirection,
+    GraphPinView, GraphPoint, GraphPortRef, GraphRouteDirection, GraphRouteStyle, GraphSelection,
+    StructureConstraint,
 };
 use crate::core::editing::engine::{
     EditCommand, EditCommandError, EditContext, EditWorldRoute, SelectionSnapshot,
@@ -154,6 +156,220 @@ fn canvas_drag_emits_deterministic_graph_local_position_deltas() {
 }
 
 #[test]
+fn canvas_bounds_fit_centers_the_same_union_at_three_logical_viewport_sizes() {
+    // AI's measured design widths; this checks the shared transform, not native host layout.
+    let bounds = GraphNodeBounds::new(GraphPoint::ZERO, GraphPoint::new(650.0, 76.0));
+    for viewport in [
+        GraphPoint::new(895.0, 647.0),
+        GraphPoint::new(629.0, 467.0),
+        GraphPoint::new(447.0, 367.0),
+    ] {
+        let mut canvas = GraphCanvasState::<String>::default();
+        let result = canvas.fit_graph_bounds(bounds, viewport, 0.0).unwrap();
+        assert!(result.changed);
+        assert!(result.fully_visible);
+        let center = canvas.graph_to_screen(GraphPoint::new(325.0, 38.0));
+        assert!((center.x - viewport.x * 0.5).abs() < 0.001);
+        assert!((center.y - viewport.y * 0.5).abs() < 0.001);
+        let start = canvas.graph_to_screen(bounds.origin);
+        let end = canvas.graph_to_screen(GraphPoint::new(bounds.right(), bounds.bottom()));
+        assert!(start.x >= 0.0 && start.y >= 0.0);
+        assert!(end.x <= viewport.x && end.y <= viewport.y);
+        let repeat = canvas.fit_graph_bounds(bounds, viewport, 0.0).unwrap();
+        assert!(!repeat.changed);
+        assert!(repeat.fully_visible);
+    }
+}
+
+#[test]
+fn canvas_bounds_fit_translates_the_view_without_changing_selection_or_drag() {
+    let nodes = vec![node("selected", GraphPoint::new(100.0, -80.0), &[], &[])];
+    let mut canvas = GraphCanvasState::default();
+    canvas.replace_selection(["selected".to_string()]);
+    canvas.pan_by(GraphPoint::new(-400.0, 200.0));
+    let drag = canvas
+        .begin_node_drag(&nodes, nodes[0].bounds.origin)
+        .unwrap();
+    let moves = drag.moved_nodes(GraphPoint::new(125.0, -65.0));
+    let result = canvas
+        .fit_graph_bounds(nodes[0].bounds, GraphPoint::new(240.0, 128.0), 0.0)
+        .unwrap();
+    assert!(result.fully_visible);
+    assert_eq!(canvas.zoom(), 2.0);
+    assert_eq!(canvas.pan(), GraphPoint::new(-200.0, 160.0));
+    assert_eq!(
+        canvas.graph_to_screen(nodes[0].bounds.origin),
+        GraphPoint::ZERO
+    );
+    assert!(canvas.selection().contains(&"selected".to_string()));
+    assert_eq!(nodes[0].bounds.origin, GraphPoint::new(100.0, -80.0));
+    assert_eq!(drag.moved_nodes(GraphPoint::new(125.0, -65.0)), moves);
+    let mut unshifted = GraphCanvasState::<String>::default();
+    unshifted
+        .fit_graph_bounds(
+            GraphNodeBounds::new(GraphPoint::ZERO, nodes[0].bounds.size),
+            GraphPoint::new(240.0, 128.0),
+            0.0,
+        )
+        .unwrap();
+    assert_eq!(unshifted.zoom(), canvas.zoom());
+    assert_eq!(
+        unshifted.graph_to_screen(GraphPoint::new(60.0, 32.0)),
+        canvas.graph_to_screen(GraphPoint::new(160.0, -48.0))
+    );
+}
+
+#[test]
+fn canvas_bounds_fit_respects_logical_padding_on_all_sides() {
+    let mut canvas = GraphCanvasState::<String>::default();
+    let bounds = GraphNodeBounds::new(GraphPoint::ZERO, GraphPoint::new(200.0, 100.0));
+    let viewport = GraphPoint::new(500.0, 300.0);
+    let result = canvas.fit_graph_bounds(bounds, viewport, 20.0).unwrap();
+    assert!(result.fully_visible);
+    let start = canvas.graph_to_screen(bounds.origin);
+    let end = canvas.graph_to_screen(GraphPoint::new(bounds.right(), bounds.bottom()));
+    assert!(start.x >= 20.0 && start.y >= 20.0);
+    assert!(end.x <= 480.0 && end.y <= 280.0);
+    assert!((start.x - (viewport.x - end.x)).abs() < 0.001);
+    assert!((start.y - (viewport.y - end.y)).abs() < 0.001);
+}
+
+#[test]
+fn canvas_bounds_fit_reports_zoom_limits_without_claiming_hidden_nodes_are_visible() {
+    let mut canvas = GraphCanvasState::<String>::default();
+    let viewport = GraphPoint::new(447.0, 367.0);
+    let oversized = GraphNodeBounds::new(GraphPoint::ZERO, GraphPoint::new(65_000.0, 2_000.0));
+    let result = canvas.fit_graph_bounds(oversized, viewport, 0.0).unwrap();
+    assert_eq!(canvas.zoom(), super::canvas::GRAPH_MIN_ZOOM);
+    assert!(!result.fully_visible);
+    let center = canvas.graph_to_screen(GraphPoint::new(32_500.0, 1_000.0));
+    assert!((center.x - viewport.x * 0.5).abs() < 0.001);
+    assert!((center.y - viewport.y * 0.5).abs() < 0.001);
+    let result = canvas
+        .fit_graph_bounds(
+            GraphNodeBounds::new(GraphPoint::ZERO, GraphPoint::new(10.0, 5.0)),
+            viewport,
+            0.0,
+        )
+        .unwrap();
+    assert_eq!(canvas.zoom(), super::canvas::GRAPH_MAX_ZOOM);
+    assert!(result.fully_visible);
+}
+
+#[test]
+fn canvas_bounds_fit_rejects_non_finite_and_non_positive_geometry_atomically() {
+    let valid_bounds =
+        GraphNodeBounds::new(GraphPoint::new(10.0, 20.0), GraphPoint::new(80.0, 50.0));
+    let valid_viewport = GraphPoint::new(300.0, 200.0);
+    let mut canvas = GraphCanvasState::default();
+    canvas.replace_selection(["selected".to_string()]);
+    canvas.pan_by(GraphPoint::new(13.0, -17.0));
+    canvas.zoom_about_screen_point(GraphPoint::new(60.0, 40.0), 3.0);
+    let before = canvas.clone();
+    for invalid in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+        for field in 0..7 {
+            let mut bounds = valid_bounds;
+            let mut viewport = valid_viewport;
+            let mut padding = 10.0;
+            match field {
+                0 => bounds.origin.x = invalid,
+                1 => bounds.origin.y = invalid,
+                2 => bounds.size.x = invalid,
+                3 => bounds.size.y = invalid,
+                4 => viewport.x = invalid,
+                5 => viewport.y = invalid,
+                _ => padding = invalid,
+            }
+            assert!(canvas.fit_graph_bounds(bounds, viewport, padding).is_none());
+            assert_eq!(canvas, before);
+        }
+    }
+    for invalid in [0.0, -1.0] {
+        for field in 0..4 {
+            let mut bounds = valid_bounds;
+            let mut viewport = valid_viewport;
+            match field {
+                0 => bounds.size.x = invalid,
+                1 => bounds.size.y = invalid,
+                2 => viewport.x = invalid,
+                _ => viewport.y = invalid,
+            }
+            assert!(canvas.fit_graph_bounds(bounds, viewport, 0.0).is_none());
+            assert_eq!(canvas, before);
+        }
+    }
+    for padding in [-1.0, 100.0, 150.0, f32::MAX] {
+        assert!(canvas
+            .fit_graph_bounds(valid_bounds, valid_viewport, padding)
+            .is_none());
+        assert_eq!(canvas, before);
+    }
+}
+
+#[test]
+fn canvas_bounds_fit_rejects_overflow_and_unrepresentable_extents_atomically() {
+    let mut canvas = GraphCanvasState::<String>::default();
+    canvas.pan_by(GraphPoint::new(12.0, -30.0));
+    let before = canvas.clone();
+    for (bounds, viewport) in [
+        (
+            GraphNodeBounds::new(
+                GraphPoint::new(f32::MAX, 0.0),
+                GraphPoint::new(f32::MAX, 10.0),
+            ),
+            GraphPoint::new(629.0, 467.0),
+        ),
+        (
+            GraphNodeBounds::new(GraphPoint::new(f32::MAX, 0.0), GraphPoint::new(1.0, 10.0)),
+            GraphPoint::new(629.0, 467.0),
+        ),
+        (
+            GraphNodeBounds::new(
+                GraphPoint::new(f32::MAX * 0.75, f32::MAX * 0.75),
+                GraphPoint::new(f32::MAX * 0.125, f32::MAX * 0.125),
+            ),
+            GraphPoint::new(f32::MAX * 0.5, f32::MAX * 0.5),
+        ),
+    ] {
+        assert!(canvas.fit_graph_bounds(bounds, viewport, 0.0).is_none());
+        assert_eq!(canvas, before);
+    }
+}
+
+#[test]
+fn canvas_bounds_fit_preserves_inverse_and_wheel_anchor_in_logical_units() {
+    let mut canvas = GraphCanvasState::<String>::default();
+    // Physical input conversion belongs to the host. The canvas receives logical units only.
+    let actual_scale = 1.5;
+    let physical_pane_origin = GraphPoint::new(120.0, 90.0);
+    let logical_viewport = GraphPoint::new(943.5 / actual_scale, 700.5 / actual_scale);
+    canvas
+        .fit_graph_bounds(
+            GraphNodeBounds::new(GraphPoint::ZERO, GraphPoint::new(650.0, 76.0)),
+            logical_viewport,
+            0.0,
+        )
+        .unwrap();
+    let point = GraphPoint::new(310.0, 40.0);
+    let logical = canvas.graph_to_screen(point);
+    let physical = GraphPoint::new(
+        physical_pane_origin.x + logical.x * actual_scale,
+        physical_pane_origin.y + logical.y * actual_scale,
+    );
+    let pointer = GraphPoint::new(
+        (physical.x - physical_pane_origin.x) / actual_scale,
+        (physical.y - physical_pane_origin.y) / actual_scale,
+    );
+    let recovered = canvas.screen_to_graph(pointer);
+    assert!((recovered.x - point.x).abs() < 0.001);
+    assert!((recovered.y - point.y).abs() < 0.001);
+    assert!(canvas.zoom_about_screen_point(pointer, 2.0));
+    let after_wheel = canvas.screen_to_graph(pointer);
+    assert!((after_wheel.x - recovered.x).abs() < 0.001);
+    assert!((after_wheel.y - recovered.y).abs() < 0.001);
+}
+
+#[test]
 fn orthogonal_routing_is_stable_and_preserves_endpoints() {
     let source = GraphPoint::new(120.0, 32.0);
     let target = GraphPoint::new(300.0, 180.0);
@@ -169,6 +385,257 @@ fn orthogonal_routing_is_stable_and_preserves_endpoints() {
         .points()
         .windows(2)
         .all(|points| points[0].x == points[1].x || points[0].y == points[1].y));
+}
+
+#[test]
+fn graph_surface_legacy_routes_keep_exact_horizontal_geometry() {
+    let source = GraphPoint::new(120.0, 32.0);
+    let target = GraphPoint::new(300.0, 180.0);
+    let orthogonal = route_connection(source, target, GraphRouteStyle::Orthogonal);
+    assert_eq!(
+        orthogonal.points(),
+        &[
+            source,
+            GraphPoint::new(168.0, 32.0),
+            GraphPoint::new(210.0, 32.0),
+            GraphPoint::new(210.0, 180.0),
+            GraphPoint::new(252.0, 180.0),
+            target,
+        ]
+    );
+    let bezier = route_connection(source, target, GraphRouteStyle::Bezier);
+    assert_eq!(
+        bezier.bezier_controls(),
+        Some((GraphPoint::new(210.0, 32.0), GraphPoint::new(210.0, 180.0)))
+    );
+    for (source, target) in [(source, target), (target, source), (source, source)] {
+        for style in [GraphRouteStyle::Orthogonal, GraphRouteStyle::Bezier] {
+            assert_eq!(
+                route_connection_with_directions(
+                    source,
+                    target,
+                    GraphRouteDirection::Right,
+                    GraphRouteDirection::Left,
+                    style
+                ),
+                Some(route_connection(source, target, style))
+            );
+        }
+    }
+}
+
+#[test]
+fn graph_surface_vertical_pins_share_route_tangents_and_arrow() {
+    let source = GraphPoint::new(40.0, 80.0);
+    let target = GraphPoint::new(160.0, 300.0);
+    for style in [GraphRouteStyle::Orthogonal, GraphRouteStyle::Bezier] {
+        let route = route_connection_with_directions(
+            source,
+            target,
+            GraphRouteDirection::Down,
+            GraphRouteDirection::Up,
+            style,
+        )
+        .expect("vertical pin geometry is representable");
+        assert_eq!(route.points().first(), Some(&source));
+        assert_eq!(route.points().last(), Some(&target));
+        assert_eq!(
+            route.endpoint_tangents(),
+            Some((GraphPoint::new(0.0, 1.0), GraphPoint::new(0.0, 1.0)))
+        );
+        let arrow = route
+            .target_arrow()
+            .expect("the route has an arrival tangent");
+        assert_eq!(arrow.position, target);
+        assert_eq!(arrow.direction, GraphPoint::new(0.0, 1.0));
+        if let Some((start, end)) = route.bezier_controls() {
+            assert_eq!(start.x, source.x);
+            assert!(start.y > source.y);
+            assert_eq!(end.x, target.x);
+            assert!(end.y < target.y);
+        }
+    }
+}
+
+#[test]
+fn graph_surface_all_cardinal_pin_pairs_keep_spatial_directions() {
+    let directions = [
+        (GraphRouteDirection::Left, GraphPoint::new(-1.0, 0.0)),
+        (GraphRouteDirection::Right, GraphPoint::new(1.0, 0.0)),
+        (GraphRouteDirection::Up, GraphPoint::new(0.0, -1.0)),
+        (GraphRouteDirection::Down, GraphPoint::new(0.0, 1.0)),
+    ];
+    for (start_direction, start_unit) in directions {
+        for (end_direction, end_unit) in directions {
+            for style in [GraphRouteStyle::Orthogonal, GraphRouteStyle::Bezier] {
+                let route = route_connection_with_directions(
+                    GraphPoint::new(80.0, 120.0),
+                    GraphPoint::new(380.0, 420.0),
+                    start_direction,
+                    end_direction,
+                    style,
+                )
+                .expect("cardinal endpoints support parallel, opposing and mixed axes");
+                assert_eq!(
+                    route.endpoint_tangents(),
+                    Some((start_unit, GraphPoint::new(-end_unit.x, -end_unit.y)))
+                );
+                if style == GraphRouteStyle::Orthogonal {
+                    assert!(route
+                        .points()
+                        .windows(2)
+                        .all(|p| p[0] != p[1] && (p[0].x == p[1].x || p[0].y == p[1].y)));
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn graph_surface_arrow_follows_final_segment_rather_than_anchor_delta() {
+    let route = route_connection(
+        GraphPoint::new(300.0, 32.0),
+        GraphPoint::new(120.0, 180.0),
+        GraphRouteStyle::Orthogonal,
+    );
+    assert_eq!(
+        route.target_arrow(),
+        Some(super::GraphConnectionArrow {
+            position: GraphPoint::new(120.0, 180.0),
+            direction: GraphPoint::new(1.0, 0.0)
+        })
+    );
+}
+
+#[test]
+fn graph_surface_vertical_reverse_coincident_and_short_routes_have_finite_arrows() {
+    for (source, target, start_direction, end_direction, expected) in [
+        (
+            GraphPoint::new(160.0, 300.0),
+            GraphPoint::new(40.0, 80.0),
+            GraphRouteDirection::Up,
+            GraphRouteDirection::Down,
+            GraphPoint::new(0.0, -1.0),
+        ),
+        (
+            GraphPoint::ZERO,
+            GraphPoint::ZERO,
+            GraphRouteDirection::Down,
+            GraphRouteDirection::Up,
+            GraphPoint::new(0.0, 1.0),
+        ),
+        (
+            GraphPoint::ZERO,
+            GraphPoint::new(0.0, 0.001),
+            GraphRouteDirection::Down,
+            GraphRouteDirection::Up,
+            GraphPoint::new(0.0, 1.0),
+        ),
+    ] {
+        for style in [GraphRouteStyle::Orthogonal, GraphRouteStyle::Bezier] {
+            let route = route_connection_with_directions(
+                source,
+                target,
+                start_direction,
+                end_direction,
+                style,
+            )
+            .expect("short or reversed anchors retain their declared pin directions");
+            assert_eq!(route.endpoint_tangents(), Some((expected, expected)));
+            assert_eq!(
+                route.target_arrow().map(|arrow| arrow.position),
+                Some(target)
+            );
+            assert!(route
+                .points()
+                .iter()
+                .all(|point| point.x.is_finite() && point.y.is_finite()));
+        }
+    }
+}
+
+#[test]
+fn graph_surface_directional_routes_reject_invalid_geometry() {
+    for invalid in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+        for style in [GraphRouteStyle::Orthogonal, GraphRouteStyle::Bezier] {
+            for point in [GraphPoint::new(invalid, 0.0), GraphPoint::new(0.0, invalid)] {
+                for (source, target) in [(point, GraphPoint::ZERO), (GraphPoint::ZERO, point)] {
+                    assert!(route_connection_with_directions(
+                        source,
+                        target,
+                        GraphRouteDirection::Down,
+                        GraphRouteDirection::Up,
+                        style
+                    )
+                    .is_none());
+                }
+            }
+        }
+    }
+    assert!(route_connection_with_directions(
+        GraphPoint::new(0.0, f32::MAX),
+        GraphPoint::new(0.0, -f32::MAX),
+        GraphRouteDirection::Down,
+        GraphRouteDirection::Up,
+        GraphRouteStyle::Bezier
+    )
+    .is_none());
+}
+
+#[test]
+fn graph_surface_attachment_projection_keeps_original_identity_and_host() {
+    let mut host = node("host-a", GraphPoint::ZERO, &[], &[]);
+    host.attachments = vec![
+        GraphAttachmentView {
+            id: "original-b".into(),
+            display_name: "Same label".into(),
+            category: "decorator".into(),
+        },
+        GraphAttachmentView {
+            id: "original-a".into(),
+            display_name: "Same label".into(),
+            category: "service".into(),
+        },
+    ];
+    let rows = GraphAttachmentPresentation::from_view(&host);
+    assert!(rows.iter().all(|row| row.display_name == "Same label"));
+    assert_eq!(
+        rows.iter()
+            .map(|row| (
+                row.attachment_id.as_str(),
+                row.host_node_id.as_str(),
+                row.category.as_str()
+            ))
+            .collect::<Vec<_>>(),
+        vec![
+            ("original-b", "host-a", "decorator"),
+            ("original-a", "host-a", "service")
+        ]
+    );
+    host.id = "host-b".into();
+    let other_rows = GraphAttachmentPresentation::from_view(&host);
+    assert_eq!(other_rows[0].attachment_id, rows[0].attachment_id);
+    assert_eq!(other_rows[0].host_node_id, "host-b");
+    assert_ne!(other_rows[0], rows[0]);
+    // Existing callers can keep constructing every original field, including label-only views.
+    assert_eq!(
+        GraphNodePresentation::from_view(&host, &GraphSelection::default()),
+        GraphNodePresentation {
+            node_id: "host-b".to_string(),
+            title: "host-a".to_string(),
+            input_count: 0,
+            output_count: 0,
+            attachment_labels: vec!["Same label".into(), "Same label".into()],
+            selected: false,
+        }
+    );
+    assert!(
+        GraphAttachmentPresentation::from_view(&node("empty", GraphPoint::ZERO, &[], &[]))
+            .is_empty()
+    );
+    // Names are reachable through the actual public module; no private constructor is exposed.
+    let _: Option<crate::ui::graph::GraphDeltaProofV1> = None;
+    let _: Option<crate::ui::graph::PreparedGraphDeltaV1<()>> = None;
 }
 
 #[test]

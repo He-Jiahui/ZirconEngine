@@ -17,6 +17,19 @@ pub(super) fn dispatch_text_focus_value(
     let control_id = take_text_focus_control_id(&mut focus);
     let pane_host = window.global::<PaneSurfaceHostContext>();
     match focus.dispatch_kind.as_str() {
+        "ui_asset_palette_search" => {
+            let Some(target) = focus.palette_search_target.clone() else {
+                return NativePointerDispatchResult::idle();
+            };
+            pane_host.invoke_ui_asset_collection_event(
+                target.instance_id().into(),
+                "palette".into(),
+                "query".into(),
+                -1,
+                Some(target),
+                value,
+            );
+        }
         "welcome_text" => pane_host.invoke_welcome_control_changed(target_id, value),
         "showcase" => {
             pane_host.invoke_component_showcase_control_edited(control_id, target_id, value)

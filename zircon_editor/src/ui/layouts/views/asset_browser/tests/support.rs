@@ -33,6 +33,8 @@ pub(super) fn asset_folder(
         recursive_asset_count: 0,
         depth,
         selected,
+        has_children: false,
+        expanded: false,
     }
 }
 

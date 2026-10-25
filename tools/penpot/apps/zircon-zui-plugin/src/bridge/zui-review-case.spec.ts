@@ -1,11 +1,17 @@
 import type { LayoutReviewCaseMessage } from '../model';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { deflateSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
+import { afterEach, beforeEach, vi } from 'vitest';
 import { LayoutDependencies } from '../../tools/zui-layout-dependencies';
 import fixtureSource from './roundtrip-fixture.zui?raw';
 import {
   parseZuiDocument,
   normalizeZuiDocument,
+  serializeZuiDocument,
+  encodeZuiMetadata,
+  decodeZuiMetadata,
   type ZuiDocument,
   type ZuiNode,
   type ZuiTable,
@@ -18,7 +24,14 @@ import {
 import {
   reviewBoardNeedsResponsiveRebuild,
   reviewDocumentForCase,
+  importedActualNormalReviewCase,
+  reviewCaseFromSavedMetadata,
+  runtimeSceneMediaForCase,
+  runtimeSceneMediaReviewTarget,
+  reviewUtf8ByteLength,
 } from './zui-review-case';
+import { reviewHost } from './zui-review-host';
+import type { ToolbarSourceNode } from './zui-viewport-toolbar-publication';
 import { buttonStatePreviewNode } from './zui-button-state-projection';
 import { editorButtonState } from './zui-editor-button-style';
 
@@ -32,6 +45,45 @@ const reviewCase: LayoutReviewCaseMessage = {
   state: 'hover',
   data: {},
 };
+
+describe('actual portable scene bytes UTF-8 limits', () => {
+  beforeEach(() => { vi.stubGlobal('TextEncoder', undefined); vi.stubGlobal('crypto', undefined); });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('counts UTF-8 boundaries, multi-byte text, surrogate pairs and lone-surrogate replacements', () => {
+    expect(globalThis.TextEncoder).toBeUndefined();
+    expect(globalThis.crypto).toBeUndefined();
+    const values: Array<[string, number]> = [
+      ['', 0], ['ASCII', 5], ['\u007f', 1], ['\u0080', 2], ['\u07ff', 2], ['\u0800', 3], ['\uffff', 3],
+      ['\u4e2d\u6587', 6], ['\ud83d\ude80', 4], ['\ud800', 3], ['\udc00', 3],
+      ['\ud800\ud83d\ude80', 7], ['\udc00\ud800', 6], ['\ud800a\udc00', 7],
+    ];
+    for (const [text, expected] of values) {
+      expect(reviewUtf8ByteLength(text)).toBe(expected);
+      expect(reviewUtf8ByteLength(text)).toBe(Buffer.byteLength(text, 'utf8'));
+    }
+  });
+
+  it.each([
+    ['CJK', '\u4e2d'.repeat(1365) + 'A'],
+    ['surrogate pairs', '\ud83d\ude80'.repeat(1024)],
+  ])('preserves the 4096-byte authored Workbench override limit for %s', (_name, text) => {
+    const { document } = parseZuiDocument(fixtureSource), sourcePath = 'zircon_editor/assets/ui/editor/windows/workbench_window.zui';
+    const identity = { sourcePath, sourceNodeId: 'toolbar_menu_title', controlId: 'WorkbenchMenuTitle', instancePath: '[]' };
+    const node = document.nodes!['root'];
+    node.control_id = identity.controlId;
+    node['penpot_review_source_path'] = sourcePath;
+    node['penpot_review_source_node_id'] = identity.sourceNodeId;
+    node['penpot_review_instance_path'] = identity.instancePath;
+    node.props = { ...(node.props ?? {}), text: 'Menu' };
+    const value = (override: string): LayoutReviewCaseMessage => ({ ...reviewCase, host: 'editor', locale: 'zh-CN', state: 'default',
+      data: { workbenchState: { ...identity, textOverrides: [{ ...identity, property: 'text', value: override }] } } });
+    expect(Buffer.byteLength(text, 'utf8')).toBe(4096);
+    expect(reviewDocumentForCase(document, value(text)).nodes!['root'].props?.['text']).toBe(text);
+    expect(node.props['text']).toBe('Menu');
+    expect(() => reviewDocumentForCase(document, value(text + 'A'))).toThrow('exceeds 4096 UTF-8 bytes');
+  });
+});
 
 describe('review host state projection', () => {
   it.each([
@@ -1269,6 +1321,474 @@ describe('review host state projection', () => {
         reviewCase,
       ),
     ).toThrow('component consumer host');
+  });
+});
+
+describe('actual managed scene fingerprint review adapter', () => {
+  const owner = 'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
+  const viewport = 'res://ui/editor/unreal/components/viewport.zui';
+  const projectRoot = '\\\\?\\E:\\managed-editor-project';
+  const cursor = { structure: 6, geometry: 6, interaction: 1, viewport: 1, hitTest: 6, theme: 2, diagnostics: 1 };
+  type RecordValue = Record<string, unknown>;
+  const evidence = (value: LayoutReviewCaseMessage) => value.data['normal_window_evidence'] as RecordValue;
+  const publication = (value: LayoutReviewCaseMessage) => evidence(value)['workbenchStatePublication'] as RecordValue;
+  const fingerprint = (value: LayoutReviewCaseMessage) => value.data['managedSceneFingerprint'] as RecordValue;
+  const presentation = (value: LayoutReviewCaseMessage) => value.data['workbenchPresentation'] as RecordValue;
+  function fixture() {
+    // Reduced unit inputs retain the real R52 packet shape, nulls, device path,
+    // source order and same-frame relationship. They are not native evidence.
+    const document: ZuiDocument = {
+      asset: { kind: 'view', id: 'res://ui/editor/unreal/level_editor_window.zui#review-host', version: 2 },
+      root: { node: 'host' },
+      nodes: {
+        host: { component: 'Overlay', control_id: 'WorkbenchWindowRoot', children: [{ node: 'toolbar' }] },
+        toolbar: { component: 'Overlay', control_id: 'UnrealViewportToolbar',
+          props: { toolbar_overflow_row_control: 'UnrealViewportToolbarRow', toolbar_overflow_group_controls: ['SnapGroup'] },
+          children: [{ node: 'row' }, { node: 'popup' }] },
+        row: { component: 'HorizontalGroup', control_id: 'UnrealViewportToolbarRow',
+          children: [{ node: 'group', slot: { kind: 'LinearSlot' } }, { node: 'more' }] },
+        group: { component: 'HorizontalGroup', control_id: 'SnapGroup',
+          children: [{ node: 'translate' }, { node: 'rotate' }, { node: 'scale' }] },
+        popup: { component: 'ScrollableBox', control_id: 'UnrealViewportToolbarOverflow',
+          props: { toolbar_overflow_role: 'toolbar-overflow', popup_open: false }, children: [] },
+        more: { component: 'IconButton', control_id: 'UnrealViewportToolbarMore' },
+        translate: { component: 'IconButton', control_id: 'ToggleTranslateSnap' },
+        rotate: { component: 'IconButton', control_id: 'ToggleRotateSnap' },
+        scale: { component: 'IconButton', control_id: 'ToggleScaleSnap' },
+      },
+    };
+    const parents = new Map<string, string>();
+    for (const [id, node] of Object.entries(document.nodes!)) {
+      node['penpot_review_source_path'] = id === 'host' ? owner : viewport;
+      node['penpot_review_source_node_id'] = id === 'host' ? 'root' : id;
+      node['penpot_review_instance_path'] = '[]';
+      for (const child of node.children ?? []) parents.set(child.node, id);
+    }
+    const nodes: ToolbarSourceNode[] = Object.entries(document.nodes!).filter(([id]) => id !== 'host').map(([id, node]) => {
+      const parent = parents.get(id)!;
+      const snap = ['translate', 'rotate', 'scale'].includes(id);
+      const enabled = id === 'rotate';
+      return {
+        nodeId: id, parentNodeId: parent === 'host' ? 'native-host' : parent,
+        sourcePath: viewport, sourceNodeId: id, instancePath: '[]',
+        parentSourcePath: parent === 'host' ? owner : viewport,
+        parentSourceNodeId: parent === 'host' ? 'root' : parent, parentInstancePath: '[]',
+        controlId: node.control_id!, component: node.component, visible: !['more', 'popup'].includes(id),
+        bounds: { x: 0, y: 0, width: 40, height: 35 }, clip: { x: 0, y: 0, width: 1600, height: 1000 },
+        state: { selected: snap ? enabled : null, checked: snap ? enabled : null,
+          popupOpen: id === 'popup' ? false : null, value: snap ? enabled : null,
+          text: null, valueText: null, disabled: false }, scroll: null,
+      };
+    });
+    const managedSceneFingerprint = { projectRoot, sources: [
+      { sourcePath: 'zircon-project.toml', sha256: 'a'.repeat(64) },
+      { sourcePath: 'assets/scenes/main.scene.toml', sha256: 'b'.repeat(64) },
+      { sourcePath: 'assets/scenes/workbench-review-empty.scene.toml', sha256: 'c'.repeat(64) },
+    ] };
+    const workbenchPresentation = {
+      schema: 'dev.zircon.editor.workbench-presentation', version: 1,
+      sourceFingerprint: { sourcePath: owner, sha256: 'd'.repeat(64) },
+      viewportSnap: { translationEnabled: false, rotationEnabled: true, scaleEnabled: false },
+      status: { projectPath: projectRoot },
+    };
+    const actual: LayoutReviewCaseMessage = {
+      id: 'actual-managed-unit', sourcePath: owner, host: 'editor',
+      viewport: { width: 1280, height: 800 }, dpi: 1.25, locale: 'en-US', state: 'default',
+      data: {
+        workbenchState: { sourcePath: owner, sourceNodeId: 'root', controlId: 'WorkbenchWindowRoot' },
+        managedSceneFingerprint, workbenchPresentation,
+        normal_window_evidence: {
+          presentationCursor: { ...cursor }, presentedFrameCount: 3,
+          workbenchStatePublication: { authority: 'normal-retained-workbench-projection', observed: true,
+            presentationCursor: { ...cursor }, presentedFrameCount: 3,
+            managedSceneFingerprint: structuredClone(managedSceneFingerprint),
+            workbenchPresentation: structuredClone(workbenchPresentation) },
+          viewportToolbarPublication: { schema: 'dev.zircon.editor.viewport-toolbar-publication', version: 1,
+            authority: 'normal-prepared-source-surface', observed: true, coordinateSpace: 'physical-pixels',
+            surfaceGeneration: 1, surfaceTreeId: 'unit-normal-surface', rootNodeId: 'toolbar', rowNodeId: 'row',
+            moreNodeId: 'more', popupNodeId: 'popup', groupNodeIds: ['group'], nodes,
+            presentationCursor: { ...cursor }, presentedFrameCount: 3 },
+        },
+      },
+    };
+    document['penpot_actual_normal_review_case'] = actual;
+    return { document, actual };
+  }
+
+  function sceneFixture() {
+    const { document, actual } = fixture();
+    const nativeWindow = 'res://ui/editor/unreal/level_editor_window.zui';
+    const invocation = [{ sourcePath: nativeWindow, sourceNodeId: 'viewport' }];
+    const prefix = [{ sourcePath: 'zircon_editor/assets/ui/editor/unreal/editor_shell.zui', sourceNodeId: 'pane_surface' }];
+    document.nodes!['host'].children!.push({ node: 'viewport_root' });
+    document.nodes!['viewport_root'] = { component: 'VerticalGroup', control_id: 'WorkbenchMainBandViewportPanel',
+      penpot_review_source_path: viewport, penpot_review_source_node_id: 'root', children: [{ node: 'viewport' }] };
+    document.nodes!['viewport'] = { component: 'Overlay', control_id: 'UnrealSceneViewViewport',
+      penpot_review_source_path: viewport, penpot_review_source_node_id: 'viewport', children: [{ node: 'scene_media' }] };
+    document.nodes!['scene_media'] = { component: 'SceneViewViewport', control_id: 'WorkbenchViewportSurface',
+      penpot_review_source_path: viewport, penpot_review_source_node_id: 'scene_media',
+      layout: { width: { stretch: 'Stretch' }, height: { stretch: 'Stretch' } },
+      events: [{ id: 'ViewportToolbar/FrameSelection', event: 'Click', route: 'workbench.viewport.frame_selection' }] };
+    for (const [id, node] of Object.entries(document.nodes!)) node['penpot_review_instance_path'] = JSON.stringify(
+      ['viewport_root','viewport','scene_media'].includes(id) ? [...prefix, ...invocation.map((step) => ({ ...step, sourcePath: owner }))] : prefix);
+    const parents = new Map<string, string>();
+    for (const [id, node] of Object.entries(document.nodes!)) for (const child of node.children ?? []) parents.set(child.node, id);
+    const ids = new Map(Object.keys(document.nodes!).map((id, index) => [id, index + 1]));
+    const nativeIdentity = (id: string) => ({ nodeId: id === 'host' ? 'native-host' : id,
+      sourcePath: id === 'host' ? nativeWindow : viewport, sourceNodeId: ['host','viewport_root'].includes(id) ? 'root' : id,
+      instancePath: ['viewport_root','viewport','scene_media'].includes(id) ? invocation : [] });
+    const rows = Object.entries(document.nodes!).map(([id, node]) => {
+      const parent = parents.get(id), identity = nativeIdentity(id);
+      return { ...identity, component: node.component, controlId: node.control_id, surfaceNodeId: ids.get(id),
+        parent: parent ? nativeIdentity(parent) : null,
+        projected: { ...identity, component: node.component, controlId: node.control_id, surfaceNodeId: ids.get(id), parentId: parent ? nativeIdentity(parent).nodeId : null } };
+    });
+    evidence(actual)['arrangedInventoryPublication'] = { schema: 'dev.zircon.editor.normal-arranged-inventory', version: 1,
+      authority: 'normal-retained-runtime-surfaces', observed: true, complete: false, presentationCursor: { ...cursor }, presentedFrameCount: 3,
+      surfaces: [{ schema: 'dev.zircon.editor.normal-surface-arranged-inventory', version: 1, scope: 'workbench-window',
+        documentId: nativeWindow, coordinateSpace: 'surface-logical', frameAuthority: 'retained-host-projection', sourceFrameGeneration: 13,
+        rootIds: [ids.get('host')], nodes: rows }] };
+    const pngChunk = (kind: string, data: Buffer): Buffer => {
+      const content = Buffer.concat([Buffer.from(kind),data]); let crc = 0xffffffff;
+      for (const value of content) { crc ^= value; for (let bit = 0; bit < 8; bit++) crc = crc & 1 ? (crc >>> 1) ^ 0xedb88320 : crc >>> 1; }
+      const chunk = Buffer.alloc(data.length + 12); chunk.writeUInt32BE(data.length); content.copy(chunk,4); chunk.writeUInt32BE((crc ^ 0xffffffff) >>> 0,chunk.length-4); return chunk;
+    };
+    const png = Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),pngChunk('IHDR',Buffer.from([0,0,0,1,0,0,0,1,8,6,0,0,0])),
+      pngChunk('IDAT',deflateSync(Buffer.from([0,0,0,0,255]))),pngChunk('IEND',Buffer.alloc(0))]);
+    const hash = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
+    const rawHash = hash(Buffer.from([0,0,0,255])), pngHash = hash(png), ticket = { device_id: 1, generation: 1, queue_class: 'Graphics', sequence: 4 };
+    const scene = { schema: 'dev.zircon.editor.normal-scene-image-readback', version: 1, authority: 'normal-actual-submitted-runtime-image-readback',
+      owner: { sourcePath: viewport, sourceNodeId: 'scene_media', instancePath: JSON.stringify(invocation) },
+      viewportRoot: { sourcePath: viewport, sourceNodeId: 'root', instancePath: JSON.stringify(invocation) },
+      paneKind: 'Scene', surfaceKey: 'actual-unit-scene-surface', atlasUv: null, overlayPresent: true,
+      commandIndex: 4, commandBounds: { x: 0, y: 50, width: 1, height: 1 }, commandClip: { x: 0, y: 50, width: 1, height: 1 },
+      sourceRef: { authority: 'surface-node-owner', primitiveIdentity: false, treeId: `template.v2.${nativeWindow}`, generation: 11, nodeId: ids.get('scene_media'), nodeCommandIndex: 0, fragmentIndex: 0 },
+      physicalSize: [1,1], resourceKey: 'viewport:unit', resourceGeneration: 1, readbackCompleted: true, failure: null,
+      sourceFormat: 'Rgba8UnormSrgb', sourceByteLayout: 'rgba8', colorEncoding: 'srgb', alphaMode: 'opaque', opaquePixels: true,
+      rawRowBytes: 4, rawByteLength: 4, rawSha256: rawHash, rgba8Sha256: rawHash, pngColorEncoding: 'srgb', pngByteLength: png.length, pngSha256: pngHash,
+      conversion: { algorithm: 'identity-rgba8-srgb', inputSha256: rawHash, outputSha256: rawHash },
+      receipt: { kind: 'Texture', terminal: 'Succeeded', request: 2, frame_key: { submission: ticket } } };
+    const command = { commandIndex: scene.commandIndex,
+      source: { ...scene.owner, controlId: 'WorkbenchViewportSurface', parentNodeId: 'viewport',
+        parentSourcePath: viewport, parentSourceNodeId: 'viewport', parentInstancePath: JSON.stringify(invocation),
+        sourceRef: structuredClone(scene.sourceRef) }, bounds: structuredClone(scene.commandBounds), clip: structuredClone(scene.commandClip),
+      paint: { kind: 'image', resourceKey: scene.resourceKey, generation: scene.resourceGeneration, width: 1, height: 1,
+        residentAfterSuccessfulPresent: true, hasUploadBytes: false } };
+    // These Source/indices reproduce R57's unrelated brushes, not GPU proof.
+    const dockImages = [[78,6,0,0],[81,9,0,0],[84,12,0,0],[94,6,1,1],[98,9,1,1],[102,12,1,1],[104,6,2,0],[106,9,2,0],[108,12,2,0]]
+      .map(([commandIndex,nodeId,nodeCommandIndex,fragmentIndex], index) => ({ ...command, commandIndex,
+        source: { sourcePath: null, sourceNodeId: null, instancePath: null, controlId: 'DockTab' + index % 3,
+          sourceRef: { authority: 'surface-node-owner', primitiveIdentity: false, treeId: 'host.bottom.dock.header',
+            generation: 3, nodeId, nodeCommandIndex, fragmentIndex } } }));
+    evidence(actual)['commands'] = [command, ...dockImages, ...[284,286,288].map((commandIndex) => ({ ...command, commandIndex, source: null }))];
+    const observed = { schema: 'dev.zircon.editor.normal-frame-pixel-association', version: 1, nonce: 'unit-nonce1',
+      pixelFrameVerified: true, wholeUiAccepted: false, caseJsonSha256: '1'.repeat(64), caseSha256: '2'.repeat(64),
+      normalReadbackReceiptSha256: '3'.repeat(64), normalSourceProfileSha256: '4'.repeat(64),
+      normalReadbackReceipt: { schema: 'dev.zircon.editor.normal-frame-readback', version: 1, authority: 'normal-actual-gpu-packet-and-readback-receipt',
+        nonce: 'unit-nonce1', caseSha256: '2'.repeat(64), gpuReadbackCompleted: true, failure: null, submission: ticket, receipt: { request: 1 }, sceneImage: scene } };
+    evidence(actual)['runtimeSceneMedia'] = { schema: 'dev.zircon.editor.runtime-scene-media', version: 1,
+      bootstrapCase: { path: 'E:/unit/bootstrap.json', caseJsonSha256: '1'.repeat(64), caseSha256: '2'.repeat(64) },
+      bootstrapPixelAssociation: { path: 'E:/unit/association.json', sha256: '5'.repeat(64), observed },
+      image: { mime: 'image/png', byteLength: png.length, pngSha256: pngHash, base64: png.toString('base64') } };
+    return { document, actual, scene };
+  }
+
+  describe('actual portable scene bytes managed case admission', () => {
+    beforeEach(() => { vi.stubGlobal('TextEncoder', undefined); vi.stubGlobal('crypto', undefined); });
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('imports and reopens the complete scene case without changing its original metadata or bytes', () => {
+      const { document, actual } = sceneFixture(), metadata = encodeZuiMetadata(document), originalCase = JSON.stringify(actual);
+      const target = runtimeSceneMediaReviewTarget(document, actual)!;
+      expect(reviewDocumentForCase(document, actual).nodes!['scene_media']['penpot_image']).toEqual(target.image);
+      const reopened = decodeZuiMetadata(metadata), saved = reviewCaseFromSavedMetadata(reopened, originalCase)!;
+      expect(runtimeSceneMediaForCase(saved)).toEqual(evidence(actual)['runtimeSceneMedia']);
+      expect(reviewDocumentForCase(reopened, saved).nodes!['scene_media']['penpot_image']).toEqual(target.image);
+      expect(encodeZuiMetadata(document)).toBe(metadata);
+      expect(encodeZuiMetadata(reopened)).toBe(metadata);
+      expect(JSON.stringify(actual)).toBe(originalCase);
+    });
+
+    it('accepts exactly 8 MiB of serialized UTF-8 case data and rejects one extra byte despite a shorter UTF-16 length', () => {
+      const { actual } = sceneFixture(), budget = 8 * 1024 * 1024;
+      actual.id = '';
+      const available = budget - Buffer.byteLength(JSON.stringify(actual), 'utf8');
+      actual.id = '\u4e2d'.repeat(Math.floor((available - 4) / 3)) + '\ud83d\ude80';
+      actual.id += 'a'.repeat(budget - Buffer.byteLength(JSON.stringify(actual), 'utf8'));
+      const original = JSON.stringify(actual);
+      expect(Buffer.byteLength(original, 'utf8')).toBe(budget);
+      expect(original.length).toBeLessThan(budget);
+      expect(runtimeSceneMediaForCase(actual)).toBe(evidence(actual)['runtimeSceneMedia']);
+      expect(JSON.stringify(actual)).toBe(original);
+      actual.id += 'a';
+      expect(Buffer.byteLength(JSON.stringify(actual), 'utf8')).toBe(budget + 1);
+      expect(() => runtimeSceneMediaForCase(actual)).toThrow('complete case exceeds 8 MiB');
+    });
+  });
+
+  it('actual scene command selection preserves unrelated R57 DockTab and source-null image commands', () => {
+    const { document, actual } = sceneFixture(), before = JSON.stringify(actual);
+    const commands = evidence(actual)['commands'] as RecordValue[];
+    expect(commands.filter((command) => {
+      const reference = (command['source'] as RecordValue | null)?.['sourceRef'] as RecordValue | undefined;
+      return reference?.['treeId'] === 'host.bottom.dock.header';
+    }).map((command) => command['commandIndex'])).toEqual([78,81,84,94,98,102,104,106,108]);
+    expect(commands.filter((command) => command['source'] === null).map((command) => command['commandIndex'])).toEqual([284,286,288]);
+    expect(runtimeSceneMediaReviewTarget(document, actual)?.nodeId).toBe('scene_media');
+    expect(reviewDocumentForCase(document, actual).nodes!['scene_media']['penpot_image']).toBeDefined();
+    expect(JSON.stringify(actual)).toBe(before);
+  });
+
+  it.each(['missing invocation','null invocation','malformed invocation','partial invocation step','wrong alias','wrong node','wrong invocation',
+    'partial candidate beside target','duplicate owner'])(
+    'actual scene command selection rejects %s despite unrelated images', (kind) => {
+      const { document, actual } = sceneFixture(), commands = evidence(actual)['commands'] as RecordValue[];
+      const source = commands[0]!['source'] as RecordValue;
+      if (kind === 'missing invocation') delete source['instancePath'];
+      if (kind === 'null invocation') source['instancePath'] = null;
+      if (kind === 'malformed invocation') source['instancePath'] = '[';
+      if (kind === 'partial invocation step') source['instancePath'] = JSON.stringify([{ sourcePath: 'res://ui/editor/unreal/level_editor_window.zui' }]);
+      if (kind === 'wrong alias') source['sourcePath'] = 'res://other/editor/unreal/components/viewport.zui';
+      if (kind === 'wrong node') source['sourceNodeId'] = 'toolbar';
+      if (kind === 'wrong invocation') source['instancePath'] = '[]';
+      if (kind === 'partial candidate beside target' || kind === 'duplicate owner') {
+        const extra = structuredClone(commands[0]!); extra['commandIndex'] = 5;
+        const extraSource = extra['source'] as RecordValue;
+        extraSource['sourcePath'] = 'zircon_editor/assets/ui/editor/unreal/components/viewport.zui';
+        if (kind === 'partial candidate beside target') delete extraSource['instancePath'];
+        commands.push(extra);
+      }
+      expect(() => reviewDocumentForCase(document, actual)).toThrow();
+    },
+  );
+
+  it('actual scene root identity joins cached generation 11 within arranged generation 13 and survives saved reopen without changing source/case', () => {
+    const { document, actual } = sceneFixture(), before = encodeZuiMetadata(document), originalCase = JSON.stringify(actual);
+    const target = runtimeSceneMediaReviewTarget(document, actual)!;
+    expect(target.nodeId).toBe('scene_media');
+    const reviewed = reviewDocumentForCase(document, actual);
+    expect(reviewed.nodes!['scene_media']['penpot_image']).toEqual(target.image);
+    expect(reviewed.nodes!['viewport']).not.toHaveProperty('penpot_image');
+    expect(reviewed.nodes!['viewport_root']).not.toHaveProperty('penpot_image');
+    expect(document.nodes!['viewport_root']).toMatchObject({ component: 'VerticalGroup', control_id: 'WorkbenchMainBandViewportPanel' });
+    expect(reviewed.nodes!['scene_media'].layout).toEqual(document.nodes!['scene_media'].layout);
+    expect(reviewed.nodes!['scene_media'].events).toEqual(document.nodes!['scene_media'].events);
+    expect(encodeZuiMetadata(document)).toBe(before);
+    expect(JSON.stringify(actual)).toBe(originalCase);
+    const reopened = decodeZuiMetadata(before), saved = reviewCaseFromSavedMetadata(reopened, originalCase)!;
+    expect(runtimeSceneMediaForCase(saved)).toEqual(evidence(actual)['runtimeSceneMedia']);
+    const reopenedReview = reviewDocumentForCase(reopened,saved);
+    expect(reopenedReview.nodes!['scene_media']['penpot_image']).toEqual(target.image);
+    expect(reopenedReview.nodes!['scene_media'].events).toEqual(document.nodes!['scene_media'].events);
+  });
+
+  it('actual scene root identity accepts only the documented canonical source aliases across the complete invocation', () => {
+    const { document, actual, scene } = sceneFixture();
+    const canonical = (path: string) => path.startsWith('res://ui/editor/') ? 'zircon_editor/assets/' + path.slice(6) : path;
+    const surface = ((evidence(actual)['arrangedInventoryPublication'] as RecordValue)['surfaces'] as RecordValue[])[0]!;
+    for (const row of surface['nodes'] as RecordValue[]) for (const value of [row, row['projected'] as RecordValue]) {
+      value['sourcePath'] = canonical(value['sourcePath'] as string);
+      const rawSteps = value['instancePath'];
+      const steps = (typeof rawSteps === 'string' ? JSON.parse(rawSteps) : rawSteps) as Array<{ sourcePath: string; sourceNodeId: string }>;
+      value['instancePath'] = JSON.stringify(steps.map((step) => ({ ...step, sourcePath: canonical(step.sourcePath) })));
+    }
+    for (const id of ['viewport_root','viewport','scene_media']) document.nodes![id]['penpot_review_source_path'] = canonical(viewport);
+    const originalCase = JSON.stringify(actual), originalMetadata = encodeZuiMetadata(document);
+    expect(runtimeSceneMediaReviewTarget(document, actual)?.nodeId).toBe('scene_media');
+    expect(scene.viewportRoot.sourceNodeId).toBe('root');
+    expect(JSON.stringify(actual)).toBe(originalCase);
+    expect(encodeZuiMetadata(document)).toBe(originalMetadata);
+  });
+
+  it.each(['root is inner viewport','root invocation','root control','root kind','viewport control','viewport kind',
+    'media control','media kind','native root control','native root kind','native viewport control','native viewport kind',
+    'native media control','native media kind','projected control','viewport skips root','native viewport skips root','source suffix','invocation alias'])(
+    'actual scene root identity rejects %s', (kind) => {
+      const { document, actual, scene } = sceneFixture();
+      const surface = ((evidence(actual)['arrangedInventoryPublication'] as RecordValue)['surfaces'] as RecordValue[])[0]!;
+      const rows = surface['nodes'] as RecordValue[];
+      const native = (id: string) => rows.find((row) => row['nodeId'] === id)!;
+      if (kind === 'root is inner viewport') scene.viewportRoot.sourceNodeId = 'viewport';
+      if (kind === 'root invocation') scene.viewportRoot.instancePath = '[]';
+      if (kind === 'root control') document.nodes!['viewport_root'].control_id = 'UnrealSceneViewViewport';
+      if (kind === 'root kind') document.nodes!['viewport_root'].component = 'Overlay';
+      if (kind === 'viewport control') document.nodes!['viewport'].control_id = 'WorkbenchMainBandViewportPanel';
+      if (kind === 'viewport kind') document.nodes!['viewport'].component = 'VerticalGroup';
+      if (kind === 'media control') document.nodes!['scene_media'].control_id = 'another';
+      if (kind === 'media kind') document.nodes!['scene_media'].component = 'Overlay';
+      if (kind === 'native root control') native('viewport_root')['controlId'] = 'UnrealSceneViewViewport';
+      if (kind === 'native root kind') native('viewport_root')['component'] = 'Overlay';
+      if (kind === 'native viewport control') native('viewport')['controlId'] = 'WorkbenchMainBandViewportPanel';
+      if (kind === 'native viewport kind') native('viewport')['component'] = 'VerticalGroup';
+      if (kind === 'native media control') native('scene_media')['controlId'] = 'another';
+      if (kind === 'native media kind') native('scene_media')['component'] = 'Overlay';
+      if (kind === 'projected control') (native('viewport')['projected'] as RecordValue)['controlId'] = 'another';
+      if (kind === 'viewport skips root') {
+        document.nodes!['host'].children = document.nodes!['host'].children!.map((child) => child.node === 'viewport_root' ? { node: 'viewport' } : child);
+        document.nodes!['viewport_root'].children = [];
+      }
+      if (kind === 'native viewport skips root') {
+        native('viewport')['parent'] = native('native-host');
+        (native('viewport')['projected'] as RecordValue)['parentId'] = 'native-host';
+      }
+      if (kind === 'source suffix') scene.viewportRoot.sourcePath = 'foreign/ui/editor/unreal/components/viewport.zui';
+      if (kind === 'invocation alias') scene.viewportRoot.instancePath = scene.viewportRoot.instancePath.replace('res://ui/editor/', 'res://other/editor/');
+      expect(() => reviewDocumentForCase(document,actual)).toThrow();
+    },
+  );
+
+  it.each(['missing receipt','premultiplied','wrong PNG','wrong owner','similar invocation','outside owner','duplicate target','stale inventory','wrong surface node','view conversion mismatch','unknown format','partial command','duplicate actual id','wrong root invocation',
+    'missing commands','duplicate command index','receipt generation rollback','command generation rollback','foreign matching tree',
+    'future matching source frame','wrong physical owner','wrong physical parent','wrong full parent','wrong command index','partial submitted reference'])(
+    'rejects runtime scene %s instead of uploading a guessed viewport image', (kind) => {
+      const { document, actual, scene } = sceneFixture();
+      if (kind === 'missing receipt') delete (scene as RecordValue)['receipt'];
+      if (kind === 'premultiplied') scene.alphaMode = 'premultiplied';
+      if (kind === 'wrong PNG') (evidence(actual)['runtimeSceneMedia'] as RecordValue)['image'] = { mime: 'image/png', byteLength: 1, pngSha256: 'a'.repeat(64), base64: 'AA==' };
+      if (kind === 'wrong owner') scene.owner.sourceNodeId = 'toolbar';
+      if (kind === 'similar invocation') document.nodes!['scene_media']['penpot_review_instance_path'] = JSON.stringify([{ sourcePath: owner, sourceNodeId: 'viewport_extra' }]);
+      if (kind === 'outside owner') document.nodes!['host'].children = [{ node: 'toolbar' }];
+      if (kind === 'duplicate target') document.nodes!['duplicate_scene'] = structuredClone(document.nodes!['scene_media']);
+      if (kind === 'stale inventory') (evidence(actual)['arrangedInventoryPublication'] as RecordValue)['presentedFrameCount'] = 2;
+      if (kind === 'wrong surface node') scene.sourceRef.nodeId = 999;
+      if (kind === 'view conversion mismatch') scene.colorEncoding = 'linear';
+      if (kind === 'unknown format') scene.sourceFormat = 'constructor';
+      if (kind === 'partial command') delete (scene as RecordValue)['commandBounds'];
+      const commands = evidence(actual)['commands'] as RecordValue[];
+      const command = commands[0]!, source = command['source'] as RecordValue;
+      const reference = source['sourceRef'] as RecordValue;
+      if (kind === 'missing commands') delete evidence(actual)['commands'];
+      if (kind === 'duplicate command index') commands.push(structuredClone(command));
+      if (kind === 'receipt generation rollback') scene.sourceRef.generation = 10;
+      if (kind === 'command generation rollback') reference['generation'] = 10;
+      if (kind === 'foreign matching tree') { scene.sourceRef.treeId = 'template.v2.other'; reference['treeId'] = scene.sourceRef.treeId; }
+      if (kind === 'future matching source frame') { scene.sourceRef.generation = 14; reference['generation'] = 14; }
+      if (kind === 'wrong physical owner') { scene.sourceRef.nodeId = 999; reference['nodeId'] = 999; }
+      if (kind === 'wrong physical parent') source['parentNodeId'] = 'other';
+      if (kind === 'wrong full parent') source['parentInstancePath'] = '[]';
+      if (kind === 'wrong command index') command['commandIndex'] = 5;
+      if (kind === 'partial submitted reference') delete reference['fragmentIndex'];
+      if (kind === 'duplicate actual id') {
+        const surface = ((evidence(actual)['arrangedInventoryPublication'] as RecordValue)['surfaces'] as RecordValue[])[0]!;
+        const rows = surface['nodes'] as RecordValue[]; rows[1]!['surfaceNodeId'] = rows[0]!['surfaceNodeId'];
+      }
+      if (kind === 'wrong root invocation') {
+        const surface = ((evidence(actual)['arrangedInventoryPublication'] as RecordValue)['surfaces'] as RecordValue[])[0]!;
+        (surface['nodes'] as RecordValue[]).find((row) => row['controlId'] === 'WorkbenchWindowRoot')!['instancePath'] =
+          JSON.stringify([{ sourcePath: owner, sourceNodeId: 'another' }]);
+      }
+      expect(() => reviewDocumentForCase(document,actual)).toThrow();
+    },
+  );
+
+  it('retains the complete actual imported case and saved reopen metadata while applying its business state', () => {
+    const { document, actual } = fixture();
+    const originalCase = JSON.stringify(actual);
+    const wrapper: ZuiDocument = {
+      asset: { kind: 'view', id: 'res://ui/editor/unreal/level_editor_window.zui', version: 2 },
+      root: { node: 'root' }, nodes: { root: { component: 'Overlay' } }, penpot_review_host: document,
+    };
+    const serialized = serializeZuiDocument(wrapper);
+    const imported = reviewHost(parseZuiDocument(serialized).document)!;
+    const metadata = encodeZuiMetadata(imported);
+    const importedCase = importedActualNormalReviewCase(imported)!;
+    expect(importedCase).toEqual(actual);
+    const reviewed = reviewDocumentForCase(imported, importedCase);
+    expect(reviewed.nodes!['rotate'].props?.['checked']).toBe(true);
+    expect(reviewed.nodes!['translate'].props?.['checked']).toBe(false);
+    expect(encodeZuiMetadata(imported)).toBe(metadata);
+    const savedCaseMetadata = JSON.stringify(importedCase);
+    expect(savedCaseMetadata).toBe(originalCase);
+    const reopened = decodeZuiMetadata(metadata);
+    const saved = reviewCaseFromSavedMetadata(reopened, savedCaseMetadata)!;
+    expect(saved).toEqual(actual);
+    expect(reviewDocumentForCase(reopened, saved).nodes!['scale'].props?.['checked']).toBe(false);
+    expect(encodeZuiMetadata(reopened)).toBe(metadata);
+    expect(JSON.stringify(actual)).toBe(originalCase);
+  });
+
+  const invalid: Array<[string, (value: LayoutReviewCaseMessage) => void]> = [
+    ['orphan fingerprint', (value) => { value.data = { managedSceneFingerprint: fingerprint(value) }; }],
+    ['noneditor host', (value) => { value.host = 'component'; delete value.data['workbenchState']; }],
+    ['wrong Source owner', (value) => { value.sourcePath = 'different-owner.zui'; }],
+    ['wrong presentation owner', (value) => {
+      (presentation(value)['sourceFingerprint'] as RecordValue)['sourcePath'] = 'different-owner.zui';
+    }],
+    ['wrong source hash', (value) => { (presentation(value)['sourceFingerprint'] as RecordValue)['sha256'] = 'invalid'; }],
+    ['unobserved publication', (value) => { publication(value)['observed'] = false; }],
+    ['wrong publication authority', (value) => { publication(value)['authority'] = 'fixture'; }],
+    ['stale business frame', (value) => { publication(value)['presentedFrameCount'] = 2; }],
+    ['missing normal frame', (value) => { delete evidence(value)['presentedFrameCount']; }],
+    ['zero normal and business frame', (value) => {
+      evidence(value)['presentedFrameCount'] = 0; publication(value)['presentedFrameCount'] = 0;
+    }],
+    ['changed fingerprint', (value) => {
+      (fingerprint(value)['sources'] as RecordValue[])[0]['sha256'] = 'e'.repeat(64);
+    }],
+    ['changed publication fingerprint', (value) => {
+      (publication(value)['managedSceneFingerprint'] as RecordValue)['projectRoot'] = 'E:/other-project';
+    }],
+    ['relative project root on both sides', (value) => {
+      fingerprint(value)['projectRoot'] = 'relative-project';
+      publication(value)['managedSceneFingerprint'] = structuredClone(fingerprint(value));
+    }],
+    ['reordered sources on both sides', (value) => {
+      (fingerprint(value)['sources'] as RecordValue[]).reverse();
+      publication(value)['managedSceneFingerprint'] = structuredClone(fingerprint(value));
+    }],
+    ['invalid source hash on both sides', (value) => {
+      (fingerprint(value)['sources'] as RecordValue[])[0]['sha256'] = 'invalid';
+      publication(value)['managedSceneFingerprint'] = structuredClone(fingerprint(value));
+    }],
+    ['unbound presentation', (value) => { (presentation(value)['status'] as RecordValue)['projectPath'] = 'E:/other-project'; }],
+    ['different bound project root', (value) => {
+      fingerprint(value)['projectRoot'] = 'E:/other-project';
+      publication(value)['managedSceneFingerprint'] = structuredClone(fingerprint(value));
+    }],
+    ['unknown fingerprint field on both sides', (value) => {
+      fingerprint(value)['extra'] = true;
+      publication(value)['managedSceneFingerprint'] = structuredClone(fingerprint(value));
+    }],
+    ['unknown source field on both sides', (value) => {
+      (fingerprint(value)['sources'] as RecordValue[])[0]['extra'] = true;
+      publication(value)['managedSceneFingerprint'] = structuredClone(fingerprint(value));
+    }],
+    ['unknown business field', (value) => { publication(value)['extra'] = true; }],
+    ['unknown normal evidence field', (value) => { evidence(value)['extra'] = true; }],
+    ['missing canonical toolbar publication', (value) => { delete evidence(value)['viewportToolbarPublication']; }],
+    ['unknown review data', (value) => { value.data['extra'] = true; }],
+  ];
+  for (const key of Object.keys(cursor)) {
+    invalid.push(['different business cursor ' + key, (value) => {
+      (publication(value)['presentationCursor'] as RecordValue)[key] = 99;
+    }]);
+    invalid.push(['missing cursor ' + key + ' on both sides', (value) => {
+      delete (evidence(value)['presentationCursor'] as RecordValue)[key];
+      delete (publication(value)['presentationCursor'] as RecordValue)[key];
+    }]);
+  }
+  it.each(invalid)('rejects %s at review, actual import and saved reopen', (_name, mutate) => {
+    const { document, actual } = fixture();
+    const bad = structuredClone(actual);
+    mutate(bad);
+    expect(() => reviewDocumentForCase(document, bad)).toThrow();
+    expect(() => importedActualNormalReviewCase({ ...document, penpot_actual_normal_review_case: bad })).toThrow();
+    expect(() => reviewCaseFromSavedMetadata(document, JSON.stringify(bad))).toThrow();
+  });
+
+  it('rejects saved evidence replaced with a self-consistent different managed fingerprint', () => {
+    const { document, actual } = fixture();
+    const changed = structuredClone(actual);
+    (fingerprint(changed)['sources'] as RecordValue[])[0]['sha256'] = 'e'.repeat(64);
+    publication(changed)['managedSceneFingerprint'] = structuredClone(fingerprint(changed));
+    expect(() => importedActualNormalReviewCase({ ...document, penpot_actual_normal_review_case: changed }))
+      .not.toThrow();
+    expect(() => reviewCaseFromSavedMetadata(document, JSON.stringify(changed)))
+      .toThrow('differs from its imported managed evidence');
+    const missing = structuredClone(actual);
+    delete missing.data['managedSceneFingerprint'];
+    expect(() => reviewCaseFromSavedMetadata(document, JSON.stringify(missing)))
+      .toThrow('differs from its imported managed evidence');
   });
 });
 

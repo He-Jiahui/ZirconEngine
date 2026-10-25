@@ -36,6 +36,20 @@ use crate::ui::layouts::views::{
     ViewTemplateFrameData, ViewTemplateNodeData,
 };
 
+#[path = "node_projection/palette_search.rs"]
+mod palette_search;
+use palette_search::{palette_search_document, PaletteSearchProjection};
+
+#[derive(Clone, PartialEq, Eq)]
+enum PaletteProjectionState {
+    Catalog {
+        labels: Vec<String>,
+        start: usize,
+        selected: i32,
+    },
+    Search(PaletteSearchProjection),
+}
+
 const CENTER_COLUMN_CONTROL_ID: &str = "CenterColumn";
 const DESIGNER_PANEL_CONTROL_ID: &str = "DesignerPanel";
 const DESIGNER_CANVAS_PANEL_CONTROL_ID: &str = "DesignerCanvasPanel";
@@ -86,7 +100,30 @@ pub(crate) fn ui_asset_editor_node_projection_with_palette(
         .lock()
         .map(|mut session| {
             session
-                .project(size, labels, visible_start, selected_index)
+                .project(
+                    size,
+                    PaletteProjectionState::Catalog {
+                        labels: labels.to_vec(),
+                        start: visible_start,
+                        selected: selected_index,
+                    },
+                )
+                .unwrap_or_default()
+        })
+        .unwrap_or_default()
+}
+
+pub(crate) fn ui_asset_editor_node_projection_with_palette_search(
+    size: UiSize,
+    snapshot: &super::palette::UiAssetPaletteSearchSnapshot,
+) -> UiAssetEditorNodeProjection {
+    let session =
+        NODE_PROJECTION_SESSION.get_or_init(|| Mutex::new(NodeProjectionSession::default()));
+    session
+        .lock()
+        .map(|mut session| {
+            session
+                .project(size, PaletteProjectionState::Search(snapshot.into()))
                 .unwrap_or_default()
         })
         .unwrap_or_default()
@@ -135,35 +172,35 @@ struct NodeProjectionSession {
     document: Option<NodeProjectionDocument>,
     surface: Option<UiSurface>,
     size: Option<UiSize>,
-    palette: Option<(Vec<String>, usize, i32)>,
+    palette: Option<PaletteProjectionState>,
 }
 
 impl NodeProjectionSession {
     fn project(
         &mut self,
         size: UiSize,
-        labels: &[String],
-        visible_start: usize,
-        selected_index: i32,
+        palette: PaletteProjectionState,
     ) -> Result<UiAssetEditorNodeProjection, UiAssetEditorNodeProjectionError> {
         if self.document.is_none() {
             self.document = Some(load_node_projection_document()?);
         }
 
-        let palette_changed = self.palette.as_ref().is_none_or(|previous| {
-            previous.0 != labels || previous.1 != visible_start || previous.2 != selected_index
-        });
+        let palette_changed = self.palette.as_ref() != Some(&palette);
         if self.surface.is_none() || palette_changed {
             let document = self
                 .document
                 .as_ref()
                 .expect("v2 projection document should be initialized");
-            let source = palette_document(
-                document.root_document.as_ref(),
-                labels,
-                visible_start,
-                selected_index,
-            );
+            let source = match &palette {
+                PaletteProjectionState::Catalog {
+                    labels,
+                    start,
+                    selected,
+                } => palette_document(document.root_document.as_ref(), labels, *start, *selected),
+                PaletteProjectionState::Search(view) => {
+                    palette_search_document(document.root_document.as_ref(), view)
+                }
+            };
             let compiled = UiV2DocumentCompiler::compile_with_prototype_store(
                 &source,
                 document.store.as_ref(),
@@ -177,7 +214,7 @@ impl NodeProjectionSession {
             surface.compute_layout(size)?;
             self.surface = Some(surface);
             self.size = Some(size);
-            self.palette = Some((labels.to_vec(), visible_start, selected_index));
+            self.palette = Some(palette);
         } else if self.size != Some(size) {
             if let Some(surface) = self.surface.as_mut() {
                 mark_surface_roots_layout_dirty(surface);
@@ -530,7 +567,7 @@ fn resolve_role(
     match component {
         "Button" => "Button",
         "Label" | "Text" => "Label",
-        "InputField" | "TextField" => "InputField",
+        "InputField" | "TextField" | "SearchField" => "InputField",
         "NumberField" => "InputField",
         "RangeField" | "Slider" => "RangeField",
         "Progress" | "ProgressBar" | "LinearProgress" | "CircularProgress" | "Spinner" => {

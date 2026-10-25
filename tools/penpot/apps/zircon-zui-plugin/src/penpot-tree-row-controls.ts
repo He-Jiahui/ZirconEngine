@@ -2,7 +2,9 @@ import type { Board, Text } from '@penpot/plugin-types';
 import type { ZuiDocument, ZuiNode } from './bridge/zui-document';
 import { nativePainterComponent } from './bridge/zui-native-painter-role';
 import { treeRowContent } from './bridge/zui-tree-row-content';
+import { controlProperties } from './bridge/zui-control-properties';
 import { refreshTreeRowPainterContent } from './penpot-control-content';
+import { setSingleLineTextOverflow } from './penpot-text-overflow';
 import {
   guardControlParts,
   updateControlTextGeometryGuard,
@@ -47,11 +49,17 @@ export function layoutTreeRowText(
 ): boolean {
   if (!node || !isTreeRowPainter(node) || !document['penpot_host_theme_source'])
     return false;
+  const overflow = controlProperties(document,
+    { ...node, props: { ...node.props, ...node.state } },
+    'TreeRow text overflow').resolve('text_overflow');
   const label = treeRowContent(node, {
     document,
     width: board.width,
     height: board.height,
   })?.texts[0];
+  // Use the existing selected-font fitter and semantic full-value capture.
+  // A fixed native text box alone still wraps long captions into a second line.
+  setSingleLineTextOverflow(text, overflow === 'ellipsis' ? 'ellipsis' : undefined);
   text.hidden = !label;
   if (label) {
     text.resize(

@@ -7,6 +7,9 @@ import type { ZuiDocument, ZuiNode } from './bridge/zui-document';
 import { PENPOT_PALETTE, type ZuiPrefabRole } from './bridge/zui-prefab-system';
 import { inputControlGeometry } from './bridge/zui-input-projection';
 import { EMPTY_TEXT_SENTINEL } from './penpot-capture-validation';
+import { bindSourceFill, sourceColorProperties, type SourceColorLookup } from './penpot-source-colors';
+import { controlProperties } from './bridge/zui-control-properties';
+import { nativePainterComponent } from './bridge/zui-native-painter-role';
 import {
   applyPenpotTextRuns,
   applyPenpotTextStyle,
@@ -17,7 +20,8 @@ import { layoutSliderText } from './penpot-slider-controls';
 import { layoutSegmentedText } from './penpot-segmented-controls';
 import { layoutPropertyRowText } from './penpot-property-row-controls';
 import { layoutFieldText } from './penpot-field-controls';
-import { SINGLE_LINE_OVERFLOW } from './penpot-text-overflow';
+import { semanticTextCharacters, SINGLE_LINE_OVERFLOW } from './penpot-text-overflow';
+import { layoutNativeSemanticText, nativeSemanticGlyph } from './penpot-prefab-icons';
 import {
   ZUI_METADATA_NAMESPACE,
   ZUI_METADATA_ROLE,
@@ -34,6 +38,7 @@ export function createSemanticTexts(
   projection: ProjectedZuiNode,
   document: ZuiDocument,
   node: ZuiNode,
+  colorProperty: SourceColorLookup = sourceColorProperties(document),
 ): void {
   const entries: Array<[string, ProjectionText]> = [
     ...(projection.text
@@ -51,12 +56,13 @@ export function createSemanticTexts(
         `Penpot could not create the editable text for node ${projection.nodeId}`,
       );
     const inset = textInsets(projection.prefabRole, board.width);
-    if (
+    Object.assign(inset, authoredLabelTextInsets(document, node, board.width));
+    if (!nativeSemanticGlyph(document, node) &&
       board.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'has-leading-icon') ===
       'true'
     )
       inset.left = Math.max(inset.left, 36);
-    if (
+    if (!nativeSemanticGlyph(document, node) &&
       board.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'has-trailing-icon') ===
       'true'
     )
@@ -83,10 +89,10 @@ export function createSemanticTexts(
     text.verticalAlign = 'center';
     text.letterSpacing = '0';
     text.fills = [
-      {
+      bindSourceFill({
         fillColor: projected.color ?? PENPOT_PALETTE.text,
         fillOpacity: projected.colorOpacity,
-      },
+      }, document, colorProperty(projection.nodeId, 'foreground_color', projected.property)),
     ];
     text.resize(Math.max(1, board.width - inset.left - inset.right), height);
     board.appendChild(text);
@@ -121,8 +127,18 @@ export function createSemanticTexts(
     setMetadata(text, ZUI_METADATA_EMPTY_TEXT, empty ? 'true' : 'false');
     if (key !== 'primary') setMetadata(text, TEXT_FRAGMENT_KEY, key);
     if (text.layoutChild) text.layoutChild.absolute = true;
-    if (node.component === 'Label' && node.props?.['overflow'] === 'elide')
-      setMetadata(text, SINGLE_LINE_OVERFLOW, 'ellipsis');
+    // These source-owned primary lanes have fixed semantic left/right insets.
+    // Let native component resizing inherit the lane instead of scaling glyphs.
+    if (key === 'primary' && (projection.prefabRole === 'button' ||
+        projection.field || nativePainterComponent(node) === 'TreeRow'))
+      text.constraintsHorizontal = 'leftright';
+    if (node.component === 'Label') {
+      const authored = controlProperties(document,
+        { ...node, props: { ...node.props, ...node.state } }, 'Label text overflow');
+      if (authored.resolve('overflow') === 'elide' ||
+        authored.resolve('text_overflow') === 'ellipsis')
+        setMetadata(text, SINGLE_LINE_OVERFLOW, 'ellipsis');
+    }
     if (projection.slider) layoutSliderText(board, text, projection.slider);
     if (projection.field) {
       setMetadata(text, SINGLE_LINE_OVERFLOW, 'ellipsis');
@@ -133,6 +149,9 @@ export function createSemanticTexts(
     if (projection.table) text.verticalAlign = 'top';
     if (projection.propertyRow)
       layoutPropertyRowText(board, text, projection.propertyRow);
+    if (key === 'primary' &&
+      !layoutMeasuredLabelText(board, text, document, node, inset, undefined, height))
+      layoutNativeSemanticText(board, text, node, document);
     // Table rows depend on their parent flex width. Their first stable width
     // exists only after the complete asset tree has been created and laid out;
     // refreshAssetTextLayout applies the table projection in that phase.
@@ -142,6 +161,61 @@ export function createSemanticTexts(
       JSON.stringify(unsupportedTextStyle(text)),
     );
   }
+}
+
+/** Keep a proven fitting line independent of Penpot's fixed paragraph wrapping. */
+export function layoutMeasuredLabelText(
+  board: Board,
+  text: Text,
+  document: ZuiDocument,
+  node: ZuiNode | undefined,
+  inset: { left: number; right: number },
+  measurement?: { text: string; width: number },
+  fixedHeight = Math.max(1, board.height),
+): boolean {
+  if (node?.component !== 'Label' || nativeSemanticGlyph(document, node)) return false;
+  const source = semanticTextCharacters(text);
+  const authored = controlProperties(document,
+    { ...node, props: { ...node.props, ...node.state } }, 'Label text wrapping');
+  const wrap = authored.resolve('wrap');
+  const width = Math.max(1, board.width - inset.left - inset.right);
+  const fits = source.length > 0 && source !== EMPTY_TEXT_SENTINEL &&
+    !/[\r\n\u2028\u2029]/u.test(source) &&
+    (wrap === undefined || wrap === false || wrap === 'none') &&
+    measurement !== undefined && measurement.text === source && Number.isFinite(measurement.width) &&
+    measurement.width > 0 && measurement.width <= width;
+  const growType = fits ? 'auto-width' : 'fixed';
+  if (text.growType !== growType) text.growType = growType;
+  if (text.layoutChild && text.layoutChild.absolute !== true)
+    text.layoutChild.absolute = true;
+  // Auto-width owns only the absolute text leaf. Resizing it to the column on
+  // every refresh would restart paragraph layout and prevent stable settling.
+  if (!fits) text.resize(width, fixedHeight);
+  const alignmentOffset = !fits ? 0 : text.align === 'right'
+    ? width - text.width : text.align === 'center' ? (width - text.width) / 2 : 0;
+  text.x = board.x + inset.left + alignmentOffset;
+  text.y = board.y + Math.max(0, (board.height - text.height) / 2);
+  return true;
+}
+
+/** Passive labels keep their arranged column; only the declared ink lane is inset. */
+export function authoredLabelTextInsets(
+  document: ZuiDocument,
+  node: ZuiNode | undefined,
+  width: number,
+): { left: number; right: number } | undefined {
+  if (node?.component !== 'Label') return undefined;
+  const props = { ...node.props, ...node.state };
+  if (props['layout_padding_left'] === undefined && props['layout_padding_right'] === undefined)
+    return undefined;
+  if (!Number.isFinite(width) || width <= 0)
+    throw new Error('Authored Label text padding requires a positive finite column width.');
+  const authored = controlProperties(document, { ...node, props }, 'Label text padding');
+  const left = Math.min(width, authored.metric(['layout_padding_left'], 0));
+  const right = Math.min(width - left, authored.metric(['layout_padding_right'], 0));
+  if (width - left - right <= 0)
+    throw new Error('Authored Label text padding leaves no positive text lane.');
+  return { left, right };
 }
 
 export function textInsets(

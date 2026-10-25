@@ -29,6 +29,14 @@ impl UiHostWindowEventLoop {
                 )
             });
         self.last_pointer_position = Some((point.x, point.y));
+        if let Some(pointer) = pointer.as_ref() {
+            if let Some(result) = self.host.dispatch_canvas_anchor_popup_input(
+                &zircon_runtime_interface::ui::dispatch::UiInputEvent::Pointer(pointer.clone()),
+            ) {
+                self.dispatch_pointer_result(result);
+                return;
+            }
+        }
         let eligible = pointer
             .as_ref()
             .is_some_and(|pointer| !pointer.metadata.pointer_source.is_touch_like());
@@ -65,10 +73,7 @@ impl UiHostWindowEventLoop {
         self.dispatch_pointer_result(result);
     }
 
-    pub(super) fn handle_pointer_button(
-        &mut self,
-        platform_event: PlatformInputTranslation,
-    ) {
+    pub(super) fn handle_pointer_button(&mut self, platform_event: PlatformInputTranslation) {
         self.begin_input_outcome(platform_event.sequence);
         let Some(pointer) = platform_pointer_input(platform_event.event) else {
             self.reject_input_outcome();

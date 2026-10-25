@@ -4,6 +4,15 @@ use zircon_runtime_interface::ui::layout::UiSize;
 pub(crate) struct AssetFolderTreePointerLayout {
     pub pane_size: UiSize,
     pub folder_ids: Vec<String>,
+    pub rows: Vec<AssetFolderTreePointerRow>,
+    pub catalog_revision: u64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct AssetFolderTreePointerRow {
+    pub depth: usize,
+    pub has_children: bool,
+    pub expanded: bool,
 }
 
 impl Default for AssetFolderTreePointerLayout {
@@ -11,6 +20,8 @@ impl Default for AssetFolderTreePointerLayout {
         Self {
             pane_size: UiSize::new(0.0, 0.0),
             folder_ids: Vec::new(),
+            rows: Vec::new(),
+            catalog_revision: 0,
         }
     }
 }
@@ -30,6 +41,16 @@ impl AssetFolderTreePointerLayout {
         Self {
             pane_size,
             folder_ids,
+            rows: snapshot
+                .folder_tree
+                .iter()
+                .map(|folder| AssetFolderTreePointerRow {
+                    depth: folder.depth,
+                    has_children: folder.has_children,
+                    expanded: folder.expanded,
+                })
+                .collect(),
+            catalog_revision: snapshot.catalog_revision,
         }
     }
 }

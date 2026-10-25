@@ -16,6 +16,7 @@ import {
   resolveNativeComponentOwnership,
   type NativeComponentSet,
 } from './penpot-native-component-ownership';
+import { resolveCanonicalComponent } from './penpot-canonical-library';
 const componentSets = new Map<string, NativeComponentSet>();
 const NATIVE_COMPONENT_CACHE_KEY = 'component-cache-key';
 const NATIVE_COMPONENT_INSTANCE_BATCH = 8;
@@ -101,7 +102,9 @@ export async function materializeNativeComponents(
   visit(asset);
   if (!boards.length) return;
   const owned =
-    componentSets.get(asset.id) ?? createNativeComponentSet(asset, document);
+    componentSets.get(asset.id) ?? resolveNativeComponentOwnership(asset) ??
+    createNativeComponentSet(asset, document);
+  componentSets.set(asset.id, owned);
   const cache = nativeComponentCache(owned);
   // Do not read Board.height here. The official plugin host exposes that
   // getter through a lazy proxy which can throw a TDZ error while the shelf is
@@ -111,7 +114,11 @@ export async function materializeNativeComponents(
   let nextY = nativeShelfNextY(owned.shelf);
   for (const [index, { board, source }] of boards.entries()) {
     const key = nativeComponentCacheKey(source, board);
-    let component = cache.get(key);
+    const canonical = resolveCanonicalComponent(source, [
+      penpot.library.local,
+      ...(penpot.library.connected ?? []),
+    ]);
+    let component = canonical?.component ?? cache.get(key);
     let createdMaster = false;
     const nodeId = board.getSharedPluginData(
       ZUI_METADATA_NAMESPACE,
@@ -185,6 +192,13 @@ export async function materializeNativeComponents(
       'native-component-id',
       component.id,
     );
+    if (canonical) {
+      instance.setSharedPluginData(
+        ZUI_METADATA_NAMESPACE,
+        'canonical-component-origin',
+        JSON.stringify(canonical.record),
+      );
+    }
     board.remove();
     onProgress?.({
       index,

@@ -102,6 +102,25 @@ export function semanticTextCharacters(shape: Text): string {
   return shape.characters;
 }
 
+/** A source overflow change must restore the full value before dropping its display mapping. */
+export function setSingleLineTextOverflow(
+  text: Text,
+  overflow: 'ellipsis' | undefined,
+): void {
+  const previous = text.getSharedPluginData(ZUI_METADATA_NAMESPACE, SINGLE_LINE_OVERFLOW);
+  if (previous && previous !== 'ellipsis')
+    throw new Error('Unknown native single-line overflow mapping; re-import its source.');
+  if (previous === 'ellipsis' && overflow === undefined) {
+    const source = semanticTextCharacters(text);
+    if (text.characters !== source) text.characters = source;
+    text.setSharedPluginData(ZUI_METADATA_NAMESPACE, OVERFLOW_SOURCE, '');
+    text.setSharedPluginData(ZUI_METADATA_NAMESPACE, OVERFLOW_DISPLAY, '');
+  }
+  const next = overflow ?? '';
+  if (previous !== next)
+    text.setSharedPluginData(ZUI_METADATA_NAMESPACE, SINGLE_LINE_OVERFLOW, next);
+}
+
 /** Fit using Penpot's selected font; preserve the full authored value for export. */
 export interface NativeTextFitDiagnostic {
   event: string;

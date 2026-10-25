@@ -275,6 +275,7 @@ fn template_node_pointer_route_hit_with_frame(
         .then(|| table_row_hit(node, &frame, y))
         .flatten();
     TemplateNodePointerRouteHit {
+        palette_search_source: None,
         pane_id: "",
         control_id: node.control_id.as_str(),
         action_id: node.action_id.as_str(),
@@ -308,6 +309,7 @@ fn template_node_pointer_hit_with_frame(
         .then(|| table_row_hit(node, &frame, y))
         .flatten();
     TemplateNodePointerHit {
+        palette_search_target: None,
         pane_id: SharedString::new(),
         control_id: node.control_id.clone(),
         action_id: node.action_id.clone(),

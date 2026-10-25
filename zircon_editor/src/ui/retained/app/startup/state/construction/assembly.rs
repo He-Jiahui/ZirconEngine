@@ -141,6 +141,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         active_object_drag_payload: None,
         native_window_presenters: NativeWindowPresenterStore::default(),
         floating_window_projection_bundle: FloatingWindowProjectionBundle::default(),
+        canvas_anchor_popup: None,
         callback_source_window: None,
         last_focused_callback_window: None,
         active_layout_preset: None,

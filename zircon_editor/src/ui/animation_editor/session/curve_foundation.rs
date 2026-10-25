@@ -44,25 +44,75 @@ fn project_selected_track_curves(
     let (entity_path, property_path) = track_path
         .split()
         .map_err(|error| AnimationEditorSessionError::new(error.to_string()))?;
-    let track = asset
+    // An entity can span bindings; do not pick a target by the binding's position.
+    let mut matching_tracks = asset
         .bindings
         .iter()
-        .find(|binding| binding.entity_path == entity_path)
-        .and_then(|binding| {
-            binding
-                .tracks
-                .iter()
-                .find(|track| track.property_path == property_path)
-        })
-        .ok_or_else(|| {
-            AnimationEditorSessionError::new(format!("missing animation track {track_path}"))
-        })?;
+        .filter(|binding| binding.entity_path == entity_path)
+        .flat_map(|binding| binding.tracks.iter())
+        .filter(|track| track.property_path == property_path);
+    let track = matching_tracks.next().ok_or_else(|| {
+        AnimationEditorSessionError::new(format!("missing animation track {track_path}"))
+    })?;
+    if matching_tracks.next().is_some() {
+        return Err(AnimationEditorSessionError::new(format!(
+            "ambiguous animation track {track_path}"
+        )));
+    }
     let selected_track_id = track_path.to_string();
+    validate_track_curve_projection(&selected_track_id, track)?;
 
     Ok(AnimationCurveFoundationView {
         curves: project_track_curves(&selected_track_id, track),
         selected_track_id: Some(selected_track_id),
     })
+}
+
+fn validate_track_curve_projection(
+    track_id: &str,
+    track: &AnimationSequenceTrackAsset,
+) -> Result<(), AnimationEditorSessionError> {
+    let Some(layout) = track
+        .channel
+        .keys
+        .first()
+        .and_then(|key| CurveComponentLayout::from_value(&key.value))
+    else {
+        // Empty, discrete and quaternion channels have no scalar curve projection.
+        return Ok(());
+    };
+    let mut previous_time = None;
+    for (key_index, key) in track.channel.keys.iter().enumerate() {
+        if !key.time_seconds.is_finite()
+            || previous_time.is_some_and(|previous| key.time_seconds <= previous)
+        {
+            return Err(AnimationEditorSessionError::new(format!(
+                "cannot project animation track {track_id} key {key_index}: key times must be finite and strictly increasing"
+            )));
+        }
+        previous_time = Some(key.time_seconds);
+        for (component_index, component_name) in layout.component_names().iter().enumerate() {
+            for (field, value) in [
+                ("value", Some(&key.value)),
+                ("in_tangent", key.in_tangent.as_ref()),
+                ("out_tangent", key.out_tangent.as_ref()),
+            ] {
+                if let Some(value) = value {
+                    if !matches!(
+                        layout.component_value(value, component_index),
+                        Some(component) if component.is_finite()
+                    ) {
+                        return Err(AnimationEditorSessionError::new(format!(
+                            "cannot project animation track {track_id} key {key_index} {component_name}: {field} must match the track value type and be finite"
+                        )));
+                    }
+                }
+            }
+        }
+    }
+    // Validate the whole channel before projecting any component. In particular,
+    // CurveKey::with_tangents must not erase an authored invalid tangent as None.
+    Ok(())
 }
 
 fn project_track_curves(
@@ -176,3 +226,7 @@ fn curve_interpolation(interpolation: AnimationInterpolationAsset) -> CurveInter
 #[cfg(test)]
 #[path = "tests/curve_foundation_perf.rs"]
 mod optimization_tests;
+
+#[cfg(test)]
+#[path = "tests/curve_foundation_lossless.rs"]
+mod lossless_tests;

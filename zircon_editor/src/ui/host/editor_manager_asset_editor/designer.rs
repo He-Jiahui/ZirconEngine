@@ -4,6 +4,78 @@ use crate::ui::asset_editor::UiDesignerToolMode;
 use crate::ui::workbench::view::ViewInstanceId;
 
 impl EditorManager {
+    pub(crate) fn set_ui_asset_editor_palette_search_query(
+        &self,
+        instance_id: &ViewInstanceId,
+        snapshot: &crate::ui::asset_editor::palette::UiAssetPaletteSearchSnapshot,
+        query: &str,
+    ) -> Result<bool, EditorError> {
+        self.host
+            .set_ui_asset_editor_palette_search_query(instance_id, snapshot, query)
+    }
+    pub(crate) fn set_ui_asset_editor_palette_search_page(
+        &self,
+        instance_id: &ViewInstanceId,
+        snapshot: &crate::ui::asset_editor::palette::UiAssetPaletteSearchSnapshot,
+        start: usize,
+    ) -> Result<bool, EditorError> {
+        self.host
+            .set_ui_asset_editor_palette_search_page(instance_id, snapshot, start)
+    }
+    pub(crate) fn set_ui_asset_editor_palette_search_row(
+        &self,
+        instance_id: &ViewInstanceId,
+        snapshot: &crate::ui::asset_editor::palette::UiAssetPaletteSearchSnapshot,
+        row: usize,
+    ) -> Result<bool, EditorError> {
+        self.host
+            .set_ui_asset_editor_palette_search_row(instance_id, snapshot, row)
+    }
+
+    pub(crate) fn begin_ui_asset_editor_canvas_anchor_popup(
+        &self,
+        instance_id: &ViewInstanceId,
+        frame: &std::sync::Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame>,
+    ) -> Result<Option<crate::ui::asset_editor::UiAssetCanvasAnchorPresetTicket>, EditorError> {
+        self.host
+            .begin_ui_asset_editor_canvas_anchor_popup(instance_id, frame)
+    }
+
+    pub(crate) fn ui_asset_editor_canvas_anchor_popup_is_current(
+        &self,
+        instance_id: &ViewInstanceId,
+        ticket: &crate::ui::asset_editor::UiAssetCanvasAnchorPresetTicket,
+    ) -> Result<bool, EditorError> {
+        self.host
+            .ui_asset_editor_canvas_anchor_popup_is_current(instance_id, ticket)
+    }
+
+    pub(crate) fn submit_ui_asset_editor_canvas_anchor_popup(
+        &self,
+        instance_id: &ViewInstanceId,
+        ticket: &crate::ui::asset_editor::UiAssetCanvasAnchorPresetTicket,
+        index: usize,
+        shift: bool,
+        control: bool,
+    ) -> Result<Option<crate::ui::asset_editor::UiAssetCanvasAnchorPresetCommit>, EditorError> {
+        self.host.submit_ui_asset_editor_canvas_anchor_popup(
+            instance_id,
+            ticket,
+            index,
+            shift,
+            control,
+        )
+    }
+
+    pub(crate) fn cancel_ui_asset_editor_canvas_anchor_popup(
+        &self,
+        instance_id: &ViewInstanceId,
+        ticket: &crate::ui::asset_editor::UiAssetCanvasAnchorPresetTicket,
+    ) -> Result<bool, EditorError> {
+        self.host
+            .cancel_ui_asset_editor_canvas_anchor_popup(instance_id, ticket)
+    }
+
     pub fn set_ui_asset_editor_palette_visible_start(
         &self,
         instance_id: &ViewInstanceId,

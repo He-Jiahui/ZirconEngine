@@ -113,6 +113,8 @@ impl UiHostWindowEventLoop {
     fn handle_native_close_requested(&mut self) -> CloseRequestResponse {
         let response = self.host.close_requested_response();
         if matches!(response, CloseRequestResponse::HideWindow) {
+            self.host.retire_current_canvas_anchor_popup();
+            self.host.retire_palette_search_input();
             // The close callback has returned, so app Cancel callbacks cannot reenter it.
             self.host.finish_retained_pane_input(
                 zircon_runtime_interface::ui::window::UiWindowEventKind::Closed,
@@ -134,6 +136,13 @@ impl UiHostWindowEventLoop {
             platform_event.event,
             UiPoint::new(x, y),
         ) {
+            if let Some(result) = self.host.dispatch_canvas_anchor_popup_input(
+                &zircon_runtime_interface::ui::dispatch::UiInputEvent::Pointer(pointer.clone()),
+            ) {
+                self.dispatch_pointer_result(result);
+                self.sync_ime_allowed();
+                return;
+            }
             let metadata = &pointer.metadata;
             if self.host.dispatch_retained_pane_window_event(
                 zircon_runtime_interface::ui::window::UiWindowEvent::new(

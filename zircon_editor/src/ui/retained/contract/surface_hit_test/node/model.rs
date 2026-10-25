@@ -42,6 +42,10 @@ pub(crate) struct TemplateNodePointerMoveHit<'a> {
 
 /// A full pane-route semantic view borrowed from one presentation generation.
 pub(crate) struct TemplateNodePointerRouteHit<'a> {
+    pub(crate) palette_search_source: Option<(
+        &'a crate::ui::asset_editor::palette::UiAssetPaletteSearchSnapshot,
+        &'a std::sync::Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame>,
+    )>,
     pub(crate) pane_id: &'a str,
     pub(crate) control_id: &'a str,
     pub(crate) action_id: &'a str,
@@ -62,6 +66,8 @@ pub(crate) struct TemplateNodePointerRouteHit<'a> {
 
 #[derive(Clone)]
 pub(crate) struct TemplateNodePointerHit {
+    pub(crate) palette_search_target:
+        Option<crate::ui::retained_host::host_contract::data::UiAssetPaletteInputTarget>,
     pub(crate) pane_id: SharedString,
     pub(crate) control_id: SharedString,
     pub(crate) action_id: SharedString,

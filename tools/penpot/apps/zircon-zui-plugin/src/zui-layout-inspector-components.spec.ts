@@ -1,6 +1,7 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { resolve, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { prepareComponentReviewHost } from '../tools/zui-layout-component-hosts';
 import { LayoutDependencies } from '../tools/zui-layout-dependencies';
@@ -8,9 +9,13 @@ import {
   canonicalSha256,
   validateWorkbenchPresentation,
 } from '../tools/zui-layout-workbench-presentation';
-import { normalizeZuiDocument, parseZuiDocument } from './bridge/zui-document';
-import { projectZuiDocument } from './bridge/penpot-projection';
+import { cloneZuiDocument, normalizeZuiDocument, parseZuiDocument } from './bridge/zui-document';
+import { cloneProjectionSnapshot, projectZuiDocument } from './bridge/penpot-projection';
 import { fieldGeometry } from './bridge/zui-field-geometry';
+import { reconcileReviewSource } from './bridge/zui-review-host';
+import { deriveSourceRenderInventory } from '../tools/zui-layout-source-render-inventory';
+import { sourceSemanticIdentity } from '../tools/zui-layout-semantic-parity';
+import type { LayoutReviewCase } from '../tools/zui-layout-review-contract';
 
 const repo = resolve(
   process.env['ZUI_LAYOUT_REPO_ROOT'] ?? resolve(fileURLToPath(new URL('.', import.meta.url)), '../../../../..'),
@@ -168,9 +173,8 @@ describe('actual Unreal Details consumer', () => {
           ),
         ),
     );
-    const source = parseZuiDocument(
-      await readFile(resolve(repo, frame), 'utf8'),
-    ).document;
+    const originalSource = await readFile(resolve(repo, frame), 'utf8');
+    const source = parseZuiDocument(originalSource).document;
     const original = normalizeZuiDocument(source);
     const panelSource = parseZuiDocument(
       await readFile(resolve(repo, panel), 'utf8'),
@@ -227,7 +231,14 @@ describe('actual Unreal Details consumer', () => {
       expect(row.layout!['height']).toEqual(prototype.layout!['height']);
       expect(row.layout!['width']).toEqual(prototype.layout!['width']);
       expect(row.events).toEqual(prototype.events);
-      expect(row['penpot_review_source_node_id']).toBeUndefined();
+      expect(row['penpot_review_source_node_id']).toBe('root');
+      expect(row['penpot_review_source_path']).toBe(
+        'zircon_editor/assets/ui/editor/workbench/data/component_property_row.zui',
+      );
+      expect(JSON.parse(row['penpot_review_instance_path'] as string).at(-1)).toEqual({
+        sourcePath: panel, sourceNodeId: 'prototype',
+      });
+      expect(row.props!['inspector_property_item_key']).toMatch(/^[1-9][0-9]*$/);
       expect(row.control_id).toMatch(/^WorkbenchComponentPropertyVirtualRow/);
       if (row.props!['read_only'])
         expect(row.props).toMatchObject({
@@ -252,6 +263,95 @@ describe('actual Unreal Details consumer', () => {
       sourceNodeId: 'prototype',
     });
     expect(originalPrototype.events).toEqual(prototype.events);
+    for (const row of rows)
+      for (const key of ['penpot_review_source_path', 'penpot_review_source_node_id',
+        'penpot_review_instance_path'])
+        expect(row[key]).toEqual(originalPrototype[key]);
+
+    // Audit the actual prepared virtual owner and mounted rows, including the
+    // real unmounted prototype used as authority. Unrelated host media is outside this contract.
+    const containerId = Object.entries(document.nodes!).find(([, node]) => node === container)![0];
+    const inspectorHost = { ...document, root: { node: containerId } };
+    const reviewCase: LayoutReviewCase = {
+      id: 'actual-inspector-repeat-identity', sourcePath: frame, host: 'editor',
+      viewport: { width: 1280, height: 800 }, dpi: 1, locale: 'en-US',
+      state: 'default', data: { workbenchPresentation: legacy },
+    };
+    const fingerprints = await Promise.all([panel,
+      originalPrototype['penpot_review_source_path'] as string].map(async (sourcePath) => ({
+      sourcePath, sha256: createHash('sha256').update(await readFile(resolve(repo, sourcePath))).digest('hex'),
+    })));
+    const inventory = deriveSourceRenderInventory(inspectorHost, reviewCase, fingerprints);
+    expect(inventory.errors).toEqual([]);
+    expect(inventory.semanticNodeIdentities).toHaveLength(6);
+    const repeatIdentities = rows.map((row) => sourceSemanticIdentity({
+      sourcePath: row['penpot_review_source_path'] as string,
+      sourceNodeId: row['penpot_review_source_node_id'] as string,
+      instancePath: row['penpot_review_instance_path'] as string,
+      parentSourcePath: container['penpot_review_source_path'] as string,
+      parentSourceNodeId: container['penpot_review_source_node_id'] as string,
+      parentInstancePath: container['penpot_review_instance_path'] as string,
+      itemKey: row.props!['inspector_property_item_key'] as string,
+      propertyFieldId: row.props!['inspector_property_field_id'] as string,
+    }));
+    expect(new Set(repeatIdentities).size).toBe(5);
+    for (const identity of repeatIdentities) {
+      expect(JSON.parse(identity)).toHaveLength(7);
+      expect(inventory.semanticNodeIdentities).toContain(identity);
+    }
+    const broken = cloneZuiDocument(inspectorHost);
+    const [firstMount, secondMount] = broken.nodes![containerId].children!;
+    const first = broken.nodes![firstMount.node], second = broken.nodes![secondMount.node];
+    second.props!['inspector_property_item_key'] = first.props!['inspector_property_item_key'];
+    second.props!['inspector_property_field_id'] = first.props!['inspector_property_field_id'];
+    second['penpot_review_generated_product_row'] = structuredClone(first['penpot_review_generated_product_row']);
+    expect(deriveSourceRenderInventory(broken, reviewCase, fingerprints).errors.join(' '))
+      .toContain('duplicate prepared source identity');
+    const duplicateMount = cloneZuiDocument(inspectorHost);
+    duplicateMount.nodes![containerId].children!.push({ ...firstMount });
+    expect(deriveSourceRenderInventory(duplicateMount, reviewCase, fingerprints).errors.join(' '))
+      .toContain('mounts one node more than once');
+    for (const property of ['inspector_property_item_key', 'inspector_property_field_id']) {
+      const missing = cloneZuiDocument(inspectorHost);
+      delete missing.nodes![firstMount.node].props![property];
+      expect(deriveSourceRenderInventory(missing, reviewCase, fingerprints).errors.join(' '))
+        .toContain('inconsistent marker/key/field');
+    }
+    const missingBoth = cloneZuiDocument(inspectorHost);
+    delete missingBoth.nodes![firstMount.node].props!['inspector_property_item_key'];
+    delete missingBoth.nodes![firstMount.node].props!['inspector_property_field_id'];
+    expect(deriveSourceRenderInventory(missingBoth, reviewCase, fingerprints).errors.join(' '))
+      .toContain('inconsistent marker/key/field');
+    const unprovenOwner = cloneZuiDocument(inspectorHost);
+    delete unprovenOwner.nodes![containerId].repeat;
+    expect(deriveSourceRenderInventory(unprovenOwner, reviewCase, fingerprints).errors.join(' '))
+      .toContain('virtual_rows owner');
+    const wrongOwner = cloneZuiDocument(inspectorHost);
+    wrongOwner.nodes![containerId]['penpot_review_instance_path'] = JSON.stringify([
+      { sourcePath: frame, sourceNodeId: 'different-details-owner' },
+    ]);
+    expect(deriveSourceRenderInventory(wrongOwner, reviewCase, fingerprints).errors.join(' '))
+      .toContain('different source owner');
+
+    // Exercise the generated-row branch during another prefab expansion. The
+    // saved root identity is already the callee, so no clone callsite is added.
+    const reembedded = cloneZuiDocument(inspectorHost);
+    reembedded.nodes![firstMount.node].component = 'WorkbenchComponentPropertyRow';
+    dependencies.embed(reembedded, frame, theme);
+    for (const key of ['penpot_review_source_path', 'penpot_review_source_node_id',
+      'penpot_review_instance_path'])
+      expect(reembedded.nodes![firstMount.node][key]).toEqual(originalPrototype[key]);
+    const missingOriginal = cloneZuiDocument(inspectorHost);
+    delete missingOriginal.nodes![firstMount.node]['penpot_review_source_node_id'];
+    expect(() => dependencies.embed(missingOriginal, frame, theme))
+      .toThrow('no original authored identity');
+
+    const ownerInput = { ...source, penpot_review_host: document,
+      penpot_original_source: originalSource, penpot_original_source_path: frame };
+    const exported = reconcileReviewSource(ownerInput, cloneProjectionSnapshot(projectZuiDocument(document)));
+    expect(exported.changes).toEqual([]);
+    expect(exported.source).toBe(originalSource);
+    expect(normalizeZuiDocument(exported.document)).toEqual(original);
     const rotation = Object.values(document.nodes ?? {}).find(
       (node) => node.control_id === 'WorkbenchTransformRotationY',
     )!;
@@ -301,6 +401,10 @@ describe('actual Unreal Details consumer', () => {
     }
     const controls = projectZuiDocument(document).shapes;
     expect(controls.find((node) => node.controlId === 'WorkbenchInspectorTitle')?.text?.characters).toBe('Camera');
+    expect(controls.find((node) => node.controlId === 'UnrealDetailsSelectionHint')?.previewHidden).toBe(true);
+    for (const control of ['UnrealDetailsNameArea', 'WorkbenchInspectorFilter', 'RightDrawerContentRoot'])
+      expect(controls.find((node) => node.controlId === control)?.previewHidden).toBe(false);
+    expect(Object.values(document.nodes!).find((node) => node.control_id === 'WorkbenchInspectorFilter')?.props?.['disabled']).toBe(false);
     expect(controls.find((node) => node.controlId === 'WorkbenchAddComponent')?.previewHidden).toBe(false);
     expect(controls.find((node) => node.controlId === 'WorkbenchStatusErrors')?.previewHidden).toBe(false);
     expect(controls.find((node) => node.controlId === 'WorkbenchSceneTitle')?.text?.characters).toBe('Outliner');
@@ -313,8 +417,9 @@ describe('actual Unreal Details consumer', () => {
     const empty = await prepareComponentReviewHost(repo, frame, source, dependencies, theme, noSelection);
     const emptyControls = projectZuiDocument(empty!.projection).shapes;
     expect(emptyControls.find((node) => node.controlId === 'UnrealDetailsDockTitle')?.previewHidden).toBe(false);
+    expect(emptyControls.find((node) => node.controlId === 'UnrealDetailsSelectionHint')?.previewHidden).toBe(false);
     expect(emptyControls.find((node) => node.controlId === 'WorkbenchInspectorTitle')?.text?.characters).toBe('No Selection');
-    for (const control of ['WorkbenchInspectorMetadata', 'WorkbenchInspectorTransform', 'WorkbenchAddComponent', 'WorkbenchInspectorMesh'])
+    for (const control of ['UnrealDetailsNameArea', 'WorkbenchInspectorFilter', 'RightDrawerContentRoot', 'WorkbenchInspectorMetadata', 'WorkbenchInspectorTransform', 'WorkbenchAddComponent', 'WorkbenchInspectorMesh'])
       expect(emptyControls.find((node) => node.controlId === control)?.previewHidden).toBe(true);
     expect(Object.values(empty!.projection.nodes!).find((node) => node.control_id === 'WorkbenchInspectorFilter')?.props?.['disabled']).toBe(true);
     const none = await prepareComponentReviewHost(

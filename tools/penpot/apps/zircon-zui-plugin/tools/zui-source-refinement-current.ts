@@ -256,7 +256,7 @@ export async function prepareCurrentSourceRefinement(
       baselineCases: entry.penpotEvidence?.length ?? 0, state: 'planned' };
     const backup = layoutCurrentOutputPath(contexts.report, 'backups/' + spec.id + '/' + entry.sourcePath);
     reserve(backup);
-    record.backupPath = relative(contexts.report.outputRoot, backup).replaceAll('\\', '/');
+    record['backupPath'] = relative(contexts.report.outputRoot, backup).replaceAll('\\', '/');
     targets.push({ path, original, updated, backup, record });
     for (const evidence of entry.penpotEvidence ?? []) {
       if (!evidence.screenshotPath) continue;
