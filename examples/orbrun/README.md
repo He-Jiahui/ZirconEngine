@@ -14,6 +14,14 @@ and the clock/score role entities. Their enabled bindings supply `hp = 61` and
 Pickups and the drone supply their reset positions; the drone speed is 2.2.
 All scripted entities are Dynamic; ground, rails and Sun are Static.
 
+The `orb_run` script package owns the `orb_run.` component namespace. Its
+untyped state rows (formerly `orb.*`) are available while the package is loaded,
+including when native plugins register other component types. An exact registered
+type keeps its schema checks. These rows exist only during Play: `onStart`
+initializes each new run, Stop discards them, and scene saves omit them. The
+runtime's fixed `gameplay.menu_state`, `gameplay.control_state` and
+`gameplay.hud_text` ids remain separate engine-owned state.
+
 The authored scene is also installed at the editor's existing live project:
 `/workspace/ZirconEngine-review/evidence/orbrun-20261023/state/projects/OrbRun/assets/scenes/main.scene.toml`.
 That project's manifest, source script, compiled module and scene metadata were

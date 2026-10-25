@@ -30,6 +30,7 @@ impl World {
             type_registry: Default::default(),
             vm_catalog_type_paths: Default::default(),
             vm_dynamic_type_paths: Default::default(),
+            script_namespaces: Default::default(),
             entity_id_allocator: EntityIdAllocator::default(),
             active_camera: 0,
             schedule: Schedule::default(),

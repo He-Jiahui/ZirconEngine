@@ -182,7 +182,7 @@ fn catalog_cannot_take_over_a_direct_vm_registration() {
         .expect("direct VM type should register once");
 
     let error = world
-        .sync_vm_types(&[catalog])
+        .sync_vm_types(&[catalog], &Default::default())
         .expect_err("catalog sync must not replace a directly registered type");
 
     assert!(matches!(

@@ -78,6 +78,15 @@ pub enum SceneError {
     #[error("dynamic component type `{component_id}` is not registered")]
     UnregisteredDynamicComponentType { component_id: String },
     #[error(
+        "dynamic component type `{component_id}` is not registered; allowed script package prefixes: {allowed_prefixes}"
+    )]
+    ScriptComponentNamespaceViolation {
+        component_id: String,
+        allowed_prefixes: String,
+    },
+    #[error("script package `{package_name}` cannot own prefix `{package_name}.`: native plugin id already in use")]
+    ScriptNamespaceNativePluginConflict { package_name: String },
+    #[error(
         "plugin `{plugin_id}` cannot unload while dynamic components are active: {active_components}"
     )]
     PluginComponentsActive {

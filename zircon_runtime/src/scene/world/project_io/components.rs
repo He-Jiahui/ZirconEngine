@@ -150,6 +150,7 @@ impl SceneComponentSerializerRegistry {
             for instance in world.dynamic_components_for_entity(*entity) {
                 if instance.component_id == SCRIPT_BINDINGS_COMPONENT
                     || instance.component_id == PREFAB_INSTANCE_COMPONENT
+                    || world.is_untyped_script_component_type(&instance.component_id)
                 {
                     continue;
                 }
@@ -288,6 +289,9 @@ impl SceneComponentSerializerRegistry {
         let mut rows = Vec::new();
         for registered in &self.serializers {
             let serializer = &registered.serializer;
+            if world.is_untyped_script_component_type(serializer.type_id) {
+                continue;
+            }
             if let Some(row) = (serializer.capture)(project, world, record)? {
                 validate_row_identity(serializer, &row)?;
                 rows.push(row);

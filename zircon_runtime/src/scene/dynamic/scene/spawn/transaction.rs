@@ -239,26 +239,18 @@ pub(crate) fn capture_compiled_scene_spawn_preflight(
     limit_bytes: usize,
 ) -> Result<(World, usize), DynamicSceneError> {
     crate::profile_scope!("runtime", "dynamic_scene.transaction", "preflight_stage");
-    if !target.dynamic_component_type_catalog_is_empty() {
-        let declared_type_paths = plan
-            .component_type_descriptors
-            .iter()
-            .map(|descriptor| descriptor.type_id.as_str())
-            .collect::<BTreeSet<_>>();
-        for type_path in plan
-            .component_writes
-            .iter()
-            .filter_map(CompiledComponentWrite::plugin_type_path)
-        {
-            if target.component_type_descriptor(type_path).is_none()
-                && !declared_type_paths.contains(type_path)
-            {
-                return Err(DynamicSceneError::WorldMutation(
-                    crate::scene::SceneError::UnregisteredDynamicComponentType {
-                        component_id: type_path.to_string(),
-                    },
-                ));
-            }
+    let declared_type_paths = plan
+        .component_type_descriptors
+        .iter()
+        .map(|descriptor| descriptor.type_id.as_str())
+        .collect::<BTreeSet<_>>();
+    for type_path in plan
+        .component_writes
+        .iter()
+        .filter_map(CompiledComponentWrite::plugin_type_path)
+    {
+        if !declared_type_paths.contains(type_path) {
+            target.validate_dynamic_component_type(type_path)?;
         }
     }
     let affected_type_paths = plan

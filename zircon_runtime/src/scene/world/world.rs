@@ -103,6 +103,8 @@ pub struct World {
     pub(super) type_registry: TypeRegistry,
     pub(super) vm_catalog_type_paths: BTreeSet<String>,
     pub(super) vm_dynamic_type_paths: BTreeSet<String>,
+    /// Loaded script package owners; never serialized into an authored World.
+    pub(super) script_namespaces: BTreeSet<String>,
     pub(super) entity_id_allocator: EntityIdAllocator,
     pub(super) active_camera: EntityId,
     pub(super) schedule: Schedule,
@@ -170,6 +172,7 @@ impl Clone for World {
             type_registry: self.type_registry.clone(),
             vm_catalog_type_paths: self.vm_catalog_type_paths.clone(),
             vm_dynamic_type_paths: self.vm_dynamic_type_paths.clone(),
+            script_namespaces: self.script_namespaces.clone(),
             entity_id_allocator: self.entity_id_allocator,
             active_camera: self.active_camera,
             schedule: self.schedule.clone(),
@@ -369,7 +372,7 @@ struct WorldPersistentStateRef<'a> {
     active_self: HashMap<EntityId, ActiveSelf>,
     render_layer_masks: HashMap<EntityId, RenderLayerMask>,
     mobility: HashMap<EntityId, Mobility>,
-    dynamic_components: &'a HashMap<EntityId, HashMap<String, serde_json::Value>>,
+    dynamic_components: HashMap<EntityId, HashMap<&'a str, &'a serde_json::Value>>,
     next_id: EntityId,
     active_camera: EntityId,
 }
@@ -411,7 +414,18 @@ impl Serialize for World {
             active_self: persistent_entity_core.active_self,
             render_layer_masks: persistent_scene_render.render_layer_masks,
             mobility: persistent_scene_render.mobility,
-            dynamic_components: &self.dynamic_components,
+            dynamic_components: self
+                .dynamic_components
+                .iter()
+                .filter_map(|(&entity, components)| {
+                    let persistent = components
+                        .iter()
+                        .filter(|(id, _)| !self.is_untyped_script_component_type(id))
+                        .map(|(id, value)| (id.as_str(), value))
+                        .collect::<HashMap<_, _>>();
+                    (!persistent.is_empty()).then_some((entity, persistent))
+                })
+                .collect(),
             next_id: self.entity_id_allocator.next_id(),
             active_camera: self.active_camera,
         }
@@ -485,6 +499,7 @@ impl World {
             type_registry: Default::default(),
             vm_catalog_type_paths: Default::default(),
             vm_dynamic_type_paths: Default::default(),
+            script_namespaces: Default::default(),
             entity_id_allocator,
             active_camera: state.active_camera,
             schedule: Default::default(),

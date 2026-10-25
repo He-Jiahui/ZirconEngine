@@ -11,8 +11,8 @@ pub fn onStart(entity: int, dt: float): int {
         gameplay.set_component_json(entity, "gameplay.menu_state",
             "{\"state\":\"start\",\"title\":\"Orb Run\",\"subtitle\":\"WASD/Arrows move. Collect 8 orbs in 60 s. P pauses.\",\"button\":\"Start\"}");
         gameplay.set_component_json(entity, "gameplay.control_state", "\"none\"");
-        gameplay.set_component_json(entity, "orb.run_state", "\"start_menu\"");
-        gameplay.set_component_json(entity, "orb.p_was_down", "\"0\"");
+        gameplay.set_component_json(entity, "orb_run.run_state", "\"start_menu\"");
+        gameplay.set_component_json(entity, "orb_run.p_was_down", "\"0\"");
         gameplay.set_hud_text(entity, "Orb Run\nPress Start");
     }
     return 0;
@@ -33,29 +33,29 @@ pub fn onUpdate(entity: int, dt: float): int {
             }
             gameplay.set_component_json(entity, "gameplay.menu_state", "null");
             gameplay.set_component_json(entity, "gameplay.control_state", "\"none\"");
-            gameplay.set_component_json(entity, "orb.run_state", "\"reset\"");
+            gameplay.set_component_json(entity, "orb_run.run_state", "\"reset\"");
             return 0;
         }
-        var runState = gameplay.component_string(entity, "orb.run_state", "start_menu");
+        var runState = gameplay.component_string(entity, "orb_run.run_state", "start_menu");
         if (runState == "reset") {
-            gameplay.set_component_json(entity, "orb.run_state", "\"playing\"");
+            gameplay.set_component_json(entity, "orb_run.run_state", "\"playing\"");
             return 0;
         }
         // Pause toggle on the P key edge (KeyCode:80; fallback "Enter", see G-10).
         var pDown = gameplay.key_pressed("KeyCode:80");
-        var pWas = gameplay.component_string(entity, "orb.p_was_down", "0");
+        var pWas = gameplay.component_string(entity, "orb_run.p_was_down", "0");
         var pEdge = false;
         if (pDown && pWas == "0") { pEdge = true; }
-        if (pDown) { gameplay.set_component_json(entity, "orb.p_was_down", "\"1\""); }
-        else { gameplay.set_component_json(entity, "orb.p_was_down", "\"0\""); }
+        if (pDown) { gameplay.set_component_json(entity, "orb_run.p_was_down", "\"1\""); }
+        else { gameplay.set_component_json(entity, "orb_run.p_was_down", "\"0\""); }
         if (runState == "paused") {
-            if (pEdge) { gameplay.set_component_json(entity, "orb.run_state", "\"playing\""); }
+            if (pEdge) { gameplay.set_component_json(entity, "orb_run.run_state", "\"playing\""); }
             gameplay.set_hud_text(entity, "PAUSED - press P to resume");
             return 0;
         }
         if (runState != "playing") { return 0; }
         if (pEdge) {
-            gameplay.set_component_json(entity, "orb.run_state", "\"paused\"");
+            gameplay.set_component_json(entity, "orb_run.run_state", "\"paused\"");
             return 0;
         }
 
@@ -83,7 +83,7 @@ pub fn onUpdate(entity: int, dt: float): int {
         if (gameplay.entity_exists(drone)) {
             gameplay.set_component_json(entity, "gameplay.menu_state",
                 "{\"state\":\"game_over\",\"title\":\"Caught!\",\"subtitle\":\"The drone got you.\",\"button\":\"Play again\"}");
-            gameplay.set_component_json(entity, "orb.run_state", "\"ended\"");
+            gameplay.set_component_json(entity, "orb_run.run_state", "\"ended\"");
             return 0;
         }
         // Lose: timer (clock hp keeps a +1 offset because damage_entity removes the entity at 0).
@@ -91,7 +91,7 @@ pub fn onUpdate(entity: int, dt: float): int {
         if (timeLeft <= dt) {
             gameplay.set_component_json(entity, "gameplay.menu_state",
                 "{\"state\":\"game_over\",\"title\":\"Time's up\",\"subtitle\":\"Collect all 8 orbs within 60 seconds.\",\"button\":\"Play again\"}");
-            gameplay.set_component_json(entity, "orb.run_state", "\"ended\"");
+            gameplay.set_component_json(entity, "orb_run.run_state", "\"ended\"");
             return 0;
         }
         gameplay.damage_entity(clock, dt);
@@ -101,7 +101,7 @@ pub fn onUpdate(entity: int, dt: float): int {
         if (collected >= total) {
             gameplay.set_component_json(entity, "gameplay.menu_state",
                 "{\"state\":\"game_over\",\"title\":\"You win!\",\"subtitle\":\"All orbs collected.\",\"button\":\"Play again\"}");
-            gameplay.set_component_json(entity, "orb.run_state", "\"ended\"");
+            gameplay.set_component_json(entity, "orb_run.run_state", "\"ended\"");
             return 0;
         }
         // HUD (literal ladders; replace with number formatting if ZrVM supports it).
@@ -125,20 +125,20 @@ pub fn onUpdate(entity: int, dt: float): int {
     } else if (gameplay.script_property_matches(entity, "role", "pickup")) {
         var player = gameplay.nearest_by_script_property(entity, "role", "player", 1000.0);
         if (gameplay.entity_exists(player)) {
-            var runState = gameplay.component_string(player, "orb.run_state", "start_menu");
+            var runState = gameplay.component_string(player, "orb_run.run_state", "start_menu");
             if (runState == "reset") {
                 gameplay.set_position(entity,
                     gameplay.script_number(entity, "home_x", 0.0),
                     gameplay.script_number(entity, "home_y", 0.6),
                     gameplay.script_number(entity, "home_z", 0.0));
-                gameplay.set_component_json(entity, "orb.collected", "\"0\"");
+                gameplay.set_component_json(entity, "orb_run.collected", "\"0\"");
                 return 0;
             }
             if (runState != "playing") { return 0; }
-            if (gameplay.component_string(entity, "orb.collected", "0") == "1") { return 0; }
+            if (gameplay.component_string(entity, "orb_run.collected", "0") == "1") { return 0; }
             var touching = gameplay.nearest_by_script_property(entity, "role", "player", 1.1);
             if (gameplay.entity_exists(touching)) {
-                gameplay.set_component_json(entity, "orb.collected", "\"1\"");
+                gameplay.set_component_json(entity, "orb_run.collected", "\"1\"");
                 gameplay.set_position(entity, 0.0, -50.0, 0.0);
                 var score = gameplay.nearest_by_script_property(entity, "role", "score", 1000.0);
                 gameplay.heal_entity(score, 1.0, 1000.0);
@@ -148,7 +148,7 @@ pub fn onUpdate(entity: int, dt: float): int {
     } else if (gameplay.script_property_matches(entity, "role", "drone")) {
         var target = gameplay.nearest_by_script_property(entity, "role", "player", 1000.0);
         if (gameplay.entity_exists(target)) {
-            var state = gameplay.component_string(target, "orb.run_state", "start_menu");
+            var state = gameplay.component_string(target, "orb_run.run_state", "start_menu");
             if (state == "reset") {
                 gameplay.set_position(entity,
                     gameplay.script_number(entity, "home_x", 10.0),

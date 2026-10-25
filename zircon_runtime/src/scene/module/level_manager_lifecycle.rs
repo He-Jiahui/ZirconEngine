@@ -174,6 +174,7 @@ impl DefaultLevelManager {
     pub(crate) fn sync_vm_types_atomically<T>(
         &self,
         registrations: &[zircon_runtime_interface::reflect::ReflectTypeRegistration],
+        namespaces: &std::collections::BTreeSet<String>,
         commit: impl FnOnce() -> T,
     ) -> crate::scene::SceneResult<T> {
         let levels = self.lock_levels();
@@ -183,14 +184,14 @@ impl DefaultLevelManager {
             .map(LevelSystem::lock_world)
             .collect::<Vec<_>>();
         for world in &worlds {
-            world.validate_vm_type_sync(registrations)?;
+            world.validate_vm_type_sync(registrations, namespaces)?;
         }
         let snapshots = worlds
             .iter()
             .map(|world| (*world).clone())
             .collect::<Vec<_>>();
         for index in 0..worlds.len() {
-            if let Err(error) = worlds[index].sync_vm_types(registrations) {
+            if let Err(error) = worlds[index].sync_vm_types(registrations, namespaces) {
                 for (world, snapshot) in worlds.iter_mut().zip(snapshots) {
                     **world = snapshot;
                 }

@@ -69,7 +69,10 @@ fn dynamic_component_stage_clone_preserves_json_in_preflight_world() {
     let selected_registration = registration_from_component_descriptor(&descriptor)
         .expect("selected VM registration must derive from its descriptor");
     source
-        .sync_vm_types(std::slice::from_ref(&selected_registration))
+        .sync_vm_types(
+            std::slice::from_ref(&selected_registration),
+            &Default::default(),
+        )
         .expect("source VM catalog must register the selected descriptor");
     source
         .register_component_type(unselected_descriptor.clone())

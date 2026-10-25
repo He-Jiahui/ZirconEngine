@@ -481,6 +481,7 @@ impl World {
         preflight.type_registry = Default::default();
         preflight.vm_catalog_type_paths.clear();
         preflight.vm_dynamic_type_paths.clear();
+        preflight.script_namespaces = self.script_namespaces.clone();
 
         let affected_type_paths = affected_type_paths
             .into_iter()
@@ -556,10 +557,6 @@ impl World {
             projected_vm_dynamic_type_paths
         );
         preflight
-    }
-
-    pub(in crate::scene) fn dynamic_component_type_catalog_is_empty(&self) -> bool {
-        self.component_types.is_empty()
     }
 
     pub(in crate::scene) fn validate_staged_scene_runtime_bindings(

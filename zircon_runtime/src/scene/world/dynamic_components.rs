@@ -4,7 +4,7 @@
 //! 借用读取受 World 借用期约束，实例投影则复制 JSON 与可用的描述符。
 //! 注册及 VM 同步在各自预检边界后发布；字段写入是否校验完整模式取决于 VM 动态标记。
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::fmt::Write as _;
 
 use serde_json::{Map, Number, Value};
@@ -22,6 +22,10 @@ use crate::scene::reflect::VmTypeBacking;
 #[cfg(test)]
 #[path = "dynamic_components/tests/registration_tests.rs"]
 mod registration_tests;
+
+#[cfg(all(test, feature = "script"))]
+#[path = "dynamic_components/tests/script_namespace_tests.rs"]
+mod script_namespace_tests;
 
 #[path = "dynamic_components/creation.rs"]
 mod creation;
@@ -84,25 +88,48 @@ impl World {
     pub(crate) fn validate_vm_type_sync(
         &self,
         registrations: &[ReflectTypeRegistration],
+        namespaces: &BTreeSet<String>,
     ) -> SceneResult<()> {
-        self.prepare_vm_type_sync(registrations).map(|_| ())
+        self.prepare_vm_type_sync(registrations, namespaces)
+            .map(|_| ())
     }
 
     /// 用完整 VM 候选集合更新此 World 的托管目录和动态类型标记。
     ///
     /// `registrations` 中不再出现的托管类型须无存活实例，保留实例须满足新字段声明。
-    /// 任一预检错误均在当前目录替换前返回；成功一次替换准备好的四项状态。
+    /// 包拥有者与类型一起预检；撤销包时移除其无模式 Play 行，热重载保留同行。
     /// 跨 World 的提交边界见 LevelManager 的 VM 同步协调，本函数只处理一个 World。
     pub(crate) fn sync_vm_types(
         &mut self,
         registrations: &[ReflectTypeRegistration],
+        namespaces: &BTreeSet<String>,
     ) -> SceneResult<()> {
         let (component_types, type_registry, vm_catalog_type_paths, vm_dynamic_type_paths) =
-            self.prepare_vm_type_sync(registrations)?;
+            self.prepare_vm_type_sync(registrations, namespaces)?;
+        let mut retired_rows = Vec::new();
+        for (&entity, components) in &self.dynamic_components {
+            for id in components.keys() {
+                if self.is_untyped_script_component_type(id)
+                    && id
+                        .split_once('.')
+                        .is_some_and(|(owner, _)| !namespaces.contains(owner))
+                {
+                    retired_rows.push((entity, id.clone()));
+                }
+            }
+        }
+        for (entity, id) in retired_rows {
+            self.remove_dynamic_component(entity, &id)?;
+        }
         self.component_types = component_types;
         self.type_registry = type_registry;
         self.vm_catalog_type_paths = vm_catalog_type_paths;
         self.vm_dynamic_type_paths = vm_dynamic_type_paths;
+        if self.script_namespaces != *namespaces {
+            self.script_namespaces = namespaces.clone();
+            // Prepared scene mutations must not outlive their package's admission rights.
+            self.advance_world_generation();
+        }
         Ok(())
     }
 
@@ -135,6 +162,11 @@ impl World {
                 type_path: descriptor.type_id.clone(),
             }
             .into());
+        }
+        if self.script_namespaces.contains(&descriptor.plugin_id) {
+            return Err(SceneError::ScriptNamespaceNativePluginConflict {
+                package_name: descriptor.plugin_id.clone(),
+            });
         }
         let component =
             crate::scene::reflect::reflect_component_for_dynamic_descriptor(&descriptor);
@@ -559,18 +591,46 @@ impl World {
         Ok(true)
     }
 
-    /// 插件目录不接管内建反射组件；其他非空目录路径仍须有描述符。
-    fn validate_dynamic_component_type(&self, component_id: &str) -> SceneResult<()> {
-        if self.component_types.is_empty()
-            || self.component_types.contains(component_id)
-            || self
+    /// Exact registrations retain their component role and schema; package prefixes
+    /// admit only unregistered rows. Keep the legacy empty-catalog fallback in U02c-1.
+    pub(in crate::scene) fn admits_dynamic_component_type(&self, component_id: &str) -> bool {
+        if self.type_registry.contains_type_path(component_id) {
+            return self
                 .type_registry
                 .registration(component_id)
-                .is_ok_and(|registration| {
-                    registration.is_component() && !registration.is_plugin_owned()
-                })
-        {
+                .is_ok_and(ReflectTypeRegistration::is_component);
+        }
+        self.component_types.contains(component_id)
+            || self.component_types.is_empty()
+            || self.is_untyped_script_component_type(component_id)
+    }
+
+    /// Only these unregistered package rows are Play state; a future exact schema wins.
+    pub(in crate::scene) fn is_untyped_script_component_type(&self, component_id: &str) -> bool {
+        !self.type_registry.contains_type_path(component_id)
+            && !self.component_types.contains(component_id)
+            && component_id.split_once('.').is_some_and(|(owner, suffix)| {
+                !suffix.is_empty() && self.script_namespaces.contains(owner)
+            })
+    }
+
+    pub(in crate::scene) fn validate_dynamic_component_type(
+        &self,
+        component_id: &str,
+    ) -> SceneResult<()> {
+        if self.admits_dynamic_component_type(component_id) {
             return Ok(());
+        }
+        if !self.script_namespaces.is_empty() {
+            return Err(SceneError::ScriptComponentNamespaceViolation {
+                component_id: component_id.to_string(),
+                allowed_prefixes: self
+                    .script_namespaces
+                    .iter()
+                    .map(|owner| format!("{owner}."))
+                    .collect::<Vec<_>>()
+                    .join(", "),
+            });
         }
         Err(SceneError::UnregisteredDynamicComponentType {
             component_id: component_id.to_string(),
@@ -585,12 +645,26 @@ impl World {
     fn prepare_vm_type_sync(
         &self,
         registrations: &[ReflectTypeRegistration],
+        namespaces: &BTreeSet<String>,
     ) -> SceneResult<(
         super::ComponentTypeRegistry,
         crate::scene::reflect::TypeRegistry,
         std::collections::BTreeSet<String>,
         std::collections::BTreeSet<String>,
     )> {
+        for owner in namespaces {
+            if self.type_registry.iter().any(|runtime| {
+                let registration = &runtime.registration;
+                registration.type_path.plugin_id() == Some(owner.as_str())
+                    && !self
+                        .vm_dynamic_type_paths
+                        .contains(registration.type_path.type_path())
+            }) {
+                return Err(SceneError::ScriptNamespaceNativePluginConflict {
+                    package_name: owner.clone(),
+                });
+            }
+        }
         let mut component_types = self.component_types.clone();
         let mut type_registry = self.type_registry.clone();
         let desired_type_paths = registrations

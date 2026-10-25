@@ -1,5 +1,5 @@
 //! 反射目录为每个插件槽位维护可发布的类型代际；候选先验证现有世界，再在协调器提交时同步当前和未来世界。
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
@@ -185,7 +185,10 @@ impl VmReflectionCatalog {
         } else {
             let candidate_epoch = self.allocate_candidate_epoch()?;
             let registry = Arc::new(self.registry_for_state(&candidate)?);
-            self.validate_existing_worlds(registrations.as_ref())?;
+            self.validate_existing_worlds(
+                registrations.as_ref(),
+                &namespaces_from_state(&candidate),
+            )?;
             (
                 VmReflectionRegistrySnapshot {
                     registry,
@@ -265,7 +268,7 @@ impl VmReflectionCatalog {
         let registrations: Arc<[ReflectTypeRegistration]> =
             registrations_from_state(&candidate).into();
         let registry = Arc::new(self.registry_for_state(&candidate)?);
-        self.validate_existing_worlds(registrations.as_ref())?;
+        self.validate_existing_worlds(registrations.as_ref(), &namespaces_from_state(&candidate))?;
         let snapshot = VmReflectionRegistrySnapshot {
             registry,
             revision: candidate.revision,
@@ -285,9 +288,10 @@ impl VmReflectionCatalog {
     ) -> Result<(), VmReflectionError> {
         let revision = candidate.revision;
         let candidate_epoch = snapshot.candidate_epoch;
+        let namespaces = namespaces_from_state(&candidate);
         if let Some(core) = self.bound_core() {
             let manager = crate::scene::resolve_default_level_manager(&core)?;
-            manager.sync_vm_types_atomically(registrations.as_ref(), || {
+            manager.sync_vm_types_atomically(registrations.as_ref(), &namespaces, || {
                 *self.state_write() = candidate;
                 *self.committed_snapshot_write() = snapshot;
                 self.current_revision.store(revision, Ordering::Release);
@@ -317,8 +321,14 @@ impl VmReflectionCatalog {
 
     /// Applies the latest catalog snapshot to a newly-created World.
     pub fn apply_to_world(&self, world: &mut World) -> Result<(), VmReflectionError> {
-        let registrations = registrations_from_state(&self.state_read());
-        world.sync_vm_types(&registrations)?;
+        let (registrations, namespaces) = {
+            let state = self.state_read();
+            (
+                registrations_from_state(&state),
+                namespaces_from_state(&state),
+            )
+        };
+        world.sync_vm_types(&registrations, &namespaces)?;
         Ok(())
     }
 
@@ -349,18 +359,23 @@ impl VmReflectionCatalog {
     fn validate_existing_worlds(
         &self,
         registrations: &[ReflectTypeRegistration],
+        namespaces: &BTreeSet<String>,
     ) -> Result<(), VmReflectionError> {
         let Some(core) = self.bound_core() else {
             return Ok(());
         };
         let manager = crate::scene::resolve_default_level_manager(&core)?;
-        manager.try_for_each_world(|world| world.validate_vm_type_sync(registrations))?;
+        manager
+            .try_for_each_world(|world| world.validate_vm_type_sync(registrations, namespaces))?;
         Ok(())
     }
 
     fn validate_candidate(&self, candidate: &CatalogState) -> Result<(), VmReflectionError> {
         self.registry_for_state(candidate)?;
-        self.validate_existing_worlds(&registrations_from_state(candidate))
+        self.validate_existing_worlds(
+            &registrations_from_state(candidate),
+            &namespaces_from_state(candidate),
+        )
     }
 
     fn registry_for_state(
@@ -468,6 +483,17 @@ fn candidate_for_generation(
 ) -> Result<CatalogState, VmReflectionError> {
     validate_package_owner(expected_owner, registrations)?;
     let mut candidate = current.clone();
+    if let Some((&owner_slot, _)) = candidate
+        .owners
+        .iter()
+        .find(|(owner_slot, owner)| **owner_slot != slot && owner.as_str() == expected_owner)
+    {
+        return Err(VmReflectionError::NamespaceOwnedByAnotherSlot {
+            package_name: expected_owner.to_string(),
+            owner_slot,
+            requesting_slot: slot,
+        });
+    }
     if let Some(current_owner) = candidate.owners.get(&slot) {
         if current_owner != expected_owner {
             return Err(VmReflectionError::SlotOwnerConflict {
@@ -539,6 +565,24 @@ fn validate_package_owner(
     expected_owner: &str,
     registrations: &[ReflectTypeRegistration],
 ) -> Result<(), VmReflectionError> {
+    let reason = if expected_owner.is_empty() || expected_owner.trim() != expected_owner {
+        Some("package names must be nonempty and have no surrounding whitespace")
+    } else if expected_owner.contains('.') {
+        Some("package names cannot contain a dot")
+    } else if matches!(
+        expected_owner,
+        "script" | "zircon" | "gameplay" | "runtime" | "editor" | "zr"
+    ) {
+        Some("package name is reserved by the engine")
+    } else {
+        None
+    };
+    if let Some(reason) = reason {
+        return Err(VmReflectionError::InvalidPackageNamespace {
+            package_name: expected_owner.to_string(),
+            reason,
+        });
+    }
     for registration in registrations {
         let type_path_owner = registration.type_path.plugin_id().unwrap_or("<missing>");
         if type_path_owner != expected_owner {
@@ -564,6 +608,11 @@ fn registrations_from_state(state: &CatalogState) -> Vec<ReflectTypeRegistration
         .values()
         .map(|entry| entry.registration.clone())
         .collect()
+}
+
+fn namespaces_from_state(state: &CatalogState) -> BTreeSet<String> {
+    // A package without stateSchema still owns its prefix for this slot's lifetime.
+    state.owners.values().cloned().collect()
 }
 
 impl fmt::Debug for VmReflectionCatalog {

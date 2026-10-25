@@ -32,6 +32,19 @@ pub enum VmReflectionError {
         /// Slot attempting to replace the existing owner.
         requesting_slot: PluginSlotId,
     },
+    /// Only one loaded package slot may own the package prefix, even without a schema.
+    #[error("script package prefix `{package_name}.` is owned by slot {owner_slot:?}, not slot {requesting_slot:?}")]
+    NamespaceOwnedByAnotherSlot {
+        package_name: String,
+        owner_slot: PluginSlotId,
+        requesting_slot: PluginSlotId,
+    },
+    /// A trusted manifest name cannot become a script component namespace.
+    #[error("invalid script package namespace `{package_name}.`: {reason}")]
+    InvalidPackageNamespace {
+        package_name: String,
+        reason: &'static str,
+    },
     /// A stale package generation attempted to replace a newer reflected schema.
     #[error(
         "VM reflection generation regressed for slot {slot:?}: current={current_generation}, requested={requested_generation}"
@@ -56,7 +69,7 @@ pub enum VmReflectionError {
     },
     /// A package schema declared a reflected namespace different from its trusted manifest owner.
     #[error(
-        "VM reflected type `{type_path}` declares package owner `{declared_owner}`, expected `{expected_owner}`"
+        "VM reflected type `{type_path}` declares package owner `{declared_owner}`, allowed package prefix is `{expected_owner}.`"
     )]
     PackageOwnerMismatch {
         /// Fully-qualified reflected type path supplied by the package schema.

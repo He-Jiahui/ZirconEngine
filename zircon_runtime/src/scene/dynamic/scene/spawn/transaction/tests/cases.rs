@@ -825,7 +825,7 @@ fn preflight_schema_profile_counts_unique_affected_vm_catalog_path() {
         .expect("profiled VM registration must derive from its descriptor");
     let mut target = World::empty();
     target
-        .sync_vm_types(std::slice::from_ref(&registration))
+        .sync_vm_types(std::slice::from_ref(&registration), &Default::default())
         .expect("profiled VM catalog should register");
 
     let preflight = target.dynamic_scene_preflight_world([SHORT_TYPE_PATH, TYPE_ID]);
