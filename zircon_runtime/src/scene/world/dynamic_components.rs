@@ -591,17 +591,17 @@ impl World {
         Ok(true)
     }
 
-    /// Exact registrations retain their component role and schema; package prefixes
-    /// admit only unregistered rows. Keep the legacy empty-catalog fallback in U02c-1.
+    /// Preserve the existing empty-catalog, descriptor and built-in admission branches.
+    /// Package prefixes add only unregistered rows; exact schemas keep their checks.
     pub(in crate::scene) fn admits_dynamic_component_type(&self, component_id: &str) -> bool {
-        if self.type_registry.contains_type_path(component_id) {
-            return self
+        self.component_types.is_empty()
+            || self.component_types.contains(component_id)
+            || self
                 .type_registry
                 .registration(component_id)
-                .is_ok_and(ReflectTypeRegistration::is_component);
-        }
-        self.component_types.contains(component_id)
-            || self.component_types.is_empty()
+                .is_ok_and(|registration| {
+                    registration.is_component() && !registration.is_plugin_owned()
+                })
             || self.is_untyped_script_component_type(component_id)
     }
 

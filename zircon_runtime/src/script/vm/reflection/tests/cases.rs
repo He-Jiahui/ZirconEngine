@@ -66,13 +66,13 @@ fn create_managed_level(catalog: &VmReflectionCatalog) -> (CoreRuntime, crate::s
 fn reflection_schema_projects_only_public_vm_components() {
     let schema = state_schema(vec![
         vm_component_registration(
-            "gameplay.Component.PublicHealth",
+            "fixture_game.Component.PublicHealth",
             "PublicHealth",
             ReflectScriptVisibility::Public,
             vec![scalar_field("current")],
         ),
         vm_component_registration(
-            "gameplay.Component.PrivateState",
+            "fixture_game.Component.PrivateState",
             "PrivateState",
             ReflectScriptVisibility::Private,
             vec![scalar_field("value")],
@@ -85,7 +85,7 @@ fn reflection_schema_projects_only_public_vm_components() {
     assert_eq!(projected.registrations().len(), 1);
     assert_eq!(
         projected.registrations()[0].type_path.type_path(),
-        "gameplay.Component.PublicHealth"
+        "fixture_game.Component.PublicHealth"
     );
 }
 
@@ -94,20 +94,20 @@ fn catalog_registers_public_vm_types_in_existing_and_future_worlds() {
     let catalog = VmReflectionCatalog::default();
     let (_runtime, existing_level) = create_managed_level(&catalog);
     let schema = state_schema(vec![vm_component_registration(
-        "gameplay.Component.Health",
+        "fixture_game.Component.Health",
         "Health",
         ReflectScriptVisibility::Public,
         vec![scalar_field("current")],
     )]);
 
     catalog
-        .publish_generation(PluginSlotId::new(1), 1, "gameplay", &schema)
+        .publish_generation(PluginSlotId::new(1), 1, "fixture_game", &schema)
         .expect("publishing a valid VM schema should update existing levels");
 
     existing_level.with_world(|world| {
         assert!(world
             .type_registry()
-            .contains_type_path("gameplay.Component.Health"));
+            .contains_type_path("fixture_game.Component.Health"));
     });
     let mut future_world = World::empty();
     catalog
@@ -115,7 +115,7 @@ fn catalog_registers_public_vm_types_in_existing_and_future_worlds() {
         .expect("future worlds should receive the catalog snapshot");
     assert!(future_world
         .type_registry()
-        .contains_type_path("gameplay.Component.Health"));
+        .contains_type_path("fixture_game.Component.Health"));
 }
 
 #[test]
@@ -133,9 +133,9 @@ fn manager_service_applies_catalog_to_future_worlds() {
         .publish_generation(
             PluginSlotId::new(11),
             1,
-            "gameplay",
+            "fixture_game",
             &state_schema(vec![vm_component_registration(
-                "gameplay.Component.FutureHealth",
+                "fixture_game.Component.FutureHealth",
                 "FutureHealth",
                 ReflectScriptVisibility::Public,
                 vec![scalar_field("current")],
@@ -158,20 +158,20 @@ fn manager_service_applies_catalog_to_future_worlds() {
     level.with_world(|world| {
         assert!(world
             .type_registry()
-            .contains_type_path("gameplay.Component.FutureHealth"));
+            .contains_type_path("fixture_game.Component.FutureHealth"));
     });
 }
 
 #[test]
 fn catalog_cannot_take_over_a_direct_vm_registration() {
     let direct = vm_component_registration(
-        "gameplay.Component.DirectHealth",
+        "fixture_game.Component.DirectHealth",
         "DirectHealth",
         ReflectScriptVisibility::Public,
         vec![scalar_field("direct")],
     );
     let catalog = vm_component_registration(
-        "gameplay.Component.DirectHealth",
+        "fixture_game.Component.DirectHealth",
         "DirectHealth",
         ReflectScriptVisibility::Public,
         vec![scalar_field("catalog")],
@@ -194,7 +194,7 @@ fn catalog_cannot_take_over_a_direct_vm_registration() {
     assert_eq!(
         world
             .type_registry()
-            .registration("gameplay.Component.DirectHealth")
+            .registration("fixture_game.Component.DirectHealth")
             .expect("direct registration should remain")
             .type_info
             .fields[0]
@@ -212,7 +212,7 @@ fn canonical_registry_rejects_a_collision_in_any_managed_world_before_activation
     let second = crate::scene::create_default_level(&runtime.handle())
         .expect("second managed level should be created");
     let direct = vm_component_registration(
-        "gameplay.Component.ManagedDirect",
+        "fixture_game.Component.ManagedDirect",
         "ManagedDirect",
         ReflectScriptVisibility::Public,
         vec![scalar_field("direct")],
@@ -225,10 +225,10 @@ fn canonical_registry_rejects_a_collision_in_any_managed_world_before_activation
     first.with_world(|world| {
         assert!(!world
             .type_registry()
-            .contains_type_path("gameplay.Component.ManagedDirect"));
+            .contains_type_path("fixture_game.Component.ManagedDirect"));
     });
     let candidate = vm_component_registration(
-        "gameplay.Component.ManagedDirect",
+        "fixture_game.Component.ManagedDirect",
         "ManagedDirect",
         ReflectScriptVisibility::Public,
         vec![scalar_field("catalog")],
@@ -238,7 +238,7 @@ fn canonical_registry_rejects_a_collision_in_any_managed_world_before_activation
         .prepare_optional_generation(
             PluginSlotId::new(13),
             1,
-            "gameplay",
+            "fixture_game",
             Some(&state_schema(vec![candidate])),
         )
         .expect_err("canonical registry must validate every managed world before activation");
@@ -296,9 +296,11 @@ fn concurrent_catalog_publications_preserve_every_slot() {
         let catalog = Arc::clone(&catalog);
         let barrier = Arc::clone(&barrier);
         workers.push(std::thread::spawn(move || {
-            let type_path = format!("gameplay.Component.Concurrent{slot}");
+            let owner = format!("fixture_game_{slot}");
+            let type_path = format!("{owner}.Component.Concurrent{slot}");
             let short = format!("Concurrent{slot}");
-            let schema = state_schema(vec![vm_component_registration(
+            let schema = state_schema(vec![vm_component_registration_for_owner(
+                &owner,
                 &type_path,
                 &short,
                 ReflectScriptVisibility::Public,
@@ -312,7 +314,7 @@ fn concurrent_catalog_publications_preserve_every_slot() {
             )]);
             barrier.wait();
             catalog
-                .publish_generation(PluginSlotId::new(slot), 1, "gameplay", &schema)
+                .publish_generation(PluginSlotId::new(slot), 1, &owner, &schema)
                 .expect("concurrent distinct slots should publish");
         }));
     }
@@ -327,14 +329,14 @@ fn concurrent_catalog_publications_preserve_every_slot() {
     for slot in 1..=SLOT_COUNT {
         assert!(world
             .type_registry()
-            .contains_type_path(&format!("gameplay.Component.Concurrent{slot}")));
+            .contains_type_path(&format!("fixture_game_{slot}.Component.Concurrent{slot}")));
     }
 }
 
 #[test]
 fn initial_dynamic_component_json_must_match_the_registered_schema() {
     let registration = vm_component_registration(
-        "gameplay.Component.TypedHealth",
+        "fixture_game.Component.TypedHealth",
         "TypedHealth",
         ReflectScriptVisibility::Public,
         vec![scalar_field("current")],
@@ -350,7 +352,7 @@ fn initial_dynamic_component_json_must_match_the_registered_schema() {
     let error = world
         .set_dynamic_component(
             entity,
-            "gameplay.Component.TypedHealth",
+            "fixture_game.Component.TypedHealth",
             serde_json::json!({ "current": "not-a-scalar" }),
         )
         .expect_err("initial JSON must not bypass reflected field types");
@@ -364,7 +366,7 @@ fn initial_dynamic_component_json_must_match_the_registered_schema() {
 #[test]
 fn initial_dynamic_component_json_requires_every_registered_field() {
     let registration = vm_component_registration(
-        "gameplay.Component.CompleteHealth",
+        "fixture_game.Component.CompleteHealth",
         "CompleteHealth",
         ReflectScriptVisibility::Public,
         vec![scalar_field("current"), scalar_field("maximum")],
@@ -380,7 +382,7 @@ fn initial_dynamic_component_json_requires_every_registered_field() {
     let error = world
         .set_dynamic_component(
             entity,
-            "gameplay.Component.CompleteHealth",
+            "fixture_game.Component.CompleteHealth",
             serde_json::json!({ "current": 25.0 }),
         )
         .expect_err("initial JSON must contain every compiled reflected field");
@@ -397,7 +399,7 @@ fn initial_dynamic_component_json_requires_every_registered_field() {
 #[test]
 fn initial_dynamic_json_and_dense_reads_share_the_same_declared_value_semantics() {
     let registration = vm_component_registration(
-        "gameplay.Component.ValueShapes",
+        "fixture_game.Component.ValueShapes",
         "ValueShapes",
         ReflectScriptVisibility::Public,
         vec![
@@ -421,7 +423,7 @@ fn initial_dynamic_json_and_dense_reads_share_the_same_declared_value_semantics(
     world
         .set_dynamic_component(
             entity,
-            "gameplay.Component.ValueShapes",
+            "fixture_game.Component.ValueShapes",
             serde_json::json!({
                 "scalar": 25,
                 "unsigned": 7,
@@ -434,7 +436,7 @@ fn initial_dynamic_json_and_dense_reads_share_the_same_declared_value_semantics(
             }),
         )
         .expect("all declared VM JSON shapes should validate");
-    let address = ReflectObjectAddress::component(entity, "gameplay.Component.ValueShapes")
+    let address = ReflectObjectAddress::component(entity, "fixture_game.Component.ValueShapes")
         .expect("component address should build");
 
     let cases = [
@@ -488,7 +490,7 @@ fn canonical_registry_excludes_world_local_direct_vm_schemas() {
         world
             .register_vm_type(
                 vm_component_registration(
-                    "gameplay.Component.WorldLocal",
+                    "fixture_game.Component.WorldLocal",
                     "WorldLocal",
                     ReflectScriptVisibility::Public,
                     vec![scalar_field("health")],
@@ -501,7 +503,7 @@ fn canonical_registry_excludes_world_local_direct_vm_schemas() {
         world
             .register_vm_type(
                 vm_component_registration(
-                    "gameplay.Component.WorldLocal",
+                    "fixture_game.Component.WorldLocal",
                     "WorldLocal",
                     ReflectScriptVisibility::Public,
                     vec![scalar_field("armor")],
@@ -512,11 +514,11 @@ fn canonical_registry_excludes_world_local_direct_vm_schemas() {
     });
 
     let prepared = catalog
-        .prepare_optional_generation(PluginSlotId::new(99), 1, "gameplay", None)
+        .prepare_optional_generation(PluginSlotId::new(99), 1, "fixture_game", None)
         .expect("world-local direct schemas must not alter the process-wide registry");
     let registry = prepared.snapshot().registry();
 
-    assert!(!registry.contains_type_path("gameplay.Component.WorldLocal"));
+    assert!(!registry.contains_type_path("fixture_game.Component.WorldLocal"));
     assert!(registry.contains_type_path("zircon_runtime::scene::components::Name"));
 }
 
@@ -529,16 +531,16 @@ fn newer_generation_replaces_same_slot_vm_schema_in_existing_worlds() {
         .publish_generation(
             slot,
             1,
-            "gameplay",
+            "fixture_game",
             &state_schema(vec![
                 vm_component_registration(
-                    "gameplay.Component.Health",
+                    "fixture_game.Component.Health",
                     "Health",
                     ReflectScriptVisibility::Public,
                     vec![scalar_field("current")],
                 ),
                 vm_component_registration(
-                    "gameplay.Component.Armor",
+                    "fixture_game.Component.Armor",
                     "Armor",
                     ReflectScriptVisibility::Public,
                     vec![ReflectFieldInfo::from_stable_keys(
@@ -557,9 +559,9 @@ fn newer_generation_replaces_same_slot_vm_schema_in_existing_worlds() {
         .publish_generation(
             slot,
             2,
-            "gameplay",
+            "fixture_game",
             &state_schema(vec![vm_component_registration(
-                "gameplay.Component.Health",
+                "fixture_game.Component.Health",
                 "Health",
                 ReflectScriptVisibility::Public,
                 vec![scalar_field("current"), scalar_field("maximum")],
@@ -570,13 +572,13 @@ fn newer_generation_replaces_same_slot_vm_schema_in_existing_worlds() {
     level.with_world(|world| {
         let registration = world
             .type_registry()
-            .registration("gameplay.Component.Health")
+            .registration("fixture_game.Component.Health")
             .expect("updated VM type should remain registered");
         assert_eq!(registration.type_info.fields.len(), 2);
         assert_eq!(registration.type_info.fields[1].name, "maximum");
         assert!(!world
             .type_registry()
-            .contains_type_path("gameplay.Component.Armor"));
+            .contains_type_path("fixture_game.Component.Armor"));
     });
 }
 
@@ -591,9 +593,9 @@ fn catalog_rejects_removing_a_vm_type_with_live_world_components() {
         .publish_generation(
             slot,
             1,
-            "gameplay",
+            "fixture_game",
             &state_schema(vec![vm_component_registration(
-                "gameplay.Component.Health",
+                "fixture_game.Component.Health",
                 "Health",
                 ReflectScriptVisibility::Public,
                 vec![scalar_field("current")],
@@ -607,14 +609,14 @@ fn catalog_rejects_removing_a_vm_type_with_live_world_components() {
         world
             .set_dynamic_component(
                 entity,
-                "gameplay.Component.Health",
+                "fixture_game.Component.Health",
                 serde_json::json!({ "current": 25.0 }),
             )
             .expect("live VM component should attach");
     });
 
     let error = catalog
-        .publish_generation(slot, 2, "gameplay", &state_schema(Vec::new()))
+        .publish_generation(slot, 2, "fixture_game", &state_schema(Vec::new()))
         .expect_err("a live VM component must block schema removal");
 
     assert!(matches!(
@@ -624,12 +626,12 @@ fn catalog_rejects_removing_a_vm_type_with_live_world_components() {
     level.with_world(|world| {
         assert!(world
             .type_registry()
-            .contains_type_path("gameplay.Component.Health"));
+            .contains_type_path("fixture_game.Component.Health"));
     });
     peer.with_world(|world| {
         assert!(world
             .type_registry()
-            .contains_type_path("gameplay.Component.Health"));
+            .contains_type_path("fixture_game.Component.Health"));
     });
     let mut future_world = World::empty();
     catalog
@@ -637,7 +639,7 @@ fn catalog_rejects_removing_a_vm_type_with_live_world_components() {
         .expect("failed candidate must never become visible to future Worlds");
     assert!(future_world
         .type_registry()
-        .contains_type_path("gameplay.Component.Health"));
+        .contains_type_path("fixture_game.Component.Health"));
 }
 
 #[test]
@@ -645,11 +647,11 @@ fn empty_schema_still_rejects_generation_regression() {
     let catalog = VmReflectionCatalog::default();
     let slot = PluginSlotId::new(9);
     catalog
-        .publish_optional_generation(slot, 3, "gameplay", None)
+        .publish_optional_generation(slot, 3, "fixture_game", None)
         .expect("empty current generation should publish");
 
     let error = catalog
-        .publish_optional_generation(slot, 2, "gameplay", None)
+        .publish_optional_generation(slot, 2, "fixture_game", None)
         .expect_err("an empty stale generation must still be rejected");
 
     assert!(matches!(
@@ -671,9 +673,9 @@ fn discarding_a_slot_removes_its_unused_world_registrations() {
         .publish_generation(
             slot,
             1,
-            "gameplay",
+            "fixture_game",
             &state_schema(vec![vm_component_registration(
-                "gameplay.Component.Health",
+                "fixture_game.Component.Health",
                 "Health",
                 ReflectScriptVisibility::Public,
                 vec![scalar_field("current")],
@@ -690,7 +692,7 @@ fn discarding_a_slot_removes_its_unused_world_registrations() {
     level.with_world(|world| {
         assert!(!world
             .type_registry()
-            .contains_type_path("gameplay.Component.Health"));
+            .contains_type_path("fixture_game.Component.Health"));
     });
 }
 
@@ -698,22 +700,22 @@ fn discarding_a_slot_removes_its_unused_world_registrations() {
 fn different_slots_cannot_claim_the_same_vm_type_path() {
     let catalog = VmReflectionCatalog::default();
     let schema = state_schema(vec![vm_component_registration(
-        "gameplay.Component.Health",
+        "fixture_game.Component.Health",
         "Health",
         ReflectScriptVisibility::Public,
         vec![scalar_field("current")],
     )]);
     catalog
-        .publish_generation(PluginSlotId::new(1), 1, "gameplay", &schema)
+        .publish_generation(PluginSlotId::new(1), 1, "fixture_game", &schema)
         .expect("first slot should own the VM type path");
 
     let error = catalog
-        .publish_generation(PluginSlotId::new(2), 1, "gameplay", &schema)
+        .publish_generation(PluginSlotId::new(2), 1, "fixture_game", &schema)
         .expect_err("another slot must not replace an existing VM type owner");
 
     assert!(matches!(
         error,
-        VmReflectionError::TypePathOwnedByAnotherSlot {
+        VmReflectionError::NamespaceOwnedByAnotherSlot {
             owner_slot,
             requesting_slot,
             ..
@@ -741,17 +743,33 @@ fn vm_component_registration(
     visibility: ReflectScriptVisibility,
     fields: Vec<ReflectFieldInfo>,
 ) -> ReflectTypeRegistration {
+    vm_component_registration_for_owner(
+        "fixture_game",
+        type_path,
+        short_type_path,
+        visibility,
+        fields,
+    )
+}
+
+fn vm_component_registration_for_owner(
+    owner: &str,
+    type_path: &str,
+    short_type_path: &str,
+    visibility: ReflectScriptVisibility,
+    fields: Vec<ReflectFieldInfo>,
+) -> ReflectTypeRegistration {
     ReflectTypeRegistration::new(
         ReflectTypePath::new(type_path, short_type_path)
             .expect("test VM type path should be valid")
-            .with_plugin_id("gameplay")
+            .with_plugin_id(owner)
             .expect("test plugin id should be valid"),
         short_type_path,
         ReflectTypeInfo::struct_with_fields(fields),
         ReflectSerializationStrategy::Value,
     )
     .as_component()
-    .with_plugin_id("gameplay")
+    .with_plugin_id(owner)
     .expect("test plugin id should be valid")
     .with_script_visibility(visibility)
 }

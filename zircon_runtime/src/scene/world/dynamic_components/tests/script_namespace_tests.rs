@@ -519,6 +519,27 @@ fn empty_catalog_compatibility_fallback_remains_available() {
 }
 
 #[test]
+fn legacy_gate_keeps_builtin_aliases_and_any_id_with_empty_dynamic_catalog() {
+    let world = plugin_world("rendering");
+    assert!(world.admits_dynamic_component_type("Name"));
+
+    let mut empty = World::empty();
+    empty
+        .type_registry
+        .register(crate::scene::RuntimeTypeRegistration::metadata(
+            ReflectTypeRegistration::new(
+                ReflectTypePath::new("compat.Resource", "Resource").unwrap(),
+                "Compatibility resource",
+                ReflectTypeInfo::json_with_fields(Vec::new()),
+                ReflectSerializationStrategy::Json,
+            )
+            .as_resource(),
+        ))
+        .unwrap();
+    assert!(empty.admits_dynamic_component_type("compat.Resource"));
+}
+
+#[test]
 fn namespace_changes_invalidate_prepared_world_mutations_even_without_rows() {
     let (catalog, mut world, _) = orb_world();
     let before = world.world_generation();

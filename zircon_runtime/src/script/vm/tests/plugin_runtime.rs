@@ -130,12 +130,12 @@ fn vm_plugin_manager_exposes_nonblocking_bounded_discovery_request() {
 fn vm_plugin_manager_calls_exports_by_loaded_package_name() {
     let manager = VmPluginManager::mock();
     let slot = manager
-        .load_package(test_package("gameplay", "0.1.0"))
+        .load_package(test_package("fixture_game", "0.1.0"))
         .unwrap();
 
     let returned = manager
         .call_package_export(
-            "gameplay",
+            "fixture_game",
             "player",
             "onUpdate",
             &[ScriptHostValue::Int(7), ScriptHostValue::Float(0.25)],
@@ -143,7 +143,7 @@ fn vm_plugin_manager_calls_exports_by_loaded_package_name() {
         .unwrap();
 
     assert_eq!(returned, Some(ScriptHostValue::Null));
-    assert_eq!(manager.slot_for_package_name("gameplay").unwrap(), slot);
+    assert_eq!(manager.slot_for_package_name("fixture_game").unwrap(), slot);
 }
 
 #[test]

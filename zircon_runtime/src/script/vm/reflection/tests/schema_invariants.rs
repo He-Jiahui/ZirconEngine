@@ -20,7 +20,7 @@ fn schema_field(
 
 #[test]
 fn public_property_writes_preserve_complete_vm_component_schema() {
-    const TYPE_PATH: &str = "gameplay.Component.PublicPropertyState";
+    const TYPE_PATH: &str = "fixture_game.Component.PublicPropertyState";
     let registration = vm_component_registration(
         TYPE_PATH,
         "PublicPropertyState",
@@ -90,7 +90,7 @@ fn public_property_writes_preserve_complete_vm_component_schema() {
 
 #[test]
 fn zero_field_vm_components_accept_only_empty_objects() {
-    const TYPE_PATH: &str = "gameplay.Component.EmptyState";
+    const TYPE_PATH: &str = "fixture_game.Component.EmptyState";
     let mut world = World::empty();
     world
         .register_vm_type(
@@ -126,7 +126,7 @@ fn zero_field_vm_components_accept_only_empty_objects() {
 
 #[test]
 fn vm_entity_and_resource_wrappers_reject_lossy_extra_keys() {
-    const TYPE_PATH: &str = "gameplay.Component.Links";
+    const TYPE_PATH: &str = "fixture_game.Component.Links";
     let mut world = World::empty();
     world
         .register_vm_type(
@@ -191,7 +191,7 @@ fn vm_registration_rejects_malformed_declared_value_type_grammar() {
         "Map<Integer, String>",
     ] {
         let registration = vm_component_registration(
-            "gameplay.Component.Malformed",
+            "fixture_game.Component.Malformed",
             "Malformed",
             ReflectScriptVisibility::Public,
             vec![schema_field("value", malformed, ReflectEditorHint::None)],
@@ -204,7 +204,7 @@ fn vm_registration_rejects_malformed_declared_value_type_grammar() {
             matches!(
                 &error,
                 SceneError::Reflect(ReflectError::InvalidRegistration { type_path, reason })
-                    if type_path == "gameplay.Component.Malformed"
+                    if type_path == "fixture_game.Component.Malformed"
                         && reason.contains("reflected field `value`")
             )
         } else {
@@ -214,7 +214,7 @@ fn vm_registration_rejects_malformed_declared_value_type_grammar() {
                     type_path,
                     field_name,
                     reason,
-                }) if type_path == "gameplay.Component.Malformed"
+                }) if type_path == "fixture_game.Component.Malformed"
                     && field_name == "value"
                     && !reason.is_empty()
             )
@@ -228,7 +228,7 @@ fn vm_registration_rejects_malformed_declared_value_type_grammar() {
     World::empty()
         .register_vm_type(
             vm_component_registration(
-                "gameplay.Component.Nested",
+                "fixture_game.Component.Nested",
                 "Nested",
                 ReflectScriptVisibility::Public,
                 vec![schema_field(
@@ -244,7 +244,7 @@ fn vm_registration_rejects_malformed_declared_value_type_grammar() {
 
 #[test]
 fn nested_type_mismatches_report_canonical_declared_grammar() {
-    const TYPE_PATH: &str = "gameplay.Component.NestedMismatch";
+    const TYPE_PATH: &str = "fixture_game.Component.NestedMismatch";
     let mut world = World::empty();
     world
         .register_vm_type(
@@ -285,7 +285,7 @@ fn vm_registration_revalidates_canonical_dto_text_and_plugin_prefix() {
     );
     wrong_prefix.type_path = wrong_prefix
         .type_path
-        .with_plugin_id("gameplay")
+        .with_plugin_id("fixture_game")
         .expect("test plugin id should be valid");
     assert!(matches!(
         World::empty()
@@ -295,7 +295,7 @@ fn vm_registration_revalidates_canonical_dto_text_and_plugin_prefix() {
     ));
 
     let mut untrimmed = vm_component_registration(
-        "gameplay.Component.Health",
+        "fixture_game.Component.Health",
         "Health",
         ReflectScriptVisibility::Public,
         vec![scalar_field("current")],
@@ -312,13 +312,13 @@ fn vm_registration_revalidates_canonical_dto_text_and_plugin_prefix() {
 #[test]
 fn public_non_component_state_types_are_not_projected_as_vm_components() {
     let component = vm_component_registration(
-        "gameplay.Component.Health",
+        "fixture_game.Component.Health",
         "Health",
         ReflectScriptVisibility::Public,
         vec![scalar_field("current")],
     );
     let mut resource = vm_component_registration(
-        "gameplay.Resource.Settings",
+        "fixture_game.Resource.Settings",
         "Settings",
         ReflectScriptVisibility::Public,
         vec![scalar_field("volume")],
@@ -331,13 +331,13 @@ fn public_non_component_state_types_are_not_projected_as_vm_components() {
     assert_eq!(projected.registrations().len(), 1);
     assert_eq!(
         projected.registrations()[0].type_path.type_path(),
-        "gameplay.Component.Health"
+        "fixture_game.Component.Health"
     );
 }
 
 #[test]
 fn candidate_schema_revalidates_retained_live_vm_payloads_before_publish() {
-    const TYPE_PATH: &str = "gameplay.Component.Health";
+    const TYPE_PATH: &str = "fixture_game.Component.Health";
     let catalog = VmReflectionCatalog::default();
     let (_runtime, level) = create_managed_level(&catalog);
     let slot = PluginSlotId::new(31);
@@ -345,7 +345,7 @@ fn candidate_schema_revalidates_retained_live_vm_payloads_before_publish() {
         .publish_generation(
             slot,
             1,
-            "gameplay",
+            "fixture_game",
             &state_schema(vec![vm_component_registration(
                 TYPE_PATH,
                 "Health",
@@ -367,7 +367,7 @@ fn candidate_schema_revalidates_retained_live_vm_payloads_before_publish() {
         .publish_generation(
             slot,
             2,
-            "gameplay",
+            "fixture_game",
             &state_schema(vec![vm_component_registration(
                 TYPE_PATH,
                 "Health",
@@ -403,9 +403,9 @@ fn equal_generation_cannot_replace_a_different_schema() {
         .publish_generation(
             slot,
             1,
-            "gameplay",
+            "fixture_game",
             &state_schema(vec![vm_component_registration(
-                "gameplay.Component.Health",
+                "fixture_game.Component.Health",
                 "Health",
                 ReflectScriptVisibility::Public,
                 vec![scalar_field("current")],
@@ -417,9 +417,9 @@ fn equal_generation_cannot_replace_a_different_schema() {
         .publish_generation(
             slot,
             1,
-            "gameplay",
+            "fixture_game",
             &state_schema(vec![vm_component_registration(
-                "gameplay.Component.Health",
+                "fixture_game.Component.Health",
                 "Health",
                 ReflectScriptVisibility::Public,
                 vec![schema_field("current", "String", ReflectEditorHint::String)],
@@ -449,9 +449,9 @@ fn committed_catalog_mutations_invalidate_older_registry_snapshots() {
         .publish_generation(
             PluginSlotId::new(51),
             1,
-            "gameplay",
+            "fixture_game",
             &state_schema(vec![vm_component_registration(
-                "gameplay.Component.Health",
+                "fixture_game.Component.Health",
                 "Health",
                 ReflectScriptVisibility::Public,
                 vec![scalar_field("current")],
@@ -476,7 +476,7 @@ fn trusted_package_owner_rejects_self_consistent_foreign_namespaces() {
             1,
             "trusted_package",
             &state_schema(vec![vm_component_registration(
-                "gameplay.Component.Health",
+                "fixture_game.Component.Health",
                 "Health",
                 ReflectScriptVisibility::Public,
                 vec![scalar_field("current")],
@@ -490,7 +490,7 @@ fn trusted_package_owner_rejects_self_consistent_foreign_namespaces() {
             ref expected_owner,
             ref declared_owner,
             ..
-        } if expected_owner == "trusted_package" && declared_owner == "gameplay"
+        } if expected_owner == "trusted_package" && declared_owner == "fixture_game"
     ));
     assert_eq!(catalog.revision(), 0);
 }
@@ -502,9 +502,9 @@ fn same_revision_candidates_have_distinct_commit_identity() {
         .prepare_optional_generation(
             PluginSlotId::new(71),
             1,
-            "gameplay",
+            "fixture_game",
             Some(&state_schema(vec![vm_component_registration(
-                "gameplay.Component.Health",
+                "fixture_game.Component.Health",
                 "Health",
                 ReflectScriptVisibility::Public,
                 vec![scalar_field("current")],
@@ -516,9 +516,9 @@ fn same_revision_candidates_have_distinct_commit_identity() {
         .prepare_optional_generation(
             PluginSlotId::new(72),
             1,
-            "gameplay",
+            "fixture_game",
             Some(&state_schema(vec![vm_component_registration(
-                "gameplay.Component.Mana",
+                "fixture_game.Component.Mana",
                 "Mana",
                 ReflectScriptVisibility::Public,
                 vec![scalar_field("current")],
@@ -556,9 +556,9 @@ fn prepared_generation_cannot_cross_catalog_boundaries() {
         .prepare_optional_generation(
             PluginSlotId::new(81),
             1,
-            "gameplay",
+            "fixture_game",
             Some(&state_schema(vec![vm_component_registration(
-                "gameplay.Component.Health",
+                "fixture_game.Component.Health",
                 "Health",
                 ReflectScriptVisibility::Public,
                 vec![scalar_field("current")],
@@ -582,5 +582,5 @@ fn prepared_generation_cannot_cross_catalog_boundaries() {
     assert_eq!(snapshot.revision(), 0);
     assert!(!snapshot
         .registry()
-        .contains_type_path("gameplay.Component.Health"));
+        .contains_type_path("fixture_game.Component.Health"));
 }

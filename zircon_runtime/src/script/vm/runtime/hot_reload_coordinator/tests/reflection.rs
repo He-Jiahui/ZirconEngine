@@ -72,7 +72,7 @@ fn load_publishes_reflection_schema_before_slot_becomes_active() {
     let coordinator = HotReloadCoordinator::new();
 
     let mut package = test_package("0.1.0");
-    package.manifest.name = "gameplay".to_string();
+    package.manifest.name = "fixture_game".to_string();
     coordinator
         .load_package("reflection-schema", &backend, package, &host)
         .expect("valid reflected VM package should load");
@@ -87,7 +87,7 @@ fn load_publishes_reflection_schema_before_slot_becomes_active() {
         .expect("published schema should be available to future worlds");
     assert!(world
         .type_registry()
-        .contains_type_path("gameplay.Component.Health"));
+        .contains_type_path("fixture_game.Component.Health"));
 }
 
 fn vm_state_schema() -> VmStateSchema {
@@ -95,9 +95,9 @@ fn vm_state_schema() -> VmStateSchema {
         schema_version: 2,
         types: vec![VmStateTypeSchema {
             registration: ReflectTypeRegistration::new(
-                ReflectTypePath::new("gameplay.Component.Health", "Health")
+                ReflectTypePath::new("fixture_game.Component.Health", "Health")
                     .expect("test reflection path should be valid")
-                    .with_plugin_id("gameplay")
+                    .with_plugin_id("fixture_game")
                     .expect("test plugin id should be valid"),
                 "Health",
                 ReflectTypeInfo::struct_with_fields(vec![ReflectFieldInfo::from_stable_keys(
@@ -110,7 +110,7 @@ fn vm_state_schema() -> VmStateSchema {
                 ReflectSerializationStrategy::Value,
             )
             .as_component()
-            .with_plugin_id("gameplay")
+            .with_plugin_id("fixture_game")
             .expect("test plugin id should be valid")
             .with_script_visibility(ReflectScriptVisibility::Public),
             type_hash: 1,
