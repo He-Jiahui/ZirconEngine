@@ -21,6 +21,8 @@ pub(crate) const SETTINGS_DECREMENT_COLOR_ALPHA_ACTION_ID: &str =
     "editor.settings.decrement_color_alpha";
 pub(crate) const SETTINGS_INCREMENT_COLOR_ALPHA_ACTION_ID: &str =
     "editor.settings.increment_color_alpha";
+pub(crate) const SETTINGS_EDIT_NUMERIC_ACTION_ID: &str = "editor.settings.edit_numeric";
+pub(crate) const SETTINGS_COMMIT_NUMERIC_ACTION_ID: &str = "editor.settings.commit_numeric";
 pub(crate) const SETTINGS_EDIT_STRING_ACTION_ID: &str = "editor.settings.edit_string";
 pub(crate) const SETTINGS_COMMIT_STRING_ACTION_ID: &str = "editor.settings.commit_string";
 pub(crate) const SETTINGS_CAPTURE_CHORD_ACTION_ID: &str = "editor.settings.capture_chord";

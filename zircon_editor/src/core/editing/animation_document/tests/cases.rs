@@ -1,3 +1,6 @@
+#[path = "state_machine_conditions.rs"]
+mod state_machine_conditions;
+
 use zircon_runtime::asset::AssetUri;
 use zircon_runtime::core::framework::animation::{
     AnimationGraphAsset, AnimationGraphNodeAsset, AnimationGraphParameterAsset,

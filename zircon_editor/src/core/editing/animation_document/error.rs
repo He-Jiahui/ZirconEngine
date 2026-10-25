@@ -59,4 +59,6 @@ pub(crate) enum AnimationDocumentMutationError {
     InvalidTrackPath { message: String },
     #[error("invalid animation graph locator: {message}")]
     InvalidGraphLocator { message: String },
+    #[error("invalid animation graph target: {message}")]
+    InvalidGraphTarget { message: String },
 }

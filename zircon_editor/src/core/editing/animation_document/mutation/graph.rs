@@ -12,7 +12,7 @@ pub(super) fn add_node(
 ) -> Result<bool, super::super::AnimationDocumentMutationError> {
     let node = match node_kind {
         AnimationGraphNodeKind::Output => {
-            if has_output_node(asset) {
+            if has_output_node(asset) || has_named_node(asset, "output") {
                 return Ok(false);
             }
             AnimationGraphNodeAsset::Output {
@@ -20,10 +20,12 @@ pub(super) fn add_node(
             }
         }
         AnimationGraphNodeKind::Blend => {
-            if asset
-                .nodes
-                .iter()
-                .any(|node| node_id_for(node) == Some(node_id))
+            // The editor addresses the singleton sink as `output`, separately from named nodes.
+            if node_id == "output"
+                || asset
+                    .nodes
+                    .iter()
+                    .any(|node| node_id_for(node) == Some(node_id))
             {
                 return Ok(false);
             }
@@ -36,6 +38,49 @@ pub(super) fn add_node(
     };
     asset.nodes.push(node);
     Ok(true)
+}
+
+// Legacy wire commands carry strings, so reject non-unique targets before any source write.
+// A connection source is always named; the singleton output sink is only a target.
+pub(super) fn validate_legacy_named_source(
+    asset: &AnimationGraphAsset,
+    node_id: &str,
+) -> Result<(), super::super::AnimationDocumentMutationError> {
+    let matches = asset
+        .nodes
+        .iter()
+        .filter(|node| node_id_for(node) == Some(node_id))
+        .count();
+    reject_ambiguous_legacy_target(node_id, matches)
+}
+
+pub(super) fn validate_legacy_node_target(
+    asset: &AnimationGraphAsset,
+    node_id: &str,
+) -> Result<(), super::super::AnimationDocumentMutationError> {
+    let matches = asset
+        .nodes
+        .iter()
+        .filter(|node| {
+            node_id_for(node) == Some(node_id)
+                || (node_id == "output" && matches!(node, AnimationGraphNodeAsset::Output { .. }))
+        })
+        .count();
+    reject_ambiguous_legacy_target(node_id, matches)
+}
+
+fn reject_ambiguous_legacy_target(
+    node_id: &str,
+    matches: usize,
+) -> Result<(), super::super::AnimationDocumentMutationError> {
+    if matches > 1 {
+        return Err(super::super::AnimationDocumentMutationError::InvalidGraphTarget {
+            message: format!(
+                "legacy node identifier `{node_id}` matches {matches} nodes; an explicit typed target is required"
+            ),
+        });
+    }
+    Ok(())
 }
 
 pub(super) fn remove_node(asset: &mut AnimationGraphAsset, node_id: &str) -> bool {
@@ -174,7 +219,8 @@ pub(super) fn set_parameter(
         else {
             return false;
         };
-        let changed = parameter.default_value != next;
+        // A sign-only float edit changes the authored source and must reach document history.
+        let changed = !parameter_value_has_same_source_bits(&parameter.default_value, &next);
         parameter.default_value = next;
         return changed;
     }
@@ -186,6 +232,27 @@ pub(super) fn set_parameter(
         default_value,
     });
     true
+}
+
+fn parameter_value_has_same_source_bits(
+    left: &AnimationParameterValue,
+    right: &AnimationParameterValue,
+) -> bool {
+    match (left, right) {
+        (AnimationParameterValue::Scalar(left), AnimationParameterValue::Scalar(right)) => {
+            left.to_bits() == right.to_bits()
+        }
+        (AnimationParameterValue::Vec2(left), AnimationParameterValue::Vec2(right)) => {
+            left.map(f32::to_bits) == right.map(f32::to_bits)
+        }
+        (AnimationParameterValue::Vec3(left), AnimationParameterValue::Vec3(right)) => {
+            left.map(f32::to_bits) == right.map(f32::to_bits)
+        }
+        (AnimationParameterValue::Vec4(left), AnimationParameterValue::Vec4(right)) => {
+            left.map(f32::to_bits) == right.map(f32::to_bits)
+        }
+        _ => left == right,
+    }
 }
 
 fn node_id_for(node: &AnimationGraphNodeAsset) -> Option<&str> {
@@ -288,3 +355,11 @@ fn parse_vector_literal<const N: usize>(value_literal: &str) -> Option<[f32; N]>
     }
     Some(values)
 }
+
+#[cfg(test)]
+#[path = "../tests/graph_output_identity.rs"]
+mod identity_tests;
+
+#[cfg(test)]
+#[path = "../tests/graph_parameter_bits.rs"]
+mod parameter_bits_tests;

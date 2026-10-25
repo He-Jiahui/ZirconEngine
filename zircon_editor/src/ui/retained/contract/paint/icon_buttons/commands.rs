@@ -10,7 +10,7 @@ use super::geometry::{
 };
 use super::identity::is_workbench_icon_button;
 use super::layers::glyph_order;
-use super::style::{icon_button_context, icon_button_style};
+use super::style::{icon_button_context, icon_button_style, IconButtonContext};
 use super::surface::push_icon_button_surface;
 use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 
@@ -38,8 +38,20 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ic
     let style = icon_button_style(node, context);
     push_icon_button_surface(commands, &rect, clip, order, style, opacity);
     let content_style = icon_button_content_style(style);
-    let glyph = content_style.offset_glyph_rect(icon_glyph_rect(node, &rect, context));
-    if icon_glyph_is_paintable(&glyph, &rect, context) {
+    let glyph = icon_glyph_rect(node, &rect, context);
+    let glyph = if context == IconButtonContext::TabClose {
+        glyph
+    } else {
+        content_style.offset_glyph_rect(glyph)
+    };
+    if icon_glyph_is_paintable(node, &glyph, &rect, context) {
+        // SVG tinting consumes RGB only; carry the Close brush's alpha through
+        // the actual image command so disabled matches the Penpot brush.
+        let glyph_opacity = if context == IconButtonContext::TabClose {
+            opacity * f32::from(content_style.glyph[3]) / 255.0
+        } else {
+            opacity
+        };
         push_icon_button_glyph(
             commands,
             node,
@@ -47,7 +59,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ic
             clip,
             glyph_order(order),
             content_style.glyph,
-            opacity,
+            glyph_opacity,
         );
     }
     true

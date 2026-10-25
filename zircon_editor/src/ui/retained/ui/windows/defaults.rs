@@ -168,7 +168,10 @@ pub(super) fn default_workbench_surface_variant(
         ("InputField", _) | ("TextField", _) | ("NumberField", _) | ("SearchField", _) => {
             Some("inset".to_string())
         }
-        ("Label", _) | ("Text", _) => None,
+        ("Label" | "Text" | "HorizontalGroup" | "VerticalGroup" | "Space" | "ScrollableBox", _) => {
+            None
+        }
+        (_, "horizontal-group" | "vertical-group" | "space" | "scrollable-box") => None,
         _ => Some("panel".to_string()),
     }
 }
@@ -209,7 +212,8 @@ pub(super) fn default_corner_radius(component: &str, component_role: &str) -> f6
         | ("InputField", _)
         | ("SearchField", _)
         | (_, "button") => 5.0,
-        ("Label", _) | ("Text", _) => 0.0,
+        ("Label" | "Text" | "HorizontalGroup" | "VerticalGroup" | "Space" | "ScrollableBox", _)
+        | (_, "horizontal-group" | "vertical-group" | "space" | "scrollable-box") => 0.0,
         _ => 4.0,
     }
 }

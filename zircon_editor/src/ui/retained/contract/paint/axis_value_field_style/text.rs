@@ -2,6 +2,7 @@
 
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::super::paint_theme::{current_host_palette, HostMaterialPalette};
+use super::super::template_style_color::resolved_style_color;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_field_text_color(
     node: &TemplatePaneNodeData,
@@ -14,7 +15,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn axis_fi
     palette: HostMaterialPalette,
 ) -> [u8; 4] {
     if node.disabled {
-        palette.text_disabled
+        resolved_style_color(node.authored_field_colors.get("disabled_foreground_color"))
+            .unwrap_or(palette.text_disabled)
     } else if matches!(node.validation_level.as_str(), "error" | "danger") {
         palette.error
     } else if node.value_color.a > 0 {

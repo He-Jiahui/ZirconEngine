@@ -30,6 +30,9 @@ impl RetainedEditorHost {
         }
         if control_id == callback_dispatch::WORKBENCH_SETTINGS_WINDOW_CONTROL_ID {
             if action_id == SETTINGS_CATEGORY_CHANGED_ACTION_ID {
+                self.retire_settings_native_text_focus();
+                self.workbench_window_bridge
+                    .invalidate_settings_values_context();
                 let values = match self.runtime.capture_settings_values_for_category(option_id) {
                     Ok(values) => values,
                     Err(error) => return Some(Err(error.to_string())),
@@ -56,7 +59,20 @@ impl RetainedEditorHost {
                 } else {
                     callback_dispatch::WorkbenchSettingsEditorKind::Color
                 };
-                return Some(
+                let result = (|| {
+                    let closing = self
+                        .workbench_window_bridge
+                        .settings_editor_open_key(kind)
+                        .as_deref()
+                        == Some(option_id);
+                    if !closing {
+                        let context = self
+                            .workbench_window_bridge
+                            .settings_mutation_context(option_id)?;
+                        self.runtime
+                            .check_settings_values_context(&context)
+                            .map_err(|error| error.to_string())?;
+                    }
                     self.workbench_window_bridge
                         .toggle_settings_editor(option_id, kind)
                         .map(|changed| {
@@ -66,8 +82,9 @@ impl RetainedEditorHost {
                             }
                             effects
                         })
-                        .map_err(|error| error.to_string()),
-                );
+                        .map_err(|error| error.to_string())
+                })();
+                return Some(result);
             } else if action_id == SETTINGS_SELECT_ENUM_ACTION_ID {
                 return Some(self.select_settings_enum_option(option_id));
             } else if action_id == SETTINGS_RETRY_PERSISTENCE_ACTION_ID {
@@ -96,32 +113,43 @@ impl RetainedEditorHost {
         action_id: &str,
         setting_key: &str,
     ) -> Result<UiHostEventEffects, String> {
+        let context = self
+            .workbench_window_bridge
+            .settings_mutation_context(setting_key)?;
         let receipt = if let Some((channel, direction)) = settings_color_step(action_id) {
             Some(
                 self.runtime
-                    .step_color_setting(setting_key, channel, direction)
+                    .step_color_setting(&context, setting_key, channel, direction)
                     .map_err(|error| error.to_string())?,
             )
         } else {
             match action_id {
                 SETTINGS_TOGGLE_BOOL_ACTION_ID => Some(
                     self.runtime
-                        .toggle_bool_setting(setting_key)
+                        .toggle_bool_setting(&context, setting_key)
                         .map_err(|error| error.to_string())?,
                 ),
                 SETTINGS_DECREMENT_NUMBER_ACTION_ID => Some(
                     self.runtime
-                        .step_numeric_setting(setting_key, SettingNumericStepDirection::Decrement)
+                        .step_numeric_setting(
+                            &context,
+                            setting_key,
+                            SettingNumericStepDirection::Decrement,
+                        )
                         .map_err(|error| error.to_string())?,
                 ),
                 SETTINGS_INCREMENT_NUMBER_ACTION_ID => Some(
                     self.runtime
-                        .step_numeric_setting(setting_key, SettingNumericStepDirection::Increment)
+                        .step_numeric_setting(
+                            &context,
+                            setting_key,
+                            SettingNumericStepDirection::Increment,
+                        )
                         .map_err(|error| error.to_string())?,
                 ),
                 SETTINGS_RESET_OVERRIDE_ACTION_ID => self
                     .runtime
-                    .reset_setting_override(setting_key)
+                    .reset_setting_override_from_context(&context, setting_key)
                     .map_err(|error| error.to_string())?,
                 _ => return Ok(UiHostEventEffects::default()),
             }
@@ -145,9 +173,12 @@ impl RetainedEditorHost {
         else {
             return Ok(UiHostEventEffects::default());
         };
+        let context = self
+            .workbench_window_bridge
+            .settings_mutation_context(&setting_key)?;
         let receipt = self
             .runtime
-            .set_enum_setting(&setting_key, option_id)
+            .set_enum_setting(&context, &setting_key, option_id)
             .map_err(|error| error.to_string())?;
         if !receipt.changed() {
             let closed = self
@@ -167,17 +198,23 @@ impl RetainedEditorHost {
         &mut self,
         close_editor: bool,
     ) -> Result<UiHostEventEffects, String> {
+        self.retire_settings_native_text_focus();
         let revision = self
             .workbench_window_bridge
             .settings_window_revision()
             .ok_or_else(|| "Settings window is not open".to_owned())?;
+        self.workbench_window_bridge
+            .invalidate_settings_values_context();
+        self.workbench_window_bridge
+            .invalidate_settings_persistence_retry_context();
         let values = self
             .runtime
             .capture_settings_values_for_category(&revision.selected_category_id)
             .map_err(|error| error.to_string())?;
-        let health = self
+        let (health, retry_context) = self
             .runtime
-            .capture_settings_persistence_health_projection();
+            .capture_settings_persistence_health_with_retry()
+            .map_err(|error| error.to_string())?;
         self.workbench_window_bridge
             .prepare_settings_persistence_health(&health)
             .map_err(|error| error.to_string())?;
@@ -189,29 +226,36 @@ impl RetainedEditorHost {
                 .refresh_settings_values(&values)
         }
         .map_err(|error| error.to_string())?;
+        let health_refreshed = self
+            .workbench_window_bridge
+            .refresh_settings_persistence_health(&health, retry_context.as_ref())
+            .map_err(|error| error.to_string())?;
         let mut effects = UiHostEventEffects::default();
-        if refreshed {
+        if refreshed || health_refreshed {
             effects.request_paint_only();
         }
         Ok(effects)
     }
 
     fn retry_settings_persistence(&mut self, scope: &str) -> Result<UiHostEventEffects, String> {
+        let context = self
+            .workbench_window_bridge
+            .settings_persistence_retry_context(scope)?;
         self.runtime
-            .retry_settings_persistence(scope)
+            .retry_settings_persistence(&context, scope)
             .map_err(|error| error.to_string())?;
-        let health = self
+        self.workbench_window_bridge
+            .invalidate_settings_persistence_retry_context();
+        let (health, retry_context) = self
             .runtime
-            .capture_settings_persistence_health_projection();
+            .capture_settings_persistence_health_with_retry()
+            .map_err(|error| error.to_string())?;
         let changed = self
             .workbench_window_bridge
-            .prepare_settings_persistence_health(&health)
+            .refresh_settings_persistence_health(&health, retry_context.as_ref())
             .map_err(|error| error.to_string())?;
         let mut effects = UiHostEventEffects::default();
         if changed {
-            self.workbench_window_bridge
-                .refresh_prepared_state_change()
-                .map_err(|error| error.to_string())?;
             effects.request_paint_only();
         }
         Ok(effects)

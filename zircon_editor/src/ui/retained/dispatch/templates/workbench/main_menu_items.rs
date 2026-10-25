@@ -10,13 +10,23 @@ use super::componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 struct CommandMenuContract {
     menus: std::collections::BTreeMap<String, Vec<String>>,
     triggers: std::collections::BTreeMap<String, String>,
+    #[serde(default)]
+    empty_trigger_policy: std::collections::BTreeMap<String, EmptyMenuTriggerPolicy>,
+}
+
+#[derive(serde::Deserialize)]
+enum EmptyMenuTriggerPolicy {
+    VisibleDisabled,
 }
 
 fn command_menu_contract() -> &'static CommandMenuContract {
     static CONTRACT: std::sync::OnceLock<CommandMenuContract> = std::sync::OnceLock::new();
-    CONTRACT.get_or_init(|| toml::from_str(include_str!(
-        "../../../../../../assets/ui/editor/unreal/menus.contract.toml"
-    )).expect("built-in command menu contract must be valid"))
+    CONTRACT.get_or_init(|| {
+        toml::from_str(include_str!(
+            "../../../../../../assets/ui/editor/unreal/menus.contract.toml"
+        ))
+        .expect("built-in command menu contract must be valid")
+    })
 }
 
 fn find_menu_command<'a>(
@@ -24,7 +34,11 @@ fn find_menu_command<'a>(
     id: &str,
 ) -> Option<&'a crate::core::commands::MenuItemModel> {
     items.iter().find_map(|item| {
-        if item.operation_path.as_ref().is_some_and(|path| path.as_str() == id) {
+        if item
+            .operation_path
+            .as_ref()
+            .is_some_and(|path| path.as_str() == id)
+        {
             Some(item)
         } else {
             find_menu_command(&item.children, id)
@@ -47,19 +61,39 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         menu_bar: &crate::core::commands::MenuBarModel,
     ) -> Result<(), super::error::BuiltinHostWindowTemplateBridgeError> {
         use zircon_runtime_interface::ui::component::UiValue;
-        for (control, commands) in &command_menu_contract().menus {
-            if !self.has_control(control) { continue; }
-            let items: Vec<UiValue> = commands.iter().filter_map(|id| {
-                let item = menu_bar.menus.iter()
-                    .find_map(|menu| find_menu_command(&menu.items, id))?;
-                // The popup encoding reserves these separators.
-                let label = item.label.replace(['|', '\n', '\r'], " ");
-                let disabled = if item.enabled { "" } else { ",disabled" };
-                Some(UiValue::String(format!("{label}|action={id}{disabled}|{}",
-                    item.shortcut.as_deref().unwrap_or_default())))
-            }).collect();
-            if let Some(trigger) = command_menu_contract().triggers.get(control) {
-                self.set_visible(trigger, !items.is_empty())?;
+        let contract = command_menu_contract();
+        for (control, commands) in &contract.menus {
+            if !self.has_control(control) {
+                continue;
+            }
+            let items: Vec<UiValue> = commands
+                .iter()
+                .filter_map(|id| {
+                    let item = menu_bar
+                        .menus
+                        .iter()
+                        .find_map(|menu| find_menu_command(&menu.items, id))?;
+                    // The popup encoding reserves these separators.
+                    let label = item.label.replace(['|', '\n', '\r'], " ");
+                    let disabled = if item.enabled { "" } else { ",disabled" };
+                    Some(UiValue::String(format!(
+                        "{label}|action={id}{disabled}|{}",
+                        item.shortcut.as_deref().unwrap_or_default()
+                    )))
+                })
+                .collect();
+            if let Some(trigger) = contract.triggers.get(control) {
+                match contract.empty_trigger_policy.get(control) {
+                    Some(EmptyMenuTriggerPolicy::VisibleDisabled) => {
+                        self.set_visible(trigger, true)?;
+                        self.mutate_control_property(
+                            trigger,
+                            "disabled",
+                            UiValue::Bool(items.is_empty()),
+                        )?;
+                    }
+                    None => self.set_visible(trigger, !items.is_empty())?,
+                }
             }
             self.mutate_control_property(control, "menu_items", UiValue::Array(items))?;
         }
@@ -81,7 +115,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         {
             return None;
         }
-        Some(editor_operation_binding(&EditorOperationPath::parse(action_id).ok()?))
+        Some(editor_operation_binding(
+            &EditorOperationPath::parse(action_id).ok()?,
+        ))
     }
 
     fn toolbar_main_menu_item_binding(&self, action_id: &str) -> Option<EditorUiBinding> {

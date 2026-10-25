@@ -17,8 +17,8 @@ fn workbench_button_preserves_fractional_frame_and_honors_declared_layout_offset
 
     let rect = button_paint_rect(&node, &node.frame_rect());
 
-    assert_eq!(rect.x, 15.4);
-    assert_eq!(rect.y, 7.4);
+    assert!((rect.x - 15.4).abs() < 0.00001);
+    assert!((rect.y - 7.4).abs() < 0.00001);
     assert_eq!(rect.width, 80.0);
     assert_eq!(rect.height, 32.0);
 }

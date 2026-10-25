@@ -1,3 +1,4 @@
+use super::super::template_component_family::{is_component_family, TemplateComponentFamily};
 use super::{retained_pane_input::find_retained_input_pane, UiHostWindow};
 use crate::ui::retained_host::host_contract::data::{
     HostTextInputFocusData, HostWindowPresentationData, PaneData, UiAssetPaletteInputTarget,
@@ -45,6 +46,9 @@ pub(crate) fn palette_search_focus_current(
                 && node.dispatch_kind == focus.dispatch_kind
                 && node.edit_action_id == focus.edit_action_id
                 && node.commit_action_id == focus.commit_action_id
+                // A hot-replaced node can keep its ID/routes while no longer
+                // taking text input. Reuse the native hit/paint family authority.
+                && is_component_family(node, TemplateComponentFamily::TextInput)
                 && !node.disabled
                 && node.frame.x.is_finite()
                 && node.frame.y.is_finite()
@@ -163,6 +167,8 @@ component = "VerticalGroup"
         // This unit fixture is not a Surface/renderer producer or native GUI evidence.
         dock.pane.ui_asset.nodes = model_rc(vec![TemplatePaneNodeData {
             control_id: field.control_id,
+            role: field.role,
+            component_role: field.component_role,
             dispatch_kind: field.dispatch_kind,
             edit_action_id: field.edit_action_id,
             commit_action_id: field.commit_action_id,
@@ -433,5 +439,55 @@ component = "VerticalGroup"
         }
         assert!(palette_search_focus_current(&original, &focus));
         assert!(host.palette_search_input_is_current(&input, "query"));
+    }
+
+    #[test]
+    fn palette_search_same_id_non_text_replacement_retires_query_and_does_not_revive_it() {
+        for (role, component_role) in [
+            ("Button", "button"),
+            ("Dropdown", "dropdown"),
+            ("KeySelector", "key-selector"),
+            ("Label", ""),
+        ] {
+            let (host, input) = focused_window();
+            let original = host.get_host_presentation_generation().structure().clone();
+            let focus = host.state.borrow().text_input_focus.as_ref().clone();
+            host.set_host_presentation(original.clone());
+            assert!(host.palette_search_input_is_current(&input, "query"));
+            assert!(host.state.borrow().text_input_focus.as_ref() == &focus);
+
+            let mut replacement = original.clone();
+            let pane = &mut replacement.host_scene_data.document_dock.pane;
+            let mut field = pane.ui_asset.nodes.row_data(0).unwrap();
+            field.role = role.into();
+            field.component_role = component_role.into();
+            assert_eq!(field.control_id, focus.control_id);
+            assert_eq!(field.dispatch_kind, focus.dispatch_kind);
+            assert_eq!(field.edit_action_id, focus.edit_action_id);
+            assert_eq!(field.commit_action_id, focus.commit_action_id);
+            assert!(!is_component_family(
+                &field,
+                TemplateComponentFamily::TextInput
+            ));
+            pane.ui_asset.nodes = model_rc(vec![field]);
+            assert!(pane
+                .ui_asset
+                .collections
+                .palette_search
+                .as_ref()
+                .unwrap()
+                .same_source(input.snapshot()));
+            assert!(!palette_search_focus_current(&replacement, &focus));
+
+            host.set_host_presentation(replacement);
+            assert!(!host.text_input_focus_active());
+            assert!(!host.palette_search_input_is_current(&input, "query"));
+            assert!(!host
+                .dispatch_focused_text_insert("late query")
+                .request_redraw());
+            host.set_host_presentation(original);
+            assert!(!host.text_input_focus_active());
+            assert!(!host.palette_search_input_is_current(&input, "query"));
+        }
     }
 }

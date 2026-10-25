@@ -774,7 +774,7 @@ fn browser_thumbnail_virtual_rebind_reprojects_item_specific_child_geometry() {
             nodes.row_data(5).expect("recycled first retained name"),
             pane_clip.clone(),
         )
-        .expect("name should fit the rebound slot width");
+        .expect("name should preserve the minimum recognizable file name");
     let (badge, _) = projector
         .transform_row(
             7,
@@ -805,9 +805,10 @@ fn browser_thumbnail_virtual_rebind_reprojects_item_specific_child_geometry() {
         visual.frame.height < 88.0,
         "stacked info band reduces visual height"
     );
-    assert!(
-        info_band.frame.y > visual.frame.y + visual.frame.height,
-        "stacked item-specific info band follows the shorter preview"
+    assert_eq!(
+        info_band.frame.y,
+        visual.frame.y + visual.frame.height,
+        "stacked item-specific info band shares the shorter preview's boundary"
     );
     assert!(continuation.frame.height > 0.0);
     assert!(continuation.frame.y > name.frame.y);
@@ -823,9 +824,11 @@ fn browser_thumbnail_virtual_rebind_reprojects_item_specific_child_geometry() {
         "type text must stay inside the rebound badge"
     );
     assert!(meta.frame.x > badge.frame.x + badge.frame.width);
-    assert!(name.text.ends_with(".zui"));
-    assert!(
-        measure_runtime_text_width(name.text.as_str(), name.font_size) <= name.frame.width + 0.01
+    assert_eq!(name.frame.width, 106.0);
+    assert_eq!(name.text.as_str(), "work...ace.zui");
+    assert_eq!(
+        name.value_text.as_str(),
+        "workbench_extension_accessibility_workspace.zui"
     );
 }
 

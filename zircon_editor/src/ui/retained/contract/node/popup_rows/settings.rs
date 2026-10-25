@@ -13,10 +13,11 @@ use super::super::TemplateNodePointerMoveKind;
 use super::hit::TemplatePopupRowTarget;
 use crate::ui::settings::{
     SETTINGS_CAPTURE_CHORD_ACTION_ID, SETTINGS_CATEGORY_CHANGED_ACTION_ID,
-    SETTINGS_COMMIT_CHORD_ACTION_ID, SETTINGS_COMMIT_STRING_ACTION_ID,
-    SETTINGS_DECREMENT_COLOR_ALPHA_ACTION_ID, SETTINGS_DECREMENT_COLOR_BLUE_ACTION_ID,
-    SETTINGS_DECREMENT_COLOR_GREEN_ACTION_ID, SETTINGS_DECREMENT_COLOR_RED_ACTION_ID,
-    SETTINGS_DECREMENT_NUMBER_ACTION_ID, SETTINGS_EDIT_STRING_ACTION_ID,
+    SETTINGS_COMMIT_CHORD_ACTION_ID, SETTINGS_COMMIT_NUMERIC_ACTION_ID,
+    SETTINGS_COMMIT_STRING_ACTION_ID, SETTINGS_DECREMENT_COLOR_ALPHA_ACTION_ID,
+    SETTINGS_DECREMENT_COLOR_BLUE_ACTION_ID, SETTINGS_DECREMENT_COLOR_GREEN_ACTION_ID,
+    SETTINGS_DECREMENT_COLOR_RED_ACTION_ID, SETTINGS_DECREMENT_NUMBER_ACTION_ID,
+    SETTINGS_EDIT_NUMERIC_ACTION_ID, SETTINGS_EDIT_STRING_ACTION_ID,
     SETTINGS_INCREMENT_COLOR_ALPHA_ACTION_ID, SETTINGS_INCREMENT_COLOR_BLUE_ACTION_ID,
     SETTINGS_INCREMENT_COLOR_GREEN_ACTION_ID, SETTINGS_INCREMENT_COLOR_RED_ACTION_ID,
     SETTINGS_INCREMENT_NUMBER_ACTION_ID, SETTINGS_OPEN_COLOR_ACTION_ID,
@@ -179,6 +180,16 @@ fn hit_test_setting<'a>(
                 action_id: SETTINGS_INCREMENT_NUMBER_ACTION_ID,
                 value_text: entry.key.as_str(),
                 frame: increment,
+            };
+        }
+        let control = layout.setting_numeric_value_frame(row, resettable);
+        if contains_point(&control, x, y) {
+            return TemplatePopupRowTarget::TextInput {
+                control_id: entry.key.as_str(),
+                edit_action_id: SETTINGS_EDIT_NUMERIC_ACTION_ID,
+                commit_action_id: SETTINGS_COMMIT_NUMERIC_ACTION_ID,
+                value_text: entry.value_text.as_str(),
+                frame: control,
             };
         }
     } else if entry.schema.as_str() == "enum" && !entry.options.is_empty() {

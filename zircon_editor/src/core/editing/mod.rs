@@ -22,3 +22,5 @@ pub mod operation;
 pub(crate) mod paths;
 #[path = "selection.rs"]
 pub(crate) mod selection;
+#[path = "skeleton_reference/mod.rs"]
+pub(crate) mod skeleton_reference;

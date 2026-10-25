@@ -1,4 +1,3 @@
-#[cfg(feature = "profiling")]
 use std::cell::Cell;
 use std::rc::Rc;
 
@@ -38,6 +37,7 @@ struct ActivityAssetContentProjector
     references_hovered_index: i32,
     used_by_scroll_px: f32,
     used_by_hovered_index: i32,
+    pending_row: Cell<Option<(usize, AssetContentRowDescriptor)>>,
     #[cfg(feature = "profiling")]
     descriptor_lookup_count: Cell<usize>,
 }
@@ -76,6 +76,7 @@ impl ActivityAssetContentProjector {
             references_hovered_index: interaction.activity_asset_references_hovered_index,
             used_by_scroll_px: interaction.activity_asset_used_by_scroll_px.max(0.0),
             used_by_hovered_index: interaction.activity_asset_used_by_hovered_index,
+            pending_row: Cell::new(None),
             #[cfg(feature = "profiling")]
             descriptor_lookup_count: Cell::new(0),
         })
@@ -113,14 +114,103 @@ impl TemplateNodePaintTransform for ActivityAssetContentProjector {
         ))
     }
 
-    fn transform_row(
+    fn filter_row(
         &self,
         row: usize,
+        node: &TemplatePaneNodeData,
+        clip: &FrameRect,
+    ) -> Option<FrameRect> {
+        self.pending_row.set(None);
+        self.record_descriptor_lookup();
+        let descriptor = self.metadata.row_descriptor(row);
+        let mut frame = asset_content_rect(&frame_from_template(&node.frame));
+        let row_clip = match descriptor {
+            AssetContentRowDescriptor::ActivityReference { list_kind, .. } => {
+                let (reference_clip, scroll_px) = match list_kind {
+                    ActivityAssetReferenceListKind::References => {
+                        (self.references_clip.as_ref()?, self.references_scroll_px)
+                    }
+                    ActivityAssetReferenceListKind::UsedBy => {
+                        (self.used_by_clip.as_ref()?, self.used_by_scroll_px)
+                    }
+                };
+                frame.y -= scroll_px;
+                projected_asset_content_clip(
+                    frame,
+                    self.origin_x,
+                    self.origin_y,
+                    reference_clip,
+                    clip,
+                )?
+            }
+            AssetContentRowDescriptor::ActivityContent(identity)
+                if identity != ActivityContentNodeIdentity::ContentPanel =>
+            {
+                if let ActivityContentNodeIdentity::Item { index: slot, role } = identity {
+                    if let Some(virtualization) = self.metadata.activity_virtualization() {
+                        let binding = self.metadata.activity_slot_binding(self.scroll_px, slot)?;
+                        // The current item's meta width determines its Name and Meta frames.
+                        let meta = binding.meta();
+                        frame = activity_row_geometry(
+                            virtualization.panel,
+                            virtualization.metrics,
+                            virtualization.view_mode,
+                            binding.top,
+                            binding.height,
+                            &meta,
+                        )
+                        .for_role(role);
+                    }
+                }
+                if identity.scrolls() {
+                    frame.y -= self.scroll_px;
+                }
+                projected_asset_content_clip(
+                    frame,
+                    self.origin_x,
+                    self.origin_y,
+                    self.content_clip.as_ref()?,
+                    clip,
+                )?
+            }
+            _ => clip.clone(),
+        };
+        // The paint pipeline calls patch immediately after a successful filter.
+        self.pending_row.set(Some((row, descriptor)));
+        Some(row_clip)
+    }
+
+    fn patch_row(
+        &self,
+        row: usize,
+        node: &TemplatePaneNodeData,
+        clip: &FrameRect,
+    ) -> Option<TemplatePaneNodeData> {
+        let (filtered_row, descriptor) = self.pending_row.take()?;
+        debug_assert_eq!(filtered_row, row);
+        if filtered_row != row {
+            return None;
+        }
+        match descriptor {
+            AssetContentRowDescriptor::ActivityReference { .. } => {}
+            AssetContentRowDescriptor::ActivityContent(identity)
+                if identity != ActivityContentNodeIdentity::ContentPanel => {}
+            _ => return None,
+        }
+        let projected = self.transform_node(descriptor, node.clone(), clip.clone());
+        debug_assert!(projected.is_some());
+        projected.map(|(node, _)| node)
+    }
+}
+
+impl ActivityAssetContentProjector {
+    fn transform_node(
+        &self,
+        descriptor: AssetContentRowDescriptor,
         mut node: TemplatePaneNodeData,
         clip: FrameRect,
     ) -> Option<(TemplatePaneNodeData, FrameRect)> {
-        self.record_descriptor_lookup();
-        match self.metadata.row_descriptor(row) {
+        match descriptor {
             AssetContentRowDescriptor::ActivityReference {
                 list_kind,
                 index,
@@ -254,6 +344,7 @@ struct BrowserAssetContentProjector
     references_hovered_index: i32,
     used_by_scroll_px: f32,
     used_by_hovered_index: i32,
+    pending_row: Cell<Option<(usize, AssetContentRowDescriptor)>>,
     #[cfg(feature = "profiling")]
     descriptor_lookup_count: Cell<usize>,
 }
@@ -301,6 +392,7 @@ impl BrowserAssetContentProjector {
             references_hovered_index: interaction.browser_asset_references_hovered_index,
             used_by_scroll_px: interaction.browser_asset_used_by_scroll_px.max(0.0),
             used_by_hovered_index: interaction.browser_asset_used_by_hovered_index,
+            pending_row: Cell::new(None),
             #[cfg(feature = "profiling")]
             descriptor_lookup_count: Cell::new(0),
         })
@@ -364,14 +456,126 @@ impl TemplateNodePaintTransform for BrowserAssetContentProjector {
         Some(rows)
     }
 
-    fn transform_row(
+    fn filter_row(
         &self,
         row: usize,
+        node: &TemplatePaneNodeData,
+        clip: &FrameRect,
+    ) -> Option<FrameRect> {
+        self.pending_row.set(None);
+        self.record_descriptor_lookup();
+        let descriptor = self.metadata.row_descriptor(row);
+        let mut frame = asset_content_rect(&frame_from_template(&node.frame));
+        let row_clip = match descriptor {
+            AssetContentRowDescriptor::BrowserSourceTree { .. } => {
+                frame.y -= self.source_tree_scroll_px;
+                projected_asset_content_clip(
+                    frame,
+                    self.origin_x,
+                    self.origin_y,
+                    self.source_tree_clip.as_ref()?,
+                    clip,
+                )?
+            }
+            AssetContentRowDescriptor::BrowserReference { list_kind, .. } => {
+                let (reference_clip, scroll_px) = match list_kind {
+                    BrowserAssetReferenceListKind::References => {
+                        (self.references_clip.as_ref()?, self.references_scroll_px)
+                    }
+                    BrowserAssetReferenceListKind::UsedBy => {
+                        (self.used_by_clip.as_ref()?, self.used_by_scroll_px)
+                    }
+                };
+                frame.y -= scroll_px;
+                projected_asset_content_clip(
+                    frame,
+                    self.origin_x,
+                    self.origin_y,
+                    reference_clip,
+                    clip,
+                )?
+            }
+            AssetContentRowDescriptor::BrowserContent(identity) => {
+                let (slot_index, thumbnail_role) = match identity {
+                    BrowserContentNodeIdentity::Row { index } => (index, None),
+                    BrowserContentNodeIdentity::Thumbnail { index, role } => (index, Some(role)),
+                    _ => {
+                        self.pending_row.set(Some((row, descriptor)));
+                        return Some(clip.clone());
+                    }
+                };
+                let y_offset = if self.metadata.browser_has_virtual_items() {
+                    let binding = self
+                        .metadata
+                        .browser_slot_binding(self.scroll_px, slot_index)?;
+                    if let AssetBrowserPaintItem::Thumbnail(item) = binding.item {
+                        let role = thumbnail_role?;
+                        let slot_card = self
+                            .metadata
+                            .browser_thumbnail_slot_card_frame(slot_index)?;
+                        if role == BrowserThumbnailNodeRole::SelectionMarker && !binding.selected {
+                            return None;
+                        }
+                        frame = asset_thumbnail_card_geometry(
+                            slot_card,
+                            !item.name_continuation.is_empty(),
+                            item.type_label_width,
+                        )
+                        .for_role(role);
+                    }
+                    binding.y_offset
+                } else {
+                    0.0
+                };
+                frame.y += y_offset - self.scroll_px;
+                projected_asset_content_clip(
+                    frame,
+                    self.origin_x,
+                    self.origin_y,
+                    self.row_clip.as_ref()?,
+                    clip,
+                )?
+            }
+            _ => clip.clone(),
+        };
+        self.pending_row.set(Some((row, descriptor)));
+        Some(row_clip)
+    }
+
+    fn patch_row(
+        &self,
+        row: usize,
+        node: &TemplatePaneNodeData,
+        clip: &FrameRect,
+    ) -> Option<TemplatePaneNodeData> {
+        let (filtered_row, descriptor) = self.pending_row.take()?;
+        debug_assert_eq!(filtered_row, row);
+        if filtered_row != row {
+            return None;
+        }
+        match descriptor {
+            AssetContentRowDescriptor::BrowserSourceTree { .. }
+            | AssetContentRowDescriptor::BrowserReference { .. }
+            | AssetContentRowDescriptor::BrowserContent(
+                BrowserContentNodeIdentity::Row { .. }
+                | BrowserContentNodeIdentity::Thumbnail { .. },
+            ) => {}
+            _ => return None,
+        }
+        let projected = self.transform_node(descriptor, node.clone(), clip.clone());
+        debug_assert!(projected.is_some());
+        projected.map(|(node, _)| node)
+    }
+}
+
+impl BrowserAssetContentProjector {
+    fn transform_node(
+        &self,
+        descriptor: AssetContentRowDescriptor,
         mut node: TemplatePaneNodeData,
         clip: FrameRect,
     ) -> Option<(TemplatePaneNodeData, FrameRect)> {
-        self.record_descriptor_lookup();
-        match self.metadata.row_descriptor(row) {
+        match descriptor {
             AssetContentRowDescriptor::BrowserSourceTree { index } => {
                 let source_tree_clip = self.source_tree_clip.as_ref()?;
                 node.frame.y -= self.source_tree_scroll_px;
@@ -574,6 +778,24 @@ fn apply_thumbnail_item_frame(node: &mut TemplatePaneNodeData, frame: AssetConte
         node.clip_frame.width = frame.width;
         node.clip_frame.height = frame.height;
     }
+}
+
+fn projected_asset_content_clip(
+    frame: AssetContentRect,
+    origin_x: f32,
+    origin_y: f32,
+    pane_clip: &FrameRect,
+    clip: &FrameRect,
+) -> Option<FrameRect> {
+    let pane_clip = intersect(clip, pane_clip)?;
+    let frame = FrameRect {
+        x: origin_x + frame.x,
+        y: origin_y + frame.y,
+        width: frame.width,
+        height: frame.height,
+    };
+    intersect(&frame, &pane_clip)?;
+    Some(pane_clip)
 }
 
 fn translated_asset_content_rect(rect: AssetContentRect, origin: &FrameRect) -> FrameRect {

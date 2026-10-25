@@ -39,9 +39,10 @@ fn explicit_font_sizes_scale_from_logical_units_once_for_physical_paint() {
         ..METRICS
     };
     let high_dpi_metrics = HostControlMetrics {
-        font_small: METRICS.font_small * 1.5,
-        font_body: METRICS.font_body * 1.5,
-        font_large: METRICS.font_large * 1.5,
+        font_small: 11.0 * 1.5,
+        font_body: 14.0 * 1.5,
+        font_large: 16.0 * 1.5,
+        line_height_ratio: 1.4,
         scale_factor: 1.5,
         ..METRICS
     };
@@ -82,6 +83,7 @@ fn template_node_text_geometry_projects_shared_gap_border_and_caption_line_heigh
     assert_eq!(geometry.vertical_inset, 5.0);
     assert_eq!(geometry.minimum_text_height, 13.0);
     assert_eq!(geometry.edge_guard, 1.5);
+    assert_eq!(geometry.scale_factor, metrics.scale_factor);
 }
 
 #[test]

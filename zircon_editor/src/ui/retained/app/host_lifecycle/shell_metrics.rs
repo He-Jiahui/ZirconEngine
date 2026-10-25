@@ -67,6 +67,17 @@ impl RetainedEditorHost {
             .set_host_refresh_invalidation_diagnostics(self.invalidation.diagnostics_snapshot());
     }
 
+    // Freeze current prepared sources without committing a projection or changing visual state.
+    pub(in crate::ui::retained_host::app) fn publish_current_normal_source_capture_metadata(&self) {
+        self.ui.set_prepared_viewport_toolbar_publication(
+            self.workbench_window_bridge
+                .prepared_viewport_toolbar_publication(),
+            self.workbench_window_bridge.layout_frames().mount_frame,
+            self.workbench_window_bridge.presentation_scale_factor(),
+        );
+        self.publish_normal_arranged_inventory_after_commit();
+    }
+
     pub(in crate::ui::retained_host::app) fn publish_normal_arranged_inventory_after_commit(&self) {
         if std::env::var_os("ZIRCON_EDITOR_WORKBENCH_REVIEW_PROJECT_ROOT").is_some() {
             let inventory = crate::ui::template_runtime::NormalPresentInventory::new(vec![

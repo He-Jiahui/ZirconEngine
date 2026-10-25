@@ -3,7 +3,10 @@
 use std::rc::Rc;
 use std::sync::{Arc, Weak};
 
-use crate::ui::host::{EditorPluginFeatureStatus, EditorPluginStatusReport};
+use crate::ui::host::{
+    EditorPluginFeatureStatus, EditorPluginStatusReport, PluginEnablementOperationReport,
+    PluginEnablementRecovery,
+};
 use crate::ui::layouts::windows::workbench_host_window::{
     ModulePluginDetailsViewData, ModulePluginFeatureRowViewData, ModulePluginsPaneViewData,
 };
@@ -34,6 +37,26 @@ struct FeatureIntent {
     feature: String,
     page: usize,
     action: String,
+}
+
+fn plugin_recovery_operation<'a>(
+    report: &'a EditorPluginStatusReport,
+    owner: &str,
+) -> Option<&'a PluginEnablementOperationReport> {
+    report.enablement.as_ref().filter(|operation| {
+        operation.plugin_id == owner && operation.recovery != PluginEnablementRecovery::None
+    })
+}
+
+fn detail_feature_action(
+    report: &EditorPluginStatusReport,
+    owner: &str,
+    feature: &EditorPluginFeatureStatus,
+) -> (String, String) {
+    if feature.owner_plugin_id != owner || plugin_recovery_operation(report, owner).is_some() {
+        return (String::new(), String::new());
+    }
+    module_plugin_feature_action(std::slice::from_ref(feature))
 }
 
 impl ModulePluginDetailsState {
@@ -111,6 +134,38 @@ impl ModulePluginDetailsState {
         if self.page > last {
             self.page = last;
             self.feature = None;
+            self.changed();
+        }
+        // Reports may remove a feature or its action without entering recovery.
+        // Keep keyboard focus on a control admitted by this same report and page.
+        let focus_is_available = match self.focus.as_str() {
+            "back" => true,
+            "previous" => self.page > 0,
+            "next" => self.page < last,
+            "features" => !plugin.optional_features.is_empty(),
+            "apply" => self
+                .feature
+                .as_deref()
+                .and_then(|id| {
+                    plugin
+                        .optional_features
+                        .iter()
+                        .find(|feature| feature.id == id)
+                })
+                .is_some_and(|feature| {
+                    !detail_feature_action(report, &plugin.plugin_id, feature)
+                        .1
+                        .is_empty()
+                }),
+            _ => false,
+        };
+        if !focus_is_available {
+            self.focus = if plugin.optional_features.is_empty() {
+                "back"
+            } else {
+                "features"
+            }
+            .into();
             self.changed();
         }
     }
@@ -307,8 +362,17 @@ impl ModulePluginDetailsState {
                     reasons.join("\n")
                 }
             };
-            let (label, action) = module_plugin_feature_action(std::slice::from_ref(feature));
-            if !action.is_empty() && feature.owner_plugin_id == owner {
+            if let Some(operation) = plugin_recovery_operation(report, owner) {
+                let reason = operation.status_message();
+                if view.selected_reason.is_empty() {
+                    view.selected_reason = reason;
+                } else {
+                    view.selected_reason.push('\n');
+                    view.selected_reason.push_str(&reason);
+                }
+            }
+            let (label, action) = detail_feature_action(report, owner, feature);
+            if !action.is_empty() {
                 let key = match label.as_str() {
                     "Enable Deps" => "enable_dependencies",
                     "Enable Feature" => "enable",
@@ -356,7 +420,7 @@ impl ModulePluginDetailsState {
             .optional_features
             .iter()
             .find(|feature| feature.id == intent.feature)?;
-        let (_, current) = module_plugin_feature_action(std::slice::from_ref(feature));
+        let (_, current) = detail_feature_action(report, &intent.owner, feature);
         if current != intent.action || current.is_empty() {
             self.changed();
             return None;
@@ -637,10 +701,9 @@ impl RetainedEditorHost {
                                     .find(|feature| feature.id == id)
                             })
                             .is_some_and(|feature| {
-                                feature.owner_plugin_id == plugin.plugin_id
-                                    && !module_plugin_feature_action(std::slice::from_ref(feature))
-                                        .1
-                                        .is_empty()
+                                !detail_feature_action(&report, &plugin.plugin_id, feature)
+                                    .1
+                                    .is_empty()
                             })
                         {
                             controls.push("apply");
@@ -736,6 +799,7 @@ mod tests {
                     plugin_id: owner.into(),
                     display_name: owner.into(),
                     package_source: "native".into(),
+                    package_metadata: None,
                     load_state: "manifest only".into(),
                     enabled: true,
                     required: false,
@@ -780,6 +844,258 @@ mod tests {
         state
             .project("project-a", report, "en", str::to_owned)
             .expect("open details")
+    }
+
+    fn recovery_report(
+        recovery: PluginEnablementRecovery,
+        owner: &str,
+    ) -> Arc<EditorPluginStatusReport> {
+        use crate::ui::host::{
+            PluginEnablementApplied, PluginEnablementDurable, PluginEnablementPhase,
+        };
+        let mut report = (*fixture_report(2)).clone();
+        let reverted = recovery == PluginEnablementRecovery::RestartRequired;
+        report.enablement = Some(PluginEnablementOperationReport {
+            operation_id: "details-recovery-fixture".into(),
+            project_root: "fixture-project".into(),
+            project_instance: "fixture-instance".into(),
+            session_generation: 7,
+            plugin_id: owner.into(),
+            requested_enabled: false,
+            expected_revision: Some(zircon_runtime::core::resource::io::SourceRevision::Missing),
+            committed_revision: None,
+            phase: if reverted {
+                PluginEnablementPhase::Complete
+            } else {
+                PluginEnablementPhase::Reconcile
+            },
+            durable: PluginEnablementDurable::Durable,
+            applied: PluginEnablementApplied::NotApplied,
+            recovery,
+            primary_cause: None,
+            rollback_cause: None,
+            detail: None,
+            recovery_admission: None,
+        });
+        Arc::new(report)
+    }
+
+    #[test]
+    fn report_refresh_restores_feature_focus_when_apply_is_no_longer_actionable() {
+        for change in ["removed", "required", "foreign-owner"] {
+            let original = fixture_report(3);
+            let mut state = ModulePluginDetailsState::default();
+            state.reconcile("project-a", &original);
+            assert!(state.open("vendor.first", &original));
+            assert!(state.select(1, "shared.feature.1", &original));
+            state.focus = "apply".into();
+            let ready = view(&mut state, &original);
+            assert!(!ready.intent_id.is_empty());
+            assert_eq!(state.focus, "apply");
+
+            let mut updated = (*original).clone();
+            let features = &mut updated.plugins[0].optional_features;
+            match change {
+                "removed" => {
+                    features.remove(1);
+                }
+                "required" => {
+                    features[1].enabled = true;
+                    features[1].required = true;
+                }
+                "foreign-owner" => features[1].owner_plugin_id = "vendor.second".into(),
+                _ => unreachable!(),
+            }
+            let updated = Arc::new(updated);
+            let refreshed = view(&mut state, &updated);
+            assert_eq!(state.focus, "features", "{change}");
+            assert_eq!(state.package_selection, "vendor.first");
+            assert_eq!(
+                refreshed.selected_feature_id,
+                if change == "removed" {
+                    ""
+                } else {
+                    "shared.feature.1"
+                }
+            );
+            assert!(refreshed.action_id.is_empty() && refreshed.intent_id.is_empty());
+            assert!(state
+                .take_action("project-a", &updated, &ready.intent_id)
+                .is_none());
+            let generation = state.generation;
+            assert!(Rc::ptr_eq(&refreshed, &view(&mut state, &updated)));
+            assert_eq!(state.generation, generation);
+            assert_eq!(updated.plugins[1], original.plugins[1]);
+            assert_eq!(updated.enablement, original.enablement);
+
+            let index = updated.plugins[0]
+                .optional_features
+                .iter()
+                .position(|feature| feature.id == "shared.feature.2")
+                .unwrap();
+            assert!(state.select(index, "shared.feature.2", &updated));
+            let next = view(&mut state, &updated);
+            assert!(!next.intent_id.is_empty());
+            assert_eq!(
+                state.take_action("project-a", &updated, &next.intent_id),
+                Some(next.action_id.clone())
+            );
+        }
+    }
+
+    #[test]
+    fn empty_feature_report_restores_back_focus_and_retires_detail_intent() {
+        for focus in ["features", "apply", "previous", "next"] {
+            let original = fixture_report(19);
+            let mut state = ModulePluginDetailsState::default();
+            state.reconcile("project-a", &original);
+            assert!(state.open("vendor.first", &original));
+            assert!(state.turn_page(true, &original));
+            assert!(state.select(1, "shared.feature.9", &original));
+            state.focus = focus.into();
+            let ready = view(&mut state, &original);
+            assert_eq!(state.focus, focus);
+            assert!(!ready.intent_id.is_empty());
+
+            let mut empty = (*original).clone();
+            empty.plugins[0].optional_features.clear();
+            let empty = Arc::new(empty);
+            let refreshed = view(&mut state, &empty);
+            assert_eq!(state.focus, "back", "{focus}");
+            assert_eq!(refreshed.page, 0);
+            assert!(refreshed.rows.is_empty() && refreshed.selected_feature_id.is_empty());
+            assert!(refreshed.action_id.is_empty() && refreshed.intent_id.is_empty());
+            assert!(state
+                .take_action("project-a", &empty, &ready.intent_id)
+                .is_none());
+            assert!(Rc::ptr_eq(&refreshed, &view(&mut state, &empty)));
+            assert_eq!(empty.plugins[1], original.plugins[1]);
+
+            state.back();
+            assert_eq!(state.package_selection, "vendor.first");
+            assert_eq!(state.focus, "package");
+            assert!(state.owner.is_none() && state.feature.is_none() && state.intent.is_none());
+        }
+    }
+
+    #[test]
+    fn report_refresh_restores_focus_when_pagination_controls_disappear() {
+        for focus in ["previous", "next"] {
+            let original = fixture_report(19);
+            let mut state = ModulePluginDetailsState::default();
+            state.reconcile("project-a", &original);
+            assert!(state.open("vendor.first", &original));
+            assert!(state.turn_page(true, &original));
+            assert!(state.select(1, "shared.feature.9", &original));
+            state.focus = focus.into();
+            let ready = view(&mut state, &original);
+            assert_eq!(state.focus, focus);
+
+            let mut updated = (*original).clone();
+            let features = &mut updated.plugins[0].optional_features;
+            if focus == "previous" {
+                *features = features.split_off(FEATURES_PER_PAGE);
+            } else {
+                features.truncate(13);
+            }
+            let updated = Arc::new(updated);
+            let refreshed = view(&mut state, &updated);
+            assert_eq!(state.focus, "features", "{focus}");
+            assert_eq!(refreshed.page, usize::from(focus == "next"));
+            assert_eq!(refreshed.selected_feature_id, "shared.feature.9");
+            assert_eq!(refreshed.action_id, ready.action_id);
+            assert_ne!(refreshed.intent_id, ready.intent_id);
+            assert!(state
+                .take_action("project-a", &updated, &ready.intent_id)
+                .is_none());
+            assert!(Rc::ptr_eq(&refreshed, &view(&mut state, &updated)));
+            assert_eq!(updated.plugins[1], original.plugins[1]);
+        }
+    }
+
+    #[test]
+    fn recovery_retires_detail_apply_intent_and_restores_feature_focus() {
+        for recovery in [
+            PluginEnablementRecovery::PendingRuntimeApply,
+            PluginEnablementRecovery::RuntimeRepairRequired,
+            PluginEnablementRecovery::FileRecoveryRequired,
+            PluginEnablementRecovery::RestartRequired,
+        ] {
+            let initial = fixture_report(2);
+            let mut state = ModulePluginDetailsState::default();
+            state.reconcile("project-a", &initial);
+            assert!(state.open("vendor.first", &initial));
+            assert!(state.select(1, "shared.feature.1", &initial));
+            state.focus = "apply".into();
+            let ready = view(&mut state, &initial);
+            assert!(!ready.intent_id.is_empty());
+            let report = recovery_report(recovery, "vendor.first");
+            let operation = report.enablement.clone();
+            let blocked = view(&mut state, &report);
+            assert!(blocked.action_id.is_empty() && blocked.intent_id.is_empty());
+            assert_eq!(blocked.selected_feature_id, "shared.feature.1");
+            assert_eq!(blocked.selected_states, ready.selected_states);
+            assert_eq!(blocked.rows[1].desired, ready.rows[1].desired);
+            assert!(blocked
+                .selected_reason
+                .contains(&operation.as_ref().unwrap().status_message()));
+            assert_eq!(state.focus, "features");
+            assert!(state
+                .take_action("project-a", &report, &ready.intent_id)
+                .is_none());
+            assert_eq!(report.enablement, operation);
+            assert!(Rc::ptr_eq(&blocked, &view(&mut state, &report)));
+        }
+    }
+
+    #[test]
+    fn clearing_recovery_reenables_only_a_fresh_qualified_detail_intent() {
+        let blocked_report = recovery_report(
+            PluginEnablementRecovery::PendingRuntimeApply,
+            "vendor.first",
+        );
+        let mut state = ModulePluginDetailsState::default();
+        state.reconcile("project-a", &blocked_report);
+        assert!(state.open("vendor.first", &blocked_report));
+        assert!(state.select(1, "shared.feature.1", &blocked_report));
+        assert!(view(&mut state, &blocked_report).action_id.is_empty());
+        let ready_report = fixture_report(2);
+        let ready = view(&mut state, &ready_report);
+        assert_eq!(ready.selected_feature_id, "shared.feature.1");
+        assert_eq!(
+            ready.action_id,
+            "workbench.plugin.feature.enable.#12:vendor.first.shared.feature.1"
+        );
+        assert!(!ready.intent_id.is_empty());
+        assert_eq!(
+            state.take_action("project-a", &ready_report, &ready.intent_id),
+            Some(ready.action_id.clone())
+        );
+        assert!(state
+            .take_action("project-a", &ready_report, &ready.intent_id)
+            .is_none());
+    }
+
+    #[test]
+    fn detail_recovery_gate_preserves_other_plugin_actions_and_feature_diagnostics() {
+        let other_report = recovery_report(
+            PluginEnablementRecovery::PendingRuntimeApply,
+            "vendor.second",
+        );
+        let mut state = ModulePluginDetailsState::default();
+        state.reconcile("project-a", &other_report);
+        assert!(state.open("vendor.first", &other_report));
+        assert!(state.select(1, "shared.feature.1", &other_report));
+        assert!(!view(&mut state, &other_report).action_id.is_empty());
+        let own_report = recovery_report(PluginEnablementRecovery::RestartRequired, "vendor.first");
+        view(&mut state, &own_report);
+        assert!(state.select(0, "shared.feature.0", &own_report));
+        let blocked = view(&mut state, &own_report);
+        assert!(blocked.selected_reason.contains("resolution blocked"));
+        assert!(blocked.selected_reason.contains("pending change reverted"));
+        assert!(!blocked.selected_reason.contains("change saved"));
+        assert!(blocked.action_id.is_empty());
+        assert!(blocked.rows[0].required && blocked.rows[0].blocked);
     }
 
     #[test]

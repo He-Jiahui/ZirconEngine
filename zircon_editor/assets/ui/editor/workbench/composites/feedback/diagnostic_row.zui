@@ -11,14 +11,18 @@ styles = ["res://ui/editor/theme/editor_tokens.zui"]
 [components.WorkbenchDiagnosticRow]
 root = "root"
 default_classes = ["workbench-diagnostic-row", "workbench-composite"]
-slots = { severity = { required = true, multiple = false, kind = "linear", accepts = ["WorkbenchStatusItem"] }, message = { required = true, multiple = false, kind = "linear", accepts = ["WorkbenchStatusItem"] } }
+# Default consumers retain the fixed row. Expanded consumers opt into content-driven
+# row constraints, override the message mount height and pass its text policy.
+params = { row_height = { type = "map", default = { min = "$editor.control.height.large", preferred = "$editor.control.height.large", max = "$editor.control.height.large", stretch = "Fixed" } }, message_props = { type = "map", default = {} } }
+slots = { severity = { required = true, multiple = false, kind = "linear", accepts = ["WorkbenchStatusItem"] }, message = { required = true, multiple = false, kind = "linear", accepts = ["WorkbenchStatusItem"] }, expand = { required = false, multiple = false, kind = "linear", accepts = ["WorkbenchButton", "WorkbenchIconButton"] }, locate = { required = false, multiple = false, kind = "linear", accepts = ["WorkbenchButton", "WorkbenchIconButton"] } }
 
 [nodes.root]
 component = "HorizontalGroup"
 control_id = "WorkbenchDiagnosticRowRoot"
 classes = ["workbench-diagnostic-row"]
-layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.large", preferred = "$editor.control.height.large", max = "$editor.control.height.large", stretch = "Fixed" } }
-children = [{ node = "severity_slot" }, { node = "message_slot" }]
+props = { slotProps = { message = "$param.message_props" } }
+layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = "$param.row_height" }
+children = [{ node = "severity_slot" }, { node = "message_slot" }, { node = "expand_slot" }, { node = "locate_slot" }]
 
 [nodes.severity_slot]
 component = "Slot"
@@ -29,3 +33,13 @@ layout = { width = { min = 80.0, preferred = 84.0, max = 92.0, stretch = "Fixed"
 component = "Slot"
 props = { name = "message" }
 layout = { width = { min = 32.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.expand_slot]
+component = "Slot"
+props = { name = "expand" }
+layout = { width = { stretch = "ContentDriven" }, height = { stretch = "Stretch" } }
+
+[nodes.locate_slot]
+component = "Slot"
+props = { name = "locate" }
+layout = { width = { stretch = "ContentDriven" }, height = { stretch = "Stretch" } }

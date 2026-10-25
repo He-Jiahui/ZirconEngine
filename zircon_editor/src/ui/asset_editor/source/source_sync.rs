@@ -1,8 +1,10 @@
 use crate::ui::asset_editor::UiDesignerSelectionModel;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::template::UiAssetDocument;
+
+use super::binding_locator::UiAssetBindingSourceIndex;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct UiAssetSourceSelectionSummary {
@@ -26,6 +28,7 @@ pub(crate) struct UiAssetSourceOutlineIndex {
     entries: Vec<UiAssetSourceOutlineEntry>,
     entry_indexes: BTreeMap<String, usize>,
     line_segments: Vec<UiAssetSourceOutlineLineSegment>,
+    binding_sources: OnceLock<Arc<UiAssetBindingSourceIndex>>,
 }
 
 /// Retains the one immutable outline artifact for the current source and
@@ -103,6 +106,12 @@ impl UiAssetSourceOutlineCache {
 }
 
 impl UiAssetSourceOutlineIndex {
+    pub(crate) fn binding_sources(&self, source: &str) -> &UiAssetBindingSourceIndex {
+        self.binding_sources
+            .get_or_init(|| Arc::new(UiAssetBindingSourceIndex::parse(source)))
+            .as_ref()
+    }
+
     pub(crate) fn entries(&self) -> &[UiAssetSourceOutlineEntry] {
         &self.entries
     }
@@ -145,6 +154,7 @@ impl UiAssetSourceOutlineIndex {
             entries,
             entry_indexes,
             line_segments,
+            binding_sources: OnceLock::new(),
         }
     }
 }

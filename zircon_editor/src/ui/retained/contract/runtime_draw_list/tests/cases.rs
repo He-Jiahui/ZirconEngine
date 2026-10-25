@@ -46,19 +46,19 @@ fn runtime_draw_list_preserves_chrome_corner_radius() {
     let draw_list = ui_surface_draw_list_from_stream(&stream);
 
     assert!(matches!(
-        draw_list.commands[0].kind,
-        UiSurfaceCommandKind::Quad {
+        draw_list.resolved_kind(&draw_list.commands[0]),
+        Some(UiSurfaceResolvedCommandKind::Quad {
             color: [255, 0, 0, 255],
             corner_radius: 9.0,
-        }
+        })
     ));
     assert!(matches!(
-        draw_list.commands[1].kind,
-        UiSurfaceCommandKind::Border {
+        draw_list.resolved_kind(&draw_list.commands[1]),
+        Some(UiSurfaceResolvedCommandKind::Border {
             color: [0, 255, 0, 255],
             width: 2.0,
             corner_radius: 8.0,
-        }
+        })
     ));
 }
 
@@ -165,41 +165,41 @@ fn borrowed_and_owned_runtime_draw_lists_project_resolved_editor_text_style() {
     );
 
     for draw_list in [&borrowed_draw_list, &owned_draw_list] {
-        let UiSurfaceCommandKind::Text {
+        let Some(UiSurfaceResolvedCommandKind::Text {
             font_family,
             font_weight,
             style,
             ..
-        } = &draw_list.commands[0].kind
+        }) = draw_list.resolved_kind(&draw_list.commands[0])
         else {
             panic!("expected code text command");
         };
-        assert_eq!(font_family.as_deref(), Some(mono_family.as_ref()));
+        assert_eq!(font_family, Some(mono_family.as_ref()));
         assert_eq!(
-            *font_weight,
+            font_weight,
             UiResolvedStyle::normalized_font_weight(
                 font_request_for_face(HostTextFontFace::Mono).weight
             )
         );
-        assert_eq!(*style, UiSurfaceTextStyle::Regular);
+        assert_eq!(style, UiSurfaceTextStyle::Regular);
 
-        let UiSurfaceCommandKind::Text {
+        let Some(UiSurfaceResolvedCommandKind::Text {
             font_family,
             font_weight,
             style,
             ..
-        } = &draw_list.commands[1].kind
+        }) = draw_list.resolved_kind(&draw_list.commands[1])
         else {
             panic!("expected strong text command");
         };
-        assert_eq!(font_family.as_deref(), Some(strong_family.as_ref()));
+        assert_eq!(font_family, Some(strong_family.as_ref()));
         assert_eq!(
-            *font_weight,
+            font_weight,
             UiResolvedStyle::normalized_font_weight(
                 font_request_for_face(HostTextFontFace::UiStrong).weight
             )
         );
-        assert_eq!(*style, UiSurfaceTextStyle::Strong);
+        assert_eq!(style, UiSurfaceTextStyle::Strong);
     }
 }
 
@@ -273,7 +273,12 @@ fn owned_runtime_draw_list_moves_image_pixels_into_the_draw_list_resource_table(
     });
     stream.push_image(
         2,
-        FrameRect::default(),
+        FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 2.0,
+            height: 2.0,
+        },
         None,
         ChromeImagePayload {
             resource_key: "image://move-me".to_string(),
@@ -324,7 +329,12 @@ fn borrowed_runtime_draw_list_skips_resident_image_resource_pixels() {
     let mut stream = ChromeCommandStream::full_rebuild((64, 64));
     stream.push_image(
         1,
-        FrameRect::default(),
+        FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 2.0,
+            height: 2.0,
+        },
         None,
         ChromeImagePayload {
             resource_key: "image://resident".to_string(),
@@ -355,7 +365,12 @@ fn borrowed_runtime_draw_list_keeps_shared_image_pixels_out_of_commands() {
     for z_index in [1, 2] {
         stream.push_image(
             z_index,
-            FrameRect::default(),
+            FrameRect {
+                x: 0.0,
+                y: 0.0,
+                width: 2.0,
+                height: 2.0,
+            },
             None,
             ChromeImagePayload {
                 resource_key: "image://shared".to_string(),
@@ -405,7 +420,12 @@ fn owned_runtime_draw_list_preserves_distinct_generations_of_one_resource_key() 
     for (z_index, generation) in [(1, 4), (2, 5)] {
         stream.push_image(
             z_index,
-            FrameRect::default(),
+            FrameRect {
+                x: 0.0,
+                y: 0.0,
+                width: 2.0,
+                height: 2.0,
+            },
             None,
             ChromeImagePayload {
                 resource_key: "atlas://editor/icons".to_string(),
@@ -448,7 +468,12 @@ fn borrowed_runtime_draw_list_falls_back_to_inline_pixels_without_resource_entry
     let mut stream = ChromeCommandStream::full_rebuild((64, 64));
     stream.push_image(
         1,
-        FrameRect::default(),
+        FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 2.0,
+            height: 2.0,
+        },
         None,
         ChromeImagePayload {
             resource_key: "image://inline-fallback".to_string(),
@@ -482,7 +507,12 @@ fn resident_atlas_stays_out_of_owned_draw_list_resources() {
     let mut stream = ChromeCommandStream::full_rebuild((64, 64));
     stream.push_image(
         1,
-        FrameRect::default(),
+        FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 2.0,
+            height: 2.0,
+        },
         None,
         ChromeImagePayload {
             resource_key: "atlas://editor/icons".to_string(),
@@ -619,30 +649,30 @@ fn authored_request_is_preserved_in_borrowed_and_owned_gpu_commands_under_outer_
     let owned = ui_surface_draw_list_from_owned_stream(stream);
     assert_eq!(active_authored_font_request(), Some(outer));
     for list in [&borrowed, &owned] {
-        let UiSurfaceCommandKind::Text {
+        let Some(UiSurfaceResolvedCommandKind::Text {
             font_family,
             font_weight,
             font_size,
             line_height,
             style,
             ..
-        } = &list.commands[0].kind
+        }) = list.resolved_kind(&list.commands[0])
         else {
             panic!("authored GPU text");
         };
-        assert_eq!(font_family.as_deref(), Some(request.family.as_str()));
-        assert_eq!((*font_weight, *font_size, *line_height), (650, 17.0, 8.0));
-        assert_eq!(*style, UiSurfaceTextStyle::Regular);
-        let UiSurfaceCommandKind::Text {
+        assert_eq!(font_family, Some(request.family.as_str()));
+        assert_eq!((font_weight, font_size, line_height), (650, 17.0, 8.0));
+        assert_eq!(style, UiSurfaceTextStyle::Regular);
+        let Some(UiSurfaceResolvedCommandKind::Text {
             font_family,
             font_weight,
             ..
-        } = &list.commands[1].kind
+        }) = list.resolved_kind(&list.commands[1])
         else {
             panic!("legacy GPU text");
         };
-        assert_eq!(font_family.as_deref(), Some(fallback.family.as_str()));
-        assert_eq!(*font_weight, fallback.weight);
+        assert_eq!(font_family, Some(fallback.family.as_str()));
+        assert_eq!(font_weight, fallback.weight);
     }
 }
 
@@ -713,4 +743,76 @@ fn recorded_request_survives_extraction_and_cpu_replay() {
     assert_eq!(evidence["runs"][0]["fontSize"], 17.0);
     assert_eq!(evidence["runs"][0]["lineHeight"], 8.0);
     assert_eq!(active_authored_font_request(), Some(outer));
+}
+
+#[test]
+fn recorded_text_preserves_fractional_origin_and_independent_clip() {
+    use crate::ui::retained_host::host_contract::paint_frame::HostRgbaFrame;
+    use crate::ui::retained_host::host_contract::paint_text::{
+        draw_text_with_size_and_style, HostTextFontRequestScope,
+    };
+
+    let rect = FrameRect {
+        x: 1266.25,
+        y: 303.75,
+        width: 319.0,
+        height: 20.0,
+    };
+    for authored in [false, true] {
+        let request = authored.then(|| font_request_for_face(HostTextFontFace::Mono));
+        let _request = HostTextFontRequestScope::enter(request.as_ref());
+        for clip in [
+            None,
+            Some(FrameRect {
+                x: 1270.5,
+                y: 305.125,
+                width: 180.0,
+                height: 14.25,
+            }),
+        ] {
+            let mut recording = HostRgbaFrame::recording_only(1600, 1000);
+            draw_text_with_size_and_style(
+                &mut recording,
+                rect.clone(),
+                "Sun",
+                clip.as_ref(),
+                [255; 4],
+                16.666666,
+                20.0,
+                UiTextRunPaintStyle::default(),
+            );
+            let recorded = recording.into_recorded_commands();
+            assert_eq!(recorded.len(), 1);
+            assert_eq!(recorded[0].frame, rect);
+            assert_eq!(recorded[0].clip_frame, clip);
+            let mut stream = ChromeCommandStream::full_rebuild((1600, 1000));
+            let command = super::super::chrome_command_from_recorded_for_test(
+                recorded.into_iter().next().unwrap(),
+                true,
+                true,
+            )
+            .expect("recorded text must survive Chrome extraction");
+            assert_eq!(command.frame, rect);
+            assert_eq!(command.clip, clip);
+            let ChromeCommandKind::Text { font_request, .. } = &command.kind else {
+                panic!("recorded text");
+            };
+            assert_eq!(font_request.as_ref(), request.as_ref());
+            stream.push_command_for_test(command);
+            let list = ui_surface_draw_list_from_stream(&stream);
+            assert_eq!(list.commands.len(), 1);
+            let command = &list.commands[0];
+            assert_eq!(command.frame.x, rect.x);
+            assert_eq!(command.frame.y, rect.y);
+            assert_eq!(command.frame.width, rect.width);
+            assert_eq!(command.frame.height, rect.height);
+            assert_eq!(
+                command
+                    .clip
+                    .map(|clip| (clip.x, clip.y, clip.width, clip.height)),
+                clip.as_ref()
+                    .map(|clip| (clip.x, clip.y, clip.width, clip.height))
+            );
+        }
+    }
 }

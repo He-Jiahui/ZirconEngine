@@ -88,6 +88,12 @@ pub(crate) struct BuiltinWorkbenchWindowTemplateSurfaceBridge {
     committed_presentation_scale_factor: f32,
     pub(super) asset_creation_menu: AssetCreationMenuState,
     pub(super) preview_features_enabled: bool,
+    pub(super) settings_values_context:
+        Option<super::settings_window::WorkbenchSettingsValuesContext>,
+    // Presentation transaction state only; persistence identity stays with its existing owner.
+    pub(super) settings_persistence_health_needs_refresh: bool,
+    pub(super) settings_persistence_retry_context:
+        Option<crate::core::settings::SettingsPersistenceRetryContext>,
     pub(super) scene_hierarchy_projection: SceneHierarchyProjectionState,
     pub(super) scene_expanded_by_entity: BTreeMap<EntityId, bool>,
     pub(super) scene_filter_query: String,
@@ -172,6 +178,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             committed_presentation_scale_factor: 1.0,
             asset_creation_menu: AssetCreationMenuState::default(),
             preview_features_enabled: false,
+            settings_values_context: None,
+            settings_persistence_health_needs_refresh: false,
+            settings_persistence_retry_context: None,
             scene_hierarchy_projection: SceneHierarchyProjectionState::default(),
             scene_expanded_by_entity: BTreeMap::new(),
             scene_filter_query: String::new(),
@@ -322,9 +331,16 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     pub(crate) fn refresh_prepared_state_change(
         &mut self,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        // Notifications also rebuild through this entry, outside the settings health wrapper.
+        // Restore only the same captured contexts after the whole preparation succeeds.
+        let settings_values_context = self.settings_values_context.take();
+        let settings_retry_context = self.settings_persistence_retry_context.take();
         self.template_surface
             .refresh_after_state_change(self.runtime.as_ref())?;
         self.refresh_mounted_module_source_publication()?;
+        self.settings_values_context = settings_values_context;
+        self.settings_persistence_retry_context = settings_retry_context;
+        self.settings_persistence_health_needs_refresh = false;
         Ok(())
     }
 

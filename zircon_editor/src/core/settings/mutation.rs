@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use std::path::Path;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard, Weak};
 
 use thiserror::Error;
 use zircon_runtime::core::runtime::tasks::BoundedKeyedIoShutdownGuard;
@@ -8,10 +8,11 @@ use zircon_runtime::core::runtime::tasks::BoundedKeyedIoShutdownGuard;
 use crate::core::editor_operation::EditorOperationPath;
 
 use super::{
-    SettingChange, SettingValue, SettingsAuthority, SettingsError, SettingsFileGeneration,
-    SettingsKey, SettingsPersistenceRetryError, SettingsPersistenceService,
-    SettingsPersistenceShutdown, SettingsPersistenceSubmitError, SettingsPersistenceTerminal,
-    SettingsPersistenceTicket, SettingsProjectLayerLoad, SettingsScope, SettingsStore,
+    ResolvedSettingValue, ResolvedSettingsBatch, SettingChange, SettingValue, SettingsAuthority,
+    SettingsError, SettingsFileGeneration, SettingsKey, SettingsPersistenceRetryError,
+    SettingsPersistenceService, SettingsPersistenceShutdown, SettingsPersistenceSubmitError,
+    SettingsPersistenceTerminal, SettingsPersistenceTicket, SettingsProjectLayerLoad,
+    SettingsScope, SettingsStore,
 };
 
 #[path = "mutation/health.rs"]
@@ -123,10 +124,81 @@ impl SettingsProjectBindingReceipt {
     }
 }
 
+/// Values and project identity captured together for a displayed settings batch.
+/// This is not an originating-frame or window-incarnation token.
+#[derive(Clone, Debug)]
+pub(crate) struct SettingsMutationContext {
+    owner: Weak<Mutex<SettingsMutationState>>,
+    values: ResolvedSettingsBatch,
+    project_generation: Option<u64>,
+    next_project_generation: u64,
+}
+
+impl PartialEq for SettingsMutationContext {
+    fn eq(&self, other: &Self) -> bool {
+        self.owner.ptr_eq(&other.owner)
+            && self.values == other.values
+            && self.project_generation == other.project_generation
+            && self.next_project_generation == other.next_project_generation
+    }
+}
+
+impl SettingsMutationContext {
+    pub(crate) fn values(&self) -> &ResolvedSettingsBatch {
+        &self.values
+    }
+
+    pub(crate) fn generation(&self) -> u64 {
+        self.values.generation()
+    }
+
+    pub(crate) fn value(&self, key: &SettingsKey) -> Option<&ResolvedSettingValue> {
+        self.values.values().iter().find(|value| value.key() == key)
+    }
+}
+
+/// Original pending document captured while its health was prepared for display.
+/// This does not identify an event's originating frame or window incarnation.
+#[derive(Clone, Debug)]
+pub(crate) struct SettingsPersistenceRetryContext {
+    owner: Weak<Mutex<SettingsMutationState>>,
+    document: SettingsDocumentIdentity,
+    file_generation: SettingsFileGeneration,
+}
+
+impl PartialEq for SettingsPersistenceRetryContext {
+    fn eq(&self, other: &Self) -> bool {
+        self.owner.ptr_eq(&other.owner)
+            && self.document == other.document
+            && self.file_generation == other.file_generation
+    }
+}
+
+impl SettingsPersistenceRetryContext {
+    pub(crate) const fn scope(&self) -> SettingsScope {
+        match self.document {
+            SettingsDocumentIdentity::User => SettingsScope::User,
+            SettingsDocumentIdentity::Project(_) => SettingsScope::Project,
+        }
+    }
+
+    pub(crate) const fn file_generation(&self) -> SettingsFileGeneration {
+        self.file_generation
+    }
+}
+
 #[derive(Debug, Error, PartialEq)]
 pub enum SettingsMutationError {
     #[error(transparent)]
     Settings(#[from] SettingsError),
+    #[error("settings display context belongs to another mutation coordinator")]
+    ForeignMutationContext,
+    #[error("project binding changed since the settings values were displayed")]
+    StaleProjectBinding,
+    #[error("pending settings document changed since its retry target was displayed")]
+    StalePersistenceRetryContext,
+    #[error("setting `{0}` was not in the displayed values batch")]
+    KeyNotCaptured(SettingsKey),
     #[error("User settings have no writable source")]
     UserSourceUnavailable,
     #[error("Project settings require an active project binding")]
@@ -169,6 +241,15 @@ enum PendingSettingsDocument {
 }
 
 impl PendingSettingsDocument {
+    fn file_generation(&self) -> SettingsFileGeneration {
+        match self {
+            Self::Deferred {
+                file_generation, ..
+            } => *file_generation,
+            Self::Ticket(ticket) => ticket.file_generation(),
+        }
+    }
+
     fn cancel_before_start(&self) {
         if let Self::Ticket(ticket) = self {
             let _ = ticket.cancel_before_start();
@@ -214,7 +295,7 @@ pub struct SettingsMutationCoordinator {
     authority: Arc<SettingsAuthority>,
     persistence: SettingsPersistenceService,
     persistence_health: Arc<SettingsPersistenceHealthAuthority>,
-    state: Mutex<SettingsMutationState>,
+    state: Arc<Mutex<SettingsMutationState>>,
 }
 
 impl SettingsMutationCoordinator {
@@ -230,13 +311,13 @@ impl SettingsMutationCoordinator {
             authority,
             persistence,
             persistence_health,
-            state: Mutex::new(SettingsMutationState {
+            state: Arc::new(Mutex::new(SettingsMutationState {
                 phase: SettingsCoordinatorPhase::Idle,
                 user_store,
                 project: None,
                 next_project_generation: 1,
                 pending: BTreeMap::new(),
-            }),
+            })),
         }
     }
 
@@ -246,6 +327,51 @@ impl SettingsMutationCoordinator {
 
     pub fn persistence_health_snapshot(&self) -> SettingsPersistenceHealthSnapshot {
         self.persistence_health.snapshot()
+    }
+
+    pub(crate) fn capture_persistence_health_with_retry(
+        &self,
+    ) -> Result<
+        (
+            SettingsPersistenceHealthSnapshot,
+            Vec<SettingsPersistenceRetryContext>,
+        ),
+        SettingsMutationError,
+    > {
+        let state = self.lock_state();
+        require_idle(&state)?;
+        let health = self.persistence_health.snapshot();
+        let mut contexts = Vec::with_capacity(MAX_PENDING_SETTINGS_DOCUMENTS);
+        for observed in [health.project(), health.user()] {
+            if !observed.status().is_retryable() {
+                continue;
+            }
+            let document = match observed.scope() {
+                SettingsScope::User if state.user_store.is_some() => SettingsDocumentIdentity::User,
+                SettingsScope::Project => match state.project.as_ref() {
+                    Some(project)
+                        if project.writable
+                            && observed.binding_generation() == Some(project.generation) =>
+                    {
+                        SettingsDocumentIdentity::Project(project.generation)
+                    }
+                    _ => continue,
+                },
+                _ => continue,
+            };
+            let Some(pending) = state.pending.get(&document) else {
+                continue;
+            };
+            let file_generation = pending.file_generation();
+            if observed.file_generation() == Some(file_generation) {
+                contexts.push(SettingsPersistenceRetryContext {
+                    owner: Arc::downgrade(&self.state),
+                    document,
+                    file_generation,
+                });
+            }
+        }
+        Ok((health, contexts))
     }
 
     pub(crate) fn configure_persistence_health_subscriber(
@@ -274,6 +400,126 @@ impl SettingsMutationCoordinator {
         let target = self.begin_mutation(scope)?;
         let change = self.authority.set(scope, key, value);
         self.complete_mutation(scope, key, target, change)
+    }
+
+    pub(crate) fn capture_values<'a>(
+        &self,
+        keys: impl IntoIterator<Item = &'a SettingsKey>,
+    ) -> Result<SettingsMutationContext, SettingsMutationError> {
+        self.capture_values_with_generation(None, keys)
+    }
+
+    pub(crate) fn capture_values_at_generation<'a>(
+        &self,
+        expected_generation: u64,
+        keys: impl IntoIterator<Item = &'a SettingsKey>,
+    ) -> Result<SettingsMutationContext, SettingsMutationError> {
+        self.capture_values_with_generation(Some(expected_generation), keys)
+    }
+
+    fn capture_values_with_generation<'a>(
+        &self,
+        expected_generation: Option<u64>,
+        keys: impl IntoIterator<Item = &'a SettingsKey>,
+    ) -> Result<SettingsMutationContext, SettingsMutationError> {
+        let state = self.lock_state();
+        require_idle(&state)?;
+        // Hold the existing operation-state guard through the authority batch read.
+        // A project transition cannot straddle the values and their binding identity.
+        let values = match expected_generation {
+            Some(expected) => self
+                .authority
+                .resolved_settings_from_iter_at_generation(expected, keys)?,
+            None => self.authority.resolved_settings_from_iter(keys)?,
+        };
+        Ok(SettingsMutationContext {
+            owner: Arc::downgrade(&self.state),
+            values,
+            project_generation: state.project.as_ref().map(|project| project.generation),
+            next_project_generation: state.next_project_generation,
+        })
+    }
+
+    pub(crate) fn context_is_current(&self, context: &SettingsMutationContext) -> bool {
+        self.check_values_context(context).is_ok()
+    }
+
+    pub(crate) fn check_values_context(
+        &self,
+        context: &SettingsMutationContext,
+    ) -> Result<(), SettingsMutationError> {
+        let state = self.lock_state();
+        require_idle(&state)?;
+        check_project_context(&state, context, &self.state)?;
+        // Read-only UI transitions use the same original binding/value fence. This does not
+        // reserve a later mutation or identify the event's originating frame/window lifetime.
+        self.authority
+            .check_generation(context.generation())
+            .map_err(Into::into)
+    }
+
+    pub(crate) fn set_from_context(
+        &self,
+        context: &SettingsMutationContext,
+        scope: SettingsScope,
+        key: &SettingsKey,
+        value: SettingValue,
+    ) -> Result<SettingsMutationReceipt, SettingsMutationError> {
+        if context.value(key).is_none() {
+            return Err(SettingsMutationError::KeyNotCaptured(key.clone()));
+        }
+        let target = self.begin_mutation_with_context(scope, Some(context))?;
+        let change = self
+            .authority
+            .set_if_generation(context.generation(), scope, key, value);
+        self.complete_mutation(scope, key, target, change)
+    }
+
+    pub(crate) fn clear_from_context(
+        &self,
+        context: &SettingsMutationContext,
+        scope: SettingsScope,
+        key: &SettingsKey,
+    ) -> Result<Option<SettingsMutationReceipt>, SettingsMutationError> {
+        let displayed = context
+            .value(key)
+            .ok_or_else(|| SettingsMutationError::KeyNotCaptured(key.clone()))?;
+        // This snapshot supplies definition scope only; it does not replace display provenance.
+        let snapshot = self.authority.snapshot();
+        let definition = snapshot
+            .catalog()
+            .definition(key)
+            .ok_or_else(|| SettingsError::UnknownKey(key.as_str().to_owned()))?;
+        if !definition.scope.allows_write(scope) {
+            return Err(SettingsError::ScopeNotAllowed {
+                key: key.as_str().to_owned(),
+                requested: scope,
+                defined: definition.scope,
+            }
+            .into());
+        }
+        if displayed.override_in_scope(scope).is_none() {
+            // Preserve reset's absent-layer no-op without requiring a writable store.
+            // It still has a linearization point under the original value lock.
+            {
+                let mut state = self.lock_state();
+                begin_phase(&mut state, SettingsCoordinatorPhase::Mutation)?;
+                if let Err(error) = check_project_context(&state, context, &self.state) {
+                    state.phase = SettingsCoordinatorPhase::Idle;
+                    return Err(error);
+                }
+            }
+            let result = self.authority.check_generation(context.generation());
+            self.finish_operation();
+            result?;
+            return Ok(None);
+        }
+        let target = self.begin_mutation_with_context(scope, Some(context))?;
+        let change = self
+            .authority
+            .clear_if_generation(context.generation(), scope, key);
+        let receipt = self.complete_mutation(scope, key, target, change)?;
+        Ok(receipt.changed().then_some(receipt))
     }
 
     pub fn clear(
@@ -371,10 +617,26 @@ impl SettingsMutationCoordinator {
         &self,
         scope: SettingsScope,
     ) -> Result<SettingsPersistenceRetryReceipt, SettingsMutationError> {
+        self.retry_pending_with_context(scope, None)
+    }
+
+    pub(crate) fn retry_pending_from_context(
+        &self,
+        context: &SettingsPersistenceRetryContext,
+        scope: SettingsScope,
+    ) -> Result<SettingsPersistenceRetryReceipt, SettingsMutationError> {
+        self.retry_pending_with_context(scope, Some(context))
+    }
+
+    fn retry_pending_with_context(
+        &self,
+        scope: SettingsScope,
+        context: Option<&SettingsPersistenceRetryContext>,
+    ) -> Result<SettingsPersistenceRetryReceipt, SettingsMutationError> {
         if !scope.is_persistent() {
             return Err(SettingsMutationError::NonPersistentScope(scope));
         }
-        let document = self.begin_persistence_retry(scope)?;
+        let document = self.begin_persistence_retry(scope, context)?;
         let pending = self.lock_state().pending.remove(&document);
         let (file_generation, disposition, replacement) = match pending {
             None => (
@@ -585,8 +847,22 @@ impl SettingsMutationCoordinator {
         &self,
         scope: SettingsScope,
     ) -> Result<SettingsMutationTarget, SettingsMutationError> {
+        self.begin_mutation_with_context(scope, None)
+    }
+
+    fn begin_mutation_with_context(
+        &self,
+        scope: SettingsScope,
+        context: Option<&SettingsMutationContext>,
+    ) -> Result<SettingsMutationTarget, SettingsMutationError> {
         let mut state = self.lock_state();
         begin_phase(&mut state, SettingsCoordinatorPhase::Mutation)?;
+        if let Some(context) = context {
+            if let Err(error) = check_project_context(&state, context, &self.state) {
+                state.phase = SettingsCoordinatorPhase::Idle;
+                return Err(error);
+            }
+        }
         let result = match scope {
             SettingsScope::Session => Ok(SettingsMutationTarget::Session),
             SettingsScope::User => match state.user_store.clone() {
@@ -632,24 +908,49 @@ impl SettingsMutationCoordinator {
     fn begin_persistence_retry(
         &self,
         scope: SettingsScope,
+        context: Option<&SettingsPersistenceRetryContext>,
     ) -> Result<SettingsDocumentIdentity, SettingsMutationError> {
         let mut state = self.lock_state();
         begin_phase(&mut state, SettingsCoordinatorPhase::Mutation)?;
-        let result = match scope {
-            SettingsScope::User => state
-                .user_store
-                .as_ref()
-                .map(|_| SettingsDocumentIdentity::User)
-                .ok_or(SettingsMutationError::UserSourceUnavailable),
-            SettingsScope::Project => match state.project.as_ref() {
-                Some(project) if project.writable => {
-                    Ok(SettingsDocumentIdentity::Project(project.generation))
+        let result = (|| {
+            if let Some(context) = context {
+                if !std::ptr::eq(context.owner.as_ptr(), Arc::as_ptr(&self.state)) {
+                    return Err(SettingsMutationError::ForeignMutationContext);
                 }
-                Some(_) => Err(SettingsMutationError::ProjectSourceInvalid),
-                None => Err(SettingsMutationError::ProjectNotBound),
-            },
-            SettingsScope::Session => Err(SettingsMutationError::NonPersistentScope(scope)),
-        };
+                if context.scope() != scope {
+                    return Err(SettingsMutationError::StalePersistenceRetryContext);
+                }
+            }
+            let document = match scope {
+                SettingsScope::User => state
+                    .user_store
+                    .as_ref()
+                    .map(|_| SettingsDocumentIdentity::User)
+                    .ok_or(SettingsMutationError::UserSourceUnavailable),
+                SettingsScope::Project => match state.project.as_ref() {
+                    Some(project) if project.writable => {
+                        Ok(SettingsDocumentIdentity::Project(project.generation))
+                    }
+                    Some(_) => Err(SettingsMutationError::ProjectSourceInvalid),
+                    None => Err(SettingsMutationError::ProjectNotBound),
+                },
+                SettingsScope::Session => Err(SettingsMutationError::NonPersistentScope(scope)),
+            }?;
+            if let Some(context) = context {
+                if context.document != document {
+                    return Err(SettingsMutationError::StaleProjectBinding);
+                }
+                if state
+                    .pending
+                    .get(&document)
+                    .map(PendingSettingsDocument::file_generation)
+                    != Some(context.file_generation())
+                {
+                    return Err(SettingsMutationError::StalePersistenceRetryContext);
+                }
+            }
+            Ok(document)
+        })();
         if result.is_err() {
             state.phase = SettingsCoordinatorPhase::Idle;
         }
@@ -667,15 +968,39 @@ impl SettingsMutationCoordinator {
     }
 }
 
-fn begin_phase(
-    state: &mut SettingsMutationState,
-    next: SettingsCoordinatorPhase,
-) -> Result<(), SettingsMutationError> {
+fn require_idle(state: &SettingsMutationState) -> Result<(), SettingsMutationError> {
     if state.phase != SettingsCoordinatorPhase::Idle {
         return Err(SettingsMutationError::OperationInProgress {
             active: state.phase.name(),
         });
     }
+    Ok(())
+}
+
+fn check_project_context(
+    state: &SettingsMutationState,
+    context: &SettingsMutationContext,
+    owner: &Arc<Mutex<SettingsMutationState>>,
+) -> Result<(), SettingsMutationError> {
+    // The Weak keeps the original allocation identity from being reused without retaining its
+    // state or authority. Local binding counters alone can coincide in another coordinator.
+    // This verifies the captured source, not an event's originating frame or window lifetime.
+    if !std::ptr::eq(context.owner.as_ptr(), Arc::as_ptr(owner)) {
+        return Err(SettingsMutationError::ForeignMutationContext);
+    }
+    if context.project_generation != state.project.as_ref().map(|project| project.generation)
+        || context.next_project_generation != state.next_project_generation
+    {
+        return Err(SettingsMutationError::StaleProjectBinding);
+    }
+    Ok(())
+}
+
+fn begin_phase(
+    state: &mut SettingsMutationState,
+    next: SettingsCoordinatorPhase,
+) -> Result<(), SettingsMutationError> {
+    require_idle(state)?;
     state.phase = next;
     Ok(())
 }

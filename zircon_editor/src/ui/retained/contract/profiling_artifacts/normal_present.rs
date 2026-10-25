@@ -6,7 +6,199 @@ use serde_json::{json, Value};
 mod tree_owner_focus;
 
 use super::super::chrome_command_stream::{ChromeCommandKind, ChromeCommandStream};
-use super::super::data::HostWindowPresentationData;
+use super::super::data::{HostWindowPresentationData, TemplatePaneNodeData};
+use zircon_runtime::rhi::{
+    UiSurfaceDrawList, UiSurfaceImageReadbackRequest, UiSurfaceRect, UiSurfaceResolvedCommandKind,
+};
+
+/// Editor attribution frozen before the source table is recycled. The RHI receives only `request`.
+#[derive(Clone, Debug)]
+pub(in crate::ui::retained_host::host_contract) struct NormalSceneImageSelection {
+    pub(super) request: UiSurfaceImageReadbackRequest,
+    pub(super) evidence: Value,
+    pub(super) command_frame: UiSurfaceRect,
+    pub(super) command_clip: Option<UiSurfaceRect>,
+}
+
+impl NormalSceneImageSelection {
+    pub(in crate::ui::retained_host::host_contract) fn matches_draw_list(
+        &self,
+        draw_list: &UiSurfaceDrawList,
+    ) -> bool {
+        draw_list.commands.get(self.request.command_index).is_some_and(|command| {
+            command.frame == self.command_frame && command.clip == self.command_clip
+                && matches!(draw_list.resolved_kind(command), Some(UiSurfaceResolvedCommandKind::Image { payload })
+                    if payload.resource_key == self.request.resource_key
+                        && payload.resource_generation == self.request.resource_generation
+                        && (payload.width, payload.height) == self.request.physical_size
+                        && payload.rgba.is_none() && payload.atlas_uv.is_none())
+        })
+    }
+}
+
+fn scene_source_identity(node: &TemplatePaneNodeData) -> Result<Value, String> {
+    let steps: Value = serde_json::from_str(node.instance_path.as_str())
+        .map_err(|_| "scene source invocation is not JSON".to_owned())?;
+    if node.source_path.is_empty()
+        || node.source_node_id.is_empty()
+        || !steps.as_array().is_some_and(|steps| {
+            steps.iter().all(|step| {
+                step.as_object().is_some_and(|step| {
+                    step.len() == 2
+                        && ["sourcePath", "sourceNodeId"].iter().all(|key| {
+                            step.get(*key)
+                                .and_then(Value::as_str)
+                                .is_some_and(|value| !value.is_empty())
+                        })
+                })
+            })
+        })
+        || !node.inspector_property_item_key.is_empty()
+        || !node.inspector_property_field_id.is_empty()
+    {
+        return Err("scene source needs its complete non-repeated authored identity".into());
+    }
+    Ok(
+        json!({"sourcePath":node.source_path.as_str(),"sourceNodeId":node.source_node_id.as_str(),
+        "instancePath":node.instance_path.as_str()}),
+    )
+}
+
+fn scene_rect(frame: &super::super::data::FrameRect) -> UiSurfaceRect {
+    UiSurfaceRect {
+        x: frame.x,
+        y: frame.y,
+        width: frame.width,
+        height: frame.height,
+    }
+}
+
+/// Resolve the same immutable images and authored document owner used by the actual painter.
+/// Missing media remains unavailable; no CPU capture, neighboring document or overlay substitutes.
+pub(in crate::ui::retained_host::host_contract) fn scene_image_selection(
+    presentation: &HostWindowPresentationData,
+    stream: &ChromeCommandStream,
+    sources: &[Option<Value>],
+) -> Result<Option<NormalSceneImageSelection>, String> {
+    if !stream.is_full_rebuild() || sources.len() != stream.commands().len() {
+        return Err("scene media needs the complete actual command stream and source table".into());
+    }
+    let images = super::super::data::paint_viewport_images(presentation);
+    let mut selections = Vec::new();
+    for document in presentation.host_scene_data.document_surfaces() {
+        if document.pane.kind.as_str() != "Scene" {
+            continue;
+        }
+        let Some(viewport) = super::super::componentized_workbench_regions::authored_level_viewport(
+            presentation,
+            document,
+        ) else {
+            continue;
+        };
+        let owner = scene_source_identity(viewport.media)?;
+        let root = scene_source_identity(viewport.root)?;
+        for node in [viewport.root, viewport.media] {
+            if presentation
+                .workbench_window_nodes
+                .iter()
+                .filter(|candidate| {
+                    candidate.source_path == node.source_path
+                        && candidate.source_node_id == node.source_node_id
+                        && candidate.instance_path == node.instance_path
+                })
+                .count()
+                != 1
+            {
+                return Err("scene authored source identity is ambiguous".into());
+            }
+        }
+        let image = images
+            .for_surface(document.surface_key.as_str(), document.pane.kind.as_str())
+            .filter(|image| image.is_valid() && image.rgba().is_none())
+            .ok_or_else(|| "scene has no exact external GPU image product".to_owned())?;
+        let source_frame = viewport
+            .media
+            .source_surface_frame
+            .as_ref()
+            .ok_or_else(|| "scene media has no retained source surface".to_owned())?;
+        if source_frame.tree_id.0.is_empty() {
+            return Err("scene retained source tree identity is empty".into());
+        }
+        let mut matches = Vec::new();
+        for (index, command) in stream.commands().iter().enumerate() {
+            let ChromeCommandKind::Image { payload } = &command.kind else {
+                continue;
+            };
+            if payload.resource_key != image.resource_key
+                || payload.resource_generation != image.resource_generation
+                || (payload.width, payload.height) != (image.width, image.height)
+            {
+                continue;
+            }
+            let Some((frame, reference, fragment)) = stream.resolve_command_source(index) else {
+                continue;
+            };
+            if !std::sync::Arc::ptr_eq(frame, source_frame)
+                || viewport.media.surface_node_id != Some(reference.node_id)
+                || viewport.media.surface_render_command_ref != Some(reference)
+            {
+                continue;
+            }
+            let source = sources[index]
+                .as_ref()
+                .filter(|source| paint_owner_matches(source, viewport.media))
+                .ok_or_else(|| {
+                    "scene image command has no unique complete source owner".to_owned()
+                })?;
+            let source_ref = json!({"treeId":frame.tree_id,"generation":frame.generation,"nodeId":reference.node_id,
+                "nodeCommandIndex":reference.node_command_index,"fragmentIndex":fragment,
+                "authority":"surface-node-owner","primitiveIdentity":false});
+            let bounds = scene_rect(&command.frame);
+            let clip = command.clip.as_ref().map(scene_rect);
+            if !bounds.has_finite_positive_area()
+                || bounds != scene_rect(&viewport.frame)
+                || !clip.is_some_and(|clip| {
+                    clip.has_finite_positive_area()
+                        && clip.x.max(bounds.x) < (clip.x + clip.width).min(bounds.x + bounds.width)
+                        && clip.y.max(bounds.y)
+                            < (clip.y + clip.height).min(bounds.y + bounds.height)
+                })
+                || payload.rgba.is_some()
+                || payload.atlas_uv.is_some()
+                || source["sourceRef"] != source_ref
+            {
+                return Err(
+                    "scene image command bounds, clip or full-resource identity is unproven".into(),
+                );
+            }
+            matches.push(NormalSceneImageSelection {
+                request: UiSurfaceImageReadbackRequest { command_index: index, resource_key: image.resource_key.clone(),
+                    resource_generation: image.resource_generation, physical_size: (image.width, image.height),
+                    expected_pixel_format: None },
+                evidence: json!({"schema":"dev.zircon.editor.normal-scene-image-readback","version":1,
+                    "authority":"normal-actual-submitted-runtime-image-readback","owner":owner,"viewportRoot":root,
+                    "surfaceKey":document.surface_key.as_str(),"paneKind":document.pane.kind.as_str(),
+                    "commandIndex":index,"sourceRef":source["sourceRef"],
+                    "commandBounds":{"x":bounds.x,"y":bounds.y,"width":bounds.width,"height":bounds.height},
+                    "commandClip":clip.map(|clip|json!({"x":clip.x,"y":clip.y,"width":clip.width,"height":clip.height})),
+                    "atlasUv":null,"resourceKey":image.resource_key,"resourceGeneration":image.resource_generation,
+                    "physicalSize":[image.width,image.height],"overlayPresent":image.overlay().is_some()}),
+                command_frame: bounds, command_clip: clip,
+            });
+        }
+        if matches.len() != 1 {
+            return Err(
+                "scene needs one source-owned image command for its exact GPU product".into(),
+            );
+        }
+        selections.extend(matches);
+    }
+    match selections.len() {
+        0 => Ok(None),
+        1 => Ok(selections.pop()),
+        _ => Err("normal media capture has multiple authored Scene surfaces".into()),
+    }
+}
 
 pub(in crate::ui::retained_host::host_contract) fn stream_observations(
     stream: &ChromeCommandStream,
@@ -27,21 +219,18 @@ pub(in crate::ui::retained_host::host_contract) fn stream_observations(
                 continue;
             }
             // Include nodes observed by this stream, not every authored prototype.
-            let painted = styles.is_some_and(|styles| {
-                styles.iter().any(|style| {
-                    style["sourcePath"].as_str() == Some(node.source_path.as_str())
-                        && style["sourceNodeId"].as_str() == Some(node.source_node_id.as_str())
-                        && style["instancePath"].as_str() == Some(node.instance_path.as_str())
-                })
-            }) || sources.iter().flatten().any(|source| {
-                source["sourcePath"].as_str() == Some(node.source_path.as_str())
-                    && source["sourceNodeId"].as_str() == Some(node.source_node_id.as_str())
-                    && source["instancePath"].as_str() == Some(node.instance_path.as_str())
-            });
+            let painted = styles
+                .is_some_and(|styles| styles.iter().any(|style| paint_owner_matches(style, &node)))
+                || sources
+                    .iter()
+                    .flatten()
+                    .any(|source| paint_owner_matches(source, &node));
             if painted {
                 nodes.push(json!({"nodeId":node.node_id.as_str(),"parentNodeId":node.parent_node_id.as_str(),
                     "sourcePath":node.source_path.as_str(),"sourceNodeId":node.source_node_id.as_str(),"instancePath":node.instance_path.as_str(),
                     "parentSourcePath":node.parent_source_path.as_str(),"parentSourceNodeId":node.parent_source_node_id.as_str(),"parentInstancePath":node.parent_instance_path.as_str(),
+                    "itemKey":(!node.inspector_property_item_key.is_empty()).then_some(node.inspector_property_item_key.as_str()),
+                    "propertyFieldId":(!node.inspector_property_field_id.is_empty()).then_some(node.inspector_property_field_id.as_str()),
                     "controlId":node.control_id.as_str(),"role":node.role.as_str(),"disabled":node.disabled,
                     "bounds":{"x":node.frame.x,"y":node.frame.y,"width":node.frame.width,"height":node.frame.height},
                     "clip":node.has_clip_frame.then(||json!({"x":node.clip_frame.x,"y":node.clip_frame.y,"width":node.clip_frame.width,"height":node.clip_frame.height}))}));
@@ -70,6 +259,54 @@ pub(in crate::ui::retained_host::host_contract) fn stream_observations(
         result["focusPublication"] = focus;
     }
     result
+}
+
+fn paint_owner_matches(receipt: &Value, node: &TemplatePaneNodeData) -> bool {
+    let item = node.inspector_property_item_key.as_str();
+    let field = node.inspector_property_field_id.as_str();
+    let repeated = !item.is_empty() || !field.is_empty();
+    if repeated
+        && (item.is_empty()
+            || field.is_empty()
+            || node.parent_source_path.is_empty()
+            || node.parent_source_node_id.is_empty()
+            || node.parent_instance_path.is_empty())
+    {
+        return false;
+    }
+    receipt["sourcePath"].as_str() == Some(node.source_path.as_str())
+        && receipt["sourceNodeId"].as_str() == Some(node.source_node_id.as_str())
+        && receipt["instancePath"].as_str() == Some(node.instance_path.as_str())
+        && receipt_field_matches(receipt, "itemKey", item, repeated)
+        && receipt_field_matches(receipt, "propertyFieldId", field, repeated)
+        && receipt_field_matches(
+            receipt,
+            "parentSourcePath",
+            node.parent_source_path.as_str(),
+            repeated,
+        )
+        && receipt_field_matches(
+            receipt,
+            "parentSourceNodeId",
+            node.parent_source_node_id.as_str(),
+            repeated,
+        )
+        && receipt_field_matches(
+            receipt,
+            "parentInstancePath",
+            node.parent_instance_path.as_str(),
+            repeated,
+        )
+        && receipt_field_matches(receipt, "parentNodeId", node.parent_node_id.as_str(), false)
+}
+
+fn receipt_field_matches(receipt: &Value, name: &str, expected: &str, required: bool) -> bool {
+    match receipt.get(name) {
+        None => !required,
+        Some(Value::Null) => !required && expected.is_empty(),
+        Some(Value::String(value)) => value == expected,
+        _ => false,
+    }
 }
 
 pub(in crate::ui::retained_host::host_contract) fn certify_image_residency(
@@ -144,6 +381,275 @@ pub(in crate::ui::retained_host::host_contract) fn focus_publication(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn property_node(item: &str, field: &str) -> TemplatePaneNodeData {
+        TemplatePaneNodeData {
+            node_id: format!("property-{item}").into(),
+            parent_node_id: "component-properties".into(),
+            source_path: "res://ui/editor/workbench/data/component_property_row.zui".into(),
+            source_node_id: "root".into(),
+            instance_path: r#"[{"sourcePath":"res://ui/editor/unreal/level_editor_window.zui","sourceNodeId":"details"},{"sourcePath":"res://ui/editor/unreal/components/details.zui","sourceNodeId":"prototype"}]"#.into(),
+            parent_source_path: "res://ui/editor/unreal/components/details.zui".into(),
+            parent_source_node_id: "properties".into(),
+            parent_instance_path: r#"[{"sourcePath":"res://ui/editor/unreal/level_editor_window.zui","sourceNodeId":"details"}]"#.into(),
+            inspector_property_item_key: item.into(),
+            inspector_property_field_id: field.into(),
+            ..Default::default()
+        }
+    }
+
+    fn property_receipt(node: &TemplatePaneNodeData) -> Value {
+        json!({
+            "sourcePath":node.source_path.as_str(),"sourceNodeId":node.source_node_id.as_str(),"instancePath":node.instance_path.as_str(),
+            "parentNodeId":node.parent_node_id.as_str(),"parentSourcePath":node.parent_source_path.as_str(),
+            "parentSourceNodeId":node.parent_source_node_id.as_str(),"parentInstancePath":node.parent_instance_path.as_str(),
+            "itemKey":node.inspector_property_item_key.as_str(),"propertyFieldId":node.inspector_property_field_id.as_str(),
+        })
+    }
+
+    #[test]
+    fn normal_repeat_paint_observes_only_matching_item_and_authored_parent() {
+        let far = property_node("far-key", "camera.far_clip");
+        let near = property_node("near-key", "camera.near_clip");
+        let mut other_owner = far.clone();
+        other_owner.node_id = "other-properties-far".into();
+        other_owner.parent_source_node_id = "other-properties".into();
+        let receipt = property_receipt(&far);
+        let data = HostWindowPresentationData {
+            workbench_window_nodes: crate::ui::layouts::common::model_rc(vec![
+                near,
+                far,
+                other_owner,
+            ]),
+            ..Default::default()
+        };
+        let stream = ChromeCommandStream::full_rebuild((640, 520));
+        for style_receipt in [true, false] {
+            let sources = if style_receipt {
+                vec![]
+            } else {
+                vec![Some(receipt.clone())]
+            };
+            let styles = if style_receipt {
+                vec![receipt.clone()]
+            } else {
+                vec![]
+            };
+            let observed =
+                stream_observations(&stream, &data, &sources, Ok(json!({"styles":styles})));
+            let nodes = observed["semanticNodes"].as_array().unwrap();
+            assert_eq!(nodes.len(), 1);
+            assert_eq!(nodes[0]["itemKey"], "far-key");
+            assert_eq!(nodes[0]["propertyFieldId"], "camera.far_clip");
+            assert_eq!(nodes[0]["sourceNodeId"], "root");
+            assert_eq!(nodes[0]["parentSourceNodeId"], "properties");
+        }
+    }
+
+    #[test]
+    fn normal_repeat_paint_rejects_legacy_partial_and_conflicting_identity_receipts() {
+        let node = property_node("current-key", "camera.far_clip");
+        let receipt = property_receipt(&node);
+        let legacy = json!({"sourcePath":node.source_path.as_str(),
+            "sourceNodeId":node.source_node_id.as_str(),"instancePath":node.instance_path.as_str()});
+        assert!(!paint_owner_matches(&legacy, &node));
+        for key in [
+            "itemKey",
+            "propertyFieldId",
+            "parentSourcePath",
+            "parentSourceNodeId",
+            "parentInstancePath",
+        ] {
+            let mut missing = receipt.clone();
+            missing.as_object_mut().unwrap().remove(key);
+            assert!(!paint_owner_matches(&missing, &node), "missing {key}");
+        }
+        for key in [
+            "itemKey",
+            "propertyFieldId",
+            "parentSourcePath",
+            "parentSourceNodeId",
+            "parentInstancePath",
+            "parentNodeId",
+        ] {
+            for wrong in [json!("stale"), Value::Null, json!(17)] {
+                let mut stale = receipt.clone();
+                stale[key] = wrong;
+                assert!(!paint_owner_matches(&stale, &node), "stale {key}");
+            }
+        }
+        for missing in [
+            "itemKey",
+            "propertyFieldId",
+            "parentSourcePath",
+            "parentSourceNodeId",
+            "parentInstancePath",
+        ] {
+            let mut partial = node.clone();
+            match missing {
+                "itemKey" => partial.inspector_property_item_key = Default::default(),
+                "propertyFieldId" => partial.inspector_property_field_id = Default::default(),
+                "parentSourcePath" => partial.parent_source_path = Default::default(),
+                "parentSourceNodeId" => partial.parent_source_node_id = Default::default(),
+                _ => partial.parent_instance_path = Default::default(),
+            }
+            assert!(
+                !paint_owner_matches(&property_receipt(&partial), &partial),
+                "partial {missing}"
+            );
+        }
+        let data = HostWindowPresentationData {
+            workbench_window_nodes: crate::ui::layouts::common::model_rc(vec![node.clone()]),
+            ..Default::default()
+        };
+        let mut old_item = receipt;
+        old_item["itemKey"] = json!("previous-materializer-key");
+        let observed = stream_observations(
+            &ChromeCommandStream::full_rebuild((640, 520)),
+            &data,
+            &[Some(old_item)],
+            Ok(json!({"styles":[legacy]})),
+        );
+        assert_eq!(observed["semanticNodes"], json!([]));
+    }
+
+    #[test]
+    fn normal_nonrepeat_paint_retains_legacy_authored_tuple_matching() {
+        let mut node = property_node("", "");
+        node.source_node_id = "nonrepeat".into();
+        let legacy = json!({"sourcePath":node.source_path.as_str(),
+            "sourceNodeId":node.source_node_id.as_str(),"instancePath":node.instance_path.as_str()});
+        assert!(paint_owner_matches(&legacy, &node));
+        let receipt = property_receipt(&node);
+        assert!(paint_owner_matches(&receipt, &node));
+        for key in [
+            "itemKey",
+            "propertyFieldId",
+            "parentSourcePath",
+            "parentSourceNodeId",
+            "parentInstancePath",
+            "parentNodeId",
+        ] {
+            let mut stale = receipt.clone();
+            stale[key] = json!("foreign");
+            assert!(!paint_owner_matches(&stale, &node), "{key}");
+        }
+    }
+
+    #[test]
+    fn submitted_repeat_sources_copy_existing_parent_owner_and_match_only_current_item() {
+        use crate::ui::retained_host::host_contract::{
+            chrome_command_stream::{ChromeCommand, ChromeCommandLayer},
+            data::{FrameRect, TemplateNodeFrameData},
+            paint_frame::{HostRenderCommandSource, HostRenderSourceTable},
+        };
+        use std::sync::Arc;
+        use zircon_runtime_interface::ui::{
+            event_ui::UiNodeId,
+            layout::UiFrame,
+            surface::{UiArrangedNode, UiArrangedTree, UiRenderFrameCommandRef, UiSurfaceFrame},
+        };
+        let id = UiNodeId::new(42);
+        let arranged = UiArrangedNode {
+            node_id: id,
+            node_path: Default::default(),
+            parent: None,
+            children: vec![],
+            frame: UiFrame::new(12.0, 30.0, 90.0, 24.0),
+            clip_frame: UiFrame::new(0.0, 0.0, 640.0, 520.0),
+            z_index: 0,
+            paint_order: 0,
+            visibility: Default::default(),
+            input_policy: Default::default(),
+            pointer_events: Default::default(),
+            enabled: false,
+            clickable: false,
+            hoverable: false,
+            focusable: false,
+            clip_to_bounds: false,
+            control_id: Some("PhysicalPoolRow7".into()),
+            slot: None,
+        };
+        let frame = Arc::new(UiSurfaceFrame {
+            generation: 20,
+            arranged_tree: Arc::new(UiArrangedTree {
+                nodes: std::iter::once(arranged).collect(),
+                ..Default::default()
+            }),
+            ..Default::default()
+        });
+        let before = serde_json::to_value(frame.as_ref()).unwrap();
+        let mut table = HostRenderSourceTable::default();
+        let key = table.register(&frame).unwrap();
+        let stream = ChromeCommandStream::from_extracted_commands(
+            (640, 520),
+            None,
+            vec![ChromeCommand {
+                layer: ChromeCommandLayer::Dynamic,
+                z_index: 0,
+                frame: FrameRect {
+                    x: 12.0,
+                    y: 30.0,
+                    width: 90.0,
+                    height: 24.0,
+                },
+                clip: None,
+                source: Some(HostRenderCommandSource {
+                    surface_key: key,
+                    command_ref: UiRenderFrameCommandRef::new(id, 0),
+                    fragment_index: 0,
+                }),
+                kind: ChromeCommandKind::Quad {
+                    color: [10, 20, 30, 255],
+                    corner_radius: 0.0,
+                },
+            }],
+            table,
+        );
+        let node = TemplatePaneNodeData {
+            source_surface_frame: Some(Arc::clone(&frame)),
+            surface_node_id: Some(id),
+            control_id: "PhysicalPoolRow7".into(),
+            disabled: true,
+            frame: TemplateNodeFrameData {
+                x: 12.0,
+                y: 30.0,
+                width: 90.0,
+                height: 24.0,
+            },
+            ..property_node("far-key", "camera.far_clip")
+        };
+        let mut data = HostWindowPresentationData {
+            workbench_window_nodes: crate::ui::layouts::common::model_rc(vec![node.clone()]),
+            ..Default::default()
+        };
+        let sources = super::super::source_rows(&stream, &data);
+        let source = sources[0].as_ref().unwrap();
+        assert!(paint_owner_matches(source, &node));
+        assert_eq!(source["parentNodeId"], node.parent_node_id.as_str());
+        assert_eq!(source["parentSourcePath"], node.parent_source_path.as_str());
+        assert_eq!(
+            source["parentSourceNodeId"],
+            node.parent_source_node_id.as_str()
+        );
+        assert_eq!(
+            source["parentInstancePath"],
+            node.parent_instance_path.as_str()
+        );
+        assert_eq!(source["propertyFieldId"], "camera.far_clip");
+        assert_eq!(source["itemKey"], "far-key");
+        assert_eq!(source["disabled"], true);
+        let observed = stream_observations(&stream, &data, &sources, Ok(json!({"styles":[]})));
+        assert_eq!(observed["semanticNodes"].as_array().unwrap().len(), 1);
+        assert_eq!(observed["semanticNodes"][0]["itemKey"], "far-key");
+        let mut rebound = node;
+        rebound.inspector_property_item_key = "near-key".into();
+        rebound.inspector_property_field_id = "camera.near_clip".into();
+        data.workbench_window_nodes = crate::ui::layouts::common::model_rc(vec![rebound]);
+        let stale = stream_observations(&stream, &data, &sources, Ok(json!({"styles":[]})));
+        assert_eq!(stale["semanticNodes"], json!([]));
+        assert_eq!(before, serde_json::to_value(frame.as_ref()).unwrap());
+    }
 
     #[test]
     fn normal_focus_publication_reads_captured_interaction_scope() {
@@ -442,3 +948,334 @@ fn viewport_toolbar_source_owner_matches(
 #[cfg(test)]
 #[path = "../normal_present/tests/viewport_toolbar.rs"]
 mod viewport_toolbar_tests;
+
+#[cfg(test)]
+mod normal_viewport_media_tests {
+    use super::super::super::{
+        chrome_command_stream::{ChromeCommand, ChromeCommandLayer, ChromeImagePayload},
+        data::{FrameRect, HostViewportImageData, TemplateNodeFrameData},
+        paint_frame::{HostRenderCommandSource, HostRenderSourceTable},
+    };
+    use super::*;
+    use std::sync::Arc;
+    use zircon_runtime_interface::ui::{
+        event_ui::{UiNodeId, UiTreeId},
+        layout::UiFrame,
+        surface::{UiArrangedNode, UiArrangedTree, UiRenderFrameCommandRef, UiSurfaceFrame},
+    };
+
+    fn fixture() -> (
+        HostWindowPresentationData,
+        ChromeCommandStream,
+        Vec<Option<Value>>,
+    ) {
+        let id = UiNodeId::new(2);
+        let arranged = UiArrangedNode {
+            node_id: id,
+            node_path: Default::default(),
+            parent: None,
+            children: vec![],
+            frame: UiFrame::new(10.0, 20.0, 600.0, 400.0),
+            clip_frame: UiFrame::new(0.0, 0.0, 800.0, 600.0),
+            z_index: 0,
+            paint_order: 0,
+            visibility: Default::default(),
+            input_policy: Default::default(),
+            pointer_events: Default::default(),
+            enabled: true,
+            clickable: false,
+            hoverable: false,
+            focusable: false,
+            clip_to_bounds: false,
+            control_id: Some("WorkbenchViewportSurface".into()),
+            slot: None,
+        };
+        let frame = Arc::new(UiSurfaceFrame {
+            tree_id: UiTreeId::new("actual-scene-surface"),
+            generation: 9,
+            arranged_tree: Arc::new(UiArrangedTree {
+                nodes: vec![arranged].into(),
+                ..Default::default()
+            }),
+            ..Default::default()
+        });
+        let invocation = r#"[{"sourcePath":"res://ui/editor/unreal/level_editor_window.zui","sourceNodeId":"viewport"}]"#;
+        let node = |name: &str, parent: &str, control: &str, authored: &str| TemplatePaneNodeData {
+            node_id: name.into(),
+            parent_node_id: parent.into(),
+            control_id: control.into(),
+            source_path: "res://ui/editor/unreal/components/viewport.zui".into(),
+            source_node_id: authored.into(),
+            instance_path: invocation.into(),
+            frame: TemplateNodeFrameData {
+                x: 10.0,
+                y: 20.0,
+                width: 600.0,
+                height: 400.0,
+            },
+            ..Default::default()
+        };
+        let root = TemplatePaneNodeData {
+            node_id: "window".into(),
+            control_id: "WorkbenchWindowRoot".into(),
+            frame: TemplateNodeFrameData {
+                x: 0.0,
+                y: 0.0,
+                width: 800.0,
+                height: 600.0,
+            },
+            ..Default::default()
+        };
+        let content = TemplatePaneNodeData {
+            node_id: "content".into(),
+            parent_node_id: "window".into(),
+            control_id: "UnrealLevelEditorContent".into(),
+            ..Default::default()
+        };
+        let viewport = node(
+            "viewport",
+            "content",
+            "WorkbenchMainBandViewportPanel",
+            "root",
+        );
+        let media = TemplatePaneNodeData {
+            source_surface_frame: Some(Arc::clone(&frame)),
+            surface_node_id: Some(id),
+            surface_render_command_ref: Some(UiRenderFrameCommandRef::new(id, 0)),
+            ..node(
+                "media",
+                "viewport",
+                "WorkbenchViewportSurface",
+                "scene_media",
+            )
+        };
+        let mut presentation = HostWindowPresentationData {
+            workbench_window_nodes: crate::ui::layouts::common::model_rc(vec![
+                root, content, viewport, media,
+            ]),
+            ..Default::default()
+        };
+        presentation.host_scene_data.document_dock.surface_key = "document:scene:current".into();
+        presentation.host_scene_data.document_dock.pane.kind = "Scene".into();
+        presentation.host_scene_data.document_dock.region_frame = FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 800.0,
+            height: 600.0,
+        };
+        presentation.viewport_images.replace_scene_for_surface(
+            "document:scene:current",
+            HostViewportImageData {
+                resource_key: "viewport:exact:5".into(),
+                resource_generation: 5,
+                width: 600,
+                height: 400,
+                ..Default::default()
+            },
+        );
+        let mut table = HostRenderSourceTable::default();
+        let key = table.register(&frame).unwrap();
+        let stream = ChromeCommandStream::from_extracted_commands(
+            (800, 600),
+            None,
+            vec![ChromeCommand {
+                layer: ChromeCommandLayer::Viewport,
+                z_index: 0,
+                frame: FrameRect {
+                    x: 10.0,
+                    y: 20.0,
+                    width: 600.0,
+                    height: 400.0,
+                },
+                clip: Some(FrameRect {
+                    x: 10.0,
+                    y: 20.0,
+                    width: 600.0,
+                    height: 400.0,
+                }),
+                source: Some(HostRenderCommandSource {
+                    surface_key: key,
+                    command_ref: UiRenderFrameCommandRef::new(id, 0),
+                    fragment_index: 0,
+                }),
+                kind: ChromeCommandKind::Image {
+                    payload: ChromeImagePayload {
+                        resource_key: "viewport:exact:5".into(),
+                        resource_generation: 5,
+                        width: 600,
+                        height: 400,
+                        upload_bytes: 0,
+                        rgba: None,
+                        atlas_uv: None,
+                    },
+                },
+            }],
+            table,
+        );
+        let sources = super::super::source_rows(&stream, &presentation);
+        (presentation, stream, sources)
+    }
+
+    #[test]
+    fn normal_viewport_media_joins_actual_document_surface_source_and_gpu_command() {
+        let (presentation, stream, sources) = fixture();
+        let before = serde_json::to_value(
+            presentation
+                .workbench_window_nodes
+                .iter()
+                .find(|node| node.node_id.as_str() == "media")
+                .unwrap()
+                .source_surface_frame
+                .as_ref()
+                .unwrap()
+                .as_ref(),
+        )
+        .unwrap();
+        let selected = scene_image_selection(&presentation, &stream, &sources)
+            .unwrap()
+            .unwrap();
+        assert_eq!(selected.request.resource_key, "viewport:exact:5");
+        assert_eq!(selected.request.physical_size, (600, 400));
+        assert_eq!(selected.evidence["owner"]["sourceNodeId"], "scene_media");
+        assert_eq!(selected.evidence["surfaceKey"], "document:scene:current");
+        assert_eq!(selected.evidence["sourceRef"]["generation"], 9);
+        assert_eq!(selected.evidence["commandBounds"]["x"], 10.0);
+        assert_eq!(
+            selected.evidence["owner"]["instancePath"],
+            sources[0].as_ref().unwrap()["instancePath"]
+        );
+        let draw =
+            super::super::super::chrome_command_stream::ui_surface_draw_list_from_stream(&stream);
+        assert!(selected.matches_draw_list(&draw));
+        assert_eq!(
+            before,
+            serde_json::to_value(
+                presentation
+                    .workbench_window_nodes
+                    .iter()
+                    .find(|node| node.node_id.as_str() == "media")
+                    .unwrap()
+                    .source_surface_frame
+                    .as_ref()
+                    .unwrap()
+                    .as_ref()
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
+    fn normal_viewport_media_rejects_stale_or_partial_source_evidence_and_duplicates() {
+        let (presentation, stream, sources) = fixture();
+        for key in ["sourcePath", "sourceNodeId", "instancePath"] {
+            let mut stale = sources.clone();
+            stale[0].as_mut().unwrap()[key] = json!("foreign");
+            assert!(
+                scene_image_selection(&presentation, &stream, &stale).is_err(),
+                "{key}"
+            );
+        }
+        let mut stale = sources.clone();
+        stale[0].as_mut().unwrap()["sourceRef"]["generation"] = json!(8);
+        assert!(scene_image_selection(&presentation, &stream, &stale).is_err());
+        let mut duplicate = stream.clone();
+        duplicate.push_command_for_test(stream.commands()[0].clone());
+        let repeated = super::super::source_rows(&duplicate, &presentation);
+        assert!(scene_image_selection(&presentation, &duplicate, &repeated).is_err());
+        let mut nodes = presentation
+            .workbench_window_nodes
+            .iter()
+            .cloned()
+            .collect::<Vec<_>>();
+        let mut duplicate = nodes
+            .iter()
+            .find(|node| node.node_id.as_str() == "media")
+            .unwrap()
+            .clone();
+        duplicate.node_id = "another-physical-media".into();
+        nodes.push(duplicate);
+        let data = HostWindowPresentationData {
+            workbench_window_nodes: crate::ui::layouts::common::model_rc(nodes),
+            ..presentation
+        };
+        assert!(scene_image_selection(&data, &stream, &sources).is_err());
+    }
+
+    #[test]
+    fn normal_viewport_media_does_not_replace_scene_with_overlay_neighbor_or_cpu_pixels() {
+        let (mut presentation, mut stream, _) = fixture();
+        // Another actual command may use the same resource, but has no matching scene source.
+        let mut outside = stream.commands()[0].clone();
+        outside.source = None;
+        stream.push_command_for_test(outside);
+        let mut overlay = stream.commands()[0].clone();
+        if let ChromeCommandKind::Image { payload } = &mut overlay.kind {
+            payload.resource_key = "viewport:overlay".into();
+        }
+        stream.push_command_for_test(overlay);
+        let sources = super::super::source_rows(&stream, &presentation);
+        assert_eq!(
+            scene_image_selection(&presentation, &stream, &sources)
+                .unwrap()
+                .unwrap()
+                .request
+                .command_index,
+            0
+        );
+        let mut neighbor = presentation.host_scene_data.document_dock.clone();
+        neighbor.surface_key = "neighbor".into();
+        neighbor.region_frame.x = 900.0;
+        presentation.host_scene_data.document_leaves = vec![neighbor];
+        assert!(scene_image_selection(&presentation, &stream, &sources)
+            .unwrap()
+            .is_none());
+        presentation.host_scene_data.document_leaves.clear();
+        presentation.viewport_images.replace_scene_for_surface(
+            "document:scene:current",
+            HostViewportImageData {
+                resource_key: "cpu-scene".into(),
+                width: 600,
+                height: 400,
+                rgba: Some(Arc::from(vec![255; 600 * 400 * 4])),
+                ..Default::default()
+            },
+        );
+        assert!(scene_image_selection(&presentation, &stream, &sources).is_err());
+    }
+
+    #[test]
+    fn normal_viewport_media_rejects_changed_post_conversion_command() {
+        let (presentation, stream, sources) = fixture();
+        let selected = scene_image_selection(&presentation, &stream, &sources)
+            .unwrap()
+            .unwrap();
+        let draw =
+            super::super::super::chrome_command_stream::ui_surface_draw_list_from_stream(&stream);
+        for mutation in 0..7 {
+            let mut changed = draw.clone();
+            match mutation {
+                0 => changed.commands[0].frame.x += 1.0,
+                1 => changed.commands[0].clip = None,
+                _ => {
+                    if let zircon_runtime::rhi::UiSurfaceCommandKind::Image { payload } =
+                        &mut changed.commands[0].kind
+                    {
+                        match mutation {
+                            2 => payload.resource_key = "other".into(),
+                            3 => payload.resource_generation += 1,
+                            4 => payload.width += 1,
+                            5 => payload.rgba = Some(vec![]),
+                            _ => {
+                                payload.atlas_uv = Some(zircon_runtime::rhi::UiSurfaceImageUvRect {
+                                    min: [0.0, 0.0],
+                                    max: [0.5, 1.0],
+                                })
+                            }
+                        }
+                    }
+                }
+            }
+            assert!(!selected.matches_draw_list(&changed), "mutation {mutation}");
+        }
+    }
+}

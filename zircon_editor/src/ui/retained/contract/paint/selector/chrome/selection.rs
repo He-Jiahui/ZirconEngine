@@ -1,12 +1,13 @@
 //! 外壳画家调用此入口统一选择区域填充和分隔线；布局裁剪与命令记录仍由画家负责。
 
+use super::super::super::template_style_color::resolved_style_color;
 use super::super::resolved_state_for_node;
 use super::fill::chrome_fill;
 use super::model::{WorkbenchChromeKind, WorkbenchChromeStyle};
 use super::palette::workbench_chrome_palette;
 use super::separators::chrome_separator;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
-use zircon_runtime_interface::ui::style::UiPainterFamily;
+use zircon_runtime_interface::ui::style::{UiPainterFamily, UiPainterResolvedState};
 
 /// 为外壳区域选择填充与分隔线；调用端提供区域身份并在绘制命令阶段处理裁剪。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_workbench_chrome_style(
@@ -15,9 +16,19 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
 ) -> WorkbenchChromeStyle {
     let state = resolved_state_for_node(node).resolved_state_for_family(UiPainterFamily::Chrome);
     let palette = workbench_chrome_palette();
+    let fallback_fill = chrome_fill(kind, state, &palette);
+    let fill = if fallback_fill.is_some()
+        && matches!(
+            state,
+            UiPainterResolvedState::Normal | UiPainterResolvedState::Focused
+        ) {
+        resolved_style_color(node.button_style.element.background_color.as_ref()).or(fallback_fill)
+    } else {
+        fallback_fill
+    };
 
     WorkbenchChromeStyle {
-        fill: chrome_fill(kind, state, &palette),
+        fill,
         separator: chrome_separator(palette.separator, state, &palette),
         strong_separator: chrome_separator(palette.strong_separator, state, &palette),
         soft_separator: chrome_separator(palette.soft_separator, state, &palette),

@@ -28,33 +28,7 @@ impl RetainedEditorHost {
         };
 
         record_current_ui_perf_counter(UiPerfCounter::AssetPointerSnapshotCloneCount, 1.0);
-        surface.snapshot = Some(Arc::new(snapshot.pointer_projection()));
-        surface.tree_bridge.sync(
-            AssetFolderTreePointerLayout::from_snapshot(snapshot, surface.tree_size),
-            surface.tree_state.clone(),
-        );
-        surface.content_bridge.sync(
-            AssetContentListPointerLayout::from_snapshot(
-                snapshot,
-                surface.content_size,
-                surface_profile,
-            ),
-            surface.content_state.clone(),
-        );
-        surface.references.bridge.sync(
-            AssetReferenceListPointerLayout::from_references(
-                &snapshot.selection.references,
-                surface.references.size,
-            ),
-            surface.references.state.clone(),
-        );
-        surface.used_by.bridge.sync(
-            AssetReferenceListPointerLayout::from_references(
-                &snapshot.selection.used_by,
-                surface.used_by.size,
-            ),
-            surface.used_by.state.clone(),
-        );
+        surface.sync_snapshot_pointer_layouts(snapshot, surface_profile);
         self.apply_asset_pointer_state_to_ui(surface_mode);
     }
 
@@ -97,3 +71,49 @@ impl RetainedEditorHost {
         }
     }
 }
+
+impl AssetSurfacePointerState {
+    fn sync_snapshot_pointer_layouts(
+        &mut self,
+        snapshot: &crate::ui::workbench::snapshot::AssetWorkspaceSnapshot,
+        surface_profile: AssetContentSurfaceProfile,
+    ) {
+        self.snapshot = Some(Arc::new(snapshot.pointer_projection()));
+        self.tree_bridge.sync(
+            AssetFolderTreePointerLayout::from_snapshot(snapshot, self.tree_size),
+            self.tree_state.clone(),
+        );
+        self.content_bridge.sync(
+            AssetContentListPointerLayout::from_snapshot(
+                snapshot,
+                self.content_size,
+                surface_profile,
+            ),
+            self.content_state.clone(),
+        );
+        self.references.bridge.sync(
+            AssetReferenceListPointerLayout::from_references(
+                &snapshot.selection.references,
+                self.references.size,
+            ),
+            self.references.state.clone(),
+        );
+        self.used_by.bridge.sync(
+            AssetReferenceListPointerLayout::from_references(
+                &snapshot.selection.used_by,
+                self.used_by.size,
+            ),
+            self.used_by.state.clone(),
+        );
+
+        // Painting and the next sync must use the offsets clamped for this snapshot.
+        self.tree_state = self.tree_bridge.pointer_state();
+        self.content_state = self.content_bridge.pointer_state();
+        self.references.state = self.references.bridge.pointer_state();
+        self.used_by.state = self.used_by.bridge.pointer_state();
+    }
+}
+
+#[cfg(test)]
+#[path = "tests/scroll_sync.rs"]
+mod tests;

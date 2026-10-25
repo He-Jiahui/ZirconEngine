@@ -60,6 +60,10 @@ selector = ".unreal-control"
 set = { self = { foreground_color = "$unreal_foreground", font_family = "$unreal_font_family", font_size = "$unreal_font_size", font_weight = "$unreal_font_weight", line_height_ratio = 1.2, border_color = "$unreal_input_outline", border_width = 0.0, corner_radius = 4.0 } }
 
 [[stylesheets.rules]]
+selector = ".unreal-transform-mode"
+set = { self = { foreground_color = "$unreal_foreground_header" } }
+
+[[stylesheets.rules]]
 selector = ".unreal-toolbar-control"
 set = { self = { background_color = "$unreal_panel", foreground_color = "$unreal_foreground", border_color = "$unreal_input_outline", border_width = 0.0, corner_radius = 4.0 } }
 
@@ -110,7 +114,11 @@ set = { self = { background_color = "#575757", foreground_color = "$unreal_foreg
 
 [[stylesheets.rules]]
 selector = ".unreal-menu-control:pressed"
-set = { self = { background_color = "$unreal_primary_press", foreground_color = "$unreal_foreground_hover", border_color = "$unreal_primary_press", border_width = 0.0, corner_radius = 0.0 } }
+set = { self = { background_color = "$unreal_primary", foreground_color = "$unreal_foreground_hover", border_color = "$unreal_primary", border_width = 0.0, corner_radius = 0.0 } }
+
+[[stylesheets.rules]]
+selector = ".unreal-menu-control:popup_open"
+set = { self = { background_color = "$unreal_primary", foreground_color = "$unreal_foreground_hover", border_color = "$unreal_primary", border_width = 0.0, corner_radius = 0.0 } }
 
 [[stylesheets.rules]]
 selector = ".unreal-menu-control:disabled"

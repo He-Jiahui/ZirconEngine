@@ -6,6 +6,7 @@ pub struct EditorPluginStatus {
     pub plugin_id: String,
     pub display_name: String,
     pub package_source: String,
+    pub package_metadata: Option<EditorPluginPackageMetadata>,
     pub load_state: String,
     pub enabled: bool,
     pub required: bool,
@@ -43,4 +44,24 @@ pub struct EditorPluginFeatureDependencyStatus {
     pub primary: bool,
     pub plugin_enabled: bool,
     pub capability_available: bool,
+}
+
+/// Metadata copied from the package already used to construct the owning status row.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EditorPluginPackageMetadata {
+    pub version: String,
+    pub category: String,
+    pub description: String,
+    pub maturity: zircon_runtime::plugin::PluginMaturity,
+}
+
+impl From<&zircon_runtime::plugin::PluginPackageManifest> for EditorPluginPackageMetadata {
+    fn from(package: &zircon_runtime::plugin::PluginPackageManifest) -> Self {
+        Self {
+            version: package.version.clone(),
+            category: package.category.clone(),
+            description: package.description.clone(),
+            maturity: package.maturity,
+        }
+    }
 }

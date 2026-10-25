@@ -254,6 +254,7 @@ fn missing_native_selection_statuses(
                 plugin_id: selection.id.clone(),
                 display_name: selection.id.clone(),
                 package_source: "project selection".to_owned(),
+                package_metadata: None,
                 load_state: "missing package".to_owned(),
                 enabled: true,
                 required: selection.required,
@@ -289,6 +290,7 @@ fn native_plugin_status(
         plugin_id: package.id.clone(),
         display_name: package.display_name.clone(),
         package_source: "native".to_string(),
+        package_metadata: Some(package.into()),
         load_state,
         enabled: project_selection
             .map(|selection| selection.enabled)

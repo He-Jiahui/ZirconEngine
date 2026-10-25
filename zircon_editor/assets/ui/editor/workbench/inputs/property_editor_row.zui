@@ -11,21 +11,47 @@ styles = ["res://ui/editor/theme/editor_tokens.zui"]
 [components.WorkbenchPropertyEditorRow]
 root = "root"
 default_classes = ["workbench-property-editor-row", "workbench-composite"]
-slots = { value = { required = true, multiple = false, kind = "linear", accepts = ["WorkbenchCheckbox", "WorkbenchDropdown", "WorkbenchField", "WorkbenchNumberField", "WorkbenchRangeSlider", "WorkbenchSlider", "WorkbenchToggle"] } }
+# Keep default consumers unchanged. A caller can supply content-driven height
+# constraints for supporting text; text measurement and source ownership still
+# belong to the existing host and component expansion paths.
+params = { row_height = { type = "map", default = { min = "$editor.control.height.dense", preferred = "$editor.control.height.compact", stretch = "Fixed" } }, description_height = { type = "map", default = { stretch = "Fixed" } }, source_height = { type = "map", default = { stretch = "Fixed" } } }
+slots = { value = { required = true, multiple = false, kind = "linear", accepts = ["WorkbenchCheckbox", "WorkbenchDropdown", "WorkbenchField", "WorkbenchNumberField", "WorkbenchRangeSlider", "WorkbenchSlider", "WorkbenchToggle"] }, description = { required = false, multiple = false, kind = "linear", accepts = ["WorkbenchCaption", "WorkbenchLabel"] }, source = { required = false, multiple = false, kind = "linear", accepts = ["WorkbenchCaption", "WorkbenchLabel", "WorkbenchStatusItem"] }, reset = { required = false, multiple = false, kind = "linear", accepts = ["WorkbenchButton", "WorkbenchIconButton"] } }
 
 [nodes.root]
 component = "PropertyRow"
 control_id = "WorkbenchPropertyEditorRowRoot"
 classes = ["workbench-property-editor-row"]
 props = { text = "Property" }
-layout = { clip = true, container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.compact", max = "$editor.control.height.default", stretch = "Fixed" } }
-children = [{ node = "name_column" }, { node = "value_slot" }]
+# Supporting content contributes its measured height instead of being clipped
+# to a single control. Empty optional slots disappear during component expansion.
+layout = { clip = true, boundary = "ContentDriven", container = { kind = "HorizontalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = "$param.row_height" }
+children = [{ node = "name_column" }, { node = "value_column" }, { node = "reset_slot" }]
 
 [nodes.name_column]
 component = "Container"
 layout = { width = { min = 60.0, preferred = 105.0, max = 105.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
+[nodes.value_column]
+component = "Container"
+layout = { boundary = "ContentDriven", container = { kind = "VerticalBox", gap = "$editor.density.gap.small" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "value_slot" }, { node = "description_slot" }, { node = "source_slot" }]
+
 [nodes.value_slot]
 component = "Slot"
 props = { name = "value" }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.description_slot]
+component = "Slot"
+props = { name = "description" }
+layout = { width = { stretch = "Stretch" }, height = "$param.description_height" }
+
+[nodes.source_slot]
+component = "Slot"
+props = { name = "source" }
+layout = { width = { stretch = "Stretch" }, height = "$param.source_height" }
+
+[nodes.reset_slot]
+component = "Slot"
+props = { name = "reset" }
+layout = { width = { stretch = "Fixed" }, height = { stretch = "Fixed" } }

@@ -101,7 +101,7 @@ events = [{ id = "ViewportToolbar/SetGridMode", event = "Change", route = "workb
 [nodes.select_mode]
 component = "IconButton"
 control_id = "SelectMode"
-classes = ["unreal-viewport-tool", "unreal-control"]
+classes = ["unreal-viewport-tool", "unreal-control", "unreal-transform-mode"]
 props = { label = "Select", icon = "editor_pages/scene_viewport/tools/select.svg", icon_placement = "icon_only", selected = false, checked = false, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/SelectMode", event = "Click", route = "workbench.viewport.activate_scene_mode" }]
@@ -109,7 +109,7 @@ events = [{ id = "ViewportToolbar/SelectMode", event = "Click", route = "workben
 [nodes.translate_mode]
 component = "IconButton"
 control_id = "TranslateMode"
-classes = ["unreal-viewport-tool", "unreal-control"]
+classes = ["unreal-viewport-tool", "unreal-control", "unreal-transform-mode"]
 props = { label = "Translate", icon = "editor_pages/scene_viewport/tools/translate.svg", icon_placement = "icon_only", selected = true, checked = true, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/TranslateMode", event = "Click", route = "workbench.viewport.activate_scene_mode" }]
@@ -117,7 +117,7 @@ events = [{ id = "ViewportToolbar/TranslateMode", event = "Click", route = "work
 [nodes.rotate_mode]
 component = "IconButton"
 control_id = "RotateMode"
-classes = ["unreal-viewport-tool", "unreal-control"]
+classes = ["unreal-viewport-tool", "unreal-control", "unreal-transform-mode"]
 props = { label = "Rotate", icon = "editor_pages/scene_viewport/tools/rotate.svg", icon_placement = "icon_only", selected = false, checked = false, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/RotateMode", event = "Click", route = "workbench.viewport.activate_scene_mode" }]
@@ -125,7 +125,7 @@ events = [{ id = "ViewportToolbar/RotateMode", event = "Click", route = "workben
 [nodes.scale_mode]
 component = "IconButton"
 control_id = "ScaleMode"
-classes = ["unreal-viewport-tool", "unreal-control"]
+classes = ["unreal-viewport-tool", "unreal-control", "unreal-transform-mode"]
 props = { label = "Scale", icon = "editor_pages/scene_viewport/tools/scale.svg", icon_placement = "icon_only", selected = false, checked = false, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
 layout = { width = { min = "$editor.chrome.viewport_toolbar.height", preferred = "$editor.chrome.viewport_toolbar.height", max = "$editor.chrome.viewport_toolbar.height", stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/ScaleMode", event = "Click", route = "workbench.viewport.activate_scene_mode" }]

@@ -57,7 +57,7 @@ fn resolver_reads_project_library_atlas_artifacts_for_template_icon() {
         .expect("template icon should resolve through project library atlas artifacts");
 
     assert_eq!(
-        resolved.resource_key,
+        resolved.resource_key.as_ref(),
         "lib://editor-sprite-atlases/icons.png"
     );
     assert_eq!((resolved.width, resolved.height), (2, 1));

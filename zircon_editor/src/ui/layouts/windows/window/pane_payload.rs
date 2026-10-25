@@ -223,6 +223,7 @@ pub struct ModulePluginStatusPayload {
     pub plugin_id: String,
     pub display_name: String,
     pub package_source: String,
+    pub package_metadata: Option<crate::ui::host::EditorPluginPackageMetadata>,
     pub load_state: String,
     pub enabled: bool,
     pub required: bool,

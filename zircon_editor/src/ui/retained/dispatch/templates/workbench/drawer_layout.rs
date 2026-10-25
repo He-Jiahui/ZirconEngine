@@ -161,6 +161,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             self.template_surface
                 .recompute_layout(self.runtime.as_ref(), shell_size)?;
         }
+        // Chrome preparation precedes the final mounted geometry. Reflow with
+        // that geometry before publishing its source frame and measurements.
+        self.refresh_unreal_viewport_toolbar_overflow()?;
         Ok(())
     }
 }

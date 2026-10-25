@@ -159,13 +159,7 @@ impl RetainedEditorHost {
         self.sync_content_drawer_native_focus_state();
         // Every existing full/sparse/geometry commit reaches this prepare hook,
         // including the unchanged-drawer early returns inside the focus helper.
-        self.ui.set_prepared_viewport_toolbar_publication(
-            self.workbench_window_bridge
-                .prepared_viewport_toolbar_publication(),
-            self.workbench_window_bridge.layout_frames().mount_frame,
-            self.workbench_window_bridge.presentation_scale_factor(),
-        );
-        self.publish_normal_arranged_inventory_after_commit();
+        self.publish_current_normal_source_capture_metadata();
     }
 
     fn sync_content_drawer_native_focus_state(&mut self) {

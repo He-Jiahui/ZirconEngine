@@ -64,7 +64,6 @@ fn draw_text_with_size_and_style_impl(
         record_text_run(
             frame,
             &rect,
-            &clip,
             effective_clip,
             layout.display_text.as_str(),
             color,

@@ -25,3 +25,22 @@ fn icon_button_kind_matches_workbench_ids_and_excludes_status() {
         30.0,
     )));
 }
+
+#[test]
+fn dock_tab_close_identity_uses_the_icon_family_without_a_workbench_variant() {
+    let mut node = icon_node(
+        "DockTabClose0",
+        "editor_pages/unreal/close-small.svg",
+        false,
+        20.0,
+        20.0,
+    );
+    assert!(is_workbench_icon_button(&node));
+    node.role = "Label".into();
+    assert!(!is_workbench_icon_button(&node));
+    node.role = "IconButton".into();
+    node.control_id = "UnrelatedClose".into();
+    assert!(!is_workbench_icon_button(&node));
+    node.control_id = "WorkbenchStatusTabClose".into();
+    assert!(!is_workbench_icon_button(&node));
+}

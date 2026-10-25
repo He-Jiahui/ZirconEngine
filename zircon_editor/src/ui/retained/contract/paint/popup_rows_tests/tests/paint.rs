@@ -77,6 +77,6 @@ fn popup_menu_hover_surface_stays_inside_projected_content_padding() {
     let bytes = paint_template_nodes_for_test(180, 180, model_rc(vec![popup]));
 
     assert_eq!(pixel_at(&bytes, 180, 12, 110), PALETTE.popup);
-    assert_eq!(pixel_at(&bytes, 180, 20, 110), PALETTE.surface_hover);
+    assert_eq!(pixel_at(&bytes, 180, 20, 110), PALETTE.surface_selected);
     assert_eq!(pixel_at(&bytes, 180, 20, 12), PALETTE.popup);
 }

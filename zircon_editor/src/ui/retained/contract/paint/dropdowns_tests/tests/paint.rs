@@ -8,7 +8,9 @@ use crate::ui::retained_host::host_contract::data::FrameRect;
 #[test]
 fn closed_workbench_dropdown_paints_surface_border_text_and_chevron() {
     let palette = workbench_dropdown_palette();
-    let bytes = paint_template_nodes_for_test(140, 48, model_rc(vec![dropdown_node(false)]));
+    let mut node = dropdown_node(false);
+    node.border_width = 1.0;
+    let bytes = paint_template_nodes_for_test(140, 48, model_rc(vec![node]));
 
     assert_eq!(pixel_at(&bytes, 140, 88, 24), palette.surface);
     assert_eq!(pixel_at(&bytes, 140, 54, 8), palette.border);
@@ -59,6 +61,7 @@ fn closed_workbench_dropdown_chevron_prefers_shell_asset_pixels() {
 fn open_workbench_dropdown_uses_focus_border_and_keeps_popup_rows() {
     let palette = workbench_dropdown_palette();
     let mut node = dropdown_node(true);
+    node.border_width = 1.0;
     node.popup_open = true;
     node.structured_options = model_rc(vec![
         option("dropdown", true, false, true, false),
@@ -87,6 +90,7 @@ fn workbench_dropdown_honors_declared_layout_offset() {
 fn workbench_dropdown_applies_declared_visual_brightness() {
     let palette = workbench_dropdown_palette();
     let mut node = dropdown_node(false);
+    node.border_width = 1.0;
     node.label_brightness = 1.2;
     let expected_surface = scaled_test_color(palette.surface, 1.2);
     let expected_border = scaled_test_color(palette.border, 1.2);
@@ -120,6 +124,73 @@ fn workbench_dropdown_keeps_first_option_label_fallback() {
     assert!(commands
         .iter()
         .any(|command| command.text.as_deref() == Some("Fallback")));
+}
+
+#[test]
+fn authored_viewport_dropdown_paints_chevron_and_preserves_border_width_across_dpi() {
+    use crate::ui::retained_host::callback_dispatch::BuiltinWorkbenchWindowTemplateSurfaceBridge;
+    use crate::ui::retained_host::host_contract::paint_theme::{
+        enter_host_paint_theme_scope, host_paint_theme_snapshot_at_scale_for_test,
+    };
+    use crate::ui::retained_host::ui::to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale;
+    use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
+
+    let bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 800.0))
+        .expect("the authored Unreal viewport must project");
+    for scale in [1.0, 1.25] {
+        let _scope =
+            enter_host_paint_theme_scope(host_paint_theme_snapshot_at_scale_for_test(scale));
+        let nodes = to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale(
+            Some(bridge.host_projection()),
+            None,
+            Some(UiFrame::new(100.0, 50.0, 1280.0 * scale, 800.0 * scale)),
+            scale,
+        );
+        let mounted = nodes
+            .iter()
+            .find(|node| node.control_id.as_str() == "SetProjectionMode")
+            .expect("the actual authored projection dropdown must be mounted");
+        assert_eq!(mounted.component_role.as_str(), "dropdown");
+        assert_eq!(mounted.border_width, 0.0);
+        let rect = FrameRect {
+            x: mounted.frame.x,
+            y: mounted.frame.y,
+            width: mounted.frame.width,
+            height: mounted.frame.height,
+        };
+        for border_width in [0.0, scale] {
+            let mut node = mounted.clone();
+            node.border_width = border_width;
+            let mut commands = Vec::new();
+            assert!(push_dropdown_commands(
+                &mut commands,
+                &node,
+                &rect,
+                &rect,
+                0,
+                1.0,
+            ));
+            let surface = &commands[0];
+            assert_eq!(surface.background_color, Some([56, 56, 56, 255]));
+            assert_eq!(surface.border_width, border_width);
+            assert_eq!(surface.corner_radius, 4.0 * scale);
+            let glyphs: Vec<_> = commands
+                .iter()
+                .filter(|command| command.image_pixels.is_some())
+                .collect();
+            assert_eq!(glyphs.len(), 1);
+            let glyph = glyphs[0];
+            assert_eq!(glyph.frame.width, 16.0 * scale);
+            assert_eq!(glyph.frame.height, 16.0 * scale);
+            assert_eq!(glyph.clip_frame.as_ref(), Some(&rect));
+            assert!(!glyph
+                .image_pixels
+                .as_ref()
+                .unwrap()
+                .resource_key
+                .starts_with("missing-icon:"));
+        }
+    }
 }
 
 #[test]

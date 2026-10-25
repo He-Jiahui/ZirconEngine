@@ -6,7 +6,7 @@ UnrealWindowMenuPopup = ["window.layout.save", "window.layout.reset", "view.hier
 UnrealToolsMenuPopup = ["view.plugin_manager.open", "view.asset_browser.open"]
 UnrealBuildMenuPopup = ["view.build_export.open"]
 UnrealHelpMenuPopup = []
-UnrealModesMenuPopup = []
+UnrealModesMenuPopup = ["viewport.tool.select"]
 UnrealAddMenuPopup = ["scene.node.create_cube", "scene.node.create_camera", "scene.node.create_point_light", "scene.node.create_spot_light", "scene.node.create_directional_light", "scene.node.create_rect_light", "scene.node.create_ambient_light"]
 UnrealBlueprintsMenuPopup = []
 UnrealCinematicsMenuPopup = []
@@ -24,3 +24,9 @@ UnrealAddMenuPopup = "WorkbenchToolbarAddActor"
 UnrealBlueprintsMenuPopup = "UnrealToolbarBlueprints"
 UnrealCinematicsMenuPopup = "UnrealToolbarCinematics"
 UnrealSettingsMenuPopup = "UnrealToolbarSettings"
+
+# Preserve the authored UE toolbar layout while these menus have no registered commands.
+[empty_trigger_policy]
+UnrealHelpMenuPopup = "VisibleDisabled"
+UnrealBlueprintsMenuPopup = "VisibleDisabled"
+UnrealCinematicsMenuPopup = "VisibleDisabled"

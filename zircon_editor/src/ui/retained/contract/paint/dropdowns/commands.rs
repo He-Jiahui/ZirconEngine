@@ -28,7 +28,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_dr
         return true;
     }
     let (label, label_is_placeholder) = dropdown_label(node);
-    let metrics = workbench_dropdown_metrics();
+    let mut metrics = workbench_dropdown_metrics();
+    // The mount already resolved defaults and converted this metric to physical pixels.
+    // Zero is an authored borderless surface, not a request for the density fallback.
+    if node.border_width.is_finite() && node.border_width >= 0.0 {
+        metrics.border_width = node.border_width;
+    }
     let style = dropdown_style(node, label_is_placeholder);
 
     push_dropdown_surface(commands, &rect, clip, order, opacity, &style, &metrics);

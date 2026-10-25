@@ -12,6 +12,10 @@ use super::{
 
 #[derive(Debug, Error, PartialEq)]
 pub enum SettingsError {
+    #[error("settings changed since display (expected generation {expected}, actual {actual})")]
+    StaleGeneration { expected: u64, actual: u64 },
+    #[error("settings generation is exhausted; displayed edits cannot be verified")]
+    GenerationExhausted,
     #[error("setting `{0}` is not registered")]
     UnknownKey(String),
     #[error("setting `{0}` is registered more than once")]
@@ -105,6 +109,14 @@ impl SettingsRegistry {
 
     pub fn resolve(&self, key: &SettingsKey) -> Result<&SettingValue, SettingsError> {
         self.resolve_with_source(key).map(|(value, _)| value)
+    }
+
+    pub(super) fn override_in_scope(
+        &self,
+        scope: SettingsScope,
+        key: &SettingsKey,
+    ) -> Option<&SettingValue> {
+        self.layers.get(scope, key)
     }
 
     pub(super) fn resolve_with_source(

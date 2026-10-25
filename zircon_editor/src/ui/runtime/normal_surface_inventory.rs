@@ -179,6 +179,7 @@ pub(crate) fn capture_normal_surface_inventory(
         if metadata.is_none() {
             issues.push(format!("missing template metadata {:?}", id));
         }
+        let inspector_repeat = inspector_repeat_observation(surface, id, &mut issues);
         if let Some(metadata) = metadata {
             if metadata.component.is_empty()
                 || metadata.source_path.as_deref().is_none_or(str::is_empty)
@@ -187,14 +188,20 @@ pub(crate) fn capture_normal_surface_inventory(
             {
                 issues.push(format!("incomplete template source identity {:?}", id));
             }
-            if !seen_source_identities.insert(
-                json!([
-                    metadata.source_path,
-                    metadata.source_node_id,
-                    metadata.instance_path
-                ])
-                .to_string(),
-            ) {
+            let mut source_identity = json!([
+                metadata.source_path,
+                metadata.source_node_id,
+                metadata.instance_path
+            ]);
+            if let Some(repeat) = inspector_repeat.as_ref() {
+                source_identity.as_array_mut().unwrap().push(json!([
+                    repeat["ownerSourcePath"],
+                    repeat["ownerSourceNodeId"],
+                    repeat["ownerInstancePath"],
+                    repeat["itemKey"]
+                ]));
+            }
+            if !seen_source_identities.insert(source_identity.to_string()) {
                 issues.push(format!("duplicate template source identity {:?}", id));
             }
             if metadata.control_id != arranged.control_id {
@@ -240,6 +247,8 @@ pub(crate) fn capture_normal_surface_inventory(
                     "enabled",
                     "selection_state",
                     "detached",
+                    "inspector_property_item_key",
+                    "inspector_property_field_id",
                 ] {
                     if projected.properties.get(key).map(projected_value)
                         != metadata.attributes.get(key).map(|value| json!(value))
@@ -274,6 +283,9 @@ pub(crate) fn capture_normal_surface_inventory(
             "sourcePath": metadata.and_then(|source| source.source_path.as_ref()),
             "sourceNodeId": metadata.and_then(|source| source.source_node_id.as_ref()),
             "instancePath": metadata.and_then(|source| source.instance_path.as_ref()),
+            "itemKey": metadata.and_then(|source| source.attributes.get("inspector_property_item_key")).and_then(toml::Value::as_str),
+            "propertyFieldId": metadata.and_then(|source| source.attributes.get("inspector_property_field_id")).and_then(toml::Value::as_str),
+            "inspectorRepeat": inspector_repeat,
             "component": metadata.map(|source| &source.component),
             "controlId": arranged.control_id,
             "bounds": arranged.frame,
@@ -320,6 +332,65 @@ pub(crate) fn capture_normal_surface_inventory(
         _source_frame: frame,
         observation: Arc::new(observation),
     }
+}
+
+/// Inspector rows reuse one authored leaf. Only a current Runtime assignment
+/// supplies the additional model identity; the physical slot stays diagnostic.
+fn inspector_repeat_observation(
+    surface: &UiSurface,
+    node_id: UiNodeId,
+    issues: &mut Vec<String>,
+) -> Option<Value> {
+    let node = surface.tree.node(node_id)?;
+    let metadata = node.template_metadata.as_ref()?;
+    let key_value = metadata.attributes.get("inspector_property_item_key");
+    let field_value = metadata.attributes.get("inspector_property_field_id");
+    let owner_id = node.parent;
+    let binding = owner_id.and_then(|owner| surface.virtual_list_binding_for_node(owner, node_id));
+    if key_value.is_none() && field_value.is_none() && binding.is_none() {
+        return None;
+    }
+    let key = key_value.and_then(toml::Value::as_str);
+    let field = field_value.and_then(toml::Value::as_str);
+    let canonical_key = key.and_then(|key| {
+        key.parse::<u128>()
+            .ok()
+            .filter(|value| value.to_string() == key)
+    });
+    if canonical_key.is_none() || field.is_none_or(|field| field.trim().is_empty()) {
+        issues.push(format!("invalid Inspector property identity {:?}", node_id));
+    }
+    let owner = owner_id
+        .and_then(|id| surface.tree.node(id))
+        .and_then(|owner| owner.template_metadata.as_ref());
+    if owner.is_none_or(|owner| {
+        owner.source_path.as_deref().is_none_or(str::is_empty)
+            || owner.source_node_id.as_deref().is_none_or(str::is_empty)
+            || owner.instance_path.is_none()
+    }) {
+        issues.push(format!("missing Inspector property owner {:?}", node_id));
+    }
+    let binding_current = binding.is_some_and(|binding| {
+        surface.virtual_list_binding_is_current(node_id, binding)
+            && canonical_key == Some(binding.item_key.get())
+    });
+    if !binding_current {
+        issues.push(format!(
+            "Inspector property Runtime binding mismatch {:?}",
+            node_id
+        ));
+    }
+    Some(json!({
+        "ownerSourcePath": owner.and_then(|owner| owner.source_path.as_ref()),
+        "ownerSourceNodeId": owner.and_then(|owner| owner.source_node_id.as_ref()),
+        "ownerInstancePath": owner.and_then(|owner| owner.instance_path.as_ref()),
+        "itemKey": key,
+        "propertyFieldId": field,
+        "runtimeBindingCurrent": binding_current,
+        "ownerSurfaceNodeId": owner_id,
+        "slotRootId": binding.map(|binding| binding.slot_root_id),
+        "assignmentGeneration": binding.map(|binding| binding.assignment_generation),
+    }))
 }
 
 fn visible_ancestry(

@@ -12,7 +12,8 @@ use zircon_runtime_interface::ui::{
     dispatch::UiTemplateActionInvocation,
     event_ui::UiNodeId,
     template::{UiActionRef, UiBindingExpression, UiBindingMissingValueResolution, UiTemplateNode},
-    v2::UiV2NodeHandle,
+    v2::{UiV2NodeHandle, UiV2Repeat, UI_V2_REPEAT_ATTRIBUTE},
+    widget::UiPopupAnchor,
 };
 
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
@@ -143,7 +144,7 @@ pub(super) fn build_host_nodes_with_surface(
         })
         .collect::<Result<Vec<_>, EditorUiHostRuntimeError>>()?;
     for (node_id, node) in &mut nodes {
-        apply_surface_focus_state_attributes(surface, *node_id, &mut node.attributes);
+        apply_surface_runtime_state_attributes(surface, *node_id, &mut node.attributes);
     }
     Ok(nodes)
 }
@@ -181,12 +182,31 @@ fn merge_projection_only_host_nodes(
         })
         .collect::<BTreeMap<_, _>>();
 
+    let mut materialized_prototype_nodes = BTreeSet::new();
     for mut projection_node in projection_nodes {
+        // The authored traversal is parent-first, so excluding a formal prototype
+        // also excludes its descendants, including control-less decoration.
+        if projection_node
+            .parent_id
+            .as_ref()
+            .is_some_and(|parent| materialized_prototype_nodes.contains(parent))
+        {
+            materialized_prototype_nodes.insert(projection_node.node_id.clone());
+            continue;
+        }
         let Some(control_id) = projection_node.control_id.as_ref() else {
             continue;
         };
         if let Some(surface_index) = surface_by_control_id.get(control_id).copied() {
             merge_projection_metadata(&mut surface_nodes[surface_index], projection_node);
+            continue;
+        }
+        if is_materialized_repeat_prototype(
+            &projection_node,
+            &projection_control_id_by_node_id,
+            surface,
+        ) {
+            materialized_prototype_nodes.insert(projection_node.node_id.clone());
             continue;
         }
         let control_id = control_id.clone();
@@ -214,10 +234,42 @@ fn merge_projection_only_host_nodes(
         .collect::<BTreeMap<_, _>>();
     for node in surface_nodes {
         if let Some(node_id) = surface_node_ids_by_path.get(node.node_id.as_str()) {
-            apply_surface_focus_state_attributes(surface, *node_id, &mut node.attributes);
+            apply_surface_runtime_state_attributes(surface, *node_id, &mut node.attributes);
         }
     }
     Ok(())
+}
+
+fn is_materialized_repeat_prototype(
+    node: &RetainedUiHostNodeProjection,
+    projection_control_id_by_node_id: &BTreeMap<String, String>,
+    surface: &UiSurface,
+) -> bool {
+    let Some(parent_control_id) = node
+        .parent_id
+        .as_ref()
+        .and_then(|parent| projection_control_id_by_node_id.get(parent))
+    else {
+        return false;
+    };
+    let Some(parent_id) = surface.unique_control_node_id(parent_control_id) else {
+        return false;
+    };
+    let Some(repeat) = surface
+        .tree
+        .node(parent_id)
+        .and_then(|parent| parent.template_metadata.as_ref())
+        .and_then(|metadata| metadata.attributes.get(UI_V2_REPEAT_ATTRIBUTE))
+        .and_then(|value| value.clone().try_into::<UiV2Repeat>().ok())
+    else {
+        return false;
+    };
+    // A declaration alone does not establish materialization. The Runtime pool
+    // remains authoritative even when capacity zero has detached every slot.
+    repeat.validate(parent_control_id).is_ok()
+        && repeat.authored_count == 1
+        && node.control_id.as_deref() == Some(repeat.prototype.as_str())
+        && surface.virtual_list_prototype_root_id(parent_id).is_some()
 }
 
 fn merge_projection_metadata(
@@ -542,15 +594,43 @@ fn surface_host_attributes(
     metadata: &zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata,
 ) -> BTreeMap<String, Value> {
     let mut attributes = metadata.attributes.clone();
-    apply_surface_focus_state_attributes(surface, node_id, &mut attributes);
+    apply_surface_runtime_state_attributes(surface, node_id, &mut attributes);
     attributes
 }
 
-fn apply_surface_focus_state_attributes(
+fn apply_surface_runtime_state_attributes(
     surface: &UiSurface,
     node_id: UiNodeId,
     attributes: &mut BTreeMap<String, Value>,
 ) {
+    if surface
+        .tree
+        .node(node_id)
+        .and_then(|node| node.template_metadata.as_ref())
+        .is_some_and(|metadata| {
+            matches!(&metadata.widget.popup_anchor, UiPopupAnchor::Pointer { .. })
+        })
+    {
+        // Pointer coordinates belong to the live surface, not authored metadata.
+        // Run after source supplementation as well so closing cannot revive old anchors.
+        attributes.remove("popup_anchor_x");
+        attributes.remove("popup_anchor_y");
+        if let Some(point) = surface
+            .input
+            .popup_anchor_points
+            .get(&node_id)
+            .filter(|point| point.x.is_finite() && point.y.is_finite())
+        {
+            attributes.insert(
+                "popup_anchor_x".to_owned(),
+                Value::Float(f64::from(point.x)),
+            );
+            attributes.insert(
+                "popup_anchor_y".to_owned(),
+                Value::Float(f64::from(point.y)),
+            );
+        }
+    }
     // This is a derived publication of UiSurface.focus, never an authored row flag.
     attributes.remove("tree_owner_focused");
     if let Some(focused) = surface.tree_owner_focused(node_id) {

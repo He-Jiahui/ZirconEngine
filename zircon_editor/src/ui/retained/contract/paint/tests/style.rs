@@ -1,5 +1,6 @@
 use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
 use crate::ui::retained_host::primitives::Color;
+use zircon_runtime_interface::ui::style::{UiRgbaColor, UiStyleColor};
 
 use super::super::super::template_axis_value_field_style::{
     axis_field_background, axis_field_background_from_host, axis_field_border,
@@ -155,4 +156,50 @@ fn pressed_axis_value_field_uses_focus_border_and_width() {
 
     assert_eq!(axis_field_border(&node), PALETTE.focus_ring);
     assert_eq!(axis_field_border_width(&node), 1.5);
+}
+
+#[test]
+fn axis_value_field_preserves_authored_normal_background_and_focus() {
+    let mut node = axis_node("WorkbenchTransformPositionX", "0.00");
+    node.button_style.element.background_color =
+        Some(UiStyleColor::Rgba(UiRgbaColor::from_u8(15, 15, 15, 193)));
+    assert_eq!(axis_field_background(&node), [15, 15, 15, 193]);
+
+    node.focused = true;
+    assert_eq!(axis_field_background(&node), [15, 15, 15, 193]);
+    assert_eq!(axis_field_border(&node), PALETTE.focus_ring);
+}
+
+#[test]
+fn axis_value_field_disabled_authored_colors_keep_alpha_and_state_priority() {
+    let mut node = axis_node("WorkbenchTransformRotationY", "0.00 deg");
+    node.disabled = true;
+    node.hovered = true;
+    node.pressed = true;
+    node.validation_level = "error".into();
+    node.value_color = Color::from_rgb_u8(91, 92, 93);
+    node.authored_field_colors.insert(
+        "disabled_background_color".into(),
+        UiStyleColor::Rgba(UiRgbaColor::from_u8(36, 37, 38, 101)),
+    );
+    node.authored_field_colors.insert(
+        "disabled_foreground_color".into(),
+        UiStyleColor::Rgba(UiRgbaColor::from_u8(81, 82, 83, 117)),
+    );
+    assert_eq!(axis_field_background(&node), [36, 37, 38, 101]);
+    assert_eq!(axis_field_text_color(&node), [81, 82, 83, 117]);
+
+    node.authored_field_colors.insert(
+        "disabled_background_color".into(),
+        UiStyleColor::Rgba(UiRgbaColor::from_u8(1, 2, 3, 0)),
+    );
+    assert_eq!(axis_field_background(&node), [1, 2, 3, 0]);
+
+    node.authored_field_colors.clear();
+    assert_eq!(axis_field_background(&node), PALETTE.surface_disabled);
+    assert_eq!(axis_field_text_color(&node), PALETTE.text_disabled);
+    node.disabled = false;
+    assert_eq!(axis_field_text_color(&node), PALETTE.error);
+    node.validation_level.clear();
+    assert_eq!(axis_field_text_color(&node), [91, 92, 93, 255]);
 }

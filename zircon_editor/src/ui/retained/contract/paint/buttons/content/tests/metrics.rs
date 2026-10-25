@@ -267,3 +267,118 @@ fn trailing_button_glyph_emits_no_commands_when_authored_padding_leaves_no_conte
         "an invisible trailing glyph must not produce paint commands"
     );
 }
+
+#[test]
+fn authored_leading_button_icon_uses_mounted_size_for_glyph_and_reserved_lane() {
+    use super::super::glyph::{button_glyph_width, leading_glyph_rect};
+    use crate::ui::retained_host::host_contract::paint_template_nodes::template_button_glyphs::{
+        button_icon_size, ButtonGlyph,
+    };
+    use crate::ui::retained_host::host_contract::paint_theme::{
+        enter_host_paint_theme_scope, host_paint_theme_snapshot_at_scale_for_test,
+    };
+
+    for scale in [1.0, 1.25, 1.5] {
+        let _scope =
+            enter_host_paint_theme_scope(host_paint_theme_snapshot_at_scale_for_test(scale));
+        let rect = FrameRect {
+            x: 10.0,
+            y: 20.0,
+            width: 160.0 * scale,
+            height: 32.0 * scale,
+        };
+        for declared in [8.0 * scale, 20.0 * scale, 24.0 * scale] {
+            let node = TemplatePaneNodeData {
+                layout_icon_size: declared,
+                icon_name: "toolbar/settings.svg".into(),
+                ..Default::default()
+            };
+            for glyph in [ButtonGlyph::None, ButtonGlyph::Plus] {
+                let frame = leading_glyph_rect(&node, &rect, rect.x + 10.0 * scale);
+                assert_eq!((frame.width, frame.height), (declared, declared));
+                assert_eq!(frame.y + frame.height / 2.0, rect.y + rect.height / 2.0);
+                assert_eq!(button_glyph_width(&node, glyph, false), declared);
+                assert_eq!(
+                    button_glyph_width(&node, glyph, true),
+                    declared + button_icon_gap(&node)
+                );
+            }
+        }
+        for invalid in [0.0, -1.0, f32::NAN, f32::INFINITY] {
+            let node = TemplatePaneNodeData {
+                layout_icon_size: invalid,
+                ..Default::default()
+            };
+            assert_eq!(
+                leading_glyph_rect(&node, &rect, rect.x).width,
+                button_icon_size()
+            );
+            assert_eq!(
+                button_glyph_width(&node, ButtonGlyph::Plus, false),
+                button_icon_size()
+            );
+            assert_eq!(button_glyph_width(&node, ButtonGlyph::None, true), 0.0);
+        }
+    }
+}
+
+#[test]
+fn authored_leading_button_icon_changes_painted_label_lane_without_moving_its_line_center() {
+    use crate::ui::retained_host::host_contract::paint_theme::{
+        enter_host_paint_theme_scope, host_paint_theme_snapshot_at_scale_for_test,
+    };
+
+    for scale in [1.0, 1.25, 1.5] {
+        let _scope =
+            enter_host_paint_theme_scope(host_paint_theme_snapshot_at_scale_for_test(scale));
+        let rect = FrameRect {
+            x: 10.0,
+            y: 20.0,
+            width: 200.0 * scale,
+            height: 32.0 * scale,
+        };
+        // Asset-backed Settings and the built-in Add glyph use the same lane.
+        for (id, asset) in [
+            ("OpenSettingsWindow", "toolbar/settings.svg"),
+            ("WorkbenchAdd", ""),
+        ] {
+            let mut label_frames = Vec::new();
+            for logical_icon_size in [12.0, 20.0] {
+                let node = TemplatePaneNodeData {
+                    control_id: id.into(),
+                    role: "Button".into(),
+                    button_variant: "secondary".into(),
+                    text: "Settings".into(),
+                    icon_name: asset.into(),
+                    layout_icon_size: logical_icon_size * scale,
+                    ..Default::default()
+                };
+                let mut commands = Vec::new();
+                super::super::entry::push_button_content(
+                    &mut commands,
+                    &node,
+                    &rect,
+                    &rect,
+                    0,
+                    WorkbenchButtonKind::Secondary,
+                    1.0,
+                );
+                let label = commands
+                    .iter()
+                    .find(|command| command.text.as_deref() == Some("Settings"))
+                    .expect("declared icon size must retain the editable label's paint command");
+                assert_eq!(
+                    label.frame.y + label.frame.height / 2.0,
+                    rect.y + rect.height / 2.0
+                );
+                assert!(label.frame.right() <= rect.right());
+                label_frames.push(label.frame.clone());
+            }
+            // The whole icon/label group stays centered; half the 8-DIP icon
+            // increase moves the label start, preserving its width and baseline.
+            assert!((label_frames[1].x - label_frames[0].x - 4.0 * scale).abs() < 0.001);
+            assert_eq!(label_frames[0].width, label_frames[1].width);
+            assert_eq!(label_frames[0].y, label_frames[1].y);
+        }
+    }
+}

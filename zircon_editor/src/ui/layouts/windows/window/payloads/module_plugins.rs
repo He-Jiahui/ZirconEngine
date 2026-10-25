@@ -23,6 +23,7 @@ pub(super) fn build(context: &PanePayloadBuildContext<'_>) -> PanePayload {
             plugin_id: plugin.plugin_id.to_string(),
             display_name: plugin.display_name.to_string(),
             package_source: plugin.package_source.to_string(),
+            package_metadata: plugin.package_metadata.clone(),
             load_state: plugin.load_state.to_string(),
             enabled: plugin.enabled,
             required: plugin.required,

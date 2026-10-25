@@ -52,6 +52,10 @@ impl AssetReferenceListPointerBridge {
         true
     }
 
+    pub(crate) fn pointer_state(&self) -> AssetListPointerState {
+        self.state.clone()
+    }
+
     pub(crate) fn sync_pane_size(&mut self, pane_size: UiSize) -> Option<AssetListPointerState> {
         if self.layout.pane_size == pane_size {
             return None;

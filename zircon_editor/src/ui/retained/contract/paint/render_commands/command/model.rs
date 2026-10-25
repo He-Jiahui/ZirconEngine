@@ -67,6 +67,9 @@ pub(in crate::ui::retained_host::host_contract) struct PaintNodeIdentity {
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) source_path: String,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) source_node_id: String,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) instance_path: String,
+    pub(in crate::ui::retained_host::host_contract::paint_template_nodes) item_key: Option<String>,
+    pub(in crate::ui::retained_host::host_contract::paint_template_nodes) property_field_id:
+        Option<String>,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) parent_source_path:
         Option<String>,
     pub(in crate::ui::retained_host::host_contract::paint_template_nodes) parent_source_node_id:

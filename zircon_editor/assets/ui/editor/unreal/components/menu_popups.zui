@@ -5,7 +5,7 @@ version = 2
 display_name = "Unreal Level Editor Menu Popups"
 
 [imports]
-widgets = []
+widgets = ["res://ui/editor/workbench/primitives/feedback/context_menu.zui#WorkbenchContextMenu"]
 styles = ["res://ui/editor/unreal/starship.zui"]
 
 [components.UnrealLevelEditorMenuPopups]
@@ -17,7 +17,13 @@ component = "Overlay"
 control_id = "UnrealEditorMenuPopups"
 props = { input_interactive = false }
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "file_popup" }, { node = "edit_popup" }, { node = "window_popup" }, { node = "tools_popup" }, { node = "build_popup" }, { node = "help_popup" }, { node = "modes_popup" }, { node = "add_popup" }, { node = "blueprints_popup" }, { node = "cinematics_popup" }, { node = "settings_popup" }, { node = "run_mode_popup" }]
+children = [{ node = "file_popup" }, { node = "edit_popup" }, { node = "window_popup" }, { node = "tools_popup" }, { node = "build_popup" }, { node = "help_popup" }, { node = "modes_popup" }, { node = "add_popup" }, { node = "blueprints_popup" }, { node = "cinematics_popup" }, { node = "settings_popup" }, { node = "run_mode_popup" }, { node = "context_popup" }]
+
+[nodes.context_popup]
+component = "WorkbenchContextMenu"
+classes = ["unreal-popup-menu"]
+control_id = "WorkbenchContextMenu"
+props = { corner_radius = 4.0, border_width = 1.0, border_color = "$unreal_dropdown_outline", background_color = "$unreal_dropdown", foreground_color = "$unreal_foreground", line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", open = false, popup_open = false, menu_items = [], options = [], disabled_options = [], context_target = "", context_target_path = "" }
 
 [nodes.file_popup]
 component = "PopupMenu"

@@ -122,7 +122,7 @@ children = [{ node = "position_label" }, { node = "position_x" }, { node = "posi
 [nodes.position_label]
 component = "Label"
 control_id = "WorkbenchTransformPositionLabel"
-props = { text = "Location", font_size = 13.333333, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+props = { layout_padding_left = 20.0, text = "Location", font_size = 13.333333, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
 layout = { width = { min = 64.0, preferred = 72.0, max = 88.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.position_x]
@@ -153,7 +153,7 @@ children = [{ node = "rotation_label" }, { node = "rotation_x" }, { node = "rota
 [nodes.rotation_label]
 component = "Label"
 control_id = "WorkbenchTransformRotationLabel"
-props = { text = "Rotation", font_size = 13.333333, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+props = { layout_padding_left = 20.0, text = "Rotation", font_size = 13.333333, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
 layout = { width = { min = 64.0, preferred = 72.0, max = 88.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.rotation_x]
@@ -181,7 +181,7 @@ children = [{ node = "scale_label" }, { node = "scale_x" }, { node = "scale_y" }
 [nodes.scale_label]
 component = "Label"
 control_id = "WorkbenchTransformScaleLabel"
-props = { text = "Scale", font_size = 13.333333, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
+props = { layout_padding_left = 20.0, text = "Scale", font_size = 13.333333, font = "res://fonts/editor-ui.font.toml", font_family = "Roboto", font_weight = 400, line_height_ratio = 1.2 }
 layout = { width = { min = 64.0, preferred = 72.0, max = 88.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 
 [nodes.scale_x]

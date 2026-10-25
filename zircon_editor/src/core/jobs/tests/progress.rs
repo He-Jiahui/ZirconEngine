@@ -9,6 +9,125 @@ use super::super::{EditorJobSpec, JobCategory, JobEventKind, JobId, JobPriority}
 use super::{EditorJobProgressSnapshot, EditorJobProgressSource};
 
 #[test]
+fn capture_export_progress_defaults_keep_independent_visibility() {
+    let source = EditorJobProgressSource::default();
+    let default_job = JobId::new(1);
+    source.register(
+        default_job,
+        &EditorJobSpec::new("Export scene", JobCategory::Export),
+    );
+    assert!(source.progress_notification_visible(default_job));
+    assert_eq!(source.primary_snapshot().unwrap().id(), default_job);
+
+    let primary_hidden = JobId::new(2);
+    source.register(
+        primary_hidden,
+        &EditorJobSpec::new("primary hidden", JobCategory::Export)
+            .with_primary_progress_visible(false),
+    );
+    assert!(source.progress_notification_visible(primary_hidden));
+
+    let notification_hidden = JobId::new(3);
+    let separate_source = EditorJobProgressSource::default();
+    separate_source.register(
+        notification_hidden,
+        &EditorJobSpec::new("notification hidden", JobCategory::Export)
+            .with_progress_notification_visible(false),
+    );
+    assert!(!separate_source.progress_notification_visible(notification_hidden));
+    assert_eq!(
+        separate_source.primary_snapshot().unwrap().id(),
+        notification_hidden
+    );
+}
+
+#[test]
+fn capture_export_progress_hidden_jobs_keep_detail_cancel_and_lifecycle() {
+    let source = EditorJobProgressSource::default();
+    let initial_primary = source
+        .primary_snapshot_if_changed(None)
+        .unwrap()
+        .generation();
+    let initial_revision = source.projection_revision();
+    let id = JobId::new(1);
+    let spec = EditorJobSpec::new("capture export", JobCategory::Export)
+        .with_primary_progress_visible(false)
+        .with_progress_notification_visible(false);
+    let cancel = spec.cancel.clone();
+    source.register(id, &spec);
+    assert!(source.projection_revision() > initial_revision);
+    assert!(!source.progress_notification_visible(id));
+    assert!(source.notification_snapshot_limit(1).is_empty());
+    assert_eq!(source.snapshot_limit(1)[0].id(), id);
+    assert_eq!(source.snapshot_for_ids([id])[0].id(), id);
+    source.apply_event(
+        id,
+        &JobEventKind::Progress {
+            completed: 1,
+            total: 2,
+            message: "writing actual pixels".to_owned(),
+        },
+    );
+    assert_eq!(
+        source.snapshot_for_ids([id])[0]
+            .progress()
+            .unwrap()
+            .completed(),
+        1
+    );
+    assert!(source.request_cancel(id));
+    assert!(cancel.is_cancelled());
+    assert!(source.has_active());
+    source.apply_event(id, &JobEventKind::Cancelled);
+    assert!(source.snapshot_for_ids([id]).is_empty());
+    assert_eq!(source.unfinished_jobs()[0].id(), id);
+    source.complete(id);
+    assert!(!source.has_active());
+    assert!(!source.progress_notification_visible(id));
+    assert!(source
+        .primary_snapshot_if_changed(Some(initial_primary))
+        .is_none());
+}
+
+#[test]
+fn capture_export_progress_notification_limit_skips_hidden_before_capacity() {
+    let source = EditorJobProgressSource::default();
+    for value in 1..=3 {
+        source.register(
+            JobId::new(value),
+            &EditorJobSpec::new("capture export", JobCategory::Export)
+                .with_progress_notification_visible(false),
+        );
+    }
+    for value in 4..=7 {
+        source.register(
+            JobId::new(value),
+            &EditorJobSpec::new("Export scene", JobCategory::Export),
+        );
+    }
+    source.apply_event(JobId::new(4), &JobEventKind::Completed);
+    assert!(!source.progress_notification_visible(JobId::new(4)));
+    assert!(!source.progress_notification_visible(JobId::new(999)));
+    assert!(source.notification_snapshot_limit(0).is_empty());
+    assert_eq!(
+        source
+            .notification_snapshot_limit(2)
+            .iter()
+            .map(EditorJobProgressSnapshot::id)
+            .collect::<Vec<_>>(),
+        [JobId::new(5), JobId::new(6)]
+    );
+    assert_eq!(
+        source
+            .snapshot_limit(2)
+            .iter()
+            .map(EditorJobProgressSnapshot::id)
+            .collect::<Vec<_>>(),
+        [JobId::new(1), JobId::new(2)]
+    );
+}
+
+#[test]
 fn hidden_primary_progress_preserves_lifecycle_without_disturbing_user_exports() {
     let progress = EditorJobProgressSource::default();
     let initial = progress.primary_snapshot_if_changed(None).unwrap();

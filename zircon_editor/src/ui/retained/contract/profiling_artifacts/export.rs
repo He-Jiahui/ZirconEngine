@@ -166,6 +166,7 @@ fn submit_present_artifact_export(
     let mut tickets = reservation.commit(vec![(
         EditorJobSpec::new("Export UI profile artifacts", JobCategory::Export)
             .with_primary_progress_visible(false)
+            .with_progress_notification_visible(false)
             .with_estimated_bytes(estimated_pending_bytes),
         PresentArtifactExportJob { export },
     )])?;

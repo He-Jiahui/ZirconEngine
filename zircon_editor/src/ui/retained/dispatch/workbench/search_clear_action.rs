@@ -34,8 +34,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         let query = self
             .control_string(&target.control_id, QUERY)
             .unwrap_or_default();
-        if query.trim().is_empty() || !search_field_clear_action_hit_test(target.frame, route.point)
-        {
+        if query.is_empty() || !search_field_clear_action_hit_test(target.frame, route.point) {
             return Ok(None);
         }
 

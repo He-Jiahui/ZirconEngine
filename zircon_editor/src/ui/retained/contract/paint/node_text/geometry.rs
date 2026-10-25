@@ -17,7 +17,20 @@ fn text_rect_for_node_with_metrics(
 ) -> FrameRect {
     let frame_width = finite_extent(rect.width);
     let frame_height = finite_extent(rect.height);
-    let horizontal = metrics.horizontal_inset.min(frame_width * 0.25).max(0.0);
+    let (left, right) = if node.role.as_str() == "Label" {
+        // A passive label owns its entire arranged lane unless paint padding
+        // was declared. Those authored values are logical, unlike host gaps.
+        let padding = |index: usize| {
+            node.authored_field_padding[index]
+                .filter(|value| value.is_finite() && *value >= 0.0)
+                .map_or(0.0, |value| finite_extent(value * metrics.scale_factor))
+        };
+        let left = padding(0).min(frame_width);
+        (left, padding(1).min(frame_width - left))
+    } else {
+        let horizontal = metrics.horizontal_inset.min(frame_width * 0.25).max(0.0);
+        (horizontal, horizontal)
+    };
     let vertical = metrics
         .vertical_inset
         .min(
@@ -32,8 +45,8 @@ fn text_rect_for_node_with_metrics(
         width: frame_width,
         height: frame_height,
     };
-    let mut x = layout_rect.x + horizontal;
-    let mut width = (frame_width - horizontal * 2.0).max(0.0);
+    let mut x = layout_rect.x + left;
+    let mut width = (frame_width - left - right).max(0.0);
     if is_leading_icon_text_node(node) {
         let leading = (leading_icon_size(&layout_rect) + metrics.horizontal_inset)
             .min(width)

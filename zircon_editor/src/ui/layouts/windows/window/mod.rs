@@ -62,8 +62,8 @@ pub(crate) use host_data::{
 };
 #[cfg(test)]
 pub(crate) use pane_payload::{
-    ModulePluginDetailsPayload, ModulePluginFeatureRowPayload, ModulePluginsPanePayload,
-    PerformanceTimelineCaptureControlPayload,
+    ModulePluginDetailsPayload, ModulePluginFeatureRowPayload, ModulePluginStatusPayload,
+    ModulePluginsPanePayload, PerformanceTimelineCaptureControlPayload,
 };
 pub(crate) use pane_payload::{PanePayload, RuntimeDiagnosticsPanePayload};
 pub(crate) use pane_presentation::{

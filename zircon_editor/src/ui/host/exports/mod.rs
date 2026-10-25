@@ -58,10 +58,10 @@ pub use self::export_build::{
 pub use self::reports::{
     EditorPluginEnableReport, EditorPluginFeatureDependencyStatus,
     EditorPluginFeatureSelectionUpdateReport, EditorPluginFeatureStatus,
-    EditorPluginSelectionUpdateReport, EditorPluginStatus, EditorPluginStatusReport,
-    PluginEnablementApplied, PluginEnablementCause, PluginEnablementCauseKind,
-    PluginEnablementDurable, PluginEnablementOperationReport, PluginEnablementPhase,
-    PluginEnablementRecovery,
+    EditorPluginPackageMetadata, EditorPluginSelectionUpdateReport, EditorPluginStatus,
+    EditorPluginStatusReport, PluginEnablementApplied, PluginEnablementCause,
+    PluginEnablementCauseKind, PluginEnablementDurable, PluginEnablementOperationReport,
+    PluginEnablementPhase, PluginEnablementRecovery,
 };
 
 impl EditorManager {

@@ -35,6 +35,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn has_pai
         && rect.height > 0.0
         && (rect.x + rect.width).is_finite()
         && (rect.y + rect.height).is_finite()
+        && rect.x + rect.width > rect.x
+        && rect.y + rect.height > rect.y
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn frame_is_within(

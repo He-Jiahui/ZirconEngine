@@ -205,6 +205,9 @@ pub(crate) fn build_host_contract_workbench_window_node_patch_at_mount_and_scale
         // The sparse workset does not carry unchanged ancestors. Preserve the already validated
         // host parent identity while replacing only the row's semantic and geometry payload.
         projected.parent_node_id = previous.parent_node_id.clone();
+        projected.parent_source_path = previous.parent_source_path.clone();
+        projected.parent_source_node_id = previous.parent_source_node_id.clone();
+        projected.parent_instance_path = previous.parent_instance_path.clone();
         row_patches.insert(
             row,
             project_node_into_physical_mount(projected, mount_frame, scale_factor),
@@ -502,6 +505,9 @@ fn to_host_contract_workbench_window_node_with_previous(
             .or_else(|| color_property(&node.properties, "selected_underline_color"))
             .unwrap_or_default();
 
+    let parent = node_index
+        .projected_parent_node_id(node)
+        .and_then(|parent_id| node_index.node(parent_id));
     let mut projected = host_contract::TemplatePaneNodeData {
         node_id: node.node_id.clone().into(),
         surface_node_id: node.surface_node_id,
@@ -538,6 +544,19 @@ fn to_host_contract_workbench_window_node_with_previous(
         has_workbench_icon_tooltip: node.has_workbench_icon_tooltip,
         parent_node_id: node_index
             .projected_parent_node_id(node)
+            .unwrap_or_default()
+            .into(),
+        parent_source_path: parent
+            .and_then(|parent| parent.source_path.as_deref())
+            .unwrap_or_default()
+            .into(),
+        parent_source_node_id: parent
+            .and_then(|parent| parent.source_node_id.as_deref())
+            .unwrap_or_default()
+            .into(),
+        parent_instance_path: parent
+            .and_then(|parent| parent.instance_path.as_ref())
+            .and_then(|steps| serde_json::to_string(steps).ok())
             .unwrap_or_default()
             .into(),
         control_id: control_id.into(),
@@ -687,21 +706,21 @@ fn to_host_contract_workbench_window_node_with_previous(
             .unwrap_or_default()
             .into(),
         button_style: resolve_button_style_from_values(&button_style_values),
-        authored_field_colors: button_style_values
-            .get("focus_border_color")
-            .and_then(|value| {
-                let values = std::collections::BTreeMap::from([(
-                    "foreground_color".to_owned(),
-                    value.clone(),
-                )]);
-                resolve_button_style_from_values(&values)
-                    .element
-                    .foreground_color
-            })
-            .map(|color| {
-                std::collections::BTreeMap::from([("focus_border_color".to_owned(), color)])
-            })
-            .unwrap_or_default(),
+        authored_field_colors: [
+            "focus_border_color",
+            "disabled_background_color",
+            "disabled_foreground_color",
+        ]
+        .into_iter()
+        .filter_map(|key| {
+            let value = button_style_values.get(key)?;
+            let values = BTreeMap::from([("foreground_color".to_owned(), value.clone())]);
+            let color = resolve_button_style_from_values(&values)
+                .element
+                .foreground_color?;
+            Some((key.to_owned(), color))
+        })
+        .collect(),
         authored_focus_border_width: numeric_property(&node.properties, "focus_border_width")
             .map(|value| value as f32)
             .filter(|value| value.is_finite() && *value >= 0.0),

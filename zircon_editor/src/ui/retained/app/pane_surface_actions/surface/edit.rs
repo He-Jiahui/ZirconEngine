@@ -1,5 +1,8 @@
 use super::super::super::*;
-use crate::ui::settings::{SETTINGS_COMMIT_CHORD_ACTION_ID, SETTINGS_COMMIT_STRING_ACTION_ID};
+use crate::ui::settings::{
+    SETTINGS_COMMIT_CHORD_ACTION_ID, SETTINGS_COMMIT_NUMERIC_ACTION_ID,
+    SETTINGS_COMMIT_STRING_ACTION_ID,
+};
 use crate::ui::template_runtime::builtin::UNREAL_EDITOR_WINDOW_DOCUMENT_ID;
 
 impl RetainedEditorHost {
@@ -15,31 +18,54 @@ impl RetainedEditorHost {
             Err(error) => return Some(Err(error.to_string())),
         }
         if binding_id == SETTINGS_COMMIT_STRING_ACTION_ID {
-            let result = self
-                .runtime
-                .set_string_setting(control_id, value)
-                .map_err(|error| error.to_string())
-                .and_then(|receipt| {
-                    if receipt.changed() {
-                        self.refresh_after_settings_receipt(false)
-                    } else {
-                        Ok(UiHostEventEffects::default())
-                    }
-                });
+            let result = (|| {
+                let context = self
+                    .workbench_window_bridge
+                    .settings_mutation_context(control_id)?;
+                let receipt = self
+                    .runtime
+                    .set_string_setting(&context, control_id, value)
+                    .map_err(|error| error.to_string())?;
+                if receipt.changed() {
+                    self.refresh_after_settings_receipt(false)
+                } else {
+                    Ok(UiHostEventEffects::default())
+                }
+            })();
+            return Some(result);
+        }
+        if binding_id == SETTINGS_COMMIT_NUMERIC_ACTION_ID {
+            let result = (|| {
+                let context = self
+                    .workbench_window_bridge
+                    .settings_mutation_context(control_id)?;
+                let receipt = self
+                    .runtime
+                    .set_numeric_setting(&context, control_id, value)
+                    .map_err(|error| error.to_string())?;
+                if receipt.changed() {
+                    self.refresh_after_settings_receipt(false)
+                } else {
+                    Ok(UiHostEventEffects::default())
+                }
+            })();
             return Some(result);
         }
         if binding_id == SETTINGS_COMMIT_CHORD_ACTION_ID {
-            let result = self
-                .runtime
-                .set_chord_setting(control_id, value)
-                .map_err(|error| error.to_string())
-                .and_then(|receipt| {
-                    if receipt.changed() {
-                        self.refresh_after_settings_receipt(false)
-                    } else {
-                        Ok(UiHostEventEffects::default())
-                    }
-                });
+            let result = (|| {
+                let context = self
+                    .workbench_window_bridge
+                    .settings_mutation_context(control_id)?;
+                let receipt = self
+                    .runtime
+                    .set_chord_setting(&context, control_id, value)
+                    .map_err(|error| error.to_string())?;
+                if receipt.changed() {
+                    self.refresh_after_settings_receipt(false)
+                } else {
+                    Ok(UiHostEventEffects::default())
+                }
+            })();
             return Some(result);
         }
         let binding_id = self

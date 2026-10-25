@@ -354,7 +354,7 @@ children = [
 component = "VerticalGroup"
 control_id = "DesignerPanel"
 classes = ["ui-asset-section"]
-layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.small"}, width = { stretch = "Stretch" }, height = { min = 320.0, preferred = 360.0, max = 420.0, stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = 6}, width = { stretch = "Stretch" }, height = { min = 320.0, preferred = 360.0, max = 420.0, stretch = "Stretch" } }
 children = [
   { node = "designer_tool_mode_row" },
   { node = "designer_canvas_panel" },

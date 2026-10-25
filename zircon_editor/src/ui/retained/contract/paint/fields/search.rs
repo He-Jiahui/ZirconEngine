@@ -64,7 +64,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn search_
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn search_field_has_clear_action(
     node: &TemplatePaneNodeData,
 ) -> bool {
-    is_search_field(node) && node.has_clear_action && !node.value_text.trim().is_empty()
+    is_search_field(node) && node.has_clear_action && !node.value_text.is_empty()
 }
 
 /// 复用共享交互动作框，让可点击区域和所绘 SVG 使用同一几何；文字在该框左侧预留空间。

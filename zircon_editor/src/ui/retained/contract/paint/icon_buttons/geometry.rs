@@ -1,4 +1,4 @@
-//! 图标按钮外框、图标槽和完整容纳检查；实例 value_number 在此域表示期望图标边长，受容器与密度约束。
+//! 图标按钮外框、图标槽和完整容纳检查；声明尺寸已由窗口挂载转换为物理像素，未声明时保留密度门槛。
 
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::metrics::icon_button_glyph_metrics;
@@ -50,7 +50,17 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn frame_i
         && inner_bottom <= outer_bottom
 }
 
-/// value_number 的正有限值可声明图标尺寸；先限制在密度留边内，再由入口判断是否达到该语境最低尺寸。
+fn authored_icon_glyph_size(
+    node: &TemplatePaneNodeData,
+    context: IconButtonContext,
+) -> Option<f32> {
+    (context != IconButtonContext::TabClose
+        && node.layout_icon_size.is_finite()
+        && node.layout_icon_size > 0.0)
+        .then_some(node.layout_icon_size)
+}
+
+/// layout_icon_size 已为物理尺寸；旧 value_number 只保留尺寸分支，不能降低默认密度门槛。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_glyph_rect(
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
@@ -59,12 +69,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_gl
     let max_size = rect.width.min(rect.height).max(0.0);
     let metrics = icon_button_glyph_metrics();
     let default_size = metrics.glyph_size_for_context(context);
-    let size = if node.value_number.is_finite() && node.value_number > 0.0 {
-        node.value_number
+    let size = if context == IconButtonContext::TabClose {
+        default_size.min(max_size)
+    } else if let Some(size) = authored_icon_glyph_size(node, context) {
+        size.min(metrics.max_glyph_size(max_size))
+    } else if node.value_number.is_finite() && node.value_number > 0.0 {
+        node.value_number.min(metrics.max_glyph_size(max_size))
     } else {
-        default_size
-    }
-    .min(metrics.max_glyph_size(max_size));
+        default_size.min(metrics.max_glyph_size(max_size))
+    };
     FrameRect {
         x: rect.x + (rect.width - size).max(0.0) * 0.5,
         y: rect.y + (rect.height - size).max(0.0) * 0.5,
@@ -80,12 +93,18 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_bu
     corner_radius_for_frame(rect, requested_radius)
 }
 
-/// 对状态位移后的槽做完整容纳和最低密度尺寸检查；窄控件保留表面但省略图标。
+/// 声明尺寸须完整容纳；未声明时仍要求默认密度尺寸，窄控件保留表面但省略图标。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_glyph_is_paintable(
+    node: &TemplatePaneNodeData,
     glyph: &FrameRect,
     button: &FrameRect,
     context: IconButtonContext,
 ) -> bool {
-    let required_size = icon_button_glyph_metrics().glyph_size_for_context(context);
-    frame_is_within(glyph, button) && glyph.width >= required_size && glyph.height >= required_size
+    let required_size = authored_icon_glyph_size(node, context)
+        .unwrap_or_else(|| icon_button_glyph_metrics().glyph_size_for_context(context));
+    required_size.is_finite()
+        && required_size > 0.0
+        && frame_is_within(glyph, button)
+        && glyph.width >= required_size
+        && glyph.height >= required_size
 }

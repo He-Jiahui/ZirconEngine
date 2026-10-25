@@ -111,15 +111,11 @@ fn is_workbench_radio_control(node: &RetainedUiHostNodeModel, component_role: &s
 }
 
 fn is_workbench_toggle_control(node: &RetainedUiHostNodeModel, component_role: &str) -> bool {
-    component_role == "toggle"
+    matches!(component_role, "toggle" | "switch")
         || matches!(
             node.component.as_str(),
             "Toggle" | "Switch" | "WorkbenchToggle" | "WorkbenchSwitch"
         )
-        || node
-            .control_id
-            .as_deref()
-            .is_some_and(|control_id| control_id.contains("Toggle"))
 }
 
 fn set_toml_string_aliases(values: &mut BTreeMap<String, toml::Value>, keys: &[&str], value: &str) {

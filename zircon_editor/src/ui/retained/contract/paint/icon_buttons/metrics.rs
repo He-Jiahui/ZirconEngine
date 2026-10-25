@@ -20,6 +20,7 @@ impl WorkbenchIconButtonMetrics {
             IconButtonContext::Rail => self.rail_glyph_size,
             IconButtonContext::Toolbar => self.toolbar_glyph_size,
             IconButtonContext::Panel => self.panel_glyph_size,
+            IconButtonContext::TabClose => 16.0,
         }
     }
 

@@ -74,6 +74,7 @@ pub(crate) fn build_slot_semantic_group(
         Some("HorizontalBox") | Some("VerticalBox") => {
             semantic_group("Linear Slot", &child_mount.slot, LINEAR_SLOT_PATHS)
         }
+        Some("Canvas") => semantic_group("Canvas Slot", &child_mount.slot, CANVAS_SLOT_PATHS),
         Some("Overlay") => semantic_group("Overlay Slot", &child_mount.slot, OVERLAY_SLOT_PATHS),
         Some("GridBox") => semantic_group("Grid Slot", &child_mount.slot, GRID_SLOT_PATHS),
         Some("FlowBox") => semantic_group("Flow Slot", &child_mount.slot, FLOW_SLOT_PATHS),
@@ -157,6 +158,10 @@ pub(crate) fn build_structured_slot_semantic_fields(
                 "layout.width.stretch",
             )
             .unwrap_or_default(),
+            ..UiAssetStructuredSlotSemanticFields::default()
+        },
+        Some("Canvas") => UiAssetStructuredSlotSemanticFields {
+            kind: "Canvas".to_string(),
             ..UiAssetStructuredSlotSemanticFields::default()
         },
         Some("Overlay") => UiAssetStructuredSlotSemanticFields {
@@ -334,6 +339,25 @@ pub(crate) fn delete_selected_layout_semantic(
     }
     removed
 }
+
+// Canvas uses its authored min/max anchors and offsets, never the Overlay schema.
+// The generic inspector retains literal/presence semantics; absent fields stay absent.
+const CANVAS_SLOT_PATHS: &[&str] = &[
+    "layout.anchor.x",
+    "layout.anchor.y",
+    "layout.anchor_max.x",
+    "layout.anchor_max.y",
+    "layout.pivot.x",
+    "layout.pivot.y",
+    "layout.position.x",
+    "layout.position.y",
+    "layout.offset.left",
+    "layout.offset.top",
+    "layout.offset.right",
+    "layout.offset.bottom",
+    "layout.auto_size",
+    "layout.z_order",
+];
 
 const OVERLAY_SLOT_PATHS: &[&str] = &[
     "layout.anchor.x",

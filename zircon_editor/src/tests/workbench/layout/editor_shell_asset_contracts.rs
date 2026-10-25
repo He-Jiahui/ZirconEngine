@@ -408,11 +408,11 @@ fn welcome_controls_keep_the_compatibility_chain_but_use_workbench_states() {
 }
 
 #[test]
-fn unreal_main_band_keeps_the_80_20_dock_split_and_native_regions() {
+fn unreal_main_band_keeps_the_75_25_dock_split_and_native_regions() {
     for required in [
         "control_id = \"WorkbenchWindowMainBandRegion\"",
         "linear_size = { rule = \"Stretch\", value = 1.0 }",
-        "linear_size = { rule = \"Stretch\", value = 0.25 }",
+        "linear_size = { rule = \"Stretch\", value = 0.3333333333333333 }",
         "control_id = \"WorkbenchMainBandViewportPanel\"",
         "control_id = \"WorkbenchMainBandSceneTreePanel\"",
         "control_id = \"WorkbenchMainBandInspectorPanel\"",

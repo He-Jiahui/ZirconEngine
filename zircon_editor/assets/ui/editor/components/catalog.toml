@@ -86,6 +86,24 @@ kind = "linear"
 required = true
 accepts = ["WorkbenchCheckbox", "WorkbenchDropdown", "WorkbenchField", "WorkbenchNumberField", "WorkbenchRangeSlider", "WorkbenchSlider", "WorkbenchToggle"]
 
+[[components.slots]]
+name = "description"
+kind = "linear"
+required = false
+accepts = ["WorkbenchCaption", "WorkbenchLabel"]
+
+[[components.slots]]
+name = "source"
+kind = "linear"
+required = false
+accepts = ["WorkbenchCaption", "WorkbenchLabel", "WorkbenchStatusItem"]
+
+[[components.slots]]
+name = "reset"
+kind = "linear"
+required = false
+accepts = ["WorkbenchButton", "WorkbenchIconButton"]
+
 [[components]]
 component_id = "WorkbenchDiagnosticRow"
 document_id = "res://ui/editor/workbench/composites/feedback/diagnostic_row.zui"
@@ -103,6 +121,18 @@ name = "message"
 kind = "linear"
 required = true
 accepts = ["WorkbenchStatusItem"]
+
+[[components.slots]]
+name = "expand"
+kind = "linear"
+required = false
+accepts = ["WorkbenchButton", "WorkbenchIconButton"]
+
+[[components.slots]]
+name = "locate"
+kind = "linear"
+required = false
+accepts = ["WorkbenchButton", "WorkbenchIconButton"]
 
 [[components]]
 component_id = "MenuBar"
@@ -917,6 +947,46 @@ name = "placeholder"
 value_type = "text"
 default = { literal = "0" }
 
+[[components.props]]
+name = "value"
+value_type = "number"
+default = { literal = 42.0 }
+
+[[components.props]]
+name = "min"
+value_type = "number"
+default = { literal = 0.0 }
+
+[[components.props]]
+name = "max"
+value_type = "number"
+default = { literal = 100.0 }
+
+[[components.props]]
+name = "step"
+value_type = "number"
+default = { literal = 1.0 }
+
+[[components.props]]
+name = "large_step"
+value_type = "number"
+default = { literal = 10.0 }
+
+[[components.props]]
+name = "precision"
+value_type = "number"
+default = { literal = 0.0 }
+
+[[components.props]]
+name = "editable_text"
+value_type = "boolean"
+default = { literal = true }
+
+[[components.props]]
+name = "layout_stepper"
+value_type = "boolean"
+default = { literal = true }
+
 [[components]]
 component_id = "WorkbenchRadio"
 document_id = "res://ui/editor/components/workbench/primitives/inputs/radio.zui"
@@ -1070,3 +1140,21 @@ default = { literal = "Switch" }
 name = "checked"
 value_type = "boolean"
 default = { literal = false }
+
+[[components]]
+component_id = "WorkbenchTransportControls"
+document_id = "res://ui/editor/workbench/animation/transport_controls.zui"
+binding_namespace = "WorkbenchTransportControls"
+tier = "composite"
+
+[[components]]
+component_id = "WorkbenchBlendSpaceDetails"
+document_id = "res://ui/editor/workbench/animation/blend_space_details.zui"
+binding_namespace = "WorkbenchBlendSpaceDetails"
+tier = "composite"
+
+[[components]]
+component_id = "WorkbenchSampleWeights"
+document_id = "res://ui/editor/workbench/composites/animation/sample_weights.zui"
+binding_namespace = "WorkbenchSampleWeights"
+tier = "composite"
