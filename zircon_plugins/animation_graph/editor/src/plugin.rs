@@ -231,21 +231,9 @@ fn animation_graph_palette() -> GraphNodePaletteDescriptor {
         AssetTypeId::from_resource_kind(ResourceKind::AnimationGraph),
     )
     .with_node(
-        GraphNodeDescriptor::new("clip", "Clip", "Playback")
-            .with_output(GraphPinDescriptor::new("pose", "pose")),
-    )
-    .with_node(
         GraphNodeDescriptor::new("blend", "Blend", "Blend")
             .with_input(GraphPinDescriptor::new("a", "pose").required(true))
             .with_input(GraphPinDescriptor::new("b", "pose").required(true))
-            .with_output(GraphPinDescriptor::new("pose", "pose")),
-    )
-    .with_node(
-        GraphNodeDescriptor::new("blend_space_1d", "Blend Space 1D", "Blend Space")
-            .with_output(GraphPinDescriptor::new("pose", "pose")),
-    )
-    .with_node(
-        GraphNodeDescriptor::new("blend_space_2d", "Blend Space 2D", "Blend Space")
             .with_output(GraphPinDescriptor::new("pose", "pose")),
     )
     .with_node(
@@ -260,16 +248,10 @@ fn animation_state_machine_palette() -> GraphNodePaletteDescriptor {
         "animation_graph.palette.state_machine",
         AssetTypeId::from_resource_kind(ResourceKind::AnimationStateMachine),
     )
-    .with_node(GraphNodeDescriptor::new("state", "State", "State"))
     .with_node(GraphNodeDescriptor::new(
-        "transition",
-        "Transition",
-        "Transition",
-    ))
-    .with_node(GraphNodeDescriptor::new(
-        "condition",
-        "Condition",
-        "Transition",
+        "state",
+        "Graph Reference State",
+        "State",
     ))
     .with_required_capabilities([CAPABILITY])
 }

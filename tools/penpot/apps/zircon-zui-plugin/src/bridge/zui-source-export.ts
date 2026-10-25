@@ -13,6 +13,8 @@ import {
   ZUI_SOURCE_EXPORTS_SCHEMA,
   ZUI_SOURCE_EXPORTS_VERSION,
   isSupportedVisualPath,
+  isHeightMinFieldPath,
+  resolveRootHeightMinOwner,
   type ZuiSourceExportEdit,
   type ZuiSourceExportIdentity,
   type ZuiSourceExportManifest,
@@ -20,6 +22,7 @@ import {
   validateSourcePath,
 } from './zui-export-apply-contract';
 import type { ReconciledZuiDocument } from './penpot-projection-model';
+import { assertCapturedSourcePaintReferences } from '../penpot-capture-validation';
 
 type RecordValue = Record<string, unknown>;
 const record = (value: unknown): value is RecordValue =>
@@ -64,6 +67,7 @@ export function restoreOriginalZuiSource(
   result: ReconciledZuiDocument,
   snapshot?: PenpotAssetSnapshot,
 ): ReconciledZuiDocument {
+  assertCapturedSourcePaintReferences(snapshot, projection, result.document);
   const source = originalZuiSource(projection);
   if (source === undefined) return result;
   const raw = parse(source, { integersAsBigInt: 'asNeeded' });
@@ -158,7 +162,8 @@ function exportComposedHostEdits(
   );
   const baseline = cloneZuiDocument(baselineProjection);
   const exported = cloneZuiDocument(result.document);
-  const edits = collectProjectionEdits(baseline, exported, identityMap);
+  const edits = collectProjectionEdits(baseline, exported, identityMap,
+    rootSourcePath, parseZuiDocument(rootSource).document);
   if (!edits.length)
     return {
       ...result,
@@ -190,7 +195,7 @@ function exportComposedHostEdits(
       {
         severity: 'info',
         code: 'penpot-source-owner-map-exported',
-        message: `${edits.length} visual field changes include source-owner metadata for ${new Set(edits.map(({ sourcePath }) => sourcePath)).size} source asset(s).`,
+        message: `${edits.length} visual field changes include source-owner metadata for ${new Set(edits.map((edit) => edit.heightMinOwner?.sourcePath ?? edit.sourcePath)).size} source asset(s).`,
       },
     ],
   };
@@ -291,6 +296,8 @@ function collectProjectionEdits(
   before: ZuiDocument,
   after: ZuiDocument,
   identityMap: ZuiSourceExportIdentity[],
+  rootSourcePath: string,
+  rootDocument: ZuiDocument,
 ): ZuiSourceExportEdit[] {
   const identityByNode = new Map(
     identityMap.map((identity) => [identity.exportNodeId, identity]),
@@ -312,7 +319,11 @@ function collectProjectionEdits(
       throw new Error(
         `Changed host node ${exportNodeId} has no captured source owner; re-import the host before exporting.`,
       );
-    return { ...identity, fieldPath, value };
+    const heightMinOwner = isHeightMinFieldPath(fieldPath)
+      ? resolveRootHeightMinOwner(rootSourcePath, rootDocument, identity,
+        before.nodes![exportNodeId]) : undefined;
+    return { ...identity, fieldPath, value,
+      ...(heightMinOwner ? { heightMinOwner } : {}) };
   });
 }
 

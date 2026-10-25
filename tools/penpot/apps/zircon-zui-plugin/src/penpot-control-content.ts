@@ -3,6 +3,8 @@ import featherIcons from 'feather-icons/dist/icons.json';
 import { recolorIconShape } from './penpot-prefab-icons';
 import { assertExportShapeGuard } from './penpot-export-guard';
 import { guardedPathContent } from './penpot-icon-path-content';
+import { resolveCanonicalComponent } from './penpot-canonical-library';
+import { inheritedTreeRowPainterForCopy } from './penpot-native-component-copy';
 import type { Board, Shape, Text } from '@penpot/plugin-types';
 import type { ZuiDocument, ZuiNode } from './bridge/zui-document';
 import type { ProjectionText } from './bridge/penpot-projection-model';
@@ -14,6 +16,7 @@ import {
 import { PENPOT_PALETTE } from './bridge/zui-prefab-system';
 import {
   ZUI_METADATA_NAMESPACE,
+  ZUI_METADATA_NODE_ID,
   ZUI_METADATA_ROLE,
   ZUI_ROLE_AUXILIARY,
 } from './metadata';
@@ -135,6 +138,8 @@ function addPanel(board: Board, panel: NativePainterPanel): Board {
   );
   board.appendChild(child);
   if (child.layoutChild) child.layoutChild.absolute = true;
+  if (panel.placement.horizontalConstraint)
+    child.constraintsHorizontal = panel.placement.horizontalConstraint;
   return child;
 }
 
@@ -174,6 +179,8 @@ function addIcon(board: Board, icon: NativePainterIcon): void {
   );
   board.appendChild(shape);
   if (shape.layoutChild) shape.layoutChild.absolute = true;
+  if (icon.placement.horizontalConstraint)
+    shape.constraintsHorizontal = icon.placement.horizontalConstraint;
   resizeNativeIcon(board, shape, icon.placement, icon.size);
 }
 
@@ -232,6 +239,24 @@ function nativeTextStyle(
 
 const TREE_ROW_PAINTER = 'tree-row-authoring-painter';
 type TreeRowPaint = { fills: Shape['fills']; strokes: Shape['strokes']; opacity: Shape['opacity']; radius?: number };
+function withoutUnsetPaintFields<T extends object>(value: T, fields: readonly string[]): T {
+  const result = { ...value } as Record<string, unknown>;
+  for (const key of fields) if (result[key] === null || result[key] === undefined) delete result[key];
+  return result as T;
+}
+/** Match the SDK parser's parse-hex only for the paint color fields we write. */
+function canonicalTreeRowPaint(paint: TreeRowPaint): TreeRowPaint {
+  return { ...paint,
+    fills: Array.isArray(paint.fills) ? paint.fills.map((fill) => {
+      const result = withoutUnsetPaintFields(fill, ['fillColorGradient', 'fillColorRefFile', 'fillColorRefId', 'fillImage']);
+      return typeof result.fillColor === 'string' ? { ...result, fillColor: result.fillColor.toLowerCase() } : result;
+    }) : paint.fills,
+    strokes: paint.strokes.map((stroke) => {
+      const result = withoutUnsetPaintFields(stroke, ['strokeColorRefFile', 'strokeColorRefId', 'strokeCapStart', 'strokeCapEnd', 'strokeColorGradient', 'strokeImage']);
+      return typeof result.strokeColor === 'string' ? { ...result, strokeColor: result.strokeColor.toLowerCase() } : result;
+    }),
+  };
+}
 type TreeRowGeometry = { x: number; y: number; width: number; height: number };
 type TreeRowPartState = {
   type: string; parent: string | null; children: string[];
@@ -330,6 +355,12 @@ function treeRowAsset(board: Board): Shape {
 }
 
 function sameTreeRowState(board: Board, before: Record<string, TreeRowPartState>, after: Record<string, TreeRowPartState>): boolean {
+  // The SDK exposes absent optional paint fields as either missing or nil.
+  // Compare those documented empty representations without changing the
+  // captured metadata; nonempty references, paint and unknown fields remain exact.
+  const canonical = (state: Record<string, TreeRowPartState>) => Object.fromEntries(
+    Object.entries(state).map(([id, part]) => [id, part.paint ? { ...part, paint: canonicalTreeRowPaint(part.paint) } : part]));
+  before = canonical(before); after = canonical(after);
   if (sameTreeRowValue(before, after)) return true;
   const withoutPaths = (state: Record<string, TreeRowPartState>) => Object.fromEntries(
     Object.entries(state).map(([id, { content: _content, ...part }]) => [id, part]));
@@ -340,6 +371,60 @@ function sameTreeRowState(board: Board, before: Record<string, TreeRowPartState>
   if (asset.type !== 'board' || !asset.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'export-shapes-guard')) return false;
   assertExportShapeGuard(asset);
   return true;
+}
+
+/** Bounded failure evidence only; never accepts a change or updates a baseline. */
+function treeRowStateDiagnostic(board: Board, before: Record<string, TreeRowPartState>, current: Record<string, TreeRowPartState>): string {
+  const limits = { differences: 32, depth: 8, text: 160, visits: 4096 };
+  const differences: Array<Record<string, unknown>> = [];
+  let truncated = false, visits = 0;
+  const text = (value: string): string => {
+    if (value.length > limits.text) truncated = true;
+    return value.slice(0, limits.text);
+  };
+  const value = (input: unknown): unknown => {
+    if (input === undefined) return { kind: 'missing' };
+    if (typeof input === 'string') return text(input);
+    if (typeof input === 'number' && !Number.isFinite(input)) return String(input);
+    if (input && typeof input === 'object') {
+      if (Array.isArray(input)) return { kind: 'array', length: input.length };
+      const keys = Object.keys(input);
+      if (keys.length > limits.differences) truncated = true;
+      return { kind: 'object', keys: keys.slice(0, limits.differences).map(text) };
+    }
+    return input;
+  };
+  const visit = (id: string, path: string[], left: unknown, right: unknown): void => {
+    if (left === right) return;
+    if (differences.length >= limits.differences || ++visits > limits.visits) { truncated = true; return; }
+    if (left && right && typeof left === 'object' && typeof right === 'object' &&
+        Array.isArray(left) === Array.isArray(right) && path.length < limits.depth) {
+      if (Array.isArray(left) && Array.isArray(right) && left.length !== right.length)
+        visit(id, [...path, 'length'], left.length, right.length);
+      const l = left as Record<string, unknown>, r = right as Record<string, unknown>;
+      const keys = new Set([...Object.keys(l), ...Object.keys(r)]);
+      for (const key of keys) {
+        if (differences.length >= limits.differences || visits >= limits.visits) { truncated = true; break; }
+        visit(id, [...path, key], l[key], r[key]);
+      }
+      return;
+    }
+    if (path.length >= limits.depth && left && right && typeof left === 'object' && typeof right === 'object') truncated = true;
+    const field = path[0];
+    const category = field === 'geometry' || field === 'paint' || field === 'content' ? field :
+      !field || ['type', 'parent', 'children'].includes(field) ? 'topology' : 'state';
+    const shape = current[id] ?? before[id];
+    differences.push({ shape: { id: text(id), type: shape ? text(shape.type) : null,
+      parent: shape?.parent === undefined || shape.parent === null ? null : text(shape.parent) },
+    category, path: path.map(text), before: value(left), current: value(right) });
+  };
+  for (const id of new Set([...Object.keys(before), ...Object.keys(current)])) {
+    if (differences.length >= limits.differences || visits >= limits.visits) { truncated = true; break; }
+    visit(id, [], before[id], current[id]);
+  }
+  return JSON.stringify({ row: { id: text(board.id), name: text(board.name),
+    nodeId: text(board.getSharedPluginData(ZUI_METADATA_NAMESPACE, ZUI_METADATA_NODE_ID)) },
+  differences, truncated, limits });
 }
 
 function treeRowSvgSource(icon: NativePainterIcon): TreeRowSvgSource {
@@ -390,6 +475,70 @@ function treeRowSvgViewport(shape: Shape): Shape | undefined {
     guardedTreeRowGeometry({ x: 0, y: 0, width: shape.width, height: shape.height })) ? first : undefined;
 }
 
+/** Failure evidence only; never changes SVG readiness or captures a baseline. */
+function treeRowSvgDiagnostic(
+  shape: Shape,
+  source: TreeRowSvgSource,
+  observed: {
+    stage: 'children' | 'strokes';
+    actualDrawables?: number;
+    geometryReady?: boolean;
+    actualStrokeWidths?: number[];
+    expectedStrokeWidths?: number[];
+  },
+): string {
+  const limit = 32, maxDepth = 8;
+  let truncated = false;
+  const text = (value: string | undefined) => {
+    if (value === undefined) return null;
+    if (value.length > 160) truncated = true;
+    return value.slice(0, 160);
+  };
+  const number = (value: number | undefined) =>
+    value === undefined ? 'undefined' : Number.isFinite(value) ? value : String(value);
+  const widths = (values: Array<number | undefined>) => {
+    if (values.length > limit) truncated = true;
+    return values.slice(0, limit).map(number);
+  };
+  const topology: Array<Record<string, unknown>> = [];
+  const visit = (child: Shape, depth: number): void => {
+    if (topology.length >= limit) { truncated = true; return; }
+    const children = 'children' in child ? child.children : [];
+    if (children.length > limit) truncated = true;
+    topology.push({
+      id: text(child.id), parent: text(child.parent?.id), type: text(child.type),
+      name: text(child.name), hidden: child.hidden,
+      relativeBounds: Object.fromEntries(Object.entries(treeRowGeometry(child))
+        .map(([key, value]) => [key, number(value)])),
+      childCount: children.length, childIds: children.slice(0, limit).map((nested) => text(nested.id)),
+      strokeWidths: widths(child.strokes.map((stroke) => stroke.strokeWidth)),
+    });
+    if (depth >= maxDepth) { if (children.length) truncated = true; return; }
+    for (const nested of children) {
+      if (topology.length >= limit) { truncated = true; break; }
+      visit(nested, depth + 1);
+    }
+  };
+  visit(shape, 0);
+  const first = 'children' in shape ? shape.children[0] : undefined;
+  const viewport = treeRowSvgViewport(shape);
+  const details = {
+    owner: { id: text(shape.parent?.id), name: text(shape.parent?.name),
+      nodeId: text(shape.parent?.getSharedPluginData(ZUI_METADATA_NAMESPACE, ZUI_METADATA_NODE_ID)) },
+    source: { width: number(source.width), height: number(source.height), drawables: source.drawables,
+      strokeWidths: widths(source.widths), viewportStrokeWidths: widths(source.viewportWidths) },
+    observed: { stage: observed.stage,
+      ...(observed.actualDrawables !== undefined ? { actualDrawables: observed.actualDrawables } : {}),
+      ...(observed.geometryReady !== undefined ? { geometryReady: observed.geometryReady } : {}),
+      ...(observed.actualStrokeWidths ? { actualStrokeWidths: widths(observed.actualStrokeWidths) } : {}),
+      ...(observed.expectedStrokeWidths ? { expectedStrokeWidths: widths(observed.expectedStrokeWidths) } : {}) },
+    firstChildId: text(first?.id), firstChildIsRectangle: first?.type === 'rectangle',
+    viewportMatched: viewport !== undefined, viewportId: text(viewport?.id),
+    topology,
+  };
+  return JSON.stringify({ ...details, truncated, limits: { nodes: limit, depth: maxDepth, text: 160 } });
+}
+
 function treeRowIconReady(shape: Shape, source: TreeRowSvgSource): boolean {
   if (!Number.isFinite(shape.width) || !Number.isFinite(shape.height) || shape.width <= 0 || shape.height <= 0) return false;
   const viewport = treeRowSvgViewport(shape);
@@ -398,10 +547,12 @@ function treeRowIconReady(shape: Shape, source: TreeRowSvgSource): boolean {
     const geometry = treeRowGeometry(child);
     if (Object.values(geometry).some((value) => !Number.isFinite(value)) || geometry.width < 0 || geometry.height < 0) geometryReady = false;
     if ('children' in child && child.children.length) for (const nested of child.children) visit(nested);
-    else if (child !== viewport && child.type !== 'group' && child.type !== 'board') actual++;
+    // Penpot returns a fresh proxy on each children read; IDs identify shapes.
+    else if ((!viewport || child.id !== viewport.id) && child.type !== 'group' && child.type !== 'board') actual++;
   };
   visit(shape);
-  if (actual > source.drawables) throw new Error('TreeRow SVG has added or unsupported children.');
+  if (actual > source.drawables) throw new Error('TreeRow SVG has added or unsupported children. SVG diagnostic: ' +
+    treeRowSvgDiagnostic(shape, source, { stage: 'children', actualDrawables: actual, geometryReady }));
   return geometryReady && source.drawables > 0 && actual === source.drawables;
 }
 
@@ -409,16 +560,32 @@ function treeRowIconReady(shape: Shape, source: TreeRowSvgSource): boolean {
 export function refreshTreeRowPainterContent(board: Board, node: ZuiNode, document: ZuiDocument): boolean {
   const raw = board.getSharedPluginData(ZUI_METADATA_NAMESPACE, TREE_ROW_PAINTER);
   if (!raw) throw new Error('TreeRow has no original painter metadata; reimport it.');
-  const state = JSON.parse(raw) as TreeRowPainterState;
+  let state = JSON.parse(raw) as TreeRowPainterState;
   if (state.version !== 1 || !Array.isArray(state.parts) || !Array.isArray(state.panels) || !Array.isArray(state.icons) ||
       !Array.isArray(state.iconSources) || state.iconSources.length !== state.icons.length)
     throw new Error('TreeRow has invalid original painter metadata; reimport it.');
+  if (board.isComponentCopyInstance?.() && !state.generated)
+    throw new Error('TreeRow linked copy requires the immutable original painter baseline.');
   const parts = treeRowParts(board);
+  let inherited = false;
+  if (!sameTreeRowValue(state.parts, parts.map((part) => part.id)) && board.isComponentCopyInstance?.()) {
+    const component = board.component?.(), source = node['penpot_prefab_source'];
+    const canonical = component && typeof source === 'string' ? resolveCanonicalComponent(source,
+      [{ id: component.libraryId, components: [component] }]) : null;
+    if (!canonical || !canonical.record.sourcePath ||
+        node['penpot_review_source_path'] !== canonical.record.sourcePath ||
+        node['penpot_review_source_node_id'] !==
+          canonical.component.mainInstance().getSharedPluginData(ZUI_METADATA_NAMESPACE, ZUI_METADATA_NODE_ID))
+      throw new Error('TreeRow linked copy has no canonical source owner in this projection.');
+    state = JSON.parse(inheritedTreeRowPainterForCopy(canonical.component.mainInstance(), board)) as TreeRowPainterState;
+    inherited = true;
+  }
   if (!sameTreeRowValue(state.parts, parts.map((part) => part.id)))
     throw new Error('TreeRow children changed without a ZUI source mapping.');
   const current = treeRowState(board);
   if (state.generated && !sameTreeRowState(board, state.generated, current))
-    throw new Error('TreeRow subtree, geometry or paint changed without a ZUI source mapping.');
+    throw new Error('TreeRow subtree, geometry or paint changed without a ZUI source mapping. State diagnostic: ' +
+      treeRowStateDiagnostic(board, state.generated, current));
   const panels = parts.filter((part) => part.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'content-panel-placement'));
   const icons = parts.filter((part) => part.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'content-icon-placement'));
   if (panels.length !== state.panels.length || icons.length !== state.icons.length)
@@ -438,9 +605,10 @@ export function refreshTreeRowPainterContent(board: Board, node: ZuiNode, docume
       state.originalWidths![part.id] = part.strokes.map((stroke) => stroke.strokeWidth!);
       if ('children' in part) for (const child of part.children) capture(child);
     };
-    for (const [index, part] of panels.entries()) {
+    for (const part of panels) {
       capture(part);
-      state.originalBounds[part.id] = { width: state.size.width * state.panels[index]!.placement.width, height: state.size.height * state.panels[index]!.placement.height };
+      const { width, height } = state.originalGeometry[part.id]!;
+      state.originalBounds[part.id] = { width, height };
     }
     for (const [index, part] of icons.entries()) {
       const widths: number[] = [];
@@ -454,9 +622,13 @@ export function refreshTreeRowPainterContent(board: Board, node: ZuiNode, docume
       if (widths.length < expected.length || widths.some((width) => width === undefined)) return false;
       if (widths.some((width) => !Number.isFinite(width)) ||
           !sameTreeRowValue([...widths].sort((a, b) => a - b), [...expected].sort((a, b) => a - b)))
-        throw new Error('TreeRow original strokes do not match its SVG source.');
+        throw new Error('TreeRow original strokes do not match its SVG source. SVG diagnostic: ' +
+          treeRowSvgDiagnostic(part, source, { stage: 'strokes', actualStrokeWidths: widths,
+            expectedStrokeWidths: expected }));
       capture(part);
-      state.originalBounds[part.id] = { width: state.size.width * state.icons[index]!.placement.width, height: state.size.height * state.icons[index]!.placement.height };
+      // SDK resize scales descendants from the actual root selection bounds.
+      const { width, height } = state.originalGeometry[part.id]!;
+      state.originalBounds[part.id] = { width, height };
     }
   }
   if (!state.originalPaint || !state.originalGeometry || !state.originalBounds || !state.originalWidths)
@@ -467,7 +639,13 @@ export function refreshTreeRowPainterContent(board: Board, node: ZuiNode, docume
       (content.icons ?? []).some((icon, index) => icon.name !== state.icons[index]!.name || icon.svg !== state.icons[index]!.svg))
     throw new Error('TreeRow painter topology changed; reimport the source for new SVG parts.');
   const desired = JSON.stringify({ size, panels: content.panels, icons: content.icons ?? [] });
-  if (state.desired === desired) return false;
+  if (state.desired === desired) {
+    if (!inherited) return false;
+    // All original state, allocation and source-painter checks above still
+    // apply. Persist only the derived IDs after that preflight succeeds.
+    board.setSharedPluginData(ZUI_METADATA_NAMESPACE, TREE_ROW_PAINTER, JSON.stringify(state));
+    return true;
+  }
 
   // Preflight and plan the complete native tree before any geometry or paint
   // mutation. SVG widths and geometry references never use last SDK readback.
@@ -476,7 +654,7 @@ export function refreshTreeRowPainterContent(board: Board, node: ZuiNode, docume
   const planGeometry = (part: Shape, placement: ContentPlacement): void => {
     const bounds = state.originalBounds![part.id];
     const width = size.width * placement.width, height = size.height * placement.height;
-    if (!bounds || bounds.width <= 0 || bounds.height <= 0 || width <= 0 || height <= 0)
+    if (!bounds || [bounds.width, bounds.height, width, height].some((value) => !Number.isFinite(value) || value <= 0))
       throw new Error('TreeRow native part has invalid original or desired bounds.');
     const scaleX = width / bounds.width, scaleY = height / bounds.height;
     const visit = (child: Shape, root: boolean): void => {
@@ -492,12 +670,12 @@ export function refreshTreeRowPainterContent(board: Board, node: ZuiNode, docume
   for (const [index, panel] of content.panels.entries()) {
     const part = panels[index]!;
     planGeometry(part, panel.placement);
-    paintWrites.set(part, {
+    paintWrites.set(part, canonicalTreeRowPaint({
       opacity: current[part.id]!.paint!.opacity,
       fills: [{ fillColor: panel.color?.slice(0, 7) ?? NATIVE_PAINTER_COLORS[panel.tone], fillOpacity: panel.opacity ?? (panel.tone === 'surface' ? 1 : 0.9) }],
       strokes: panel.borderColor ? [{ strokeColor: panel.borderColor, strokeWidth: panel.borderWidth ?? 1, strokeOpacity: 1, strokeStyle: 'solid', strokeAlignment: 'inner' }] : [],
       radius: panel.radius ?? 4,
-    });
+    }));
   }
   for (const [index, icon] of (content.icons ?? []).entries()) {
     const part = icons[index]!, source = state.iconSources[index]!;
@@ -509,18 +687,21 @@ export function refreshTreeRowPainterContent(board: Board, node: ZuiNode, docume
       if (!original || !widths || widths.length !== original.strokes.length)
         throw new Error('TreeRow original paint does not cover its SVG tree.');
       const visible = (value: string | undefined) => !!value && !['none', 'transparent', '#00000000'].includes(value.toLowerCase());
-      paintWrites.set(child, { ...original,
+      paintWrites.set(child, canonicalTreeRowPaint({ ...original,
         fills: Array.isArray(original.fills) ? original.fills.map((fill) => visible(fill.fillColor) ? { ...fill, fillColor: color } : fill) : original.fills,
         strokes: original.strokes.map((stroke, ordinal) => ({ ...stroke, strokeWidth: widths[ordinal]! * scale,
           ...(visible(stroke.strokeColor) ? { strokeColor: color } : {}) })),
-      });
+      }));
       if ('children' in child) for (const nested of child.children) visit(nested);
     };
     visit(part);
   }
   for (const [part, paint] of paintWrites) generated[part.id]!.paint = paint;
   const applyGeometry = (part: Shape, before: ContentPlacement, after: ContentPlacement): void => {
-    const previousWidth = state.size.width * before.width, previousHeight = state.size.height * before.height;
+    const original = state.originalBounds![part.id]!;
+    // The first resize must use the same captured root bounds as its plan.
+    const previousWidth = state.desired ? state.size.width * before.width : original.width;
+    const previousHeight = state.desired ? state.size.height * before.height : original.height;
     const width = size.width * after.width, height = size.height * after.height;
     if (width !== previousWidth || height !== previousHeight) part.resize(width, height);
     const x = size.width * after.x, y = size.height * after.y;
@@ -538,8 +719,9 @@ export function refreshTreeRowPainterContent(board: Board, node: ZuiNode, docume
     part.setSharedPluginData(ZUI_METADATA_NAMESPACE, 'content-icon-placement', JSON.stringify(icon.placement));
   }
   for (const [part, paint] of paintWrites) {
-    if (Array.isArray(paint.fills) && !sameTreeRowValue(part.fills, paint.fills)) part.fills = paint.fills;
-    if (!sameTreeRowValue(part.strokes, paint.strokes)) part.strokes = paint.strokes;
+    const currentPaint = canonicalTreeRowPaint({fills: part.fills, strokes: part.strokes, opacity: part.opacity});
+    if (Array.isArray(paint.fills) && !sameTreeRowValue(currentPaint.fills, paint.fills)) part.fills = paint.fills;
+    if (!sameTreeRowValue(currentPaint.strokes, paint.strokes)) part.strokes = paint.strokes;
     if (part.type === 'board' && paint.radius !== undefined && part.borderRadius !== paint.radius) part.borderRadius = paint.radius;
     if (part.type === 'path') generated[part.id]!.content = guardedPathContent(part);
   }

@@ -34,7 +34,7 @@ fn optimization_batch_20260826ep_editor131_slot_counts_non_empty_rows_before_all
         .unwrap();
     let builder_source = &source[builder_start..builder_end];
 
-    assert!(source.contains("const SLOT_DETAIL_ROW_MAX_COUNT: usize = 18;"));
+    assert!(source.contains("const SLOT_DETAIL_ROW_MAX_COUNT: usize = 19;"));
     assert!(builder_source.contains("Vec::with_capacity(slot_detail_row_capacity(data))"));
     assert!(source.contains(".filter(|value| !value.is_empty())"));
     assert!(source.contains("debug_assert!(capacity <= SLOT_DETAIL_ROW_MAX_COUNT);"));
@@ -77,6 +77,8 @@ legacy_raw_ns={} optimized_raw_ns={}",
 fn full_slot_presentation() -> asset_editor::UiAssetEditorPanePresentation {
     asset_editor::UiAssetEditorPanePresentation {
         inspector_mount: "mount".into(),
+        inspector_slot_kind: "Canvas".into(),
+        canvas_anchor_presets_available: true,
         inspector_slot_padding: "padding".into(),
         inspector_slot_width_preferred: "width".into(),
         inspector_slot_height_preferred: "height".into(),

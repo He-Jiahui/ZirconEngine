@@ -5,8 +5,10 @@ import {
   layoutTreeRowText,
 } from './penpot-tree-row-controls';
 import { allocateNativeLayoutSize } from './penpot-layout-allocation';
+import { bindSourceFill, bindSourceStroke, sourceColorProperties, type SourceColorLookup } from './penpot-source-colors';
+import { assertExportShapeGuard } from './penpot-export-guard';
 import type { Board, CommonLayout, Shape, Text } from '@penpot/plugin-types';
-import { createSemanticTexts, textInsets } from './penpot-semantic-text';
+import { authoredLabelTextInsets, createSemanticTexts, layoutMeasuredLabelText, textInsets } from './penpot-semantic-text';
 import { applyNativeScrollContentLayout } from './penpot-scroll-content-layout';
 import { applyNativeWrapContentLayout } from './penpot-wrap-content-layout';
 import { applySlotPadding } from './penpot-slot-padding';
@@ -18,7 +20,8 @@ import {
   refreshSliderDecoration,
   layoutSliderText,
 } from './penpot-slider-controls';
-import { createPrefabIcon, previewIconPlacement } from './penpot-prefab-icons';
+import { createPrefabIcon, previewIconPlacement, nativeSemanticGlyph,
+  refreshNativeSemanticIcons, layoutNativeSemanticText } from './penpot-prefab-icons';
 import { refreshDividerDecoration } from './penpot-divider-controls';
 import {
   createTableMeasurements,
@@ -130,6 +133,7 @@ export async function createAssetBoard(
   projection: ZuiAssetProjection,
 ): Promise<Board> {
   const checkpoint = createImportCheckpoint();
+  const colorProperty = sourceColorProperties(document);
   const detachedNodes = renderedDetachedNodes(projection);
   const tokenOverview =
     projection.shapes.length === 0 ? tokenOverviewSize(document) : null;
@@ -182,6 +186,7 @@ export async function createAssetBoard(
         index,
         null,
         checkpoint,
+        colorProperty,
       );
     if (projection.shapes.length === 0) {
       createTokenOverview(assetBoard, document);
@@ -195,6 +200,7 @@ export async function createAssetBoard(
         geometry.detachedLaneHeight,
         geometry.detachedLaneWidth,
         checkpoint,
+        colorProperty,
       );
     }
     synchronizeLinearContentMeasurements(assetBoard, document, projection);
@@ -456,6 +462,7 @@ async function createDetachedLane(
   boardHeight: number,
   detachedWidth: number,
   checkpoint: () => Promise<void>,
+  colorProperty: SourceColorLookup,
 ): Promise<void> {
   const lane = penpot.createBoard();
   lane.name = 'ZUI · Detached nodes';
@@ -490,6 +497,7 @@ async function createDetachedLane(
       index,
       detachedLaneContainer(),
       checkpoint,
+      colorProperty,
     );
 }
 
@@ -517,6 +525,7 @@ async function createSemanticBoard(
   childIndex: number,
   parentContainer: ProjectionContainer | null,
   checkpoint: () => Promise<void>,
+  colorProperty: SourceColorLookup,
 ): Promise<Board> {
   await checkpoint();
   const node = zuiNodes(document)[projection.nodeId];
@@ -542,21 +551,21 @@ async function createSemanticBoard(
     Boolean(projection.propertyRow);
   board.fills = projection.paint.fillColor
     ? [
-        {
+        bindSourceFill({
           fillColor: projection.paint.fillColor,
           fillOpacity: projection.paint.fillOpacity,
-        },
+        }, document, colorProperty(projection.nodeId, 'background_color')),
       ]
     : [];
   board.strokes = projection.paint.strokeColor
     ? [
-        {
+        bindSourceStroke({
           strokeColor: projection.paint.strokeColor,
           strokeOpacity: projection.paint.strokeOpacity,
           strokeWidth: projection.paint.strokeWidth,
           strokeStyle: 'solid',
           strokeAlignment: 'inner',
-        },
+        }, document, colorProperty(projection.nodeId, 'border_color')),
       ]
     : [];
   setMetadata(board, ZUI_METADATA_ROLE, ZUI_ROLE_NODE);
@@ -569,6 +578,13 @@ async function createSemanticBoard(
   setMetadata(board, 'controlId', projection.controlId ?? '');
   if (projection.instancePath)
     setMetadata(board, 'instancePath', projection.instancePath);
+  for (const [metadataKey, property] of [
+    ['itemKey', 'inspector_property_item_key'],
+    ['propertyFieldId', 'inspector_property_field_id'],
+  ] as const) {
+    const value = node?.props?.[property];
+    if (typeof value === 'string') setMetadata(board, metadataKey, value);
+  }
   setMetadata(board, ZUI_METADATA_LAYOUT_MODE, projection.container.kind);
   const scrollAxis = scrollAxisForNode(node);
   if (scrollAxis) {
@@ -590,7 +606,10 @@ async function createSemanticBoard(
   }
 
   appendToParent(parent, board, childIndex, parentContainer);
-  if (projection.previewHidden) return board;
+  if (projection.previewHidden) {
+    applyChildSizing(board, node, document);
+    return board;
+  }
   if (!parentContainer || parentContainer.kind === 'free') {
     const relativePosition = resolvedAnchoredPosition(
       { width: parent.width, height: parent.height },
@@ -611,6 +630,7 @@ async function createSemanticBoard(
     !isTreeRowPainter(node) &&
     (node.props?.['icon'] ||
       node.props?.['icon_name'] ||
+      nativeSemanticGlyph(document, node) ||
       projection.prefabRole === 'icon-button' ||
       node.component.toLowerCase().includes('icon'))
   ) {
@@ -619,9 +639,10 @@ async function createSemanticBoard(
       node.component.toLowerCase().includes('icon') ||
       node.props?.['icon_placement'] === 'icon_only';
     const placement = previewIconPlacement(node, iconOnly);
-    createPrefabIcon(board, node, document, iconOnly);
-    if (placement === 'leading') setMetadata(board, 'has-leading-icon', 'true');
-    if (placement === 'trailing')
+    const icon = createPrefabIcon(board, node, document, iconOnly);
+    if (icon && !nativeSemanticGlyph(document, node) && placement === 'leading')
+      setMetadata(board, 'has-leading-icon', 'true');
+    if (icon && !nativeSemanticGlyph(document, node) && placement === 'trailing')
       setMetadata(board, 'has-trailing-icon', 'true');
   }
   const replacesText =
@@ -640,9 +661,10 @@ async function createSemanticBoard(
       index,
       projection.container,
       checkpoint,
+      colorProperty,
     );
   }
-  createSemanticTexts(board, projection, document, node);
+  createSemanticTexts(board, projection, document, node, colorProperty);
   if (isTreeRowPainter(node))
     for (const child of board.children)
       if (
@@ -961,10 +983,13 @@ export function refreshAssetTextLayout(
   document: ZuiDocument,
   projection: ZuiAssetProjection,
 ): void {
+  if (metadata(asset, 'export-shapes-guard')) assertExportShapeGuard(asset);
   const projected = new Map(
     projection.shapes.map((node) => [node.nodeId, node]),
   );
   synchronizeLinearContentMeasurements(asset, document, projection);
+  const nativeTextMeasurements = new Map(linearContentMeasurementSnapshot(asset)
+    .map((measurement) => [measurement.nodeId, measurement]));
   const desiredSizes = measuredLinearDesiredSizes(asset, document, projection);
   const toolbar = prepareViewportToolbarLayout(asset, document, projection, desiredSizes);
   if (toolbar) document = toolbar.document;
@@ -977,6 +1002,8 @@ export function refreshAssetTextLayout(
     applyPublishedViewportToolbarBoard(asset, board, toolbar);
     refreshImageContent(board);
     const currentNode = document.nodes?.[currentProjection?.nodeId ?? ''];
+    refreshNativeSemanticIcons(board, currentNode, document,
+      nativeTextMeasurements.get(currentProjection?.nodeId ?? '')?.width);
     if (!refreshTreeRowContent(board, currentNode, document))
       refreshControlContent(board);
     applyNativeScrollContentLayout(
@@ -1015,7 +1042,7 @@ export function refreshAssetTextLayout(
         child.y = board.y + (board.height - child.height) / 2;
       }
       const iconPlacement = metadata(child, 'icon-placement');
-      if (iconPlacement) {
+      if (iconPlacement && !metadata(child, 'native-semantic-glyph')) {
         child.x =
           board.x +
           (iconPlacement === 'leading'
@@ -1065,6 +1092,8 @@ export function refreshAssetTextLayout(
       )
         continue;
       if (layoutTreeRowText(board, child, currentNode, document)) continue;
+      if (currentNode && layoutNativeSemanticText(board, child, currentNode, document,
+        nativeTextMeasurements.get(currentProjection?.nodeId ?? '')?.width)) continue;
       if (control) {
         const geometry = inputControlGeometry(
           control,
@@ -1101,10 +1130,13 @@ export function refreshAssetTextLayout(
         'prefab-role',
       ) as ZuiPrefabRole;
       const inset = textInsets(role, board.width);
+      Object.assign(inset, authoredLabelTextInsets(document, currentNode, board.width));
       if (metadata(board, 'has-leading-icon') === 'true')
         inset.left = Math.max(inset.left, 36);
       if (metadata(board, 'has-trailing-icon') === 'true')
         inset.right = Math.max(inset.right, 36);
+      if (layoutMeasuredLabelText(board, child, document, currentNode, inset,
+        nativeTextMeasurements.get(currentProjection?.nodeId ?? ''))) continue;
       const width = Math.max(1, board.width - inset.left - inset.right);
       const height = Math.max(1, board.height);
       const labelColumn =

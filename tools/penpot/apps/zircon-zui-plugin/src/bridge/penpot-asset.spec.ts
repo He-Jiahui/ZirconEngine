@@ -16,6 +16,61 @@ import {
 import { reconcileZuiDocument } from './penpot-reconcile';
 
 describe('serializable Penpot asset bridge', () => {
+  it('serializes an existing height.min edit independently from arranged geometry', () => {
+    const { document } = parseZuiDocument(fixtureSource);
+    const original = structuredClone(document);
+    const asset = createPenpotBridgeAsset(document, 'height-min.zui');
+    const actions = asset.snapshot.shapes.find(({ nodeId }) => nodeId === 'actions')!;
+    actions.current.heightMin = 38;
+    const restored = parsePenpotBridgeAsset(serializePenpotBridgeAsset(asset));
+    const result = reconcilePenpotBridgeAsset(restored);
+    (original.nodes!.actions.layout!['height'] as ZuiTable)['min'] = 38;
+    expect(result.document).toEqual(original);
+    expect(result.changes).toEqual(['nodes.actions.layout.height.min']);
+    expect(restored.snapshot.shapes.find(({ nodeId }) => nodeId === 'actions')!.current.geometry)
+      .toEqual(actions.baseline.geometry);
+  });
+
+  it('rejects an old baseline receipt that omits an existing height.min', () => {
+    const { document } = parseZuiDocument(fixtureSource);
+    const asset = createPenpotBridgeAsset(document, 'height-min.zui');
+    const actions = asset.snapshot.shapes.find(({ nodeId }) => nodeId === 'actions')!;
+    delete actions.baseline.heightMin;
+    delete actions.current.heightMin;
+    expect(() => serializePenpotBridgeAsset(asset)).toThrow(/baseline for semantic node actions/i);
+  });
+
+  it.each([null, '128', Number.NaN, Number.POSITIVE_INFINITY, -1])(
+    'rejects malformed serialized height.min %s', (heightMin) => {
+      const { document } = parseZuiDocument(fixtureSource);
+      const asset = createPenpotBridgeAsset(document, 'height-min.zui');
+      const actions = asset.snapshot.shapes.find(({ nodeId }) => nodeId === 'actions')!;
+      (actions.current as unknown as Record<string, unknown>)['heightMin'] = heightMin;
+      expect(() => serializePenpotBridgeAsset(asset)).toThrow(/heightMin/);
+    },
+  );
+
+  it('round-trips root and free-child source constraints without claiming editable minHeight', () => {
+    const { document } = parseZuiDocument(fixtureSource);
+    zuiNodes(document)['root'].layout!['container'] = { kind: 'Overlay' };
+    const asset = parsePenpotBridgeAsset(serializePenpotBridgeAsset(
+      createPenpotBridgeAsset(document, 'free-minima.zui'),
+    ));
+    for (const nodeId of ['root', 'title', 'actions']) {
+      const shape = asset.snapshot.shapes.find((shape) => shape.nodeId === nodeId)!;
+      expect(shape.baseline).not.toHaveProperty('heightMin');
+      expect(shape.current).not.toHaveProperty('heightMin');
+    }
+    const result = reconcilePenpotBridgeAsset(asset);
+    expect(result.document).toEqual(document);
+    expect(result.changes).toEqual([]);
+    const root = asset.snapshot.shapes.find(({ nodeId }) => nodeId === 'root')!;
+    root.current.heightMin = 128;
+    expect(() => reconcilePenpotBridgeAsset(asset)).toThrow(/height.min mapping/);
+    root.baseline.heightMin = 240;
+    expect(() => serializePenpotBridgeAsset(asset)).toThrow(/baseline for semantic node root/i);
+  });
+
   it('round-trips an unchanged asset without losing ZUI semantics', () => {
     const { document } = parseZuiDocument(fixtureSource);
     const encoded = serializePenpotBridgeAsset(

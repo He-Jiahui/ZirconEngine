@@ -181,6 +181,7 @@ fn disabled_table_row_primary_press_does_not_emit_selection() {
 
 fn hit_with_kind(dispatch_kind: &str) -> TemplateNodePointerHit {
     TemplateNodePointerHit {
+        palette_search_target: None,
         pane_id: SharedString::new(),
         control_id: "Control".into(),
         action_id: SharedString::new(),

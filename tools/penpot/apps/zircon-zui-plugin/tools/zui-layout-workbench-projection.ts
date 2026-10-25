@@ -5,7 +5,8 @@ import {
   applyInspectorPropertyRows,
 } from './zui-layout-inspector-properties';
 import { validateWorkbenchPresentation } from './zui-layout-workbench-presentation';
-import type { ZuiDocument, ZuiNode } from '../src/bridge/zui-document';
+import { readViewportToolbarPublication } from '../src/bridge/zui-viewport-toolbar-publication';
+import type { ZuiDocument, ZuiNode, ZuiTable, ZuiValue } from '../src/bridge/zui-document';
 
 const WORKBENCH_WINDOW_SOURCE =
   'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
@@ -36,6 +37,399 @@ type ProductRow = {
   selected?: boolean;
   [key: string]: unknown;
 };
+
+const MENU_RUN_SOURCES = new Set(['menus', 'toolbar', 'menu_popups'].map(
+  (name) => `zircon_editor/assets/ui/editor/unreal/components/${name}.zui`,
+));
+const MENU_RUN_COMPONENTS = new Set(['Button', 'IconButton', 'PopupMenu']);
+const MENU_RUN_PROPERTIES = ['menu_items', 'popup_open', 'selected', 'checked',
+  'value', 'text', 'value_text', 'label'] as const;
+const FOOTER_STATE_TARGETS = [
+  ['ready', 'WorkbenchStatusReady', 'Label', 'text'],
+  ['errors', 'WorkbenchStatusErrors', 'Label', 'text'],
+  ['warnings', 'WorkbenchStatusWarnings', 'Label', 'text'],
+  ['messages', 'WorkbenchStatusMessages', 'Label', 'text'],
+  ['grid', 'WorkbenchStatusGrid', 'Button', 'text'],
+  ['snap', 'WorkbenchStatusSnap', 'Button', 'text'],
+  ['snap_toggle', 'WorkbenchStatusSnapToggle', 'IconButton', 'checked'],
+] as const;
+const PRESENTATION_CURSOR_FIELDS = ['structure', 'geometry', 'interaction', 'viewport',
+  'hitTest', 'theme', 'diagnostics'] as const;
+type SourceStep = { sourcePath: string; sourceNodeId: string };
+type ObservedIdentity = SourceStep & { instancePath: SourceStep[]; controlId: string | null };
+
+/** Consume normal menu/run and project-context state without importing arranged geometry. */
+export function applyObservedWorkbenchMenuAndRunState(document: ZuiDocument, value: unknown): void {
+  const evidence = object(value, 'same-frame menu/run evidence');
+  // Reuse the existing full prepared-toolbar validator, including all seven
+  // normal/business cursors, successful frame, source graph and snap values.
+  if (!readViewportToolbarPublication(evidence))
+    throw new Error('Same-frame menu/run requires the actual viewport toolbar publication');
+  const business = object(evidence['workbenchStatePublication'], 'business publication');
+  const presentation = object(business['workbenchPresentation'], 'business presentation');
+  const fingerprint = object(presentation['sourceFingerprint'], 'business source fingerprint');
+  if (fingerprint['sourcePath'] !== WORKBENCH_WINDOW_SOURCE)
+    throw new Error('Same-frame menu/run has the wrong Level Editor owner');
+  const inventory = object(evidence['arrangedInventoryPublication'], 'arranged inventory publication');
+  if (inventory['schema'] !== 'dev.zircon.editor.normal-arranged-inventory' || inventory['version'] !== 1 ||
+      inventory['authority'] !== 'normal-retained-runtime-surfaces' || inventory['observed'] !== true)
+    throw new Error('Same-frame menu/run requires the normal arranged inventory authority');
+  booleanValue(inventory['complete'], 'arranged inventory complete');
+  const cursor = object(evidence['presentationCursor'], 'normal presentation cursor');
+  const inventoryCursor = object(inventory['presentationCursor'], 'inventory presentation cursor');
+  if (Object.keys(inventoryCursor).length !== PRESENTATION_CURSOR_FIELDS.length ||
+      PRESENTATION_CURSOR_FIELDS.some((key) => inventoryCursor[key] !== cursor[key]) ||
+      inventory['presentedFrameCount'] !== evidence['presentedFrameCount'])
+    throw new Error('Same-frame menu/run inventory cursor or successful frame differs');
+  const surfaces = array(inventory['surfaces'], 'arranged inventory surfaces').map(
+    (item) => object(item, 'arranged inventory surface'),
+  ).filter((surface) => surface['scope'] === 'workbench-window');
+  if (surfaces.length !== 1) throw new Error('Same-frame menu/run requires one workbench-window surface');
+  const surface = surfaces[0]!;
+  if (surface['schema'] !== 'dev.zircon.editor.normal-surface-arranged-inventory' || surface['version'] !== 1 ||
+      surface['documentId'] !== 'res://ui/editor/unreal/level_editor_window.zui' ||
+      surface['coordinateSpace'] !== 'surface-logical' || surface['frameAuthority'] !== 'retained-host-projection')
+    throw new Error('Same-frame menu/run surface has the wrong owner or frame authority');
+  const generation = surface['sourceFrameGeneration'];
+  if (typeof generation !== 'number' || !Number.isSafeInteger(generation) || generation < 0)
+    throw new Error('Same-frame menu/run surface generation is missing');
+  const rows = array(surface['nodes'], 'arranged surface nodes').map((row) => object(row, 'arranged node'));
+  const nativeById = new Map<string, JsonObject>();
+  const nativeSurfaceIds = new Set<number>();
+  for (const row of rows) {
+    const id = nonempty(row['nodeId'], 'arranged node ID');
+    const surfaceId = row['surfaceNodeId'];
+    if (nativeById.has(id)) throw new Error(`Duplicate arranged node ID ${id}`);
+    if (surfaceId !== undefined && surfaceId !== null && (typeof surfaceId !== 'number' ||
+        !Number.isSafeInteger(surfaceId) || surfaceId < 1 || nativeSurfaceIds.has(surfaceId)))
+      throw new Error(`Missing or duplicate arranged node ID ${id}`);
+    if (typeof surfaceId === 'number') nativeSurfaceIds.add(surfaceId);
+    nativeById.set(id, row);
+  }
+  const nativeRoots = rows.filter((row) => row['controlId'] === 'WorkbenchWindowRoot');
+  if (nativeRoots.length !== 1) throw new Error('Same-frame menu/run requires one actual WorkbenchWindowRoot');
+  const nativeRoot = nativeRoots[0]!;
+  const nativeRootIdentity = observedIdentity(nativeRoot);
+  const rootIds = array(surface['rootIds'], 'arranged surface roots');
+  if (nativeRootIdentity.sourcePath !== WORKBENCH_WINDOW_SOURCE || nativeRootIdentity.sourceNodeId !== 'root' ||
+      nativeRoot['component'] !== 'Overlay' || nativeRoot['parent'] !== null ||
+      rootIds.length !== 1 || rootIds[0] !== nativeRoot['surfaceNodeId'])
+    throw new Error('Same-frame menu/run actual owner root differs');
+
+  // A real review host adds its own mount callsites. Relativize only against
+  // each side's observed owner root, retaining every complete descendant step.
+  const reviewNodes = document.nodes ?? {};
+  const reviewParents = new Map<string, string | null>();
+  const visit = (id: string, parent: string | null): void => {
+    if (!reviewNodes[id] || reviewParents.has(id))
+      throw new Error('Same-frame menu/run review graph has a missing, cyclic or shared node');
+    reviewParents.set(id, parent);
+    for (const child of reviewNodes[id].children ?? []) visit(child.node, id);
+  };
+  visit(nonempty(document.root?.node, 'review host root'), null);
+  const reviewRoots = [...reviewParents.keys()].filter((id) => reviewNodes[id].control_id === 'WorkbenchWindowRoot');
+  if (reviewRoots.length !== 1) throw new Error('Same-frame menu/run requires one review WorkbenchWindowRoot');
+  const reviewRootId = reviewRoots[0]!;
+  const reviewRoot = reviewNodes[reviewRootId];
+  const reviewRootIdentity = reviewIdentity(reviewRoot);
+  if (reviewRootIdentity.sourcePath !== WORKBENCH_WINDOW_SOURCE || reviewRootIdentity.sourceNodeId !== 'root' ||
+      reviewRoot.component !== 'Overlay')
+    throw new Error('Same-frame menu/run review owner root differs');
+  const nativeTargets = new Map<string, JsonObject>();
+  for (const row of rows) {
+    if (!MENU_RUN_COMPONENTS.has(String(row['component'])) ||
+        !MENU_RUN_SOURCES.has(sourcePath(row['sourcePath']))) continue;
+    assertNativeOwner(row, nativeRoot, nativeById);
+    const identity = observedIdentity(row);
+    const key = menuRunKey(identity, nativeRootIdentity.instancePath);
+    if (nativeTargets.has(key)) throw new Error('Duplicate arranged menu/run source identity');
+    nativeTargets.set(key, row);
+  }
+  // Validate all joins/properties before touching the review clone.
+  const patches: Array<{ node: ZuiNode; props: ZuiTable; observation: JsonObject }> = [];
+  const reviewKeys = new Set<string>();
+  for (const [id] of reviewParents) {
+    const node = reviewNodes[id];
+    if (!MENU_RUN_COMPONENTS.has(node.component) ||
+        !MENU_RUN_SOURCES.has(String(node['penpot_review_source_path']))) continue;
+    let owner: string | null | undefined = id;
+    while (owner !== undefined && owner !== null && owner !== reviewRootId) owner = reviewParents.get(owner);
+    if (owner !== reviewRootId) throw new Error('Review menu/run node is outside its actual owner root');
+    const identity = reviewIdentity(node), key = menuRunKey(identity, reviewRootIdentity.instancePath);
+    if (reviewKeys.has(key)) throw new Error('Duplicate review menu/run source identity');
+    reviewKeys.add(key);
+    const row = nativeTargets.get(key);
+    if (!row || row['component'] !== node.component)
+      throw new Error(`Missing actual menu/run source target ${identity.sourceNodeId}/${identity.controlId}`);
+    const projected = object(row['projected'], 'arranged node projection');
+    const raw = object(object(row['rawMetadata'], 'arranged raw metadata')['attributes'], 'arranged attributes');
+    const properties = object(projected['properties'], 'arranged projected properties');
+    const selfVisible = booleanValue(row['selfVisible'], 'arranged selfVisible');
+    const enabled = booleanValue(row['enabled'], 'arranged enabled');
+    const projectedDisabled = Object.hasOwn(projected, 'disabled')
+      ? booleanValue(projected['disabled'], 'projected.disabled') : undefined;
+    const rawDisabled = Object.hasOwn(raw, 'disabled') ? booleanValue(raw['disabled'], 'attributes.disabled') : undefined;
+    if (rawDisabled !== undefined && projectedDisabled !== undefined && rawDisabled !== projectedDisabled)
+      throw new Error('Menu/run raw and projected disabled sources conflict');
+    const disabled = !enabled || projectedDisabled === true;
+    const props: ZuiTable = { visible: selfVisible, visibility: selfVisible ? 'visible' : 'collapsed',
+      disabled, enabled };
+    for (const property of MENU_RUN_PROPERTIES) {
+      if (Object.hasOwn(raw, property) && Object.hasOwn(properties, property) &&
+          !sameObservedValue(raw[property], properties[property]))
+        throw new Error(`Menu/run raw and projected ${property} sources conflict`);
+      if (Object.hasOwn(raw, property)) props[property] = menuRunProperty(property, raw[property]);
+      else if (Object.hasOwn(properties, property)) props[property] = menuRunProperty(property, properties[property]);
+    }
+    // PopupMenu's generic preview alias must not retain a stale authored open.
+    if (typeof props['popup_open'] === 'boolean') props['open'] = props['popup_open'];
+    patches.push({ node, props, observation: { sourcePath: row['sourcePath'], sourceNodeId: row['sourceNodeId'],
+      instancePath: structuredClone(row['instancePath']), controlId: row['controlId'], surfaceNodeId: row['surfaceNodeId'],
+      selfVisible, enabled, projectedDisabled: projectedDisabled ?? null, rawDisabled: rawDisabled ?? null,
+      disabledFromEnabled: !enabled, disabledFromProjected: projectedDisabled === true, effectiveDisabled: disabled } });
+  }
+  if (reviewKeys.size === 0 || reviewKeys.size !== nativeTargets.size)
+    throw new Error('Arranged menu/run targets do not match the actual review owner subtree');
+  const contextPatches: Array<{ node: ZuiNode; props: ZuiTable; observation: JsonObject }> = [];
+  for (const [sourceNodeId, controlId, component, parentSourceNodeId] of [
+    ['project_context', 'UnrealProjectDocumentContext', 'HorizontalGroup', 'editor_content'],
+    ['project_context_text', 'UnrealProjectDocumentContextText', 'Label', 'project_context'],
+  ]) {
+    const matches = rows.filter((row) => sourcePath(row['sourcePath']) === WORKBENCH_WINDOW_SOURCE &&
+      row['sourceNodeId'] === sourceNodeId);
+    const reviewMatches = [...reviewParents.keys()].filter((id) =>
+      reviewNodes[id]['penpot_review_source_path'] === WORKBENCH_WINDOW_SOURCE &&
+      reviewNodes[id]['penpot_review_source_node_id'] === sourceNodeId);
+    if (matches.length !== 1 || reviewMatches.length !== 1)
+      throw new Error('Project context requires one actual and review Source target: ' + sourceNodeId);
+    const row = matches[0]!, id = reviewMatches[0]!, node = reviewNodes[id];
+    const expected: ObservedIdentity = { sourcePath: WORKBENCH_WINDOW_SOURCE, sourceNodeId,
+      instancePath: [], controlId };
+    if (row['component'] !== component || node.component !== component ||
+        menuRunKey(observedIdentity(row), nativeRootIdentity.instancePath) !== menuRunKey(expected, []) ||
+        menuRunKey(reviewIdentity(node), reviewRootIdentity.instancePath) !== menuRunKey(expected, []))
+      throw new Error('Project context Source identity or complete owner invocation differs');
+    assertNativeOwner(row, nativeRoot, nativeById);
+    const nativeParent = object(row['parent'], 'project context actual parent');
+    const reviewParent = reviewNodes[reviewParents.get(id) ?? ''];
+    if (!reviewParent || sourcePath(nativeParent['sourcePath']) !== WORKBENCH_WINDOW_SOURCE ||
+        nativeParent['sourceNodeId'] !== parentSourceNodeId ||
+        !sameObservedValue(sourceSteps(nativeParent['instancePath']), nativeRootIdentity.instancePath) ||
+        reviewParent['penpot_review_source_path'] !== WORKBENCH_WINDOW_SOURCE ||
+        reviewParent['penpot_review_source_node_id'] !== parentSourceNodeId ||
+        !sameObservedValue(reviewIdentity(reviewParent).instancePath, reviewRootIdentity.instancePath))
+      throw new Error('Project context is outside its exact authored parent');
+    let ancestor: string | null | undefined = id;
+    while (ancestor !== null && ancestor !== undefined && ancestor !== reviewRootId) ancestor = reviewParents.get(ancestor);
+    if (ancestor !== reviewRootId) throw new Error('Project context is outside its actual review owner root');
+    const raw = object(object(row['rawMetadata'], 'project context metadata')['attributes'], 'project context attributes');
+    const properties = object(object(row['projected'], 'project context projection')['properties'], 'project context properties');
+    const selfVisible = booleanValue(row['selfVisible'], 'project context selfVisible');
+    const props: ZuiTable = { visible: selfVisible, visibility: selfVisible ? 'visible' : 'collapsed' };
+    for (const key of ['visible', 'visibility', 'text']) {
+      if (Object.hasOwn(raw, key) && Object.hasOwn(properties, key) && !sameObservedValue(raw[key], properties[key]))
+        throw new Error('Project context raw and projected property sources conflict: ' + key);
+    }
+    if (sourceNodeId === 'project_context') {
+      // set_visible publishes both source properties. An ancestor's clipping or
+      // bounds must never be converted into this node's authored visibility.
+      if (booleanValue(raw['visible'], 'project context visible') !== selfVisible ||
+          booleanValue(properties['visible'], 'project context projected visible') !== selfVisible ||
+          raw['visibility'] !== props['visibility'] || properties['visibility'] !== props['visibility'])
+        throw new Error('Project context visibility differs from its actual Source properties');
+    } else {
+      const text = stringValue(raw['text'], 'project context text');
+      if (text.length > 4096 || properties['text'] !== text)
+        throw new Error('Project context text differs from its actual Source properties');
+      props['text'] = text;
+    }
+    contextPatches.push({ node, props, observation: { sourcePath: row['sourcePath'], sourceNodeId,
+      instancePath: structuredClone(row['instancePath']), controlId, surfaceNodeId: row['surfaceNodeId'],
+      selfVisible, properties: structuredClone(props) } });
+  }
+  const footerPatches: Array<{ node: ZuiNode; props: ZuiTable; observation: JsonObject }> = [];
+  const footerInvocation = [{ sourcePath: WORKBENCH_WINDOW_SOURCE, sourceNodeId: 'status_bar' }];
+  const assertFooterMetadata = (row: JsonObject): void => {
+    const raw = object(row['rawMetadata'], 'footer raw metadata');
+    if (!sameObservedValue(observedIdentity(row), observedIdentity({ sourcePath: raw['source_path'],
+        sourceNodeId: raw['source_node_id'], instancePath: raw['instance_path'], controlId: raw['control_id'] })) ||
+        raw['component'] !== row['component'])
+      throw new Error('Footer raw and projected Source identities differ');
+  };
+  for (const [sourceNodeId, controlId, component, property] of FOOTER_STATE_TARGETS) {
+    const matches = rows.filter((row) => sourcePath(row['sourcePath']) === STATUS_BAR_SOURCE &&
+      row['sourceNodeId'] === sourceNodeId);
+    const reviewMatches = [...reviewParents.keys()].filter((id) =>
+      reviewNodes[id]['penpot_review_source_path'] === STATUS_BAR_SOURCE &&
+      reviewNodes[id]['penpot_review_source_node_id'] === sourceNodeId);
+    if (matches.length !== 1 || reviewMatches.length !== 1)
+      throw new Error('Footer requires one actual and review Source target: ' + sourceNodeId);
+    const row = matches[0]!, id = reviewMatches[0]!, node = reviewNodes[id];
+    const expected: ObservedIdentity = { sourcePath: STATUS_BAR_SOURCE, sourceNodeId,
+      instancePath: footerInvocation, controlId };
+    if (row['component'] !== component || node.component !== component ||
+        menuRunKey(observedIdentity(row), nativeRootIdentity.instancePath) !== menuRunKey(expected, []) ||
+        menuRunKey(reviewIdentity(node), reviewRootIdentity.instancePath) !== menuRunKey(expected, []))
+      throw new Error('Footer Source identity or complete owner invocation differs');
+    assertNativeOwner(row, nativeRoot, nativeById);
+    assertFooterMetadata(row);
+    const projected = object(row['projected'], 'footer projected node');
+    const parent = nativeById.get(nonempty(projected['parentId'], 'footer projected parent'));
+    const reviewParent = reviewNodes[reviewParents.get(id) ?? ''];
+    const parentIdentity: ObservedIdentity = { sourcePath: STATUS_BAR_SOURCE, sourceNodeId: 'root',
+      instancePath: footerInvocation, controlId: 'WorkbenchWindowStatusBarRegion' };
+    if (!parent || parent['component'] !== 'HorizontalGroup' || !reviewParent || reviewParent.component !== 'HorizontalGroup' ||
+        menuRunKey(observedIdentity(parent), nativeRootIdentity.instancePath) !== menuRunKey(parentIdentity, []) ||
+        menuRunKey(reviewIdentity(reviewParent), reviewRootIdentity.instancePath) !== menuRunKey(parentIdentity, []))
+      throw new Error('Footer target is outside its exact authored status-bar parent');
+    assertFooterMetadata(parent);
+    let ancestor: string | null | undefined = id;
+    while (ancestor !== null && ancestor !== undefined && ancestor !== reviewRootId) ancestor = reviewParents.get(ancestor);
+    if (ancestor !== reviewRootId) throw new Error('Footer is outside its actual review owner root');
+    const raw = object(object(row['rawMetadata'], 'footer metadata')['attributes'], 'footer attributes');
+    const properties = object(projected['properties'], 'footer projected properties');
+    // Both actual Source observations must agree. Do not derive counts from
+    // Ready text, GPU-elided text, paint colors, or observed rectangles.
+    if (!Object.hasOwn(raw, property) || !Object.hasOwn(properties, property) ||
+        !sameObservedValue(raw[property], properties[property]))
+      throw new Error('Footer raw and projected state differs: ' + property);
+    const observed = property === 'checked' ? booleanValue(raw[property], 'footer checked') :
+      stringValue(raw[property], 'footer text');
+    if (typeof observed === 'string' && observed.length > 4096)
+      throw new Error('Footer text exceeds the bounded Source value');
+    const props: ZuiTable = { [property]: observed };
+    footerPatches.push({ node, props, observation: { sourcePath: row['sourcePath'], sourceNodeId,
+      instancePath: structuredClone(row['instancePath']), controlId, surfaceNodeId: row['surfaceNodeId'],
+      parentId: projected['parentId'], properties: structuredClone(props) } });
+  }
+  for (const { node, props, observation } of patches) {
+    node.props = { ...(node.props ?? {}), ...structuredClone(props) };
+    node.state = { ...(node.state ?? {}), ...structuredClone(props) };
+    node['penpot_review_same_frame_menu_run'] = observation;
+  }
+  for (const { node, props, observation } of contextPatches) {
+    node.props = { ...(node.props ?? {}), ...structuredClone(props) };
+    node.state = { ...(node.state ?? {}), ...structuredClone(props) };
+    node['penpot_review_same_frame_project_context'] = observation;
+  }
+  for (const { node, props, observation } of footerPatches) {
+    node.props = { ...(node.props ?? {}), ...structuredClone(props) };
+    node.state = { ...(node.state ?? {}), ...structuredClone(props) };
+    node['penpot_review_same_frame_footer'] = observation;
+  }
+  document['penpot_review_same_frame_menu_run'] = { authority: inventory['authority'], scope: surface['scope'],
+    presentationCursor: structuredClone(cursor), presentedFrameCount: evidence['presentedFrameCount'],
+    sourceFrameGeneration: generation, inventoryComplete: inventory['complete'],
+    inventoryAudit: structuredClone(inventory['inventoryAudit']), pending: structuredClone(inventory['pending']),
+    surfaceInventoryAudit: structuredClone(surface['inventoryAudit']), targetCount: patches.length };
+  document['penpot_review_same_frame_project_context'] = {
+    authority: inventory['authority'], scope: surface['scope'], presentationCursor: structuredClone(cursor),
+    presentedFrameCount: evidence['presentedFrameCount'], sourceFrameGeneration: generation,
+    targetCount: contextPatches.length,
+  };
+  document['penpot_review_same_frame_footer'] = {
+    authority: inventory['authority'], scope: surface['scope'], presentationCursor: structuredClone(cursor),
+    presentedFrameCount: evidence['presentedFrameCount'], sourceFrameGeneration: generation,
+    inventoryComplete: inventory['complete'], targetCount: footerPatches.length,
+  };
+}
+
+function sourcePath(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  const path = value.startsWith('res://ui/editor/')
+    ? 'zircon_editor/assets/' + value.slice('res://'.length) : value;
+  return path.startsWith('zircon_editor/assets/ui/editor/') && !path.includes('\\') &&
+    path.split('/').every((part) => part !== '.' && part !== '..' && part.length > 0) ? path : '';
+}
+
+function nonempty(value: unknown, label: string): string {
+  if (typeof value !== 'string' || value.trim().length === 0) throw new Error(`${label} is missing`);
+  return value;
+}
+
+function sourceSteps(value: unknown): SourceStep[] {
+  let decoded = value;
+  if (typeof decoded === 'string') {
+    try { decoded = JSON.parse(decoded); } catch { throw new Error('Menu/run instancePath is not a callsite list'); }
+  }
+  return array(decoded, 'menu/run instancePath').map((item) => {
+    const step = object(item, 'menu/run callsite');
+    const path = sourcePath(step['sourcePath']);
+    if (Object.keys(step).length !== 2 || !path) throw new Error('Menu/run callsite requires its complete source step');
+    return { sourcePath: path, sourceNodeId: nonempty(step['sourceNodeId'], 'callsite source node') };
+  });
+}
+
+function observedIdentity(row: JsonObject): ObservedIdentity {
+  const path = sourcePath(row['sourcePath']);
+  if (!path) throw new Error('Menu/run source path is missing or outside the editor owner');
+  return { sourcePath: path, sourceNodeId: nonempty(row['sourceNodeId'], 'menu/run source node'),
+    instancePath: sourceSteps(row['instancePath']), controlId: row['controlId'] === null ? null : nonempty(row['controlId'], 'menu/run control') };
+}
+
+function reviewIdentity(node: ZuiNode): ObservedIdentity {
+  return observedIdentity({ sourcePath: node['penpot_review_source_path'], sourceNodeId: node['penpot_review_source_node_id'],
+    instancePath: node['penpot_review_instance_path'], controlId: node.control_id ?? null });
+}
+
+function menuRunKey(identity: ObservedIdentity, prefix: SourceStep[]): string {
+  if (prefix.length > identity.instancePath.length || prefix.some((step, index) =>
+    step.sourcePath !== identity.instancePath[index]?.sourcePath || step.sourceNodeId !== identity.instancePath[index]?.sourceNodeId))
+    throw new Error('Menu/run instancePath is outside its complete owner prefix');
+  return JSON.stringify([identity.sourcePath, identity.sourceNodeId, identity.instancePath.slice(prefix.length), identity.controlId]);
+}
+
+function assertNativeOwner(row: JsonObject, root: JsonObject, byId: Map<string, JsonObject>): void {
+  const seen = new Set<JsonObject>();
+  let current = row;
+  while (true) {
+    if (seen.has(current)) throw new Error('Cyclic menu/run arranged owner ancestry');
+    seen.add(current);
+    const surfaceId = current['surfaceNodeId'];
+    if (typeof surfaceId !== 'number' || !Number.isSafeInteger(surfaceId) || surfaceId < 1)
+      throw new Error('Menu/run target or ancestor lacks an actual runtime surface node ID');
+    const projected = object(current['projected'], 'actual arranged projection');
+    if (!sameObservedValue(observedIdentity(current), observedIdentity(projected)) ||
+        projected['nodeId'] !== current['nodeId'] || projected['surfaceNodeId'] !== current['surfaceNodeId'] ||
+        projected['component'] !== current['component'])
+      throw new Error('Menu/run arranged and projected source identities differ');
+    if (current === root) {
+      if (projected['parentId'] !== null) throw new Error('Menu/run projected owner is not a root');
+      return;
+    }
+    const parent = object(current['parent'], 'menu/run actual parent');
+    const parentRow = byId.get(nonempty(parent['nodeId'], 'menu/run parent node'));
+    if (!parentRow || projected['parentId'] !== parentRow['nodeId'] ||
+        sourcePath(parent['sourcePath']) !== sourcePath(parentRow['sourcePath']) ||
+        parent['sourceNodeId'] !== parentRow['sourceNodeId'] ||
+        !sameObservedValue(sourceSteps(parent['instancePath']), sourceSteps(parentRow['instancePath'])) ||
+        array(parentRow['children'], 'actual parent children').filter((id) => id === current['surfaceNodeId']).length !== 1)
+      throw new Error('Menu/run node is outside its actual owner parent chain');
+    current = parentRow;
+  }
+}
+
+function sameObservedValue(a: unknown, b: unknown): boolean {
+  if (Array.isArray(a)) return Array.isArray(b) && a.length === b.length && a.every((item, index) => sameObservedValue(item, b[index]));
+  if (isRecord(a)) return isRecord(b) && Object.keys(a).length === Object.keys(b).length &&
+    Object.keys(a).every((key) => Object.hasOwn(b, key) && sameObservedValue(a[key], b[key]));
+  return a === b;
+}
+
+function menuRunProperty(key: typeof MENU_RUN_PROPERTIES[number], value: unknown): ZuiValue {
+  if (['popup_open', 'selected', 'checked'].includes(key)) return booleanValue(value, `menu/run ${key}`);
+  if (['text', 'value_text', 'label'].includes(key)) return stringValue(value, `menu/run ${key}`);
+  if (key === 'value') {
+    if (typeof value === 'string' || typeof value === 'boolean') return value;
+    return numberValue(value, 'menu/run value');
+  }
+  const jsonValue = (item: unknown): item is ZuiValue => typeof item === 'string' || typeof item === 'boolean' ||
+    (typeof item === 'number' && Number.isFinite(item)) || (Array.isArray(item) && item.every(jsonValue)) ||
+    (isRecord(item) && Object.values(item).every(jsonValue));
+  if (!Array.isArray(value) || !value.every((item) => (typeof item === 'string' || isRecord(item)) && jsonValue(item)))
+    throw new Error('Menu/run menu_items requires observed menu strings or records');
+  return structuredClone(value) as ZuiValue[];
+}
 
 /** Apply the normal hierarchy search ancestry and per-entity disclosure state. */
 export function projectWorkbenchHierarchyRows<
@@ -306,8 +700,16 @@ function applyInspectorProjection(document: ZuiDocument, value: unknown): void {
   const panel = sourceNode(document, INSPECTOR_SOURCE, 'panel');
   panel.props = { ...(panel.props ?? {}), visibility: 'visible' };
   const hasSelection = value !== null;
-  const filter = sourceNodeByControl(document, INSPECTOR_SOURCE, 'WorkbenchInspectorFilter');
-  filter.props = { ...(filter.props ?? {}), disabled: !hasSelection };
+  setVisibilityByControl(
+    document,
+    INSPECTOR_SOURCE,
+    'UnrealDetailsSelectionHint',
+    hasSelection ? 'collapsed' : 'visible',
+  );
+  for (const controlId of [
+    'UnrealDetailsNameArea', 'WorkbenchInspectorFilter', 'RightDrawerContentRoot',
+  ])
+    setVisibilityByControl(document, INSPECTOR_SOURCE, controlId, hasSelection ? 'visible' : 'collapsed');
   for (const controlId of [
     'WorkbenchInspectorMetadata', 'WorkbenchInspectorTransform', 'WorkbenchAddComponent',
   ])

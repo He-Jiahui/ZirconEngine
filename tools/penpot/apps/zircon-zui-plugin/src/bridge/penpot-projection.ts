@@ -190,6 +190,15 @@ export function projectZuiDocument(document: ZuiDocument): ZuiAssetProjection {
       sourceNode,
     );
     if (slotPadding) projection.slotPadding = slotPadding;
+    const heightMin = designNumberAt(document, sourceNode.layout, 'height', 'min');
+    // The SDK exposes layoutChild only for an immediate flex/grid child.
+    // Detached roots and native floating windows are mounted in our flex lane.
+    const hasRenderedAutoLayoutParent = visualDetached ||
+      detachedRootIds.includes(nodeId) || parentContainer?.kind === 'flex' ||
+      parentContainer?.kind === 'grid';
+    if (hasRenderedAutoLayoutParent && heightMin !== null &&
+        Number.isFinite(heightMin) && heightMin >= 0)
+      projection.heightMin = heightMin;
     if (projection.inputControl?.kind === 'dropdown') {
       projection.paint.fillColor = projection.inputControl.fill;
       projection.paint.strokeColor = projection.inputControl.border;
@@ -684,6 +693,8 @@ function projectContainer(
       valueAt(layout, 'container', 'align_items'),
       kind,
       direction,
+      ['horizontalbox', 'horizontalgroup', 'verticalbox', 'verticalgroup',
+        'scrollablebox', 'scrollbox'].includes(normalizedKind),
     ),
     justifyContent: justification(
       valueAt(layout, 'container', 'justify_content'),
@@ -720,6 +731,7 @@ function resolveMuiStackSpacing(
 function editableState(node: ProjectedZuiNode): ProjectionEditableState {
   return {
     geometry: node.geometry,
+    ...(node.heightMin !== undefined ? { heightMin: node.heightMin } : {}),
     paint: node.paint,
     text: editableText(node.text),
     ...(node.textFragments
@@ -742,6 +754,7 @@ function cloneEditableState(
 ): ProjectionEditableState {
   return {
     geometry: { ...state.geometry },
+    ...(state.heightMin !== undefined ? { heightMin: state.heightMin } : {}),
     paint: { ...state.paint },
     ...(state.slotPadding ? { slotPadding: { ...state.slotPadding } } : {}),
     text: editableText(state.text),
@@ -926,7 +939,7 @@ function projectedColor(
   return { color: null, opacity: 1 };
 }
 
-function localizedText(document: ZuiDocument, reference: ZuiTable): string {
+export function localizedText(document: ZuiDocument, reference: ZuiTable): string {
   const key = reference['text_key'];
   const tableName = reference['table'] ?? 'editor';
   const tables = document['penpot_i18n_tables'];
@@ -1026,23 +1039,29 @@ function isPreviewHidden(
     node.props?.['popup_open'];
   if (painter && hasOpenContract && open !== true) return true;
   const component = node.component.toLowerCase();
+  const prefabSource = node['penpot_prefab_source'];
+  const authoredComponent = typeof prefabSource === 'string'
+    ? prefabSource.split('#').at(-1)?.toLowerCase()
+    : undefined;
+  const componentMatches = (names: string[]) =>
+    names.includes(component) ||
+    (authoredComponent !== undefined && names.includes(authoredComponent));
   if (
-    ['modal', 'dialog', 'confirmdialog', 'popover', 'popup'].includes(
-      component,
-    ) &&
+    componentMatches(['modal', 'dialog', 'confirmdialog', 'popover', 'popup']) &&
     hasOpenContract &&
     open === false
   )
     return true;
   if (
-    [
+    componentMatches([
       'dropdownpopup',
       'contextmenu',
       'contextactionmenu',
+      'popupmenu',
       'modal',
       'popover',
       'popup',
-    ].includes(component) &&
+    ]) &&
     hasOpenContract &&
     open !== true
   )
@@ -1168,6 +1187,7 @@ function alignment(
   value: unknown,
   kind: ProjectionContainer['kind'],
   direction: ProjectionContainer['direction'],
+  nativeLinear = false,
 ): ProjectionContainer['alignItems'] {
   const normalized = typeof value === 'string' ? value.toLowerCase() : '';
   if (
@@ -1178,7 +1198,10 @@ function alignment(
   ) {
     return normalized;
   }
-  if (kind === 'grid' || (kind === 'flex' && direction === 'column')) {
+  // Native parent stretch leaves a Fixed child at cross-start; child sizing
+  // supplies Fill/Stretch. Centering an unauthored row shifts a 32 DIP toolbar
+  // control by 8 DIP inside its 48 DIP parent.
+  if (nativeLinear || kind === 'grid' || (kind === 'flex' && direction === 'column')) {
     return 'stretch';
   }
   return kind === 'flex' ? 'center' : 'start';

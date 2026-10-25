@@ -2,6 +2,10 @@ use super::{UiAssetActionDispatch, *};
 use crate::ui::host::EditorError;
 use crate::ui::workbench::view::ViewInstanceId;
 
+#[path = "canvas/anchor_popup.rs"]
+mod anchor_popup;
+pub(in crate::ui::retained_host::app) use anchor_popup::PendingCanvasAnchorPopup;
+
 impl RetainedEditorHost {
     pub(super) fn dispatch_ui_asset_canvas_action(
         &mut self,

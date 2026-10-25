@@ -11,6 +11,10 @@ use super::types::{
 
 #[derive(Default)]
 pub(in crate::ui::retained_host::host_contract) struct PaneSurfaceCallbacks {
+    pub(in crate::ui::retained_host::host_contract) canvas_anchor_popup_open:
+        Option<Callback1<super::super::super::window::CanvasAnchorPopupOpen>>,
+    pub(in crate::ui::retained_host::host_contract) canvas_anchor_popup_event:
+        Option<Callback1<super::super::super::window::CanvasAnchorPopupEvent>>,
     pub(in crate::ui::retained_host::host_contract) welcome_recent_pointer_clicked:
         Option<Callback4<f32, f32, f32, f32>>,
     pub(in crate::ui::retained_host::host_contract) welcome_recent_pointer_moved:
@@ -106,6 +110,14 @@ pub(in crate::ui::retained_host::host_contract) struct PaneSurfaceCallbacks {
     pub(in crate::ui::retained_host::host_contract) ui_asset_detail_event: Option<
         Callback6<SharedString, SharedString, SharedString, i32, SharedString, SharedString>,
     >,
-    pub(in crate::ui::retained_host::host_contract) ui_asset_collection_event:
-        Option<Callback4<SharedString, SharedString, SharedString, i32>>,
+    pub(in crate::ui::retained_host::host_contract) ui_asset_collection_event: Option<
+        Callback6<
+            SharedString,
+            SharedString,
+            SharedString,
+            i32,
+            Option<crate::ui::retained_host::host_contract::data::UiAssetPaletteInputTarget>,
+            SharedString,
+        >,
+    >,
 }

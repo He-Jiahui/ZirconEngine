@@ -11,6 +11,12 @@ mod slot;
 #[path = "inspector/widget.rs"]
 mod widget;
 
+pub(crate) fn ui_asset_canvas_anchor_opener_control_id(
+    instance_id: &str,
+) -> crate::ui::retained_host::primitives::SharedString {
+    format!("UiAssetSlotFieldAnchorsValue|{instance_id}").into()
+}
+
 pub(crate) use binding::UiAssetInspectorBindingData;
 pub(crate) use layout::UiAssetInspectorLayoutData;
 pub(crate) use panel::UiAssetInspectorPanelData;

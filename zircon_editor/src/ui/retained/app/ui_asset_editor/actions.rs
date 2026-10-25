@@ -4,6 +4,7 @@ use crate::ui::workbench::view::ViewInstanceId;
 
 #[path = "actions/canvas.rs"]
 mod canvas;
+pub(in crate::ui::retained_host::app) use canvas::PendingCanvasAnchorPopup;
 #[path = "actions/mode_preview.rs"]
 mod mode_preview;
 #[path = "actions/palette.rs"]
@@ -29,6 +30,11 @@ impl UiAssetActionDispatch {
 
 impl RetainedEditorHost {
     pub(super) fn dispatch_ui_asset_action_impl(&mut self, instance_id: &str, action_id: &str) {
+        // A generic string callback has no native opener/window proof.
+        // The registered source-UI callback below owns this action before focus.
+        if action_id.starts_with("canvas.anchor.") {
+            return;
+        }
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         let mut dispatch = self.dispatch_ui_asset_workspace_action(&instance_id, action_id);

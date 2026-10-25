@@ -12,6 +12,10 @@ pub(in crate::ui::retained_host::host_contract) fn dispatch_template_node_primar
     if hit.disabled {
         return;
     }
+    if hit.dispatch_kind.as_str() == "ui_asset_anchor_popup_open" {
+        pane_host.open_canvas_anchor_popup_from_hit(&hit);
+        return;
+    }
     if matches!(
         hit.dispatch_kind.as_str(),
         "ui_asset_palette" | "ui_asset_palette_page"
@@ -29,6 +33,8 @@ pub(in crate::ui::retained_host::host_contract) fn dispatch_template_node_primar
                         "palette".into(),
                         event.into(),
                         index,
+                        hit.palette_search_target,
+                        Default::default(),
                     );
                 }
             }

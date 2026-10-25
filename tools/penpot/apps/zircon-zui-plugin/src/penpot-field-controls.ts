@@ -2,6 +2,7 @@ import type { Board, Shape, Text } from '@penpot/plugin-types';
 import { fieldGeometry } from './bridge/zui-field-geometry';
 import type { FieldProjection, FIELD_ICON_PATHS } from './bridge/zui-field-projection';
 import { layoutControlText, refreshControlParts } from './penpot-control-parts';
+import { assertControlParts, assertControlTextGeometry } from './penpot-control-guard';
 import { ZUI_METADATA_NAMESPACE, ZUI_METADATA_ROLE, ZUI_ROLE_AUXILIARY } from './metadata';
 
 const FIELD_ICON_PAINT = 'field-icon-paint';
@@ -41,6 +42,7 @@ export function refreshFieldDecoration(board: Board, field?: FieldProjection): b
       icon.setSharedPluginData(ZUI_METADATA_NAMESPACE, FIELD_ICON_PAINT, JSON.stringify(newIconPaintState(svg)));
       board.appendChild(icon);
       if (icon.layoutChild) icon.layoutChild.absolute = true;
+      icon.constraintsHorizontal = key === 'search' ? 'left' : 'right';
     }
     existing.delete(key);
     // Penpot scales path geometry but leaves stroke widths in document pixels.
@@ -113,7 +115,14 @@ export function fieldPaintShape(board: Board): Shape {
 }
 
 export function layoutFieldText(board: Board, text: Text, field: FieldProjection): void {
-  layoutControlText(board, text, fieldGeometry(field, board.width, board.height).texts);
+  const texts = fieldGeometry(field, board.width, board.height).texts;
+  const fragment = text.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'text-fragment') || 'primary';
+  if (texts[fragment]) {
+    // Native width changes must preserve the projected text lane's insets.
+    // A separate field label keeps its source width; it is not the value lane.
+    text.constraintsHorizontal = fragment === 'field-label' ? 'left' : 'leftright';
+  }
+  layoutControlText(board, text, texts);
 }
 
 function newIconPaintState(svg: string): IconPaintState {
@@ -209,4 +218,64 @@ function tint(shape: Shape, color: string, rect: { width: number; height: number
   state.desired = desired;
   state.generated = generated;
   shape.setSharedPluginData(ZUI_METADATA_NAMESPACE, FIELD_ICON_PAINT, JSON.stringify(state));
+}
+
+
+export interface SearchFieldWidthConstraint {
+  shape: Shape;
+  before: Shape['constraintsHorizontal'];
+  after: 'leftright';
+}
+
+/** Validate the complete default SearchField surface before any native write. */
+export function planSearchFieldWidthConstraints(
+  board: Board, field: FieldProjection,
+): SearchFieldWidthConstraint[] {
+  if (!field.search || field.clear || field.stepper || (field.labelWidth ?? 0) !== 0)
+    throw new Error('Search width migration requires the canonical default field.');
+  if (!hasUsableSize(board) || board.hidden)
+    throw new Error('Canonical SearchField has no visible, finite allocation.');
+  assertControlParts(board);
+  const geometry = fieldGeometry(field, board.width, board.height);
+  const surface = board.children.filter((shape) =>
+    shape.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'field-part') === 'surface');
+  const primary = board.children.filter((shape) => shape.type === 'text' &&
+    shape.getSharedPluginData(ZUI_METADATA_NAMESPACE, ZUI_METADATA_ROLE) === 'text' &&
+    (shape.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'text-fragment') || 'primary') === 'primary');
+  const search = board.children.filter((shape) =>
+    shape.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'field-icon') === 'search');
+  if (surface.length !== 1 || surface[0].type !== 'board' || primary.length !== 1 ||
+      search.length !== 1 || board.children.length !== 3)
+    throw new Error('Canonical SearchField parts or text topology changed.');
+  if (board.children.some((shape) => shape.parent?.id !== board.id))
+    throw new Error('Canonical SearchField part belongs to a different native parent.');
+  if (search[0].constraintsHorizontal !== 'left')
+    throw new Error('Canonical SearchField search icon must retain its fixed left constraint.');
+  assertControlTextGeometry(board, primary[0]);
+  const svg = field.icons.search;
+  if (!svg || !geometry.parts.surface || !geometry.texts.primary || !geometry.icons.search)
+    throw new Error('Canonical SearchField source geometry is incomplete.');
+  const source = intrinsicSvgSize(svg), icon = geometry.icons.search;
+  const scale = Math.min(icon.width / source.width, icon.height / source.height);
+  const expectedIcon = { x: icon.x + (icon.width - source.width * scale) / 2,
+    y: icon.y + (icon.height - source.height * scale) / 2,
+    width: source.width * scale, height: source.height * scale };
+  for (const [shape, expected] of [
+    [surface[0], geometry.parts.surface], [primary[0], geometry.texts.primary],
+    [search[0], expectedIcon],
+  ] as const) {
+    const actual = { x: shape.x - board.x, y: shape.y - board.y,
+      width: shape.width, height: shape.height };
+    if (shape.hidden || Object.entries(expected).some(([key, value]) =>
+      ['x', 'y', 'width', 'height'].includes(key) &&
+      (typeof value !== 'number' || !Number.isFinite(value) ||
+        !Number.isFinite(actual[key as keyof typeof actual]) ||
+        Math.abs(actual[key as keyof typeof actual] - value) > 0.01)))
+      throw new Error('Canonical SearchField geometry differs from its source.');
+  }
+  return [surface[0], primary[0]].map((shape) => {
+    if (!['left', 'leftright'].includes(shape.constraintsHorizontal))
+      throw new Error('Canonical SearchField has an authored horizontal constraint override.');
+    return { shape, before: shape.constraintsHorizontal, after: 'leftright' };
+  });
 }

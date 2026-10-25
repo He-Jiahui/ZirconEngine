@@ -7,4 +7,15 @@ pub(in crate::ui::retained_host::host_contract) fn draw_workbench_presentation_c
     presentation: &HostWindowPresentationData,
 ) {
     workbench::draw_componentized_workbench_window(frame, presentation);
+    if !presentation.close_prompt.visible && !presentation.asset_deletion_blocker.visible {
+        if let Some(popup) = presentation.canvas_anchor_popup.as_ref() {
+            super::super::paint_template_nodes::draw_template_nodes(
+                frame,
+                &popup.nodes,
+                &super::super::data::FrameRect::default(),
+                &popup.bounds,
+                None,
+            );
+        }
+    }
 }

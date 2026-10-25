@@ -8,11 +8,20 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_di
     node: &TemplatePaneNodeData,
     rect: &FrameRect,
 ) -> FrameRect {
+    tree_disclosure_rect_for_indent(node.tree_depth, node.tree_indent_px, rect)
+}
+
+/// Shared physical geometry for drawing and asset-tree disclosure hit testing.
+pub(in crate::ui::retained_host) fn tree_disclosure_rect_for_indent(
+    tree_depth: i32,
+    tree_indent_px: f32,
+    rect: &FrameRect,
+) -> FrameRect {
     let metrics = tree_metrics();
-    let indent = if node.tree_indent_px.is_finite() && node.tree_indent_px > 0.0 {
-        node.tree_indent_px
+    let indent = if tree_indent_px.is_finite() && tree_indent_px > 0.0 {
+        tree_indent_px
     } else {
-        node.tree_depth.max(0) as f32 * metrics.tree_guide_step
+        tree_depth.max(0) as f32 * metrics.tree_guide_step
     };
     FrameRect {
         x: rect.x + metrics.tree_base_inset_x + indent,
@@ -28,7 +37,9 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_ic
     let metrics = tree_metrics();
     FrameRect {
         x: disclosure.x + disclosure.width + metrics.tree_text_gap,
-        y: disclosure.y + (disclosure.height - metrics.tree_icon_size).max(0.0) * 0.5,
+        // The icon may be larger than the disclosure slot; both share its center.
+        // The caller checks the resulting icon against the entire row.
+        y: disclosure.y + (disclosure.height - metrics.tree_icon_size) * 0.5,
         width: metrics.tree_icon_size,
         height: metrics.tree_icon_size,
     }

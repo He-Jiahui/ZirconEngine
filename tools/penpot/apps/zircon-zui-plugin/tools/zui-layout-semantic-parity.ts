@@ -22,6 +22,8 @@ interface SemanticNode {
   parentSourcePath?: string | null;
   parentSourceNodeId?: string | null;
   parentInstancePath?: string | null;
+  itemKey?: string | null;
+  propertyFieldId?: string | null;
   component: string;
   visible: boolean;
   detached: boolean;
@@ -265,16 +267,62 @@ function isCompleteShadowReceipt(value: unknown): value is {
   });
 }
 
-export function sourceSemanticIdentity(
-  node: Pick<SemanticNode, 'sourcePath' | 'sourceNodeId' | 'instancePath'>,
-): string {
-  return JSON.stringify([node.sourcePath, node.sourceNodeId, node.instancePath]);
+interface SemanticSourceIdentity {
+  sourcePath?: string | null;
+  sourceNodeId?: string | null;
+  instancePath?: string | null;
+  parentSourcePath?: string | null;
+  parentSourceNodeId?: string | null;
+  parentInstancePath?: string | null;
+  itemKey?: string | null;
+  propertyFieldId?: string | null;
+}
+
+function hasRepeatIdentity(node: SemanticSourceIdentity): boolean {
+  return (node.itemKey !== undefined && node.itemKey !== null) ||
+    (node.propertyFieldId !== undefined && node.propertyFieldId !== null);
+}
+
+/** Authored owners stay unchanged; only materialized items add their real owner and key. */
+export function sourceSemanticIdentity(node: SemanticSourceIdentity): string {
+  const authored = [node.sourcePath, node.sourceNodeId, node.instancePath];
+  if (!hasRepeatIdentity(node))
+    return JSON.stringify(authored);
+  if (
+    typeof node.sourcePath !== 'string' || !node.sourcePath.trim() ||
+    typeof node.sourceNodeId !== 'string' || !node.sourceNodeId.trim() ||
+    !isAuthoredInstancePath(node.instancePath) ||
+    typeof node.parentSourcePath !== 'string' || !node.parentSourcePath.trim() ||
+    typeof node.parentSourceNodeId !== 'string' || !node.parentSourceNodeId.trim() ||
+    !isAuthoredInstancePath(node.parentInstancePath)
+  )
+    throw new Error('materialized property is missing its authored owner identity');
+  if (
+    typeof node.itemKey !== 'string' || node.itemKey.length > 39 ||
+    !/^(0|[1-9][0-9]*)$/.test(node.itemKey) ||
+    BigInt(node.itemKey) >= (1n << 128n) ||
+    typeof node.propertyFieldId !== 'string' || !node.propertyFieldId.trim() ||
+    node.propertyFieldId.trim() !== node.propertyFieldId
+  )
+    throw new Error('materialized property requires a canonical u128 itemKey and propertyFieldId');
+  let fieldKey = 0x6c62272e07bb014262b821756295c58dn;
+  for (const byte of Buffer.from(node.propertyFieldId, 'utf8'))
+    fieldKey = BigInt.asUintN(128,
+      (fieldKey ^ BigInt(byte)) * 0x0000000001000000000000000000013bn);
+  if (fieldKey.toString() !== node.itemKey)
+    throw new Error('materialized property itemKey does not match propertyFieldId');
+  return JSON.stringify([
+    ...authored,
+    node.parentSourcePath, node.parentSourceNodeId, node.parentInstancePath,
+    node.itemKey,
+  ]);
 }
 
 function displayIdentity(
-  node: Pick<SemanticNode, 'sourcePath' | 'sourceNodeId' | 'instancePath'>,
+  node: SemanticSourceIdentity,
 ): string {
-  return `${node.sourcePath}#${node.sourceNodeId}@${node.instancePath}`;
+  return `${node.sourcePath}#${node.sourceNodeId}@${node.instancePath}` +
+    (hasRepeatIdentity(node) ? ` itemKey=${node.itemKey}` : '');
 }
 
 function isAuthoredInstancePath(value: unknown): value is string {
@@ -559,7 +607,29 @@ export function compareSemanticGeometry(
     }
     const result = new Map<string, SemanticNode>();
     const renderNodeIds = new Set<string>();
+    const expectedIdentities = new Set(runtimeAssets.expectedSemanticNodes ?? []);
+    const expectedRepeatAuthored = new Set<string>();
+    for (const expected of expectedIdentities) {
+      try {
+        const parts: unknown = JSON.parse(expected);
+        if (Array.isArray(parts) && parts.length === 7)
+          expectedRepeatAuthored.add(JSON.stringify(parts.slice(0, 3)));
+      } catch {
+        // Malformed inventory entries still fail exact expected-node coverage below.
+      }
+    }
     for (const node of nodes) {
+      let identity = node?.nodeId ?? '';
+      if (strictWorkbench && node) {
+        try {
+          identity = sourceSemanticIdentity(node);
+          if (expectedRepeatAuthored.has(identity) && !expectedIdentities.has(identity))
+            throw new Error('materialized property is missing itemKey and propertyFieldId');
+        } catch (error) {
+          errors.push(`${renderer}: invalid materialized source identity: ${String(error)}`);
+          continue;
+        }
+      }
       if (
         !node ||
         typeof node.nodeId !== 'string' ||
@@ -571,7 +641,7 @@ export function compareSemanticGeometry(
             typeof node.sourceNodeId !== 'string' ||
             !node.sourceNodeId.trim() ||
             !isAuthoredInstancePath(node.instancePath) ||
-            result.has(sourceSemanticIdentity(node))
+            result.has(identity)
           : result.has(node.nodeId)) ||
         typeof node.visible !== 'boolean' ||
         typeof node.detached !== 'boolean' ||
@@ -664,10 +734,7 @@ export function compareSemanticGeometry(
           continue;
         }
       }
-      result.set(
-        strictWorkbench ? sourceSemanticIdentity(node) : node.nodeId,
-        node,
-      );
+      result.set(identity, node);
     }
     if (strictWorkbench) {
       if (!Array.isArray(runtimeAssets.expectedSemanticNodes))
@@ -715,6 +782,7 @@ export function compareSemanticGeometry(
       ['penpot', left],
       ['engine', right],
     ] as const) {
+      const physicalNodes = new Map([...nodes.values()].map((node) => [node.nodeId, node]));
       for (const node of nodes.values()) {
         if (node.parentSourceNodeId === null) continue;
         const parent = JSON.stringify([
@@ -726,6 +794,15 @@ export function compareSemanticGeometry(
           errors.push(
             `${renderer}: missing semantic parent ${node.parentSourcePath}#${node.parentSourceNodeId}@${node.parentInstancePath}`,
           );
+        const physicalParent = node.parentNodeId === null
+          ? undefined : physicalNodes.get(node.parentNodeId);
+        if (hasRepeatIdentity(node) && (
+          !physicalParent ||
+          physicalParent.sourcePath !== node.parentSourcePath ||
+          physicalParent.sourceNodeId !== node.parentSourceNodeId ||
+          physicalParent.instancePath !== node.parentInstancePath
+        ))
+          errors.push(`${renderer}: semantic parent differs from physical parent ${displayIdentity(node)}`);
       }
     }
   }
@@ -743,11 +820,18 @@ export function compareSemanticGeometry(
       errors.push(`Unmatched semantic node: ${id}`);
       continue;
     }
+    // read() has validated both repeat identities, and the map lookup matched
+    // their authored tuple, real parent owner and itemKey. Pool controls remain
+    // physical evidence; their slot/hash names are not cross-renderer identity.
+    const matchedRepeatIdentity = strictWorkbench &&
+      hasRepeatIdentity(a) && hasRepeatIdentity(b) &&
+      a.itemKey === b.itemKey && a.propertyFieldId === b.propertyFieldId;
     if (
       (!strictWorkbench && a.parentNodeId !== b.parentNodeId) ||
       a.component !== b.component ||
       (strictWorkbench &&
-        (a.controlId !== b.controlId ||
+        ((!matchedRepeatIdentity && a.controlId !== b.controlId) ||
+          (a.propertyFieldId ?? null) !== (b.propertyFieldId ?? null) ||
           a.parentSourcePath !== b.parentSourcePath ||
           a.parentSourceNodeId !== b.parentSourceNodeId ||
           a.parentInstancePath !== b.parentInstancePath ||

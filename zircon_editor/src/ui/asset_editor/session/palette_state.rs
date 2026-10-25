@@ -71,6 +71,7 @@ impl UiAssetEditorSession {
                     document,
                     preview_size,
                     &self.v2_compiler_imports,
+                    &self.route.asset_id,
                 )?
             } else {
                 None
@@ -103,7 +104,7 @@ impl UiAssetEditorSession {
                 crate::ui::asset_editor::UiDesignerToolMode::Select
             };
         }
-        self.palette_catalog.set_visible_start(index);
+        self.palette_catalog.reveal_search_entry(index);
         self.selected_palette_index = Some(index);
         self.selected_palette_entry = Some(entry);
         if changed {
@@ -435,3 +436,7 @@ mod tests;
 #[cfg(test)]
 #[path = "tests/owned_document_move.rs"]
 mod owned_document_move_tests;
+
+#[cfg(test)]
+#[path = "tests/slot_migration.rs"]
+mod slot_migration_tests;

@@ -22,6 +22,7 @@ import {
   ZUI_METADATA_ROLE,
   ZUI_ROLE_ASSET,
 } from './metadata';
+import { migrateCanonicalSearchFieldWidth } from './penpot-canonical-library';
 import {
   auditRenderedAssetBoard,
   refreshAssetTextLayout,
@@ -101,6 +102,7 @@ export function captureAuthoringLayoutDraft(
     key,
     finish,
     refresh: async () => {
+      await migrateCanonicalSearchFieldWidth(asset, document);
       const projection = projectZuiDocument(document);
       await settleAfterLayoutRefresh(
         () => refreshAssetTextLayout(asset, document, projection),

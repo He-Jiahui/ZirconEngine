@@ -35,6 +35,67 @@ function rectangle(value: unknown, label: string): void {
     (value['width'] as number) >= 0 && (value['height'] as number) >= 0, label + ' is invalid');
 }
 
+async function projectActualBottomTabIcons(
+  repoRoot: string,
+  presentation: RecordValue,
+  observation: UnrealDockHeaderObservation,
+  document: ZuiDocument,
+): Promise<void> {
+  if (observation.kind !== 'bottom') return;
+  const owner = 'zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
+  const fingerprint = presentation['sourceFingerprint'];
+  requireValue(presentation['schema'] === 'dev.zircon.editor.workbench-presentation' &&
+    presentation['version'] === 1 && record(fingerprint) && fingerprint['sourcePath'] === owner &&
+    typeof presentation['stateFingerprint'] === 'string' && /^[0-9a-f]{64}$/.test(presentation['stateFingerprint']) &&
+    fingerprint['sha256'] === createHash('sha256').update(await readFile(resolve(repoRoot, owner))).digest('hex'),
+    'Actual bottom tab icon has no current Workbench source owner');
+  requireValue(observation.surfaceKey === 'bottom' && Array.isArray(presentation['drawers']),
+    'Actual bottom tab icon has no matching drawer surface');
+  const drawers = presentation['drawers'].filter((drawer) => record(drawer) && drawer['slot'] === 'bottom');
+  requireValue(drawers.length === 1 && record(drawers[0]), 'Actual bottom tab icon drawer is ambiguous');
+  const drawer = drawers[0];
+  const tabs = drawer['tabs'];
+  const groups = document.nodes!['dock_tab_strip'].children!;
+  requireValue(drawer['visible'] === true && Array.isArray(tabs) && tabs.length === groups.length &&
+    tabs.length > 0 && tabs.length <= 3, 'Actual bottom tab icon count differs from consumed Source slots');
+  const assets: Record<string, string> = {
+    console: 'ionicons/terminal-outline.svg',
+    'runtime-diagnostics': 'ionicons/grid-outline.svg',
+    'build-export': 'ionicons/share-outline.svg',
+  };
+  const ids = new Set<string>();
+  for (const [index, tab] of tabs.entries()) {
+    requireValue(record(tab) && typeof tab['id'] === 'string' && !!tab['id'] && !ids.has(tab['id']) &&
+      typeof tab['descriptorId'] === 'string' && !!tab['descriptorId'] && typeof tab['title'] === 'string' &&
+      typeof tab['iconKey'] === 'string' && !!assets[tab['iconKey']],
+      'Actual bottom tab icon has missing, duplicate or unsupported business identity');
+    ids.add(tab['id']);
+    const id = 'dock_tab_' + index;
+    const node = document.nodes![id];
+    const rows = observation.rows.filter((row) => row['sourceNodeId'] === id);
+    const selected = drawer['activeTabId'] === tab['id'];
+    requireValue(node?.component === 'Label' && node.control_id === 'DockTab' + index &&
+      node.props?.['text'] === tab['title'] && node.props?.['selected'] === selected && rows.length > 0 &&
+      rows.every((row) => row['sourcePath'] === UNREAL_DOCK_HEADER_SOURCE &&
+        row['controlId'] === node.control_id && Array.isArray(row['instancePath']) &&
+        row['instancePath'].length === 0 && row['role'] === 'Label' && row['text'] === tab['title'] &&
+        row['selected'] === selected) &&
+      document.nodes!['dock_tab_group_' + index].children?.filter((child) => child.node === id).length === 1,
+      'Actual bottom tab icon does not match its complete consumed Source identity/title/state');
+    node['penpot_review_native_tab_icon'] = {
+      authority: 'actual-workbench-bottom-tab', sourcePath: UNREAL_DOCK_HEADER_SOURCE,
+      sourceNodeId: id, instancePath: '[]', surfaceKey: observation.surfaceKey, drawerSlot: 'bottom',
+      tabId: tab['id'], descriptorId: tab['descriptorId'], iconKey: tab['iconKey'], title: tab['title'], selected,
+      ownerSha256: fingerprint['sha256'], stateFingerprint: presentation['stateFingerprint'],
+      assetPath: assets[tab['iconKey']], sourceUnits: 'physical-pixels',
+      // This is the real Source constructor input, not an observed row rectangle.
+      sourceViewport: { ...observation.viewport },
+    };
+  }
+  requireValue(drawer['activeTabId'] === null || ids.has(String(drawer['activeTabId'])),
+    'Actual bottom tab active identity is outside the consumed Source');
+}
+
 export function readUnrealDockHeaderObservations(value: unknown): UnrealDockHeaderObservation[] {
   if (value === undefined) return []; // Missing static evidence remains unknown.
   requireValue(Array.isArray(value) && value.length <= 16, 'dockHeaders must be a bounded actual observation array');
@@ -123,22 +184,64 @@ function subtree(nodes: Record<string, ZuiNode>, id: string, output: Set<string>
   for (const child of nodes[id].children ?? []) subtree(nodes, child.node, output);
 }
 
+async function verifiedLoadedHeaderSource(
+  repoRoot: string,
+  fingerprints: UnrealDockHeaderObservation['sourceFingerprints'],
+): Promise<ZuiDocument> {
+  const documents = new Map<string, ZuiDocument>();
+  const sourceByAssetId = new Map<string, string>();
+  for (const fingerprint of fingerprints) {
+    const bytes = await readFile(resolve(repoRoot, fingerprint.sourcePath));
+    requireValue(createHash('sha256').update(bytes).digest('hex') === fingerprint.sha256,
+      'Actual Header loaded source changed: ' + fingerprint.sourcePath);
+    const document = parseZuiDocument(bytes.toString('utf8')).document;
+    requireValue(!sourceByAssetId.has(document.asset.id),
+      'Actual Header loaded import closure contains an ambiguous asset: ' + document.asset.id);
+    documents.set(fingerprint.sourcePath, document);
+    sourceByAssetId.set(document.asset.id, fingerprint.sourcePath);
+  }
+  const root = documents.get(UNREAL_DOCK_HEADER_SOURCE);
+  requireValue(root, 'Actual Header loaded import closure is missing its root');
+  const current = cloneZuiDocument(root);
+  const queue = [UNREAL_DOCK_HEADER_SOURCE];
+  const seen = new Set(queue);
+  // Match file_cache.rs collect_v2_sources/build_file_store_cache_entry:
+  // root first, breadth-first widgets then styles, imported tokens overwrite,
+  // and stylesheets append without theme expansion or stylesheet-ID deduplication.
+  for (let index = 0; index < queue.length; index++) {
+    const document = documents.get(queue[index])!;
+    if (index !== 0) {
+      current.tokens = { ...(current.tokens ?? {}), ...(document.tokens ?? {}) };
+      current.stylesheets = [...(current.stylesheets ?? []), ...(document.stylesheets ?? [])];
+    }
+    for (const kind of ['widgets', 'styles']) {
+      const references = document.imports?.[kind] ?? [];
+      requireValue(Array.isArray(references) && references.every((value) => typeof value === 'string'),
+        'Actual Header loaded import references are invalid');
+      for (const reference of references as string[]) {
+        const source = sourceByAssetId.get(reference.split('#')[0]);
+        requireValue(source, 'Actual Header loaded import closure is missing: ' + reference);
+        if (!seen.has(source)) {
+          seen.add(source);
+          queue.push(source);
+        }
+      }
+    }
+  }
+  requireValue(seen.size === documents.size,
+    'Actual Header loaded import closure contains an unrelated source');
+  return current;
+}
+
 export async function prepareUnrealDockHeaderViews(
   repoRoot: string,
   presentation: RecordValue | undefined,
 ): Promise<Array<{ observation: UnrealDockHeaderObservation; document: ZuiDocument }>> {
   const observations = readUnrealDockHeaderObservations(presentation?.['dockHeaders']);
   if (!observations.length) return [];
-  const bytes = await readFile(resolve(repoRoot, UNREAL_DOCK_HEADER_SOURCE));
-  const authored = parseZuiDocument(bytes.toString('utf8')).document;
   const prepared = [];
   for (const observation of observations) {
-    for (const fingerprint of observation.sourceFingerprints) {
-      const current = await readFile(resolve(repoRoot, fingerprint.sourcePath));
-      requireValue(createHash('sha256').update(current).digest('hex') === fingerprint.sha256,
-        'Actual Header loaded source changed: ' + fingerprint.sourcePath);
-    }
-    const current = cloneZuiDocument(authored);
+    const current = await verifiedLoadedHeaderSource(repoRoot, observation.sourceFingerprints);
     const nodes = current.nodes!;
     const strip = nodes['dock_tab_strip'];
     requireValue(strip && strip.children?.length === 3, 'Authored Unreal Header slot contract changed');
@@ -168,6 +271,7 @@ export async function prepareUnrealDockHeaderViews(
     nodes['dock_subtitle'].props = { ...(nodes['dock_subtitle'].props ?? {}), text: subtitle };
     requireValue(JSON.stringify(normalized(current)) === JSON.stringify(normalized(observation.sourceDocument)),
       'Actual Header source document differs from the current authored used-slot/caption/state variant');
+    await projectActualBottomTabIcons(repoRoot, presentation!, observation, current);
     // Preserve the actual retained close filter without including descendants of
     // a selected painted group, which would wrongly restore hidden Close leaves.
     const consumed = new Set(observation.rows.map((row) => String(row['sourceNodeId'])));
@@ -180,6 +284,10 @@ export async function prepareUnrealDockHeaderViews(
     }
     for (const [id, node] of Object.entries(nodes)) {
       const row = observation.rows.find((row) => row['sourceNodeId'] === id);
+      if (row) {
+        node.state = { ...(node.state ?? {}), hovered: row['hovered'] as boolean,
+          pressed: row['pressed'] as boolean, disabled: row['disabled'] as boolean };
+      }
       node['penpot_review_source_path'] = UNREAL_DOCK_HEADER_SOURCE;
       node['penpot_review_source_node_id'] = id;
       // This is the actual standalone source-view identity, not an invented component invocation.

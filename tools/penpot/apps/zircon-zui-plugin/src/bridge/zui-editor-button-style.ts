@@ -68,3 +68,12 @@ export function editorButtonPalette(document: ZuiDocument) {
     return resolved;
   };
 }
+
+/** Starship CloseButton has a 16px brush, no surface and no pressed displacement. */
+export function editorTabCloseStyle(node: ZuiNode): { glyph: string; opacity: number } {
+  const state = editorButtonState(node);
+  return {
+    glyph: state.hovered && !state.pressed ? '#FFFFFF' : '#C0C0C0',
+    opacity: state.disabled || state.loading ? 0.45 : 1,
+  };
+}

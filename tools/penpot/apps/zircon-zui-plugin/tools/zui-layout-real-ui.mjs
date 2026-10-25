@@ -78,3 +78,65 @@ export async function verifyCurrentPluginUi({ buildReceiptPath, repositoryRoot, 
     indexSha256: index.sha256, indexReferences: references, httpAssets,
     currentUiHttpVerified: true, workerIdentityVerifiedSeparately: true };
 }
+
+/** Validate the real strict worker receipt against current inputs; byte equality alone is insufficient. */
+export function verifyPluginWorkerBuildReceipt(build, { repositoryRoot, bundleSha256, currentInputs }) {
+  assert.equal(build.status, 'compiled-current');
+  assert.equal(build.typescriptNoEmitPassed, true, 'Worker needs its strict TypeScript receipt');
+  assert.equal(build.sourceUnchanged, true);
+  assert.equal(build.sourceCopiesCreated, false);
+  assert.ok(Array.isArray(build.inputs) && build.inputs.length, 'Worker build needs its complete recorded input closure');
+  const entry = resolve(repositoryRoot, 'tools/penpot/apps/zircon-zui-plugin/src/plugin.ts');
+  assert.ok(build.inputs.some(input => resolve(input.path) === entry), 'Worker receipt must name the actual checkout entry');
+  const seen = new Set();
+  for (const input of build.inputs) {
+    const path = resolve(input.path);
+    assert.ok(!seen.has(path), 'Worker receipt has duplicate input paths');
+    seen.add(path);
+    assert.match(input.sha256, /^[0-9a-f]{64}$/);
+    assert.equal(currentInputs[input.path], input.sha256, 'Worker input changed since compilation: ' + input.path);
+  }
+  assert.equal(build.output?.sha256, bundleSha256, 'Worker build receipt differs from the selected bundle');
+  return { inputCount: build.inputs.length, sourceUnchanged: true, workerSha256: bundleSha256 };
+}
+
+export async function verifyCurrentPluginWorkerBuild({
+  buildReceiptPath, buildReceiptSha256, repositoryRoot, bundleBytes,
+}) {
+  requireRealSessionDirectory(dirname(buildReceiptPath));
+  assert.match(buildReceiptSha256, /^[0-9a-f]{64}$/);
+  const bytes = await readFile(buildReceiptPath);
+  assert.equal(sha256(bytes), buildReceiptSha256, 'Pinned worker compile receipt changed');
+  const build = JSON.parse(bytes.toString('utf8'));
+  assert.ok(Array.isArray(build.inputs), 'Worker compile receipt has no input list');
+  const currentInputs = Object.fromEntries(await Promise.all(build.inputs.map(async input =>
+    [input.path, sha256(await readFile(input.path))])));
+  const verified = verifyPluginWorkerBuildReceipt(build, {
+    repositoryRoot, bundleSha256: sha256(bundleBytes), currentInputs,
+  });
+  requireRealSessionDirectory(dirname(build.output.path));
+  assert.equal(sha256(await readFile(build.output.path)), verified.workerSha256, 'Compiled worker output changed');
+  return { schema: 'actual-plugin-worker-build-closure/v1', buildReceiptPath,
+    buildReceiptSha256, ...verified };
+}
+
+/** Bind the selected worker and local distribution to the actual reused HTTP host. */
+export async function verifyCurrentPluginWorker({ host, bundleBytes, distributionWorkerBytes, get }) {
+  const origin = new URL(host);
+  assert.ok(['http:', 'https:'].includes(origin.protocol) &&
+    ['127.0.0.1', 'localhost', '[::1]'].includes(origin.hostname) &&
+    origin.pathname === '/' && !origin.search && !origin.hash && !origin.username && !origin.password,
+  'Worker verification requires the exact local plugin host root');
+  const expected = sha256(bundleBytes);
+  assert.equal(sha256(distributionWorkerBytes), expected,
+    'Selected distribution worker differs from the independent plugin bundle');
+  const workerUrl = new URL('assets/plugin.js', origin).href;
+  const response = await get(workerUrl);
+  assert.equal(response.status(), 200, 'The managed plugin host must serve its selected worker');
+  assert.equal(response.url(), workerUrl, 'The managed plugin worker response redirected');
+  const served = await response.body();
+  assert.equal(sha256(served), expected, 'Managed HTTP worker differs from the selected independent plugin bundle');
+  return { schema: 'actual-plugin-worker-http-identity/v1', workerUrl,
+    workerSha256: expected, workerByteLength: bundleBytes.byteLength,
+    localDistributionVerified: true, httpWorkerVerified: true };
+}

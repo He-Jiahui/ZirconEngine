@@ -57,9 +57,12 @@ impl HostContractState {
                 || hit.frame.clone(),
                 |previous| union_frame(&previous, &hit.frame),
             );
-            self.queue_external_redraw(
-                HostRedrawRequest::region_with_frame_update(damage).into_interactive_frame_update(),
-            );
+            let redraw = if hit.dispatch_kind.as_str() == "ui_asset_anchor_popup_open" {
+                HostRedrawRequest::region(damage)
+            } else {
+                HostRedrawRequest::region_with_frame_update(damage).into_interactive_frame_update()
+            };
+            self.queue_external_redraw(redraw);
         }
     }
 

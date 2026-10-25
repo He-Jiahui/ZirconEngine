@@ -33,6 +33,7 @@ fn shared_asset_pointer_bridges_skip_rebuild_for_unchanged_layout_and_state() {
     let folder_layout = AssetFolderTreePointerLayout {
         pane_size: UiSize::new(240.0, 200.0),
         folder_ids: vec!["res://".to_string(), "res://materials".to_string()],
+        ..Default::default()
     };
     let mut folder_bridge = AssetFolderTreePointerBridge::new();
     assert!(folder_bridge.sync(folder_layout.clone(), state.clone()));
@@ -74,6 +75,7 @@ fn asset_pointer_surfaces_keep_constant_authority_for_large_virtual_lists() {
         AssetFolderTreePointerLayout {
             pane_size: UiSize::new(240.0, 200.0),
             folder_ids: folder_ids.clone(),
+            ..Default::default()
         },
         AssetListPointerState::default(),
     );
@@ -218,6 +220,7 @@ fn shared_asset_tree_pointer_bridge_scrolls_and_dispatches_folder_selection() {
         AssetFolderTreePointerLayout {
             pane_size: UiSize::new(240.0, 200.0),
             folder_ids: folder_ids.clone(),
+            ..Default::default()
         },
         AssetListPointerState::default(),
     );
@@ -231,6 +234,7 @@ fn shared_asset_tree_pointer_bridge_scrolls_and_dispatches_folder_selection() {
         AssetFolderTreePointerLayout {
             pane_size: UiSize::new(240.0, 200.0),
             folder_ids: folder_ids.clone(),
+            ..Default::default()
         },
         scrolled.state.clone(),
     );
@@ -259,6 +263,79 @@ fn shared_asset_tree_pointer_bridge_scrolls_and_dispatches_folder_selection() {
         EditorEvent::Asset(EditorAssetEvent::SelectFolder {
             folder_id: folder_ids[row_index].clone(),
         })
+    );
+}
+
+#[test]
+fn asset_tree_disclosure_click_changes_real_workspace_and_rejects_old_publication() {
+    use crate::ui::retained_host::host_contract::{
+        data::FrameRect, paint_theme::current_host_metrics, tree_disclosure_rect_for_indent,
+    };
+    let _guard = env_lock().lock().unwrap();
+    let harness = EventRuntimeHarness::new("zircon_asset_tree_disclosure");
+    let bridge = BuiltinAssetSurfaceTemplateBridge::new().unwrap();
+    harness.runtime.sync_asset_catalog(shared_catalog());
+    let snapshot = harness.runtime.editor_snapshot().unwrap().asset_browser;
+    assert!(snapshot.folder_tree.len() > 1);
+    let mut pointer = AssetFolderTreePointerBridge::new();
+    let layout = AssetFolderTreePointerLayout::from_snapshot(&snapshot, UiSize::new(240.0, 200.0));
+    pointer.sync(layout.clone(), AssetListPointerState::default());
+    let metrics = current_host_metrics();
+    let row = FrameRect {
+        x: 8.0 * metrics.scale_factor,
+        y: 57.0 * metrics.scale_factor,
+        width: 224.0 * metrics.scale_factor,
+        height: 28.0 * metrics.scale_factor,
+    };
+    let arrow = tree_disclosure_rect_for_indent(0, 0.0, &row);
+    let point = UiPoint::new(
+        (arrow.x + arrow.width * 0.5) / metrics.scale_factor,
+        (arrow.y + arrow.height * 0.5) / metrics.scale_factor,
+    );
+    let clicked =
+        dispatch_shared_asset_tree_pointer_click(&harness.runtime, &bridge, &mut pointer, point)
+            .unwrap();
+    assert!(matches!(
+        clicked.pointer.route,
+        Some(AssetPointerTreeRoute::Disclosure {
+            expanded: false,
+            ..
+        })
+    ));
+    assert!(clicked.effects.unwrap().presentation_dirty);
+    let collapsed = harness.runtime.editor_snapshot().unwrap().asset_browser;
+    assert_eq!(collapsed.folder_tree.len(), 1);
+    assert_eq!(collapsed.selected_folder_id, snapshot.selected_folder_id);
+    assert_ne!(collapsed.catalog_revision, snapshot.catalog_revision);
+    // Retain the old pointer publication deliberately; its command cannot reopen the tree.
+    pointer.sync(layout, AssetListPointerState::default());
+    dispatch_shared_asset_tree_pointer_click(&harness.runtime, &bridge, &mut pointer, point)
+        .unwrap();
+    assert_eq!(
+        harness
+            .runtime
+            .editor_snapshot()
+            .unwrap()
+            .asset_browser
+            .folder_tree
+            .len(),
+        1
+    );
+    pointer.sync(
+        AssetFolderTreePointerLayout::from_snapshot(&collapsed, UiSize::new(240.0, 200.0)),
+        AssetListPointerState::default(),
+    );
+    dispatch_shared_asset_tree_pointer_click(&harness.runtime, &bridge, &mut pointer, point)
+        .unwrap();
+    assert_eq!(
+        harness
+            .runtime
+            .editor_snapshot()
+            .unwrap()
+            .asset_browser
+            .folder_tree
+            .len(),
+        snapshot.folder_tree.len()
     );
 }
 

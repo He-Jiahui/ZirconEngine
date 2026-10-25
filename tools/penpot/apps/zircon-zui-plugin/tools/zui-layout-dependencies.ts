@@ -1,5 +1,7 @@
 import { readFile, realpath } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import { resolve, relative, isAbsolute, sep } from 'node:path';
 import { parse } from 'smol-toml';
 import { parseZuiLayoutSource } from '../src/bridge/zui-layout-optimizer';
@@ -17,14 +19,41 @@ import {
   type DynamicReviewContext,
 } from './zui-layout-dynamic-hosts';
 
+// Native's implicit painters use these actual assets without authoring props.icon.
+// Keep this bounded loader independent of browser/Feather rendering imports.
+const SEMANTIC_ICON_PATHS = [
+  'zircon_editor_shell/controls/add.svg',
+  'zircon_editor_shell/inspector/transform.svg',
+  'zircon_editor_shell/inspector/mesh-renderer.svg',
+  'ionicons/terminal-outline.svg',
+  'ionicons/grid-outline.svg',
+  'ionicons/share-outline.svg',
+] as const;
+
 export class LayoutDependencies {
   private readonly documents = new Map<string, ZuiDocument>();
+  private readonly sourceHashes = new Map<string, string>();
+  private preparedTokens = new WeakMap<ZuiDocument, {
+    values: ZuiTable; owners: Record<string, { sourcePath: string; sha256?: string }>;
+  }>();
   private readonly sourceById = new Map<string, string[]>();
   private readonly parseFailures = new Map<string, unknown>();
   private readonly iconSources = new Map<string, string>();
   private readonly fieldIcons: Record<string, string> = {};
+  private readonly semanticIcons: Record<string, string> = {};
 
   async load(repoRoot: string, paths: string[]): Promise<void> {
+    this.preparedTokens = new WeakMap();
+    for (const key of Object.keys(this.semanticIcons)) delete this.semanticIcons[key];
+    const semanticRoot = resolve(repoRoot, 'zircon_editor/assets/icons');
+    for (const asset of SEMANTIC_ICON_PATHS) {
+      const path = resolve(semanticRoot, asset);
+      if (!contained(semanticRoot, path)) throw new Error(`Semantic icon escapes asset root: ${asset}`);
+      if (!existsSync(path)) continue; // A requested missing asset is rejected during embed.
+      if (!contained(await realpath(semanticRoot), await realpath(path)))
+        throw new Error(`Semantic icon symlink escapes asset root: ${asset}`);
+      this.semanticIcons[asset] = await readFile(path, 'utf8');
+    }
     const fieldIcons = await Promise.all(
       Object.entries(FIELD_ICON_PATHS).map(async ([key, path]) => ({
         key,
@@ -39,11 +68,12 @@ export class LayoutDependencies {
     const sources = await Promise.all(
       paths.map(async (path) => {
         try {
-          const text = await readFile(resolve(repoRoot, path), 'utf8');
+          const bytes = await readFile(resolve(repoRoot, path));
+          const text = bytes.toString('utf8');
           let document = parse(text) as unknown as ZuiDocument;
           if (document.asset.version === 1)
             document = parseZuiLayoutSource(text, path).document;
-          return { path, document };
+          return { path, document, sha256: createHash('sha256').update(bytes).digest('hex') };
         } catch (error) {
           return { path, error };
         }
@@ -51,12 +81,15 @@ export class LayoutDependencies {
     );
     for (const source of sources) {
       const { path } = source;
-      if (!('document' in source) || !source.document) {
+      if (!('document' in source) || !source.document ||
+          !('sha256' in source) || typeof source.sha256 !== 'string') {
         const { error } = source;
+        this.sourceHashes.delete(path);
         this.parseFailures.set(path, error);
         continue;
       }
       const document: ZuiDocument = source.document;
+      this.sourceHashes.set(path, source.sha256);
       this.documents.set(path, document);
       const assetRoot = ownerAssetRoot(path);
       for (const node of Object.values(document.nodes ?? {})) {
@@ -116,6 +149,12 @@ export class LayoutDependencies {
     }
   }
 
+  /** Identity of the bytes actually parsed, before preparing any review host. */
+  sourceFingerprint(sourcePath: string): { sourcePath: string; sha256: string } | undefined {
+    const sha256 = this.sourceHashes.get(sourcePath);
+    return sha256 ? { sourcePath, sha256 } : undefined;
+  }
+
   embed(
     document: ZuiDocument,
     sourcePath: string,
@@ -123,10 +162,14 @@ export class LayoutDependencies {
     dynamicReviewContext: DynamicReviewContext = {},
   ): string[] {
     const tokens: ZuiTable = {};
+    const tokenOwners: Record<string, { sourcePath: string; sha256?: string }> = {};
+    const previousTokens = this.preparedTokens.get(document);
     const styles: ZuiTable[] = [];
     const visited = new Set<string>();
     const ownerByNode = new Map(
-      Object.keys(document.nodes ?? {}).map((id) => [id, sourcePath]),
+      Object.entries(document.nodes ?? {}).map(([id, node]) => [id,
+        typeof node['penpot_review_source_path'] === 'string'
+          ? node['penpot_review_source_path'] : sourcePath]),
     );
     // Keep authored ownership on every direct source node before expansion.
     // The metadata is projection-only and is stripped by the source exporter;
@@ -136,7 +179,10 @@ export class LayoutDependencies {
       // Product-model rows are materialized from factual case data, not from
       // authored .zui callsites. Keep their explicit marker and never invent
       // an authored source key from the generated projection node id.
-      if (node['penpot_review_generated_product_row']) continue;
+      if (node['penpot_review_generated_product_row']) {
+        if (isInspectorPropertyRow(node)) sourceIdentity(node, sourcePath, id);
+        continue;
+      }
       annotateSourceIdentity(node, sourcePath, id, '[]');
     }
     const sourceFor = (uri: string, path: string) => {
@@ -229,7 +275,24 @@ export class LayoutDependencies {
         dependencies.push(dependency);
         visit(this.documents.get(dependency)!, dependency);
       }
-      Object.assign(tokens, themeTokens(current), current.tokens);
+      const values = { ...themeTokens(current), ...current.tokens };
+      const original = this.documents.get(path);
+      const originalValues: ZuiTable = original ? { ...themeTokens(original), ...original.tokens } : {};
+      for (const [key, value] of Object.entries(values)) {
+        tokens[key] = value;
+        // Equal values do not transfer ownership from a caller to the theme.
+        // Only bytes actually loaded at this path can carry their fingerprint.
+        const fingerprint = this.sourceFingerprint(path);
+        // A composed host is embedded once for each authored root. Carry an
+        // unchanged inherited token only from this loader's own preparation,
+        // never from caller-supplied penpot_* metadata or a matching literal.
+        const inherited = current === document && previousTokens &&
+          Object.hasOwn(previousTokens.values, key) &&
+          isDeepStrictEqual(value, previousTokens.values[key]);
+        tokenOwners[key] = inherited ? previousTokens.owners[key] :
+          fingerprint && Object.hasOwn(originalValues, key) &&
+          isDeepStrictEqual(value, originalValues[key]) ? fingerprint : { sourcePath: path };
+      }
       for (const sheet of current.stylesheets ?? []) {
         const existing = styles.findIndex(
           (value) => value['id'] === sheet['id'],
@@ -250,6 +313,7 @@ export class LayoutDependencies {
     }
     visit(document, sourcePath);
     document.tokens = tokens;
+    document['penpot_token_source_owners'] = tokenOwners;
     document.stylesheets = styles;
     document['penpot_dependency_sources'] = dependencies;
     let expanded = 0;
@@ -337,7 +401,13 @@ export class LayoutDependencies {
       const root = source.nodes?.[prefab.root];
       if (!root) throw new Error(`Missing component root in ${prefab.path}`);
       const callerIdentity = sourceIdentity(instance, ownerByNode.get(id) ?? sourcePath, id);
-      const instancePath = appendInstancePath(callerIdentity);
+      // A materialized Inspector row can already name the expanded prefab
+      // root. Re-embedding it must not append a generated clone callsite.
+      const instancePath = isInspectorPropertyRow(instance) &&
+        callerIdentity.sourcePath === prefab.path &&
+        callerIdentity.sourceNodeId === prefab.root
+        ? callerIdentity.instancePath
+        : appendInstancePath(callerIdentity);
       const mapping = new Map<string, string>([[prefab.root, id]]);
       const collect = (nodeId: string) => {
         const node = source.nodes?.[nodeId];
@@ -375,7 +445,7 @@ export class LayoutDependencies {
             return (suppliedSlots.get(name) ?? []).map((mount) => ({
               ...mount,
               slot: mergeLayout(
-                { layout: placeholder.layout ?? {} },
+                { layout: resolveParamValues(placeholder.layout ?? {}, params) as ZuiTable },
                 mount.slot,
               ),
             }));
@@ -490,7 +560,33 @@ export class LayoutDependencies {
       document['penpot_field_icons'] = { ...this.fieldIcons };
       dependencies.push(...Object.values(FIELD_ICON_PATHS));
     }
+    if (themeSourcePath) {
+      const assets = new Set<string>();
+      for (const node of Object.values(nodes)) {
+        const implicit = node.control_id === 'WorkbenchAddComponent' && !node.props?.['icon'] && !node.props?.['icon_name'] ? SEMANTIC_ICON_PATHS[0]
+          : node.control_id === 'WorkbenchTransformLabel' ? SEMANTIC_ICON_PATHS[1]
+          : node.control_id === 'WorkbenchMeshLabel' ? SEMANTIC_ICON_PATHS[2] : undefined;
+        const tab = object(node['penpot_review_native_tab_icon']);
+        const asset = typeof tab['assetPath'] === 'string' ? tab['assetPath'] : implicit;
+        if (!asset) continue;
+        if (!(SEMANTIC_ICON_PATHS as readonly string[]).includes(asset) || !this.semanticIcons[asset])
+          throw new Error(`Missing actual native semantic SVG: ${asset}`);
+        // Header views are mounted by cloning their nodes, not top-level maps.
+        // Reuse the existing projection-only SVG lane so the actual bytes travel
+        // with their complete Source identity through that mount.
+        if (typeof tab['assetPath'] === 'string') node['penpot_icon_svg'] = this.semanticIcons[asset];
+        assets.add(asset);
+      }
+      if (assets.size) {
+        document['penpot_native_icon_svgs'] = Object.fromEntries([...assets].map((asset) =>
+          [asset, this.semanticIcons[asset]]));
+        dependencies.push(...[...assets].map((asset) => 'zircon_editor/assets/icons/' + asset));
+      }
+    }
     document.imports = { ...document.imports, widgets: [], styles: [] };
+    this.preparedTokens.set(document, {
+      values: structuredClone(tokens), owners: structuredClone(tokenOwners),
+    });
     return [
       ...(dependencies.length ? ['resolve-imported-design-foundation'] : []),
       ...(expanded > 0 ? ['materialize-shared-prefab-instances'] : []),
@@ -648,6 +744,36 @@ function sourceIdentity(
   fallbackSourcePath: string,
   fallbackSourceNodeId: string,
 ): SourceIdentity {
+  if (isInspectorPropertyRow(node)) {
+    const marker = object(node['penpot_review_generated_product_row']);
+    const fieldId = object(marker['property'])['id'];
+    const itemKey = marker['itemKey'];
+    const sourcePath = node['penpot_review_source_path'];
+    const sourceNodeId = node['penpot_review_source_node_id'];
+    const instancePath = node['penpot_review_instance_path'];
+    let steps: unknown;
+    try {
+      steps = typeof instancePath === 'string' ? JSON.parse(instancePath) : null;
+    } catch {
+      steps = null;
+    }
+    if (
+      typeof fieldId !== 'string' || !fieldId.trim() ||
+      typeof itemKey !== 'string' || itemKey.length > 39 ||
+      !/^(0|[1-9][0-9]*)$/.test(itemKey) || BigInt(itemKey) >= (1n << 128n) ||
+      typeof sourcePath !== 'string' || !sourcePath.trim() ||
+      typeof sourceNodeId !== 'string' || !sourceNodeId.trim() ||
+      typeof instancePath !== 'string' || !Array.isArray(steps) ||
+      !steps.every((step) => step && typeof step === 'object' &&
+        !Array.isArray(step) &&
+        Object.keys(step).join(',') === 'sourcePath,sourceNodeId' &&
+        typeof step.sourcePath === 'string' && !!step.sourcePath.trim() &&
+        typeof step.sourceNodeId === 'string' && !!step.sourceNodeId.trim()) ||
+      JSON.stringify(steps) !== instancePath
+    )
+      throw new Error('Inspector materialized row has no original authored identity');
+    return { sourcePath, sourceNodeId, instancePath };
+  }
   if (node['penpot_review_generated_product_row'])
     return { sourcePath: '', sourceNodeId: '', instancePath: '' };
   const sourcePath =
@@ -665,6 +791,11 @@ function sourceIdentity(
       ? node['penpot_review_instance_path']
       : '[]';
   return { sourcePath, sourceNodeId, instancePath };
+}
+
+function isInspectorPropertyRow(node: ZuiNode): boolean {
+  return object(node['penpot_review_generated_product_row'])['kind'] ===
+    'inspectorProperty';
 }
 
 function appendInstancePath(caller: SourceIdentity): string {

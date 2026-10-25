@@ -3,7 +3,7 @@ use crate::ui::asset_editor;
 
 use super::row_model::{push_detail_row, semantic_label, UiAssetDetailFieldRow};
 
-const SLOT_DETAIL_ROW_MAX_COUNT: usize = 18;
+const SLOT_DETAIL_ROW_MAX_COUNT: usize = 19;
 
 pub(super) fn slot_detail_rows(
     data: &asset_editor::UiAssetEditorPanePresentation,
@@ -171,6 +171,17 @@ pub(super) fn slot_detail_rows(
         false,
         false,
     );
+    if data.inspector_slot_kind == "Canvas" {
+        push_detail_row(
+            &mut rows,
+            "Anchors",
+            "Presets",
+            "slot.canvas.anchors.open",
+            "UiAssetSlotFieldAnchors",
+            !data.canvas_anchor_presets_available,
+            true,
+        );
+    }
     rows
 }
 
@@ -197,7 +208,8 @@ fn slot_detail_row_capacity(data: &asset_editor::UiAssetEditorPanePresentation) 
     ]
     .into_iter()
     .filter(|value| !value.is_empty())
-    .count();
+    .count()
+        + usize::from(data.inspector_slot_kind == "Canvas");
     debug_assert!(capacity <= SLOT_DETAIL_ROW_MAX_COUNT);
     capacity
 }

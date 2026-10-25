@@ -5,6 +5,25 @@ use std::sync::{
 
 use super::*;
 
+#[test]
+fn asset_tree_disclosure_projection_reaches_host_without_affecting_other_rows() {
+    let mut data = ViewTemplateNodeData {
+        surface_variant: "asset-tree-row".into(),
+        component_variant: "asset-folder-expanded".into(),
+        value_number: 3.0,
+        ..Default::default()
+    };
+    let node = to_host_contract_template_node(&data);
+    assert_eq!(node.tree_depth, 3);
+    assert!(node.expanded);
+    data.component_variant = "asset-folder-leaf".into();
+    assert!(!to_host_contract_template_node(&data).expanded);
+    data.surface_variant = "".into();
+    let other = to_host_contract_template_node(&data);
+    assert_eq!(other.tree_depth, 0);
+    assert!(!other.expanded);
+}
+
 struct CloneProbe(Arc<AtomicUsize>);
 
 impl Clone for CloneProbe {

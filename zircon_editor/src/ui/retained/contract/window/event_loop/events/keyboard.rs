@@ -11,10 +11,19 @@ impl UiHostWindowEventLoop {
         platform_event: PlatformInputTranslation,
     ) {
         self.begin_input_outcome(platform_event.sequence);
+        let keyboard = platform_keyboard_input(platform_event.event);
+        if let Some(keyboard) = keyboard.as_ref() {
+            if let Some(result) = self.host.dispatch_canvas_anchor_popup_input(
+                &zircon_runtime_interface::ui::dispatch::UiInputEvent::Keyboard(keyboard.clone()),
+            ) {
+                self.dispatch_pointer_result(result);
+                self.sync_ime_allowed();
+                return;
+            }
+        }
         self.host
             .global::<UiHostContext>()
             .invoke_workbench_input_activity();
-        let keyboard = platform_keyboard_input(platform_event.event);
         if let Some(keyboard) = keyboard.as_ref() {
             if let Some(result) = self.host.dispatch_retained_pane_platform_input(
                 zircon_runtime_interface::ui::dispatch::UiInputEvent::Keyboard(keyboard.clone()),
@@ -31,6 +40,15 @@ impl UiHostWindowEventLoop {
 
     pub(super) fn handle_ime_input(&mut self, platform_event: PlatformInputTranslation) {
         self.begin_input_outcome(platform_event.sequence);
+        if let Some(zircon_runtime_interface::ui::window::UiWindowInputPumpEvent::Input(event)) =
+            platform_event.event.as_ref()
+        {
+            if let Some(result) = self.host.dispatch_canvas_anchor_popup_input(event) {
+                self.dispatch_pointer_result(result);
+                self.sync_ime_allowed();
+                return;
+            }
+        }
         self.host
             .global::<UiHostContext>()
             .invoke_workbench_input_activity();

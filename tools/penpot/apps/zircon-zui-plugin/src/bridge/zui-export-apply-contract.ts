@@ -1,12 +1,38 @@
-import { ZuiDocumentError, type ZuiDiagnostic } from './zui-document';
+import {
+  ZuiDocumentError,
+  type ZuiDiagnostic,
+  type ZuiDocument,
+  type ZuiNode,
+} from './zui-document';
 
 export const ZUI_SOURCE_EXPORTS_SCHEMA = 'dev.zircon.zui.penpot-source-exports';
 export const ZUI_SOURCE_EXPORTS_VERSION = 1;
+
+/** Production owner declared by zircon_plugins/ai/editor/src/plugin.rs; not a write grant. */
+export const REGISTERED_PRIVATE_UI_SOURCE_OWNERS: Readonly<Record<string, {
+  assetId: string; rootNodeId: string; uri: string;
+  themeSourcePath: string; styleImports: readonly string[];
+}>> = Object.freeze({
+  'zircon_plugins/ai/editor/behavior_tree.zui': Object.freeze({
+    assetId: 'ai.behavior_tree', rootNodeId: 'behavior_tree_root',
+    uri: 'plugins://ai/editor/behavior_tree.zui',
+    themeSourcePath: 'zircon_editor/assets/ui/theme/editor_base.zui',
+    styleImports: Object.freeze(['res://ui/theme/editor_base.zui']),
+  }),
+});
 
 export interface ZuiSourceFingerprint {
   sourcePath: string;
   sha256: string;
 }
+
+/** Explicit source owners that this operation is authorized to replace. */
+export type ApplyZuiExportFileToCanonicalSourceOwnersOptions = Omit<
+  ApplyZuiExportFileToSourceRootOptions,
+  'outputRootPath'
+> & {
+  writableSourcePaths: readonly string[];
+};
 
 export interface ZuiSourceExportEdit {
   exportNodeId: string;
@@ -18,6 +44,16 @@ export interface ZuiSourceExportEdit {
   /** Node-relative TOML path, for example `['layout', 'container', 'gap']`. */
   fieldPath: string[];
   value: unknown;
+  /** A root callsite owns this height.min override; node provenance stays above. */
+  heightMinOwner?: ZuiSourceHeightMinOwner;
+}
+
+export interface ZuiSourceHeightMinOwner {
+  sourcePath: string;
+  sourceNodeId: string;
+  baselineValue: number;
+  /** Exact imported component locator recorded by the existing expansion. */
+  callee: string;
 }
 
 export interface ZuiSourceExportIdentity {
@@ -305,7 +341,7 @@ export function validateSourcePath(sourcePath: string): string[] {
       (segment) => segment.length === 0 || segment === '.' || segment === '..',
     ) ||
     !sourcePath.toLowerCase().endsWith('.zui') ||
-    !containsUiAssetDirectory(segments)
+    (!containsUiAssetDirectory(segments) && !Object.hasOwn(REGISTERED_PRIVATE_UI_SOURCE_OWNERS, sourcePath))
   )
     throw invalidSourcePath(sourcePath);
   return segments;
@@ -326,6 +362,92 @@ export function isSupportedVisualPath(path: string[]): boolean {
       propertyPath[0] === 'self' && isMappedPaintPath(propertyPath.slice(1))
     );
   return isMappedPaintPath(propertyPath);
+}
+
+export function isHeightMinFieldPath(path: readonly string[]): boolean {
+  return path.length === 3 && path[0] === 'layout' &&
+    path[1] === 'height' && path[2] === 'min';
+}
+
+/** Resolve only an existing root-owned constraint, using complete invocation steps. */
+export function resolveRootHeightMinOwner(
+  rootSourcePath: string,
+  root: ZuiDocument,
+  identity: ZuiSourceExportIdentity,
+  projectedNode: ZuiNode,
+  calleeDocument?: ZuiDocument,
+): ZuiSourceHeightMinOwner | undefined {
+  function fail(message: string): never {
+    throw applyError('source-export-height-min-owner-invalid',
+      `height.min owner for ${identity.exportNodeId}: ${message}`);
+  }
+  validateSourcePath(rootSourcePath);
+  validateInstancePath(identity.instancePath, 0);
+  if (
+    projectedNode['penpot_review_source_path'] !== identity.sourcePath ||
+    projectedNode['penpot_review_source_node_id'] !== identity.sourceNodeId ||
+    projectedNode['penpot_review_instance_path'] !== identity.instancePath ||
+    (projectedNode.control_id ?? null) !== identity.controlId
+  ) fail('captured node provenance differs from the imported baseline.');
+  const projectedHeight = projectedNode.layout?.['height'];
+  const baselineValue = isRecord(projectedHeight) ? projectedHeight['min'] : undefined;
+  if (typeof baselineValue !== 'number' || !Number.isFinite(baselineValue) || baselineValue < 0)
+    fail('an existing finite nonnegative authored baseline is required.');
+
+  if (identity.sourcePath === rootSourcePath) {
+    const direct = root.nodes?.[identity.sourceNodeId];
+    const height = direct?.layout?.['height'];
+    if (!direct || !isRecord(height) || height['min'] !== baselineValue)
+      fail('direct source height.min differs from the imported baseline.');
+    return undefined;
+  }
+  const steps = JSON.parse(identity.instancePath) as Array<{
+    sourcePath: string; sourceNodeId: string;
+  }>;
+  const last = steps.at(-1);
+  if (!last || last.sourcePath !== rootSourcePath)
+    fail('the final invocation must be a complete original-root callsite.');
+  if (steps.filter((step) => step.sourcePath === last.sourcePath &&
+      step.sourceNodeId === last.sourceNodeId).length !== 1)
+    fail('the final invocation is ambiguous.');
+  const callsite = root.nodes?.[last.sourceNodeId];
+  const height = callsite?.layout?.['height'];
+  if (!callsite || !isRecord(height) || height['min'] !== baselineValue)
+    fail('the callsite must own the existing height.min baseline.');
+  if ((callsite.control_id ?? null) !== identity.controlId)
+    fail('the callsite control identity differs from the rendered root.');
+
+  const qualified = callsite.component.split('#');
+  const componentName = qualified.length === 1 ? qualified[0] : qualified[1];
+  if (!componentName || qualified.length > 2 || root.components?.[componentName])
+    fail('an unambiguous imported component binding is required.');
+  const imports = qualified.length === 2 ? [callsite.component] : root.imports?.['widgets'];
+  const candidates = Array.isArray(imports)
+    ? [...new Set(imports.filter((uri): uri is string => typeof uri === 'string' &&
+        uri.split('#').length === 2 && uri.split('#')[1] === componentName))]
+    : [];
+  if (candidates.length !== 1)
+    fail('the imported component binding is missing or ambiguous.');
+  const [assetId] = candidates[0].split('#');
+  const rootSegments = validateSourcePath(rootSourcePath);
+  const assetIndex = rootSegments.indexOf('assets');
+  if (!assetId.startsWith('res://') || assetIndex < 0)
+    fail('the component asset must use the original root resource namespace.');
+  const calleePath = [...rootSegments.slice(0, assetIndex + 1),
+    ...assetId.slice('res://'.length).split('/')].join('/');
+  validateSourcePath(calleePath);
+  const callee = `${calleePath}#${componentName}`;
+  if (identity.sourcePath !== calleePath || projectedNode['penpot_prefab_source'] !== callee)
+    fail('the callsite is rebound or names a different callee.');
+  if (calleeDocument) {
+    const definition = calleeDocument.components?.[componentName];
+    if (calleeDocument.asset.id !== assetId ||
+        definition?.root !== identity.sourceNodeId ||
+        calleeDocument.nodes?.[identity.sourceNodeId]?.component !== projectedNode.component)
+      fail('the current callee document does not prove the actual component root.');
+  }
+  return { sourcePath: rootSourcePath, sourceNodeId: last.sourceNodeId,
+    baselineValue, callee };
 }
 
 export function applyError(
@@ -467,6 +589,7 @@ function parseEditList(value: unknown): ZuiSourceExportEdit[] {
       'instancePath',
       'fieldPath',
       'value',
+      ...(Object.hasOwn(item, 'heightMinOwner') ? ['heightMinOwner'] : []),
     ]);
     const exportNodeId = requireNonemptyString(
       item['exportNodeId'],
@@ -502,6 +625,26 @@ function parseEditList(value: unknown): ZuiSourceExportEdit[] {
         `source-export edits[${index}].fieldPath must be a nonempty string array.`,
       );
     const fieldPath = item['fieldPath'] as string[];
+    let heightMinOwner: ZuiSourceHeightMinOwner | undefined;
+    if (Object.hasOwn(item, 'heightMinOwner')) {
+      const owner = item['heightMinOwner'];
+      if (!isHeightMinFieldPath(fieldPath) || !isRecord(owner))
+        throw applyError('source-export-height-min-owner-invalid',
+          'heightMinOwner is supported only for an existing layout.height.min edit.');
+      assertExactKeys(owner, ['sourcePath', 'sourceNodeId', 'baselineValue', 'callee']);
+      const ownerPath = requireNonemptyString(owner['sourcePath'], 'heightMinOwner.sourcePath');
+      validateSourcePath(ownerPath);
+      const ownerNodeId = requireNonemptyString(owner['sourceNodeId'], 'heightMinOwner.sourceNodeId');
+      const callee = requireNonemptyString(owner['callee'], 'heightMinOwner.callee');
+      if (callee.split('#').length !== 2 || !callee.split('#')[1] ||
+          typeof owner['baselineValue'] !== 'number' ||
+          !Number.isFinite(owner['baselineValue']) || owner['baselineValue'] < 0)
+        throw applyError('source-export-height-min-owner-invalid',
+          'heightMinOwner must preserve a finite nonnegative baseline and exact callee.');
+      validateSourcePath(callee.split('#')[0]);
+      heightMinOwner = { sourcePath: ownerPath, sourceNodeId: ownerNodeId,
+        baselineValue: owner['baselineValue'], callee };
+    }
     if (!isSupportedVisualPath(['nodes', exportNodeId, ...fieldPath]))
       throw applyError(
         'unsupported-nonvisual-export-change',
@@ -522,6 +665,7 @@ function parseEditList(value: unknown): ZuiSourceExportEdit[] {
       instancePath,
       fieldPath: [...fieldPath],
       value: item['value'],
+      ...(heightMinOwner ? { heightMinOwner } : {}),
     });
   }
   return result;

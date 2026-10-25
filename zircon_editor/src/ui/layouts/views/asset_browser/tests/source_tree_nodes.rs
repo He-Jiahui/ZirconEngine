@@ -5,6 +5,31 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 #[test]
+fn asset_tree_disclosure_projects_branches_and_leaves_without_text_arrows() {
+    let mut root = folder("content", None, "Content", 0, true);
+    root.has_children = true;
+    root.expanded = true;
+    let mut branch = folder("textures", Some("content"), "Textures", 1, false);
+    branch.has_children = true;
+    let leaf = folder("knight", Some("textures"), "knight", 2, false);
+    let snapshot = AssetWorkspaceSnapshot {
+        folder_tree: vec![root, branch, leaf],
+        ..Default::default()
+    };
+    let mut nodes = vec![source_row_prototype()];
+    sync_asset_browser_source_tree_nodes(&mut nodes, &snapshot);
+    assert_eq!(nodes[0].component_variant, "asset-folder-expanded");
+    assert_eq!(nodes[1].component_variant, "asset-folder");
+    assert_eq!(nodes[2].component_variant, "asset-folder-leaf");
+    assert_eq!(nodes[2].text, "knight");
+    assert_eq!(nodes[2].value_number, 2.0);
+    assert_eq!(
+        nodes[2].icon_name,
+        "editor_pages/asset_browser/navigation/folder.svg"
+    );
+}
+
+#[test]
 fn source_tree_nodes_preserve_pointer_order_selection_and_depth() {
     let snapshot = AssetWorkspaceSnapshot {
         selected_folder_id: Some("materials".to_string()),
@@ -178,6 +203,8 @@ fn measured_capacity_growths(
             folder.recursive_asset_count,
             folder.selected,
             folder.depth,
+            folder.has_children,
+            folder.expanded,
         ));
         growths += usize::from(nodes.capacity() != previous_capacity);
     }
@@ -213,6 +240,8 @@ fn retired_sync_asset_browser_source_tree_nodes(
             snapshot.visible_assets.len(),
             snapshot.selected_folder_id.is_some(),
             0,
+            false,
+            false,
         ));
         return;
     }
@@ -225,6 +254,8 @@ fn retired_sync_asset_browser_source_tree_nodes(
             folder.selected
                 || snapshot.selected_folder_id.as_deref() == Some(folder.folder_id.as_str()),
             folder.depth,
+            folder.has_children,
+            folder.expanded,
         ));
     }
 }
@@ -272,5 +303,7 @@ fn folder(
         recursive_asset_count: 0,
         depth,
         selected,
+        has_children: false,
+        expanded: false,
     }
 }

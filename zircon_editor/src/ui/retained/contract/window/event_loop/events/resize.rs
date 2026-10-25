@@ -37,6 +37,7 @@ impl UiHostWindowEventLoop {
             self.finish_input_without_damage();
             return;
         }
+        self.host.retire_current_canvas_anchor_popup();
         if scale_changed {
             if let Some(metrics) = metrics {
                 self.host
@@ -68,6 +69,7 @@ impl UiHostWindowEventLoop {
             self.finish_input_without_damage();
             return;
         }
+        self.host.retire_current_canvas_anchor_popup();
         self.host.window().set_scale_factor(scale_factor);
         self.queue_resize_frame(None);
     }

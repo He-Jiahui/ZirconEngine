@@ -77,12 +77,22 @@ pub enum UiAssetEditorSessionError {
     InvalidBindingIndex { index: usize },
     #[error("ui asset palette index {index} is out of range")]
     InvalidPaletteIndex { index: usize },
+    #[error("UI asset palette input belongs to a retired source, catalog, query or page")]
+    RetiredPaletteSearch,
+    #[error("UI asset palette search row {row} is out of range")]
+    InvalidPaletteSearchRow { row: usize },
     #[error("ui asset stylesheet selector is invalid: {selector}")]
     InvalidStyleSelector { selector: String },
     #[error("ui asset stylesheet declaration path is invalid: {path}")]
     InvalidStyleDeclarationPath { path: String },
     #[error("ui asset inspector field {field} expects a numeric literal, received: {value}")]
     InvalidInspectorNumericLiteral { field: &'static str, value: String },
+    #[error("ui asset canvas anchor preset index {index} is out of range")]
+    InvalidCanvasAnchorPreset { index: usize },
+    #[error("ui asset canvas anchor edit needs current, unambiguous layout for node {node_id}")]
+    CanvasAnchorGeometryUnavailable { node_id: String },
+    #[error("ui asset canvas anchor popup belongs to a retired source, selection or preview")]
+    RetiredCanvasAnchorPreset,
     #[error("ui asset binding event is invalid: {value}")]
     InvalidBindingEvent { value: String },
     #[error("ui asset preview mock value is invalid: {message}")]
@@ -123,6 +133,7 @@ pub struct UiAssetEditorSession {
     pub(super) source_cursor_byte_offset: usize,
     pub(super) source_cursor_anchor: Option<UiAssetSourceCursorAnchor>,
     pub(super) selection: UiDesignerSelectionModel,
+    pub(super) canvas_anchor_preset_lease: Option<std::sync::Arc<()>>,
     pub(super) designer_tool_mode: UiDesignerToolMode,
     pub(super) last_preview_interact_dispatch: Option<UiDesignerPreviewInteractDispatch>,
     pub(super) style_inspector: UiStyleInspectorReflectionModel,

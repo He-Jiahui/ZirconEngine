@@ -15,6 +15,7 @@ use super::*;
 use crate::core::commands::{MenuBarModel, MenuItemModel, MenuModel};
 use crate::ui::asset_editor::{
     apply_ui_asset_editor_designer_tool_mode, ui_asset_editor_node_projection_with_palette,
+    ui_asset_editor_node_projection_with_palette_search,
 };
 use crate::ui::binding::EditorUiBindingPayload;
 use crate::ui::layouts::common::model_rc;
@@ -544,12 +545,16 @@ fn pane_with_ui_asset_nodes(mut pane: PaneData, width: f32, height: f32) -> Pane
 
     zircon_runtime::profile_scope!("editor", "retained_host", "scene_pane_ui_asset");
     let size = UiSize::new(width.max(0.0), height.max(0.0));
-    let mut projection = ui_asset_editor_node_projection_with_palette(
-        size,
-        &pane.native_body.ui_asset.palette_items,
-        pane.native_body.ui_asset.palette_visible_start,
-        pane.native_body.ui_asset.palette_selected_index,
-    );
+    let mut projection = if let Some(snapshot) = &pane.native_body.ui_asset.palette_search {
+        ui_asset_editor_node_projection_with_palette_search(size, snapshot)
+    } else {
+        ui_asset_editor_node_projection_with_palette(
+            size,
+            &pane.native_body.ui_asset.palette_items,
+            pane.native_body.ui_asset.palette_visible_start,
+            pane.native_body.ui_asset.palette_selected_index,
+        )
+    };
     apply_ui_asset_editor_designer_tool_mode(
         &mut projection.nodes,
         pane.native_body.ui_asset.designer_tool_mode.as_str(),

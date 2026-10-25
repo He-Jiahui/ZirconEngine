@@ -75,6 +75,9 @@ export function reconcileZuiDocument(
     shapeByNode,
   );
   const sourceParent = sourceParentIndex(sourceNodes);
+  const sourceHeightMins = new Map(
+    projectZuiDocument(source).shapes.map((shape) => [shape.nodeId, shape.heightMin]),
+  );
   const document = cloneZuiDocument(source);
   const documentNodes = zuiNodes(document);
   const changes: string[] = [];
@@ -101,6 +104,7 @@ export function reconcileZuiDocument(
       ),
       desiredMounts.get(shape.nodeId),
       resolvedSelfStyle(document, node, ancestors),
+      sourceHeightMins.get(shape.nodeId),
     );
   }
 
@@ -262,10 +266,33 @@ function applyEditableChanges(
   parentTransition: ParentLayoutTransition,
   desiredMount: DesiredMount | undefined,
   selfStyle: ZuiTable,
+  sourceHeightMin: number | undefined,
 ): void {
   const { baseline, current } = shape;
   validateEditableState(shape.nodeId, baseline);
   validateEditableState(shape.nodeId, current);
+  const sourceHeight = node.layout?.['height'];
+  const mappedHeightMin = sourceHeightMin !== undefined;
+  if (
+    (baseline.heightMin !== undefined) !== mappedHeightMin ||
+    (baseline.heightMin !== undefined &&
+      !nearlyEqual(baseline.heightMin, sourceHeightMin!)) ||
+    (baseline.heightMin !== undefined) !== (current.heightMin !== undefined)
+  )
+    throw new ZuiDocumentError(
+      `Node ${shape.nodeId} height.min mapping is missing or differs from its authored baseline; re-import the .zui asset.`,
+    );
+  if (baseline.heightMin !== undefined &&
+      !nearlyEqual(current.heightMin!, baseline.heightMin)) {
+    if (parentTransition !== 'none' ||
+        !nearlyEqual(current.geometry.height, baseline.geometry.height))
+      throw new ZuiDocumentError(
+        `Node ${shape.nodeId} height.min cannot be edited together with a height resize or parent layout transition.`,
+      );
+    // A constraint edit does not turn a weighted child into a fixed-size node.
+    (sourceHeight as ZuiTable)['min'] = round(current.heightMin!);
+    changes.push(`nodes.${shape.nodeId}.layout.height.min`);
+  }
   reconcileSlotPadding(
     shape.nodeId,
     baseline.slotPadding,
@@ -671,6 +698,12 @@ function validateEditableState(
   nodeId: string,
   state: ProjectionEditableState,
 ): void {
+  if (Object.hasOwn(state, 'heightMin') &&
+      (typeof state.heightMin !== 'number' ||
+        !Number.isFinite(state.heightMin) || state.heightMin < 0))
+    throw new ZuiDocumentError(
+      `Node ${nodeId} height.min must be finite and nonnegative.`,
+    );
   const values = [
     state.geometry.x,
     state.geometry.y,

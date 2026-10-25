@@ -131,9 +131,9 @@ it('paints PopupMenu rows with the ordinary Editor palette and state priority', 
     borderRadius: 3,
   });
   expect(popupMenuRowPaint(hovered!)).toMatchObject({
-    fillColor: '#575757',
+    fillColor: '#0070e0',
     strokeColor: null,
-    textColor: '#c0c0c0',
+    textColor: '#ffffff',
   });
   expect(popupMenuRowPaint(focused!)).toMatchObject({
     fillColor: null,
@@ -142,10 +142,17 @@ it('paints PopupMenu rows with the ordinary Editor palette and state priority', 
   });
   expect(danger?.danger).toBe(true);
   expect(popupMenuRowPaint(danger!)).toMatchObject({
-    fillColor: '#383838',
+    fillColor: '#0070e0',
     strokeColor: '#0070e0',
     textColor: '#ef3535',
   });
+  for (const state of [{ selected: true }, { focused: true }]) {
+    expect(popupMenuRowPaint({ ...hovered!, ...state })).toMatchObject({
+      fillColor: '#0070e0',
+      strokeColor: '#0070e0',
+      textColor: '#ffffff',
+    });
+  }
   expect(popupMenuRowPaint(disabled!)).toMatchObject({
     fillColor: null,
     strokeColor: null,
@@ -180,18 +187,33 @@ it('preserves pressed menu states from flags, objects, and pressed_options', () 
     const option = popupOptions(node)[0]!;
     expect(option.pressed).toBe(true);
     expect(popupMenuRowPaint(option)).toMatchObject({
-      fillColor: '#383838',
+      fillColor: '#0070e0',
       strokeColor: null,
-      textColor: '#c0c0c0',
+      textColor: '#ffffff',
       borderRadius: 3,
     });
     expect(popupMenuRowPaint({ ...option, selected: true })).toMatchObject({
-      fillColor: '#383838',
+      fillColor: '#0070e0',
       strokeColor: '#0070e0',
     });
     expect(
       popupMenuRowPaint({ ...option, disabled: true, danger: true }),
     ).toMatchObject({
+      fillColor: null,
+      strokeColor: null,
+      textColor: '#808080',
+    });
+  }
+});
+
+it('keeps loading menu rows unavailable even when selected, hovered, or pressed', () => {
+  for (const item of [
+    'Archive|loading,checked,hovered,pressed,danger',
+    { value: 'Archive', loading: true, checked: true, focused: true, hovered: true, pressed: true, danger: true },
+  ]) {
+    const option = popupOptions({ component: 'PopupMenu', props: { menu_items: [item] } })[0]!;
+    expect(option.loading).toBe(true);
+    expect(popupMenuRowPaint(option)).toMatchObject({
       fillColor: null,
       strokeColor: null,
       textColor: '#808080',

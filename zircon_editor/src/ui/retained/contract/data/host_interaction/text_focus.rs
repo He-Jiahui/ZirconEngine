@@ -16,6 +16,8 @@ pub(crate) struct HostTextInputFocusData {
     pub caret_scalar_offset: Option<usize>,
     pub selection_anchor_scalar_offset: Option<usize>,
     pub edit_frame: FrameRect,
+    pub palette_search_target:
+        Option<crate::ui::retained_host::host_contract::data::UiAssetPaletteInputTarget>,
 }
 
 impl HostTextInputFocusData {

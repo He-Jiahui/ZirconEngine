@@ -4,6 +4,7 @@ import { buttonStatePreviewNode } from './zui-button-state-projection';
 import {
   editorButtonPalette,
   editorButtonState,
+  editorTabCloseStyle,
 } from './zui-editor-button-style';
 import {
   editorContainedButton,
@@ -14,6 +15,7 @@ import {
   editorButtonKind,
   editorButtonTabKind,
   isEditorWorkbenchButton,
+  isEditorTabCloseIconButton,
   usesWorkbenchLanguage,
 } from './zui-editor-button-identity';
 
@@ -23,7 +25,7 @@ export function hasEditorButtonPainter(
 ): boolean {
   return (
     typeof document['penpot_host_theme_source'] === 'string' &&
-    (isEditorWorkbenchButton(node) || isEditorContainedButton(node))
+    (isEditorWorkbenchButton(node) || isEditorContainedButton(node) || isEditorTabCloseIconButton(node))
   );
 }
 
@@ -34,6 +36,12 @@ export function hostButtonPreviewNode(
 ): ZuiNode {
   if (!hasEditorButtonPainter(document, node))
     return buttonStatePreviewNode(node);
+  if (isEditorTabCloseIconButton(node)) {
+    const style = editorTabCloseStyle(node);
+    return { ...node, props: { ...node.props, background_color: 'transparent',
+      border_color: 'transparent', border_width: 0, radius: 0,
+      foreground_color: style.glyph, icon_color: style.glyph } };
+  }
   if (!isEditorWorkbenchButton(node))
     return editorContainedButton(document, node);
   const props: ZuiTable = { ...node.props };
@@ -93,7 +101,7 @@ export function hostButtonPreviewNode(
       },
     };
   }
-  if (usesWorkbenchLanguage(node)) {
+  if (usesWorkbenchLanguage(node) || String(props['button_variant'] ?? '').toLowerCase() === 'text') {
     if (
       !selected &&
       interaction === 'normal' &&

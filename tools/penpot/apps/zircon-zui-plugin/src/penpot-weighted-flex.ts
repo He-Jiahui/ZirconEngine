@@ -123,9 +123,11 @@ export interface NativeLinearFlexAxis {
   basis: number;
   grow: number;
   shrink: number;
+  /** Fixed outer slot spacing; it never participates in the shrink basis. */
+  margin?: number;
 }
 
-/** Arrange explicit linear slots using the current native Taffy flex contract.
+/** Arrange native linear slots using the current Taffy flex contract.
  * A node minimum is a clamp, while a Stretch slot's own minimum is its basis.
  * Freeze clamped items and redistribute remaining room exactly as flex layout.
  */
@@ -143,12 +145,15 @@ export function solveNativeLinearFlexWidths(
       min, max, basis,
       grow: Math.max(0, axis.grow),
       shrink: Math.max(0, axis.shrink),
+      margin: Math.max(0, axis.margin ?? 0),
       hypothetical: Math.max(min, Math.min(max, basis)),
       target: basis,
       frozen: false,
     };
   });
-  const growing = axes.reduce((sum, axis) => sum + axis.hypothetical, 0) < room;
+  const growing = axes.reduce(
+    (sum, axis) => sum + axis.hypothetical + axis.margin, 0,
+  ) < room;
   for (const axis of axes) {
     const factor = growing ? axis.grow : axis.shrink;
     if (factor === 0 ||
@@ -158,7 +163,7 @@ export function solveNativeLinearFlexWidths(
     }
   }
   const freeSpace = () => room - axes.reduce(
-    (sum, axis) => sum + (axis.frozen ? axis.target : axis.basis), 0,
+    (sum, axis) => sum + (axis.frozen ? axis.target : axis.basis) + axis.margin, 0,
   );
   const initialFree = freeSpace();
   for (let iteration = 0; iteration <= axes.length; iteration++) {
@@ -310,6 +315,60 @@ function defaultAxis(constraint: AxisConstraintInput): boolean {
   );
 }
 
+function finiteAxisValues(document: ZuiDocument, value: ZuiTable | undefined): boolean {
+  return ['min', 'max', 'preferred', 'priority', 'weight'].every((key) => {
+    if (value?.[key] === undefined) return true;
+    const resolved = resolveDesignNumber(document, value[key]);
+    return resolved !== undefined && Number.isFinite(resolved);
+  });
+}
+
+function nativeFixedPlacementSupported(
+  document: ZuiDocument,
+  layout: ZuiTable | undefined,
+  slotLayout: ZuiTable | undefined,
+  direction: 'row' | 'column',
+  crossConstraint: AxisConstraintInput,
+): boolean {
+  // Native merges placement tables slot-first, unlike its restored main axis.
+  const defaultPlacement = ['anchor', 'pivot', 'position'].every((key) => {
+    const value = slotLayout?.[key] ?? layout?.[key];
+    if (value === undefined) return true;
+    const point = table(value);
+    return point !== undefined && ['x', 'y'].every((coordinate) =>
+      point[coordinate] === undefined ||
+      resolveDesignNumber(document, point[coordinate]) === 0,
+    );
+  });
+  if (!defaultPlacement) return false;
+  const rawAlignment = slotLayout?.['alignment'];
+  const alignment = table(rawAlignment);
+  if (rawAlignment !== undefined && !alignment) return false;
+  const main = alignment?.[direction === 'row' ? 'horizontal' : 'vertical'] ?? 'Start';
+  const cross = alignment?.[direction === 'row' ? 'vertical' : 'horizontal'] ?? 'Start';
+  return (main === 'Start' || main === 'Fill') &&
+    (cross === 'Start' || cross === 'Fill' ||
+      (crossConstraint.stretchMode === 'Fixed' && (cross === 'Center' || cross === 'End')));
+}
+
+function nativeSlotCrossAlignment(
+  slotLayout: ZuiTable | undefined,
+  direction: 'row' | 'column',
+  nodeId: string,
+): 'start' | 'center' | 'end' | 'stretch' {
+  const raw = slotLayout?.['alignment'];
+  const alignment = table(raw);
+  if (raw !== undefined && !alignment)
+    throw new Error(`Invalid native slot alignment on ${nodeId}.`);
+  for (const axis of ['horizontal', 'vertical']) {
+    const value = alignment?.[axis];
+    if (value !== undefined && (typeof value !== 'string' || !['Start', 'Center', 'End', 'Fill'].includes(value)))
+      throw new Error(`Unsupported native slot alignment ${nodeId}.${axis}.`);
+  }
+  const value = alignment?.[direction === 'row' ? 'vertical' : 'horizontal'] ?? 'Start';
+  return value === 'Center' ? 'center' : value === 'End' ? 'end' : value === 'Fill' ? 'stretch' : 'start';
+}
+
 /** Resolve native main-axis slots because Penpot fill has no weighted flex value. */
 export function applyWeightedFlexLayout(
   parent: Board,
@@ -331,7 +390,21 @@ export function applyWeightedFlexLayout(
     ZUI_METADATA_NAMESPACE,
     ZUI_METADATA_NODE_ID,
   );
-  const mounts = document.nodes?.[parentId]?.children ?? [];
+  const parentNode = document.nodes?.[parentId];
+  const mounts = parentNode?.children ?? [];
+  const sourceKind = table(parentNode?.layout?.['container'])?.['kind'] ?? parentNode?.component;
+  // Extend only ordinary native Fixed boxes. Other implicit flex contracts keep
+  // their existing weighted projection policy, including priority fallbacks.
+  const nativeLinearParent = axis === 'row'
+    ? sourceKind === 'HorizontalBox' || sourceKind === 'HorizontalGroup'
+    : sourceKind === 'VerticalBox' || sourceKind === 'VerticalGroup';
+  const nativeFixedParent = nativeLinearParent &&
+    [parent.x ?? 0, parent.y ?? 0, parent.width, parent.height].every(Number.isFinite) &&
+    [container.rowGap, container.columnGap, ...Object.values(container.padding)]
+      .every((value) => Number.isFinite(value) && value >= 0) &&
+    !parent.children.some((child) => !child.hidden && child.type === 'board' &&
+      child.layoutChild?.absolute === true &&
+      child.getSharedPluginData(ZUI_METADATA_NAMESPACE, ZUI_METADATA_ROLE) === ZUI_ROLE_NODE);
   const children = parent.children.filter(
     (shape): shape is Board =>
       shape.type === 'board' &&
@@ -355,6 +428,7 @@ export function applyWeightedFlexLayout(
     const crossTable =
       table(slotLayout?.[cross]) ?? table(node.layout?.[cross]);
     const own = axisConstraint(document, mainTable);
+    const crossConstraint = axisConstraint(document, crossTable);
     const padding = table(slotLayout?.['padding']);
     const mainPadding =
       axis === 'row'
@@ -369,6 +443,7 @@ export function applyWeightedFlexLayout(
         : designNumber(document, padding?.['left'], 0) +
           designNumber(document, padding?.['right'], 0);
     const measured = desiredSizes?.get(nodeId)?.[main] ?? child[main];
+    const desiredCross = desiredSizes?.get(nodeId)?.[cross] ?? child[cross];
     const extent = Math.max(0, measured) + Math.max(0, mainPadding);
     const sizing = linearSizing(document, mount.slot);
     const inflated = {
@@ -380,7 +455,11 @@ export function applyWeightedFlexLayout(
           ? -1
           : own.max + Math.max(0, mainPadding),
     };
-    if (
+    if (!sizing && own.stretchMode === 'Fixed') {
+      // Native Fixed axes use the greater of preferred and measured content.
+      // Keep padding in the allocation until it is removed from the result.
+      inflated.preferred = Math.max(inflated.preferred, extent);
+    } else if (
       !sizing &&
       extent > 0 &&
       defaultAxis(own) &&
@@ -392,24 +471,48 @@ export function applyWeightedFlexLayout(
     const constraint = sizing
       ? resolveLinearSlotConstraint(axis, inflated, sizing, extent)
       : inflated;
+    // Taffy keeps the node's content bounds separate from slot margins and
+    // resolves preferred against those bounds before using it as a flex basis.
+    const contentMin = Math.max(0, own.min ?? 0);
+    const rawMax = own.max ?? -1;
+    const contentMax = rawMax < 0 ? -1 : Math.max(contentMin, rawMax);
+    const preferred = Math.max(contentMin,
+      Math.min(contentMax < 0 ? Infinity : contentMax, Math.max(0, own.preferred ?? 0)));
+    const contentConstraint = sizing
+      ? resolveLinearSlotConstraint(axis, {...own, min: contentMin, max: contentMax, preferred}, sizing, measured)
+      : {min: contentMin, max: contentMax};
+    const preserveStretch = mainTable?.['stretch'] === 'Stretch';
+    const weight = own.weight ?? 1;
+    const nativeFixed = !sizing && own.stretchMode === 'Fixed' && own.priority === 0 &&
+      finiteAxisValues(document, mainTable) && finiteAxisValues(document, crossTable) &&
+      [measured, desiredCross, mainPadding, crossPadding].every(Number.isFinite) &&
+      ['left', 'right', 'top', 'bottom'].every((side) => {
+        const value = padding?.[side] === undefined ? 0 : resolveDesignNumber(document, padding[side]);
+        return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+      }) && nativeFixedPlacementSupported(document, node.layout, slotLayout, axis, crossConstraint);
     return {
       child,
+      crossAlignment: nativeLinearParent ? nativeSlotCrossAlignment(slotLayout, axis, nodeId) : undefined,
       mainPadding: Math.max(0, mainPadding),
       crossPadding: Math.max(0, crossPadding),
-      crossConstraint: axisConstraint(document, crossTable),
-      desiredCross: desiredSizes?.get(nodeId)?.[cross] ?? child[cross],
+      crossConstraint,
+      desiredCross,
       constraint,
       explicitLinear: sizing !== undefined,
+      nativeFixed,
       linearFlex: {
-        min: constraint.min,
-        max: constraint.max,
+        min: contentConstraint.min,
+        max: contentConstraint.max,
         basis: sizing?.rule === 'Stretch'
-          ? Math.max(0, sizing.min ?? 0) + Math.max(0, mainPadding)
-          : Math.max(0, extent, inflated.preferred ?? 0),
+          ? Math.max(0, sizing.min ?? 0)
+          : !sizing && own.stretchMode === 'Stretch' && (preserveStretch || measured <= 0)
+            ? preferred : Math.max(0, measured, preferred),
         grow: sizing
           ? sizing.rule === 'Auto' ? 0 : Math.max(0, sizing.value ?? 1)
-          : inflated.stretchMode === 'Fixed' ? 0 : Math.max(0, inflated.weight ?? 1),
+          : own.stretchMode === 'Stretch' && (preserveStretch || measured <= 0 || preferred > 0)
+            ? weight <= 0 ? 1 : weight : 0,
         shrink: Math.max(0, sizing?.shrink_value ?? 1),
+        margin: Math.max(0, mainPadding),
       },
     };
   });
@@ -427,7 +530,9 @@ export function applyWeightedFlexLayout(
           container.rowGap * (valid.length - 1)),
   );
   if (!Number.isFinite(available)) return;
-  const resolved = valid.some(({explicitLinear}) => explicitLinear)
+  const nativeLinear = valid.some(({explicitLinear}) => explicitLinear) ||
+    (nativeFixedParent && valid.every(({nativeFixed}) => nativeFixed));
+  const resolved = nativeLinear
     ? solveNativeLinearFlexWidths(available, valid.map(({linearFlex}) => linearFlex))
     : solveWeightedFlexWidths(
         available,
@@ -442,10 +547,10 @@ export function applyWeightedFlexLayout(
       );
   valid.forEach(
     (
-      { child, mainPadding, crossPadding, crossConstraint, desiredCross },
+      { child, mainPadding, crossPadding, crossConstraint, desiredCross, crossAlignment },
       index,
     ) => {
-      const targetMain = Math.max(0.01, resolved[index] - mainPadding);
+      const targetMain = Math.max(0.01, resolved[index] - (nativeLinear ? 0 : mainPadding));
       const crossAvailable = Math.max(
         0,
         parent[cross] -
@@ -469,6 +574,10 @@ export function applyWeightedFlexLayout(
       const height = axis === 'row' ? Math.max(0.01, targetCross) : targetMain;
       allocateNativeLayoutSize(child, width, height);
       const layoutChild = child.layoutChild!;
+      const currentAlignment = layoutChild.alignSelf as string | undefined;
+      if (crossAlignment !== undefined && currentAlignment !== crossAlignment &&
+          !(crossAlignment === 'start' && (currentAlignment === undefined || currentAlignment === 'auto')))
+        layoutChild.alignSelf = crossAlignment;
       if (axis === 'row') {
         if (layoutChild.horizontalSizing !== 'fix')
           layoutChild.horizontalSizing = 'fix';

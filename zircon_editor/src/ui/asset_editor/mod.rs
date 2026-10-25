@@ -76,6 +76,7 @@ pub(crate) use node_projection::ui_asset_editor_surface_for_test;
 pub(crate) use node_projection::{
     apply_ui_asset_editor_designer_tool_mode, ui_asset_editor_node_projection,
     ui_asset_editor_node_projection_with_palette,
+    ui_asset_editor_node_projection_with_palette_search,
 };
 pub use presentation::{
     UiAssetEditorPanePresentation, UiAssetEditorPreviewCanvasNode,
@@ -83,6 +84,9 @@ pub use presentation::{
 };
 pub use preview::UiAssetPreviewHost;
 pub use replay_workspace::{UiAssetEditorReplayWorkspace, UiAssetEditorReplayWorkspaceResult};
+pub(crate) use session::{
+    UiAssetBindingSourceLocation, UiAssetCanvasAnchorPresetCommit, UiAssetCanvasAnchorPresetTicket,
+};
 pub use session::{
     UiAssetEditorBugReportReplayArtifact, UiAssetEditorCommandJournal,
     UiAssetEditorCommandJournalEntry, UiAssetEditorCommandJournalReplayError,
@@ -93,6 +97,10 @@ pub use session::{
     UiAssetEditorReplaySourceSummary, UiAssetEditorSession, UiAssetEditorSessionError,
     UI_ASSET_EDITOR_BUG_REPORT_REPLAY_ARTIFACT_SCHEMA_VERSION,
     UI_ASSET_EDITOR_COMMAND_JOURNAL_SCHEMA_VERSION,
+};
+pub(crate) use source::binding_locator::{
+    UiAssetBindingSourceDeclaration, UiAssetBindingSourceError, UiAssetBindingSourceScope,
+    UiAssetBindingSourceSelector, UiAssetSourceOwner, UiAssetSourceRange,
 };
 pub use source::UiAssetSourceBuffer;
 pub use tree::UiAssetDragDropPolicy;

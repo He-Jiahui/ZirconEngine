@@ -12,6 +12,8 @@ impl UiHostWindowEventLoop {
     }
 
     pub(super) fn handle_native_window_focus_lost(&mut self) {
+        self.host.retire_current_canvas_anchor_popup();
+        let palette_retired = self.host.retire_palette_search_input();
         self.last_pointer_position = None;
         let preview_canceled = self.host.finish_retained_pane_input(
             zircon_runtime_interface::ui::window::UiWindowEventKind::Focused { focused: false },
@@ -25,7 +27,7 @@ impl UiHostWindowEventLoop {
         self.dispatch_pointer_result(self.host.clear_template_button_press());
         self.dispatch_pointer_result(self.host.clear_template_focus_owner());
         self.sync_ime_allowed();
-        if capture_canceled || preview_canceled {
+        if capture_canceled || preview_canceled || palette_retired {
             self.host.request_frame_update();
         }
     }

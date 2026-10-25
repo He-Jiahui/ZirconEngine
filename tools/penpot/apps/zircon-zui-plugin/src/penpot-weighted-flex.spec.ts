@@ -139,4 +139,52 @@ describe('current native linear flex slots', () => {
       {min: 96, basis: 0, grow: 1, shrink: 1},
     ])).toEqual([96, 96]);
   });
+
+  it('native linear deficit keeps fixed slot margins outside the content shrink basis', () => {
+    const axes = [
+      {min: 0, basis: 28, grow: 0, shrink: 1, margin: 0},
+      {min: 0, basis: 60, grow: 0, shrink: 1, margin: 12},
+    ];
+    const sizes = solveNativeLinearFlexWidths(70, axes);
+    expect(sizes).toEqual([18.454545, 39.545455]);
+    expect(sizes[0] + sizes[1] + axes[1].margin).toBeCloseTo(70, 6);
+  });
+
+  it('native linear deficit reserves fixed margins before growing zero-basis Stretch slots', () => {
+    const axes = [
+      {min: 0, basis: 0, grow: 1, shrink: 1, margin: 0},
+      {min: 0, basis: 0, grow: 1, shrink: 1, margin: 12},
+    ];
+    expect(solveNativeLinearFlexWidths(100, axes)).toEqual([44, 44]);
+  });
+
+  it('native linear deficit freezes content bounds while retaining the full slot margin', () => {
+    const shrinking = [
+      {min: 24, basis: 28, grow: 0, shrink: 1, margin: 0},
+      {min: 0, basis: 60, grow: 0, shrink: 1, margin: 12},
+    ];
+    expect(solveNativeLinearFlexWidths(70, shrinking)).toEqual([24, 34]);
+    const growing = [
+      {min: 0, max: 30, basis: 0, grow: 1, shrink: 1, margin: 12},
+      {min: 0, basis: 0, grow: 1, shrink: 1, margin: 0},
+    ];
+    expect(solveNativeLinearFlexWidths(100, growing)).toEqual([30, 58]);
+    expect(solveNativeLinearFlexWidths(40, shrinking.map((axis, index) => ({
+      ...axis,
+      min: index === 0 ? 24 : 30,
+    })))).toEqual([24, 30]);
+  });
+
+  it('native linear deficit retains explicit fractional and zero shrink when fixed margins overflow', () => {
+    const fractional = [
+      {min: 0, basis: 100, grow: 0, shrink: 0.5, margin: 120},
+    ];
+    // The negative room after reserving the margin must not be clamped to zero.
+    expect(solveNativeLinearFlexWidths(100, fractional)).toEqual([40]);
+    const locked = [
+      {min: 0, basis: 28, grow: 0, shrink: 0, margin: 0},
+      {min: 0, basis: 60, grow: 0, shrink: 1, margin: 12},
+    ];
+    expect(solveNativeLinearFlexWidths(70, locked)).toEqual([28, 30]);
+  });
 });

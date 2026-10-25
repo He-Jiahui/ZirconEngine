@@ -107,7 +107,12 @@ fn to_host_contract_template_node_with_options_text(
         has_clear_action: false,
         layout_stepper: false,
         selected: data.selected,
-        tree_depth: 0,
+        // Asset rows already project depth in value_number; preserve it in the tree painter.
+        tree_depth: if data.surface_variant.as_str() == "asset-tree-row" {
+            data.value_number.max(0.0) as i32
+        } else {
+            0
+        },
         tree_indent_px: 0.0,
         options_text,
         options: data.options.clone(),
@@ -154,7 +159,8 @@ fn to_host_contract_template_node_with_options_text(
         accepted_drag_payloads: "".into(),
         drop_source_summary: "".into(),
         checked: false,
-        expanded: false,
+        expanded: data.surface_variant.as_str() == "asset-tree-row"
+            && data.component_variant.as_str() == "asset-folder-expanded",
         focused: data.focused,
         focus_visible: false,
         focus_visible_known: false,

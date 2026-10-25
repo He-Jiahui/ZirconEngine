@@ -37,8 +37,13 @@ function board(
     getSharedPluginData(namespace, key) {
       return metadata.get(`${namespace}/${key}`) ?? '';
     },
+    getSharedPluginDataKeys(namespace) {
+      const prefix = namespace + '/';
+      return [...metadata.keys()].filter(key => key.startsWith(prefix)).map(key => key.slice(prefix.length));
+    },
     setSharedPluginData(namespace, key, value) {
-      metadata.set(`${namespace}/${key}`, value);
+      if (value === null) metadata.delete(`${namespace}/${key}`);
+      else metadata.set(`${namespace}/${key}`, value);
     },
   };
 }
@@ -81,6 +86,26 @@ function resetPositionWhileAutoLayout(shape: ReviewScrollShape): void {
 }
 
 describe('Penpot review scroll presentation', () => {
+  it('leaves an uncaptured board metadata key set unchanged', () => {
+    const root = board(0, 0, 240, 160);
+    metadata(root, 'document', 'original owning source');
+    const before = root.getSharedPluginDataKeys(ZUI_METADATA_NAMESPACE);
+    expect(restoreReviewScrollPresentation(root)).toBe(0);
+    expect(root.getSharedPluginDataKeys(ZUI_METADATA_NAMESPACE)).toEqual(before);
+    expect(root.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'document')).toBe('original owning source');
+  });
+
+  it('removes recorded scroll metadata keys instead of persisting empty strings', () => {
+    const root = board(0, 0, 240, 160);
+    metadata(root, 'document', 'original owning source');
+    for (const key of ['review-scroll-captured-x', 'review-scroll-captured-y', 'review-scroll-captured-positions'])
+      metadata(root, key, '');
+    restoreReviewScrollPresentation(root);
+    expect(root.getSharedPluginDataKeys(ZUI_METADATA_NAMESPACE)).toEqual(['document']);
+    restoreReviewScrollPresentation(root);
+    expect(root.getSharedPluginDataKeys(ZUI_METADATA_NAMESPACE)).toEqual(['document']);
+  });
+
   it('keeps scroll offset independent of the interaction state', () => {
     expect(reviewScrollPosition({ state: 'open', scrollPosition: 'end' })).toBe(
       'end',

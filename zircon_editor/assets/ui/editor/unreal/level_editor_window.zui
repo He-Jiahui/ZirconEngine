@@ -33,7 +33,7 @@ children = [{ node = "editor_content" }, { node = "content_drawer" }, { node = "
 component = "VerticalGroup"
 control_id = "UnrealLevelEditorContent"
 classes = ["unreal-editor-window"]
-layout = { container = { kind = "VerticalBox", gap = 1}, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+layout = { container = { kind = "VerticalBox", gap = 2}, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
   { node = "menu_bar", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
   { node = "project_context", slot = { layout = { linear_size = { rule = "Auto", shrink_value = 0.0 } } } },
@@ -75,7 +75,7 @@ control_id = "WorkbenchMenuBarRoot"
 classes = ["unreal-menu-bar"]
 layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
 
-# Reference workbench: viewport 1 : right 1/3; Outliner .7 : Details 1.
+# UE default layout: viewport 1 : right 1/3; Outliner .4 : Details 1.
 # Each pane owns its own scrolling; narrow windows retain the same dock hierarchy.
 [nodes.main_band]
 component = "HorizontalGroup"
@@ -99,7 +99,7 @@ control_id = "UnrealRightDock"
 classes = ["unreal-dock"]
 layout = { clip = true, container = { kind = "VerticalBox", gap = 4.0 }, width = { min = 240.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
 children = [
-  { node = "outliner", slot = { layout = { linear_size = { rule = "Stretch", value = 0.7 } } } },
+  { node = "outliner", slot = { layout = { linear_size = { rule = "Stretch", value = 0.4 } } } },
   { node = "details", slot = { layout = { linear_size = { rule = "Stretch", value = 1.0 } } } },
 ]
 
@@ -107,7 +107,7 @@ children = [
 component = "UnrealOutlinerPanel"
 control_id = "WorkbenchMainBandSceneTreePanel"
 classes = ["unreal-outliner", "unreal-dock"]
-layout = { clip = true, width = { stretch = "Stretch" }, height = { min = 96.0, stretch = "Stretch" } }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { min = 128, stretch = "Stretch" } }
 
 [nodes.details]
 component = "UnrealDetailsPanel"

@@ -35,6 +35,8 @@ pub(super) fn sync_asset_browser_source_tree_nodes(
             snapshot.visible_assets.len(),
             snapshot.selected_folder_id.is_some(),
             0,
+            false,
+            false,
         ));
         return;
     }
@@ -48,6 +50,8 @@ pub(super) fn sync_asset_browser_source_tree_nodes(
             folder.selected
                 || snapshot.selected_folder_id.as_deref() == Some(folder.folder_id.as_str()),
             folder.depth,
+            folder.has_children,
+            folder.expanded,
         ));
     }
 }
@@ -63,14 +67,24 @@ fn source_tree_row_node(
     recursive_asset_count: usize,
     selected: bool,
     depth: usize,
+    has_children: bool,
+    expanded: bool,
 ) -> ViewTemplateNodeData {
     let mut row = prototype.clone();
     row.node_id = format!("asset_browser.source_tree.row_{:02}", index + 1).into();
     row.control_id = source_tree_row_control_id(index).into();
     row.role = "TreeRow".into();
     row.component_role = "workbench-tree-row".into();
-    row.component_variant = "asset-folder".into();
+    row.component_variant = if !has_children {
+        "asset-folder-leaf"
+    } else if expanded {
+        "asset-folder-expanded"
+    } else {
+        "asset-folder"
+    }
+    .into();
     row.surface_variant = "asset-tree-row".into();
+    row.icon_name = "editor_pages/asset_browser/navigation/folder.svg".into();
     row.text = text.into();
     row.value_text = recursive_asset_count.to_string().into();
     row.selected = selected;

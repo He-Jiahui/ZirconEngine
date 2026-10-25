@@ -12,8 +12,11 @@ use super::{
     undo_stack,
 };
 
+mod binding_source_navigation;
 #[path = "binding_state.rs"]
 pub(crate) mod binding_state;
+#[path = "canvas_anchor_state.rs"]
+mod canvas_anchor_state;
 #[path = "command_entry.rs"]
 pub(crate) mod command_entry;
 #[path = "designer_state.rs"]
@@ -30,6 +33,7 @@ pub(crate) mod journal;
 pub(crate) mod lifecycle;
 #[path = "navigation_state.rs"]
 pub(crate) mod navigation_state;
+mod palette_search_state;
 #[path = "palette_state.rs"]
 pub(crate) mod palette_state;
 #[path = "presentation/mod.rs"]
@@ -38,6 +42,8 @@ pub(crate) mod presentation;
 pub(crate) mod preview_compile;
 #[path = "preview_state.rs"]
 pub(crate) mod preview_state;
+#[path = "preview_visibility_state.rs"]
+mod preview_visibility_state;
 #[path = "promotion_state.rs"]
 pub(crate) mod promotion_state;
 #[path = "replay_artifact.rs"]
@@ -76,4 +82,9 @@ pub use replay_artifact::{
 };
 pub use ui_asset_editor_session::{
     UiAssetEditorReplayResult, UiAssetEditorSession, UiAssetEditorSessionError,
+};
+
+pub(crate) use binding_source_navigation::UiAssetBindingSourceLocation;
+pub(crate) use canvas_anchor_state::{
+    UiAssetCanvasAnchorPresetCommit, UiAssetCanvasAnchorPresetTicket,
 };

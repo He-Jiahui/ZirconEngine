@@ -135,6 +135,8 @@ impl UiHostWindow {
     }
 
     pub(crate) fn hide(&self) -> Result<(), PlatformError> {
+        self.retire_current_canvas_anchor_popup();
+        self.retire_palette_search_input();
         // Programmatic presenter retirement may run while the app host is already mutably
         // borrowed, so retire only this window's native capture state without invoking callbacks.
         self.global::<super::super::globals::UiHostContext>()
@@ -185,6 +187,8 @@ impl UiHostWindow {
     }
 
     pub(crate) fn request_exit(&self) {
+        self.retire_current_canvas_anchor_popup();
+        self.retire_palette_search_input();
         self.toast_presentation_observer.clear();
         let mut state = self.state.borrow_mut();
         state.window_visible = false;

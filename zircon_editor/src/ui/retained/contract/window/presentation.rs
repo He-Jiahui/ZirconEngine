@@ -81,7 +81,8 @@ impl UiHostWindow {
     }
 
     #[track_caller]
-    pub(crate) fn set_host_presentation(&self, presentation: HostWindowPresentationData) {
+    pub(crate) fn set_host_presentation(&self, mut presentation: HostWindowPresentationData) {
+        self.prepare_canvas_anchor_popup_publication(&mut presentation);
         let mut state = self.state.borrow_mut();
         state.presentation_rebuild_count = state.presentation_rebuild_count.saturating_add(1);
         record_current_ui_perf_counter(UiPerfCounter::PresentationRebuildCount, 1.0);
@@ -113,6 +114,7 @@ impl UiHostWindow {
         geometry: HostWindowGeometryPresentationData,
         workbench_changed_rows: &[usize],
     ) -> bool {
+        self.retire_current_canvas_anchor_popup();
         let committed = self
             .state
             .borrow_mut()
@@ -140,7 +142,12 @@ impl UiHostWindow {
         let mut state = self.state.borrow_mut();
         state.presentation_rebuild_count = state.presentation_rebuild_count.saturating_add(1);
         record_current_ui_perf_counter(UiPerfCounter::PresentationRebuildCount, 1.0);
-        state.update_host_presentation(update)
+        let mut next = state.host_presentation.as_ref().clone();
+        let result = update(&mut next);
+        drop(state);
+        self.prepare_canvas_anchor_popup_publication(&mut next);
+        self.state.borrow_mut().replace_host_presentation(next);
+        result
     }
 
     #[track_caller]
@@ -161,8 +168,20 @@ impl UiHostWindow {
         &self,
         prepare: impl FnOnce(&HostWindowPresentationData) -> Option<(HostPanePresentationPatch, R)>,
     ) -> Option<R> {
+        let (patch, result) = {
+            let state = self.state.borrow();
+            let (patch, result) = prepare(state.host_presentation.as_ref())?;
+            patch.paint_model_replacements(state.host_presentation.as_ref())?;
+            (patch, result)
+        };
+        if self
+            .canvas_anchor_popup_instance()
+            .as_ref()
+            .is_some_and(|id| patch.changes_canvas_anchor_target(id.as_str()))
+        {
+            self.retire_current_canvas_anchor_popup();
+        }
         let mut state = self.state.borrow_mut();
-        let (patch, result) = prepare(state.host_presentation.as_ref())?;
         if !state.patch_host_presentation_panes(patch) {
             return None;
         }
@@ -176,8 +195,20 @@ impl UiHostWindow {
         &self,
         prepare: impl FnOnce(&HostWindowPresentationData) -> Option<(HostPresentationPatch, R)>,
     ) -> Option<R> {
+        let (patch, result) = {
+            let state = self.state.borrow();
+            let (patch, result) = prepare(state.host_presentation.as_ref())?;
+            patch.paint_model_replacements(state.host_presentation.as_ref())?;
+            (patch, result)
+        };
+        if self
+            .canvas_anchor_popup_instance()
+            .as_ref()
+            .is_some_and(|id| patch.changes_canvas_anchor_target(id.as_str()))
+        {
+            self.retire_current_canvas_anchor_popup();
+        }
         let mut state = self.state.borrow_mut();
-        let (patch, result) = prepare(state.host_presentation.as_ref())?;
         if !state.patch_host_presentation(patch) {
             return None;
         }
@@ -206,13 +237,45 @@ impl UiHostWindow {
         patch: HostDockPresentationPatch,
         replacements: &[(ModelRc<TemplatePaneNodeData>, ModelRc<TemplatePaneNodeData>)],
     ) -> bool {
-        self.state.borrow_mut().patch_host_presentation_dock(
+        let retirement = {
+            let state = self.state.borrow();
+            let generation = state.presentation_generation();
+            if generation.structure_generation() != expected_structure_generation
+                || generation
+                    .workbench_hit_index()
+                    .rebind_presentation_dock_patch(
+                        state.host_presentation.as_ref(),
+                        &patch,
+                        replacements,
+                    )
+                    .is_none()
+            {
+                return false;
+            }
+            state
+                .canvas_anchor_popup
+                .as_ref()
+                .map(|popup| (popup.id.clone(), std::rc::Rc::clone(&popup.retire)))
+        };
+        if let Some((_, retire)) = retirement.as_ref() {
+            // Retire the original domain permit before publishing the layout.
+            // Do not change native presentation generations before the guarded commit.
+            if let Err(error) = retire() {
+                write_diagnostic_log("canvas_anchor_popup_retire", error);
+                return false;
+            }
+        }
+        let committed = self.state.borrow_mut().patch_host_presentation_dock(
             expected_structure_generation,
             next_shell,
             next_layout,
             patch,
             replacements,
-        )
+        );
+        if let Some((id, _)) = retirement {
+            self.close_canvas_anchor_popup(&id, false);
+        }
+        committed
     }
 
     pub(crate) fn patch_scene_viewport_chrome(

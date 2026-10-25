@@ -170,6 +170,7 @@ impl<'a> TemplatePopupRowTarget<'a> {
                 value_text,
                 frame,
             } => TemplatePopupRowRouteHit::Hit(TemplateNodePointerRouteHit {
+                palette_search_source: None,
                 pane_id: "",
                 control_id: node.control_id.as_str(),
                 action_id,
@@ -194,6 +195,7 @@ impl<'a> TemplatePopupRowTarget<'a> {
                 value_text,
                 frame,
             } => TemplatePopupRowRouteHit::Hit(TemplateNodePointerRouteHit {
+                palette_search_source: None,
                 pane_id: "",
                 control_id,
                 action_id: "",
@@ -218,6 +220,7 @@ impl<'a> TemplatePopupRowTarget<'a> {
                 value_text,
                 frame,
             } => TemplatePopupRowRouteHit::Hit(TemplateNodePointerRouteHit {
+                palette_search_source: None,
                 pane_id: "",
                 control_id,
                 action_id: "",
@@ -258,6 +261,7 @@ pub(super) fn template_popup_row_hit(
     value_text: SharedString,
 ) -> TemplateNodePointerHit {
     TemplateNodePointerHit {
+        palette_search_target: None,
         pane_id: SharedString::new(),
         control_id: node.control_id.clone(),
         action_id,
@@ -284,6 +288,7 @@ fn template_popup_text_input_hit(
     value_text: &str,
 ) -> TemplateNodePointerHit {
     TemplateNodePointerHit {
+        palette_search_target: None,
         pane_id: SharedString::new(),
         control_id: control_id.into(),
         action_id: SharedString::new(),
@@ -310,6 +315,7 @@ fn template_popup_chord_input_hit(
     value_text: &str,
 ) -> TemplateNodePointerHit {
     TemplateNodePointerHit {
+        palette_search_target: None,
         pane_id: SharedString::new(),
         control_id: control_id.into(),
         action_id: SharedString::new(),

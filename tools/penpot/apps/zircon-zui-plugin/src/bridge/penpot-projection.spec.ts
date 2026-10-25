@@ -7,6 +7,154 @@ import {
 } from './penpot-projection';
 
 describe('Penpot projection bridge', () => {
+  it('edits height.min without fixing the weighted child or changing source geometry and events', () => {
+    const { document } = parseZuiDocument(fixtureSource);
+    const nodes = zuiNodes(document);
+    nodes['actions'].layout!['height'] = { min: 96, preferred: 200, max: 400, stretch: 'Stretch' };
+    nodes['root'].children![1].slot!['layout'] = {
+      linear_size: { rule: 'Stretch', value: 0.4 },
+    };
+    const original = structuredClone(document);
+    const snapshot = cloneProjectionSnapshot(projectZuiDocument(document));
+    const shape = snapshot.shapes.find(({ nodeId }) => nodeId === 'actions')!;
+    expect(shape.baseline.heightMin).toBe(96);
+    shape.current.heightMin = 128;
+    const result = reconcileZuiDocument(document, snapshot);
+    const expected = structuredClone(original);
+    (expected.nodes!.actions.layout!['height'] as Record<string, unknown>)['min'] = 128;
+    expect(result.document).toEqual(expected);
+    expect(result.changes).toEqual(['nodes.actions.layout.height.min']);
+    expect(shape.current.geometry).toEqual(shape.baseline.geometry);
+    expect(document).toEqual(original);
+  });
+
+  it('preserves unchanged token-backed and zero height.min declarations', () => {
+    const { document } = parseZuiDocument(fixtureSource);
+    zuiNodes(document)['actions'].layout!['height'] = { min: '$space.medium', stretch: 'Stretch' };
+    let snapshot = cloneProjectionSnapshot(projectZuiDocument(document));
+    expect(snapshot.shapes.find(({ nodeId }) => nodeId === 'actions')!.baseline.heightMin).toBe(12);
+    expect(reconcileZuiDocument(document, snapshot).document).toEqual(document);
+    zuiNodes(document)['actions'].layout!['height'] = { min: 0, stretch: 'Stretch' };
+    snapshot = cloneProjectionSnapshot(projectZuiDocument(document));
+    expect(snapshot.shapes.find(({ nodeId }) => nodeId === 'actions')!.baseline.heightMin).toBe(0);
+    expect(reconcileZuiDocument(document, snapshot).changes).toEqual([]);
+  });
+
+  it('preserves root and free-parent source minima without exposing unsupported SDK mappings', () => {
+    const { document } = parseZuiDocument(fixtureSource);
+    zuiNodes(document)['root'].layout!['container'] = { kind: 'Overlay' };
+    const original = structuredClone(document);
+    const snapshot = cloneProjectionSnapshot(projectZuiDocument(document));
+    for (const nodeId of ['root', 'title', 'actions', 'virtual_rows']) {
+      const shape = snapshot.shapes.find((shape) => shape.nodeId === nodeId)!;
+      expect(shape.baseline).not.toHaveProperty('heightMin');
+      expect(shape.current).not.toHaveProperty('heightMin');
+    }
+    expect(snapshot.shapes.find(({ nodeId }) => nodeId === 'row_template')!.baseline.heightMin)
+      .toBe(24);
+    expect(reconcileZuiDocument(document, snapshot).document).toEqual(original);
+    expect(document).toEqual(original);
+  });
+
+  it.each(['root', 'title'])(
+    'rejects a fabricated height.min mapping on unsupported %s even when both receipts agree', (nodeId) => {
+      const { document } = parseZuiDocument(fixtureSource);
+      zuiNodes(document)['root'].layout!['container'] = { kind: 'Overlay' };
+      const original = structuredClone(document);
+      const snapshot = cloneProjectionSnapshot(projectZuiDocument(document));
+      const shape = snapshot.shapes.find((shape) => shape.nodeId === nodeId)!;
+      shape.baseline.heightMin = shape.current.heightMin =
+        nodeId === 'root' ? 240 : 28;
+      expect(() => reconcileZuiDocument(document, snapshot)).toThrow(/height.min mapping/);
+      expect(document).toEqual(original);
+    },
+  );
+
+  it('keeps standalone and native floating minima editable in the actual detached flex lane', () => {
+    const { document } = parseZuiDocument(`
+[asset]
+kind = "view"
+id = "detached-minimum"
+version = 2
+[root]
+node = "dock"
+[nodes.dock]
+component = "DockHost"
+layout = { height = { min = 800 }, container = { kind = "Overlay" } }
+children = [{ node = "main" }, { node = "floating" }]
+[nodes.main]
+component = "Window"
+layout = { height = { min = 32 } }
+[nodes.floating]
+component = "FloatingWindow"
+layout = { height = { min = 32 } }
+[nodes.template]
+component = "Label"
+props = { text = "Detached" }
+layout = { height = { min = 24 } }
+`);
+    const snapshot = cloneProjectionSnapshot(projectZuiDocument(document));
+    expect(snapshot.shapes.find(({ nodeId }) => nodeId === 'dock')!.baseline)
+      .not.toHaveProperty('heightMin');
+    expect(snapshot.shapes.find(({ nodeId }) => nodeId === 'main')!.baseline)
+      .not.toHaveProperty('heightMin');
+    const floating = snapshot.shapes.find(({ nodeId }) => nodeId === 'floating')!;
+    const detached = snapshot.shapes.find(({ nodeId }) => nodeId === 'template')!;
+    expect(floating.parentNodeId).toBe('dock');
+    expect(floating.baseline.heightMin).toBe(32);
+    expect(detached.parentNodeId).toBeNull();
+    expect(detached.baseline.heightMin).toBe(24);
+    floating.current.heightMin = 48;
+    detached.current.heightMin = 30;
+    const result = reconcileZuiDocument(document, snapshot);
+    expect(result.changes).toEqual([
+      'nodes.floating.layout.height.min', 'nodes.template.layout.height.min',
+    ]);
+    const expected = structuredClone(document);
+    (expected.nodes!.floating.layout!['height'] as Record<string, unknown>)['min'] = 48;
+    (expected.nodes!.template.layout!['height'] as Record<string, unknown>)['min'] = 30;
+    expect(result.document).toEqual(expected);
+  });
+
+  it.each(['height resize', 'parent layout transition'])(
+    'rejects a height.min edit combined with a %s instead of overwriting the constraint', (kind) => {
+      const { document } = parseZuiDocument(fixtureSource);
+      const original = structuredClone(document);
+      const snapshot = cloneProjectionSnapshot(projectZuiDocument(document));
+      const title = snapshot.shapes.find(({ nodeId }) => nodeId === 'title')!;
+      title.current.heightMin = 30;
+      if (kind === 'height resize') title.current.geometry.height += 4;
+      else snapshot.shapes.find(({ nodeId }) => nodeId === 'root')!.current.container.kind = 'free';
+      expect(() => reconcileZuiDocument(document, snapshot))
+        .toThrow(/height.min cannot be edited together with a height resize or parent layout transition/);
+      expect(document).toEqual(original);
+    },
+  );
+
+  it('rejects missing, introduced, or stale height.min mappings', () => {
+    const { document } = parseZuiDocument(fixtureSource);
+    for (const kind of ['missing', 'introduced', 'stale'] as const) {
+      const snapshot = cloneProjectionSnapshot(projectZuiDocument(document));
+      const shape = snapshot.shapes.find(({ nodeId }) =>
+        nodeId === (kind === 'introduced' ? 'submit' : 'title'))!;
+      if (kind === 'missing') delete shape.current.heightMin;
+      if (kind === 'introduced') shape.current.heightMin = 128;
+      if (kind === 'stale') shape.baseline.heightMin = 95;
+      expect(() => reconcileZuiDocument(document, snapshot)).toThrow(/height.min mapping/);
+    }
+  });
+
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, -1])(
+    'rejects invalid height.min %s without changing the source', (heightMin) => {
+      const { document } = parseZuiDocument(fixtureSource);
+      const original = structuredClone(document);
+      const snapshot = cloneProjectionSnapshot(projectZuiDocument(document));
+      snapshot.shapes.find(({ nodeId }) => nodeId === 'title')!.current.heightMin = heightMin;
+      expect(() => reconcileZuiDocument(document, snapshot)).toThrow(/height.min must be finite and nonnegative/);
+      expect(document).toEqual(original);
+    },
+  );
+
   it('hides a closed root dialog and lets its explicit state override authored open props', () => {
     const { document } = parseZuiDocument(
       '[asset]\nkind = "component"\nid = "res://review/dialog.zui"\nversion = 2\n\n[components.ReviewDialog]\nroot = "dialog"\n\n[nodes.dialog]\ncomponent = "Dialog"\nprops = { open = false, popup_open = false, title = "Scene Settings" }\n',
@@ -40,6 +188,25 @@ describe('Penpot projection bridge', () => {
       expect(projectZuiDocument(document).rootNodes[0].previewHidden).toBe(
         true,
       );
+    },
+  );
+
+  it.each(['PopupMenu', 'DropdownPopup', 'Dialog'])(
+    'preserves the open state of a materialized %s prefab',
+    (component) => {
+      const { document } = parseZuiDocument(
+        '[asset]\nkind = "component"\nid = "res://review/materialized-popup.zui"\nversion = 2\n\n[components.ReviewPopup]\nroot = "popup"\n\n[nodes.popup]\ncomponent = "Visual"\nprops = { open = false, popup_open = false }\n',
+      );
+      const popup = zuiNodes(document)['popup'];
+      popup['penpot_prefab_source'] = `res://ui/prefabs/popup.zui#${component}`;
+      expect(projectZuiDocument(document).rootNodes[0].previewHidden).toBe(true);
+
+      popup.state = { open: true, popup_open: true };
+      expect(projectZuiDocument(document).rootNodes[0].previewHidden).toBe(false);
+
+      popup.props = { ...popup.props, open: true, popup_open: true };
+      popup.state = { open: false, popup_open: false };
+      expect(projectZuiDocument(document).rootNodes[0].previewHidden).toBe(true);
     },
   );
 
@@ -172,8 +339,39 @@ describe('Penpot projection bridge', () => {
     expect(projectZuiDocument(document).rootNodes[0].container).toMatchObject({
       kind: 'flex',
       direction: 'row',
+      alignItems: 'stretch',
       clip: true,
     });
+  });
+
+  it.each(['HorizontalBox', 'HorizontalGroup', 'VerticalBox', 'VerticalGroup', 'ScrollableBox', 'ScrollBox'])(
+    'uses the native cross-start/stretch contract for %s without changing fixed child sizes', (kind) => {
+      const { document } = parseZuiDocument(fixtureSource);
+      const nodes = zuiNodes(document);
+      nodes['root'].component = kind;
+      nodes['root'].layout!['container'] = { kind, axis: 'Horizontal' };
+      nodes['root'].layout!['height'] = { min: 48, preferred: 48, max: 48, stretch: 'Fixed' };
+      nodes['title'].layout!['height'] = { min: 32, preferred: 32, max: 32, stretch: 'Fixed' };
+      nodes['actions'].layout!['height'] = { stretch: 'Stretch' };
+      const source = structuredClone(document);
+      const projection = projectZuiDocument(document);
+      expect(projection.rootNodes[0].container.alignItems).toBe('stretch');
+      expect(projection.shapes.find(({ nodeId }) => nodeId === 'title')!.geometry.height).toBe(32);
+      expect(nodes['title'].layout!['height']).toMatchObject({ stretch: 'Fixed', preferred: 32 });
+      expect(nodes['actions'].layout!['height']).toEqual({ stretch: 'Stretch' });
+      expect(document).toEqual(source);
+      nodes['root'].layout!['container'] = { kind, axis: 'Horizontal', align_items: 'Center' };
+      expect(projectZuiDocument(document).rootNodes[0].container.alignItems).toBe('center');
+    },
+  );
+
+  it('preserves the existing implicit MUI row alignment', () => {
+    const { document } = parseZuiDocument(fixtureSource);
+    const root = zuiNodes(document)['root'];
+    root.component = 'Stack';
+    root.props = { direction: 'row' };
+    root.layout!['container'] = { kind: 'Stack' };
+    expect(projectZuiDocument(document).rootNodes[0].container.alignItems).toBe('center');
   });
 
   it('keeps native floating windows source-addressable while projecting them to the detached lane', () => {

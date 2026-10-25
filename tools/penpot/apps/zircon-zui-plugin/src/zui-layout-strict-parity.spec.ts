@@ -19,6 +19,7 @@ import {
 } from '../tools/zui-layout-review-contract';
 import {
   compareSemanticGeometry,
+  sourceSemanticIdentity,
   type RendererRuntimeAssets,
 } from '../tools/zui-layout-semantic-parity';
 import { compareTextEvidence } from '../tools/zui-layout-text-parity';
@@ -158,7 +159,7 @@ const compareWorkbenchGeometry = (
       ],
     expectedResourceUses: runtimeAssets.expectedResourceUses ?? [],
     expectedHostOverlayIds: runtimeAssets.expectedHostOverlayIds ?? [],
-    authoredSources: sourceFingerprints,
+    authoredSources: runtimeAssets.authoredSources ?? sourceFingerprints,
     engineCapturePrograms: [[sourceMapPath, sourceMapHash]],
   });
 
@@ -185,6 +186,8 @@ type SemanticNodeFixture = {
   parentSourcePath: string | null;
   parentSourceNodeId: string | null;
   parentInstancePath: string | null;
+  itemKey?: string | null;
+  propertyFieldId?: string | null;
   component: string;
   visible: boolean;
   detached: boolean;
@@ -279,6 +282,64 @@ const workbenchGeometry = (reviewCase = workbenchCase): GeometryFixture => ({
     ],
   },
 });
+
+const inspectorOwnerSource = 'zircon_editor/assets/ui/editor/unreal/components/details.zui';
+const inspectorRowSource = 'zircon_editor/assets/ui/editor/workbench/data/component_property_row.zui';
+const inspectorFields = [
+  ['zircon_runtime::scene::components::CameraComponent.fov_y_radians',
+    '157694992433500694610706526866931910355', 'WorkbenchComponentPropertyVirtualRow01'],
+  ['zircon_runtime::scene::components::CameraComponent.z_far',
+    '57620256968940470099537706358547345741', 'WorkbenchComponentPropertyVirtualRow02'],
+] as const;
+function inspectorRepeatGeometry(renderer: 'penpot' | 'engine' = 'penpot') {
+  const geometry = workbenchGeometry();
+  geometry.sourceIdentityProvenance.sources.push(
+    [inspectorOwnerSource, '1'.repeat(64)], [inspectorRowSource, '2'.repeat(64)],
+  );
+  const ownerInstancePath = JSON.stringify([{ sourcePath: workbenchSourcePath, sourceNodeId: 'details' }]);
+  const rowInstancePath = JSON.stringify([
+    { sourcePath: workbenchSourcePath, sourceNodeId: 'details' },
+    { sourcePath: inspectorOwnerSource, sourceNodeId: 'prototype' },
+  ]);
+  for (const [index, ownerId] of ['properties', 'other_properties'].entries()) {
+    geometry.layout.semanticNodes.push({
+      ...geometry.layout.semanticNodes[0], nodeId: `owner-${index}`,
+      sourcePath: inspectorOwnerSource, sourceNodeId: ownerId, instancePath: ownerInstancePath,
+      controlId: null, component: 'ScrollableBox', parentNodeId: 'render-root',
+      parentSourcePath: workbenchSourcePath, parentSourceNodeId: 'root', parentInstancePath: '[]',
+    });
+    for (const [fieldIndex, [propertyFieldId, itemKey, nativeControl]] of inspectorFields.entries()) {
+      if (index === 1 && fieldIndex === 1) continue;
+      geometry.layout.semanticNodes.push({
+        ...geometry.layout.semanticNodes[0], nodeId: `row-${index}-${fieldIndex}`,
+        sourcePath: inspectorRowSource, sourceNodeId: 'root', instancePath: rowInstancePath,
+        controlId: renderer === 'engine' ? nativeControl
+          : `WorkbenchComponentPropertyVirtualRow${BigInt(itemKey).toString(16)}`,
+        component: 'InputField',
+        parentNodeId: `owner-${index}`, parentSourcePath: inspectorOwnerSource,
+        parentSourceNodeId: ownerId, parentInstancePath: ownerInstancePath,
+        itemKey, propertyFieldId,
+      });
+    }
+  }
+  if (renderer === 'engine') {
+    // Actual native publications retain explicit nulls on ordinary nodes.
+    for (const node of geometry.layout.semanticNodes)
+      if (node.itemKey === undefined && node.propertyFieldId === undefined) {
+        node.itemKey = null;
+        node.propertyFieldId = null;
+      }
+  }
+  geometry.semanticAudit.expectedNodeCount = geometry.layout.semanticNodes.length;
+  return geometry;
+}
+function compareInspectorRepeat(penpot: GeometryFixture, engine: GeometryFixture) {
+  return compareWorkbenchGeometry(penpot, engine, workbenchCase, {
+    expectedSemanticNodes: inspectorRepeatGeometry().layout.semanticNodes.map(sourceSemanticIdentity),
+    authoredSources: [...sourceFingerprints,
+      [inspectorOwnerSource, '1'.repeat(64)], [inspectorRowSource, '2'.repeat(64)]],
+  });
+}
 
 const workbenchTextEvidence = () => {
   const geometry = workbenchGeometry();
@@ -469,6 +530,144 @@ describe('renderer artifact storage roots', () => {
     expect(() => rendererFilePath('E:\\Git\\ZirconEngine', path)).toThrow(
       'Renderer path is outside repository and approved build roots',
     );
+  });
+});
+
+describe('Inspector repeat strict source identity', () => {
+  it('separates different fields and owners without changing the authored tuple or using physical IDs', () => {
+    const penpot = inspectorRepeatGeometry(), engine = inspectorRepeatGeometry('engine');
+    const rows = penpot.layout.semanticNodes.filter((node) => typeof node.itemKey === 'string');
+    expect(new Set(rows.map((node) => JSON.stringify([
+      node.sourcePath, node.sourceNodeId, node.instancePath,
+    ]))).size).toBe(1);
+    expect(new Set(rows.map(sourceSemanticIdentity)).size).toBe(3);
+    expect(JSON.parse(sourceSemanticIdentity(rows[0]))).toEqual([
+      rows[0].sourcePath, 'root', rows[0].instancePath,
+      inspectorOwnerSource, 'properties', rows[0].parentInstancePath, inspectorFields[0][1],
+    ]);
+    expect(sourceSemanticIdentity(penpot.layout.semanticNodes[0])).toBe(
+      JSON.stringify([workbenchSourcePath, 'root', '[]']),
+    );
+    const penpotControls = rows.map((node) => node.controlId);
+    const nativeControls = engine.layout.semanticNodes
+      .filter((node) => typeof node.itemKey === 'string').map((node) => node.controlId);
+    expect(penpotControls).toEqual([
+      ...inspectorFields.map(([, key]) => `WorkbenchComponentPropertyVirtualRow${BigInt(key).toString(16)}`),
+      penpotControls[0],
+    ]);
+    expect(nativeControls).toEqual([
+      'WorkbenchComponentPropertyVirtualRow01', 'WorkbenchComponentPropertyVirtualRow02',
+      'WorkbenchComponentPropertyVirtualRow01',
+    ]);
+    for (const node of engine.layout.semanticNodes) {
+      node.nodeId = `native-${node.nodeId}`;
+      if (node.parentNodeId !== null) node.parentNodeId = `native-${node.parentNodeId}`;
+    }
+    expect(compareInspectorRepeat(penpot, engine).errors).toEqual([]);
+    expect(rows.map((node) => node.controlId)).toEqual(penpotControls);
+    expect(engine.layout.semanticNodes.filter((node) => typeof node.itemKey === 'string')
+      .map((node) => node.controlId)).toEqual(nativeControls);
+  });
+
+  it('keeps authored control comparisons for non-repeat nodes', () => {
+    const penpot = inspectorRepeatGeometry(), engine = inspectorRepeatGeometry('engine');
+    engine.layout.semanticNodes.find((node) => node.nodeId === 'owner-0')!.controlId = 'ChangedAuthoredOwner';
+    expect(compareInspectorRepeat(penpot, engine).errors.join(' '))
+      .toContain('Semantic ownership differs');
+  });
+
+  it.each([[null, null], [null, undefined], [undefined, null], [undefined, undefined]] as const)(
+    'accepts native non-repeat absence %s/%s against omitted Penpot fields', (itemKey, propertyFieldId) => {
+      const penpot = workbenchGeometry(), engine = workbenchGeometry();
+      const node = engine.layout.semanticNodes[0];
+      node.itemKey = itemKey;
+      node.propertyFieldId = propertyFieldId;
+      expect(sourceSemanticIdentity(node)).toBe(JSON.stringify([workbenchSourcePath, 'root', '[]']));
+      expect(compareWorkbenchGeometry(penpot, engine).errors).toEqual([]);
+      expect(penpot.layout.semanticNodes[0].itemKey).toBeUndefined();
+      expect(node.itemKey).toBe(itemKey);
+      expect(node.propertyFieldId).toBe(propertyFieldId);
+    },
+  );
+
+  it.each([
+    [null, inspectorFields[0][0]], [inspectorFields[0][1], null], ['', ''],
+  ] as const)('rejects partial or explicitly empty repeat fields %s/%s', (itemKey, propertyFieldId) => {
+    const penpot = inspectorRepeatGeometry(), engine = inspectorRepeatGeometry('engine');
+    const row = engine.layout.semanticNodes.find((node) => typeof node.itemKey === 'string')!;
+    row.itemKey = itemKey;
+    row.propertyFieldId = propertyFieldId;
+    expect(compareInspectorRepeat(penpot, engine).errors.join(' '))
+      .toContain('invalid materialized source identity');
+  });
+
+  it('still requires control evidence on a validated repeat row', () => {
+    const penpot = inspectorRepeatGeometry(), engine = inspectorRepeatGeometry('engine');
+    const row = engine.layout.semanticNodes.find((node) => typeof node.itemKey === 'string')!;
+    Reflect.deleteProperty(row, 'controlId');
+    expect(compareInspectorRepeat(penpot, engine).errors.join(' '))
+      .toContain('missing source control identity');
+  });
+
+  it.each(['itemKey', 'propertyFieldId', 'both', 'owner'])(
+    'rejects missing repeat %s instead of accepting an authored-only intersection', (missing) => {
+      const penpot = inspectorRepeatGeometry(), engine = inspectorRepeatGeometry('engine');
+      const row = engine.layout.semanticNodes.find((node) => typeof node.itemKey === 'string')!;
+      if (missing === 'both') {
+        delete row.itemKey;
+        delete row.propertyFieldId;
+      } else if (missing === 'owner') {
+        row.parentSourcePath = null;
+        row.parentSourceNodeId = null;
+        row.parentInstancePath = null;
+      } else {
+        Reflect.deleteProperty(row, missing);
+      }
+      expect(compareInspectorRepeat(penpot, engine).errors.join(' '))
+        .toContain('invalid materialized source identity');
+    },
+  );
+
+  it.each(['00', '-1', (1n << 128n).toString(), inspectorFields[1][1]])(
+    'rejects noncanonical or stale field key %s', (key) => {
+      const penpot = inspectorRepeatGeometry(), engine = inspectorRepeatGeometry('engine');
+      engine.layout.semanticNodes.find((node) => typeof node.itemKey === 'string')!.itemKey = key;
+      expect(compareInspectorRepeat(penpot, engine).errors.join(' '))
+        .toContain('invalid materialized source identity');
+    },
+  );
+
+  it('rejects a valid but stale field/key pair against the prepared source inventory', () => {
+    const penpot = inspectorRepeatGeometry(), engine = inspectorRepeatGeometry('engine');
+    const row = engine.layout.semanticNodes.find((node) => typeof node.itemKey === 'string')!;
+    row.propertyFieldId = 'zircon_runtime::scene::components::CameraComponent.z_near';
+    row.itemKey = '17313027826898521308317255830018820214';
+    expect(compareInspectorRepeat(penpot, engine).errors.join(' '))
+      .toContain('missing source-derived semantic node');
+  });
+
+  it('rejects duplicate keys within one owner and duplicate physical nodes with different keys', () => {
+    const penpot = inspectorRepeatGeometry();
+    const duplicateKey = inspectorRepeatGeometry('engine');
+    const rows = duplicateKey.layout.semanticNodes.filter((node) => typeof node.itemKey === 'string');
+    rows[1].itemKey = rows[0].itemKey;
+    rows[1].propertyFieldId = rows[0].propertyFieldId;
+    expect(compareInspectorRepeat(penpot, duplicateKey).errors.join(' '))
+      .toContain('invalid or duplicate semantic node');
+    const duplicatePhysical = inspectorRepeatGeometry('engine');
+    const physicalRows = duplicatePhysical.layout.semanticNodes.filter((node) => typeof node.itemKey === 'string');
+    physicalRows[1].nodeId = physicalRows[0].nodeId;
+    expect(compareInspectorRepeat(penpot, duplicatePhysical).errors.join(' '))
+      .toContain('invalid or duplicate semantic node');
+  });
+
+  it.each(['declared', 'physical'])('rejects %s ownership borrowed from another existing owner', (owner) => {
+    const penpot = inspectorRepeatGeometry(), engine = inspectorRepeatGeometry('engine');
+    const row = engine.layout.semanticNodes.find((node) => node.nodeId === 'row-0-1')!;
+    if (owner === 'declared') row.parentSourceNodeId = 'other_properties';
+    else row.parentNodeId = 'owner-1';
+    expect(compareInspectorRepeat(penpot, engine).errors.join(' '))
+      .toContain('semantic parent differs from physical parent');
   });
 });
 

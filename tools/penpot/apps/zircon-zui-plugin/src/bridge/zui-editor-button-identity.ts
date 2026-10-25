@@ -1,5 +1,12 @@
 import type { ZuiNode } from './zui-document';
 
+// Same family and control identities as retained icon_buttons/identity.rs.
+export function isEditorTabCloseIconButton(node: ZuiNode): boolean {
+  const id = node.control_id ?? '';
+  return node.component === 'IconButton' && !id.startsWith('WorkbenchStatus') &&
+    (id.endsWith('TabClose') || /^(DockTabClose|DocumentTabClose|PageTabClose)/.test(id));
+}
+
 // Matches the retained host's template_buttons/identity and workbench_button/tab_like.
 export function usesWorkbenchLanguage(node: ZuiNode): boolean {
   return (
@@ -82,7 +89,7 @@ export function isEditorWorkbenchButton(node: ZuiNode): boolean {
   const id = node.control_id ?? '';
   return (
     ['Button', 'ToggleButton'].includes(node.component) &&
-    !/^(WorkbenchDrawerTab|WorkbenchTool|WorkbenchToolbar|WorkbenchRail|WorkbenchStatus|WorkbenchMini)/.test(
+    !/^(WorkbenchDrawerTab|WorkbenchRail|WorkbenchStatus|WorkbenchMini)/.test(
       id,
     ) &&
     !id.includes('IconButton') &&

@@ -2,11 +2,20 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import type { FrameLocator } from 'playwright';
 import type { RenderedLayoutAudit } from '../src/penpot-render-layout';
+import { layoutSettlementOptionsForNodes } from '../src/penpot-layout-settlement';
 
 export interface PreviewLayoutAuditReply {
   requestId: string;
   previewBoardId: string;
   layoutAudit: RenderedLayoutAudit;
+}
+
+/** Cover both native settlement phases and one minimum refresh/draft budget. */
+export function previewLayoutAuditTimeoutForNodes(nodeCount: number): number {
+  return (
+    2 * layoutSettlementOptionsForNodes(nodeCount).timeoutMs +
+    layoutSettlementOptionsForNodes(0).timeoutMs
+  );
 }
 
 /** Read the response to this request through the plugin's public UI channel. */

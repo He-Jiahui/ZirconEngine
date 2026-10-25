@@ -7,4 +7,7 @@ pub struct AssetFolderSnapshot {
     pub recursive_asset_count: usize,
     pub depth: usize,
     pub selected: bool,
+    /// Only real child folders expose a disclosure action; asset counts do not imply children.
+    pub has_children: bool,
+    pub expanded: bool,
 }

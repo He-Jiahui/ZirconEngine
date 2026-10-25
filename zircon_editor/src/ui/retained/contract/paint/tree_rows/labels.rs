@@ -24,8 +24,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_tr
         return;
     }
 
-    let text_rect =
-        tree_label_rect_for_variant(rect, icon, node.component_variant.as_str() == "content");
+    let text_rect = tree_label_rect_for_variant(
+        rect,
+        icon,
+        node.component_variant.as_str() == "content"
+            || node.component_variant.as_str().starts_with("asset-folder"),
+    );
     if !tree_row_contains(rect, &text_rect) {
         return;
     }

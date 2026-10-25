@@ -1,6 +1,106 @@
 use super::*;
 
 impl EditorUiHost {
+    pub(crate) fn begin_ui_asset_editor_canvas_anchor_popup(
+        &self,
+        instance_id: &ViewInstanceId,
+        visible_frame: &std::sync::Arc<zircon_runtime_interface::ui::surface::UiSurfaceFrame>,
+    ) -> Result<Option<crate::ui::asset_editor::UiAssetCanvasAnchorPresetTicket>, EditorError> {
+        let Some(_edit) = self.begin_document_edit_if_registered(instance_id)? else {
+            return Ok(None);
+        };
+        if !self
+            .lock_session()
+            .open_view_instances
+            .contains_key(instance_id)
+        {
+            return Ok(None);
+        }
+        let mut sessions = self.lock_ui_asset_sessions();
+        let Some(entry) = sessions.get_mut(instance_id) else {
+            return Ok(None);
+        };
+        let matches_visible = entry.session.preview_host_opt().is_some_and(|host| {
+            std::sync::Arc::ptr_eq(visible_frame, &host.surface().surface_frame())
+        });
+        if !matches_visible {
+            return Ok(None);
+        }
+        entry
+            .session
+            .begin_canvas_anchor_preset()
+            .map_err(|error| EditorError::UiAsset(error.to_string()))
+    }
+
+    pub(crate) fn ui_asset_editor_canvas_anchor_popup_is_current(
+        &self,
+        instance_id: &ViewInstanceId,
+        ticket: &crate::ui::asset_editor::UiAssetCanvasAnchorPresetTicket,
+    ) -> Result<bool, EditorError> {
+        let Some(_edit) = self.begin_document_edit_if_registered(instance_id)? else {
+            return Ok(false);
+        };
+        let sessions = self.lock_ui_asset_sessions();
+        Ok(sessions
+            .get(instance_id)
+            .is_some_and(|entry| ticket.is_current(&entry.session)))
+    }
+
+    pub(crate) fn submit_ui_asset_editor_canvas_anchor_popup(
+        &self,
+        instance_id: &ViewInstanceId,
+        ticket: &crate::ui::asset_editor::UiAssetCanvasAnchorPresetTicket,
+        index: usize,
+        shift: bool,
+        control: bool,
+    ) -> Result<Option<crate::ui::asset_editor::UiAssetCanvasAnchorPresetCommit>, EditorError> {
+        let Some(_edit) = self.begin_document_edit_if_registered(instance_id)? else {
+            return Ok(None);
+        };
+        let mut sessions = self.lock_ui_asset_sessions();
+        let Some(entry) = sessions.get_mut(instance_id) else {
+            return Ok(None);
+        };
+        if !ticket.is_current(&entry.session) {
+            return Ok(None);
+        }
+        let changed = entry
+            .session
+            .apply_canvas_anchor_preset(ticket, index, shift, control)
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        drop(sessions);
+        // The document edit guard remains live; the Session lock is released.
+        let sync_error = if changed {
+            self.sync_ui_asset_editor_instance(instance_id)
+                .err()
+                .map(|error| error.to_string())
+        } else {
+            None
+        };
+        Ok(Some(
+            crate::ui::asset_editor::UiAssetCanvasAnchorPresetCommit {
+                changed,
+                sync_error,
+            },
+        ))
+    }
+
+    pub(crate) fn cancel_ui_asset_editor_canvas_anchor_popup(
+        &self,
+        instance_id: &ViewInstanceId,
+        ticket: &crate::ui::asset_editor::UiAssetCanvasAnchorPresetTicket,
+    ) -> Result<bool, EditorError> {
+        let Some(_edit) = self.begin_document_edit_if_registered(instance_id)? else {
+            return Ok(false);
+        };
+        let mut sessions = self.lock_ui_asset_sessions();
+        let Some(entry) = sessions.get_mut(instance_id) else {
+            return Ok(false);
+        };
+        // Cancel only compares the original lease. No history, sync, focus or Stop.
+        Ok(entry.session.cancel_canvas_anchor_preset(ticket))
+    }
+
     pub fn set_ui_asset_editor_selected_widget_control_id(
         &self,
         instance_id: &ViewInstanceId,

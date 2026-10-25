@@ -29,6 +29,7 @@ fn popup_rows_do_not_inherit_text_input_focus() {
 
 fn hit_with_family(family: Option<TemplateComponentFamily>) -> TemplateNodePointerHit {
     TemplateNodePointerHit {
+        palette_search_target: None,
         pane_id: SharedString::new(),
         control_id: "Control".into(),
         action_id: SharedString::new(),

@@ -29,7 +29,41 @@ impl<'a> HostContractGlobal for UiHostContext<'a> {
 }
 
 impl UiHostContext<'_> {
+    fn retire_canvas_anchor_popup_before_menu(&self) {
+        let retired = {
+            let mut state = self.state.borrow_mut();
+            let popup = state.canvas_anchor_popup.take();
+            if let Some(popup) = popup.as_ref() {
+                state.canvas_anchor_popup_pointer_tail = popup
+                    .swallow_release
+                    .or_else(|| popup.pressed.map(|(_, pointer)| pointer));
+                state.update_host_presentation(|presentation| {
+                    presentation.canvas_anchor_popup = None
+                });
+                let existing = std::mem::replace(
+                    &mut state.external_redraw_request,
+                    super::super::redraw::HostRedrawRequest::none(),
+                );
+                state.external_redraw_request = existing.merge(
+                    super::super::redraw::HostRedrawRequest::region(popup.visual.bounds.clone()),
+                );
+            }
+            popup
+        };
+        if let Some(popup) = retired {
+            if let Err(error) = (popup.retire)() {
+                zircon_runtime::diagnostic_log::write_diagnostic_log(
+                    "canvas_anchor_popup_retire",
+                    error,
+                );
+            }
+        }
+    }
+
     pub(crate) fn set_menu_state(&self, value: HostMenuStateData) {
+        if value.open_menu_index >= 0 {
+            self.retire_canvas_anchor_popup_before_menu();
+        }
         let mut state = self.state.borrow_mut();
         if value.open_menu_index >= 0 {
             state.replace_page_overflow_menu_state(HostPageOverflowMenuStateData::default());
@@ -39,6 +73,9 @@ impl UiHostContext<'_> {
     }
 
     pub(crate) fn set_host_page_overflow_menu_state(&self, value: HostPageOverflowMenuStateData) {
+        if value.open {
+            self.retire_canvas_anchor_popup_before_menu();
+        }
         let mut state = self.state.borrow_mut();
         if value.open {
             state.replace_menu_state(HostMenuStateData::default());
@@ -48,6 +85,9 @@ impl UiHostContext<'_> {
     }
 
     pub(crate) fn set_host_dock_overflow_menu_state(&self, value: HostDockOverflowMenuStateData) {
+        if value.open {
+            self.retire_canvas_anchor_popup_before_menu();
+        }
         let mut state = self.state.borrow_mut();
         if value.open {
             state.replace_menu_state(HostMenuStateData::default());
@@ -58,7 +98,8 @@ impl UiHostContext<'_> {
 
     pub(crate) fn host_popup_occludes_workbench_tooltip(&self) -> bool {
         let state = self.state.borrow();
-        state.menu_state.open_menu_index >= 0
+        state.canvas_anchor_popup.is_some()
+            || state.menu_state.open_menu_index >= 0
             || state.host_page_overflow_menu_state.open
             || state.host_dock_overflow_menu_state.open
     }
@@ -187,7 +228,13 @@ impl UiHostContext<'_> {
         frame_requested,
         ()
     );
-    callback_methods!(ui_callbacks, on_runtime_frame_requested, invoke_runtime_frame_requested, runtime_frame_requested, ());
+    callback_methods!(
+        ui_callbacks,
+        on_runtime_frame_requested,
+        invoke_runtime_frame_requested,
+        runtime_frame_requested,
+        ()
+    );
     callback_methods!(
         ui_callbacks,
         on_interactive_frame_requested,

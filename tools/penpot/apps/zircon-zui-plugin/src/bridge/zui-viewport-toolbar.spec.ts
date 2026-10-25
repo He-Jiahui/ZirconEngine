@@ -1,9 +1,11 @@
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { importedActualNormalReviewCase, reviewCaseFromSavedMetadata, reviewDocumentForCase } from './zui-review-case';
 import { encodeZuiMetadata,decodeZuiMetadata,parseZuiDocument,serializeZuiDocument } from './zui-document';
 import { reviewHost } from './zui-review-host';
 import type { LayoutReviewCaseMessage } from '../model';
 import { bindFontResources,fontResourcesForDocument,parseFontResourceManifest } from './penpot-font-selection';
-import { deriveViewportToolbarReview,planViewportToolbar } from './zui-viewport-toolbar';
+import { deriveViewportToolbarReview,planViewportToolbar,viewportToolbarSourceMapping } from './zui-viewport-toolbar';
 import type { ZuiAssetProjection } from './penpot-projection-model';
 import type { ToolbarSourceNode } from './zui-viewport-toolbar-publication';
 import { describe,it,expect } from 'vitest';
@@ -109,7 +111,7 @@ describe('same-present source tuple mapping and logical measurements',()=>{
     expect(plan.publication!.nodes.find(node=>node.nodeId==='g1')!.desiredSize!.width).toBe(50);
   });
   it('rejects an unmapped original leaf tuple rather than using its source default state',()=>{
-    const wrong=observed();wrong.evidence.viewportToolbarPublication.nodes.find(node=>node.nodeId==='translate')!.instancePath='["wrong-call-site"]';
+    const wrong=observed();wrong.evidence.viewportToolbarPublication.nodes.find(node=>node.nodeId==='translate')!.instancePath='[{"sourcePath":"res://wrong-owner.zui","sourceNodeId":"wrong-call-site"}]';
     expect(()=>deriveViewportToolbarReview(wrong.document,wrong.evidence,1)).toThrow(/semantic node.*translate/);
     const missing=observed();delete missing.document.nodes!.rotate!['penpot_review_source_node_id'];
     expect(()=>deriveViewportToolbarReview(missing.document,missing.evidence,1)).toThrow(/semantic node.*rotate/);
@@ -220,5 +222,193 @@ describe('same-present source tuple mapping and logical measurements',()=>{
     expect(()=>reviewCaseFromSavedMetadata(fixture.imported,JSON.stringify(malformed))).toThrow(/payload/);
     expect(()=>reviewCaseFromSavedMetadata(fixture.imported,JSON.stringify({...fixture.reviewCase,sourcePath:'different.zui'}))).toThrow(/different Source owner/);
     expect(reviewCaseFromSavedMetadata(source(),'')).toBeNull();
+  });
+
+  describe('actual full-workbench toolbar identity',()=>{
+    const owner='zircon_editor/assets/ui/editor/unreal/level_editor_window.zui';
+    const viewport='zircon_editor/assets/ui/editor/unreal/components/viewport.zui';
+    const shell='zircon_editor/assets/ui/editor/unreal/editor_shell.zui';
+    const alias=(path:string):string=>path.replace(/^zircon_editor\/assets\//,'res://');
+    const ownerCall={sourcePath:owner,sourceNodeId:'viewport'};
+    const reviewPrefix={sourcePath:shell,sourceNodeId:'pane_surface'};
+    const reviewCalls=JSON.stringify([reviewPrefix,ownerCall]);
+    const nativeCalls=JSON.stringify([{...ownerCall,sourcePath:alias(owner)}]);
+    function fullWorkbench(){
+      const fixture=observed(),document=fixture.document,packet=fixture.evidence.viewportToolbarPublication;
+      for(const node of Object.values(document.nodes!)){
+        node['penpot_review_source_path']=viewport;node['penpot_review_instance_path']=reviewCalls;
+      }
+      for(const node of packet.nodes){node.instancePath=nativeCalls;node.sourcePath=alias(viewport);}
+      document.nodes!['projection']={component:'Dropdown',control_id:'SetProjectionMode',
+        penpot_review_source_path:'zircon_editor/assets/ui/editor/workbench/primitives/inputs/dropdown.zui',
+        penpot_review_source_node_id:'root',penpot_review_instance_path:JSON.stringify([reviewPrefix,ownerCall,{sourcePath:viewport,sourceNodeId:'projection'}])};
+      document.nodes!.g1!.children!.push({node:'projection'});
+      packet.nodes.push({...structuredClone(packet.nodes.find(node=>node.nodeId==='translate')!),
+        nodeId:'projection',sourcePath:'res://ui/editor/workbench/primitives/inputs/dropdown.zui',sourceNodeId:'root',
+        instancePath:JSON.stringify([{...ownerCall,sourcePath:alias(owner)},{sourcePath:alias(viewport),sourceNodeId:'projection'}]),
+        controlId:'SetProjectionMode',component:'Dropdown'});
+      for(const node of packet.nodes){
+        const parent=packet.nodes.find(candidate=>candidate.nodeId===node.parentNodeId);
+        if(parent){node.parentSourcePath=parent.sourcePath;node.parentSourceNodeId=parent.sourceNodeId;node.parentInstancePath=parent.instancePath;}
+      }
+      document.nodes!['layer']={component:'Overlay',control_id:'UnrealViewportToolbarLayer',children:[{node:'root'}],
+        penpot_review_source_path:viewport,penpot_review_source_node_id:'toolbar_layer',penpot_review_instance_path:reviewCalls};
+      document.nodes!['window']={component:'Overlay',control_id:'WorkbenchWindowRoot',children:[{node:'layer'}],
+        penpot_review_source_path:owner,penpot_review_source_node_id:'root',penpot_review_instance_path:JSON.stringify([reviewPrefix])};
+      document.root={node:'window'};
+      const toolbar=packet.nodes.find(node=>node.nodeId==='root')!;
+      toolbar.parentNodeId='native-layer';toolbar.parentSourcePath=alias(viewport);toolbar.parentSourceNodeId='toolbar_layer';toolbar.parentInstancePath=nativeCalls;
+      const prototypeCalls=JSON.stringify([reviewPrefix,{sourcePath:owner,sourceNodeId:'details'},
+        {sourcePath:'zircon_editor/assets/ui/editor/unreal/components/details.zui',sourceNodeId:'prototype'}]);
+      const itemKeys=['157694992433500694610706526866931910355','57620256968940470099537706358547345741','17313027826898521308317255830018820214'];
+      for(const [index,id] of ['prototype','fov','far','near'].entries()){
+        document.nodes![id]={component:'HorizontalGroup',penpot_review_source_path:'zircon_editor/assets/ui/editor/workbench/data/component_property_row.zui',
+          penpot_review_source_node_id:'root',penpot_review_instance_path:prototypeCalls,
+          ...(index>0?{penpot_review_generated_product_row:{kind:'inspectorProperty',itemKey:itemKeys[index-1]!}}:{})};
+        document.nodes!.window!.children!.push({node:id});
+      }
+      for(const [id,runtimeSurfaceKey] of [['header-document','document:3c9d8d65-2ba1-461c-9fa7-5513554212c2'],['header-bottom','bottom']]){
+        document.nodes![id!]={component:'Overlay',penpot_review_source_path:'zircon_editor/assets/ui/editor/unreal/components/dock_header.zui',
+          penpot_review_source_node_id:'dock_header_root',penpot_review_instance_path:JSON.stringify([reviewPrefix]),runtimeSurfaceKey:runtimeSurfaceKey!};
+        document.nodes!.window!.children!.push({node:id!});
+      }
+      const projected={nodeId:'v2/root',surfaceNodeId:1,parentId:null,sourcePath:alias(owner),sourceNodeId:'root',
+        instancePath:[],controlId:'WorkbenchWindowRoot',component:'Overlay'};
+      const evidence={...fixture.evidence,workbenchStatePublication:{...fixture.evidence.workbenchStatePublication,
+        workbenchPresentation:{...fixture.evidence.workbenchStatePublication.workbenchPresentation,sourceFingerprint:{sourcePath:owner}}},
+        arrangedInventoryPublication:{schema:'dev.zircon.editor.normal-arranged-inventory',version:1,
+        authority:'normal-retained-runtime-surfaces',observed:true,complete:false,pending:[{sourceNodeId:'Slot04Row'}],
+        presentationCursor:structuredClone(fixture.evidence.presentationCursor),presentedFrameCount:8,surfaces:[{
+          schema:'dev.zircon.editor.normal-surface-arranged-inventory',version:1,scope:'workbench-window',
+          documentId:alias(owner),coordinateSpace:'surface-logical',frameAuthority:'retained-host-projection',sourceFrameGeneration:13,rootIds:[1],
+          nodes:[{...projected,parent:null,projected}],
+        }]}};
+      return {document,evidence};
+    }
+    function identityGraph(document:ZuiDocument){
+      return Object.fromEntries(Object.entries(document.nodes!).map(([id,node])=>[id,{
+        component:node.component,controlId:node.control_id,sourcePath:node['penpot_review_source_path'],
+        sourceNodeId:node['penpot_review_source_node_id'],instancePath:node['penpot_review_instance_path'],children:node.children,events:node.events,
+      }]));
+    }
+    function projection(document:ZuiDocument):ZuiAssetProjection{
+      const popup=viewportToolbarContract(document)!.popup,padding={left:0,right:0,top:0,bottom:0};
+      return {shapes:Object.keys(document.nodes!).map(nodeId=>({nodeId,container:{kind:'flex',direction:nodeId===popup?'column':'row',padding,gap:4,columnGap:4,rowGap:4}})) as ProjectedZuiNode[]} as ZuiAssetProjection;
+    }
+    it('joins official aliases and complete real owner-relative invocations while retaining unrelated Inspector/Header duplicates',()=>{
+      const fixture=fullWorkbench(),before=JSON.stringify(identityGraph(fixture.document)),raw=JSON.stringify(fixture.evidence);
+      deriveViewportToolbarReview(fixture.document,fixture.evidence,1.25);
+      const plan=planViewportToolbar(fixture.document,projection(fixture.document),new Map(),900,620)!;
+      expect(plan.sourceByNativeId!.size).toBe(fixture.evidence.viewportToolbarPublication.nodes.length);
+      expect(plan.sourceByNativeId!.get('projection')).toBe('projection');
+      expect(plan.sourceOnlyNativeNodeIds!.size).toBe(0);
+      expect(plan.inline).toBe(1);expect(plan.publication).toEqual(fixture.evidence.viewportToolbarPublication);
+      expect(JSON.stringify(identityGraph(fixture.document))).toBe(before);expect(JSON.stringify(fixture.evidence)).toBe(raw);
+      expect(fixture.evidence.arrangedInventoryPublication.complete).toBe(false);
+      expect(fixture.evidence.arrangedInventoryPublication.pending).toEqual([{sourceNodeId:'Slot04Row'}]);
+    });
+    it('resolves persisted original group identities without applying their observed state to Source',()=>{
+      const fixture=fullWorkbench(),before=encodeZuiMetadata(fixture.document),raw=JSON.stringify(fixture.evidence);
+      const mapping=viewportToolbarSourceMapping(fixture.document,fixture.evidence,1.25)!;
+      const contract=viewportToolbarContract(fixture.document)!;
+      expect(mapping.packet.groupNodeIds.map(id=>mapping.sourceByNativeId.get(id))).toEqual(contract.groups);
+      expect(mapping.sourceByNativeId.size).toBe(mapping.packet.nodes.length);
+      expect(encodeZuiMetadata(fixture.document)).toBe(before);
+      expect(JSON.stringify(fixture.evidence)).toBe(raw);
+      expect(()=>planViewportToolbar(fixture.document,projection(fixture.document),new Map(),900,620))
+        .toThrow(/source group lacks actual intrinsic measurement: g1/);
+    });
+    it.each(['inside','outside'])('rejects a relevant tuple duplicated %s the toolbar',placement=>{
+      const fixture=fullWorkbench();fixture.document.nodes!['duplicate']={...structuredClone(fixture.document.nodes!.translate!),control_id:'DuplicatePhysicalNode'};
+      fixture.document.nodes![placement==='inside'?'g1':'window']!.children!.push({node:'duplicate'});
+      expect(()=>deriveViewportToolbarReview(fixture.document,fixture.evidence,1.25)).toThrow(/duplicate expanded source identity/);
+    });
+    it('rejects a publication naming a unique known outside node instead of treating it as source-only',()=>{
+      const fixture=fullWorkbench(),calls=[{sourcePath:owner,sourceNodeId:'details'}];
+      fixture.document.nodes!['outside']={component:'Text',control_id:'KnownOutside',penpot_review_source_path:viewport,
+        penpot_review_source_node_id:'outside',penpot_review_instance_path:JSON.stringify([reviewPrefix,...calls])};
+      fixture.document.nodes!.window!.children!.push({node:'outside'});
+      fixture.evidence.viewportToolbarPublication.nodes.push({...structuredClone(fixture.evidence.viewportToolbarPublication.nodes.find(node=>node.nodeId==='fill')!),
+        nodeId:'outside',sourceNodeId:'outside',instancePath:JSON.stringify(calls.map(step=>({...step,sourcePath:alias(step.sourcePath)}))),controlId:'KnownOutside',component:'Text'});
+      expect(()=>deriveViewportToolbarReview(fixture.document,fixture.evidence,1.25)).toThrow(/outside its source toolbar/);
+    });
+    it('rejects a packet key shared by unrelated outside rows when that key is actually queried',()=>{
+      const fixture=fullWorkbench(),prototype=fixture.document.nodes!.prototype!;
+      fixture.evidence.viewportToolbarPublication.nodes.push({...structuredClone(fixture.evidence.viewportToolbarPublication.nodes.find(node=>node.nodeId==='fill')!),
+        nodeId:'claimed-inspector',sourcePath:alias(prototype['penpot_review_source_path'] as string),sourceNodeId:'root',controlId:null,component:'HorizontalGroup',
+        instancePath:JSON.stringify(JSON.parse(prototype['penpot_review_instance_path'] as string).slice(1).map((step:{sourcePath:string;sourceNodeId:string})=>({...step,sourcePath:alias(step.sourcePath)})))});
+      expect(()=>deriveViewportToolbarReview(fixture.document,fixture.evidence,1.25)).toThrow(/duplicate expanded source identity/);
+    });
+    it.each(['res://assets/ui/editor/unreal/components/viewport.zui','other/zircon_editor/assets/ui/editor/unreal/components/viewport.zui',
+      'res://ui/editor/unreal/components/../components/viewport.zui','zircon_editor\\assets\\ui\\editor\\unreal\\components\\viewport.zui'])('rejects an unofficial or noncanonical source alias: %s',path=>{
+      const fixture=fullWorkbench();fixture.evidence.viewportToolbarPublication.nodes.find(node=>node.nodeId==='translate')!.sourcePath=path;
+      expect(()=>deriveViewportToolbarReview(fixture.document,fixture.evidence,1.25)).toThrow(/source alias|semantic node.*translate/);
+    });
+    it.each(['wrong-prefix','missing-callee','wrong-callee','wrong-source','wrong-source-node','wrong-component','wrong-control'])('rejects a dropdown %s without suffix or control fallback',change=>{
+      const fixture=fullWorkbench(),dropdown=fixture.evidence.viewportToolbarPublication.nodes.find(node=>node.nodeId==='projection')!;
+      const steps=JSON.parse(dropdown.instancePath) as {sourcePath:string;sourceNodeId:string}[];
+      if(change==='wrong-prefix')steps.unshift({sourcePath:alias(shell),sourceNodeId:'other_mount'});
+      if(change==='missing-callee')steps.pop();
+      if(change==='wrong-callee')steps[1]!.sourceNodeId='another_projection';
+      if(change==='wrong-source')dropdown.sourcePath=alias(viewport);
+      if(change==='wrong-source-node')dropdown.sourceNodeId='another_root';
+      if(change==='wrong-component')dropdown.component='Text';
+      if(change==='wrong-control')dropdown.controlId='SetOtherMode';
+      dropdown.instancePath=JSON.stringify(steps);
+      expect(()=>deriveViewportToolbarReview(fixture.document,fixture.evidence,1.25)).toThrow(/semantic node.*projection|component owner|control owner/);
+    });
+    it.each(['review-owner','business-owner','native-owner','projected-owner','cursor','frame','root-id'])('rejects a different actual owner or successful frame: %s',change=>{
+      const fixture=fullWorkbench(),inventory=fixture.evidence.arrangedInventoryPublication,surface=inventory.surfaces[0]!,root=surface.nodes[0]!;
+      if(change==='review-owner')fixture.document.nodes!.window!['penpot_review_source_path']=viewport;
+      if(change==='business-owner')fixture.evidence.workbenchStatePublication.workbenchPresentation.sourceFingerprint.sourcePath=viewport;
+      if(change==='native-owner')root.sourcePath=alias(viewport);
+      if(change==='projected-owner')root.projected.sourceNodeId='other_root';
+      if(change==='cursor')inventory.presentationCursor.diagnostics++;
+      if(change==='frame')inventory.presentedFrameCount++;
+      if(change==='root-id')surface.rootIds=[99];
+      expect(()=>deriveViewportToolbarReview(fixture.document,fixture.evidence,1.25)).toThrow(/owner|frame|projection/);
+    });
+    it('requires the full external parent tuple after owner-relative mapping',()=>{
+      const fixture=fullWorkbench();fixture.evidence.viewportToolbarPublication.nodes.find(node=>node.nodeId==='root')!.parentInstancePath=JSON.stringify([{sourcePath:alias(owner),sourceNodeId:'another_viewport'}]);
+      expect(()=>deriveViewportToolbarReview(fixture.document,fixture.evidence,1.25)).toThrow(/external parent tuple/);
+    });
+    it('keeps canonical-source completeness after irrelevant duplicate keys are deferred',()=>{
+      const fixture=fullWorkbench();fixture.evidence.viewportToolbarPublication.nodes=fixture.evidence.viewportToolbarPublication.nodes.filter(node=>node.nodeId!=='projection');
+      expect(()=>deriveViewportToolbarReview(fixture.document,fixture.evidence,1.25)).toThrow(/semantic node.*projection/);
+    });
+
+    const replayNames=['ZUI_LAYOUT_ACTUAL_PREPARED_INPUT','ZUI_LAYOUT_ACTUAL_PREPARED_INPUT_SHA256',
+      'ZUI_LAYOUT_ACTUAL_REVIEW_CASE','ZUI_LAYOUT_ACTUAL_REVIEW_CASE_SHA256'] as const;
+    const replayValues=replayNames.map(name=>process.env[name]);
+    const provided=replayValues.filter(value=>value!==undefined).length;
+    if(provided!==0 && (provided!==replayNames.length || replayValues.some(value=>!value?.trim())))
+      throw new Error('actual full-workbench toolbar identity replay requires all four path/hash environment pins');
+    it.skipIf(provided===0)('replays pinned actual prepared host and original case with all 33 Source nodes and unchanged inputs',()=>{
+      const [preparedPath,preparedSha,casePath,caseSha]=replayValues as [string,string,string,string];
+      const hash=(bytes:Uint8Array):string=>createHash('sha256').update(bytes).digest('hex');
+      expect(preparedSha).toMatch(/^[0-9a-f]{64}$/);expect(caseSha).toMatch(/^[0-9a-f]{64}$/);
+      const prepared=readFileSync(preparedPath),caseBytes=readFileSync(casePath);
+      expect(hash(prepared)).toBe(preparedSha);expect(hash(caseBytes)).toBe(caseSha);
+      const host=reviewHost(parseZuiDocument(prepared.toString('utf8')).document)!;
+      expect(host).toBeDefined();
+      const before=encodeZuiMetadata(host),graph=identityGraph(host),actual=importedActualNormalReviewCase(host)!;
+      expect(actual).toEqual(JSON.parse(caseBytes.toString('utf8')));
+      const evidence=actual.data['normal_window_evidence'] as {viewportToolbarPublication:{nodes:ToolbarSourceNode[]}};
+      const raw=JSON.stringify(evidence),mapping=viewportToolbarSourceMapping(host,evidence,actual.dpi)!;
+      expect(mapping.packet.groupNodeIds.map(id=>mapping.sourceByNativeId.get(id))).toEqual(viewportToolbarContract(host)!.groups);
+      expect(mapping.sourceByNativeId.size).toBe(33);expect(encodeZuiMetadata(host)).toBe(before);
+      const document=reviewDocumentForCase(host,actual);
+      const plan=planViewportToolbar(document,projection(document),new Map(),actual.viewport.width,actual.viewport.height)!;
+      expect(evidence.viewportToolbarPublication.nodes).toHaveLength(33);
+      expect(plan.sourceByNativeId!.size).toBe(33);expect(plan.sourceOnlyNativeNodeIds!.size).toBe(0);
+      expect(plan.publication).toEqual(evidence.viewportToolbarPublication);
+      expect(identityGraph(document)).toEqual(graph);expect(encodeZuiMetadata(host)).toBe(before);
+      const fresh=decodeZuiMetadata(before),saved=reviewCaseFromSavedMetadata(fresh,JSON.stringify(actual))!;
+      const reopened=reviewDocumentForCase(fresh,saved),reopenedPlan=planViewportToolbar(reopened,projection(reopened),new Map(),actual.viewport.width,actual.viewport.height)!;
+      expect(reopenedPlan.sourceByNativeId!.size).toBe(33);expect(reopenedPlan.sourceOnlyNativeNodeIds!.size).toBe(0);
+      expect(saved).toEqual(actual);expect(identityGraph(reopened)).toEqual(graph);
+      expect(JSON.stringify(evidence)).toBe(raw);expect(encodeZuiMetadata(fresh)).toBe(before);
+      expect(hash(readFileSync(preparedPath))).toBe(preparedSha);expect(hash(readFileSync(casePath))).toBe(caseSha);
+    });
   });
 });

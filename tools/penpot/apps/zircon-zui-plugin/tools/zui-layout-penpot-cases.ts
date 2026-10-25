@@ -37,7 +37,7 @@ import {
   deriveSourceRenderInventory,
   type SourceRenderInventory,
 } from './zui-layout-source-render-inventory';
-import { isSemanticNodePaintVisible } from './zui-layout-semantic-parity';
+import { isSemanticNodePaintVisible, sourceSemanticIdentity } from './zui-layout-semantic-parity';
 import { browserRuntimeErrors } from './zui-layout-browser-runtime';
 import {
   buildBrowserRuntimeLoadedSourcesAudit,
@@ -788,6 +788,8 @@ export async function capturePenpotCases(options: {
             parentSourceNodeId?: string | null;
             parentInstancePath?: string | null;
             controlId?: string | null;
+            itemKey?: string;
+            propertyFieldId?: string;
           };
           return {
             ...node,
@@ -799,6 +801,8 @@ export async function capturePenpotCases(options: {
             parentSourceNodeId: sourceIdentity.parentSourceNodeId ?? null,
             parentInstancePath: sourceIdentity.parentInstancePath ?? null,
             controlId: sourceIdentity.controlId ?? null,
+            ...(sourceIdentity.itemKey === undefined ? {} : { itemKey: sourceIdentity.itemKey }),
+            ...(sourceIdentity.propertyFieldId === undefined ? {} : { propertyFieldId: sourceIdentity.propertyFieldId }),
             styleInventory: style ?? {
               version: 1,
               complete: false,
@@ -815,13 +819,7 @@ export async function capturePenpotCases(options: {
             },
           };
         });
-        const semanticIdentities = semanticNodes.map((node) =>
-          JSON.stringify([
-            node.sourcePath,
-            node.sourceNodeId,
-            node.instancePath,
-          ]),
-        );
+        const semanticIdentities = semanticNodes.map(sourceSemanticIdentity);
         const semanticCoverageComplete = sourceInventory
           ? sourceInventory.errors.length === 0 &&
             new Set(semanticIdentities).size === semanticIdentities.length &&

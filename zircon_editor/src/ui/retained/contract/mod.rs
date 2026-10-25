@@ -47,6 +47,7 @@ mod paint_primitives;
 mod paint_recording;
 #[path = "paint/mod.rs"]
 mod paint_template_nodes;
+pub(in crate::ui::retained_host) use paint_template_nodes::tree_disclosure_rect_for_indent;
 pub(in crate::ui::retained_host) use paint_template_nodes::{
     bind_visual_asset_loader, clear_svg_tree_cache, clear_visual_asset_pixels_cache,
     invalidate_editor_sprite_atlas_cache, invalidate_svg_tree_paths,
@@ -156,4 +157,7 @@ pub(in crate::ui::retained_host) use surface_hit_test::{
 };
 #[cfg(test)]
 pub(in crate::ui::retained_host) use template_popup_layout::menu_item_row_frame;
-pub(crate) use window::{primary_host_window_id, HierarchyPointerSource, UiHostWindow};
+pub(crate) use window::{
+    primary_host_window_id, CanvasAnchorPopupEvent, CanvasAnchorPopupId, CanvasAnchorPopupKind,
+    CanvasAnchorPopupOpen, HierarchyPointerSource, UiHostWindow,
+};

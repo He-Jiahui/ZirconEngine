@@ -54,6 +54,10 @@ impl AssetFolderTreePointerBridge {
         true
     }
 
+    pub(crate) fn pointer_state(&self) -> AssetListPointerState {
+        self.state.clone()
+    }
+
     pub(crate) fn sync_pane_size(&mut self, pane_size: UiSize) -> Option<AssetListPointerState> {
         if self.layout.pane_size == pane_size {
             return None;
@@ -76,7 +80,7 @@ impl AssetFolderTreePointerBridge {
             Some(AssetFolderTreePointerTarget::TreeSurface) | None => None,
         };
         Ok(AssetFolderTreePointerDispatch {
-            route: route.map(to_public_route),
+            route: route.map(|target| self.click_route(target, point)),
             state: self.state.clone(),
         })
     }
@@ -154,6 +158,62 @@ impl AssetFolderTreePointerBridge {
                     .contains_point(point)
                     .then_some(AssetFolderTreePointerTarget::TreeSurface)
             })
+    }
+
+    fn click_route(
+        &self,
+        target: AssetFolderTreePointerTarget,
+        point: UiPoint,
+    ) -> super::route::AssetPointerTreeRoute {
+        if let AssetFolderTreePointerTarget::Folder {
+            row_index,
+            folder_id,
+        } = &target
+        {
+            if let Some(row) = self
+                .layout
+                .rows
+                .get(*row_index)
+                .filter(|row| row.has_children)
+            {
+                use crate::ui::retained_host::host_contract::{
+                    data::FrameRect, paint_theme::current_host_metrics,
+                    tree_disclosure_rect_for_indent,
+                };
+                let scale = current_host_metrics().scale_factor;
+                let rect = FrameRect {
+                    x: ROW_X * scale,
+                    y: (viewport_y() + ROW_Y + *row_index as f32 * (ROW_HEIGHT + ROW_GAP)
+                        - self.state.scroll_offset)
+                        * scale,
+                    width: row_width(&self.layout) * scale,
+                    height: ROW_HEIGHT * scale,
+                };
+                let disclosure = tree_disclosure_rect_for_indent(
+                    row.depth.min(i32::MAX as usize) as i32,
+                    0.0,
+                    &rect,
+                );
+                let point = UiPoint::new(point.x * scale, point.y * scale);
+                if disclosure.x >= rect.x
+                    && disclosure.y >= rect.y
+                    && disclosure.x + disclosure.width <= rect.x + rect.width
+                    && disclosure.y + disclosure.height <= rect.y + rect.height
+                    && point.x >= disclosure.x
+                    && point.x < disclosure.x + disclosure.width
+                    && point.y >= disclosure.y
+                    && point.y < disclosure.y + disclosure.height
+                {
+                    return super::route::AssetPointerTreeRoute::Disclosure {
+                        row_index: *row_index,
+                        folder_id: folder_id.clone(),
+                        expanded: !row.expanded,
+                        expected_catalog_revision: self.layout.catalog_revision,
+                    };
+                }
+            }
+        }
+        to_public_route(target)
     }
 
     fn move_row_index(&self, point: UiPoint) -> Option<usize> {

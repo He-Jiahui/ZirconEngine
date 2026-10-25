@@ -64,9 +64,10 @@ export function projectEditorField(document: ZuiDocument, node: ZuiNode): {
   const disabled = state.disabled || state.loading;
   const error = ['error', 'danger'].includes(String(props['validation_level'] ?? ''));
   const normal = state.interaction === 'normal' && !state.selected && !state.open;
-  const color = disabled ? palette.color(['text_disabled'], '#737373') :
+  const color = disabled ? authored.color(['disabled_foreground_color'], palette.color(['text_disabled'], '#737373')) :
     placeholder ? palette.color(['text_secondary'], '#b3b3b3') : palette.color(['text_primary'], '#e8e8e8');
-  const background = disabled ? editorButtonPalette(document)('surface', 2) : palette.color(['surface_recessed'], '#0f0f0f');
+  const background = disabled ? authored.color(['disabled_background_color'], editorButtonPalette(document)('surface', 2)) :
+    palette.color(['surface_recessed'], '#0f0f0f');
   const border = disabled ? palette.color(['border_disabled'], '#363636') : error ? palette.color(['error'], '#f44336') :
     state.focus && !state.pressed && !state.dragging ? palette.color(['focus_ring'], '#66b2ff') :
       state.pressed || state.open || state.hovered || state.dragging ? palette.color(['surface_hover'], '#383838') : palette.color(['separator_soft'], '#363636');

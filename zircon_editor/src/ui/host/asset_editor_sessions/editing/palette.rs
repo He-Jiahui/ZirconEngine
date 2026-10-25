@@ -1,6 +1,70 @@
 use super::*;
 
 impl EditorUiHost {
+    pub(crate) fn set_ui_asset_editor_palette_search_query(
+        &self,
+        instance_id: &ViewInstanceId,
+        snapshot: &crate::ui::asset_editor::palette::UiAssetPaletteSearchSnapshot,
+        query: &str,
+    ) -> Result<bool, EditorError> {
+        let _edit = self.begin_document_edit(instance_id)?;
+        let mut sessions = self.lock_ui_asset_sessions();
+        let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        let changed = entry
+            .session
+            .set_palette_search_query_from_snapshot(snapshot, query)
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        drop(sessions);
+        if changed {
+            self.sync_ui_asset_editor_instance(instance_id)?;
+        }
+        Ok(changed)
+    }
+    pub(crate) fn set_ui_asset_editor_palette_search_page(
+        &self,
+        instance_id: &ViewInstanceId,
+        snapshot: &crate::ui::asset_editor::palette::UiAssetPaletteSearchSnapshot,
+        start: usize,
+    ) -> Result<bool, EditorError> {
+        let _edit = self.begin_document_edit(instance_id)?;
+        let mut sessions = self.lock_ui_asset_sessions();
+        let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        let changed = entry
+            .session
+            .set_palette_search_page_from_snapshot(snapshot, start)
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        drop(sessions);
+        if changed {
+            self.sync_ui_asset_editor_instance(instance_id)?;
+        }
+        Ok(changed)
+    }
+    pub(crate) fn set_ui_asset_editor_palette_search_row(
+        &self,
+        instance_id: &ViewInstanceId,
+        snapshot: &crate::ui::asset_editor::palette::UiAssetPaletteSearchSnapshot,
+        row: usize,
+    ) -> Result<bool, EditorError> {
+        let _edit = self.begin_document_edit(instance_id)?;
+        let mut sessions = self.lock_ui_asset_sessions();
+        let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+            EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+        })?;
+        let changed = entry
+            .session
+            .select_palette_search_row(snapshot, row)
+            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        drop(sessions);
+        if changed {
+            self.sync_ui_asset_editor_instance(instance_id)?;
+        }
+        Ok(changed)
+    }
+
     pub fn set_ui_asset_editor_palette_visible_start(
         &self,
         instance_id: &ViewInstanceId,

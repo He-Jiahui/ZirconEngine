@@ -15,13 +15,12 @@ impl AnimationEditorSession {
         let Some(selected_track_path) = selected_track_path else {
             return;
         };
-        let is_present = self
-            .document()
-            .read()
-            .asset()
-            .as_sequence()
-            .is_some_and(|asset| asset.track_paths().contains(&selected_track_path));
-        if !is_present {
+        // A path-only selection cannot keep identifying a target after source replay
+        // introduces a second binding with that same complete path.
+        if !matches!(
+            self.has_unique_timeline_track(&selected_track_path),
+            Ok(true)
+        ) {
             self.clear_selected_timeline_track_if(&selected_track_path);
         }
     }
@@ -88,22 +87,7 @@ impl AnimationEditorSession {
         start_frame: u32,
         end_frame: u32,
     ) -> Result<bool, String> {
-        let (entity_path, property_path) = track_path.split().map_err(|error| error.to_string())?;
-        let has_track = self
-            .document()
-            .read()
-            .asset()
-            .as_sequence()
-            .is_some_and(|asset| {
-                asset.bindings.iter().any(|binding| {
-                    binding.entity_path == entity_path
-                        && binding
-                            .tracks
-                            .iter()
-                            .any(|track| track.property_path == property_path)
-                })
-            });
-        if !has_track {
+        if !self.has_unique_timeline_track(track_path)? {
             return Ok(false);
         }
         let sequence = self.sequence_state_mut()?;
@@ -124,6 +108,25 @@ impl AnimationEditorSession {
         Ok(changed)
     }
 
+    fn has_unique_timeline_track(&self, track_path: &AnimationTrackPath) -> Result<bool, String> {
+        let (entity_path, property_path) = track_path.split().map_err(|error| error.to_string())?;
+        let document = self.document().read();
+        let Some(asset) = document.asset().as_sequence() else {
+            return Ok(false);
+        };
+        let mut matches = asset
+            .bindings
+            .iter()
+            .filter(|binding| binding.entity_path == entity_path)
+            .flat_map(|binding| binding.tracks.iter())
+            .filter(|track| track.property_path == property_path);
+        let present = matches.next().is_some();
+        if matches.next().is_some() {
+            return Err(format!("ambiguous animation track {track_path}"));
+        }
+        Ok(present)
+    }
+
     pub fn set_playback(
         &mut self,
         playing: bool,
@@ -134,12 +137,21 @@ impl AnimationEditorSession {
             return Ok(false);
         }
         let sequence = self.sequence_state_mut()?;
+        // The host consumes this receipt; a stored rate change must not report a no-op.
         let changed = sequence.playing != playing
             || sequence.looping != looping
-            || (sequence.speed - speed).abs() > f32::EPSILON;
+            || sequence.speed.to_bits() != speed.to_bits();
         sequence.playing = playing;
         sequence.looping = looping;
         sequence.speed = speed;
         Ok(changed)
     }
 }
+
+#[cfg(test)]
+#[path = "tests/playback_ack.rs"]
+mod playback_ack_tests;
+
+#[cfg(test)]
+#[path = "tests/selection_admission.rs"]
+mod selection_admission_tests;

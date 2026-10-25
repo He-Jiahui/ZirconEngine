@@ -30,6 +30,12 @@ pub(in crate::ui::retained_host::host_contract) fn dispatch_template_node_button
         }
         return Some(NativePointerDispatchResult::idle());
     }
+    if hit.dispatch_kind.as_str() == "ui_asset_anchor_popup_open" {
+        let damage = union_optional_frames(cleared_text_input_frame, Some(hit.frame.clone()))
+            .unwrap_or_else(|| hit.frame.clone());
+        dispatch_template_node_primary_press(pane_host, hit);
+        return Some(NativePointerDispatchResult::region(damage));
+    }
     dispatch_template_node_primary_press(pane_host, hit);
     None
 }

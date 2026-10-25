@@ -2,8 +2,22 @@ use super::popup_rows::normalized_menu_row_action_id;
 use super::{TemplateNodePointerHit, TemplateNodePointerMoveKind, TemplateNodePointerRouteHit};
 
 impl<'a> TemplateNodePointerRouteHit<'a> {
-    pub(super) fn with_pane_id(mut self, pane_id: &'a str) -> Self {
-        self.pane_id = pane_id;
+    pub(super) fn with_pane(
+        mut self,
+        pane: &'a crate::ui::retained_host::host_contract::data::PaneData,
+    ) -> Self {
+        self.pane_id = pane.id.as_str();
+        if matches!(
+            self.dispatch_kind,
+            "ui_asset_palette" | "ui_asset_palette_page" | "ui_asset_palette_search"
+        ) {
+            self.palette_search_source = pane
+                .ui_asset
+                .collections
+                .palette_search
+                .as_ref()
+                .zip(pane.body_surface_frame.as_ref());
+        }
         self
     }
 
@@ -14,6 +28,13 @@ impl<'a> TemplateNodePointerRouteHit<'a> {
             self.action_id.into()
         };
         TemplateNodePointerHit {
+            palette_search_target: self.palette_search_source.map(|(snapshot, frame)| {
+                crate::ui::retained_host::host_contract::data::UiAssetPaletteInputTarget::new(
+                    self.pane_id.into(),
+                    snapshot.clone(),
+                    std::sync::Arc::clone(frame),
+                )
+            }),
             pane_id: self.pane_id.into(),
             control_id: self.control_id.into(),
             action_id,

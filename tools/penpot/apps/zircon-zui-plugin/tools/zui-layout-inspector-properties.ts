@@ -53,10 +53,8 @@ export function prepareInspectorPropertyRows(
     if (document.nodes?.[id])
       throw new Error(`Inspector generated node ${id} already exists`);
     const row = structuredClone(prototype);
-    // Generated rows have no authored callsite identity. The original prototype remains intact.
-    delete row['penpot_review_source_path'];
-    delete row['penpot_review_source_node_id'];
-    delete row['penpot_review_instance_path'];
+    // A materialized item keeps its prototype's authored identity. Its field
+    // key is a separate instance discriminator, never an authored callsite.
     row.control_id = `WorkbenchComponentPropertyVirtualRow${key.toString(16)}`;
     row['penpot_review_generated_product_row'] = {
       kind: 'inspectorProperty',
@@ -105,6 +103,10 @@ export function applyInspectorPropertyRows(
     const generated = row['penpot_review_generated_product_row'] as
       JsonObject | undefined;
     if (generated?.['kind'] !== 'inspectorProperty') continue;
+    const itemKey = generated['itemKey'];
+    if (typeof itemKey !== 'string' || itemKey.length === 0) {
+      throw new Error('Inspector property row is missing its generated itemKey');
+    }
     const property = generated['property'] as JsonObject;
     const editable = property['editable'] === true;
     const label =
@@ -122,6 +124,7 @@ export function applyInspectorPropertyRows(
       value_text: value.trim() ? value : '-',
       visibility: 'visible',
       inspector_property_field_id: String(property['id']),
+      inspector_property_item_key: itemKey,
       inspector_property_label: label,
       inspector_property_value_kind: String(property['kind']),
       inspector_property_editable: editable,

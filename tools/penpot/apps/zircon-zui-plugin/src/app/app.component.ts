@@ -50,6 +50,8 @@ interface StatusState {
         >
           Import .zui
         </button>
+        <input #componentFileInput class="visually-hidden" type="file" accept=".zui,text/plain" data-component-master-input (change)="importFile($event, true)" />
+        <button type="button" data-appearance="secondary" [disabled]="busy()" (click)="componentFileInput.click()">Import component master</button>
         <button
           type="button"
           data-appearance="secondary"
@@ -66,6 +68,14 @@ interface StatusState {
         >
           Export Canvas PNG
         </button>
+      </section>
+
+      <section class="command-row" aria-label="Import options">
+        <label class="body-s">
+          <input type="checkbox" data-import-replace-selection [checked]="replaceSelectedCanvas()"
+            [disabled]="busy()" (change)="setReplaceSelectedCanvas($event)" />
+          Replace selected canvas
+        </label>
       </section>
 
       <section class="command-row" aria-label="Optional font resources">
@@ -198,6 +208,7 @@ export class AppComponent {
   readonly selectedBoardId = signal<string | null>(null);
   readonly canvasPngBoardId = signal<string | null>(null);
   readonly busy = signal(false);
+  readonly replaceSelectedCanvas = signal(true);
   readonly previewBoardId = signal<string | null>(null);
   readonly layoutAudit = signal<RenderedLayoutAudit | null>(null);
   readonly layoutAuditRequestId = signal<string | null>(null);
@@ -289,7 +300,12 @@ export class AppComponent {
     }).finally(() => this.busy.set(false));
   }
 
-  importFile(event: Event): void {
+  setReplaceSelectedCanvas(event: Event): void {
+    this.replaceSelectedCanvas.set((event.target as HTMLInputElement).checked);
+  }
+
+  importFile(event: Event, createComponentMaster = false): void {
+    const replaceSelection = !createComponentMaster && this.replaceSelectedCanvas();
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     input.value = '';
@@ -311,7 +327,9 @@ export class AppComponent {
           type: 'import-zui',
           fileName: file.name,
           source,
-          replaceSelection: true,
+          replaceSelection,
+          createComponentMaster,
+          ...(!replaceSelection && !createComponentMaster ? { nativeComponentMode: 'full' as const } : {}),
           ...(this.fontResources ? {fontResources:this.fontResources} : {}),
         }),
       )

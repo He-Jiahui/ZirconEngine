@@ -1,6 +1,6 @@
-import type { Board, Shape } from '@penpot/plugin-types';
+import type { Board, Shape, Text } from '@penpot/plugin-types';
 import type { FieldProjection } from './bridge/zui-field-projection';
-import { refreshFieldDecoration } from './penpot-field-controls';
+import { refreshFieldDecoration, layoutFieldText, planSearchFieldWidthConstraints } from './penpot-field-controls';
 import { assertExportShapeGuard, writeExportShapeGuard } from './penpot-export-guard';
 import { ZUI_METADATA_NAMESPACE } from './metadata';
 
@@ -96,7 +96,7 @@ function searchFixture() {
   const path = makeShape({ type: 'path', strokes: [{ strokeColor: '#cbd2dc', strokeOpacity: 1, strokeWidth: 1.9 }] });
   const icon = makeShape({ type: 'group', width: 24, height: 24 });
   for (const child of [viewport, circle, path]) icon.appendChild(child);
-  const createShapeFromSvg = vi.fn(() => icon);
+  const createShapeFromSvg = vi.fn((_svg: string) => icon);
   vi.stubGlobal('penpot', { createBoard: () => makeShape(), createShapeFromSvg });
   const field = makeField({ iconColor: '#c0c0c0', icons: { search: sourceSvg } });
   return { board, viewport, circle, path, icon, field, sourceSvg, createShapeFromSvg };
@@ -104,6 +104,22 @@ function searchFixture() {
 
 describe('field icon placement', () => {
   afterEach(() => vi.unstubAllGlobals());
+
+  it.each([592, 852, 1232])('allocates the Search surface and text lane at consumer width %i', (width) => {
+    const f = searchFixture();
+    f.board.resize(width, 32);
+    refreshFieldDecoration(f.board, f.field);
+    const text = makeShape({ type: 'text', hidden: false }) as unknown as import('@penpot/plugin-types').Text;
+    f.board.appendChild(text);
+    layoutFieldText(f.board, text, f.field);
+    const surface = f.board.children.find((part) => part.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'field-part') === 'surface')!;
+    expect(surface.width).toBe(width);
+    expect(surface.constraintsHorizontal).toBe('leftright');
+    expect(f.icon.constraintsHorizontal).toBe('left');
+    expect(text.constraintsHorizontal).toBe('leftright');
+    expect(text.width).toBe(width - 36);
+    expect(text.x - f.board.x).toBe(28);
+  });
 
   it('uses intrinsic SVG dimensions while a newly imported Penpot shape is unsettled', () => {
     const board = makeShape({
@@ -306,5 +322,187 @@ describe('field icon paint refresh', () => {
     expect(circle.strokes).toBe(strokes);
     expect(circle.paintWrites).toEqual(writes);
     expect(createShapeFromSvg).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('canonical SearchField width plan', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  function fixture() {
+    const current = searchFixture();
+    refreshFieldDecoration(current.board, current.field);
+    const text = makeShape({ type: 'text', constraintsHorizontal: 'left', hidden: false });
+    text.setSharedPluginData(ZUI_METADATA_NAMESPACE, 'role', 'text');
+    current.board.appendChild(text);
+    layoutFieldText(current.board, text as unknown as import('@penpot/plugin-types').Text, current.field);
+    // Model the historical native master before the width-policy migration.
+    for (const child of current.board.children) child.constraintsHorizontal = 'left';
+    return { ...current, text };
+  }
+  it('plans only surface/text constraints without geometry, paint or identity writes', () => {
+    const { board, field, text, icon } = fixture();
+    const before = board.children.map((part) => [part.id, part.width, part.height, part.x, part.y,
+      part.constraintsHorizontal, part.fills, part.strokes]);
+    const plan = planSearchFieldWidthConstraints(board, field);
+    expect(plan.map(({ shape, after }) => [shape.id, after])).toEqual([
+      [board.children[0].id, 'leftright'], [text.id, 'leftright'],
+    ]);
+    expect(plan.some(({ shape }) => shape.id === icon.id)).toBe(false);
+    expect(board.children.map((part) => [part.id, part.width, part.height, part.x, part.y,
+      part.constraintsHorizontal, part.fills, part.strokes])).toEqual(before);
+  });
+  it.each([832, 1280])('refuses stale 240/204 internals at root width %i before any constraint writes', (width) => {
+    const { board, field } = fixture();
+    board.width = width;
+    expect(() => planSearchFieldWidthConstraints(board, field)).toThrow('geometry differs');
+    expect(board.children.every((child) => child.constraintsHorizontal === 'left')).toBe(true);
+  });
+  it('refuses extra topology, unsupported variants and native constraint overrides', () => {
+    const { board, field, text } = fixture();
+    expect(() => planSearchFieldWidthConstraints(board, { ...field, clear: true })).toThrow('canonical default');
+    text.constraintsHorizontal = 'right';
+    expect(() => planSearchFieldWidthConstraints(board, field)).toThrow('constraint override');
+    text.constraintsHorizontal = 'left';
+    board.appendChild(makeShape());
+    expect(() => planSearchFieldWidthConstraints(board, field)).toThrow('topology changed');
+  });
+
+  it.each(['stretched icon', 'foreign parent', 'edited paint', 'hidden text', 'non-finite allocation'])(
+    'refuses %s without changing any native constraint or guard', (change) => {
+      const f = fixture();
+      const surface = f.board.children[0];
+      if (change === 'stretched icon') f.icon.constraintsHorizontal = 'leftright';
+      if (change === 'foreign parent') Object.assign(surface, { parent: makeShape() });
+      if (change === 'edited paint') surface.fills = [{ fillColor: '#ff0000', fillOpacity: 1 }];
+      if (change === 'hidden text') f.text.hidden = true;
+      if (change === 'non-finite allocation') f.board.width = Number.NaN;
+      const snapshot = () => JSON.stringify(f.board.children.map((shape) => ({
+        id: shape.id, parent: shape.parent?.id, x: shape.x, y: shape.y,
+        width: shape.width, height: shape.height, hidden: shape.hidden,
+        constraint: shape.constraintsHorizontal, fills: shape.fills, strokes: shape.strokes,
+        partGuard: shape.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'control-part-paint'),
+        textGuard: shape.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'control-text-geometry'),
+      })));
+      const before = snapshot();
+      expect(() => planSearchFieldWidthConstraints(f.board, f.field)).toThrow();
+      expect(snapshot()).toBe(before);
+    },
+  );
+
+  it.each(['geometry', 'constraint'])('keeps the original export guard rejecting a direct %s edit', (change) => {
+    const f = fixture();
+    writeExportShapeGuard(f.board);
+    const guard = f.board.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'export-shapes-guard');
+    if (change === 'geometry') f.text.x += 1;
+    else f.text.constraintsHorizontal = 'right';
+    expect(() => assertExportShapeGuard(f.board)).toThrow('without a ZUI source mapping');
+    expect(() => planSearchFieldWidthConstraints(f.board, f.field)).toThrow();
+    expect(f.board.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'export-shapes-guard')).toBe(guard);
+  });
+});
+
+describe('field native width policy', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it.each([
+    { property: 'query', characters: '角色搜索' },
+    { property: 'placeholder', characters: 'Search World Settings' },
+  ])('preserves $property content, font and source metadata while reusing stretched parts', ({ property, characters }) => {
+    const f = searchFixture();
+    const text = Object.assign(makeShape({ type: 'text', hidden: false }), {
+      characters, fontId: 'custom-2ddd793a-5f89-40b0-aec1-fbe879e37a57',
+      fontVariantId: 'normal-400', fontFamily: 'Noto Sans SC', fontSize: '13.333333',
+    }) as unknown as Text;
+    text.setSharedPluginData(ZUI_METADATA_NAMESPACE, 'role', 'text');
+    text.setSharedPluginData(ZUI_METADATA_NAMESPACE, 'text-property', property);
+    text.setSharedPluginData(ZUI_METADATA_NAMESPACE, 'sourceNodeId', 'root');
+    f.board.appendChild(text);
+    refreshFieldDecoration(f.board, f.field);
+    layoutFieldText(f.board, text, f.field);
+    const surface = f.board.children.find((shape) =>
+      shape.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'field-part') === 'surface')!;
+    const ids = f.board.children.map((shape) => shape.id);
+    // Assert the native descriptor before resizing, not just a recomputed formula.
+    expect(surface.constraintsHorizontal).toBe('leftright');
+    expect(text.constraintsHorizontal).toBe('leftright');
+    expect(f.icon.constraintsHorizontal).toBe('left');
+    // These mocks do not implement Penpot native resizing. This loop covers the
+    // existing source refresh path; Assets resize/save/reopen is a separate gate.
+    for (const width of [1280, 832, 900, 640, 240]) {
+      f.board.resize(width, 32);
+      refreshFieldDecoration(f.board, f.field);
+      layoutFieldText(f.board, text, f.field);
+      expect(f.board.children.map((shape) => shape.id)).toEqual(ids);
+      expect(surface.width).toBe(width);
+      expect(surface.x - f.board.x).toBe(0);
+      expect(text.x - f.board.x).toBe(28);
+      expect(text.x + text.width).toBe(f.board.x + width - 8);
+      expect([f.icon.width, f.icon.height]).toEqual([16, 16]);
+      expect(f.icon.x - f.board.x).toBe(8);
+      expect(text.characters).toBe(characters);
+      expect(text.fontId).toBe('custom-2ddd793a-5f89-40b0-aec1-fbe879e37a57');
+      expect(text.fontVariantId).toBe('normal-400');
+      expect(text.fontFamily).toBe('Noto Sans SC');
+      expect(text.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'text-property')).toBe(property);
+      expect(text.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'sourceNodeId')).toBe('root');
+    }
+    expect(f.createShapeFromSvg).toHaveBeenCalledTimes(1);
+  });
+
+  it('reapplies the surface width policy when a source refresh reuses an existing part', () => {
+    const f = searchFixture();
+    refreshFieldDecoration(f.board, f.field);
+    const surface = f.board.children.find((shape) =>
+      shape.getSharedPluginData(ZUI_METADATA_NAMESPACE, 'field-part') === 'surface')!;
+    surface.constraintsHorizontal = 'left';
+    refreshFieldDecoration(f.board, f.field);
+    expect(f.board.children.find((shape) => shape.id === surface.id)).toBe(surface);
+    expect(surface.constraintsHorizontal).toBe('leftright');
+  });
+
+  it('keeps a separate field label fixed while the value lane stretches', () => {
+    const f = searchFixture();
+    const field = { ...f.field, search: false, labelWidth: 96 };
+    const value = makeShape({ type: 'text', hidden: false }) as unknown as Text;
+    const label = makeShape({ type: 'text', hidden: false }) as unknown as Text;
+    label.setSharedPluginData(ZUI_METADATA_NAMESPACE, 'text-fragment', 'field-label');
+    f.board.appendChild(value);
+    f.board.appendChild(label);
+    for (const width of [240, 832]) {
+      f.board.resize(width, 32);
+      refreshFieldDecoration(f.board, field);
+      layoutFieldText(f.board, value, field);
+      layoutFieldText(f.board, label, field);
+      expect(value.constraintsHorizontal).toBe('leftright');
+      expect(value.x - f.board.x).toBe(104);
+      expect(value.width).toBe(width - 112);
+      expect(label.constraintsHorizontal).toBe('left');
+      expect(label.x - f.board.x).toBe(8);
+      expect(label.width).toBe(80);
+    }
+  });
+
+  it('keeps clear and search icons fixed and preserves the clear text reserve', () => {
+    const f = searchFixture();
+    const clear = makeShape({ type: 'group', width: 24, height: 24,
+      strokes: [{ strokeColor: '#ffffff', strokeOpacity: 1, strokeWidth: 1.5 }] });
+    const clearSvg = '<svg viewBox="0 0 24 24"><path stroke="#fff" stroke-width="1.5" d="M0 0 L24 24"/></svg>';
+    f.createShapeFromSvg.mockImplementation((svg) => svg === f.sourceSvg ? f.icon : clear);
+    const field = { ...f.field, clear: true, icons: { ...f.field.icons, clear: clearSvg } };
+    const text = makeShape({ type: 'text', hidden: false }) as unknown as Text;
+    f.board.appendChild(text);
+    for (const width of [240, 1280, 640]) {
+      f.board.resize(width, 32);
+      refreshFieldDecoration(f.board, field);
+      layoutFieldText(f.board, text, field);
+      expect([f.icon.width, f.icon.height, clear.width, clear.height]).toEqual([16, 16, 16, 16]);
+      expect(f.icon.constraintsHorizontal).toBe('left');
+      expect(clear.constraintsHorizontal).toBe('right');
+      expect(clear.x - f.board.x).toBe(width - 24);
+      expect(text.constraintsHorizontal).toBe('leftright');
+      expect(text.x + text.width).toBe(clear.x - 8);
+    }
+    expect(f.createShapeFromSvg).toHaveBeenCalledTimes(2);
   });
 });

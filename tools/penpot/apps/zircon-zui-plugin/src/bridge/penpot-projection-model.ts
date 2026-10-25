@@ -90,6 +90,8 @@ export interface ProjectionContainer {
 
 export interface ProjectionEditableState {
   geometry: ProjectionGeometry;
+  /** Existing authored height.min, independent of the arranged height. */
+  heightMin?: number;
   paint: ProjectionPaint;
   text: ProjectionText | null;
   textFragments?: Record<string, ProjectionText>;

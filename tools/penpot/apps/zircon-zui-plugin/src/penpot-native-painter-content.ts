@@ -23,6 +23,7 @@ export interface NativePainterPlacement {
   width: number;
   height: number;
   exactBounds?: boolean;
+  horizontalConstraint?: 'left' | 'right' | 'leftright';
 }
 
 export interface NativePainterPanel {

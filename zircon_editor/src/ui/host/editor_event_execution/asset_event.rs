@@ -81,6 +81,19 @@ pub(super) fn execute_asset_event(
             let changed = shell.state.select_asset_folder(folder_id.clone());
             Ok(asset_mutation_effects(changed, false, true))
         }
+        EditorAssetEvent::SetFolderExpanded {
+            folder_id,
+            expanded,
+            expected_catalog_revision,
+        } => {
+            let mut shell = controller.shell().lock();
+            let changed = shell.state.set_asset_folder_expanded(
+                folder_id,
+                *expanded,
+                *expected_catalog_revision,
+            );
+            Ok(asset_mutation_effects(changed, true, true))
+        }
         EditorAssetEvent::SelectItem { asset_uuid } => {
             let mut shell = controller.shell().lock();
             let changed = shell.state.select_asset(Some(asset_uuid.clone()));

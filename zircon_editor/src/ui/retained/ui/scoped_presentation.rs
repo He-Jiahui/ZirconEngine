@@ -223,12 +223,14 @@ fn next_ui_asset_pane(
 }
 
 fn project_ui_asset_shell(data: &mut UiAssetEditorPaneData, content_frame: &FrameRect) {
-    if data.collections.palette.items.row_count() == 0 {
+    if data.collections.palette_search.is_none() && data.collections.palette.items.row_count() == 0
+    {
         return;
     }
     use super::template_node_conversion::to_host_contract_template_node_owned;
     use crate::ui::asset_editor::{
         apply_ui_asset_editor_designer_tool_mode, ui_asset_editor_node_projection_with_palette,
+        ui_asset_editor_node_projection_with_palette_search,
     };
     use crate::ui::layouts::common::model_rc;
     let labels = data
@@ -238,15 +240,20 @@ fn project_ui_asset_shell(data: &mut UiAssetEditorPaneData, content_frame: &Fram
         .iter()
         .map(|label| label.to_string())
         .collect::<Vec<_>>();
-    let mut projection = ui_asset_editor_node_projection_with_palette(
-        zircon_runtime_interface::ui::layout::UiSize::new(
-            content_frame.width.max(1.0),
-            content_frame.height.max(1.0),
-        ),
-        &labels,
-        data.collections.palette_visible_start,
-        data.collections.palette.selected_index,
+    let size = zircon_runtime_interface::ui::layout::UiSize::new(
+        content_frame.width.max(1.0),
+        content_frame.height.max(1.0),
     );
+    let mut projection = if let Some(snapshot) = &data.collections.palette_search {
+        ui_asset_editor_node_projection_with_palette_search(size, snapshot)
+    } else {
+        ui_asset_editor_node_projection_with_palette(
+            size,
+            &labels,
+            data.collections.palette_visible_start,
+            data.collections.palette.selected_index,
+        )
+    };
     apply_ui_asset_editor_designer_tool_mode(
         &mut projection.nodes,
         data.designer_tools.mode.as_str(),
@@ -266,9 +273,11 @@ fn project_ui_asset_shell(data: &mut UiAssetEditorPaneData, content_frame: &Fram
         .nodes
         .iter()
         .filter(|node| {
-            !nodes
-                .iter()
-                .any(|shell| shell.control_id == node.control_id)
+            node.dispatch_kind.as_str() != "ui_asset_palette"
+                && !node.control_id.as_str().starts_with("UiAssetPaletteEntry")
+                && !nodes
+                    .iter()
+                    .any(|shell| shell.control_id == node.control_id)
         })
         .cloned()
         .collect::<Vec<_>>();

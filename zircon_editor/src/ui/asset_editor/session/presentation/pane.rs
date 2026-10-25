@@ -88,6 +88,7 @@ impl UiAssetEditorSession {
         let owned_reflection = take_owned_pane_reflection_fields(&mut reflection);
         UiAssetEditorPanePresentation {
             nodes: Vec::new(),
+            palette_search: Some(self.palette_search_snapshot()),
             center_column_node: Default::default(),
             designer_panel_node: Default::default(),
             designer_canvas_panel_node: Default::default(),
@@ -330,6 +331,7 @@ impl UiAssetEditorSession {
             inspector_slot_semantic_path: slot_semantic_path,
             inspector_slot_semantic_value: slot_semantic_value,
             inspector_slot_kind: structured_slot_semantic.kind,
+            canvas_anchor_presets_available: self.canvas_anchor_presets_available(),
             inspector_slot_linear_main_weight: structured_slot_semantic.linear_main_weight,
             inspector_slot_linear_main_stretch: structured_slot_semantic.linear_main_stretch,
             inspector_slot_linear_cross_weight: structured_slot_semantic.linear_cross_weight,

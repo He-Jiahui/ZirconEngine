@@ -306,6 +306,8 @@ impl UiHostWindow {
             "palette".into(),
             "selected".into(),
             i32::MAX,
+            None,
+            Default::default(),
         );
         let after = pane(&h, &id);
         assert_eq!(after.palette_selected_index, selected);
@@ -934,4 +936,204 @@ fn builtin_popup_instance_defaults_and_range_capture_use_declared_runtime_behavi
         &result
     ));
     assert!(!pane(&h, &id).source_dirty);
+}
+
+fn palette_search_native_key(
+    h: &ChildWindowHostHarness,
+    key: Key,
+    physical: KeyCode,
+    modifiers: ModifiersState,
+) {
+    h.root_ui.dispatch_native_key_for_test(
+        key_event(
+            key,
+            PhysicalKey::Code(physical),
+            None,
+            ElementState::Pressed,
+        ),
+        modifiers,
+    );
+    h.host.borrow_mut().recompute_if_dirty();
+}
+
+fn assert_palette_search_navigation_only(
+    before: &crate::ui::asset_editor::UiAssetEditorPanePresentation,
+    after: &crate::ui::asset_editor::UiAssetEditorPanePresentation,
+) {
+    assert_eq!(after.source_text, before.source_text);
+    assert_eq!(after.source_dirty, before.source_dirty);
+    assert_eq!(after.can_undo, before.can_undo);
+    assert_eq!(after.can_redo, before.can_redo);
+    assert_eq!(
+        after.palette_search.as_ref().unwrap().source_revision(),
+        before.palette_search.as_ref().unwrap().source_revision()
+    );
+}
+
+#[test]
+fn palette_search_native_keyboard_keeps_raw_whitespace_until_clear_without_document_history() {
+    let _guard = lock_env();
+    let (h, id) = open_ui_asset();
+    let before = pane(&h, &id);
+    let initial_count = before.palette_search.as_ref().unwrap().result_count();
+    click_control(&h, &id, "PaletteSearchInput");
+    let input = host_context(&h.root_ui)
+        .get_text_input_focus()
+        .palette_search_target
+        .expect("the actual native Palette hit must capture its source target");
+    assert_eq!(input.instance_id(), id.0.as_str());
+    assert!(h.root_ui.palette_search_input_is_current(&input, "query"));
+
+    // These are committed native text edits, not an IME preedit or a clear-X click.
+    // Control characters (for example Tab) have a separate routing contract.
+    for query in ["   ", "\u{00a0}\u{2003}\u{3000}"] {
+        h.root_ui.dispatch_native_text_for_test(query);
+        h.host.borrow_mut().recompute_if_dirty();
+        let typed = pane(&h, &id);
+        let snapshot = typed.palette_search.as_ref().unwrap();
+        assert_eq!(
+            snapshot.query(),
+            query,
+            "the Session must retain the raw query"
+        );
+        assert_eq!(snapshot.result_count(), initial_count);
+        assert_palette_search_navigation_only(&before, &typed);
+        let focus = host_context(&h.root_ui).get_text_input_focus();
+        assert_eq!(focus.value_text.as_str(), query);
+        assert_eq!(focus.caret_scalar_offset, Some(query.chars().count()));
+        assert!(focus.palette_search_target.as_ref() == Some(&input));
+
+        palette_search_native_key(
+            &h,
+            Key::Character("a".into()),
+            KeyCode::KeyA,
+            ModifiersState::CONTROL,
+        );
+        let selected = host_context(&h.root_ui).get_text_input_focus();
+        assert_eq!(selected.selection_anchor_scalar_offset, Some(0));
+        assert_eq!(selected.caret_scalar_offset, Some(query.chars().count()));
+        palette_search_native_key(
+            &h,
+            Key::Named(NamedKey::Delete),
+            KeyCode::Delete,
+            ModifiersState::empty(),
+        );
+        let cleared = pane(&h, &id);
+        assert_eq!(cleared.palette_search.as_ref().unwrap().query(), "");
+        assert_eq!(
+            cleared.palette_search.as_ref().unwrap().result_count(),
+            initial_count
+        );
+        assert_palette_search_navigation_only(&before, &cleared);
+        let focus = host_context(&h.root_ui).get_text_input_focus();
+        assert_eq!(focus.control_id.as_str(), "PaletteSearchInput");
+        assert_eq!(focus.value_text.as_str(), "");
+        assert_eq!(focus.caret_scalar_offset, Some(0));
+        assert_eq!(focus.selection_anchor_scalar_offset, None);
+        assert!(focus.palette_search_target.as_ref() == Some(&input));
+        assert!(h.root_ui.palette_search_input_is_current(&input, "query"));
+    }
+}
+
+#[test]
+fn palette_search_native_unicode_caret_clear_and_reopen_reject_old_query_callback() {
+    let _guard = lock_env();
+    let (h, id) = open_ui_asset();
+    let before = pane(&h, &id);
+    click_control(&h, &id, "PaletteSearchInput");
+    let original_target = host_context(&h.root_ui)
+        .get_text_input_focus()
+        .palette_search_target
+        .expect("actual Palette field press establishes the original input allocation");
+    h.root_ui.dispatch_native_text_for_test("中🙂\u{2003}");
+    h.host.borrow_mut().recompute_if_dirty();
+    assert_eq!(
+        pane(&h, &id).palette_search.as_ref().unwrap().query(),
+        "中🙂\u{2003}"
+    );
+    assert_eq!(
+        host_context(&h.root_ui)
+            .get_text_input_focus()
+            .caret_scalar_offset,
+        Some(3)
+    );
+    palette_search_native_key(
+        &h,
+        Key::Named(NamedKey::ArrowLeft),
+        KeyCode::ArrowLeft,
+        ModifiersState::empty(),
+    );
+    assert_eq!(
+        host_context(&h.root_ui)
+            .get_text_input_focus()
+            .caret_scalar_offset,
+        Some(2)
+    );
+    palette_search_native_key(
+        &h,
+        Key::Named(NamedKey::Backspace),
+        KeyCode::Backspace,
+        ModifiersState::empty(),
+    );
+    assert_eq!(
+        pane(&h, &id).palette_search.as_ref().unwrap().query(),
+        "中\u{2003}"
+    );
+    assert_eq!(
+        host_context(&h.root_ui)
+            .get_text_input_focus()
+            .caret_scalar_offset,
+        Some(1)
+    );
+    palette_search_native_key(
+        &h,
+        Key::Character("a".into()),
+        KeyCode::KeyA,
+        ModifiersState::CONTROL,
+    );
+    palette_search_native_key(
+        &h,
+        Key::Named(NamedKey::Delete),
+        KeyCode::Delete,
+        ModifiersState::empty(),
+    );
+    assert_eq!(pane(&h, &id).palette_search.as_ref().unwrap().query(), "");
+    assert_palette_search_navigation_only(&before, &pane(&h, &id));
+
+    h.root_ui.dispatch_native_focus_lost_for_test();
+    assert!(!host_context(&h.root_ui).get_text_input_focus().is_active());
+    h.root_ui.dispatch_native_text_for_test("retired 中文");
+    h.host.borrow_mut().recompute_if_dirty();
+    assert_eq!(pane(&h, &id).palette_search.as_ref().unwrap().query(), "");
+    click_control(&h, &id, "PaletteSearchInput");
+    let fresh_focus = host_context(&h.root_ui).get_text_input_focus();
+    let fresh_target = fresh_focus.palette_search_target.as_ref().unwrap();
+    assert!(
+        fresh_target != &original_target,
+        "a new hit must not revive the retired field"
+    );
+    assert!(h
+        .root_ui
+        .palette_search_input_is_current(fresh_target, "query"));
+    assert!(!h
+        .root_ui
+        .palette_search_input_is_current(&original_target, "query"));
+    pane_surface_host(&h.root_ui).invoke_ui_asset_collection_event(
+        id.0.as_str().into(),
+        "palette".into(),
+        "query".into(),
+        -1,
+        Some(original_target),
+        "late callback".into(),
+    );
+    h.host.borrow_mut().recompute_if_dirty();
+    assert_eq!(pane(&h, &id).palette_search.as_ref().unwrap().query(), "");
+    assert!(host_context(&h.root_ui).get_text_input_focus() == fresh_focus);
+    h.root_ui.dispatch_native_text_for_test("Button");
+    h.host.borrow_mut().recompute_if_dirty();
+    assert_eq!(
+        pane(&h, &id).palette_search.as_ref().unwrap().query(),
+        "Button"
+    );
+    assert_palette_search_navigation_only(&before, &pane(&h, &id));
 }

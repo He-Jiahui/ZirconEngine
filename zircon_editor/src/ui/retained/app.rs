@@ -820,6 +820,7 @@ struct RetainedEditorHost {
     active_object_drag_payload: Option<UiDragPayload>,
     native_window_presenters: NativeWindowPresenterStore,
     floating_window_projection_bundle: FloatingWindowProjectionBundle,
+    canvas_anchor_popup: Option<ui_asset_editor::PendingCanvasAnchorPopup>,
     callback_source_window: Option<MainPageId>,
     last_focused_callback_window: Option<MainPageId>,
     active_layout_preset: Option<String>,

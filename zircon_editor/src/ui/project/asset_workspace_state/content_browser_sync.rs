@@ -68,7 +68,9 @@ impl AssetWorkspaceState {
         let clear_kind = targets
             .iter()
             .any(|asset| !asset_matches_filters(asset, "", self.kind_filter));
-        let changed = self.selected_folder_id != folder
+        let revealed = self.reveal_folder_ancestors(&folder);
+        let changed = revealed
+            || self.selected_folder_id != folder
             || self.selected_asset_uuid != primary
             || self.synced_asset_uuids != selected
             || clear_search
