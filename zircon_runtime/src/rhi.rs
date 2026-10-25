@@ -56,6 +56,7 @@ pub fn create_default_ui_surface_presenter(
 
 pub use zr_rhi::{
     UiSurfaceFramePixelFormat, UiSurfaceFrameReadback, UiSurfaceFrameReadbackRequest,
+    UiSurfaceImageAlphaMode, UiSurfaceImageReadback, UiSurfaceImageReadbackRequest,
 };
 
 pub use zr_rhi::RenderDeviceFeature;

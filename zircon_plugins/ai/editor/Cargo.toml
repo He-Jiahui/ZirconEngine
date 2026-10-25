@@ -7,6 +7,7 @@ description = "AI behavior-tree authoring and debug editor plugin for Zircon."
 
 [dependencies]
 thiserror = "2.0.18"
+toml.workspace = true
 zircon_editor = { workspace = true }
 zircon_plugin_ai_runtime = { path = "../runtime" }
 zircon_plugin_editor_support = { path = "../../editor_support" }

@@ -6,7 +6,12 @@ mod capability;
 mod extension_ids;
 #[path = "plugin.rs"]
 mod plugin;
+#[path = "source/mod.rs"]
+mod source;
 
+#[cfg(test)]
+#[path = "tests/source.rs"]
+mod source_tests;
 #[cfg(test)]
 #[path = "tests/cases.rs"]
 mod tests;
@@ -21,4 +26,14 @@ pub use extension_ids::{
 pub use plugin::{
     editor_capabilities, editor_host_contract_marker, editor_plugin, editor_plugin_descriptor,
     package_manifest, plugin_registration, ParticlesEditorPlugin,
+};
+pub use source::{
+    parse_particle_burst_count, parse_particle_seed, ParticleCurveChannel,
+    ParticleOverviewConnectionEligibility, ParticleOverviewNodeId, ParticleOverviewProjection,
+    ParticleSourceAnimationBinding, ParticleSourceBackend, ParticleSourceBurst,
+    ParticleSourceBurstEdit, ParticleSourceBurstValue, ParticleSourceColorKey,
+    ParticleSourceCoordinateSpace, ParticleSourceCurveAdapter, ParticleSourceCurveEdit,
+    ParticleSourceCurveId, ParticleSourceEmitter, ParticleSourceError, ParticleSourceParameterEdit,
+    ParticleSourcePhysics, ParticleSourceRead, ParticleSourceScalarKey, ParticleSourceScalarRange,
+    ParticleSourceShape, ParticleSourceSystem, ParticleSourceVec3Range, ParticleSystemSource,
 };

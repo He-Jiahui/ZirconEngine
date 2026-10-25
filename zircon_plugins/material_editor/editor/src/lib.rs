@@ -11,6 +11,7 @@ mod graph_index;
 mod graph_presentation;
 mod node_creation;
 mod node_creation_autowire;
+mod node_deletion;
 mod node_insertion;
 mod node_pin_autowire;
 mod outputs;
@@ -53,6 +54,10 @@ mod node_creation_tests;
 #[cfg(test)]
 #[path = "tests/node_creation_autowire.rs"]
 mod node_creation_autowire_tests;
+
+#[cfg(test)]
+#[path = "tests/node_deletion.rs"]
+mod node_deletion_tests;
 
 #[cfg(test)]
 #[path = "tests/node_insertion.rs"]
@@ -119,6 +124,7 @@ pub use node_creation::validate_material_graph_node_creation;
 pub use node_creation_autowire::{
     plan_material_graph_node_creation, MaterialGraphNodeCreationPlan,
 };
+pub use node_deletion::{plan_material_graph_node_deletion, MaterialGraphNodeDeletionPlan};
 pub use node_insertion::{plan_material_graph_node_insertion, MaterialGraphNodeInsertionPlan};
 pub use node_pin_autowire::suggest_material_graph_autowire;
 pub use overview::MaterialGraphTextureUsage;

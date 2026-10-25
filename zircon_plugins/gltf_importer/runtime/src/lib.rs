@@ -48,6 +48,7 @@ pub use plugin::{
 
 #[cfg(feature = "runtime")]
 const STABLE_IMPORTER_SUPPORTED_REQUIRED_EXTENSIONS: &[&str] = &[
+    "EXT_meshopt_compression",
     "EXT_texture_webp",
     "KHR_mesh_quantization",
     "KHR_materials_anisotropy",

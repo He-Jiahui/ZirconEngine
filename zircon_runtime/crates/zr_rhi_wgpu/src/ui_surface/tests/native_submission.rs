@@ -1016,13 +1016,741 @@ fn normal_readback_preserves_the_actual_surface_encoder_ticket_and_image_pins() 
         "both construction failures must terminate their owned unbound frame"
     );
     assert!(!branch.contains(".queue.submit("));
-    let register = readback.find("owner.register_receipt_callback(").unwrap();
-    let encode = readback
+    let prepare_owner = readback
+        .split_once("pub(super) fn prepare_frame_readback(")
+        .unwrap()
+        .1;
+    let register = prepare_owner
+        .find("pending.window.register(owner)")
+        .unwrap();
+    let register_image = prepare_owner.find("image.slot.register(owner)").unwrap();
+    let encode = prepare_owner
         .find(".prepare_native_diagnostic_readback_frame(")
         .unwrap();
     assert!(
-        register < encode,
+        register < encode && register_image < encode,
         "the existing delivery router must own the request before encoding/submission"
     );
     assert!(!readback.contains("abort_diagnostic_readback_frame("));
+}
+
+fn viewport_media_request(image: bool) -> zr_rhi::UiSurfaceFrameReadbackRequest {
+    zr_rhi::UiSurfaceFrameReadbackRequest {
+        nonce: "scene-only-test".into(),
+        physical_size: (3, 2),
+        expected_draw_generation: None,
+        deadline_ms: 5000,
+        image: image.then(|| zr_rhi::UiSurfaceImageReadbackRequest {
+            command_index: 1,
+            resource_key: "viewport:1:1".into(),
+            resource_generation: 7,
+            physical_size: (3, 2),
+            expected_pixel_format: None,
+        }),
+    }
+}
+
+fn viewport_media_draw_list() -> UiSurfaceDrawList {
+    UiSurfaceDrawList::with_compact_styles(
+        (3, 2),
+        None,
+        vec![
+            UiSurfaceCommand {
+                z_index: 0,
+                frame: UiSurfaceRect::new(0.0, 0.0, 3.0, 2.0),
+                clip: None,
+                kind: UiSurfaceCommandKind::Quad {
+                    color: [10, 20, 30, 255],
+                    corner_radius: 0.0,
+                },
+            },
+            UiSurfaceCommand {
+                z_index: 1,
+                frame: UiSurfaceRect::new(0.0, 0.0, 3.0, 2.0),
+                clip: Some(UiSurfaceRect::new(1.0, 0.5, 1.0, 1.0)),
+                kind: UiSurfaceCommandKind::Image {
+                    payload: UiSurfaceImagePayload {
+                        resource_key: "viewport:1:1".into(),
+                        resource_generation: 7,
+                        width: 3,
+                        height: 2,
+                        upload_bytes: 0,
+                        rgba: None,
+                        atlas_uv: None,
+                    },
+                },
+            },
+        ],
+    )
+}
+
+fn viewport_media_tracker(max_requests: usize) -> zr_rhi::DiagnosticReadbackTracker {
+    zr_rhi::DiagnosticReadbackTracker::new(
+        zr_rhi::DeviceId::new(451),
+        zr_rhi::DeviceGeneration::initial(),
+        zr_rhi::DiagnosticReadbackBudget::new(max_requests, 4, 4096, 8192, 8192, 8),
+    )
+}
+
+fn viewport_media_ticket(sequence: u64) -> zr_rhi::SubmissionTicket {
+    zr_rhi::SubmissionTicket::new(
+        zr_rhi::DeviceId::new(451),
+        zr_rhi::DeviceGeneration::initial(),
+        zr_rhi::RenderQueueClass::Graphics,
+        sequence,
+    )
+}
+
+fn viewport_media_admitted(
+    admission: zr_rhi::DiagnosticReadbackAdmission,
+) -> zr_rhi::DiagnosticReadbackRequestId {
+    let zr_rhi::DiagnosticReadbackAdmission::Admitted(id) = admission else {
+        panic!("expected admission");
+    };
+    id
+}
+
+#[test]
+fn normal_viewport_media_command_requires_exact_index_resource_generation_extent_and_full_uv() {
+    use super::super::frame_readback::image_command_geometry;
+    let draw_list = viewport_media_draw_list();
+    let request = viewport_media_request(true).image.unwrap();
+    assert_eq!(
+        image_command_geometry(&draw_list, &request).unwrap(),
+        (draw_list.commands[1].frame, draw_list.commands[1].clip)
+    );
+    for wrong in [
+        zr_rhi::UiSurfaceImageReadbackRequest {
+            command_index: 0,
+            ..request.clone()
+        },
+        zr_rhi::UiSurfaceImageReadbackRequest {
+            command_index: 2,
+            ..request.clone()
+        },
+        zr_rhi::UiSurfaceImageReadbackRequest {
+            resource_key: "viewport:2:1".into(),
+            ..request.clone()
+        },
+        zr_rhi::UiSurfaceImageReadbackRequest {
+            resource_generation: 8,
+            ..request.clone()
+        },
+        zr_rhi::UiSurfaceImageReadbackRequest {
+            physical_size: (6, 2),
+            ..request.clone()
+        },
+    ] {
+        assert!(image_command_geometry(&draw_list, &wrong).is_err());
+    }
+    let mut atlas = draw_list.clone();
+    let UiSurfaceCommandKind::Image { payload } = &mut atlas.commands[1].kind else {
+        unreachable!()
+    };
+    payload.atlas_uv = Some(UiSurfaceImageUvRect {
+        min: [0.0, 0.0],
+        max: [1.0, 1.0],
+    });
+    assert!(
+        image_command_geometry(&atlas, &request).is_err(),
+        "even identity UV must be explicitly whole-resource"
+    );
+}
+
+#[test]
+fn normal_viewport_media_command_rejects_hidden_invalid_or_cpu_backed_resources() {
+    use super::super::frame_readback::image_command_geometry;
+    let request = viewport_media_request(true).image.unwrap();
+    for frame in [
+        UiSurfaceRect::new(20.0, 20.0, 6.0, 4.0),
+        UiSurfaceRect::new(f32::NAN, 3.0, 6.0, 4.0),
+        UiSurfaceRect::new(2.0, 3.0, 0.0, 4.0),
+    ] {
+        let mut draw_list = viewport_media_draw_list();
+        draw_list.commands[1].frame = frame;
+        assert!(image_command_geometry(&draw_list, &request).is_err());
+    }
+    let mut draw_list = viewport_media_draw_list();
+    draw_list.commands[1].clip = Some(UiSurfaceRect::new(10.0, 8.0, 1.0, 1.0));
+    assert!(image_command_geometry(&draw_list, &request).is_err());
+    let mut draw_list = viewport_media_draw_list();
+    let UiSurfaceCommandKind::Image { payload } = &mut draw_list.commands[1].kind else {
+        unreachable!()
+    };
+    payload.rgba = Some(vec![255; 24]);
+    assert!(image_command_geometry(&draw_list, &request).is_err());
+    let compact =
+        UiSurfaceDrawList::with_compact_styles(draw_list.surface_size, None, draw_list.commands);
+    assert!(compact
+        .image_resource(&request.resource_key, request.resource_generation)
+        .is_some());
+    assert!(
+        image_command_geometry(&compact, &request).is_err(),
+        "compacting CPU bytes cannot make them an external resource"
+    );
+}
+
+#[test]
+fn normal_viewport_media_texture_reports_actual_format_alpha_and_rejects_unreadable_generations() {
+    use super::super::frame_readback::image_texture_format;
+    let Some((device, _queue)) = offscreen_test_device() else {
+        return;
+    };
+    let request = viewport_media_request(true).image.unwrap();
+    for (format, expected) in [
+        (
+            wgpu::TextureFormat::Rgba8UnormSrgb,
+            zr_rhi::UiSurfaceFramePixelFormat::Rgba8Srgb,
+        ),
+        (
+            wgpu::TextureFormat::Bgra8UnormSrgb,
+            zr_rhi::UiSurfaceFramePixelFormat::Bgra8Srgb,
+        ),
+        (
+            wgpu::TextureFormat::Rgba8Unorm,
+            zr_rhi::UiSurfaceFramePixelFormat::Rgba8Linear,
+        ),
+        (
+            wgpu::TextureFormat::Bgra8Unorm,
+            zr_rhi::UiSurfaceFramePixelFormat::Bgra8Linear,
+        ),
+    ] {
+        let texture = viewport_media_texture(&device, format, wgpu::TextureUsages::COPY_SRC);
+        let image = WgpuUiExternalImage::new_premultiplied(texture.clone(), 3, 2, 7);
+        assert_eq!(
+            image_texture_format(&image, &request).unwrap(),
+            (expected, zr_rhi::UiSurfaceImageAlphaMode::Premultiplied)
+        );
+        let opaque = WgpuUiExternalImage::new_opaque(texture.clone(), 3, 2, 7);
+        assert_eq!(
+            image_texture_format(&opaque, &request).unwrap().1,
+            zr_rhi::UiSurfaceImageAlphaMode::Opaque
+        );
+        let wrong = zr_rhi::UiSurfaceImageReadbackRequest {
+            expected_pixel_format: Some(
+                if expected == zr_rhi::UiSurfaceFramePixelFormat::Rgba8Srgb {
+                    zr_rhi::UiSurfaceFramePixelFormat::Bgra8Linear
+                } else {
+                    zr_rhi::UiSurfaceFramePixelFormat::Rgba8Srgb
+                },
+            ),
+            ..request.clone()
+        };
+        assert!(image_texture_format(&image, &wrong).is_err());
+        assert!(image_texture_format(
+            &WgpuUiExternalImage::new_opaque(texture.clone(), 3, 2, 8),
+            &request
+        )
+        .is_err());
+        assert!(
+            image_texture_format(&WgpuUiExternalImage::new_opaque(texture, 2, 2, 7), &request)
+                .is_err()
+        );
+    }
+    for (format, usage) in [
+        (
+            wgpu::TextureFormat::Rgba8Unorm,
+            wgpu::TextureUsages::TEXTURE_BINDING,
+        ),
+        (
+            wgpu::TextureFormat::Rgba16Float,
+            wgpu::TextureUsages::COPY_SRC,
+        ),
+    ] {
+        let image = WgpuUiExternalImage::new_opaque(
+            viewport_media_texture(&device, format, usage),
+            3,
+            2,
+            7,
+        );
+        assert!(image_texture_format(&image, &request).is_err());
+    }
+}
+
+#[test]
+fn normal_viewport_media_none_preserves_window_only_bytes_and_submission() {
+    use super::super::frame_readback::PendingFrameReadback;
+    let mut tracker = viewport_media_tracker(4);
+    tracker.begin_frame(1).unwrap();
+    let admission = tracker
+        .admit_or_reject(zr_rhi::DiagnosticReadbackKind::Texture, 512)
+        .unwrap();
+    let id = viewport_media_admitted(admission);
+    let mut pending = PendingFrameReadback::new(viewport_media_request(false), 12);
+    pending.prepare_window(zr_rhi::UiSurfaceFramePixelFormat::Bgra8Linear, 19);
+    assert!(pending.window.admit(admission));
+    let ticket = viewport_media_ticket(1);
+    tracker.bind_active_frame(ticket).unwrap();
+    let receipt = tracker
+        .terminalize(id, zr_rhi::DiagnosticReadbackTerminal::Succeeded)
+        .unwrap();
+    let bytes = [1, 2, 3, 255].repeat(6);
+    pending.window.deliver(receipt, Some(bytes.clone()));
+    assert!(
+        !pending.ready(),
+        "delivered bytes cannot substitute for the actual bound ticket"
+    );
+    pending.bind_submission(ticket);
+    assert!(pending.ready());
+    let result = pending.finish("Opaque".into(), None);
+    assert_eq!(result.submission, Some(ticket));
+    assert_eq!(result.present_index, 19);
+    assert_eq!(result.surface_epoch, 12);
+    assert_eq!(result.color8, Some(bytes));
+    assert_eq!(
+        result.pixel_format,
+        Some(zr_rhi::UiSurfaceFramePixelFormat::Bgra8Linear)
+    );
+    assert!(result.image.is_none() && result.failure.is_none());
+}
+
+#[test]
+fn normal_viewport_media_partial_admission_still_binds_and_waits_for_admitted_window() {
+    use super::super::frame_readback::PendingFrameReadback;
+    let mut tracker = viewport_media_tracker(1);
+    tracker.begin_frame(1).unwrap();
+    let first = tracker
+        .admit_or_reject(zr_rhi::DiagnosticReadbackKind::Texture, 512)
+        .unwrap();
+    let id = viewport_media_admitted(first);
+    let rejected = tracker
+        .admit_or_reject(zr_rhi::DiagnosticReadbackKind::Texture, 512)
+        .unwrap();
+    let mut pending = PendingFrameReadback::new(viewport_media_request(true), 1);
+    assert!(pending.window.admit(first));
+    assert!(!pending.image.as_mut().unwrap().slot.admit(rejected));
+    pending.fail("image readback quota rejected".into());
+    assert!(
+        !pending.ready(),
+        "partial failure must not retire unbound admitted work"
+    );
+    let ticket = viewport_media_ticket(1);
+    tracker.bind_active_frame(ticket).unwrap();
+    pending.bind_submission(ticket);
+    assert!(
+        !pending.ready(),
+        "partial failure must still await the admitted receipt"
+    );
+    let receipt = tracker
+        .terminalize(id, zr_rhi::DiagnosticReadbackTerminal::Succeeded)
+        .unwrap();
+    pending.window.deliver(receipt, Some(vec![255; 24]));
+    assert!(pending.ready());
+    let result = pending.finish("Opaque".into(), None);
+    assert_eq!(result.submission, Some(ticket));
+    assert_eq!(result.receipt, Some(receipt));
+    let image = result.image.unwrap();
+    assert_eq!(
+        image.receipt.unwrap().terminal(),
+        zr_rhi::DiagnosticReadbackTerminal::OverBudget
+    );
+    assert!(result.failure.is_some() && result.color8.is_none() && image.color8.is_none());
+}
+
+#[test]
+fn normal_viewport_media_both_admitted_require_both_terminal_deliveries() {
+    use super::super::frame_readback::PendingFrameReadback;
+    let mut tracker = viewport_media_tracker(4);
+    tracker.begin_frame(1).unwrap();
+    let first = tracker
+        .admit_or_reject(zr_rhi::DiagnosticReadbackKind::Texture, 512)
+        .unwrap();
+    let second = tracker
+        .admit_or_reject(zr_rhi::DiagnosticReadbackKind::Texture, 512)
+        .unwrap();
+    let mut pending = PendingFrameReadback::new(viewport_media_request(true), 1);
+    pending.window.admit(first);
+    pending.image.as_mut().unwrap().slot.admit(second);
+    let ticket = viewport_media_ticket(1);
+    tracker.bind_active_frame(ticket).unwrap();
+    pending.bind_submission(ticket);
+    let receipt = tracker
+        .terminalize(
+            viewport_media_admitted(first),
+            zr_rhi::DiagnosticReadbackTerminal::Succeeded,
+        )
+        .unwrap();
+    pending.window.deliver(receipt, Some(vec![255; 24]));
+    assert!(!pending.ready());
+    let failed = tracker
+        .terminalize(
+            viewport_media_admitted(second),
+            zr_rhi::DiagnosticReadbackTerminal::MapFailed,
+        )
+        .unwrap();
+    pending.image.as_ref().unwrap().slot.deliver(failed, None);
+    assert!(pending.ready());
+    let result = pending.finish("Opaque".into(), None);
+    assert_eq!(result.image.as_ref().unwrap().receipt, Some(failed));
+    assert!(result.failure.is_some() && result.color8.is_none());
+}
+
+#[test]
+fn normal_viewport_media_rejects_cross_request_cross_submission_and_wrong_byte_extent() {
+    use super::super::frame_readback::PendingFrameReadback;
+    for defect in ["request", "submission", "extent"] {
+        let mut tracker = viewport_media_tracker(4);
+        tracker.begin_frame(1).unwrap();
+        let first = tracker
+            .admit_or_reject(zr_rhi::DiagnosticReadbackKind::Texture, 512)
+            .unwrap();
+        let ticket = viewport_media_ticket(1);
+        tracker.bind_active_frame(ticket).unwrap();
+        let window = tracker
+            .terminalize(
+                viewport_media_admitted(first),
+                zr_rhi::DiagnosticReadbackTerminal::Succeeded,
+            )
+            .unwrap();
+        tracker.begin_frame(2).unwrap();
+        let second = tracker
+            .admit_or_reject(zr_rhi::DiagnosticReadbackKind::Texture, 512)
+            .unwrap();
+        tracker
+            .bind_active_frame(if defect == "submission" {
+                viewport_media_ticket(2)
+            } else {
+                ticket
+            })
+            .unwrap();
+        let image = tracker
+            .terminalize(
+                viewport_media_admitted(second),
+                zr_rhi::DiagnosticReadbackTerminal::Succeeded,
+            )
+            .unwrap();
+        let mut pending = PendingFrameReadback::new(viewport_media_request(true), 1);
+        pending.window.admit(first);
+        pending.image.as_mut().unwrap().slot.admit(second);
+        pending.bind_submission(ticket);
+        pending.window.deliver(window, Some(vec![255; 24]));
+        pending.image.as_ref().unwrap().slot.deliver(
+            if defect == "request" { window } else { image },
+            Some(vec![255; if defect == "extent" { 512 } else { 24 }]),
+        );
+        assert!(pending.ready());
+        let result = pending.finish("Opaque".into(), None);
+        let failure = result.image.as_ref().unwrap().failure.as_deref().unwrap();
+        assert!(
+            failure.contains(if defect == "extent" {
+                "payload extent"
+            } else {
+                "receipt"
+            }),
+            "{defect}: {failure}"
+        );
+        assert!(
+            result.failure.is_some()
+                && result.color8.is_none()
+                && result.image.unwrap().color8.is_none()
+        );
+    }
+}
+
+#[derive(Default)]
+struct ViewportMediaCompletionOwner {
+    callbacks: std::sync::Mutex<
+        HashMap<zr_rhi::DiagnosticReadbackRequestId, WgpuUiSurfaceDiagnosticReceiptCallback>,
+    >,
+    cancelled: std::sync::Mutex<Vec<zr_rhi::DiagnosticReadbackRequestId>>,
+}
+impl WgpuUiSurfaceDiagnosticCompletionOwner for ViewportMediaCompletionOwner {
+    fn register_receipt_callback(
+        &self,
+        admission: zr_rhi::DiagnosticReadbackAdmission,
+        callback: WgpuUiSurfaceDiagnosticReceiptCallback,
+    ) -> Result<bool, zr_rhi::RhiError> {
+        self.callbacks
+            .lock()
+            .unwrap()
+            .insert(viewport_media_admitted(admission), callback);
+        Ok(true)
+    }
+    fn cancel_receipt_callback(&self, id: zr_rhi::DiagnosticReadbackRequestId) {
+        self.callbacks.lock().unwrap().remove(&id);
+        self.cancelled.lock().unwrap().push(id);
+    }
+    fn drain_once(&self) -> Result<zr_rhi::SubmissionPollReceipt, zr_rhi::RhiError> {
+        unreachable!("cancellation does not poll or cancel native GPU work")
+    }
+}
+
+#[test]
+fn normal_viewport_media_cancel_detaches_both_routes_without_fabricating_native_terminals() {
+    use super::super::frame_readback::PendingFrameReadback;
+    let mut tracker = viewport_media_tracker(4);
+    tracker.begin_frame(1).unwrap();
+    let first = tracker
+        .admit_or_reject(zr_rhi::DiagnosticReadbackKind::Texture, 512)
+        .unwrap();
+    let second = tracker
+        .admit_or_reject(zr_rhi::DiagnosticReadbackKind::Texture, 512)
+        .unwrap();
+    let mut pending = PendingFrameReadback::new(viewport_media_request(true), 1);
+    pending.window.admit(first);
+    pending.image.as_mut().unwrap().slot.admit(second);
+    let owner = ViewportMediaCompletionOwner::default();
+    pending.window.register(&owner).unwrap();
+    pending
+        .image
+        .as_ref()
+        .unwrap()
+        .slot
+        .register(&owner)
+        .unwrap();
+    assert_eq!(owner.callbacks.lock().unwrap().len(), 2);
+    let ticket = viewport_media_ticket(1);
+    let frame_key = tracker.bind_active_frame(ticket).unwrap();
+    pending.bind_submission(ticket);
+    pending.cancel("actual surface resized", Some(&owner));
+    assert!(pending.ready());
+    assert!(owner.callbacks.lock().unwrap().is_empty());
+    assert_eq!(
+        *owner.cancelled.lock().unwrap(),
+        vec![
+            viewport_media_admitted(first),
+            viewport_media_admitted(second)
+        ]
+    );
+    let result = pending.finish("Opaque".into(), None);
+    assert_eq!(result.submission, Some(ticket));
+    assert!(
+        result.failure.is_some()
+            && result.receipt.is_none()
+            && result.image.unwrap().receipt.is_none()
+    );
+    assert_eq!(
+        tracker
+            .terminalize_frame(frame_key, zr_rhi::DiagnosticReadbackTerminal::Cancelled)
+            .len(),
+        2,
+        "callback detachment leaves native lifecycle terminalization with its original owner"
+    );
+}
+
+fn viewport_media_texture(
+    device: &wgpu::Device,
+    format: wgpu::TextureFormat,
+    usage: wgpu::TextureUsages,
+) -> wgpu::Texture {
+    device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("normal-viewport-media-test"),
+        size: wgpu::Extent3d {
+            width: 3,
+            height: 2,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format,
+        usage,
+        view_formats: &[],
+    })
+}
+
+fn viewport_media_device(
+    budget: zr_rhi::DiagnosticReadbackBudget,
+) -> Option<Arc<crate::WgpuRenderDevice>> {
+    let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());
+    let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::LowPower,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    }))
+    .ok()?;
+    let request = crate::wgpu_device_request(
+        adapter.features(),
+        &zr_rhi::RenderDeviceRequestPolicy::mvp_baseline(),
+    )
+    .ok()?;
+    let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
+        label: Some("normal-viewport-media-owner-test"),
+        required_features: request.requested_features(),
+        required_limits: wgpu::Limits::default(),
+        memory_hints: wgpu::MemoryHints::Performance,
+        trace: wgpu::Trace::Off,
+        experimental_features: wgpu::ExperimentalFeatures::disabled(),
+    }))
+    .ok()?;
+    let profile = zr_rhi::RenderDeviceProfile::new(
+        crate::next_wgpu_device_id(),
+        zr_rhi::DeviceGeneration::initial(),
+        crate::wgpu_adapter_facts(&adapter.get_info(), adapter.features()),
+        request.feature_negotiation().clone(),
+        crate::wgpu_device_limits(&device.limits()),
+        zr_rhi::RenderDeviceQueueTopology::single_serialized_queue(),
+        zr_rhi::RenderDeviceBudgets {
+            memory_budget: zr_rhi::GpuMemoryBudget::reference_1080p_mid(),
+            submission_limits: zr_rhi::SubmissionLimits::default(),
+            diagnostic_readback_budget: budget,
+        },
+    );
+    Some(Arc::new(
+        crate::WgpuRenderDevice::new(
+            crate::WgpuRenderDeviceContext::new(instance, adapter, device, queue),
+            profile,
+        )
+        .unwrap(),
+    ))
+}
+
+fn viewport_media_native_batch(reject_image: bool) {
+    use super::super::frame_readback::PendingFrameReadback;
+    use zr_rhi::RenderDevice;
+    let budget = zr_rhi::DiagnosticReadbackBudget::new(
+        if reject_image { 1 } else { 4 },
+        8,
+        4096,
+        8192,
+        16384,
+        8,
+    );
+    let Some(device) = viewport_media_device(budget) else {
+        return;
+    };
+    let context = device.ui_surface_context();
+    let usage = wgpu::TextureUsages::COPY_SRC | wgpu::TextureUsages::COPY_DST;
+    let window = viewport_media_texture(&context.device, wgpu::TextureFormat::Rgba8Unorm, usage);
+    let scene = viewport_media_texture(&context.device, wgpu::TextureFormat::Bgra8UnormSrgb, usage);
+    let window_bytes = [11, 22, 33, 255].repeat(6);
+    let scene_bytes = [
+        3, 20, 80, 255, 5, 30, 90, 255, 7, 40, 100, 255, 9, 50, 110, 255, 12, 60, 120, 255, 15, 70,
+        130, 255,
+    ]
+    .to_vec();
+    for (texture, bytes) in [(&window, &window_bytes), (&scene, &scene_bytes)] {
+        context.queue.write_texture(
+            texture.as_image_copy(),
+            bytes,
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(12),
+                rows_per_image: Some(2),
+            },
+            wgpu::Extent3d {
+                width: 3,
+                height: 2,
+                depth_or_array_layers: 1,
+            },
+        );
+    }
+    let external = context
+        .copy_texture_for_external_image(&scene, 3, 2, scene.format(), 7)
+        .unwrap()
+        .into_image();
+    let mut pending = PendingFrameReadback::new(viewport_media_request(true), 12);
+    pending.prepare_window(zr_rhi::UiSurfaceFramePixelFormat::Rgba8Linear, 29);
+    pending
+        .image
+        .as_mut()
+        .unwrap()
+        .prepare(&viewport_media_draw_list(), external.clone())
+        .unwrap();
+    device.begin_diagnostic_readback_frame(29).unwrap();
+    assert!(pending.window.admit(
+        device
+            .enqueue_native_diagnostic_texture_color8_readback(&window, 3, 2)
+            .unwrap()
+    ));
+    let admission = device
+        .enqueue_native_diagnostic_texture_color8_readback(&external.texture, 3, 2)
+        .unwrap();
+    assert_eq!(
+        pending.image.as_mut().unwrap().slot.admit(admission),
+        !reject_image
+    );
+    if reject_image {
+        pending.fail("image readback quota rejected".into());
+    }
+    let mut encoder = context
+        .device
+        .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            label: Some("normal-viewport-media-same-encoder"),
+        });
+    let frame = device
+        .prepare_native_diagnostic_readback_frame("normal-viewport-media-same-batch", &mut encoder)
+        .unwrap();
+    assert!(
+        frame.is_some(),
+        "partial failure must keep the admitted window's submission"
+    );
+    let mut recording = device
+        .begin_native_recording(zr_rhi::RenderQueueClass::Graphics)
+        .unwrap();
+    recording.extend_recorded_command_buffers([encoder.finish()]);
+    let ticket = device
+        .submit_native_recording_packet_with_diagnostics(recording.finish().unwrap(), frame)
+        .unwrap();
+    pending.bind_submission(ticket);
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    loop {
+        device.poll_submissions().unwrap();
+        pending.collect_local(&device);
+        if pending.ready() {
+            break;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "both admitted readbacks must reach actual terminal delivery"
+        );
+        std::thread::yield_now();
+    }
+    let result = pending.finish("Opaque".into(), None);
+    assert_eq!(result.submission, Some(ticket));
+    let receipt = result.receipt.unwrap();
+    assert_eq!(
+        receipt.terminal(),
+        zr_rhi::DiagnosticReadbackTerminal::Succeeded
+    );
+    assert_eq!(receipt.frame_key().unwrap().submission(), ticket);
+    let image = result.image.unwrap();
+    if reject_image {
+        assert!(result.failure.is_some() && result.color8.is_none() && image.color8.is_none());
+        assert_eq!(
+            image.receipt.unwrap().terminal(),
+            zr_rhi::DiagnosticReadbackTerminal::OverBudget
+        );
+    } else {
+        assert!(result.failure.is_none() && image.failure.is_none());
+        assert_eq!(result.color8, Some(window_bytes));
+        assert_eq!(image.color8, Some(scene_bytes));
+        assert_eq!(
+            image.pixel_format,
+            Some(zr_rhi::UiSurfaceFramePixelFormat::Bgra8Srgb)
+        );
+        assert_eq!(
+            image.alpha_mode,
+            Some(zr_rhi::UiSurfaceImageAlphaMode::Opaque)
+        );
+        assert_eq!(image.opaque_pixels, Some(true));
+        assert_eq!(
+            image.receipt.unwrap().frame_key().unwrap().submission(),
+            ticket
+        );
+        assert_eq!(
+            image.receipt.unwrap().byte_len(),
+            512,
+            "quota uses padded rows but bytes retain only the original texels"
+        );
+        assert_eq!(
+            image.command_frame,
+            Some(viewport_media_draw_list().commands[1].frame)
+        );
+        assert_eq!(
+            image.command_clip,
+            viewport_media_draw_list().commands[1].clip
+        );
+    }
+    assert_eq!(device.retained_diagnostic_readback_delivery_bytes(), 0);
+}
+
+#[test]
+fn normal_viewport_media_native_batch_returns_original_scene_bytes_with_window_submission() {
+    viewport_media_native_batch(false);
+}
+
+#[test]
+fn normal_viewport_media_native_partial_quota_rejection_still_settles_the_window_copy() {
+    viewport_media_native_batch(true);
 }

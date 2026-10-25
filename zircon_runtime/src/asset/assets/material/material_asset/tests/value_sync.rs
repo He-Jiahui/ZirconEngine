@@ -18,7 +18,7 @@ fn texture_slot_sync_preserves_existing_slot_metadata() {
     let mut slots = BTreeMap::from([("base_color".to_string(), previous)]);
     let replacement = reference("res://new.texture");
 
-    sync_texture_slot(&mut slots, "base_color", Some(&replacement));
+    sync_texture_slot(&mut slots, "base_color", Some(&replacement), false);
 
     let synchronized = slots.get("base_color").unwrap();
     assert_eq!(synchronized.reference.as_ref(), Some(&replacement));
@@ -32,7 +32,7 @@ fn texture_slot_sync_inserts_a_new_slot() {
     let mut slots = BTreeMap::new();
     let reference = reference("res://new.texture");
 
-    sync_texture_slot(&mut slots, "normal", Some(&reference));
+    sync_texture_slot(&mut slots, "normal", Some(&reference), false);
 
     let synchronized = slots.get("normal").unwrap();
     assert_eq!(synchronized.reference.as_ref(), Some(&reference));

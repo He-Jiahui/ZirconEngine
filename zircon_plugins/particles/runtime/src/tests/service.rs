@@ -1,5 +1,8 @@
 use super::*;
 
+#[path = "service/preview.rs"]
+mod preview;
+
 mod snapshot {
     use super::*;
 

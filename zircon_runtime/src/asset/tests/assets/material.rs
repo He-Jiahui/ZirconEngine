@@ -18,6 +18,8 @@ use crate::core::resource::ResourceId;
 mod advanced_features;
 #[path = "material/asset_serialization.rs"]
 mod asset_serialization;
+#[path = "material/instance_serialization.rs"]
+mod instance_serialization;
 #[path = "material/management_records.rs"]
 mod management_records;
 #[path = "material/override_validation.rs"]

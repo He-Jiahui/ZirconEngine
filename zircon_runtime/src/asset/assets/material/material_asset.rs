@@ -594,16 +594,39 @@ impl MaterialAsset {
 
     fn texture_slots_with_schema_v1_defaults(&self) -> BTreeMap<String, MaterialTextureSlotValue> {
         let mut slots = self.texture_slots.clone();
+        // An existing empty child slot explicitly suppresses the parent's texture.
+        let preserve_existing = self.parent.is_some();
         // Canonical PBR slots own serialized references; shader fallback metadata can stay.
-        sync_texture_slot(&mut slots, "base_color", self.base_color_texture.as_ref());
-        sync_texture_slot(&mut slots, "normal", self.normal_texture.as_ref());
+        sync_texture_slot(
+            &mut slots,
+            "base_color",
+            self.base_color_texture.as_ref(),
+            preserve_existing,
+        );
+        sync_texture_slot(
+            &mut slots,
+            "normal",
+            self.normal_texture.as_ref(),
+            preserve_existing,
+        );
         sync_texture_slot(
             &mut slots,
             "metallic_roughness",
             self.metallic_roughness_texture.as_ref(),
+            preserve_existing,
         );
-        sync_texture_slot(&mut slots, "occlusion", self.occlusion_texture.as_ref());
-        sync_texture_slot(&mut slots, "emissive", self.emissive_texture.as_ref());
+        sync_texture_slot(
+            &mut slots,
+            "occlusion",
+            self.occlusion_texture.as_ref(),
+            preserve_existing,
+        );
+        sync_texture_slot(
+            &mut slots,
+            "emissive",
+            self.emissive_texture.as_ref(),
+            preserve_existing,
+        );
         slots
     }
 
@@ -636,17 +659,40 @@ impl MaterialAsset {
 
     fn property_overrides_with_schema_v1_defaults(&self) -> BTreeMap<String, toml::Value> {
         let mut overrides = self.property_values.clone();
+        // Local presence distinguishes an explicit default from inheriting a parent value.
+        let preserve_existing = self.parent.is_some();
         // Runtime PBR fields must overwrite hydrated maps so source rewrites are real edits.
         sync_vec4_override(
             &mut overrides,
             "base_color",
             self.base_color,
             [1.0, 1.0, 1.0, 1.0],
+            preserve_existing,
         );
-        sync_f32_override(&mut overrides, "metallic", self.metallic, 0.0);
-        sync_f32_override(&mut overrides, "roughness", self.roughness, 1.0);
-        sync_vec3_override(&mut overrides, "emissive", self.emissive, [0.0, 0.0, 0.0]);
-        if self.alpha_mode != AlphaMode::Opaque {
+        sync_f32_override(
+            &mut overrides,
+            "metallic",
+            self.metallic,
+            0.0,
+            preserve_existing,
+        );
+        sync_f32_override(
+            &mut overrides,
+            "roughness",
+            self.roughness,
+            1.0,
+            preserve_existing,
+        );
+        sync_vec3_override(
+            &mut overrides,
+            "emissive",
+            self.emissive,
+            [0.0, 0.0, 0.0],
+            preserve_existing,
+        );
+        if self.alpha_mode != AlphaMode::Opaque
+            || (preserve_existing && overrides.contains_key("alpha_mode"))
+        {
             overrides.insert(
                 "alpha_mode".to_string(),
                 toml::Value::try_from(self.alpha_mode.clone()).unwrap(),
@@ -654,12 +700,21 @@ impl MaterialAsset {
         } else {
             overrides.remove("alpha_mode");
         }
-        if self.double_sided {
-            overrides.insert("double_sided".to_string(), toml::Value::Boolean(true));
+        if self.double_sided || (preserve_existing && overrides.contains_key("double_sided")) {
+            overrides.insert(
+                "double_sided".to_string(),
+                toml::Value::Boolean(self.double_sided),
+            );
         } else {
             overrides.remove("double_sided");
         }
-        material_control::sync_material_control_overrides(&mut overrides, &self.property_values);
+        // Control properties have no separate PBR fields; the local map is authoritative.
+        if !preserve_existing {
+            material_control::sync_material_control_overrides(
+                &mut overrides,
+                &self.property_values,
+            );
+        }
         overrides
     }
 

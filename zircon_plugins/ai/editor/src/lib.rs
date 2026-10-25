@@ -1,3 +1,5 @@
+#[path = "authoring/mod.rs"]
+mod authoring;
 #[path = "capability.rs"]
 mod capability;
 #[path = "extension_ids.rs"]
@@ -12,6 +14,31 @@ mod runtime_mirror;
 #[cfg(test)]
 #[path = "tests/cases.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "tests/authoring.rs"]
+mod authoring_tests;
+
+#[cfg(test)]
+#[path = "tests/gameplay_debugger.rs"]
+mod gameplay_debugger_tests;
+
+pub use authoring::{
+    AiBehaviorTreeAsset, AiBehaviorTreeConnectionCandidate, AiBehaviorTreeConnectionRequest,
+    AiBehaviorTreeEdgeRouteRequest, AiBehaviorTreeEdit, AiBehaviorTreeEditCandidate,
+    AiBehaviorTreeEditError, AiBehaviorTreeGraphAdapter, AiBehaviorTreeGraphError,
+    AiBehaviorTreeGraphGeometry, AiBehaviorTreeGraphProjection, AiBehaviorTreeMenuAdapter,
+    AiBehaviorTreeMenuCommand, AiBehaviorTreeMenuDisabledReason, AiBehaviorTreeMenuError,
+    AiBehaviorTreeMenuRequest, AiBehaviorTreeMenuRow, AiBehaviorTreeNodeMenuRow,
+    AiBlackboardDependencies, AiBlackboardKeyMenuRow, AiBlackboardKeyReference,
+    AiBlackboardKeyUsage, AiBlackboardMenuAdapter, AiBlackboardMenuCandidate,
+    AiBlackboardMenuCommand, AiBlackboardMenuDisabledReason, AiBlackboardMenuError,
+    AiBlackboardMenuRequest, AiBlackboardMenuRow, AiBlackboardProviderSnapshot,
+    AiBlackboardReferenceBlocker, AiBlackboardReferenceKnowledge, AiBlackboardReferencePlan,
+    AiBlackboardRenameCandidate, AiBlackboardRenameError, AiBlackboardSchemaEditCandidate,
+    AiBlackboardSchemaInput, AiBlackboardSourceVersion, AiBlackboardTreeAssociation,
+    AiBlackboardTreeInput, AiBlackboardTreeRewrite,
+};
 
 pub use capability::{
     AI_AUTHORING_CAPABILITY, AI_DEBUG_CAPABILITY, EDITOR_CAPABILITIES, PLUGIN_ID,
@@ -33,7 +60,7 @@ pub use plugin::{
 };
 pub use runtime_mirror::{
     ai_runtime_event_consumers, AiBtNodeResultMirror, AiBtNodeResultMirrorApply,
-    AiBtNodeResultMirrorError, AiPieMirror, AiPieMirrorApply, AiPieMirrorError,
+    AiBtNodeResultMirrorError, AiPieFrameRef, AiPieMirror, AiPieMirrorApply, AiPieMirrorError,
     AI_BEHAVIOR_DEBUG_SNAPSHOT_EVENT_ID, AI_BEHAVIOR_DEBUG_SNAPSHOT_PAYLOAD_SCHEMA,
     BT_NODE_RESULT_EVENT_ID, BT_NODE_RESULT_PAYLOAD_SCHEMA,
 };

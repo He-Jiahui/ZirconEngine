@@ -18,6 +18,6 @@ pub use module::{
     ANIMATION_MODULE_NAME, DEFAULT_ANIMATION_MANAGER_NAME,
 };
 pub use sequence::{
-    apply_compiled_sequence_to_world, compile_sequence_for_world, CompiledAnimationSequence,
-    CompiledAnimationSequenceApplyStats,
+    apply_compiled_sequence_to_world, compile_sequence_for_world, sample_animation_bool_channel,
+    CompiledAnimationSequence, CompiledAnimationSequenceApplyStats,
 };

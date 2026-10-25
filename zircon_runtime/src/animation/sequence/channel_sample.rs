@@ -9,6 +9,48 @@ use crate::core::math::{Quat, Real};
 
 use super::interpolation::sample_hermite;
 
+/// Samples the existing Step evaluator for a narrowly supported Boolean channel.
+///
+/// Keys must be nonempty, Boolean, tangent-free, finite, nonnegative, and strictly
+/// increasing in seconds. Invalid or unsupported input returns `None` without
+/// sorting or rewriting it. Finite request times retain the existing endpoint
+/// clamp and exact-interior-key hold semantics.
+///
+/// This pure query owns no clock, target binding, document, or property writer.
+/// It does not validate a Widget property, prove a frame was presented, or expose
+/// the unchecked raw/compiled extension traits as public APIs.
+#[must_use]
+pub fn sample_animation_bool_channel(
+    channel: &AnimationChannelAsset,
+    time_seconds: Real,
+) -> Option<bool> {
+    if !time_seconds.is_finite()
+        || channel.interpolation != AnimationInterpolationAsset::Step
+        || channel.keys.is_empty()
+    {
+        return None;
+    }
+
+    let mut previous_time = None;
+    for key in &channel.keys {
+        if !key.time_seconds.is_finite()
+            || key.time_seconds < 0.0
+            || previous_time.is_some_and(|previous| key.time_seconds <= previous)
+            || !matches!(&key.value, AnimationChannelValueAsset::Bool(_))
+            || key.in_tangent.is_some()
+            || key.out_tangent.is_some()
+        {
+            return None;
+        }
+        previous_time = Some(key.time_seconds);
+    }
+
+    match channel.sample(time_seconds)? {
+        AnimationChannelValueAsset::Bool(value) => Some(value),
+        _ => None,
+    }
+}
+
 pub(crate) trait AnimationChannelSampleExt {
     fn sample(&self, time_seconds: Real) -> Option<AnimationChannelValueAsset>;
 }

@@ -416,7 +416,9 @@ fn optimized_evaluate_material_graph(graph: &MaterialGraphAsset) -> MaterialColo
         .find(|node| matches!(&node.kind, MaterialGraphNodeKindAsset::Output))
         .unwrap();
     let base_color = index.incoming_link(&output.id, "base_color").unwrap();
-    evaluate_color_input(graph, &index, &base_color.from_node, &mut BTreeSet::new()).unwrap()
+    MaterialGraphEvaluator::new(graph, &index)
+        .color(&base_color.from_node)
+        .unwrap()
 }
 
 fn legacy_evaluate_material_graph(graph: &MaterialGraphAsset) -> MaterialColorInput {
@@ -464,7 +466,20 @@ fn legacy_evaluate_color_input(
         Some(MaterialGraphNodeKindAsset::Multiply) => {
             let a = legacy_evaluate_color_pin(graph, node_id, "a", evaluating)?;
             let b = legacy_evaluate_color_pin(graph, node_id, "b", evaluating)?;
-            combine_color_inputs("multiply", a, b, |left, right| left * right)
+            match (a, b) {
+                (MaterialColorInput::Constant(a), MaterialColorInput::Constant(b)) => {
+                    let value = std::array::from_fn(|channel| a[channel] * b[channel]);
+                    if value.iter().any(|channel| !channel.is_finite()) {
+                        Err("material graph `multiply` produced a non-finite value".to_string())
+                    } else {
+                        Ok(MaterialColorInput::Constant(value))
+                    }
+                }
+                _ => Err(
+                    "material graph `multiply` node cannot combine texture-backed inputs in v1"
+                        .to_string(),
+                ),
+            }
         }
         _ => Err(format!("unsupported benchmark node `{node_id}`")),
     };

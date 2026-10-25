@@ -116,4 +116,5 @@ mod tests;
 
 pub use ui_surface::{
     UiSurfaceFramePixelFormat, UiSurfaceFrameReadback, UiSurfaceFrameReadbackRequest,
+    UiSurfaceImageAlphaMode, UiSurfaceImageReadback, UiSurfaceImageReadbackRequest,
 };

@@ -59,6 +59,7 @@ pub(super) fn sync_texture_slot(
     slots: &mut BTreeMap<String, MaterialTextureSlotValue>,
     slot: &str,
     texture: Option<&AssetReference>,
+    preserve_existing: bool,
 ) {
     match texture {
         Some(texture) => match slots.entry(slot.to_string()) {
@@ -83,7 +84,7 @@ pub(super) fn sync_texture_slot(
             } else {
                 false
             };
-            if should_remove {
+            if should_remove && !preserve_existing {
                 slots.remove(slot);
             }
         }
@@ -95,8 +96,9 @@ pub(super) fn sync_f32_override(
     key: &str,
     value: f32,
     default: f32,
+    preserve_existing: bool,
 ) {
-    if (value - default).abs() > f32::EPSILON {
+    if (value - default).abs() > f32::EPSILON || (preserve_existing && values.contains_key(key)) {
         values.insert(key.to_string(), toml::Value::Float(value as f64));
     } else {
         values.remove(key);
@@ -108,8 +110,9 @@ pub(super) fn sync_vec4_override(
     key: &str,
     value: [f32; 4],
     default: [f32; 4],
+    preserve_existing: bool,
 ) {
-    if value != default {
+    if value != default || (preserve_existing && values.contains_key(key)) {
         values.insert(key.to_string(), toml_array(value));
     } else {
         values.remove(key);
@@ -121,8 +124,9 @@ pub(super) fn sync_vec3_override(
     key: &str,
     value: [f32; 3],
     default: [f32; 3],
+    preserve_existing: bool,
 ) {
-    if value != default {
+    if value != default || (preserve_existing && values.contains_key(key)) {
         values.insert(key.to_string(), toml_array(value));
     } else {
         values.remove(key);

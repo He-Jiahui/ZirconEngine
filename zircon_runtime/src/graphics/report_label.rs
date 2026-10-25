@@ -20,7 +20,7 @@ thread_local! {
 }
 
 /// Owned report text whose clones share the bytes, including across frame records.
-#[derive(Clone, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Default, Eq, PartialOrd, Ord, Hash)]
 pub struct RenderReportLabel(Arc<str>);
 
 impl RenderReportLabel {

@@ -13,6 +13,11 @@ use crate::render::{
 use crate::simulation::{ParticleSimulationError, ParticleSystemInstance};
 use crate::{ParticleSimulationBackend, PARTICLES_RUNTIME_CAPABILITY};
 
+#[path = "service/preview.rs"]
+mod preview;
+
+pub use preview::{ParticlePreviewClock, ParticlePreviewError};
+
 pub const PARTICLES_PHYSICS_CAPABILITY: &str = "runtime.feature.particles.physics";
 pub const PARTICLES_ANIMATION_CAPABILITY: &str = "runtime.feature.particles.animation_control";
 const MAX_RUNTIME_DIAGNOSTICS: usize = 256;
