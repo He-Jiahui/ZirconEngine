@@ -2,6 +2,26 @@
 
 本会话：`01a16d50-6c7f-7370-853d-4581184b66a1`。Parent：`01a16d4e-0491-7353-84fa-038bd7706546`。套件日期：2026-10-24；实际运行回执使用 UTC。
 
+## Default Details67：空选择仍检查原材质（2026-10-26）
+
+本轮接续66当时保留的默认板差异：UE `MaterialEditor.cpp:8708-8750` 的 `OnSelectedNodesChanged` 在空选择时把原 Material／MaterialFunction 的 EditObject 交给 SetObjects，随后调用 FocusDetailsPanel。本域 [details_selection.rs](../../../zircon_plugins/material_editor/editor/src/details_selection.rs) 的空选择分支已返回 `Graph(&原作者图)`；这不等于空 Details，也不从展平 MaterialAsset 重建作者文档。现将原默认三板的错误“选择表达式”提示替换为与66一致的 Name／Shader；数据仍为61既有 graph() 声明，selectedIds=[]，明确是设计／回归数据，未描述为当前 EXE 打开的资产或完整 UE 属性 schema。
+
+| 逻辑尺寸 | 原 default 板身份 | 新 context 重开与逐图结果 |
+| --- | --- | --- |
+| 1280×800 | 9fce0704-72a3-4f09-84e2-00e0d9efab78 | 4行原生文字完整，993宽图视口，Output 无裁切。 |
+| 900×620 | 46039af0-ecf6-4d12-a29c-60c09d698950 | 中文名称和完整 Shader URI 可见，613宽图视口。 |
+| 640×520 | 722ca546-223f-4c7f-9e52-a37348a0250e | 同一数据完整显示，353宽图视口及230宽 Output 保持可见。 |
+
+真实 file/page 沿原 ...6092d704／...6092d705，rev242→253，3906对象不变；349变化全部位于自有三板457原对象内，0增删、0范围外变化。15原 native copies（12 Shared）及 componentFile/componentId/shapeRef 保留有效；fork30 的 Instance／Hierarchy／四 SearchInput／Overlay、66根选板及其它会话对象未变。Shared 当次仍 rev5／4原主件／34色／3字体，不写公共文件。文字使用真实 body／strong／editor.text.primary；原六层容器、Text 与自有 Search copy 用 Fill，预览提示用左右约束，preferred sidebar=256 沿66本域设计规则，未冒充 UE 数字常量、canonical intrinsic minimum 或 source/reset 资格。
+
+这次真实原生 inspector 重排已产生4条 position-data，未手写行框，也无需重复66的临时文本编辑。既有 Output 设计 copy 用原生水平对齐保持与66的同尺寸选中板几何一致；未修改原作者节点坐标或实现引擎 camera。默认 Output 的 fills／strokes／shadow／交互及源身份与基线一致，未把空选择画成选中。原型在独立新 context 逐尺寸实点“已空时点空白→选择 Output→点空白清除”，9条路径均保持预期 Graph 字段和实际可见目标；这是 Penpot viewer 导航证据，不是引擎选择存储、FocusDetailsPanel、撤销或 Esc 结果。
+
+三PNG均已打开逐图，文字与原生240分配一致，无字段或节点裁切。原始序列化字段顺序使初次 JSON 字符串顺序比较为 false；语义深比较、原生行框和渲染文字均相同，原判定与后续说明一并保留，未据此虚报保存失败或修改 guard。资料见原 reports/ue-material-family-20261024-01a16d50 下 material-default-details-67 的 source／save／flow-native／native-framing／reopen／pointer／review.json 及三尺寸PNG。
+
+66的默认空提示在当时确实 pending，本节仅关闭其 Penpot 设计差异；表达式 schema、多选字段、真正 PropertyEditorRow/value、修改／重置／资产跳转、长无断点路径和原 Nodes Overview caption 裁切仍 open。源 [material_workspace.zui](../../../zircon_editor/assets/ui/editor/modules/core/rendering/material_workspace.zui) 的29节点／27控件／13事件及三行静态表格未改；正式 asset-document／codec／导出、真实宿主输入与 GPU preview／Apply／Save、正常 EXE／实际150%DPI／双端≤1DIP均未通过。本轮3 Rust 无修改，复用64同源单插件静态检查；161静态定义不当执行数，#448／r10等原失败及 native/resource 未知保留，不重投。65已交原 owner 的 committed-worktree 精确 nested recipe 缺项不阻塞本域设计。
+
+66文档已实际由 queue26665／Jenkins #481 SUCCESS 提交为 dd191bd9e9ded3faf5cb28de4901f39779bd7e21，仅本文件；archive2164B／SHAc0b378537fa2397c08fb02bbe26de764cd96ac4dacb3fb245285cb924f349e2c 的认证 HTTP／Home 字节一致，main integration 仍 pending，不等于 Rust 或产品通过。67继续在 ready 工作树 w1167fba90b-mat64 增量记录并正常 deliver-task，实际 queue/commit 以本轮后继回执为准。goal active，passed=false、accepted=false，释放0B。
+
 ## Details66：根选择的作者字段与窄窗布局（2026-10-26）
 
 本轮仅接续本会话的三张既有 root-selected 板，未进入 fork30 的 Instance 四板、Hierarchy、四 SearchInput 或其 Overlay 续作；未写 Shared/catalog/tokens/Starship/runtime/原 ZUI。专属 file/page 保持 b4a1e3ce-9e6a-81fe-8008-d69d6092d704 / b4a1e3ce-9e6a-81fe-8008-d69d6092d705，真实保存并在新认证 context 重开至 rev242 / 3906 objects。349 个变化全部位于这三张自有板的 457 个原对象内，无增删、无范围外对象变化。15 个原 native copy roots（含12个 Shared）及其 componentFile/componentId/shapeRef 均保留并读回有效。
