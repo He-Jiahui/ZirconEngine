@@ -213,6 +213,7 @@ fn project_inspector(
         native_fields: crate::ui::workbench::snapshot::InspectorNativeFieldSnapshot::project(
             fields,
         ),
+        script_bindings: Ok(Vec::new()),
         plugin_components: project_plugin_components(fields),
     }
 }

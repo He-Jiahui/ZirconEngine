@@ -185,6 +185,8 @@ pub struct EditorManager {
     pub(super) project_runtime_build_set: Mutex<Option<ZrRuntimeBuildSetId>>,
     capability_updates: Mutex<()>,
     pub(super) dirty_save: Mutex<EditorDirtySaveCoordinator>,
+    pub(super) script_binding_catalog:
+        Mutex<super::editor_manager_script_bindings::ProjectScriptAuthoringCache>,
 }
 
 impl EditorManager {
@@ -261,6 +263,7 @@ impl EditorManager {
             project_runtime_build_set: Mutex::new(None),
             capability_updates: Mutex::new(()),
             dirty_save: Mutex::new(dirty_save),
+            script_binding_catalog: Mutex::new(Default::default()),
         };
         manager.refresh_builtin_plugin_status();
         Ok(manager)

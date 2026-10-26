@@ -110,6 +110,7 @@ pub(super) fn editor_data_fixture() -> EditorDataSnapshot {
             scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
             render_layer_mask: 1,
             native_fields: Vec::new(),
+            script_bindings: Ok(Vec::new()),
             plugin_components: Vec::new(),
         }),
         status_line: "Console ready".to_string(),

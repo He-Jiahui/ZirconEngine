@@ -409,6 +409,7 @@ fn inspector_with_component_properties() -> InspectorSnapshot {
         scale: ["1.25".to_string(), "2.50".to_string(), "0.75".to_string()],
         render_layer_mask: 1,
         native_fields: Vec::new(),
+        script_bindings: Ok(Vec::new()),
         plugin_components: vec![InspectorPluginComponentSnapshot {
             component_id: "zircon.transform".to_string(),
             display_name: "Transform Component".to_string(),

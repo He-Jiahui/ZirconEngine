@@ -44,6 +44,7 @@ fn componentized_workbench_window_template_bridge_syncs_scene_and_inspector_snap
         scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
         render_layer_mask: 0x21,
         native_fields: Vec::new(),
+        script_bindings: Ok(Vec::new()),
         plugin_components: vec![InspectorPluginComponentSnapshot {
             component_id: "zircon.transform".to_string(),
             display_name: "Transform Component".to_string(),
@@ -454,6 +455,7 @@ fn componentized_workbench_scene_tree_keeps_only_the_authored_retained_skeleton(
         scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
         render_layer_mask: 1,
         native_fields: Vec::new(),
+        script_bindings: Ok(Vec::new()),
         plugin_components: Vec::new(),
     };
     let thirteen_entries = numbered_scene_entries(13, 12);
@@ -518,6 +520,7 @@ fn inspector_live_values_reach_host_paint_after_sparse_and_full_surface_refresh(
         scale: ["1.00".to_string(), "1.00".to_string(), "1.00".to_string()],
         render_layer_mask: 1,
         native_fields: Vec::new(),
+        script_bindings: Ok(Vec::new()),
         plugin_components: Vec::new(),
     };
     bridge

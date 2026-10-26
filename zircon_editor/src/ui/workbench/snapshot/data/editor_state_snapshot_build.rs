@@ -65,6 +65,15 @@ impl EditorState {
                         fields
                     })
                     .unwrap_or_default(),
+                script_bindings: crate::core::editing::command::read_script_bindings(scene, id)
+                    .map(|bindings| {
+                        bindings
+                            .unwrap_or_default()
+                            .into_iter()
+                            .map(Into::into)
+                            .collect()
+                    })
+                    .map_err(|error| error.to_string()),
                 plugin_components: inspector_plugin_components(
                     scene,
                     id,
@@ -130,6 +139,10 @@ fn inspector_plugin_components(
     scene
         .dynamic_components_for_entity(node_id)
         .into_iter()
+        .filter(|component| {
+            component.component_id
+                != zircon_runtime::asset::SceneScriptBindingAsset::COMPONENT_TYPE_PATH
+        })
         .map(|component| {
             let component_id = component.component_id;
             let schema = scene.reflect_schema(&component_id).ok();

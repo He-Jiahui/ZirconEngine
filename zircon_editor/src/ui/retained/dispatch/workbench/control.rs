@@ -76,6 +76,11 @@ fn dispatch_componentized_workbench_binding_for_control(
 ) -> Result<UiHostEventEffects, String> {
     if let EditorUiBindingPayload::MenuAction { action_id } = binding.payload() {
         if let Some(result) =
+            bridge.dispatch_inspector_scripts(runtime, source_control_id, action_id)
+        {
+            return result;
+        }
+        if let Some(result) =
             bridge.dispatch_inspector_component_add(runtime, source_control_id, action_id)
         {
             return result;
@@ -168,6 +173,12 @@ pub(crate) fn dispatch_componentized_workbench_option_selected(
     control_id: &str,
     option_id: &str,
 ) -> Result<UiHostEventEffects, String> {
+    if let Some(result) = bridge.select_script_package(control_id, option_id) {
+        return result;
+    }
+    if let Some(result) = bridge.select_inspector_script_binding(control_id, option_id) {
+        return result;
+    }
     if let Some(result) = bridge.select_inspector_component_add_type(runtime, control_id, option_id)
     {
         return result;
@@ -218,6 +229,10 @@ pub(crate) fn dispatch_componentized_workbench_surface_control_edited(
 ) -> Option<Result<UiHostEventEffects, String>> {
     let edited = match bridge
         .edit_inspector_component_add(control_id, binding_id, value)
+        .and_then(|edited| match edited {
+            Some(edited) => Ok(Some(edited)),
+            None => bridge.edit_script_module(control_id, binding_id, value),
+        })
         .and_then(|edited| match edited {
             Some(edited) => Ok(Some(edited)),
             None => bridge.edit_inspector_filter(control_id, binding_id, value),

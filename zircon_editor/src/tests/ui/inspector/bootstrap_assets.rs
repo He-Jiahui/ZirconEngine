@@ -47,6 +47,7 @@ fn inspector_projection_maps_bootstrap_asset_into_mount_nodes() {
             scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
             render_layer_mask: 1,
             native_fields: Vec::new(),
+            script_bindings: Ok(Vec::new()),
             plugin_components: Vec::new(),
         }),
         UiSize::new(360.0, 520.0),

@@ -68,6 +68,7 @@ fn selection_hides_empty_state_without_synthesizing_keyboard_focus() {
         scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
         render_layer_mask: 1,
         native_fields: Vec::new(),
+        script_bindings: Ok(Vec::new()),
         plugin_components: Vec::new(),
     };
     let nodes = projected_nodes(Some(&inspector));

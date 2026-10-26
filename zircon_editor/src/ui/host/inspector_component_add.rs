@@ -17,7 +17,7 @@ use super::EditorHostEventController;
 pub(crate) const COMPONENT_ADD_PAGE_SIZE: usize = 32;
 
 impl EditorHostEventController {
-    fn with_inspector_component_add_context<R>(
+    pub(in crate::ui::host) fn with_inspector_component_add_context<R>(
         &self,
         expected: Option<&AddComponentScope>,
         read: impl FnOnce(&CoreEditContext, AddComponentScope) -> Result<R, EditCommandError>,
@@ -86,23 +86,38 @@ impl EditorHostEventController {
         page: usize,
         expected: Option<&AddComponentScope>,
     ) -> Result<AddComponentCatalog, String> {
+        let scripts_allowed = self
+            .enter_editor_manager()
+            .map_err(|e| e.to_string())?
+            .allows_current_script_binding_authoring();
         self.with_inspector_component_add_context(expected, |core, scope| {
             let (total, page, entries) = core.with_scene(|scene| {
-                let total = scene.dynamic_component_creation_descriptors().count();
+                let scripts_allowed = scripts_allowed && scope.targets.len() == 1;
+                let total = scene.dynamic_component_creation_descriptors().count()
+                    + usize::from(scripts_allowed);
                 let page = page.min(total.saturating_sub(1) / COMPONENT_ADD_PAGE_SIZE);
-                let entries = scene
-                    .dynamic_component_creation_descriptors()
+                let script_entry = scripts_allowed.then(|| AddComponentCatalogEntry {
+                    type_path: "script.bindings".into(),
+                    display_name: String::new(),
+                    already_present: false,
+                });
+                let entries = script_entry
+                    .into_iter()
+                    .chain(
+                        scene
+                            .dynamic_component_creation_descriptors()
+                            .map(|descriptor| AddComponentCatalogEntry {
+                                type_path: descriptor.type_id.clone(),
+                                display_name: descriptor.display_name.clone(),
+                                already_present: scope.targets.iter().any(|&target| {
+                                    scene
+                                        .dynamic_component(target, &descriptor.type_id)
+                                        .is_some()
+                                }),
+                            }),
+                    )
                     .skip(page * COMPONENT_ADD_PAGE_SIZE)
                     .take(COMPONENT_ADD_PAGE_SIZE)
-                    .map(|descriptor| AddComponentCatalogEntry {
-                        type_path: descriptor.type_id.clone(),
-                        display_name: descriptor.display_name.clone(),
-                        already_present: scope.targets.iter().any(|&target| {
-                            scene
-                                .dynamic_component(target, &descriptor.type_id)
-                                .is_some()
-                        }),
-                    })
                     .collect();
                 (total, page, entries)
             })?;

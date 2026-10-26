@@ -145,7 +145,12 @@ impl EditorManager {
                 &document.manifest,
                 composition.approved_project_plugins(),
                 composition.allows_native_extensions(),
-            )
+            )?;
+            self.script_binding_catalog
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .configure(&document.root_path, composition);
+            Ok(())
         })?;
         self.run_project_activation_effect(ledger, ProjectSessionEffect::Documents, || {
             self.initialize_document_journal(&document.root_path)?;
@@ -250,6 +255,7 @@ impl EditorManager {
         ledger: &mut ProjectSessionEffectLedgerStore,
     ) -> ProjectActivationFailure {
         self.clear_document_journal();
+        self.clear_script_binding_catalog();
         self.clear_project_plugin_status();
         let registrations = self.plugin_manager().clear_project_registration_reports();
         let close_result = self

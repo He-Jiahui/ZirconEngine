@@ -66,6 +66,9 @@ mod editor_manager_project;
 mod editor_manager_project_activation_effects;
 #[path = "editor_manager_project_session.rs"]
 mod editor_manager_project_session;
+#[path = "editor_manager_script_bindings.rs"]
+mod editor_manager_script_bindings;
+pub(crate) use editor_manager_script_bindings::ScriptPackageChoice;
 #[path = "editor_manager_runtime_diagnostics.rs"]
 mod editor_manager_runtime_diagnostics;
 #[path = "editor_manager_startup.rs"]
@@ -96,6 +99,8 @@ mod export_cargo_process;
 mod export_process_support;
 #[path = "host_capability_bridge.rs"]
 mod host_capability_bridge;
+#[path = "inspector_script_bindings.rs"]
+mod inspector_script_bindings;
 #[path = "layout_commands.rs"]
 mod layout_commands;
 #[path = "layout_hosts/mod.rs"]

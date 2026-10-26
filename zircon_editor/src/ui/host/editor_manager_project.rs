@@ -138,6 +138,7 @@ impl EditorManager {
         })?;
 
         self.prepare_project_close_effect(operation, ProjectSessionEffect::ProjectPlugins)?;
+        self.clear_script_binding_catalog();
         self.clear_project_plugin_status();
         let plugin_receipt = self
             .plugin_manager()

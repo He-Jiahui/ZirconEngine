@@ -14,6 +14,10 @@ use zircon_runtime_interface::ui::event_ui::UiNodeId;
 use super::componentized_window::BuiltinWorkbenchWindowTemplateSurfaceBridge;
 use super::error::BuiltinHostWindowTemplateBridgeError;
 
+#[path = "inspector_component_add/script.rs"]
+mod script;
+
+const SCRIPT_TYPE: &str = "script.bindings";
 const PANEL: &str = "WorkbenchComponentAddPanel";
 const TYPE: &str = "WorkbenchComponentAddType";
 const VALUES: &str = "WorkbenchComponentAddValues";
@@ -24,6 +28,7 @@ pub(super) struct InspectorComponentAddState {
     catalog: Option<AddComponentCatalog>,
     selected: Option<DynamicComponentCreationTemplate>,
     draft: String,
+    script: Option<script::ScriptBindingDraft>,
     previous_focus: Option<UiNodeId>,
 }
 
@@ -34,6 +39,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         control: &str,
         action: &str,
     ) -> Option<Result<UiHostEventEffects, String>> {
+        if let Some(result) = self.dispatch_script_draft(control, action) {
+            return Some(result);
+        }
         let result = match (control, action) {
             ("WorkbenchAddComponent", "workbench.inspector.component.add") => {
                 self.open_component_add(runtime)
@@ -83,7 +91,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         }
         self.publish_component_add_page()?;
         self.refresh_component_add()?;
-        let control = if self.inspector_component_add.selected.is_some() {
+        let control = if self.inspector_component_add.script.is_some() {
+            "WorkbenchComponentAddModule"
+        } else if self.inspector_component_add.selected.is_some() {
             TYPE
         } else {
             "WorkbenchComponentAddCancel"
@@ -117,6 +127,10 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                     .map(|entry| (catalog.scope.clone(), entry.type_path.clone()))
             });
         let (selected, feedback) = match selected {
+            Some((scope, path)) if path == SCRIPT_TYPE => {
+                let before = runtime.inspector_script_binding_before(&scope)?;
+                return self.seed_script_binding(runtime, before, None);
+            }
             Some((scope, path)) => match runtime.inspector_component_add_template(&scope, &path) {
                 Ok(selected) => (
                     Some(selected),
@@ -126,6 +140,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             },
             None => (None, "editor.inspector.component_add.empty"),
         };
+        self.inspector_component_add.script = None;
         self.inspector_component_add.selected = selected;
         self.seed_component_add_draft()?;
         self.component_add_feedback(feedback)
@@ -153,7 +168,18 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 catalog
                     .entries
                     .iter()
-                    .map(|entry| UiValue::String(entry.type_path.clone()))
+                    .map(|entry| {
+                        UiValue::String(if entry.type_path == SCRIPT_TYPE {
+                            format!(
+                                "{SCRIPT_TYPE}|label={}",
+                                super::inspector_script_bindings::option_label(
+                                    &self.i18n.translate("editor.inspector.script_binding.add")
+                                )
+                            )
+                        } else {
+                            entry.type_path.clone()
+                        })
+                    })
                     .collect(),
                 catalog
                     .entries
@@ -172,6 +198,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             ),
             None => (Vec::new(), Vec::new(), false, false, "0/0".into(), false),
         };
+        let (previous, next, page) = self
+            .script_package_paging()
+            .unwrap_or((previous, next, page));
         let selected = state.selected.as_ref();
         let path = selected
             .map(|selected| selected.spec.type_path.clone())
@@ -182,13 +211,35 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         let required = selected
             .map(|selected| selected.required_fields.join(", "))
             .unwrap_or_default();
-        let available = selected.is_some();
+        let available = selected.is_some()
+            || state.script.as_ref().is_some_and(|script| {
+                !script.binding.package.trim().is_empty()
+                    && !script.binding.module.trim().is_empty()
+            });
+        let path = if state.script.is_some() {
+            SCRIPT_TYPE.to_owned()
+        } else {
+            path
+        };
+        let name = if state.script.is_some() {
+            self.i18n
+                .translate("editor.inspector.script_binding.add")
+                .to_string()
+        } else {
+            name
+        };
         for (control, property, value) in [
             (TYPE, "options", UiValue::Array(options)),
             (TYPE, "disabled_options", UiValue::Array(disabled)),
             (TYPE, "value", UiValue::String(path.clone())),
             (TYPE, "value_text", UiValue::String(path)),
-            (TYPE, "disabled", UiValue::Bool(!has_options)),
+            (
+                TYPE,
+                "disabled",
+                UiValue::Bool(
+                    !has_options || state.script.as_ref().is_some_and(|s| s.index.is_some()),
+                ),
+            ),
             ("WorkbenchComponentAddName", "text", UiValue::String(name)),
             (
                 "WorkbenchComponentAddRequired",
@@ -216,6 +267,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             self.mutate_control_property(control, property, value)
                 .map_err(|error| error.to_string())?;
         }
+        self.publish_script_draft()?;
         Ok(())
     }
 
@@ -224,6 +276,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         runtime: &EditorHostEventController,
         next: bool,
     ) -> Result<(), String> {
+        if self.inspector_component_add.script.is_some() {
+            return self.page_script_packages(next);
+        }
         let Some(catalog) = &self.inspector_component_add.catalog else {
             return Ok(());
         };
@@ -243,6 +298,8 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 self.inspector_component_add.catalog = Some(catalog);
                 self.seed_first_component_add(runtime)?;
                 self.close_popup(TYPE).map_err(|error| error.to_string())?;
+                self.close_popup("WorkbenchComponentAddPackage")
+                    .map_err(|error| error.to_string())?;
                 self.publish_component_add_page()?;
             }
             Err(_) => self.component_add_feedback("editor.inspector.component_add.rejected")?,
@@ -270,7 +327,21 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             {
                 return Ok(component_add_paint());
             }
-            let selected = match runtime.inspector_component_add_template(&catalog.scope, option) {
+            let scope = catalog.scope.clone();
+            if option == SCRIPT_TYPE {
+                if !self
+                    .select_dropdown_option(TYPE, option)
+                    .map_err(|error| error.to_string())?
+                {
+                    return Ok(component_add_paint());
+                }
+                let before = runtime.inspector_script_binding_before(&scope)?;
+                self.seed_script_binding(runtime, before, None)?;
+                self.publish_component_add_page()?;
+                self.refresh_component_add()?;
+                return Ok(component_add_paint());
+            }
+            let selected = match runtime.inspector_component_add_template(&scope, option) {
                 Ok(selected) => selected,
                 Err(_) => {
                     self.component_add_feedback("editor.inspector.component_add.rejected")?;
@@ -284,6 +355,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             {
                 return Ok(component_add_paint());
             }
+            self.inspector_component_add.script = None;
             self.inspector_component_add.selected = Some(selected);
             self.seed_component_add_draft()?;
             self.publish_component_add_page()?;
@@ -305,7 +377,10 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         ) {
             return Ok(None);
         }
-        if control != VALUES || self.inspector_component_add.selected.is_none() {
+        if control != VALUES
+            || (self.inspector_component_add.selected.is_none()
+                && self.inspector_component_add.script.is_none())
+        {
             return Ok(Some(false));
         }
         self.inspector_component_add.draft = value.to_owned();
@@ -319,6 +394,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         &mut self,
         runtime: &EditorHostEventController,
     ) -> Result<UiHostEventEffects, String> {
+        if self.inspector_component_add.script.is_some() {
+            return self.confirm_script_binding(runtime);
+        }
         let state = &self.inspector_component_add;
         let Some(catalog) = &state.catalog else {
             return Ok(component_add_paint());
@@ -364,6 +442,8 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.inspector_component_add = InspectorComponentAddState::default();
         self.close_popup(TYPE).map_err(|error| error.to_string())?;
         self.publish_component_add_page()?;
+        self.close_popup("WorkbenchComponentAddPackage")
+            .map_err(|error| error.to_string())?;
         self.mutate_control_property(VALUES, "query", UiValue::String(String::new()))
             .map_err(|error| error.to_string())?;
         self.set_visible(PANEL, false)

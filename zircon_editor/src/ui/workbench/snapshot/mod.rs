@@ -19,9 +19,10 @@ pub use data::{
     ConsoleOutputLevelCounts, ConsoleOutputSnapshot, EditorBridgeDiagnosticsSnapshot,
     EditorBridgeDiagnosticsSummarySnapshot, EditorBridgeInterfaceRowSnapshot, EditorChromeSnapshot,
     EditorConsoleMessageLevel, EditorDataSnapshot, InspectorNativeFieldSnapshot,
-    InspectorPluginComponentPropertySnapshot, InspectorPluginComponentSnapshot, InspectorSnapshot,
-    ProjectOverviewSnapshot, SceneEntries, SceneEntry, StatusTaskProgressSnapshot,
-    StatusSignalsSnapshot, StatusTaskProgressTone, TransactionHistoryRowSnapshot, TransactionHistorySnapshot,
+    InspectorPluginComponentPropertySnapshot, InspectorPluginComponentSnapshot,
+    InspectorScriptBindingSnapshot, InspectorSnapshot, ProjectOverviewSnapshot, SceneEntries,
+    SceneEntry, StatusSignalsSnapshot, StatusTaskProgressSnapshot, StatusTaskProgressTone,
+    TransactionHistoryRowSnapshot, TransactionHistorySnapshot,
 };
 pub(crate) use data::{
     ConsoleOutputLineDelta, ConsoleOutputLineGeneration, ConsoleOutputLineSnapshot,

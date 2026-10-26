@@ -4,6 +4,9 @@ mod native_fields;
 mod rotation;
 
 pub use native_fields::InspectorNativeFieldSnapshot;
+#[path = "inspector_snapshot/script_bindings.rs"]
+mod script_bindings;
+pub use script_bindings::InspectorScriptBindingSnapshot;
 
 use zircon_runtime::scene::NodeId;
 
@@ -23,6 +26,7 @@ pub struct InspectorSnapshot {
     /// Reflected native component fields; current UI exposes these as read-only.
     pub native_fields: Vec<InspectorNativeFieldSnapshot>,
     pub plugin_components: Vec<InspectorPluginComponentSnapshot>,
+    pub script_bindings: Result<Vec<InspectorScriptBindingSnapshot>, String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

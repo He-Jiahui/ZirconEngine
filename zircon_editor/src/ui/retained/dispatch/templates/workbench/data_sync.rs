@@ -142,6 +142,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         &mut self,
         inspector: Option<&InspectorSnapshot>,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        self.sync_inspector_scripts(inspector)?;
         let Some(inspector) = inspector else {
             self.mutate_control_property(
                 INSPECTOR_TITLE,

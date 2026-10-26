@@ -14,6 +14,7 @@ impl PreviewInspector {
             scale: self.scale,
             render_layer_mask: zircon_runtime::scene::default_render_layer_mask(),
             native_fields: Vec::new(),
+            script_bindings: Ok(Vec::new()),
             plugin_components: Vec::new(),
         }
     }

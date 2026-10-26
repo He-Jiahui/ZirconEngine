@@ -16,10 +16,10 @@ mod inspector_snapshot;
 mod project_overview_snapshot;
 #[path = "scene_entry/mod.rs"]
 mod scene_entry;
-#[path = "status_task_progress_snapshot.rs"]
-mod status_task_progress_snapshot;
 #[path = "status_signals_snapshot.rs"]
 mod status_signals_snapshot;
+#[path = "status_task_progress_snapshot.rs"]
+mod status_task_progress_snapshot;
 #[path = "transaction_history_snapshot.rs"]
 mod transaction_history_snapshot;
 
@@ -38,7 +38,7 @@ pub use editor_chrome_snapshot::EditorChromeSnapshot;
 pub use editor_data_snapshot::EditorDataSnapshot;
 pub use inspector_snapshot::{
     InspectorNativeFieldSnapshot, InspectorPluginComponentPropertySnapshot,
-    InspectorPluginComponentSnapshot, InspectorSnapshot,
+    InspectorPluginComponentSnapshot, InspectorScriptBindingSnapshot, InspectorSnapshot,
 };
 pub use project_overview_snapshot::ProjectOverviewSnapshot;
 pub(crate) use scene_entry::SceneEntryProjectionCache;
@@ -46,6 +46,6 @@ pub use scene_entry::{SceneEntries, SceneEntry};
 pub(crate) use scene_entry::{
     SceneInspectionHierarchyFragment, SceneInspectionHierarchyFragmentError,
 };
-pub use status_task_progress_snapshot::{StatusTaskProgressSnapshot, StatusTaskProgressTone};
 pub use status_signals_snapshot::StatusSignalsSnapshot;
+pub use status_task_progress_snapshot::{StatusTaskProgressSnapshot, StatusTaskProgressTone};
 pub use transaction_history_snapshot::{TransactionHistoryRowSnapshot, TransactionHistorySnapshot};

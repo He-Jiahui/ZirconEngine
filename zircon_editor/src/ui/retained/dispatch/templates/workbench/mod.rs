@@ -50,10 +50,10 @@ mod generated_bottom_panel_feedback;
 mod generated_bottom_panel_lifecycle;
 #[path = "../../../../dispatch/workbench/generated_bottom_panel_navigation.rs"]
 mod generated_bottom_panel_navigation;
-#[path = "host_projection.rs"]
-mod host_projection;
 #[path = "degraded.rs"]
 mod graphics_degradation;
+#[path = "host_projection.rs"]
+mod host_projection;
 #[path = "hud_editor_menu.rs"]
 mod hud_editor_menu;
 #[path = "../../workbench/hud_workspace_state.rs"]
@@ -66,6 +66,8 @@ mod inspector_component_add;
 mod inspector_component_source;
 #[path = "inspector_filter.rs"]
 mod inspector_filter;
+#[path = "inspector_script_bindings.rs"]
+mod inspector_script_bindings;
 #[path = "layout_frames.rs"]
 mod layout_frames;
 #[path = "layout_menu.rs"]

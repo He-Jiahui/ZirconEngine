@@ -42,6 +42,8 @@ mod scene_fragment;
 mod scene_node_identity;
 #[path = "scene_snapshot.rs"]
 mod scene_snapshot;
+#[path = "script_bindings.rs"]
+mod script_bindings;
 #[path = "shell_layout.rs"]
 mod shell_layout;
 #[path = "support.rs"]

@@ -310,6 +310,52 @@ pub(super) fn workbench_window_template_bindings() -> BTreeMap<String, EditorUiB
         "ComponentAddValuesCommit",
         EditorUiBindingPayload::menu_action("workbench.inspector.component_add.values.commit"),
     );
+    for (control, action) in [
+        ("ScriptBindingSelect", "select"),
+        ("ScriptBindingEnable", "enable"),
+        ("ScriptBindingEdit", "edit"),
+        ("ScriptBindingRemove", "remove"),
+        ("ScriptBindingPrevious", "previous"),
+        ("ScriptBindingNext", "next"),
+    ] {
+        insert_click(
+            &mut bindings,
+            "Inspector",
+            control,
+            EditorUiBindingPayload::menu_action(format!(
+                "workbench.inspector.script_binding.{action}"
+            )),
+        );
+    }
+    for (control, action) in [
+        ("ScriptBindingPackage", "package"),
+        ("ScriptBindingDraftEnabled", "enabled"),
+        ("ScriptBindingDraftUpdate", "update"),
+        ("ScriptBindingDraftFixedUpdate", "fixed_update"),
+    ] {
+        insert_click(
+            &mut bindings,
+            "Inspector",
+            control,
+            EditorUiBindingPayload::menu_action(format!(
+                "workbench.inspector.component_add.script.{action}"
+            )),
+        );
+    }
+    insert_change(
+        &mut bindings,
+        "Inspector",
+        "ScriptBindingModuleEdit",
+        EditorUiBindingPayload::menu_action("workbench.inspector.component_add.script.module.edit"),
+    );
+    insert_submit(
+        &mut bindings,
+        "Inspector",
+        "ScriptBindingModuleCommit",
+        EditorUiBindingPayload::menu_action(
+            "workbench.inspector.component_add.script.module.commit",
+        ),
+    );
     insert_inspector_transform_axis_bindings(&mut bindings);
     insert_change(
         &mut bindings,

@@ -136,6 +136,7 @@ fn unreal_details_axes_inherit_resolved_width_tokens_and_editability_contract() 
         scale: ["1.0".to_string(), "1.0".to_string(), "1.0".to_string()],
         render_layer_mask: 1,
         native_fields: Vec::new(),
+        script_bindings: Ok(Vec::new()),
         plugin_components: Vec::new(),
     };
     let degrees = inspector.rotation_degrees.as_ref().expect("valid rotation");
