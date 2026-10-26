@@ -10,6 +10,114 @@ use crate::ui::retained_host::{
 };
 use crate::ui::template_runtime::RetainedUiHostComponentKind;
 use zircon_runtime_interface::ui::layout::UiSize;
+use zircon_runtime_interface::ui::style::{UiRgbaColor, UiStyleColor};
+
+fn inspector_repeat_parent_projection() -> RetainedUiHostProjection {
+    let mut parent = test_host_node("Panel", "panel", None, []);
+    parent.node_id = "component-properties".into();
+    parent.control_id = Some("ComponentProperties".into());
+    parent.source_path = Some("res://ui/editor/unreal/components/details.zui".into());
+    parent.source_node_id = Some("properties".into());
+    parent.instance_path = Some(
+        serde_json::from_value(serde_json::json!([{
+            "sourcePath":"res://ui/editor/unreal/level_editor_window.zui",
+            "sourceNodeId":"details"
+        }]))
+        .unwrap(),
+    );
+    let mut row = test_host_node(
+        "FieldRow",
+        "property-row",
+        Some("Far Clip"),
+        [
+            ("inspector_property_item_key", "12"),
+            ("inspector_property_field_id", "camera.far_clip"),
+        ],
+    );
+    row.node_id = "component-property-slot-02".into();
+    row.control_id = Some("WorkbenchComponentPropertyVirtualRow02".into());
+    row.parent_id = Some(parent.node_id.clone());
+    row.source_path = Some("res://ui/editor/workbench/data/component_property_row.zui".into());
+    row.source_node_id = Some("root".into());
+    row.instance_path = parent.instance_path.clone();
+    RetainedUiHostProjection {
+        source_surface_frame: None,
+        document_id: "inspector-real-parent".into(),
+        nodes: vec![parent, row],
+    }
+}
+
+#[test]
+fn inspector_repeat_projection_copies_real_parent_source_through_semantic_and_geometry_patches() {
+    let mut projection = inspector_repeat_parent_projection();
+    let initial = to_host_contract_workbench_window_nodes(Some(&projection));
+    let row = initial.get(1).unwrap();
+    let owner = &projection.nodes[0];
+    assert_eq!(row.parent_node_id.as_str(), owner.node_id);
+    assert_eq!(
+        row.parent_source_path.as_str(),
+        owner.source_path.as_deref().unwrap()
+    );
+    assert_eq!(
+        row.parent_source_node_id.as_str(),
+        owner.source_node_id.as_deref().unwrap()
+    );
+    assert_eq!(
+        row.parent_instance_path.as_str(),
+        serde_json::to_string(owner.instance_path.as_ref().unwrap()).unwrap()
+    );
+    assert_eq!(row.source_node_id.as_str(), "root");
+    assert_eq!(row.inspector_property_item_key.as_str(), "12");
+    let mut changed = projection.nodes[1].clone();
+    changed.text = Some("Far Clip Updated".into());
+    let sparse = patch_host_contract_workbench_window_nodes_at_mount_and_scale(
+        &projection.document_id,
+        &[changed],
+        &initial,
+        None,
+        1.25,
+    )
+    .unwrap();
+    let patched = sparse.get(1).unwrap();
+    assert_eq!(patched.text.as_str(), "Far Clip Updated");
+    assert_eq!(patched.parent_node_id, row.parent_node_id);
+    assert_eq!(patched.parent_source_path, row.parent_source_path);
+    assert_eq!(patched.parent_source_node_id, row.parent_source_node_id);
+    assert_eq!(patched.parent_instance_path, row.parent_instance_path);
+    projection.nodes[1].frame.x = 33.0;
+    let geometry = build_host_contract_workbench_window_geometry_patch_at_mount_and_scale(
+        &projection,
+        &[1],
+        &sparse,
+        None,
+        1.25,
+    )
+    .unwrap();
+    let moved = geometry.nodes.get(1).unwrap();
+    assert_eq!(moved.frame.x, 41.25);
+    assert_eq!(moved.parent_source_path, row.parent_source_path);
+    assert_eq!(moved.parent_source_node_id, row.parent_source_node_id);
+    assert_eq!(moved.parent_instance_path, row.parent_instance_path);
+    assert_eq!(moved.inspector_property_item_key.as_str(), "12");
+}
+
+#[test]
+fn inspector_repeat_projection_does_not_invent_missing_parent_source() {
+    let mut projection = inspector_repeat_parent_projection();
+    projection.nodes[0].source_node_id = None;
+    let nodes = to_host_contract_workbench_window_nodes(Some(&projection));
+    let row = nodes.get(1).unwrap();
+    assert!(row.parent_source_node_id.is_empty());
+    assert_eq!(row.source_node_id.as_str(), "root");
+    projection.nodes.remove(0);
+    let nodes = to_host_contract_workbench_window_nodes(Some(&projection));
+    let row = nodes.get(0).unwrap();
+    assert!(row.parent_node_id.is_empty());
+    assert!(row.parent_source_path.is_empty());
+    assert!(row.parent_source_node_id.is_empty());
+    assert!(row.parent_instance_path.is_empty());
+    assert_eq!(row.inspector_property_item_key.as_str(), "12");
+}
 
 #[test]
 fn workbench_projection_uses_a_memoized_node_index() {
@@ -74,7 +182,7 @@ fn product_bottom_drawer_projection_keeps_geometry_anchors_and_filters_retired_s
     };
 
     for control_id in [
-        "WorkbenchComponentDrawer",
+        "BottomDrawerShellRoot",
         "BottomDrawerHeaderRoot",
         "BottomDrawerContentRoot",
     ] {
@@ -84,6 +192,7 @@ fn product_bottom_drawer_projection_keeps_geometry_anchors_and_filters_retired_s
         );
     }
     for control_id in [
+        "WorkbenchComponentDrawer",
         "WorkbenchDrawerTabComponents",
         "WorkbenchDrawerTabConsole",
         "WorkbenchComponentDrawerBody",
@@ -378,16 +487,75 @@ fn mounted_context_menu_round_trips_the_global_pointer_anchor() {
     bridge
         .recompute_layout_at_mount(mount_frame)
         .expect("workbench should recompute inside the host mount");
+    let owner = bridge
+        .host_projection()
+        .node_by_control_id("WorkbenchToolbarSave")
+        .expect("authored Save owner");
+    assert!(!owner.disabled);
+    let mut current = Some(owner.surface_node_id.expect("actual runtime owner"));
+    while let Some(id) = current {
+        let node = bridge.surface().tree.nodes.get(&id).unwrap();
+        assert!(node.state_flags.enabled);
+        assert!(node.is_render_visible());
+        current = node.parent;
+    }
+    assert!(bridge.control_frame("WorkbenchToolbarSave").is_some());
+    let initial_menu = bridge
+        .host_projection()
+        .node_by_control_id(WORKBENCH_CONTEXT_MENU_CONTROL_ID)
+        .expect("UE context menu must be mounted");
+    assert_eq!(
+        bridge
+            .host_projection()
+            .nodes
+            .iter()
+            .filter(|node| node.control_id.as_deref() == Some(WORKBENCH_CONTEXT_MENU_CONTROL_ID))
+            .count(),
+        1
+    );
+    let assert_source = |actual: Option<&str>, relative: &str| {
+        let checkout_path = format!("zircon_editor/assets/{relative}");
+        let bundle_path = format!("res://{relative}");
+        assert!(
+            actual == Some(checkout_path.as_str()) || actual == Some(bundle_path.as_str()),
+            "unexpected authored source: {actual:?}"
+        );
+    };
+    assert_source(
+        initial_menu.source_path.as_deref(),
+        "ui/editor/workbench/primitives/feedback/context_menu.zui",
+    );
+    assert_eq!(initial_menu.source_node_id.as_deref(), Some("root"));
+    let instance_path = initial_menu.instance_path.as_ref().unwrap();
+    assert_eq!(instance_path.len(), 2);
+    for (step, (source_path, source_node_id)) in instance_path.iter().zip([
+        ("ui/editor/unreal/level_editor_window.zui", "menu_popups"),
+        (
+            "ui/editor/unreal/components/menu_popups.zui",
+            "context_popup",
+        ),
+    ]) {
+        assert_source(Some(step.source_path.as_str()), source_path);
+        assert_eq!(step.source_node_id, source_node_id);
+    }
+    assert!(!initial_menu.popup_open);
+    assert!(!initial_menu.has_popup_anchor);
+    for property in ["menu_items", "options", "disabled_options"] {
+        assert_eq!(
+            initial_menu.properties.get(property),
+            Some(&RetainedUiHostValue::Array(Vec::new()))
+        );
+    }
     let global_anchor = (128.0, 157.0);
 
     assert!(bridge
         .open_context_menu(&WorkbenchContextMenuRequestData {
-            target_control_id: "WorkbenchScenePropsItem".into(),
-            target_action_id: "workbench.hierarchy.select_props".into(),
+            target_control_id: "WorkbenchToolbarSave".into(),
+            target_action_id: "file.project.save".into(),
             target_dispatch_kind: "workbench".into(),
-            target_role: "tree-row".into(),
-            target_value_text: "Props".into(),
-            target_path: "workbench://scene/props".into(),
+            target_role: "icon-button".into(),
+            target_value_text: "Save Current Level".into(),
+            target_path: "workbench://control/WorkbenchToolbarSave".into(),
             popup_anchor_x: global_anchor.0,
             popup_anchor_y: global_anchor.1,
             menu_items: vec!["Open|icon=folder".into(), "Delete|danger,icon=trash".into()],
@@ -398,6 +566,23 @@ fn mounted_context_menu_round_trips_the_global_pointer_anchor() {
     let local_menu = local_projection
         .node_by_control_id(WORKBENCH_CONTEXT_MENU_CONTROL_ID)
         .expect("local context menu projection");
+    assert!(local_menu.popup_open);
+    assert!(local_menu.has_popup_anchor);
+    let context_menu_node_id = local_menu
+        .surface_node_id
+        .expect("actual context menu node");
+    assert_eq!(
+        bridge
+            .surface()
+            .input
+            .popup_anchor_points
+            .get(&context_menu_node_id)
+            .map(|point| (point.x, point.y)),
+        Some((
+            global_anchor.0 - mount_frame.x,
+            global_anchor.1 - mount_frame.y
+        ))
+    );
     assert_eq!(
         local_menu.popup_anchor_x,
         f64::from(global_anchor.0 - mount_frame.x)
@@ -418,6 +603,24 @@ fn mounted_context_menu_round_trips_the_global_pointer_anchor() {
         .expect("mounted context menu projection");
     assert_eq!(mounted_menu.popup_anchor_x, global_anchor.0);
     assert_eq!(mounted_menu.popup_anchor_y, global_anchor.1);
+    assert!(bridge
+        .close_popup(WORKBENCH_CONTEXT_MENU_CONTROL_ID)
+        .expect("context menu should close"));
+    assert!(!bridge.control_bool_for_test(WORKBENCH_CONTEXT_MENU_CONTROL_ID, "popup_open"));
+    assert!(!bridge.control_bool_for_test(WORKBENCH_CONTEXT_MENU_CONTROL_ID, "open"));
+    let closed_menu = bridge
+        .host_projection()
+        .node_by_control_id(WORKBENCH_CONTEXT_MENU_CONTROL_ID)
+        .unwrap();
+    assert!(!closed_menu.popup_open);
+    assert!(!closed_menu.has_popup_anchor);
+    assert!(!closed_menu.properties.contains_key("popup_anchor_x"));
+    assert!(!closed_menu.properties.contains_key("popup_anchor_y"));
+    assert!(!bridge
+        .surface()
+        .input
+        .popup_anchor_points
+        .contains_key(&context_menu_node_id));
 }
 
 #[test]
@@ -815,4 +1018,355 @@ fn labeled_field_projection_keeps_authored_name_and_logical_width_at_dpi() {
         "200",
         "plain fields keep existing display semantics"
     );
+}
+
+#[test]
+fn icon_button_with_toggle_name_preserves_resolved_selected_colors() {
+    let mut node = test_host_node(
+        "IconButton",
+        "icon-button",
+        None,
+        [
+            ("background_color", "#0070E0"),
+            ("border_color", "#0070E0"),
+            ("foreground_color", "#FFFFFF"),
+        ],
+    );
+    node.control_id = Some("ToggleTranslateSnap".into());
+    node.checked = true;
+    node.properties
+        .insert("selected".into(), RetainedUiHostValue::Bool(true));
+    node.frame = UiFrame::new(8.0, 8.0, 32.0, 32.0);
+    let projection = RetainedUiHostProjection {
+        source_surface_frame: None,
+        document_id: "semantic-selected-icon".into(),
+        nodes: vec![node.clone()],
+    };
+    let full = to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale(
+        Some(&projection),
+        None,
+        None,
+        1.25,
+    );
+    let sparse = patch_host_contract_workbench_window_nodes_at_mount_and_scale(
+        &projection.document_id,
+        &[node],
+        &full,
+        None,
+        1.25,
+    )
+    .unwrap();
+    for nodes in [&full, &sparse] {
+        let selected = nodes.get(0).unwrap();
+        assert!(selected.checked && selected.selected);
+        assert_eq!(
+            selected.button_style.element.background_color,
+            Some(test_style_rgba([0, 112, 224, 255]))
+        );
+        assert_eq!(
+            selected.button_style.element.border_color,
+            Some(test_style_rgba([0, 112, 224, 255]))
+        );
+        assert_eq!(
+            selected.button_style.element.foreground_color,
+            Some(test_style_rgba([255, 255, 255, 255]))
+        );
+        let pixels = host_contract::paint_template_nodes_for_test(72, 72, (*nodes).clone());
+        let center = ((30 * 72 + 30) * 4) as usize;
+        assert_eq!(&pixels[center..center + 4], &[0, 112, 224, 255]);
+    }
+}
+
+#[test]
+fn toggle_role_preserves_legacy_selected_fallback_without_name_inference() {
+    for (component, role) in [
+        ("Toggle", "toggle"),
+        ("Switch", "switch"),
+        ("WorkbenchToggle", ""),
+        ("WorkbenchSwitch", ""),
+    ] {
+        let mut node = test_host_node(
+            component,
+            role,
+            None,
+            [
+                ("background_color", "#0070E0"),
+                ("border_color", "#0070E0"),
+                ("foreground_color", "#FFFFFF"),
+            ],
+        );
+        node.control_id = Some("InputSelection".into());
+        node.checked = true;
+        let projection = RetainedUiHostProjection {
+            source_surface_frame: None,
+            document_id: "legacy-selection-fallback".into(),
+            nodes: vec![node],
+        };
+        let nodes = to_host_contract_workbench_window_nodes(Some(&projection));
+        let selected = nodes.get(0).unwrap();
+        assert_eq!(
+            selected.button_style.element.background_color,
+            Some(test_style_rgba([23, 57, 66, 255])),
+            "{component}/{role} keeps the existing true Toggle fallback"
+        );
+        assert_eq!(
+            selected.button_style.element.border_color,
+            Some(test_style_rgba([65, 75, 84, 255]))
+        );
+        assert_eq!(
+            selected.button_style.element.foreground_color,
+            Some(test_style_rgba([164, 174, 180, 255]))
+        );
+    }
+}
+
+#[test]
+fn dropdown_projection_mounts_default_and_explicit_zero_border_once() {
+    for (authored_width, physical_width) in [(None, 1.25), (Some(0.0), 0.0), (Some(1.0), 1.25)] {
+        let mut node = test_host_node("Dropdown", "dropdown", Some("Perspective"), []);
+        node.control_id = Some("ProjectionChooser".into());
+        if let Some(width) = authored_width {
+            node.properties
+                .insert("border_width".into(), RetainedUiHostValue::Float(width));
+        }
+        let projection = RetainedUiHostProjection {
+            source_surface_frame: None,
+            document_id: "dropdown-border-mount".into(),
+            nodes: vec![node],
+        };
+        let nodes = to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale(
+            Some(&projection),
+            None,
+            None,
+            1.25,
+        );
+        let mounted = nodes.get(0).unwrap();
+        assert_eq!(mounted.border_width, physical_width);
+        assert_eq!(mounted.frame.width, 125.0);
+        assert_eq!(mounted.frame.height, 30.0);
+        let commands = host_contract::template_node_command_summary_for_test(mounted);
+        assert_eq!(commands.image_frames.len(), 1);
+    }
+}
+
+#[test]
+fn disabled_field_projection_preserves_state_colors_through_full_sparse_and_paint_paths() {
+    let mut node = test_host_node(
+        "SearchField",
+        "search-field",
+        Some("Search"),
+        [
+            ("background_color", "#0F0F0F"),
+            ("foreground_color", "#C0C0C0"),
+            ("focus_border_color", "#0070E0"),
+            ("disabled_background_color", "#242424"),
+            ("disabled_foreground_color", "#808080"),
+        ],
+    );
+    node.disabled = true;
+    node.hovered = true;
+    node.focused = true;
+    node.pressed = true;
+    let projection = RetainedUiHostProjection {
+        source_surface_frame: None,
+        document_id: "disabled-authored-field".into(),
+        nodes: vec![node.clone()],
+    };
+    let full = to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale(
+        Some(&projection),
+        None,
+        None,
+        1.25,
+    );
+    let field = full.get(0).unwrap();
+    assert!(field.disabled && field.hovered && field.focused && field.pressed);
+    assert_eq!(
+        field.authored_field_colors.get("focus_border_color"),
+        Some(&test_style_rgba([0, 112, 224, 255]))
+    );
+    assert_eq!(
+        field.authored_field_colors.get("disabled_foreground_color"),
+        Some(&test_style_rgba([128, 128, 128, 255]))
+    );
+    let pixels = host_contract::paint_template_nodes_for_test(140, 40, full.clone());
+    let background_pixel = ((15 * 140 + 108) * 4) as usize;
+    assert_eq!(
+        &pixels[background_pixel..background_pixel + 4],
+        &[36, 36, 36, 255]
+    );
+    node.properties.insert(
+        "disabled_background_color".into(),
+        RetainedUiHostValue::String("#162A3E".into()),
+    );
+    node.properties.insert(
+        "disabled_foreground_color".into(),
+        RetainedUiHostValue::String("#10203080".into()),
+    );
+    let sparse = patch_host_contract_workbench_window_nodes_at_mount_and_scale(
+        &projection.document_id,
+        &[node],
+        &full,
+        None,
+        1.25,
+    )
+    .unwrap();
+    let field = sparse.get(0).unwrap();
+    assert_eq!(
+        field.authored_field_colors.get("disabled_foreground_color"),
+        Some(&test_style_rgba([16, 32, 48, 128]))
+    );
+    let previous_frame = &full.get(0).unwrap().frame;
+    assert_eq!(field.frame.x, previous_frame.x);
+    assert_eq!(field.frame.y, previous_frame.y);
+    assert_eq!(field.frame.width, previous_frame.width);
+    assert_eq!(field.frame.height, previous_frame.height);
+    let pixels = host_contract::paint_template_nodes_for_test(140, 40, sparse);
+    assert_eq!(
+        &pixels[background_pixel..background_pixel + 4],
+        &[22, 42, 62, 255]
+    );
+}
+
+#[test]
+fn disabled_field_projection_keeps_transparent_values_and_absent_state_colors_distinct() {
+    let mut node = test_host_node(
+        "InputField",
+        "input-field",
+        None,
+        [("disabled_background_color", "transparent")],
+    );
+    node.disabled = true;
+    let projection = RetainedUiHostProjection {
+        source_surface_frame: None,
+        document_id: "disabled-color-presence".into(),
+        nodes: vec![node],
+    };
+    let declared = to_host_contract_workbench_window_nodes(Some(&projection));
+    assert_eq!(
+        declared.get(0).unwrap().authored_field_colors,
+        BTreeMap::from([(
+            "disabled_background_color".into(),
+            UiStyleColor::Transparent
+        )])
+    );
+    let mut legacy = projection;
+    legacy.nodes[0].properties.clear();
+    let missing = to_host_contract_workbench_window_nodes(Some(&legacy));
+    assert!(missing.get(0).unwrap().authored_field_colors.is_empty());
+}
+
+#[test]
+fn layout_only_group_and_space_projection_has_no_implicit_paint() {
+    for (component, expected_role) in [
+        ("HorizontalGroup", "horizontal-group"),
+        ("VerticalGroup", "vertical-group"),
+        ("Space", "space"),
+        ("ScrollableBox", "scrollable-box"),
+    ] {
+        for role in [None, Some(String::new()), Some(expected_role.into())] {
+            let has_explicit_role = role.as_deref().is_some_and(|value| !value.is_empty());
+            let mut node = test_host_node(component, "", None, []);
+            node.component_role = role;
+            node.frame = UiFrame::new(8.0, 12.0, 100.0, 24.0);
+            node.clip_frame = Some(UiFrame::new(10.0, 14.0, 80.0, 20.0));
+            let projection = RetainedUiHostProjection {
+                source_surface_frame: None,
+                document_id: "layout-without-paint".into(),
+                nodes: vec![node],
+            };
+            let nodes = to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale(
+                Some(&projection),
+                None,
+                None,
+                1.25,
+            );
+            let layout = nodes.get(0).unwrap();
+            let resolved_role = if component == "ScrollableBox" && !has_explicit_role {
+                ""
+            } else {
+                expected_role
+            };
+            assert_eq!(layout.component_role.as_str(), resolved_role);
+            assert!(layout.surface_variant.is_empty());
+            assert_eq!(layout.corner_radius, 0.0);
+            assert_eq!(layout.border_width, 0.0);
+            assert!(layout.button_style.element.background_color.is_none());
+            assert!(layout.button_style.element.border_color.is_none());
+            assert_eq!(layout.frame.x, 10.0);
+            assert_eq!(layout.frame.y, 15.0);
+            assert_eq!(layout.frame.width, 125.0);
+            assert_eq!(layout.frame.height, 30.0);
+            assert_eq!(layout.clip_frame.x, 12.5);
+            assert_eq!(layout.clip_frame.y, 17.5);
+            assert_eq!(layout.clip_frame.width, 100.0);
+            assert_eq!(layout.clip_frame.height, 25.0);
+            if component != "ScrollableBox" || has_explicit_role {
+                let pixels = host_contract::paint_template_nodes_for_test(140, 50, nodes.clone());
+                assert!(pixels.chunks_exact(4).all(|pixel| pixel == [0, 0, 0, 255]));
+            }
+        }
+    }
+}
+
+#[test]
+fn group_and_space_projection_preserves_explicit_paint_without_changing_layout() {
+    for (component, role) in [
+        ("HorizontalGroup", "horizontal-group"),
+        ("VerticalGroup", "vertical-group"),
+        ("Space", "space"),
+        ("ScrollableBox", "scrollable-box"),
+    ] {
+        let mut node = test_host_node(
+            component,
+            "",
+            None,
+            [
+                ("background_color", "#123456"),
+                ("border_color", "#ABCDEF"),
+                ("surface_variant", "panel"),
+            ],
+        );
+        node.component_role = Some(role.into());
+        node.properties
+            .insert("border_width".into(), RetainedUiHostValue::Float(1.0));
+        node.properties
+            .insert("corner_radius".into(), RetainedUiHostValue::Float(3.0));
+        node.frame = UiFrame::new(8.0, 12.0, 100.0, 24.0);
+        node.clip_frame = Some(UiFrame::new(10.0, 14.0, 80.0, 20.0));
+        let projection = RetainedUiHostProjection {
+            source_surface_frame: None,
+            document_id: "explicit-layout-paint".into(),
+            nodes: vec![node],
+        };
+        let nodes = to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale(
+            Some(&projection),
+            None,
+            None,
+            1.25,
+        );
+        let painted = nodes.get(0).unwrap();
+        assert_eq!(painted.surface_variant.as_str(), "panel");
+        assert_eq!(painted.border_width, 1.25);
+        assert_eq!(painted.corner_radius, 3.75);
+        assert_eq!(
+            painted.button_style.element.background_color,
+            Some(test_style_rgba([18, 52, 86, 255]))
+        );
+        assert_eq!(
+            painted.button_style.element.border_color,
+            Some(test_style_rgba([171, 205, 239, 255]))
+        );
+        assert_eq!(painted.frame.x, 10.0);
+        assert_eq!(painted.frame.y, 15.0);
+        assert_eq!(painted.frame.width, 125.0);
+        assert_eq!(painted.frame.height, 30.0);
+        assert_eq!(painted.clip_frame.x, 12.5);
+        assert_eq!(painted.clip_frame.y, 17.5);
+        assert_eq!(painted.clip_frame.width, 100.0);
+        assert_eq!(painted.clip_frame.height, 25.0);
+    }
+}
+
+fn test_style_rgba(color: [u8; 4]) -> UiStyleColor {
+    UiStyleColor::Rgba(UiRgbaColor::from_u8(color[0], color[1], color[2], color[3]))
 }

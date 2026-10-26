@@ -16,13 +16,185 @@ use super::EditorNotificationService;
 fn job_progress_observer_registers_and_retires_the_authoritative_job_binding() {
     let service = EditorNotificationService::default();
     let observer = service.job_progress_observer();
-    let job = JobId::new(7);
-    let source = EditorJobProgressSource::default();
-
-    observer.job_admitted(job, &source);
+    let jobs = EditorJobSystem::with_scheduler_and_bus_and_progress_observer(
+        test_job_scheduler(),
+        SharedEditorMessageBus::default(),
+        EditorJobLimits::default(),
+        Arc::clone(&observer),
+    );
+    let source = jobs.progress();
+    observer.job_admitted(JobId::new(7), &source);
+    assert!(
+        service.progress().is_empty(),
+        "an unknown job is not an automatic notification authority"
+    );
+    let (started_sender, started_receiver) = mpsc::sync_channel(1);
+    let (release_sender, release_receiver) = mpsc::channel();
+    let ticket = jobs
+        .submit(
+            EditorJobSpec::new("authoritative export", JobCategory::Export),
+            GateJob {
+                started: started_sender,
+                release: release_receiver,
+            },
+        )
+        .unwrap();
+    started_receiver
+        .recv_timeout(Duration::from_secs(5))
+        .unwrap();
     assert!(!service.progress().is_empty());
 
-    observer.job_finished(job, &source);
+    let id = ticket.id();
+    release_sender.send(()).unwrap();
+    ticket.wait().unwrap();
+    assert!(jobs
+        .shutdown(std::time::Instant::now() + Duration::from_secs(5))
+        .is_empty());
+    observer.job_admitted(id, &source);
+    assert!(service.progress().is_empty());
+}
+
+#[test]
+fn capture_export_progress_automatic_notifications_preserve_visible_export() {
+    let service = EditorNotificationService::default();
+    let jobs = EditorJobSystem::with_scheduler_and_bus_and_progress_observer(
+        test_job_scheduler(),
+        SharedEditorMessageBus::default(),
+        EditorJobLimits::default(),
+        service.job_progress_observer(),
+    );
+    let (started_sender, started_receiver) = mpsc::sync_channel(1);
+    let (release_sender, release_receiver) = mpsc::channel();
+    let visible = jobs
+        .submit(
+            EditorJobSpec::new("Export scene", JobCategory::Export),
+            GateJob {
+                started: started_sender,
+                release: release_receiver,
+            },
+        )
+        .unwrap();
+    started_receiver
+        .recv_timeout(Duration::from_secs(5))
+        .unwrap();
+    let source = jobs.progress();
+    let primary = source
+        .primary_snapshot_if_changed(None)
+        .unwrap()
+        .generation();
+    let hidden = jobs
+        .submit(
+            EditorJobSpec::new("capture export", JobCategory::Export)
+                .with_primary_progress_visible(false)
+                .with_progress_notification_visible(false),
+            ImmediateJob,
+        )
+        .unwrap();
+    assert_eq!(source.snapshot_for_ids([hidden.id()])[0].id(), hidden.id());
+    assert_eq!(jobs.admission_snapshot().pending_entries(), 1);
+    let notifications = service.progress().snapshot(&source);
+    assert_eq!(notifications.len(), 1);
+    assert_eq!(notifications[0].job().id(), visible.id());
+    assert!(source.primary_snapshot_if_changed(Some(primary)).is_none());
+    assert!(jobs.cancel(hidden.id()));
+    assert_eq!(hidden.wait(), Err(JobError::Cancelled));
+    assert_eq!(
+        service.progress().snapshot(&source)[0].job().id(),
+        visible.id()
+    );
+    assert!(source.primary_snapshot_if_changed(Some(primary)).is_none());
+    release_sender.send(()).unwrap();
+    visible.wait().unwrap();
+    assert!(jobs
+        .shutdown(std::time::Instant::now() + Duration::from_secs(5))
+        .is_empty());
+    assert!(service.progress().is_empty());
+}
+
+#[test]
+fn capture_export_progress_refill_keeps_visible_capacity_after_hidden_jobs() {
+    let service = EditorNotificationService::default();
+    let observer = service.job_progress_observer();
+    let jobs = EditorJobSystem::with_scheduler_and_bus_and_progress_observer(
+        test_job_scheduler(),
+        SharedEditorMessageBus::default(),
+        EditorJobLimits::default(),
+        Arc::clone(&observer),
+    );
+    let (started_sender, started_receiver) = mpsc::sync_channel(1);
+    let (release_sender, release_receiver) = mpsc::channel();
+    let gate = jobs
+        .submit(
+            EditorJobSpec::new("capture gate", JobCategory::Export)
+                .with_primary_progress_visible(false)
+                .with_progress_notification_visible(false),
+            GateJob {
+                started: started_sender,
+                release: release_receiver,
+            },
+        )
+        .unwrap();
+    started_receiver
+        .recv_timeout(Duration::from_secs(5))
+        .unwrap();
+    let mut visible = Vec::new();
+    let capacity = super::MAX_PROGRESS_NOTIFICATIONS;
+    for _ in 0..capacity {
+        visible.push(
+            jobs.submit(
+                EditorJobSpec::new("Export scene", JobCategory::Export),
+                ImmediateJob,
+            )
+            .unwrap(),
+        );
+    }
+    let hidden = jobs
+        .submit(
+            EditorJobSpec::new("capture export", JobCategory::Export)
+                .with_primary_progress_visible(false)
+                .with_progress_notification_visible(false),
+            ImmediateJob,
+        )
+        .unwrap();
+    let overflow = jobs
+        .submit(
+            EditorJobSpec::new("visible overflow", JobCategory::Export),
+            ImmediateJob,
+        )
+        .unwrap();
+    let source = jobs.progress();
+    assert_eq!(service.progress().snapshot(&source).len(), capacity);
+    assert!(!service
+        .progress()
+        .snapshot(&source)
+        .iter()
+        .any(|entry| entry.job().id() == overflow.id()));
+    let first = visible.remove(0);
+    assert!(jobs.cancel(first.id()));
+    assert_eq!(first.wait(), Err(JobError::Cancelled));
+    for resynchronize in [false, true] {
+        if resynchronize {
+            observer.jobs_resynchronized(&source);
+        }
+        let notifications = service.progress().snapshot(&source);
+        assert_eq!(notifications.len(), capacity);
+        assert!(notifications
+            .iter()
+            .any(|entry| entry.job().id() == overflow.id()));
+        assert!(!notifications
+            .iter()
+            .any(|entry| entry.job().id() == hidden.id() || entry.job().id() == gate.id()));
+    }
+    visible.extend([hidden, overflow]);
+    for ticket in visible {
+        assert!(jobs.cancel(ticket.id()));
+        assert_eq!(ticket.wait(), Err(JobError::Cancelled));
+    }
+    release_sender.send(()).unwrap();
+    gate.wait().unwrap();
+    assert!(jobs
+        .shutdown(std::time::Instant::now() + Duration::from_secs(5))
+        .is_empty());
     assert!(service.progress().is_empty());
 }
 
@@ -244,5 +416,8 @@ fn event_pump_retries_a_resync_stranded_by_two_observer_panics() {
 
     release_sender.send(()).unwrap();
     ticket.wait().unwrap();
+    assert!(jobs
+        .shutdown(std::time::Instant::now() + Duration::from_secs(5))
+        .is_empty());
     assert!(service.progress().is_empty());
 }

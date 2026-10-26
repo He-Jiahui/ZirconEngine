@@ -103,6 +103,7 @@ impl UiAssetEditorSession {
             self.source_cursor_byte_offset,
         );
         if let Some(next_selection) = command.next_selection() {
+            self.canvas_anchor_preset_lease = None;
             self.selection = next_selection.clone();
         }
         if let Some(next_theme_source_key) = next_theme_source_key {
@@ -111,7 +112,8 @@ impl UiAssetEditorSession {
         if let Some(next_style_rule_id) = next_style_rule_id {
             self.selected_style_rule_id = next_style_rule_id;
         }
-        let validation = if let Some(palette) = prebuilt_v2_palette {
+        let validation = if let Some(mut palette) = prebuilt_v2_palette {
+            palette.inherit_search_navigation(&self.palette_catalog);
             self.palette_catalog = palette;
             #[cfg(test)]
             {
@@ -335,6 +337,7 @@ impl UiAssetEditorSession {
         };
         // Source, document and all terminally fallible local projections are
         // ready before publishing navigation state or advancing history.
+        self.canvas_anchor_preset_lease = None;
         self.selection = transition.selection.clone();
         self.selected_theme_source_key = transition.selected_theme_source_key.clone();
         self.selected_style_rule_id = transition.selected_style_rule_id.clone();

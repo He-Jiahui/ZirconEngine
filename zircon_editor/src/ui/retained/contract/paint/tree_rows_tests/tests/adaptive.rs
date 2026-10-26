@@ -136,6 +136,94 @@ fn short_tree_row_elides_actions_that_would_escape_its_frame() {
     assert!(commands.iter().all(|command| !is_tree_action(command)));
 }
 
+#[test]
+fn tree_row_content_icon_and_label_keep_the_row_center_when_icon_exceeds_disclosure() {
+    use crate::ui::retained_host::host_contract::paint_theme::{
+        enter_host_paint_theme_scope, host_paint_theme_snapshot_at_scale_for_test,
+    };
+
+    for scale in [1.0, 1.25, 1.5] {
+        let _theme =
+            enter_host_paint_theme_scope(host_paint_theme_snapshot_at_scale_for_test(scale));
+        let metrics = tree_metrics();
+        assert!(metrics.tree_icon_size > metrics.tree_disclosure_size);
+        let rect = FrameRect {
+            x: 8.25 * scale,
+            y: 6.25 * scale,
+            width: 319.0 * scale,
+            height: 28.0 * scale,
+        };
+        let mut node = tree_node(
+            "NativeHierarchyEntity:2",
+            "TreeRow",
+            "tree-row",
+            "Sun",
+            0,
+            false,
+        );
+        node.component_variant = "content".into();
+        let mut commands = Vec::new();
+        assert!(push_tree_row_commands(
+            &mut commands,
+            &node,
+            &rect,
+            &rect,
+            0,
+            1.0
+        ));
+        let images = commands
+            .iter()
+            .filter(|command| command.image_pixels.is_some())
+            .collect::<Vec<_>>();
+        let labels = commands
+            .iter()
+            .filter(|command| command.text.is_some())
+            .collect::<Vec<_>>();
+        assert_eq!(images.len(), 1);
+        assert_eq!(labels.len(), 1);
+        let center = rect.y + rect.height * 0.5;
+        for command in [images[0], labels[0]] {
+            assert!((command.frame.y + command.frame.height * 0.5 - center).abs() < 0.01);
+            assert!(command.frame.y >= rect.y);
+            assert!(command.frame.y + command.frame.height <= rect.y + rect.height);
+        }
+    }
+}
+
+#[test]
+fn tree_row_content_icon_outside_a_short_row_is_not_painted() {
+    let metrics = tree_metrics();
+    assert!(metrics.tree_icon_size > metrics.tree_disclosure_size);
+    let rect = FrameRect {
+        x: 8.25,
+        y: 6.25,
+        width: 319.0,
+        height: metrics.tree_icon_size - 0.25,
+    };
+    let mut node = tree_node(
+        "NativeHierarchyEntity:2",
+        "TreeRow",
+        "tree-row",
+        "Sun",
+        0,
+        false,
+    );
+    node.component_variant = "content".into();
+    let mut commands = Vec::new();
+    assert!(push_tree_row_commands(
+        &mut commands,
+        &node,
+        &rect,
+        &rect,
+        0,
+        1.0
+    ));
+    assert!(commands
+        .iter()
+        .all(|command| command.image_pixels.is_none()));
+    assert!(commands.iter().all(|command| command.text.is_none()));
+}
+
 fn is_tree_action(command: &HostPaintCommand) -> bool {
     command.image_pixels.as_ref().is_some_and(|image| {
         image.resource_key.contains("eye.svg")

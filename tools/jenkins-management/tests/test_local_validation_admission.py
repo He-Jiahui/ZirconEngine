@@ -9,12 +9,14 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from tools.dev import jenkins_validate as client
 from tools.jenkins.contracts import JenkinsError, digest
 from tools.jenkins.source import repository_id
 from tools.jenkins.state import State
 
 ROOT = Path(__file__).resolve().parents[3]
+CLIENT_SPEC = importlib.util.spec_from_file_location("local_admission_validation_client", ROOT / "tools/dev/jenkins_validate.py")
+client = importlib.util.module_from_spec(CLIENT_SPEC)
+CLIENT_SPEC.loader.exec_module(client)
 SPEC = importlib.util.spec_from_file_location("automatic_local_admission_tests", ROOT / "tools/jenkins-management/source_preparation.py")
 helper = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(helper)
@@ -148,6 +150,207 @@ class LocalValidationAdmissionTests(unittest.TestCase):
         with self.assertRaises(JenkinsError) as error:
             self.admit(value)
         self.assertEqual("local_request_conflict", error.exception.code)
+
+    def node_sdk_payload(self, action="prepare-node"):
+        value = self.payload(request=action)
+        value.update(action=action, nodeRecipe={"schemaVersion": 1,
+                     "id": "penpot-search-native-fill-tests-r1"})
+        for name in helper._NODE_READONLY_SDK_DEPENDENCIES:
+            path = self.repo / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"read-only SDK fixture\n")
+            value["dependencyHashes"][name] = hashlib.sha256(path.read_bytes()).hexdigest()
+        return value
+
+    def test_typed_node_sdk_dependencies_are_recorded_without_dev_authority(self):
+        for action in ("prepare-node", "validate-node"):
+            with self.subTest(action=action):
+                value = self.node_sdk_payload(action)
+                before = json.dumps(value, sort_keys=True)
+                context = self.admit(value)
+                self.assertEqual(before, json.dumps(value, sort_keys=True))
+                self.assertNotIn("dev", context["paths"])
+                admissions = self.state.list("local_request_admission")
+                admission = next(row["payload"] for row in admissions
+                                 if row["payload"]["inputDigest"] == digest(value))
+                self.assertEqual({name: value["dependencyHashes"][name]
+                                  for name in helper._NODE_READONLY_SDK_DEPENDENCIES},
+                                 admission["readOnlyDependencyHashes"])
+                for name in helper._NODE_READONLY_SDK_DEPENDENCIES:
+                    self.assertNotIn(name, admission["requestedPaths"])
+                    for permission in ("implementation", "validation"):
+                        with self.assertRaises(JenkinsError):
+                            self.state.check_authorization(self.repository, "first", permission, [name])
+
+    def test_sdk_readonly_role_cannot_be_used_as_owned_or_authored_scope(self):
+        name = sorted(helper._NODE_READONLY_SDK_DEPENDENCIES)[0]
+        for field in ("ownedPaths", "declaredDependencies", "sourceHashes", "beforeHashes",
+                      "afterHashes", "currentHashes"):
+            with self.subTest(field=field):
+                value = self.node_sdk_payload()
+                value[field] = [name] if field in ("ownedPaths", "declaredDependencies") else {
+                    name: value["dependencyHashes"][name]}
+                with self.assertRaises(JenkinsError) as error:
+                    self.admit(value)
+                self.assertEqual("invalid_source_path", error.exception.code)
+
+    def test_sdk_readonly_role_rejects_other_actions_recipes_and_versions(self):
+        for action, recipe_id, version in (("validate", "penpot-search-native-fill-tests-r1", 1),
+                ("generate", "penpot-search-native-fill-tests-r1", 1),
+                ("prepare-node", "penpot-public-canonical-tests-r03", 1),
+                ("prepare-node", "penpot-search-native-fill-tests-r1", True),
+                ("prepare-node", "penpot-search-native-fill-tests-r1", 2)):
+            with self.subTest(action=action, recipe=recipe_id, version=version):
+                value = self.node_sdk_payload(action)
+                value["nodeRecipe"].update(id=recipe_id, schemaVersion=version)
+                with self.assertRaises(JenkinsError) as error:
+                    self.admit(value)
+                self.assertEqual("invalid_source_path", error.exception.code)
+
+    def test_sdk_readonly_role_rejects_unknown_control_paths_and_alias_spelling(self):
+        name = sorted(helper._NODE_READONLY_SDK_DEPENDENCIES)[0]
+        for bad in ("dev/penpot/other.cljs", ".git/config", ".jenkins/state/control",
+                    ".codex/config.toml", name.replace("/", "\\"), "dev/penpot/../other.cljs"):
+            with self.subTest(path=bad):
+                value = self.node_sdk_payload()
+                value["dependencyHashes"][bad] = "a" * 64
+                with self.assertRaises(JenkinsError):
+                    self.admit(value)
+
+    def test_sdk_readonly_role_requires_exact_present_digest_and_physical_file(self):
+        name = sorted(helper._NODE_READONLY_SDK_DEPENDENCIES)[0]
+        for bad in (None, "invalid", "c" * 64):
+            with self.subTest(digest=bad):
+                value = self.node_sdk_payload()
+                value["dependencyHashes"][name] = bad
+                with self.assertRaises(JenkinsError):
+                    self.admit(value)
+        value = self.node_sdk_payload()
+        (self.repo / name).unlink()
+        with self.assertRaises(JenkinsError) as error:
+            self.admit(value)
+        self.assertEqual("local_input_changed", error.exception.code)
+
+    def test_sdk_readonly_role_still_checks_plain_paths_before_reading(self):
+        value = self.node_sdk_payload()
+        from tools.jenkins.deployment.driver import _plain
+        sdk = self.repo / sorted(helper._NODE_READONLY_SDK_DEPENDENCIES)[0]
+        def reject_sdk_alias(path):
+            if path == sdk:
+                raise JenkinsError("driver_alias_rejected", "fixture alias")
+            return _plain(path)
+        with patch("tools.jenkins.deployment.driver._plain", side_effect=reject_sdk_alias):
+            with self.assertRaises(JenkinsError) as error:
+                self.admit(value)
+        self.assertEqual("driver_alias_rejected", error.exception.code)
+
+    def palette_payload(self, request="palette"):
+        value = self.payload(request=request)
+        value.update(action="validate", sourceView="checkout", verb="test",
+                     manifestPath="zircon_plugins/Cargo.toml",
+                     packages=["zircon_plugin_animation_graph_editor"], features=[],
+                     noDefaultFeatures=True, lib=True, locked=True, profile="test",
+                     jobs=1, testThreads=1, tests=[], allFeatures=False, noRun=False, offline=False,
+                     testFilter="tests::graph_palette_matches_creatable_editor_capabilities")
+        value["dependencyHashes"][".cargo/config.toml"] = None
+        return value
+
+    def test_palette_absent_compiler_config_is_pinned_without_hidden_path_authority(self):
+        value = self.palette_payload()
+        before = json.dumps(value, sort_keys=True)
+        context = self.admit(value)
+        self.assertEqual(before, json.dumps(value, sort_keys=True))
+        self.assertNotIn(".cargo", context["paths"])
+        admission = self.state.list("local_request_admission")[0]["payload"]
+        self.assertEqual({".cargo/config.toml": None}, admission["readOnlyDependencyHashes"])
+        self.assertNotIn(".cargo/config.toml", admission["requestedPaths"])
+        for action in ("implementation", "validation"):
+            with self.subTest(action=action), self.assertRaises(JenkinsError):
+                self.state.check_authorization(self.repository, "first", action, [".cargo/config.toml"])
+
+    def test_palette_present_compiler_config_requires_its_actual_hash(self):
+        path = self.repo / ".cargo/config.toml"
+        path.parent.mkdir()
+        path.write_bytes(b"[build]\njobs=1\n")
+        value = self.palette_payload()
+        value["dependencyHashes"][".cargo/config.toml"] = hashlib.sha256(path.read_bytes()).hexdigest()
+        self.admit(value)
+        admission = self.state.list("local_request_admission")[0]["payload"]
+        self.assertEqual({".cargo/config.toml": value["dependencyHashes"][".cargo/config.toml"]},
+                         admission["readOnlyDependencyHashes"])
+
+    def test_palette_absence_pin_rejects_a_new_compiler_config_before_any_context(self):
+        value = self.palette_payload()
+        path = self.repo / ".cargo/config.toml"
+        path.parent.mkdir()
+        path.write_bytes(b"changed\n")
+        with self.assertRaises(JenkinsError) as error:
+            self.admit(value)
+        self.assertEqual("local_input_changed", error.exception.code)
+        self.assertEqual([], self.state.list("local_request_admission"))
+        with self.state.connect() as connection:
+            self.assertIsNone(connection.execute("SELECT * FROM authorizations").fetchone())
+
+    def test_palette_config_rejects_bad_missing_and_stale_hashes(self):
+        for checksum in ("bad", "a" * 64):
+            with self.subTest(checksum=checksum), self.assertRaises(JenkinsError):
+                value = self.palette_payload()
+                value["dependencyHashes"][".cargo/config.toml"] = checksum
+                self.admit(value)
+        path = self.repo / ".cargo/config.toml"
+        path.parent.mkdir()
+        path.write_bytes(b"changed\n")
+        value = self.palette_payload()
+        value["dependencyHashes"][".cargo/config.toml"] = "a" * 64
+        with self.assertRaises(JenkinsError) as error:
+            self.admit(value)
+        self.assertEqual("local_input_changed", error.exception.code)
+
+    def test_palette_readonly_config_cannot_be_owned_or_authored(self):
+        for field in ("ownedPaths", "declaredDependencies", "sourceHashes", "beforeHashes",
+                      "afterHashes", "currentHashes"):
+            with self.subTest(field=field), self.assertRaises(JenkinsError) as error:
+                value = self.palette_payload()
+                value[field] = [".cargo/config.toml"] if field in ("ownedPaths", "declaredDependencies") else {
+                    ".cargo/config.toml": None}
+                self.admit(value)
+            self.assertEqual("invalid_source_path", error.exception.code)
+
+    def test_palette_readonly_config_rejects_wider_recipe_and_nonexact_scalar_types(self):
+        changes = {"action": "prepare-node", "sourceView": "worktree", "verb": "check",
+                   "manifestPath": "Cargo.toml", "packages": ["zircon_editor"],
+                   "features": ["extra"], "noDefaultFeatures": False, "lib": False,
+                   "locked": False, "profile": "dev", "jobs": 2, "testThreads": 2,
+                   "tests": ["other"], "allFeatures": True, "noRun": True, "offline": True,
+                   "target": "x86_64-pc-windows-msvc", "testFilter": "tests::",
+                   "formalAcceptance": True, "m8Accepted": True}
+        for key, changed in [*changes.items(), ("jobs", True), ("testThreads", True),
+                             ("noDefaultFeatures", 1), ("formalAcceptance", None)]:
+            with self.subTest(field=key, value=changed), self.assertRaises(JenkinsError) as error:
+                value = self.palette_payload()
+                value[key] = changed
+                self.admit(value)
+            self.assertEqual("invalid_source_path", error.exception.code)
+
+    def test_palette_readonly_config_rejects_other_hidden_inputs_and_aliases(self):
+        for path in (".cargo/config", ".cargo/other.toml", ".git/config", ".jenkins/state/control",
+                     ".codex/config.toml", ".cargo\\config.toml", ".cargo/../config.toml"):
+            with self.subTest(path=path), self.assertRaises(JenkinsError):
+                value = self.palette_payload()
+                value["dependencyHashes"][path] = None
+                self.admit(value)
+
+    def test_palette_readonly_config_retains_plain_path_guard(self):
+        value = self.palette_payload()
+        from tools.jenkins.deployment.driver import _plain
+        def reject_config_alias(path):
+            if path == self.repo / ".cargo/config.toml":
+                raise JenkinsError("driver_alias_rejected", "fixture alias")
+            return _plain(path)
+        with patch("tools.jenkins.deployment.driver._plain", side_effect=reject_config_alias):
+            with self.assertRaises(JenkinsError) as error:
+                self.admit(value)
+        self.assertEqual("driver_alias_rejected", error.exception.code)
 
 
 class RegistrationContinuationTests(unittest.TestCase):

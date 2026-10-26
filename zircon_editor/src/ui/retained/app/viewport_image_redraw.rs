@@ -3,6 +3,10 @@ use super::*;
 
 impl RetainedEditorHost {
     pub(super) fn poll_viewport_image_for_native_host(&mut self) {
+        let main_viewport_generation = self
+            .ui
+            .get_host_presentation_generation()
+            .viewport_generation();
         let mut image_updated = false;
         if self.ui.direct_viewport_products_active() {
             for (surface_key, product) in self.viewport.poll_viewport_products() {
@@ -26,11 +30,35 @@ impl RetainedEditorHost {
                 }
             }
         }
+        self.complete_viewport_image_update(main_viewport_generation, image_updated);
+    }
+
+    fn complete_viewport_image_update(
+        &mut self,
+        main_viewport_generation: u64,
+        image_updated: bool,
+    ) {
         if !image_updated {
             return;
         }
         zircon_runtime::profile_scope!("editor", "retained_host", "poll_viewport_image");
         self.record_paint_only_invalidation(HostInvalidationMask::VIEWPORT_IMAGE);
+        // Image delivery can advance the main cursor after its source commit.
+        // Child-only delivery must not republish unchanged main-window metadata.
+        if self
+            .ui
+            .get_host_presentation_generation()
+            .viewport_generation()
+            != main_viewport_generation
+            && !self
+                .workbench_window_bridge
+                .has_pending_surface_state_change()
+            && !self
+                .workbench_window_bridge
+                .has_pending_host_projection_commit()
+        {
+            self.publish_current_normal_source_capture_metadata();
+        }
     }
 
     fn viewport_product_target(&self, surface_key: &str) -> UiHostWindow {

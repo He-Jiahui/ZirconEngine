@@ -229,6 +229,7 @@ pub(crate) struct ModulePluginStatusViewData {
     pub plugin_id: SharedString,
     pub display_name: SharedString,
     pub package_source: SharedString,
+    pub package_metadata: Option<crate::ui::host::EditorPluginPackageMetadata>,
     pub load_state: SharedString,
     pub enabled: bool,
     pub required: bool,

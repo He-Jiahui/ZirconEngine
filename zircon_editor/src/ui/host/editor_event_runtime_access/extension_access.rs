@@ -9,6 +9,27 @@ use crate::core::extension::{
 };
 use crate::ui::activity::ActivityViewDescriptor;
 use crate::ui::host::EditorHostEventController;
+use crate::ui::workbench::view::ViewInstanceId;
+
+fn template_pane_view_is_current(
+    manager: &crate::ui::host::editor_manager::EditorManager,
+    instance_id: &ViewInstanceId,
+    template_id: &str,
+) -> bool {
+    let registry = manager.host.lock_view_registry();
+    let Some(instance) = registry.instance(instance_id) else {
+        return false;
+    };
+    registry
+        .descriptor(&instance.descriptor_id)
+        .is_some_and(|descriptor| {
+            registry.descriptor_capability_error(descriptor).is_none()
+                && descriptor
+                    .pane_template
+                    .as_ref()
+                    .is_some_and(|template| template.body.document_id == template_id)
+        })
+}
 
 impl EditorHostEventController {
     pub fn activity_view_descriptor(&self, view_id: &str) -> Option<ActivityViewDescriptor> {
@@ -171,24 +192,42 @@ impl EditorHostEventController {
     pub(crate) fn ui_template_pane_data_snapshot(
         &self,
         template_id: &str,
+        instance_id: &ViewInstanceId,
     ) -> Result<Option<EditorUiTemplatePaneDataSnapshot>, crate::ui::host::EditorError> {
         let manager = self.enter_editor_manager()?;
-        Ok({
-            let source = {
-                let inner = self.shell().lock();
-                let enabled_capabilities = manager
-                    .capability_snapshot()
-                    .enabled_capabilities()
-                    .iter()
-                    .cloned()
-                    .collect::<CapabilitySet>();
+        if !template_pane_view_is_current(&manager, instance_id, template_id) {
+            return Ok(None);
+        }
+        let (source, generation, enabled_capabilities) = {
+            let inner = self.shell().lock();
+            let enabled_capabilities = manager
+                .capability_snapshot()
+                .enabled_capabilities()
+                .to_vec();
+            let capabilities = enabled_capabilities
+                .iter()
+                .cloned()
+                .collect::<CapabilitySet>();
+            (
                 inner
                     .contributions
                     .snapshot()
-                    .ui_template_pane_data_source(template_id, &enabled_capabilities)
-            };
-            source.map(|source| source.snapshot())
-        })
+                    .ui_template_pane_data_source(template_id, &capabilities),
+                inner.contributions.generation(),
+                enabled_capabilities,
+            )
+        };
+        let Some(source) = source else {
+            return Ok(None);
+        };
+        // Extension callbacks run outside host locks and may retire their view or source.
+        let snapshot = source.snapshot();
+        if !template_pane_view_is_current(&manager, instance_id, template_id)
+            || !self.extension_projection_is_current(generation, &enabled_capabilities)?
+        {
+            return Ok(None);
+        }
+        Ok(Some(snapshot))
     }
 
     pub fn asset_importers_for_extension(
@@ -223,3 +262,7 @@ impl EditorHostEventController {
         })
     }
 }
+
+#[cfg(test)]
+#[path = "tests/template_pane_data.rs"]
+mod template_pane_data_tests;

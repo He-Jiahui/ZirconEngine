@@ -175,6 +175,7 @@ struct ActiveJobEntry {
     snapshot: EditorJobProgressSnapshot,
     cancel: CancellationToken,
     priority: JobPriority,
+    progress_notification_visible: bool,
     terminal: bool,
 }
 
@@ -245,6 +246,32 @@ impl EditorJobProgressSource {
         snapshots
     }
 
+    pub(crate) fn progress_notification_visible(&self, id: JobId) -> bool {
+        self.lock_state()
+            .active
+            .get(&id)
+            .is_some_and(|entry| !entry.terminal && entry.progress_notification_visible)
+    }
+
+    /// Refills automatic notification capacity without allowing hidden jobs to
+    /// consume the bound. Detailed snapshot APIs continue to include those jobs.
+    pub(crate) fn notification_snapshot_limit(
+        &self,
+        limit: usize,
+    ) -> Vec<EditorJobProgressSnapshot> {
+        let state = self.lock_state();
+        let mut snapshots = Vec::with_capacity(limit.min(state.active.len()));
+        snapshots.extend(
+            state
+                .active
+                .values()
+                .filter(|entry| !entry.terminal && entry.progress_notification_visible)
+                .take(limit)
+                .map(|entry| entry.snapshot.clone()),
+        );
+        snapshots
+    }
+
     /// Returns only the visible snapshots explicitly requested by a consumer.
     ///
     /// Activity notification projection uses this instead of scanning every active
@@ -307,6 +334,7 @@ impl EditorJobProgressSource {
             ),
             cancel: spec.cancel.clone(),
             priority: spec.priority,
+            progress_notification_visible: spec.progress_notification_visible,
             terminal: false,
         };
         let primary_projection_changes = if !spec.primary_progress_visible {

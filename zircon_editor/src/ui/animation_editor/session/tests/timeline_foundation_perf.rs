@@ -17,7 +17,7 @@ fn editor813_timeline_projection_capacity_preserves_empty_and_ordered_shapes() {
         looping: false,
         speed: 1.0,
     };
-    let view = project_sequence_timeline(&asset, &sequence);
+    let view = project_sequence_timeline(&asset, &sequence).expect("valid source must project");
     assert!(view.tracks.is_empty());
     assert_eq!(view.range.start, 0.0);
     assert_eq!(view.range.end, 0.0);

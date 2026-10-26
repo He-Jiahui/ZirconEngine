@@ -13,6 +13,97 @@ use crate::core::framework::scene::{ComponentPropertyPath, EntityPath};
 use super::*;
 
 #[test]
+fn public_bool_channel_preserves_step_boundaries_without_a_world() {
+    let channel = AnimationChannelAsset {
+        interpolation: AnimationInterpolationAsset::Step,
+        keys: vec![
+            key(0.0, AnimationChannelValueAsset::Bool(false)),
+            key(1.0, AnimationChannelValueAsset::Bool(true)),
+            key(2.0, AnimationChannelValueAsset::Bool(false)),
+        ],
+    };
+    let before = channel.clone();
+
+    for (time, expected) in [
+        (-1.0, false),
+        (0.0, false),
+        (0.5, false),
+        (1.0, false),
+        (1.000_1, true),
+        (2.0, false),
+        (3.0, false),
+    ] {
+        assert_eq!(
+            crate::animation::sample_animation_bool_channel(&channel, time),
+            Some(expected)
+        );
+    }
+    assert_eq!(channel, before);
+}
+
+#[test]
+fn public_bool_channel_rejects_malformed_and_unsupported_source() {
+    let valid = AnimationChannelAsset {
+        interpolation: AnimationInterpolationAsset::Step,
+        keys: vec![
+            key(0.0, AnimationChannelValueAsset::Bool(false)),
+            key(1.0, AnimationChannelValueAsset::Bool(true)),
+        ],
+    };
+    let mut invalid = Vec::new();
+    let mut empty = valid.clone();
+    empty.keys.clear();
+    invalid.push(empty);
+    for time in [-1.0, 0.0, Real::NAN, Real::INFINITY] {
+        let mut channel = valid.clone();
+        channel.keys[1].time_seconds = time;
+        invalid.push(channel);
+    }
+    let mut reversed = valid.clone();
+    reversed.keys.reverse();
+    invalid.push(reversed);
+    let mut mixed = valid.clone();
+    mixed.keys[1].value = AnimationChannelValueAsset::Scalar(1.0);
+    invalid.push(mixed);
+    let mut tangent = valid.clone();
+    tangent.keys[0].out_tangent = Some(AnimationChannelValueAsset::Bool(true));
+    invalid.push(tangent);
+    for interpolation in [
+        AnimationInterpolationAsset::Linear,
+        AnimationInterpolationAsset::Hermite,
+    ] {
+        let mut channel = valid.clone();
+        channel.interpolation = interpolation;
+        invalid.push(channel);
+    }
+
+    for channel in invalid {
+        assert_eq!(
+            crate::animation::sample_animation_bool_channel(&channel, 0.5),
+            None
+        );
+    }
+}
+
+#[test]
+fn public_bool_channel_rejects_nonfinite_requests_and_keeps_single_key_values() {
+    let channel = AnimationChannelAsset {
+        interpolation: AnimationInterpolationAsset::Step,
+        keys: vec![key(0.0, AnimationChannelValueAsset::Bool(true))],
+    };
+    assert_eq!(
+        crate::animation::sample_animation_bool_channel(&channel, 10.0),
+        Some(true)
+    );
+    for time in [Real::NAN, Real::INFINITY, Real::NEG_INFINITY] {
+        assert_eq!(
+            crate::animation::sample_animation_bool_channel(&channel, time),
+            None
+        );
+    }
+}
+
+#[test]
 fn linear_interpolation_samples_midpoint_vec3_values() {
     let channel = AnimationChannelAsset {
         interpolation: AnimationInterpolationAsset::Linear,

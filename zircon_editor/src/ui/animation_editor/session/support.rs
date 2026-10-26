@@ -49,7 +49,7 @@ pub(super) fn clamp_timeline_span(
 }
 
 pub(super) fn frame_to_seconds(frame: u32, frames_per_second: f32) -> f32 {
-    frame as f32 / sanitize_frames_per_second(frames_per_second).max(1.0)
+    frame as f32 / sanitize_frames_per_second(frames_per_second)
 }
 
 fn sanitize_duration_seconds(duration_seconds: f32) -> f32 {
@@ -61,7 +61,7 @@ fn sanitize_duration_seconds(duration_seconds: f32) -> f32 {
 }
 
 pub(super) fn sanitize_frames_per_second(frames_per_second: f32) -> f32 {
-    if frames_per_second.is_finite() && frames_per_second > 0.0 {
+    if frames_per_second.is_finite() && frames_per_second > f32::EPSILON {
         frames_per_second
     } else {
         DEFAULT_SEQUENCE_FRAMES_PER_SECOND

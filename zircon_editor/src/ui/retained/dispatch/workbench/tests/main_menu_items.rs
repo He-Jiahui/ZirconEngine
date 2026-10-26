@@ -72,23 +72,78 @@ fn projected_popup_items_use_registered_commands_and_current_enablement() {
     for project_open in [false, true] {
         let context = CommandEvalCtx::interactive().with_project_open(project_open);
         let menus = registry.menu_bar_model(&i18n, &i18n.active_locale(), &context);
-        let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 800.0)).unwrap();
+        let mut bridge =
+            BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 800.0)).unwrap();
         bridge.apply_command_menu_bar(&menus).unwrap();
         for (menu, commands) in &command_menu_contract().menus {
             for id in commands {
-                assert!(registry.command(id.as_str()).is_some(), "unknown command {id}");
+                assert!(
+                    registry.command(id.as_str()).is_some(),
+                    "unknown command {id}"
+                );
             }
             for raw in bridge.control_string_array(menu, "menu_items") {
                 let item = template_popup_menu_item_state(&raw).unwrap();
                 let command = registry.command(item.action_id.as_str()).unwrap();
                 assert_eq!(!item.disabled, command.is_enabled(&context));
-                assert_eq!(bridge.main_menu_item_binding(menu, &item.action_id).is_some(), !item.disabled);
+                assert_eq!(
+                    bridge
+                        .main_menu_item_binding(menu, &item.action_id)
+                        .is_some(),
+                    !item.disabled
+                );
             }
         }
         let add = bridge.control_string_array("UnrealAddMenuPopup", "menu_items");
         assert_eq!(add.len(), 7);
-        assert!(add.iter().any(|item| item.contains("scene.node.create_point_light")));
+        assert!(add
+            .iter()
+            .any(|item| item.contains("scene.node.create_point_light")));
+        let modes = bridge.control_string_array("UnrealModesMenuPopup", "menu_items");
+        assert_eq!(modes.len(), 1);
+        assert!(modes[0].contains("viewport.tool.select"));
     }
+}
+
+#[test]
+fn explicitly_retained_empty_menu_triggers_are_visible_disabled_and_inert() {
+    let mut bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(1280.0, 800.0))
+        .expect("the authored editor should project");
+    bridge
+        .apply_command_menu_bar(&crate::core::commands::MenuBarModel { menus: Vec::new() })
+        .unwrap();
+    for (menu, trigger) in [
+        ("UnrealHelpMenuPopup", "MenuSlot5"),
+        ("UnrealBlueprintsMenuPopup", "UnrealToolbarBlueprints"),
+        ("UnrealCinematicsMenuPopup", "UnrealToolbarCinematics"),
+    ] {
+        let id = bridge
+            .control_node_id(trigger)
+            .expect("authored trigger node");
+        assert!(bridge.surface().tree.node(id).unwrap().is_render_visible());
+        assert!(bridge.control_bool(trigger, "disabled"));
+        assert!(bridge.control_string_array(menu, "menu_items").is_empty());
+        assert!(!bridge.control_bool(menu, "popup_open"));
+        assert!(bridge
+            .main_menu_item_binding(menu, "viewport.tool.select")
+            .is_none());
+    }
+    for trigger in ["MenuSlot0", "WorkbenchToolSelect"] {
+        let id = bridge
+            .control_node_id(trigger)
+            .expect("authored trigger node");
+        assert!(!bridge.surface().tree.node(id).unwrap().is_render_visible());
+    }
+}
+
+#[test]
+fn menu_contract_preserves_legacy_empty_policy_and_rejects_unknown_policy() {
+    let legacy: CommandMenuContract =
+        toml::from_str("[menus]\nPopup = []\n[triggers]\nPopup = 'Trigger'\n").unwrap();
+    assert!(legacy.empty_trigger_policy.is_empty());
+    assert!(toml::from_str::<CommandMenuContract>(
+        "[menus]\nPopup = []\n[triggers]\nPopup = 'Trigger'\n[empty_trigger_policy]\nPopup = 'ForceEnabled'\n",
+    ).is_err());
 }
 
 #[test]

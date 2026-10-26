@@ -37,7 +37,7 @@ fn workbench_dropdown_selector_uses_shared_state_priority() {
         UiPainterResolvedState::Pressed
     );
     assert_eq!(dropdown_surface(&pressed_open), palette.open_surface);
-    assert_eq!(dropdown_border(&pressed_open), palette.focus_border);
+    assert_eq!(dropdown_border(&pressed_open), palette.border);
     assert_eq!(
         dropdown_visual_state(&disabled_pressed),
         UiPainterResolvedState::Disabled

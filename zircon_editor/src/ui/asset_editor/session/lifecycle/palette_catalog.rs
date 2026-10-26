@@ -80,7 +80,8 @@ pub(super) fn reconcile_palette_catalog_selection(session: &mut UiAssetEditorSes
                 session.selected_palette_index,
             )
         });
-    session.selected_palette_index = selected_palette_index;
+    session.selected_palette_index = selected_palette_index
+        .filter(|index| session.palette_catalog.search_contains_entry(*index));
     session.selected_palette_entry = session
         .selected_palette_index
         .and_then(|index| session.palette_catalog.entry(index).cloned());

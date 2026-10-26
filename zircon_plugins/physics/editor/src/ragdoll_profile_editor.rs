@@ -1,7 +1,32 @@
+#[path = "ragdoll_profile_editor/binding.rs"]
+mod binding;
+#[path = "ragdoll_profile_editor/manipulation.rs"]
+mod manipulation;
+#[path = "ragdoll_profile_editor/mutation.rs"]
+mod mutation;
+#[path = "ragdoll_profile_editor/source.rs"]
+mod source;
+
 use zircon_plugin_physics_runtime::{RagdollBoneProfile, RagdollProfile, RagdollProfileError};
 use zircon_runtime::core::framework::physics::PhysicsColliderShape;
 use zircon_runtime::core::framework::scene::physics::PhysicsJointConstraintMetadata;
 use zircon_runtime::core::math::{Real, Transform};
+
+pub use binding::{
+    prepare_bound_ragdoll_body_translations, prepare_bound_ragdoll_profile_edits,
+    RagdollBoundBodyTranslation, RagdollBoundBoneEdit, RagdollBoundEditError,
+    RagdollProfileEditCandidate, RagdollSkeletonBoneKey,
+};
+pub use manipulation::{
+    prepare_ragdoll_body_translations, RagdollBodyTranslation, RagdollBodyTranslationError,
+};
+pub use mutation::{
+    prepare_ragdoll_profile_edits, RagdollBoneEdit, RagdollBoneProperty, RagdollProfileEditError,
+};
+pub use source::{
+    generate_ragdoll_profile_from_skeleton, RagdollProfileFromSkeleton,
+    RagdollProfileFromSkeletonError,
+};
 
 const DEFAULT_BONE_MASS: Real = 1.0;
 const DEFAULT_ROOT_RADIUS: Real = 0.15;

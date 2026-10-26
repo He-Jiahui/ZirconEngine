@@ -28,6 +28,12 @@ fn tree_row_style_uses_shared_state_priority() {
 
     node.selected = false;
     node.checked = false;
+    let focused_pressed = tree_row_style(&node);
+    assert_eq!(focused_pressed.state, UiPainterResolvedState::Pressed);
+    assert_eq!(focused_pressed.background, Some(PALETTE.surface_pressed));
+    assert_eq!(focused_pressed.border, Some(PALETTE.focus_ring));
+
+    node.focused = false;
     let pressed = tree_row_style(&node);
     assert_eq!(pressed.state, UiPainterResolvedState::Pressed);
     assert_eq!(pressed.background, Some(PALETTE.surface_pressed));
@@ -36,6 +42,7 @@ fn tree_row_style_uses_shared_state_priority() {
 
     node.pressed = false;
     node.hovered = false;
+    node.focused = true;
     let focused = tree_row_style(&node);
     assert_eq!(focused.state, UiPainterResolvedState::Focused);
     assert_eq!(focused.background, None);

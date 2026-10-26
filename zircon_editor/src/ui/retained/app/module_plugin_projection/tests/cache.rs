@@ -70,6 +70,7 @@ fn status_report_with_plugin_count(plugin_count: usize) -> Arc<EditorPluginStatu
                 plugin_id: format!("test.plugin.{index:04}"),
                 display_name: format!("Test Plugin {index:04}"),
                 package_source: "test".to_string(),
+                package_metadata: None,
                 load_state: "Active".to_string(),
                 enabled: true,
                 required: false,

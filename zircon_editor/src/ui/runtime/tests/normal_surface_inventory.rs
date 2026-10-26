@@ -272,3 +272,186 @@ fn normal_inventory_detects_raw_geometry_and_root_drift() {
     assert_eq!(root_drift.observation["inventoryAudit"]["complete"], false);
     assert_eq!(root_drift.observation["nodes"].as_array().unwrap().len(), 4);
 }
+
+fn inspector_repeat_fixture(owner_count: u64) -> (UiSurface, RetainedUiHostProjection) {
+    use zircon_runtime::ui::surface::UiVirtualListItemKey;
+    use zircon_runtime_interface::ui::layout::{
+        UiContainerKind, UiScrollState, UiScrollableBoxConfig, UiVirtualListConfig,
+    };
+
+    let mut surface = UiSurface::new(UiTreeId::new("normal-inspector-repeat"));
+    for owner_index in 0..owner_count {
+        let owner_value = 1 + owner_index * 10;
+        let owner_id = UiNodeId::new(owner_value);
+        let owner_path = format!("Owner{owner_index}");
+        let owner = source_node(owner_value, &owner_path, "ScrollableBox")
+            .with_container(UiContainerKind::ScrollableBox(UiScrollableBoxConfig {
+                virtualization: Some(UiVirtualListConfig {
+                    item_extent: 20.0,
+                    overscan: 0,
+                }),
+                ..Default::default()
+            }))
+            .with_scroll_state(UiScrollState {
+                offset: 0.0,
+                viewport_extent: 40.0,
+                content_extent: 60.0,
+            });
+        surface.tree.insert_root(owner);
+        let mut changes = Vec::new();
+        let report = surface
+            .reconcile_virtual_list_materialization_with_keys(owner_id, 3, &mut changes, |index| {
+                UiVirtualListItemKey::new(11 + index as u128)
+            })
+            .unwrap();
+        assert_eq!(report.slot_capacity, 3);
+        let mut slots = Vec::new();
+        for slot in 0..report.slot_capacity {
+            let value = owner_value + 1 + slot as u64;
+            let id = UiNodeId::new(value);
+            let mut node = source_node(value, &format!("{owner_path}/Slot{slot}"), "InputField");
+            node.template_metadata.as_mut().unwrap().source_node_id = Some("prototype".into());
+            surface.tree.insert_child(owner_id, node).unwrap();
+            slots.push(id);
+        }
+        surface
+            .register_virtual_list_slots(owner_id, &slots)
+            .unwrap();
+        for id in slots {
+            let binding = surface.virtual_list_binding_for_node(owner_id, id).unwrap();
+            let metadata = surface
+                .tree
+                .node_mut(id)
+                .unwrap()
+                .template_metadata
+                .as_mut()
+                .unwrap();
+            metadata.attributes.insert(
+                "inspector_property_item_key".into(),
+                toml::Value::String(binding.item_key.get().to_string()),
+            );
+            metadata.attributes.insert(
+                "inspector_property_field_id".into(),
+                toml::Value::String(format!("field.{}", binding.item_key.get())),
+            );
+        }
+    }
+    surface.compute_layout(UiSize::new(100.0, 80.0)).unwrap();
+    let projected = projection(&surface);
+    (surface, projected)
+}
+
+#[test]
+fn normal_inventory_distinguishes_real_inspector_items_and_owners() {
+    let (surface, projection) = inspector_repeat_fixture(2);
+    let inventory = capture(&surface, &projection);
+    assert_eq!(
+        inventory.observation["inventoryAudit"]["complete"], true,
+        "{}",
+        inventory.observation
+    );
+    let first = row(&inventory, "Owner0/Slot0");
+    let next = row(&inventory, "Owner0/Slot1");
+    let other = row(&inventory, "Owner1/Slot0");
+    assert_eq!(first["sourceNodeId"], next["sourceNodeId"]);
+    assert_ne!(first["itemKey"], next["itemKey"]);
+    assert_eq!(first["itemKey"], other["itemKey"]);
+    assert_ne!(first["parent"], other["parent"]);
+    assert_eq!(first["inspectorRepeat"]["runtimeBindingCurrent"], true);
+    let publication = NormalPresentInventory::new(vec![inventory]).observation();
+    assert_eq!(publication["inventoryAudit"]["complete"], true);
+    assert_eq!(publication["complete"], false);
+}
+
+#[test]
+fn normal_inventory_rejects_duplicate_partial_and_mismatched_inspector_keys() {
+    for invalid in ["11", "0012", "340282366920938463463374607431768211456", ""] {
+        let (mut surface, _) = inspector_repeat_fixture(1);
+        surface
+            .tree
+            .node_mut(UiNodeId::new(3))
+            .unwrap()
+            .template_metadata
+            .as_mut()
+            .unwrap()
+            .attributes
+            .insert(
+                "inspector_property_item_key".into(),
+                toml::Value::String(invalid.into()),
+            );
+        let projected = projection(&surface);
+        assert_eq!(
+            capture(&surface, &projected).observation["inventoryAudit"]["complete"],
+            false,
+            "{invalid}"
+        );
+    }
+    for remove in [false, true] {
+        let (mut surface, _) = inspector_repeat_fixture(1);
+        let metadata = surface
+            .tree
+            .node_mut(UiNodeId::new(3))
+            .unwrap()
+            .template_metadata
+            .as_mut()
+            .unwrap();
+        for key in ["inspector_property_item_key", "inspector_property_field_id"] {
+            if remove {
+                metadata.attributes.remove(key);
+            } else {
+                metadata
+                    .attributes
+                    .insert(key.into(), toml::Value::String(String::new()));
+            }
+        }
+        let projected = projection(&surface);
+        assert_eq!(
+            capture(&surface, &projected).observation["inventoryAudit"]["complete"],
+            false,
+            "a current Runtime-bound row cannot lose both model identity fields"
+        );
+    }
+    let (surface, mut projected) = inspector_repeat_fixture(1);
+    projected
+        .nodes
+        .iter_mut()
+        .find(|node| node.node_id == "Owner0/Slot0")
+        .unwrap()
+        .properties
+        .insert(
+            "inspector_property_field_id".into(),
+            RetainedUiHostValue::String("wrong.field".into()),
+        );
+    assert_eq!(
+        capture(&surface, &projected).observation["inventoryAudit"]["complete"],
+        false
+    );
+}
+
+#[test]
+fn normal_inventory_rejects_a_rebound_slot_and_keeps_its_old_observation_frozen() {
+    use zircon_runtime::ui::surface::UiVirtualListItemKey;
+    let (mut surface, initial_projection) = inspector_repeat_fixture(1);
+    let before = capture(&surface, &initial_projection);
+    let frozen = before.observation.as_ref().clone();
+    let old_binding = surface
+        .virtual_list_binding_for_node(UiNodeId::new(1), UiNodeId::new(2))
+        .unwrap();
+    surface
+        .reconcile_virtual_list_materialization_with_keys(
+            UiNodeId::new(1),
+            3,
+            &mut Vec::new(),
+            |index| UiVirtualListItemKey::new(111 + index as u128),
+        )
+        .unwrap();
+    assert!(!surface.virtual_list_binding_is_current(UiNodeId::new(2), old_binding));
+    let stale = capture(&surface, &initial_projection);
+    assert_eq!(stale.observation["inventoryAudit"]["complete"], false);
+    assert_eq!(
+        row(&stale, "Owner0/Slot0")["inspectorRepeat"]["runtimeBindingCurrent"],
+        false
+    );
+    assert_eq!(before.observation.as_ref(), &frozen);
+    assert_eq!(row(&before, "Owner0/Slot0")["itemKey"], "11");
+}

@@ -1,0 +1,2727 @@
+{
+  "schemaVersion": 1,
+  "kind": "pending-layout-review-requirements",
+  "taskId": "ue-particles-20261024-01a16d52",
+  "ownerThreadId": "01a16d52-a4a5-7271-90a2-336091337737",
+  "status": "partial-Penpot-rev41-Shared-rev5-native-styles;curve-batch-and-VFX-source;typed-host-export-managed-Rust-native-acceptance-pending",
+  "penpotAssignment": {
+    "origin": "http://127.0.0.1:19001",
+    "fileId": "b4a1e3ce-9e6a-81fe-8008-d69d60c876ee",
+    "pageId": "b4a1e3ce-9e6a-81fe-8008-d69d60c876ef",
+    "source": ".codex/sessions/ue-window-suite-parent-01a16d4e.md",
+    "readback": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/penpot-assignment-readback.json",
+    "boardIds": [
+      "59d12ad4-91ab-80b6-8008-d6a494616358",
+      "2d38887d-8b9f-40bf-9142-3c32387b077c",
+      "c1ea88f6-0372-4a75-8f72-4a551689aca1",
+      "78110a16-5bae-4d7c-9631-ffcb16d78d27",
+      "615cd47c-029a-41aa-895e-4b167fdd7c5f",
+      "0af719db-c439-49b0-81f1-154165adc185",
+      "c76b68a9-3159-4613-a182-0794b4cc0f7d",
+      "9951fe59-f73c-4df0-87d9-b5372f627bfb",
+      "11e892f7-1f18-4469-99da-7449bc87b3c8",
+      "46dac66a-63ca-4b02-b2db-efef45674331",
+      "9d0e5d0d-af46-4482-a3a3-aca9e3c9c746",
+      "e6d178ce-1e65-485b-8456-9d31c2bad55c",
+      "7f0d509f-128a-4680-a2dc-297a782bca2a",
+      "4097f2bf-5c4f-4095-8b2f-538d57877af1",
+      "24e30f02-3e16-4926-bd5a-a8f0eacf1da7",
+      "6fc3e093-980f-4b36-ba98-d08169238cd7",
+      "5432f2c1-d4aa-4509-940d-bc29ddc44bb9",
+      "e797bcd3-81b5-4542-b06f-e9d16d1920be"
+    ],
+    "componentInstanceIds": [
+      "65cfb6df-d05f-4826-89fe-65880b9f97e4",
+      "06d5ec2e-b9ca-49f3-93ff-e4d25c9b9b72",
+      "1e1c092a-a1e7-4786-b11b-fb7849c0a6b4",
+      "85f962fe-3c2b-41e3-9c50-9307554b9556",
+      "ec06c0ff-d080-451a-a6bf-1c3b6353c332",
+      "842f2084-53f6-4a45-b55f-98d607c34000",
+      "c728c593-6f3a-41a5-a70a-e850b27b217f"
+    ],
+    "designSaveCloseReopenVerified": false,
+    "domainComponentId": "04aeb40d-d09f-41ca-8991-bd36d3348e57",
+    "domainComponentMainInstanceId": "d0a46295-3d83-47be-8ae7-759cd432a8bd",
+    "partialNativeFlowSaveCloseReopenVerified": true,
+    "draftReadback": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/penpot-layout-draft.json",
+    "savedRevision": 41,
+    "savedVersion": 0,
+    "bodyDimensionsAreFullClientAcceptance": false,
+    "sharedStylesApplied": true,
+    "sharedLibraryInstancesApplied": true,
+    "originalLayoutBoardIds": [
+      "59d12ad4-91ab-80b6-8008-d6a494616358",
+      "2d38887d-8b9f-40bf-9142-3c32387b077c",
+      "c1ea88f6-0372-4a75-8f72-4a551689aca1",
+      "78110a16-5bae-4d7c-9631-ffcb16d78d27",
+      "615cd47c-029a-41aa-895e-4b167fdd7c5f",
+      "0af719db-c439-49b0-81f1-154165adc185",
+      "c76b68a9-3159-4613-a182-0794b4cc0f7d",
+      "9951fe59-f73c-4df0-87d9-b5372f627bfb",
+      "11e892f7-1f18-4469-99da-7449bc87b3c8"
+    ],
+    "stateBoards": [
+      {
+        "id": "46dac66a-63ca-4b02-b2db-efef45674331",
+        "state": "empty-system",
+        "width": 1280,
+        "height": 800
+      },
+      {
+        "id": "9d0e5d0d-af46-4482-a3a3-aca9e3c9c746",
+        "state": "empty-system",
+        "width": 900,
+        "height": 620
+      },
+      {
+        "id": "e6d178ce-1e65-485b-8456-9d31c2bad55c",
+        "state": "empty-system",
+        "width": 640,
+        "height": 520
+      },
+      {
+        "id": "7f0d509f-128a-4680-a2dc-297a782bca2a",
+        "state": "selected-cpu-template",
+        "width": 1280,
+        "height": 800
+      },
+      {
+        "id": "4097f2bf-5c4f-4095-8b2f-538d57877af1",
+        "state": "selected-cpu-template",
+        "width": 900,
+        "height": 620
+      },
+      {
+        "id": "24e30f02-3e16-4926-bd5a-a8f0eacf1da7",
+        "state": "selected-cpu-template",
+        "width": 640,
+        "height": 520
+      },
+      {
+        "id": "6fc3e093-980f-4b36-ba98-d08169238cd7",
+        "state": "invalid-seed-unresolved-texture",
+        "width": 1280,
+        "height": 800
+      },
+      {
+        "id": "5432f2c1-d4aa-4509-940d-bc29ddc44bb9",
+        "state": "invalid-seed-unresolved-texture",
+        "width": 900,
+        "height": 620
+      },
+      {
+        "id": "e797bcd3-81b5-4542-b06f-e9d16d1920be",
+        "state": "invalid-seed-unresolved-texture",
+        "width": 640,
+        "height": 520
+      }
+    ],
+    "savedObjectCount": 266,
+    "savedFlexFrames": 131,
+    "savedTextCount": 134,
+    "partialStateSaveCloseReopenVerified": true,
+    "stateDesignReadback": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\penpot-state-design.json",
+    "stateReopenReadback": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\penpot-state-reopen.json",
+    "nativeNameSyncChanges": [
+      {
+        "id": "65cfb6df-d05f-4826-89fe-65880b9f97e4",
+        "recordedName": "Emitter summary — emitter",
+        "currentName": "PFX domain / Emitter summary"
+      },
+      {
+        "id": "06d5ec2e-b9ca-49f3-93ff-e4d25c9b9b72",
+        "recordedName": "Emitter summary — emitter",
+        "currentName": "PFX domain / Emitter summary"
+      },
+      {
+        "id": "1e1c092a-a1e7-4786-b11b-fb7849c0a6b4",
+        "recordedName": "Emitter summary — emitter",
+        "currentName": "PFX domain / Emitter summary"
+      }
+    ],
+    "designArtifacts": [
+      {
+        "path": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\penpot-state-selected-1280.png",
+        "state": "selected-cpu-template",
+        "sha256": "bf4c14a0e821140a6bb424d5ce51a0b9abba80c21254719f7452f26c361c3e15",
+        "perImageReviewed": true,
+        "normalExeEvidence": false,
+        "accepted": false
+      },
+      {
+        "path": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\penpot-state-invalid-640.png",
+        "state": "invalid-seed-unresolved-texture",
+        "sha256": "03957e42d5854b7d062cb0fe654408f7059c02c5441eb08db44aee20dc80e7a6",
+        "perImageReviewed": true,
+        "normalExeEvidence": false,
+        "accepted": false
+      },
+      {
+        "path": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\penpot-state-empty-900.png",
+        "state": "empty-system",
+        "sha256": "1b7b8f88a4eb1fd31a8f4df6ac1cc024be753a8b0c9f4c558df72a5b8fd961cd",
+        "perImageReviewed": true,
+        "normalExeEvidence": false,
+        "accepted": false
+      }
+    ],
+    "actualChineseFontObservation": "Noto Sans SC platform fallback; shared/product dependency closure unverified",
+    "savedObjectCountScope": "original assigned page only; unchanged from rev7",
+    "savedFilePageCount": 2,
+    "savedFileObjectCount": 388,
+    "sharedLibraryInstancesAppliedScope": "four copies on separate consumer validation page; original body drafts unchanged",
+    "sharedLibraryConsumption": {
+      "state": "four-native-linked-copies-saved-two-fresh-reopens; long-text-and-value-slot-open",
+      "report": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/penpot-shared-components-consumption.json",
+      "validationPageId": "92a91f8e-23b8-8096-8008-d6cd96ee165a",
+      "validationBoardId": "92a91f8e-23b8-8096-8008-d6cdb4e2219e",
+      "boardWidth": 1280,
+      "boardHeight": 800,
+      "boardIsFullEditorDesign": false,
+      "sharedFileId": "b4a1e3ce-9e6a-81fe-8008-d69d607aac12",
+      "sharedPageId": "b4a1e3ce-9e6a-81fe-8008-d69d607aac13",
+      "sharedRevision": 1,
+      "sharedVersion": 0,
+      "sharedIsPublished": true,
+      "sharedColors": 0,
+      "sharedTypographies": 0,
+      "linkedLibrary": {
+        "id": "b4a1e3ce-9e6a-81fe-8008-d69d607aac12",
+        "name": "00 Shared Components",
+        "revn": 1,
+        "vern": 0,
+        "isIndirect": false,
+        "syncedAt": "2026-10-24T13:41:24.959674Z",
+        "modifiedAt": "2026-10-24T13:24:18.982107Z"
+      },
+      "instances": [
+        {
+          "id": "92a91f8e-23b8-8096-8008-d6ce96926e7c",
+          "componentId": "6ddc248b-bd35-80c5-8008-d6c8c01096f3",
+          "componentFile": "b4a1e3ce-9e6a-81fe-8008-d69d607aac12",
+          "shapeRef": "6ddc248b-bd35-80c5-8008-d6c8bd9b057f",
+          "x": 12,
+          "y": 12,
+          "width": 240.00000953674316,
+          "height": 31.999999284744263,
+          "touched": null,
+          "componentName": "WorkbenchButton",
+          "texts": [
+            {
+              "id": "92a91f8e-23b8-8096-8008-d6ce96926e7d",
+              "shapeRef": "6ddc248b-bd35-80c5-8008-d6c8bdb3e2f8",
+              "width": 220.00001525878906,
+              "height": 32,
+              "touched": [
+                "content-group",
+                "text-content-text"
+              ],
+              "text": [
+                "重置"
+              ]
+            }
+          ],
+          "subtreeShapeCount": 2,
+          "sourceMetadata": {
+            "sourcePath": "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/button.zui",
+            "sourceNodeId": "root",
+            "controlId": "WorkbenchButtonRoot",
+            "component": "Button"
+          }
+        },
+        {
+          "id": "92a91f8e-23b8-8096-8008-d6ceb4396eab",
+          "componentId": "6ddc248b-bd35-80c5-8008-d6c8c3ce892e",
+          "componentFile": "b4a1e3ce-9e6a-81fe-8008-d69d607aac12",
+          "shapeRef": "6ddc248b-bd35-80c5-8008-d6c8c0f9c196",
+          "x": 12,
+          "y": 51.99999928474426,
+          "width": 240.00000953674316,
+          "height": 31.999999284744263,
+          "touched": null,
+          "componentName": "WorkbenchSearchInput",
+          "texts": [
+            {
+              "id": "92a91f8e-23b8-8096-8008-d6ceb4396eb1",
+              "shapeRef": "6ddc248b-bd35-80c5-8008-d6c8c13d528a",
+              "width": 204.00000318180355,
+              "height": 16,
+              "touched": [
+                "content-group",
+                "text-content-text"
+              ],
+              "text": [
+                "搜索模块或参数"
+              ]
+            }
+          ],
+          "subtreeShapeCount": 7,
+          "sourceMetadata": {
+            "sourcePath": "zircon_editor/assets/ui/editor/workbench/primitives/inputs/search_input.zui",
+            "sourceNodeId": "root",
+            "controlId": "WorkbenchSearchInputRoot",
+            "component": "SearchField"
+          }
+        },
+        {
+          "id": "92a91f8e-23b8-8096-8008-d6ceb4cfb381",
+          "componentId": "6ddc248b-bd35-80c5-8008-d6c8c7a79944",
+          "componentFile": "b4a1e3ce-9e6a-81fe-8008-d69d607aac12",
+          "shapeRef": "6ddc248b-bd35-80c5-8008-d6c8c452bf0c",
+          "x": 12,
+          "y": 91.99999856948853,
+          "width": 240.00000953674316,
+          "height": 28.00000011920929,
+          "touched": null,
+          "componentName": "WorkbenchTreeRow",
+          "texts": [
+            {
+              "id": "92a91f8e-23b8-8096-8008-d6ceb4cfe02f",
+              "shapeRef": "6ddc248b-bd35-80c5-8008-d6c8c4c69ae5",
+              "width": 128.00000482472478,
+              "height": 16,
+              "touched": [
+                "content-group",
+                "text-content-text"
+              ],
+              "text": [
+                "发射器／sprite_emitter"
+              ]
+            }
+          ],
+          "subtreeShapeCount": 20,
+          "sourceMetadata": {
+            "sourcePath": "zircon_editor/assets/ui/editor/components/workbench/primitives/data/tree_row.zui",
+            "sourceNodeId": "root",
+            "controlId": "WorkbenchTreeRowRoot",
+            "component": "TreeRow"
+          }
+        },
+        {
+          "id": "92a91f8e-23b8-8096-8008-d6ceb54ed55d",
+          "componentId": "6ddc248b-bd35-80c5-8008-d6c8cab1e7d0",
+          "componentFile": "b4a1e3ce-9e6a-81fe-8008-d69d607aac12",
+          "shapeRef": "6ddc248b-bd35-80c5-8008-d6c8c84d848f",
+          "x": 12,
+          "y": 127.99999868869781,
+          "width": 240.00000953674316,
+          "height": 31.999999284744263,
+          "touched": null,
+          "componentName": "WorkbenchPropertyEditorRow",
+          "texts": [
+            {
+              "id": "92a91f8e-23b8-8096-8008-d6ceb54ed55e",
+              "shapeRef": "6ddc248b-bd35-80c5-8008-d6c8c8a4cb0e",
+              "width": 90.4999986475159,
+              "height": 24,
+              "touched": [
+                "content-group",
+                "text-content-text"
+              ],
+              "text": [
+                "发射率"
+              ]
+            }
+          ],
+          "subtreeShapeCount": 4,
+          "sourceMetadata": {
+            "sourcePath": "zircon_editor/assets/ui/editor/workbench/inputs/property_editor_row.zui",
+            "sourceNodeId": "root",
+            "controlId": "WorkbenchPropertyEditorRowRoot",
+            "component": "PropertyRow"
+          }
+        }
+      ],
+      "sourceMaps": [
+        {
+          "component": "WorkbenchButton",
+          "metadataSourcePath": "zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/button.zui",
+          "sha256": "05c1245c915f75b1f3b1be025942f2d05bc985e88d8a75db1f168c554563f3e5",
+          "sourceNodeId": "root",
+          "mainControlId": "WorkbenchButtonRoot",
+          "slots": {}
+        },
+        {
+          "component": "WorkbenchSearchInput",
+          "metadataSourcePath": "zircon_editor/assets/ui/editor/workbench/primitives/inputs/search_input.zui",
+          "sha256": "9be3d699fff401efe819a3444d3ce47919cbb7270642d0f5a426a91390830c7e",
+          "sourceNodeId": "root",
+          "mainControlId": "WorkbenchSearchInputRoot",
+          "slots": {}
+        },
+        {
+          "component": "WorkbenchTreeRow",
+          "metadataSourcePath": "zircon_editor/assets/ui/editor/components/workbench/primitives/data/tree_row.zui",
+          "sha256": "c6687ef563179bfbe395917cb4805914cb9e2b3f7f0bc49091f00135be144cf2",
+          "sourceNodeId": "root",
+          "mainControlId": "WorkbenchTreeRowRoot",
+          "slots": {}
+        },
+        {
+          "component": "WorkbenchPropertyEditorRow",
+          "metadataSourcePath": "zircon_editor/assets/ui/editor/workbench/inputs/property_editor_row.zui",
+          "sha256": "bf29d5740c317b486ec5e6f2ef3faf06f7e800f6ad1dfcd773f0b403e87ef6ce",
+          "sourceNodeId": "root",
+          "mainControlId": "WorkbenchPropertyEditorRowRoot",
+          "slots": {
+            "value": {
+              "required": true,
+              "multiple": false,
+              "kind": "linear",
+              "accepts": [
+                "WorkbenchCheckbox",
+                "WorkbenchDropdown",
+                "WorkbenchField",
+                "WorkbenchNumberField",
+                "WorkbenchRangeSlider",
+                "WorkbenchSlider",
+                "WorkbenchToggle"
+              ]
+            }
+          }
+        }
+      ],
+      "saveCloseTwoFreshReopensVerified": true,
+      "nativeTextOverrideAndResetVerified": true,
+      "freshReopenSignature": "41b4f85e004d62d8d286aa943c9f6e21475456613efd267139fddba0c72f9c1a",
+      "originalPageUnchanged": true,
+      "originalPrivateComponentUnchanged": true,
+      "sharedFileWritten": false,
+      "mastersCopiedOrDetached": false,
+      "sharedStylesApplied": false,
+      "officialExportVerified": false,
+      "zuiApplied": false,
+      "engineHandlersOrPreviewVerified": false,
+      "propertyRequiredValueSlotFilled": false,
+      "treeRowLongTextGap": "PFX-SHARED-12",
+      "images": [
+        {
+          "path": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\penpot-shared-components-validation.png",
+          "bytes": 72378,
+          "sha256": "882a5a2b346575970f2e4b0adca2af80455e4e35b99cdbf964bbd8f4d3a26b7a",
+          "canvasZoomPercent": 60,
+          "scope": "full 1280x800 validation board visible within actual Penpot workspace",
+          "deviceScaleFactor": 1,
+          "realSystemDpiVerified": false,
+          "reviewed": true,
+          "nativeEditorCapture": false,
+          "fidelityAccepted": false,
+          "observations": [
+            "Four actual linked copies visible; captions are local native text overrides.",
+            "Button and Search captions are one line; PropertyRow label visible with an empty required value slot.",
+            "TreeRow caption wraps into two rendered SVG text runs, differing from source text_overflow=ellipsis.",
+            "No runtime parameter data, search handlers, simulation/reset/save behavior or real product frame is proven."
+          ]
+        },
+        {
+          "path": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\penpot-shared-components-text-diagnostic-100.png",
+          "bytes": 75343,
+          "sha256": "955800f3740e4753ebcb1215f6c8eb2b001efc7acbb747e1a1836969603e50d0",
+          "canvasZoomPercent": 100,
+          "scope": "supplemental 1:1 canvas text diagnostic; board extends beyond right viewport",
+          "deviceScaleFactor": 1,
+          "realSystemDpiVerified": false,
+          "reviewed": true,
+          "nativeEditorCapture": false,
+          "fidelityAccepted": false,
+          "observations": [
+            "Four actual linked copies visible; captions are local native text overrides.",
+            "Button and Search captions are one line; PropertyRow label visible with an empty required value slot.",
+            "TreeRow caption wraps into two rendered SVG text runs, differing from source text_overflow=ellipsis.",
+            "No runtime parameter data, search handlers, simulation/reset/save behavior or real product frame is proven."
+          ]
+        }
+      ],
+      "nativeCaptureReady": false,
+      "passed": false,
+      "accepted": false,
+      "isHistoricalConsumerSnapshot": true
+    },
+    "savedPageCount": 3,
+    "stackComposition": {
+      "pageId": "f2894894-da30-8095-8008-d6e405e95ace",
+      "boardId": "f2894894-da30-8095-8008-d6e431a06285",
+      "width": 1280,
+      "height": 800,
+      "fileRevision": 30,
+      "pageObjectCount": 87,
+      "nativeFlexFrames": 22,
+      "ordinaryTextCount": 27,
+      "nativeLinkedCopies": [
+        {
+          "copyId": "114b6636-4013-80fa-8008-d6e5abb8d6eb",
+          "componentId": "6ddc248b-bd35-80c5-8008-d6c8c3ce892e",
+          "sourceMainId": "6ddc248b-bd35-80c5-8008-d6c8c0f9c196",
+          "shapeCount": 7,
+          "exactMasterClosure": true,
+          "exactSourceChildOrder": true,
+          "allNodesBelongToTheCorrectMaster": true
+        },
+        {
+          "copyId": "114b6636-4013-80fa-8008-d6e5aeb73c6c",
+          "componentId": "6ddc248b-bd35-80c5-8008-d6c8cab1e7d0",
+          "sourceMainId": "6ddc248b-bd35-80c5-8008-d6c8c84d848f",
+          "shapeCount": 4,
+          "exactMasterClosure": true,
+          "exactSourceChildOrder": true,
+          "allNodesBelongToTheCorrectMaster": true
+        },
+        {
+          "copyId": "114b6636-4013-80fa-8008-d6e5ad36aecc",
+          "componentId": "6ddc248b-bd35-80c5-8008-d6c8cab1e7d0",
+          "sourceMainId": "6ddc248b-bd35-80c5-8008-d6c8c84d848f",
+          "shapeCount": 4,
+          "exactMasterClosure": true,
+          "exactSourceChildOrder": true,
+          "allNodesBelongToTheCorrectMaster": true
+        },
+        {
+          "copyId": "114b6636-4013-80fa-8008-d6e5ac73ca01",
+          "componentId": "6ddc248b-bd35-80c5-8008-d6c8c7a79944",
+          "sourceMainId": "6ddc248b-bd35-80c5-8008-d6c8c452bf0c",
+          "shapeCount": 20,
+          "exactMasterClosure": true,
+          "exactSourceChildOrder": true,
+          "allNodesBelongToTheCorrectMaster": true
+        },
+        {
+          "copyId": "114b6636-4013-80fa-8008-d6e5adedd383",
+          "componentId": "6ddc248b-bd35-80c5-8008-d6c8cab1e7d0",
+          "sourceMainId": "6ddc248b-bd35-80c5-8008-d6c8c84d848f",
+          "shapeCount": 4,
+          "exactMasterClosure": true,
+          "exactSourceChildOrder": true,
+          "allNodesBelongToTheCorrectMaster": true
+        },
+        {
+          "copyId": "114b6636-4013-80fa-8008-d6e5af8042d8",
+          "componentId": "6ddc248b-bd35-80c5-8008-d6c8cab1e7d0",
+          "sourceMainId": "6ddc248b-bd35-80c5-8008-d6c8c84d848f",
+          "shapeCount": 4,
+          "exactMasterClosure": true,
+          "exactSourceChildOrder": true,
+          "allNodesBelongToTheCorrectMaster": true
+        },
+        {
+          "copyId": "114b6636-4013-80fa-8008-d6e5b040e53e",
+          "componentId": "6ddc248b-bd35-80c5-8008-d6c8c01096f3",
+          "sourceMainId": "6ddc248b-bd35-80c5-8008-d6c8bd9b057f",
+          "shapeCount": 2,
+          "exactMasterClosure": true,
+          "exactSourceChildOrder": true,
+          "allNodesBelongToTheCorrectMaster": true
+        }
+      ],
+      "newMasterCount": 0,
+      "sharedFileId": "b4a1e3ce-9e6a-81fe-8008-d69d607aac12",
+      "sharedRevision": 1,
+      "sourceRefsVerified": 45,
+      "saveCloseFreshReopenVerified": true,
+      "savedPageDigest": "e83457685aa5ea3a76fcc7b3255f5b07639efe1b6bc29db7f5d46ab7e9ef8969",
+      "sourceTemplate": {
+        "template": "zircon_plugins/particles/templates/cpu_sprite_system.toml",
+        "templateSha256": "1c3386a1bc80498e96be5911235dc3c8ff71b86a5a3949cea67681043507d93a",
+        "contentIsDesignFixture": true,
+        "productFrameNotSupplied": true
+      },
+      "sourceTokenProjection": "E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/theme/editor_tokens.zui",
+      "sourceTokenSha256": "dc23135b1e349773266e09cfb354c01bf047774ac0beb70a6a129e5ab4f66743",
+      "officialPngExport": {
+        "attemptedAtUtc": "2026-10-24T15:33:15.877Z",
+        "format": "PNG",
+        "scale": 1,
+        "boardId": "f2894894-da30-8095-8008-d6e431a06285",
+        "serverRestarted": false,
+        "downloaded": false,
+        "requests": [
+          {
+            "endpoint": "http://127.0.0.1:19001/api/export",
+            "method": "POST",
+            "requestSha256": "8cbdf32cb7a471a8ab369e0e50023b57de005dcddba5557fc2ebfa04c49b286d"
+          }
+        ],
+        "responses": [
+          {
+            "endpoint": "http://127.0.0.1:19001/api/export",
+            "status": 404
+          }
+        ],
+        "error": "TimeoutError: page.waitForEvent: Timeout 30000ms exceeded while waiting for event \"download\"\n=========================== logs ===========================\nwaiting for event \"download\"\n============================================================",
+        "finishedAtUtc": "2026-10-24T15:33:45.919Z"
+      },
+      "imageReview": {
+        "workspaceImage": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/penpot-stack-consumer-design-1280.png",
+        "sha256": "714060d847df3079912fa7f14a88f12970de047a02632695fb70261d64fc81b9",
+        "reviewedByOpeningFullOriginalImage": true,
+        "observations": [
+          "Full 1280x800 board is visible at 100% canvas zoom in 2100x1200 workspace, board bounds x410/y200/w1280/h800, deviceScaleFactor1; not actual system DPI.",
+          "Seven native linked controls and all source-derived fixed group captions are visible; Chinese overrides and source values match the existing CPU Sprite template.",
+          "All four PropertyEditorRow value slots are visibly blank and remain structurally empty. Right pane is read-only source reference, not substitute typed input.",
+          "Tree copy uses short source emitter id and default unselected/unfocused state; earlier long-caption wrapping on the original validation page remains open.",
+          "No live viewport/transport/graph or operational Reset is supplied by this focused composition board.",
+          "Workspace board is rendered via Penpot's cached board view with soft text; this image cannot establish <=1 logical px fidelity."
+        ],
+        "nativeExportAttempt": {
+          "endpoint": "/api/export",
+          "httpStatus": 404,
+          "scale": 1,
+          "downloaded": false,
+          "attempts": 1,
+          "servicesChanged": false,
+          "nativePngMissing": true
+        },
+        "accepted": false
+      },
+      "inspection": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/penpot-stack-consumer-design.json",
+      "allFourValueSlotsEmpty": true,
+      "typedInputInstalled": false,
+      "treeSelectedOrFocusedVariantApplied": false,
+      "livePreviewInstalled": false,
+      "fullToolkitOrDpiAcceptance": false,
+      "zuiExportApplied": false,
+      "passed": false,
+      "accepted": false,
+      "isHistoricalConsumerSnapshot": true
+    },
+    "currentPublishedSharedLibrary": {
+      "atUtc": "2026-10-24T18:42:11.857Z",
+      "source": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/parent-01a16d4e/settings-plugins-followup-05.json",
+      "sourceSha256": "bd598fe0ab2a077e1b45d8bc5916d9f976a9a0f4387181425dba39503f1e351b",
+      "fileId": "b4a1e3ce-9e6a-81fe-8008-d69d607aac12",
+      "revision": 2,
+      "isShared": true,
+      "colors": 34,
+      "typographies": 3,
+      "masterStyleReferencesReported": 21,
+      "componentIdsUnchanged": true,
+      "isThisChatLiveApiRead": true,
+      "report": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/penpot-shared-rev2-sync.json",
+      "masterStyleReferencesReportedHistorical": 21,
+      "masterNonNullStyleReferencesActuallyObserved": 0,
+      "masterNullableTypographyRefIdFieldCount": 21,
+      "rawResponseSha256": "a446a0bf8e1081f964037146e0086470daaa9835487999c0c27166ee55e26006",
+      "currentEvidence": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/graph-consumer-native-trial.json"
+    },
+    "sharedRevision2Sync": {
+      "state": "native-typography-use-update-save-close-fresh-reopen-verified-partial-scope",
+      "report": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/graph-consumer-native-trial.json",
+      "historicalReadinessRefusal": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/penpot-shared-rev2-sync.json",
+      "lastVerifiedConsumerSharedRevision": 2,
+      "targetSharedRevision": 2,
+      "attempted": true,
+      "saved": true,
+      "freshReopened": true,
+      "currentSyncedRevision": 2,
+      "currentSyncedAt": "2026-10-24T18:39:30.407199Z",
+      "afterSyncOverrideIdentityChecked": true,
+      "stylesActuallyApplied": true,
+      "stylesScope": "body/strong local text refs on original11 copies",
+      "masterInheritanceOrResetProved": false,
+      "colorsApplied": false,
+      "typedValueFilled": false,
+      "passed": false,
+      "accepted": false
+    },
+    "sharedStylesAppliedScope": "Original11 linked captions body/strong local overrides; two original Button copies inherit surface1 from main;14 non-instance Stack frames bind published Shared surface0/1. Whole-theme/master typography reset and product A/B not proved.",
+    "sharedStylesAppliedScopeHistory": [
+      {
+        "consumerRevision": 40,
+        "scope": "eleven existing linked text captions reference published Shared body/strong via native Assets; local overrides only; no colors/general-frame/master inheritance proof",
+        "supersededForCurrentScopeBy": "sharedPaletteNativeConsumer"
+      }
+    ]
+  },
+  "evidence": [],
+  "passed": false,
+  "accepted": false,
+  "contracts": {
+    "reviewCaseType": "tools/penpot/apps/zircon-zui-plugin/src/model.ts#LayoutReviewCaseMessage",
+    "reviewCaseProjection": "tools/penpot/apps/zircon-zui-plugin/src/bridge/zui-review-case.ts",
+    "nativeCaseProducer": "tools/analysis/visual/normal-workbench-case-producer.mjs",
+    "nativeCapture": "tools/analysis/visual/capture-editor-normal-frame.py",
+    "nativeEvidenceValidation": "tools/analysis/visual/zircon_editor_normal_frame_evidence.py"
+  },
+  "executionPrerequisites": [
+    "Assigned real Penpot file/page receives editable design and actual specialist/shared library/component identities; Parent grants desktop input only when EXE/resources and states are ready",
+    "Real editable component instances and shared flow/token design saved, closed and reopened",
+    "Official ZUI delta applied to original stable-ID assets and dependencies fingerprinted",
+    "Real particle document, commands and preview renderer installed in normal Editor EXE",
+    "Current Jenkins managed focused validation completes with original request receipts",
+    "Actual window DPI and native frame association are measured before comparison"
+  ],
+  "surfaces": [
+    {
+      "id": "authoring",
+      "sourcePath": "zircon_plugins/particles/editor/authoring.zui",
+      "assetId": "particles.authoring",
+      "rootControlId": "ParticlesAuthoringRoot",
+      "host": "plugin",
+      "criticalRegions": [
+        "toolbar",
+        "system-emitter-overview",
+        "module-stack",
+        "parameters",
+        "curves",
+        "diagnostics"
+      ]
+    },
+    {
+      "id": "preview",
+      "sourcePath": "zircon_plugins/particles/editor/preview.zui",
+      "assetId": "particles.preview",
+      "rootControlId": "ParticlesPreviewRoot",
+      "host": "plugin",
+      "criticalRegions": [
+        "viewport",
+        "transport",
+        "runtime-stats",
+        "backend-diagnostics"
+      ]
+    },
+    {
+      "id": "component-inspector",
+      "sourcePath": "zircon_plugins/particles/editor/particle_system.drawer.zui",
+      "assetId": "particles.particle_system.drawer",
+      "rootControlId": "ParticlesComponentDrawerRoot",
+      "host": "plugin",
+      "criticalRegions": [
+        "asset-reference",
+        "playback",
+        "backend",
+        "seed",
+        "diagnostics"
+      ]
+    }
+  ],
+  "viewports": [
+    {
+      "id": "1280x800-dpi100",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "dpi": 1,
+      "windowDpi": 96,
+      "physicalClient": {
+        "width": 1280,
+        "height": 800
+      }
+    },
+    {
+      "id": "900x620-dpi100",
+      "viewport": {
+        "width": 900,
+        "height": 620
+      },
+      "dpi": 1,
+      "windowDpi": 96,
+      "physicalClient": {
+        "width": 900,
+        "height": 620
+      }
+    },
+    {
+      "id": "640x520-dpi100",
+      "viewport": {
+        "width": 640,
+        "height": 520
+      },
+      "dpi": 1,
+      "windowDpi": 96,
+      "physicalClient": {
+        "width": 640,
+        "height": 520
+      }
+    },
+    {
+      "id": "1280x800-dpi150",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "dpi": 1.5,
+      "windowDpi": 144,
+      "physicalClient": {
+        "width": 1920,
+        "height": 1200
+      }
+    }
+  ],
+  "commonScenarios": [
+    {
+      "id": "default",
+      "state": "default",
+      "locale": "en-US",
+      "requires": "A real saved system asset; the design and product use the same document revision and selection."
+    },
+    {
+      "id": "empty",
+      "state": "empty",
+      "locale": "en-US",
+      "requires": "An actual empty source system or no selection, with correct disabled commands and no canned emitter rows."
+    },
+    {
+      "id": "selected",
+      "state": "selected",
+      "locale": "en-US",
+      "requires": "Select a real emitter/key/node; Overview, stack and Details share stable selection identity."
+    },
+    {
+      "id": "focused",
+      "state": "focused",
+      "locale": "en-US",
+      "requires": "Keyboard focuses a real field or surface; native focus owner and visible outline are captured."
+    },
+    {
+      "id": "popup-open",
+      "state": "open",
+      "locale": "en-US",
+      "requires": "Open an actual menu/dropdown/context menu from its trigger; measure clipping, options and focus."
+    },
+    {
+      "id": "focus-return",
+      "state": "focus-return",
+      "locale": "en-US",
+      "requires": "Dismiss popup with Escape and by selection; focus returns to the originating control with no unintended reset."
+    },
+    {
+      "id": "scroll-start",
+      "state": "scroll-before",
+      "scrollPosition": "start",
+      "locale": "en-US",
+      "requires": "Real document content exceeds the pane; inspect first items, nested clipping and input hit regions."
+    },
+    {
+      "id": "scroll-end",
+      "state": "scroll-after",
+      "scrollPosition": "end",
+      "locale": "en-US",
+      "requires": "Reach actual last items; verify retained scroll restoration when selecting another emitter or tab."
+    },
+    {
+      "id": "long-en",
+      "state": "long-en",
+      "locale": "en-US",
+      "requires": "Use real long asset/emitter/module names and diagnostics; measure line boxes, ellipsis, wrapping and overflow."
+    },
+    {
+      "id": "long-zh",
+      "state": "long-zh",
+      "locale": "zh-CN",
+      "requires": "Use real Chinese and mixed long names; verify actual font resources, measured line boxes and editing persistence."
+    }
+  ],
+  "particleScenarios": [
+    {
+      "id": "parameter-commit",
+      "state": "selected",
+      "surfaces": [
+        "authoring",
+        "preview",
+        "component-inspector"
+      ],
+      "requires": "Authoring commits spawn/lifetime to the source document; the component inspector commits playing/time_scale to its scene instance. Observe actual simulation/render changes and dirty state in the correct document; test a u64 seed above 2^53 without float conversion or high-bit loss."
+    },
+    {
+      "id": "parameter-reject",
+      "state": "error",
+      "surfaces": [
+        "authoring",
+        "component-inspector"
+      ],
+      "requires": "Reject nonfinite, unsupported and field-specifically invalid values with source-located diagnostics; negative velocity/gravity/rotation remains valid. Source/scene policy must explicitly resolve existing runtime clamp/normalization differences, including zero-capacity validation; preserve last-good preview and document value."
+    },
+    {
+      "id": "undo-redo-reset",
+      "state": "selected",
+      "surfaces": [
+        "authoring",
+        "preview",
+        "component-inspector"
+      ],
+      "requires": "Undo and redo restore actual source and preview values; reset applies the documented inherited/default value through one real transaction."
+    },
+    {
+      "id": "play-pause-stop",
+      "state": "running",
+      "surfaces": [
+        "authoring",
+        "preview"
+      ],
+      "requires": "Observe advancing simulation/frame identity, frozen pause and stopped/reset behavior; no status-only success is allowed."
+    },
+    {
+      "id": "rewind-warmup",
+      "state": "selected",
+      "surfaces": [
+        "authoring",
+        "preview"
+      ],
+      "requires": "Verify deterministic seeded reset/rewind with bounded fixed steps, actual simulated age and particle state at time_scale 0, 0.5, 1 and 2. Distinguish requested unscaled seconds from scaled simulation age; universal CPU/GPU snapshot has no age, while GPU-specific instance age is not a universal clock. Unsupported warmup remains disabled with reason."
+    },
+    {
+      "id": "save-reopen",
+      "state": "complete",
+      "surfaces": [
+        "authoring",
+        "component-inspector"
+      ],
+      "requires": "Save authoring source and scene instance through their actual owners, close and reopen; verify durable parameters, exact u64 seed, emitter/key identity and resource URI resolution. A save of an older revision must retain subsequent edits; save failure retains dirty state. Embedded asset copies are not claimed to have inherited-source synchronization."
+    },
+    {
+      "id": "curve-edit",
+      "state": "selected",
+      "surfaces": [
+        "authoring",
+        "preview"
+      ],
+      "requires": "Edit an actual normalized-lifetime key with stable identity, ordering and endpoint policy; preserve linear interpolation and size multiplier units. RGBA component curves share one source key/time and one undo transaction. Do not equate system seconds with a universal particle-lifetime playhead; CPU multi-key and GPU first-to-last baseline differences remain visible. Simulation changes and undo restores source and preview."
+    },
+    {
+      "id": "graph-edit",
+      "state": "selected",
+      "surfaces": [
+        "authoring",
+        "preview"
+      ],
+      "requires": "Edit supported VFX nodes and compile through compile_vfx_graph_program; show duplicate/unresolved/unsupported diagnostics. Niagara pins/edges and arbitrary scripts remain an explicit gap until implemented."
+    },
+    {
+      "id": "context-shortcuts",
+      "state": "open",
+      "surfaces": [
+        "authoring"
+      ],
+      "requires": "Verify E/Add Emitter only in the proper system mode, Space/Reset, Ctrl+O/collapse without opening a scene, Ctrl+S saving the active particle source, F/A graph fit without affecting the scene, context rename/delete and undo at the correct focus scope. Text input and popups own their local keys; disabled operations share the same eligibility across menu/button/shortcut. Missing emitter enable/isolation and clipboard schemas remain explicit gaps."
+    },
+    {
+      "id": "dock-tabs",
+      "state": "focus-return",
+      "surfaces": [
+        "authoring",
+        "preview"
+      ],
+      "requires": "Open/close/dock/restore associated tabs and selection without destroying the shared document or duplicating runtime instances."
+    },
+    {
+      "id": "backend-diagnostics",
+      "state": "warning",
+      "surfaces": [
+        "authoring",
+        "preview",
+        "component-inspector"
+      ],
+      "requires": "Distinguish requested/actual CPU/GPU execution, renderer admission and fallback using authoritative diagnostics and generation."
+    },
+    {
+      "id": "style-roundtrip",
+      "state": "default",
+      "surfaces": [
+        "authoring",
+        "preview"
+      ],
+      "requires": "Make one supported real Penpot shared-style or local-variant edit, save/reopen/export/apply/load, and capture a corresponding actual screenshot change. Shared owner changes require Parent coordination."
+    },
+    {
+      "id": "clock-lifetime-domain-separation",
+      "state": "selected",
+      "surfaces": [
+        "authoring",
+        "preview"
+      ],
+      "requires": "Read actual same-instance simulation age in seconds; show normalized lifetime t0..1 independently, with no universal particle-lifetime cursor for mixed births/lifetimes. Do not display requested dt as actual age.",
+      "evidenceStatus": "pending"
+    },
+    {
+      "id": "rgba-shared-key-gesture",
+      "state": "selected",
+      "surfaces": [
+        "authoring"
+      ],
+      "requires": "One horizontal gesture on shared RGBA key groups emitter/source-key before one domain mutation/inverse and four-channel reprojection. Vertical delta edits only the component. Linear/no tangent, finite HDR unclamped. Single-key API does not prove a multi-key atomic batch.",
+      "evidenceStatus": "pending"
+    },
+    {
+      "id": "preview-simulation-error-and-stale-ack",
+      "state": "error",
+      "surfaces": [
+        "authoring",
+        "preview"
+      ],
+      "requires": "Preflight rejection has no side effect; Simulation error may follow tick side effects. Read actual clock only if original context remains valid, reject stale ACK/source/install/capability/request, preserve valid opener focus and shared Dock/Preview lifecycle. No production seek through old rewind.",
+      "evidenceStatus": "pending"
+    },
+    {
+      "id": "dedicated-controls-source-mount",
+      "state": "unavailable",
+      "surfaces": [
+        "authoring",
+        "preview"
+      ],
+      "requires": "Only native linked published Timeline/Curve/Transport with actual canonical source/codec/slots may mount. Current Space controls are not public slots; compose Stop/Reset with allowed standard Buttons under same context, no six-route remap or fake handler.",
+      "evidenceStatus": "pending"
+    },
+    {
+      "id": "vfx-readonly-source-context",
+      "state": "selected",
+      "surfaces": [
+        "authoring"
+      ],
+      "requires": "Render the actual five VfxGraphNode payloads, repeats/order and empty source using same-source/revision measured layout. Select and resolve only a current locator; reject old locator/layout on source/revision/reorder. Distinguish this read-only projection from actual editing, compiler/lowering, install and preview/frame readiness.",
+      "evidenceStatus": "pending",
+      "sourceOnlyCandidateCoverage": "overview_tests:: five static definitions, zero Cargo discovery/execution; no actual host paint/hit/selection proof."
+    },
+    {
+      "id": "empty-ports-command-eligibility",
+      "state": "unavailable",
+      "surfaces": [
+        "authoring"
+      ],
+      "requires": "A source with no ports/edges has no link targets or gestures; all handles/menu/toolbar/keyboard/programmatic entries use one real eligibility and accessible reason. Empty edges alone must allow a legal first edge when real ports/capability permit; keep real required-input diagnostics. Esc/popup returns focus to its actual live opener.",
+      "evidenceStatus": "pending"
+    },
+    {
+      "id": "source-switch-link-gesture-retirement",
+      "state": "focus-return",
+      "surfaces": [
+        "authoring"
+      ],
+      "requires": "With a real current link gesture, switch source/revision/document or revoke input owner. Actual host retires old hover/candidate/wire immediately without delta/inverse/undo or stale selection, restores valid focus, and uses retained geometry with one DPI transform. GraphCanvasState and read-only locator checks alone do not prove this lifecycle.",
+      "evidenceStatus": "pending"
+    }
+  ],
+  "evidenceRequirements": [
+    "Penpot file/page/board and native library component/instance identities and versions",
+    "Real save ACK, original-context close, fresh authenticated reopen and official PNG/ZUI export",
+    "Source ZUI stable IDs, bindings/events and transitive component/theme hashes",
+    "Normal Editor EXE path/SHA-256, PID/creation identity and native capture entry",
+    "Fresh native nonce, generation/source association, valid resources and genuine preview media",
+    "GetDpiForWindow, actual scale and physical/logical client extent before and after interactions",
+    "Matched full Penpot and product captures, side-by-side and difference images",
+    "Per-image review of critical boundaries/text line boxes with <=1 logical pixel target and explicit unresolved differences"
+  ],
+  "acceptanceRules": {
+    "plannedRequirementsAreEvidence": false,
+    "passingProjectionOrUnitTestsCompletesWindow": false,
+    "passedRequires": [
+      "resources-ready",
+      "valid-current-native-capture"
+    ],
+    "acceptedRequires": [
+      "passed",
+      "matched-dual-end-comparison",
+      "per-image-review",
+      "real-required-interactions"
+    ],
+    "missingEvidenceStatus": "pending",
+    "actualCaseData": "Obtain from the real normal-frame publisher after implementation; never manufacture source/process/selection/media identities from this requirements file."
+  },
+  "sourceAuthoringImplementation": {
+    "state": "source-codec-curve-atomic-batch-parameter-candidates-host-and-managed-tests-pending",
+    "crate": "zircon_plugin_particles_editor",
+    "sourceModule": "zircon_plugins/particles/editor/src/source/mod.rs",
+    "formatVersion": 1,
+    "runtimeTarget": "ParticleSystemAsset",
+    "stableKeys": "Persistent UUID strings; existing explicit keys retained; labels, ordering and time are not identities.",
+    "seedEncoding": "Strict decimal u64 string with legacy integer decode; no floating conversion.",
+    "resourceReadiness": "AssetUri retained; runtime handles supplied by the existing resource owner; unready references return errors.",
+    "scopeIncludesDocumentHistoryOrDurableSave": false,
+    "scopeIncludesEditorPreview": false,
+    "declaredRustTests": 34,
+    "executedRustTests": 0,
+    "staticInspection": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\source-parameter-inspection.json",
+    "jenkinsOriginalRequestId": "ue-particles-source-codec-20261024",
+    "jenkinsOperationId": "validate-source-codec-r2",
+    "jenkinsPreflight": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\source-codec-jenkins-r2-preflight.json",
+    "jenkinsReceiptPassed": false,
+    "pluginWorkspaceManifestEntryReady": true,
+    "dependencyLockReview": {
+      "lockFile": "zircon_plugins/Cargo.lock",
+      "sha256": "04de41d28ef79436b8bc4c264d8fb122d303ae2a7005085522783afdeae02bbf",
+      "currentPackageDependencies": [
+        "zircon_editor",
+        "zircon_plugin_editor_support",
+        "zircon_plugin_particles_runtime",
+        "zircon_runtime"
+      ],
+      "requiredExistingDependencies": [
+        "serde",
+        "toml",
+        "uuid"
+      ],
+      "existingResolvedVersions": {
+        "serde": [
+          "1.0.228"
+        ],
+        "toml": [
+          "1.1.3+spec-1.1.0"
+        ],
+        "uuid": [
+          "1.23.4"
+        ]
+      },
+      "lockedGraphReady": false,
+      "proposedScope": "Parent-authorized combined r2: only zircon_plugins/Cargo.lock, existing AI editor entry adds toml; particles editor entry adds serde/toml/uuid. Preserve every other entry/version/source/checksum and unrelated byte.",
+      "owner": "Parent integration/Jenkins; no lockfile edit performed",
+      "historicalParticleOnlyProposal": "Only the zircon_plugin_particles_editor package entry; no registry version or foreign entry changes.",
+      "combinedLockPlan": {
+        "path": "E:/cargo-targets/zircon-local/reports/jenkins-transition-monitor/operator/plugin-manifest-validation-20261024/workspace-entry/ai-lock-resolution/combined-lock-resolution-plan-r2.json",
+        "bytes": 10400,
+        "sha256": "1f8593faa8f78998914c31ea5fa6cde84db25924ccd87d4a4fe6209b959177dc"
+      },
+      "generationRequestId": "lockgen-3c23f3791938bf820ae9a2bb8a8734c9718e461fa67311cbf27e00fe",
+      "generationReceipt": {
+        "path": "E:/cargo-targets/zircon-local/zircon-jenkins/management/reports/4357a6cee89543f5de4ab8c7f0d73212acda14ed513f00035e87fc3f9b17e803/preparation.json",
+        "sha256": "fdc33cc1989258cea27f782acedea6f13671a4d2357223a780d6c9a5a1bf56fe",
+        "scope": "Actual generation preparation; blocked, not resolver or product test."
+      },
+      "actualCargoDiff": null,
+      "actualAfterSha256": null,
+      "lockResolutionRecipeAvailable": true,
+      "manualLockEditAllowed": false,
+      "validationRemainsLocked": true,
+      "managedGenerationGateObservation": {
+        "sourceReport": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/jenkins-r2-recovery-continuation.json",
+        "sourceField": "combinedPlanOperatorFollowups[-1]",
+        "observedAtUtc": "2026-10-24T14:37:37.135537+00:00",
+        "operatorReferences": [
+          {
+            "path": "E:/cargo-targets/zircon-local/reports/jenkins-transition-monitor/operator/plugin-manifest-validation-20261024/workspace-entry/ai-lock-resolution/implementation-r3/summary.md",
+            "bytes": 5189,
+            "sha256": "f2c5fb3fede306a5d1cbf7905455096fcb42dd9afa8edffeb0c6b8667d98ae78",
+            "matchesUserNotice": true
+          },
+          {
+            "path": "E:/cargo-targets/zircon-local/reports/jenkins-transition-monitor/operator/plugin-manifest-validation-20261024/workspace-entry/ai-lock-resolution/implementation-r3/result.json",
+            "bytes": 30300,
+            "sha256": "560402c62522790d61bcb42f7f59b529e86bcd5df537449249af66f21245e82f",
+            "matchesUserNotice": true
+          },
+          {
+            "path": "E:/cargo-targets/zircon-local/reports/jenkins-transition-monitor/operator/plugin-manifest-validation-20261024/workspace-entry/ai-lock-resolution/implementation-r3/generation-gate-observation.json",
+            "bytes": 8446,
+            "sha256": "fae88bfcea2050dbdbcf7981f1bdda21d10613a2dc4725ff2f98796c1bb74884",
+            "matchesUserNotice": true
+          },
+          {
+            "path": "E:/cargo-targets/zircon-local/reports/jenkins-transition-monitor/operator/plugin-manifest-validation-20261024/workspace-entry/ai-lock-resolution/implementation-r3/qualification-r4/outer-native/native-terminal.json",
+            "bytes": 1751,
+            "sha256": "85d6af0d84532d513562ef9ab8c90f161bf968daccd1ce672c013bcf4e5fb757",
+            "matchesUserNotice": true
+          }
+        ],
+        "gates": [
+          {
+            "gate": "supported-targeted-resolver-transaction",
+            "state": "not-implemented",
+            "evidence": {
+              "runnerRef": {
+                "path": "E:\\Git\\ZirconEngine\\.jenkins\\runtime\\management\\9c684aef96b8b1c94319aa8619207f8b07aefffa71d571d4f58708d2c3408233\\runner.py",
+                "sha256": "5f96012eb8c84bd1b9aa3f65595c112bc71c61e21f2ca1d5cc8f3e3bd30a1851",
+                "bytes": 409989
+              },
+              "function": "Management.generate",
+              "lines": [
+                3090,
+                3130
+              ],
+              "supportedRecipes": [
+                "source-index",
+                "render-template"
+              ],
+              "targetedCargoResolverRecipe": false,
+              "exactCandidateDiffAndPublicationCas": false
+            }
+          },
+          {
+            "gate": "original-generation-intake-and-preparation",
+            "state": "no-server-issued-generation-phase-in-original-plan",
+            "generationRequestId": null,
+            "generationServerReceipt": null,
+            "sourcePreparationReceipt": null,
+            "captureReady": false,
+            "currentAiValidationIdentityCoversNewCandidate": false,
+            "oldValidationIdentity": "ueai24 / ueai24-bt01 / validate retained; not reused",
+            "stableWindowRequested": false
+          },
+          {
+            "gate": "generation-lock-writer",
+            "state": "unproven-for-original-generation",
+            "candidateCapabilityWriter": {
+              "worktreeId": "wed5ba903a0-m",
+              "writerSessionId": "wed5ba903a0",
+              "writerAuthorizationSnapshot": "ada035d6e41e41a93670a76bc048ef0319e9042fa5721237e9d9de733680ad59",
+              "ownedPaths": [
+                "tools/jenkins-management/entry.py",
+                "tools/jenkins-management/runner.py",
+                "tools/jenkins-management/tests/test_plugin_manifest_validation.py",
+                "tools/dev/install-jenkins-management.ps1",
+                "tools/dev/local_cargo.py",
+                "tools/dev/local-cargo.ps1",
+                "tools/dev/dev-fast-build.ps1",
+                "tools/dev/submit-jenkins-management.ps1",
+                "tools/jenkins/frontend.py"
+              ]
+            },
+            "canonicalLockInCapabilityWriterPaths": false,
+            "lockWriterAdmitted": false,
+            "grantsModified": false
+          },
+          {
+            "gate": "resource-reservation",
+            "state": "not-admitted",
+            "resourcePolicyRef": {
+              "path": "E:\\cargo-targets\\zircon-local\\reports\\jenkins-transition-monitor\\operator\\plugin-manifest-validation-20261024\\workspace-entry\\ai-lock-resolution\\implementation-r3\\resource-policy-observation.json",
+              "sha256": "6cf92d0696f22f3ea2d82ef7d172d8b7b166af7c6f4506848475159ec5ad0830",
+              "bytes": 2470
+            },
+            "policyVersion": 11,
+            "buildRootExplicitlyRequired": "E:/cargo-targets",
+            "observedFreeBytes": 18320347136,
+            "diskReserveBytes": 37580963840,
+            "shortfallToReserveBytes": 19260616704,
+            "belowCurrentReserve": true,
+            "trustedEstimates": {
+              "default": {
+                "cpu": 1,
+                "diskBytes": 1073741824,
+                "memoryBytes": 1073741824
+              },
+              "editor-product": {
+                "cpu": 4,
+                "diskBytes": 34359738368,
+                "memoryBytes": 8589934592
+              },
+              "tiny-fixture": {
+                "cpu": 1,
+                "diskBytes": 67108864,
+                "memoryBytes": 268435456
+              }
+            },
+            "resolverSpecificEstimateConfigured": false,
+            "reservationReceipt": null,
+            "note": "Current policy gates future compilation and existing managed ResourceManager admission. A distinct non-compiling resolver still needs a trusted recipe estimate and genuine reservation; do not assume compiler consumption or silently lower reserve."
+          }
+        ],
+        "actualGeneratedDiff": null,
+        "actualAfterSha256": null,
+        "generatorExecutionReceipt": null,
+        "nativeGeneratorTerminalReceipt": null,
+        "recoveryReceipt": null,
+        "allFourDependencyEdgesStillMissing": true,
+        "lockWriterAdmitted": false,
+        "captureReady": false,
+        "observationIsServerReceipt": false,
+        "existingUnknownCreateDeliveryChanged": false,
+        "resourceValuesAreCurrentOsFreeSpace": false,
+        "resolverSpecificTrustedBudgetAvailable": false,
+        "reservationReceipt": null,
+        "ownSourceOrLockWrites": 0,
+        "ownNewQueriesOrSubmissions": 0
+      },
+      "currentManagedResolverDelivery": {
+        "state": "managed-resolver-implemented-server-preparation-complete-resource-and-writer-refused-no-resolution",
+        "ownerRequest": {
+          "sessionId": "jm24",
+          "requestId": "combined-ai-particles-lock-resolution-r2",
+          "prepareOperationId": "prepare-lock-resolution-r2",
+          "prepareOperationKey": "4357a6cee89543f5de4ab8c7f0d73212acda14ed513f00035e87fc3f9b17e803",
+          "admissionOperationId": "inspect-lock-resource-r2",
+          "admissionOperationKey": "0b5b4e05a5ac2b4065c2358446768f8436f2dfb6b069ed0c76aff4e4670bbec5",
+          "generationRequestId": "lockgen-3c23f3791938bf820ae9a2bb8a8734c9718e461fa67311cbf27e00fe",
+          "generationRef": {
+            "path": "E:\\cargo-targets\\zircon-local\\reports\\jenkins-transition-monitor\\operator\\plugin-manifest-validation-20261024\\workspace-entry\\ai-lock-resolution\\implementation-r1\\managed-closeout\\preparation.json",
+            "sha256": "fdc33cc1989258cea27f782acedea6f13671a4d2357223a780d6c9a5a1bf56fe"
+          },
+          "originalServerPreparationRef": {
+            "path": "E:\\cargo-targets\\zircon-local\\zircon-jenkins\\management\\reports\\4357a6cee89543f5de4ab8c7f0d73212acda14ed513f00035e87fc3f9b17e803\\preparation.json",
+            "sha256": "fdc33cc1989258cea27f782acedea6f13671a4d2357223a780d6c9a5a1bf56fe"
+          },
+          "authoritySnapshot": "da67eff974f7ecebc9ce4a031c2550dac53d90db714631484355519ddb8fd699",
+          "authorityExpanded": false
+        },
+        "operatorResult": {
+          "path": "E:/cargo-targets/zircon-local/reports/jenkins-transition-monitor/operator/plugin-manifest-validation-20261024/workspace-entry/ai-lock-resolution/implementation-r1/result.json",
+          "sha256": "7d7d9738a875ebba7fef06b15e6770aa45cae7a25d612dafcc14db62928ebe02"
+        },
+        "operatorSummary": {
+          "path": "E:/cargo-targets/zircon-local/reports/jenkins-transition-monitor/operator/plugin-manifest-validation-20261024/workspace-entry/ai-lock-resolution/implementation-r1/summary.md",
+          "sha256": "6a091cc11456b581bf72b3b85fb997693a0ab1ad73c4331e99578d2fb643f65e"
+        },
+        "implementedPhases": [
+          "prepare",
+          "admit",
+          "resolve",
+          "publish",
+          "recover"
+        ],
+        "managementJob": {
+          "build": 416,
+          "tests": 110,
+          "subtests": 317,
+          "checks": 427,
+          "isProductRustValidation": false
+        },
+        "serverPreparationSha256": "fdc33cc1989258cea27f782acedea6f13671a4d2357223a780d6c9a5a1bf56fe",
+        "serverPreparationComplete": true,
+        "inputMetadataReady": true,
+        "resolutionManifests": 157,
+        "resolutionInputs": 1075,
+        "productFullSourceCaptured": false,
+        "resourceInspection": {
+          "build": 361,
+          "admitted": false,
+          "policyVersion": 11,
+          "reserveBytes": 37580963840,
+          "observedDiskBytes": 15137222656,
+          "observedDiskIsNotCurrentMeasurement": true,
+          "estimate": {
+            "cpu": 1,
+            "memory_bytes": 2147483648,
+            "disk_bytes": 268435456
+          },
+          "measuredPeak": false,
+          "reservation": null,
+          "singleLockWriter": null,
+          "compilerBudgetUsed": false,
+          "inspectionWaitCancelledByBuild": 417,
+          "blockedGenerationRetained": true
+        },
+        "trustedGenerationOnlyAlternateLockOutputReady": false,
+        "resolverStarted": false,
+        "actualGeneratedDiff": null,
+        "actualAfterSha256": null,
+        "resolverNativeReceipt": null,
+        "publicationReceipt": null,
+        "generationRecoveryReceipt": null,
+        "oldLockSha256": "04de41d28ef79436b8bc4c264d8fb122d303ae2a7005085522783afdeae02bbf",
+        "captureReady": false,
+        "sourceFreezeRequested": false,
+        "newRequestOrOperationCreated": false,
+        "particleR2SourceRevisionReceipt": null,
+        "externalFullSourcePolicyQualificationOpen": true,
+        "runtimeRecipeQualified": false,
+        "editorRustExecuted": 0,
+        "runtimeRustExecuted": 0,
+        "passed": false,
+        "accepted": false
+      },
+      "supersededFieldObservations": [
+        {
+          "generationRequestId": null,
+          "generationReceipt": null,
+          "lockResolutionRecipeAvailable": false,
+          "status": "Historical before actual server generation was delivered; immutable plan and old observation records retained."
+        }
+      ],
+      "currentGenerationReceiptConsumption": {
+        "parentReceipt": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/parent-01a16d4e/ai-generation-receipts-reconciliation-01.json",
+        "sha256": "7c4776e2f76474c72904832c9f1328464c6d3806031d592217e60827870e5bfb",
+        "actualResourceAdmitted": false,
+        "soleWriter": false,
+        "fileWriter": false,
+        "reservation": null,
+        "resolverStarted": false,
+        "reservePlusResolverDiskBytes": 37849399296,
+        "trustedManagedToolAtLeast197Pending": true,
+        "nativeVersionOnly": "Cargo1.94.1 --version",
+        "newSourcePreparationRevisionRequired": true
+      }
+    },
+    "legacyKeyAdoption": "Keep first decoded source and assigned_keys within the same live document; encoding leaves adoption debt pending. Only actual host save and reopen proves persistence.",
+    "preflightBindsEarlierSourceRevision": true,
+    "previousJenkinsOperationId": "validate-source-codec-r1",
+    "previousJenkinsPreflight": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\source-codec-jenkins-preflight.json",
+    "jenkinsIdentity": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\source-codec-jenkins-r2-identity.json",
+    "jenkinsPreflightState": "dry-run-pending-current-session-authorization",
+    "jenkinsActualSubmissionMade": false,
+    "pluginWorkspaceManifestRoute": {
+      "wrapper": "tools/dev/local-cargo.ps1",
+      "observedAtUtc": "2026-10-24T14:38:37.998347+00:00",
+      "installedCapsule": "9c684aef96b8b1c94319aa8619207f8b07aefffa71d571d4f58708d2c3408233",
+      "installedSha256": "c41a585f6cea0746fd9cc147a9579079e9f8b65a8139d0f81b1225f67cffdb8d",
+      "pinnedClientSha256": "5663e4e9cc354fec542a6596e8395fd9073e63775bbdc3003349e618528374f7",
+      "qualificationScope": "Current client/server allowlists and metadata catalog contain material/prefab/AI/glTF routes; particles absent. Static policy inspection, not execution/acceptance.",
+      "particleRecipeQualified": false,
+      "aiRecipeAllowlisted": true,
+      "aiRecipeQualified": null,
+      "aiExecutionQualificationOutsideThisTask": true,
+      "lockResolutionRecipeAvailable": false,
+      "source": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/jenkins-r2-recovery-continuation.json",
+      "formalAcceptance": false,
+      "operatorAiRouteManagementFollowup": {
+        "observedAtUtc": "2026-10-24T14:37:37.135537+00:00",
+        "checks": 81,
+        "subtests": 267,
+        "historicalFixtureExcluded": 1,
+        "originalFailure405Preserved": true,
+        "managementCheckResult": "SUCCESS #406",
+        "aiOrParticleProductRust": false,
+        "particleRecipeQualified": false,
+        "hostLifecycleAccepted": false
+      }
+    },
+    "sourceCurveAdapter": {
+      "sourceModule": "zircon_plugins/particles/editor/src/source/curve.rs",
+      "tests": "zircon_plugins/particles/editor/src/tests/source_curve.rs",
+      "publicModel": "zircon_editor::ui::curve::CurveModel",
+      "sourceAuthority": "borrowed existing ParticleSystemSource owned by document host",
+      "channels": [
+        "SizeMultiplier",
+        "Red",
+        "Green",
+        "Blue",
+        "Alpha"
+      ],
+      "curveIdentity": [
+        "emitter_key",
+        "channel"
+      ],
+      "keyIdentity": "persistent source key",
+      "timeUnit": "normalized particle age in [0,1]",
+      "interpolation": "Linear",
+      "rgbaSharesTimeAndKey": true,
+      "inverseReturned": true,
+      "historyOrDirtyInstalled": false,
+      "uiConsumerInstalled": false,
+      "testCountDeclared": 8,
+      "testCountExecuted": 0,
+      "inspection": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\source-curve-inspection.json",
+      "testNamespace": "source_tests::curves::"
+    },
+    "nextManagedValidation": {
+      "requestId": "ue-particles-source-codec-20261024",
+      "operationId": "validate-source-codec-r2",
+      "state": "bounded-particle-route-deployed-original-lineage-revision-source-lock-resource-admission-pending",
+      "sourceView": "checkout",
+      "buildRoot": "E:/cargo-targets",
+      "packages": [
+        "zircon_plugin_particles_editor"
+      ],
+      "features": [],
+      "noDefaultFeatures": true,
+      "target": "lib",
+      "profile": "test",
+      "testFilter": "source_tests::",
+      "testCountFromSourceInventory": 25,
+      "jobs": 1,
+      "locked": true,
+      "cargoArgv": [
+        "test",
+        "--manifest-path",
+        "zircon_plugins/Cargo.toml",
+        "--package",
+        "zircon_plugin_particles_editor",
+        "--no-default-features",
+        "--lib",
+        "--profile",
+        "test",
+        "--jobs",
+        "1",
+        "--locked",
+        "source_tests::",
+        "--",
+        "--test-threads",
+        "1"
+      ],
+      "dependencyLockReady": false,
+      "frozenR2IdentityMatchesCurrentSource": false,
+      "reasonNotSubmitted": "d2873 now supports the exact particle route. Preserve original frozen r2 and historical source candidate; local transparent revision reviewed. Server lineage revision/source/resource/cache/pool admission and supported combined-lock resolver/writer/CAS transaction remain missing. No repeated QueryOnly, blind old-input resubmission, new identity, unlocked Cargo or manual grant.",
+      "testCountEvidence": "25 static #[test] definitions (17 source + 8 nested curve); Cargo discovered count unknown, execution 0",
+      "completeTransitiveSourceFeatureResolution": false,
+      "sourceClosureCandidate": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/source-closure-candidate.json",
+      "particleRecipeQualified": true,
+      "captureReady": false,
+      "sourceClosureCandidateStatus": "historical bytes retained; two existing source hashes changed in this stage, full execution closure must be requalified by the original owner",
+      "qualificationScope": "Management recipe/client/runner/static manifest metadata only; no full product source capture, Cargo resolution or resource/cache/pool admission.",
+      "currentCapsule": "d2873ff353ea93d6b76f7d7caa12878761146e326070fd4c4526b73f3dc23112",
+      "dependencyFeaturesDisclosed": [
+        "zircon_runtime/native-host",
+        "zircon_runtime/target-editor-host via zircon_editor"
+      ],
+      "combinedLockResolverState": "managed-resolver-implemented-server-preparation-complete-resource-and-writer-refused-no-resolution"
+    },
+    "currentSourceMatchesR2Preflight": false,
+    "previousCodecStaticInspection": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\source-codec-inspection.json",
+    "historicalUnsubmittedPlans": [
+      {
+        "requestId": "ue-particles-source-codec-20261024",
+        "operationId": "validate-source-curve-r3",
+        "state": "superseded-unsubmitted-plan-by-parent-followup-02",
+        "sourceView": "checkout",
+        "buildRoot": "E:/cargo-targets",
+        "packages": [
+          "zircon_plugin_particles_editor"
+        ],
+        "features": [],
+        "noDefaultFeatures": true,
+        "target": "lib",
+        "profile": "test",
+        "testFilter": "source_",
+        "testCountFromSourceInventory": 18,
+        "jobs": 1,
+        "locked": true,
+        "cargoArgv": [
+          "test",
+          "--manifest-path",
+          "zircon_plugins/Cargo.toml",
+          "--package",
+          "zircon_plugin_particles_editor",
+          "--no-default-features",
+          "--lib",
+          "--profile",
+          "test",
+          "--jobs",
+          "1",
+          "--locked",
+          "source_",
+          "--",
+          "--test-threads",
+          "1"
+        ],
+        "dependencyLockReady": false,
+        "reasonNotSubmitted": "Canonical shared lock entry still lacks the already-resolved serde/toml/uuid dependencies; Parent integration owner handoff remains open. Existing r1/r2 preflight inputs are frozen and do not cover current code.",
+        "reason": "Original r2 owner must reconcile; no r3 identity or submission was created."
+      }
+    ],
+    "previousCurveStaticInspection": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\source-curve-inspection.json",
+    "newRequestOrOperationCreated": false,
+    "sourceParameterEdits": {
+      "sourceModule": "zircon_plugins/particles/editor/src/source/parameter.rs",
+      "method": "ParticleSystemSource::apply_parameter_edit",
+      "delta": "ParticleSourceParameterEdit",
+      "variants": [
+        "Seed",
+        "SpawnRate",
+        "Capacity",
+        "Lifetime"
+      ],
+      "sourceAuthority": "mutate existing document-owned ParticleSystemSource after host revision/retention admission",
+      "seedTextParser": "parse_particle_seed(&str), shared with source serde codec",
+      "expectedValueChecked": true,
+      "inverseOwnedBeforeFirstWrite": true,
+      "lifetimeRangeAtomic": true,
+      "validationReusesCodecRules": true,
+      "uiConsumerInstalled": false,
+      "documentOrHistoryOrPreviewOwnerCreated": false,
+      "newTestsDeclared": 5,
+      "newTestsExecuted": 0,
+      "inspection": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\source-parameter-inspection.json",
+      "readOnlyDomainPreflight": "ParticleSystemSource::validate_parameter_edit",
+      "strictSeedEditFactory": "ParticleSourceParameterEdit::seed_from_decimal(expected: &str, replacement: &str)",
+      "preflightIsHostMutationPermit": false,
+      "newTestsThisStage": 2,
+      "currentStaticTestDefinitions": 25,
+      "latestTwoFileHashes": {
+        "zircon_plugins/particles/editor/src/source/parameter.rs": "eb5df5efefb2a782981e5402660ac31a0dc77e1f8d0099dfcd17e7e534ed7d87",
+        "zircon_plugins/particles/editor/src/tests/source.rs": "eb520514837fd3b2a1ee37b5aab87da0c3c628b32cc6287212150b5618ab12e2"
+      }
+    },
+    "rustTestCountEvidence": {
+      "staticTestDefinitions": 25,
+      "directSourceTests": 17,
+      "nestedCurveTests": 8,
+      "cargoDiscoveredTests": null,
+      "executedTests": 0,
+      "definitionCountIsNotCargoDiscoveryOrRun": true
+    },
+    "historicalManifestParserRoute": {
+      "wrapper": "tools/dev/local-cargo.ps1",
+      "installedCapsule": "baac70c97872d3395c5c422fa44a7cdaa481a8ac4f62820d1cc2ac099ad0ac08",
+      "pinnedClientSha256": "ede21bdd9c072b52fc357c18140f315b975f9e9eb3a2f67d5184ad5b23c329e7",
+      "parentRouteRecord": ".jenkins/records/ue-plugin-workspace-entry-20261024.route-02.json",
+      "formalAcceptance": false,
+      "state": "historical-r2-parser-support-and-dry-run-only; not current particle recipe qualification"
+    },
+    "currentLocalInputCandidate": {
+      "path": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/source-closure-candidate.json",
+      "localRustModules": 16,
+      "productionModules": 13,
+      "testBranchModules": 3,
+      "literalIncludeEdges": 6,
+      "uniqueLiteralIncludeInputs": 4,
+      "changedOriginalHashCount": 5,
+      "originalDependencyHashMatches": 6,
+      "ownedSourcePatchPaths": 12,
+      "completeTransitiveClosure": false,
+      "isNewExecutionIdentity": false,
+      "isSourceCopy": false,
+      "executingOwnerFullSourceFeatureResourcePoolDeclarationRequired": true
+    },
+    "originalOwnerReconciliation": {
+      "report": {
+        "path": "E:/cargo-targets/zircon-local/reports/jenkins-transition-monitor/operator/ue-particles-source-codec-20261024/reconciliation.json",
+        "bytes": 34654,
+        "sha256": "815e7146783ae2c6040d41899242722e723415d8cce2733fb5abcbb39d9c0660"
+      },
+      "originalInputSha256": "1e5aa440b33a050e324bd180caf3c1b48a49255c66a571bad8c2190b0e7c7379",
+      "queryOnlyState": "exit2-pending-ordinary_entry_unproven; authorization pending",
+      "queryClientElapsedSeconds": 5.888,
+      "elapsedIsCaptureOrFreezeTiming": false,
+      "serverReceipt": null,
+      "executionJobIdentity": null,
+      "nativeReceipt": null,
+      "actualEnqueueProven": false,
+      "deletedOrIndirectHistoryUnknown": true,
+      "queryOnlyOrDryRunCreatesAutomaticContext": false,
+      "manualGrantChangeRequested": false,
+      "thisSessionRepeatedQueryOrSubmission": false
+    },
+    "submissionClaimScope": "This session submitted no Cargo job; original server admission/enqueue is unproved, not asserted never queued.",
+    "historicalPluginWorkspaceManifestRoutes": [
+      {
+        "wrapper": "tools/dev/local-cargo.ps1",
+        "installedCapsule": "cdd14500fa39088ae2c9870f62825acc2e526ba647d24d77cd6287722b5d0f31",
+        "pinnedClientSha256": "5e10bc46daaa2e891d373d2dceb66e6497d4a477d5a9ff9a1f5bda96b45fcc9a",
+        "qualificationScope": "current validation and source closure are material only",
+        "particleRecipeQualified": false,
+        "aiRecipeQualified": false,
+        "lockResolutionRecipeAvailable": false,
+        "source": "original-owner reconciliation observed 2026-10-24T13:12:12Z; local installed-file hash matches that report",
+        "formalAcceptance": false
+      }
+    ],
+    "postRecoveryReadOnlyQuery": {
+      "report": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/jenkins-r2-recovery-continuation.json",
+      "requestId": "ue-particles-source-codec-20261024",
+      "operationId": "validate-source-codec-r2",
+      "sessionId": "01a16d52-a4a5-7271-90a2-336091337737",
+      "originalInputSha256": "1e5aa440b33a050e324bd180caf3c1b48a49255c66a571bad8c2190b0e7c7379",
+      "query": {
+        "startedAtUtc": "2026-10-24T14:39:34.167731+00:00",
+        "finishedAtUtc": "2026-10-24T14:39:37.781456+00:00",
+        "argv": [
+          "powershell.exe",
+          "-NoProfile",
+          "-NonInteractive",
+          "-File",
+          "E:\\Git\\ZirconEngine\\tools\\dev\\submit-jenkins-management.ps1",
+          "-RepoRoot",
+          "E:\\Git\\ZirconEngine",
+          "-Action",
+          "validate",
+          "-SessionId",
+          "01a16d52-a4a5-7271-90a2-336091337737",
+          "-RequestId",
+          "ue-particles-source-codec-20261024",
+          "-OperationId",
+          "validate-source-codec-r2",
+          "-InputFile",
+          "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\source-codec-jenkins-r2-identity.json",
+          "-QueryOnly"
+        ],
+        "exitCode": 2,
+        "stdout": "{\"formalAcceptance\":false,\"m8Accepted\":false,\"message\":\"Current session authorization is pending\",\"reasonCode\":\"ordinary_entry_unproven\",\"status\":\"pending\"}\n",
+        "stderr": "",
+        "response": {
+          "formalAcceptance": false,
+          "m8Accepted": false,
+          "message": "Current session authorization is pending",
+          "reasonCode": "ordinary_entry_unproven",
+          "status": "pending"
+        },
+        "elapsedClientSeconds": 3.594,
+        "elapsedIsCaptureTime": false,
+        "originalInputUnchanged": true,
+        "installedUnchangedAcrossQuery": true,
+        "installedBeforeSha256": "c41a585f6cea0746fd9cc147a9579079e9f8b65a8139d0f81b1225f67cffdb8d",
+        "installedAfterSha256": "c41a585f6cea0746fd9cc147a9579079e9f8b65a8139d0f81b1225f67cffdb8d",
+        "newSubmission": false,
+        "serverReceipt": null,
+        "executionJob": null,
+        "cargoStarted": false
+      },
+      "outerPowerShellOrchestrationExitCode": 1,
+      "recoveryCompletesProductTests": false,
+      "manualUserGrantRequested": false,
+      "originalJenkinsOwner": "01a12af6-7511-70d1-a452-61b80678eb56"
+    },
+    "currentRouteDeployment": {
+      "capsule": "d2873ff353ea93d6b76f7d7caa12878761146e326070fd4c4526b73f3dc23112",
+      "entrySha256": "82d965a2f4ae54e9d4c8960af0d068146810a5b7a1e9112ceb9ac643a5957966",
+      "runnerSha256": "93067f14829df317424cc1b4084f4b943f0428b1b54d1af5164022d9e67c73d0",
+      "all11PinsMatch": true,
+      "driverDigest": "fc55322804fb53ab3e39f996c848ef5e5f3907497d3f38167b7095244b2a7399",
+      "runtimeOperationId": "start-1792836412672596900",
+      "managementTests": 94,
+      "managementSubtests": 305,
+      "knownBaselineExcluded": 1,
+      "testBuild": 410,
+      "installationBuild": 411,
+      "queueId": 14583,
+      "metadataWorkspaceCount": 2,
+      "metadataManifestCount": 17,
+      "metadataPathEdges": 31,
+      "cargoResolutionPerformed": false,
+      "full9RootCapturePerformed": false,
+      "productRustExecuted": 0,
+      "operatorResult": {
+        "path": "E:/cargo-targets/zircon-local/reports/jenkins-transition-monitor/operator/plugin-manifest-validation-20261024/workspace-entry/particles-editor-extension/result.json",
+        "sha256": "37e311e36ef55e7500af48ed3e9ae23f1b8bd411a0536b3719522729566779a1",
+        "expectedSha256": "37e311e36ef55e7500af48ed3e9ae23f1b8bd411a0536b3719522729566779a1",
+        "matchesNotice": true
+      },
+      "inspection": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/jenkins-r2-recovery-continuation.json::particleRouteOperatorFollowups[-1]",
+      "sourceLineageLocalRevision": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/jenkins-r2-recovery-continuation.json::sourceLineageRevisions[-1]",
+      "serverRevisionReceipt": null,
+      "passed": false,
+      "accepted": false
+    },
+    "currentLocalOverviewRevision": {
+      "packet": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/source-overview-projection.json",
+      "editorStaticDefinitions": 29,
+      "originalEditor25RetainedHistorical": true,
+      "executed": 0,
+      "newCandidateTests": 4,
+      "currentSourceMatchesOriginalFrozenR2": false,
+      "newServerSourceRevision": null
+    },
+    "currentStaticDefinitionCount": 29,
+    "declaredRustTestsScope": "25 belongs to historical source candidate/declaration; current source is21 direct+8 curve=29 static definitions, not new server admission, Cargo discovery or execution.",
+    "currentAnimationConsumerR03": {
+      "sourceReport": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/animation-consumer-r03-reconciliation.json",
+      "noSourceCodeChanges": true,
+      "newJenkinsRequestOrOperation": false,
+      "runtime10Separate": true
+    },
+    "staticDefinitionObservationHistory": [
+      {
+        "previousDeclaredRustTests": 25,
+        "meaning": "Historical source-only declaration; not Cargo discovery or execution. Subsequent overview had29; current batch revision has34."
+      }
+    ],
+    "declaredRustTestsAreStaticDefinitions": true,
+    "currentSourceDefinitionBreakdown": {
+      "directSource": 21,
+      "curveSource": 13,
+      "newBatch": 5,
+      "cargoDiscovery": null
+    }
+  },
+  "updatedAtUtc": "2026-10-25T18:10:56.585942+00:00",
+  "parentInputAndSaveContract": {
+    "source": ".codex/sessions/ue-window-suite-parent-01a16d4e.md",
+    "section": "粒子第三次接续：PFX-SHARED-11 的输入与保存边界",
+    "systemDocumentKind": "particles.system",
+    "futureEmitterDocumentKind": "particles.emitter",
+    "kindInstalled": false,
+    "dynamicFactoryInstalled": false,
+    "globalKeyboardAndSaveOwner": "01a16d4e-0491-7353-84fa-038bd7706546",
+    "sameDocumentSessionRevisionRequired": true,
+    "disabledDomainCommandMayFallbackToScene": false,
+    "saveRouteRegistered": false,
+    "asyncToolkitSaveRequired": true,
+    "textImeModalMustHandleDraftBeforeSave": true,
+    "redoDefault": "Ctrl+Shift+Z",
+    "ctrlYAliasReady": false
+  },
+  "runtimePreviewClockStepImplementation": {
+    "state": "source-implemented-static-evidence-only-managed-runtime-validation-pending",
+    "ownerThreadId": "01a16d52-a4a5-7271-90a2-336091337737",
+    "authorizedSourceWriteScope": [
+      "zircon_plugins/particles/runtime/src/service.rs",
+      "zircon_plugins/particles/runtime/src/service/preview.rs",
+      "zircon_plugins/particles/runtime/src/lib.rs",
+      "zircon_plugins/particles/runtime/src/tests/service.rs",
+      "zircon_plugins/particles/runtime/src/tests/service/preview.rs"
+    ],
+    "sourcePacket": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/runtime-preview-clock-step.json",
+    "api": [
+      "ParticlesManager::preview_clock(handle)",
+      "ParticlesManager::step_preview(handle, dt)"
+    ],
+    "clockFields": [
+      "handle",
+      "age_seconds",
+      "playing",
+      "time_scale",
+      "backend",
+      "fallback_to_cpu"
+    ],
+    "testPackage": "zircon_plugin_particles_runtime",
+    "testFilter": "particle_preview_",
+    "target": "lib",
+    "profile": "test",
+    "defaultFeatures": false,
+    "features": [],
+    "jobs": 1,
+    "testThreads": 1,
+    "locked": true,
+    "staticTestDefinitions": 10,
+    "candidateTestNames": [
+      "particle_preview_clock_reads_actual_instance_without_invalidating_snapshot",
+      "particle_preview_step_paused_instance_matches_one_tick_and_preserves_other_handle",
+      "particle_preview_step_preserves_playing_and_applies_fractional_scale_once",
+      "particle_preview_step_rejects_invalid_raw_deltas_without_mutation",
+      "particle_preview_step_rejects_zero_underflowed_and_overflowed_scaled_deltas",
+      "particle_preview_step_accepts_sub_epsilon_scaled_delta_that_advances_age",
+      "particle_preview_step_rejects_unrepresentable_or_nonfinite_age_progress",
+      "particle_preview_unknown_and_removed_handles_do_not_change_remaining_instances",
+      "particle_preview_gpu_fallback_clock_explicitly_reports_cpu_simulation",
+      "particle_preview_step_rejects_gpu_without_fallback_before_mutation"
+    ],
+    "cargoDiscoveredTests": null,
+    "rustTestsExecuted": 0,
+    "independentFromEditor25Tests": true,
+    "runtimeFeatureLowerBound": [
+      "graphics",
+      "native-host"
+    ],
+    "strictGpuWithoutCpuFallback": "step rejected; clock retains actual backend/fallback",
+    "rewindModified": false,
+    "productionSeekAllowed": false,
+    "productionUiInstalled": false,
+    "gpuFrameReady": false,
+    "runtimeRecipeQualified": false,
+    "serverRevisionReceipt": null,
+    "serverSourceReceipt": null,
+    "serverResourceReceipt": null,
+    "serverCacheLockReceipt": null,
+    "serverPoolWriterReceipt": null,
+    "newRequestOrOperation": false,
+    "passed": false,
+    "accepted": false,
+    "independentFromCurrentEditor29Tests": true
+  },
+  "sharedCatalogCurrentContract": {
+    "path": "zircon_editor/assets/ui/editor/components/catalog.toml",
+    "sha256": "e4bba09c3ba16d55b90eabb5a821ab3e76eb0606f9afc17e9f656e2d16fe0a99",
+    "numberFieldProps": 10,
+    "propertyEditorRowSlots": 4,
+    "sourceStaticChecksPassed": 19,
+    "newTypedPenpotMainPublished": false,
+    "sourceCandidateOnly": true,
+    "particleMappings": [
+      {
+        "field": "system.seed",
+        "sourceType": "u64",
+        "slot": "value",
+        "candidateComponent": "WorkbenchField",
+        "bridgeEncoding": "strict decimal string for both expected/replacement; seed_from_decimal before domain mutation",
+        "bounds": {
+          "min": "0",
+          "max": "18446744073709551615"
+        },
+        "floatConversionAllowed": false,
+        "sourceDefaultIsSchemaBound": false,
+        "installed": false
+      },
+      {
+        "field": "emitter.max_particles",
+        "sourceType": "u32",
+        "slot": "value",
+        "candidateComponent": "WorkbenchField until exact unsigned integer adapter is proved",
+        "bridgeEncoding": "strict decimal checked u32 expected/replacement; no lossy f32 conversion",
+        "bounds": {
+          "min": "0",
+          "max": "4294967295"
+        },
+        "zeroAllowedBySource": true,
+        "budgetAdmissionIsSeparate": true,
+        "installed": false
+      },
+      {
+        "field": "emitter.spawn_rate_per_second",
+        "sourceType": "Real (f32)",
+        "slot": "value",
+        "candidateComponent": "WorkbenchNumberField",
+        "valueProps": "Bind actual value/value_text consistently; finite nonnegative source range, no template max100 or rounding from precision0",
+        "domainMinimum": 0,
+        "schemaUpperLimit": "finite representable Real; UI range propagation and resource admission still need handler/runtime validation",
+        "installed": false
+      },
+      {
+        "field": "emitter.lifetime",
+        "sourceType": "ParticleSourceScalarRange",
+        "slot": "value",
+        "candidateComponent": "two linked WorkbenchNumberField inputs in existing flow",
+        "valueProps": "min/max each finite; min >= Real::MIN_POSITIVE; min <= max; use one Lifetime domain transaction/undo",
+        "templateValue": "1..1.5 seconds is a fixture, not fixed schema range",
+        "normalizedLifetimeCurveIsSeparate": true,
+        "installed": false
+      }
+    ],
+    "runtimeOrPluginPassed": false,
+    "historicalObservations": [
+      {
+        "sha256": "4c2f849c533f1f227903018eca860faadd7fa3138fdc265300913e3833ad36e5",
+        "sourceStaticChecksPassed": 24,
+        "scope": "Previous observed whole catalog, retained history; source mutation attribution not inferred."
+      }
+    ],
+    "sourceStaticCheckScope": "Fresh r03 read-only catalog subset19:68 identities, NumberField defaults10, PropertyRow slots4, PanelHeader action acceptance. Runtime/packet consistency2 are separate. No plugin/Rust/export execution or complete new catalog acceptance.",
+    "currentObservationSource": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/animation-consumer-r03-reconciliation.json"
+  },
+  "sourceOverviewProjection": {
+    "sourcePacket": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/source-overview-projection.json",
+    "writeSet": [
+      "zircon_plugins/particles/editor/src/source/overview.rs",
+      "zircon_plugins/particles/editor/src/source/mod.rs",
+      "zircon_plugins/particles/editor/src/lib.rs",
+      "zircon_plugins/particles/editor/src/tests/source.rs"
+    ],
+    "api": "ParticleSystemSource::project_overview(actual_measured_layout)",
+    "sharedTypes": [
+      "zircon_editor::ui::graph::GraphNodeView",
+      "GraphEdgeView",
+      "GraphNodeBounds"
+    ],
+    "sourceIdentity": "System enum scoped by actual host DocumentId; Emitter uses existing assigned source key, not caption/order/index",
+    "noPinsEdgesOrNullGraphModel": true,
+    "connectionEligibility": "UnavailableNoSourcePortsOrEdges",
+    "reason": "此资源未定义端口或连线",
+    "graph640": {
+      "boardId": "24e30f02-3e16-4926-bd5a-a8f0eacf1da7",
+      "shapeId": "1848b40d-63ca-45f5-ba39-ae1500755dca",
+      "savedText": "设计夹具；连线不可用：此资源未定义端口或连线。实际Graph/焦点待接入。",
+      "freshCaptured": true,
+      "graphBound": false
+    },
+    "vfxFiveKindTypedConsumer": {
+      "type": "zircon_plugin_rendering_vfx_graph_runtime::VfxGraphAsset / VfxGraphNode",
+      "source": "zircon_plugins/rendering/features/vfx_graph/runtime/src/lib.rs",
+      "sourceSha256": "ba80b43d66b19e01ef6ed784ba07d8143573ccabbc27db265e1c31426d5ab2ed",
+      "variants": [
+        "SpawnRate { particles_per_second: f32 }",
+        "Lifetime { seconds: f32 }",
+        "Velocity { value: [f32;3] }",
+        "ColorOverLife { start: [f32;4], end: [f32;4] }",
+        "ShaderGraphMaterial { shader_graph: String }"
+      ],
+      "sourceHasPersistentNodeKeyPinEdgeOrLayout": false,
+      "sourceHasSerdeCodec": false,
+      "currentPfxEditorDirectVfxDependency": false,
+      "newDependencyAdded": false,
+      "alternativeRequiresExplicitExpandedDependencyAndLockScope": "PFX Editor -> zircon_plugin_rendering_vfx_graph_runtime direct typed bridge; original combined4-edge lock plan unchanged",
+      "readOnlyLocator": "Exact current source snapshot/revision plus node_index until actual persistent source keys exist; invalid on reorder, never durable authoring identity",
+      "priorHandoffState": {
+        "preferredHandoff": "Project actual typed VfxGraphAsset in existing zircon_plugins/rendering/features/vfx_graph/editor, whose Cargo already directly depends on runtime. Parent must hand off exact new source/test paths and separate package validation; do not invent TOML codec/duplicate enum or append fifth edge to existing four-edge lock plan.",
+        "implementedOrHostInstalled": false,
+        "meaning": "Historical pre-Parent-fifth state; split implementation and host installation below."
+      },
+      "readOnlyProjectionImplemented": true,
+      "hostInstalled": false,
+      "sourcePacket": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/vfx-source-overview-projection.json",
+      "sourcePacketSha256": "1390a50d3bba719b33c1cb794c0a17716f96bd03d4379c0f7b34532e3a49fde7",
+      "package": "zircon_plugin_rendering_vfx_graph_editor",
+      "sourceWriteSet": [
+        "zircon_plugins/rendering/features/vfx_graph/editor/src/lib.rs",
+        "zircon_plugins/rendering/features/vfx_graph/editor/src/overview.rs",
+        "zircon_plugins/rendering/features/vfx_graph/editor/src/tests/overview.rs"
+      ],
+      "api": "project_vfx_overview(actual_source, actual_revision, &VfxOverviewLayout::from_measured_bounds(actual_source, actual_revision, actual_bounds))",
+      "sourceAccess": "Borrow original VfxGraphAsset/VfxGraphNode; locate/resolve checks exact source and revision. Temporary node_index is not a durable authoring key.",
+      "sourceChangedOrReordered": "Reject old layout/locator; actual host must retire old selection and link gesture.",
+      "layout": "Require actual measured graph-local bounds; reject stale, missing, extra, nonfinite, nonpositive, overflowing and nonadvancing geometry.",
+      "connectionEligibility": "UnavailableNoSourcePortsOrEdges because this source defines no ports/edges; never from edges-empty alone.",
+      "sharedModelUnchanged": true,
+      "newSchemaCameraClockDtoOrCodec": false,
+      "actualVfxEditingCompileUndoPreviewImplemented": false,
+      "regressionCandidates": {
+        "filter": "overview_tests::",
+        "staticDefinitions": 5,
+        "CargoDiscovered": 0,
+        "executed": 0,
+        "separateFromEditor29AndRuntime10": true
+      },
+      "scopedStaticEvidence": {
+        "guardDigest": "5fac260d5018e4e26ed01c86e10f6f4b07cafc27c4741416edaf4f1e76f92cf1",
+        "formattingPassed": true,
+        "structuralChecks": 74,
+        "isRustOrProductExecution": false
+      },
+      "passed": false,
+      "accepted": false
+    },
+    "staticTestNames": [
+      "particle_overview_real_source_consumes_shared_presenter_without_ports_or_edges",
+      "particle_overview_ready_empty_system_does_not_invent_an_emitter",
+      "particle_overview_identity_and_measured_layout_survive_rename_and_reorder",
+      "particle_overview_rejects_missing_identity_and_invalid_layout_without_source_mutation"
+    ],
+    "editorCurrentStaticDefinitions": 29,
+    "runtime10Separate": true,
+    "rustExecuted": 0,
+    "retainedGraphInstalled": false,
+    "keyboardPopupReasonVerified": false,
+    "staleGestureCancelAndFocusVerified": false,
+    "newJenkinsRequestOrOperation": false,
+    "passed": false,
+    "accepted": false,
+    "graphContractErratum": {
+      "report": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/material-erratum-vfx-consumer-reconciliation.json",
+      "sha256": "36fc65b1a5b9d60b987d3d7585b4f311b3650fe0e92aecca3297aa10b517b5f2",
+      "portsAndEdgesEmptyHasNoLinkInteraction": true,
+      "edgesEmptyAloneDisablesLegalPorts": false,
+      "requiredInputDiagnosticsPreserved": true,
+      "graphCanvasStateImplementsSourceBoundLinkGestureLifecycle": false,
+      "hostMustCancelOldGestureWithNoDeltaInverseOrUndo": true,
+      "graphModelDeltaPermitChanged": false,
+      "originalSharedStyles": {
+        "revision": 2,
+        "colors": 34,
+        "typographies": 3,
+        "effectiveMasterStyleRefs": 0,
+        "publicationProvesInheritanceSyncOrAB": false
+      },
+      "thisStageFreshApiOrNativeEvidence": false
+    }
+  },
+  "animationSharedConsumerR03": {
+    "sourceReport": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/animation-consumer-r03-reconciliation.json",
+    "proposal": {
+      "path": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024-animation/particle-consumer-r03-surface-proposal.json",
+      "sha256": "f0351df846cb7e1630fab0ad689153e44da7927008b343af7e65bf66a402af5c"
+    },
+    "sourceEvidence": {
+      "path": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024-animation/particle-consumer-r03-source-evidence.json",
+      "sha256": "8289a8bffad279dcf5f7a3f59d1d349509909242a636abe5595603e27108f1f6"
+    },
+    "ownerThreadId": "01a16d51-741b-73b3-a61a-2189cd38f81e",
+    "animationFileId": "b4a1e3ce-9e6a-81fe-8008-d69d60a13f99",
+    "animationPageId": "b4a1e3ce-9e6a-81fe-8008-d69d60a13f9a",
+    "ownerSourceMappingRevision": 105,
+    "ownerSavedReopenedRevision": 140,
+    "ownerPrivateIsShared": false,
+    "thisStageFreshApiRead": false,
+    "particleLastVerifiedRevision": 38,
+    "particleSharedBasicCopies": 11,
+    "dedicatedAnimationMainsConsumedOrPublished": false,
+    "existingMains": [
+      {
+        "role": "Timeline",
+        "componentId": "8cf70bfd-9275-4bac-849b-b79148b8a4fd",
+        "mainId": "4db0829c-abc4-482d-b7b3-155a5d8d75c2",
+        "draftVersion": 2
+      },
+      {
+        "role": "Curve",
+        "componentId": "78492c86-3bb4-47dd-97c6-752d6ff37e3d",
+        "mainId": "599963dc-b91b-4740-926b-d38154aa8f3a",
+        "draftVersion": 1
+      },
+      {
+        "role": "Transport",
+        "componentId": "982ef940-2239-4167-a24a-56c80ec35fbf",
+        "mainId": "44eb5ccd-8ac2-44f2-a4ad-d0d618daa096",
+        "draftVersion": 2
+      }
+    ],
+    "systemPlayheadUnit": "actual same-instance simulation seconds",
+    "lifetimeCurveUnit": "normalized particle lifetime0..1, independent of System cursor",
+    "rgbaHorizontalGesture": "group by emitter+source key before one mutation/inverse; reproject four components",
+    "componentValueWritesOnlyThatComponent": true,
+    "multiKeyAtomicBatchImplemented": false,
+    "interpolation": "Linear/no tangents; Step/Hermite unavailable; finite HDR not clamped0..1",
+    "currentMounts": [
+      {
+        "asset": "zircon_plugins/particles/editor/authoring.zui",
+        "controlId": "ParticlesCurveEditor",
+        "component": "Space",
+        "publishedSlot": false
+      },
+      {
+        "asset": "zircon_plugins/particles/editor/preview.zui",
+        "controlId": "ParticlesPreviewTransport",
+        "component": "Space",
+        "height": 36,
+        "publishedSlot": false
+      }
+    ],
+    "standardStopResetCompositionApplied": false,
+    "StopDescriptorHasHandler": false,
+    "ResetHandlerDelivered": false,
+    "newOperationOrEventIdsAssigned": false,
+    "sixAnimationRoutesPreserved": true,
+    "recordLoopEnabled": false,
+    "clockFields": [
+      "handle",
+      "age_seconds",
+      "playing",
+      "time_scale",
+      "backend",
+      "fallback_to_cpu"
+    ],
+    "simulationErrorGuaranteesRollback": false,
+    "singleTickProvesBoundedSeekOrFrame": false,
+    "actualContextAckFocusInstalled": false,
+    "sourcePinCount": 20,
+    "currentSourcePinsMatchingR03": 18,
+    "staticTests": {
+      "EditorDirect": 21,
+      "EditorCurve": 8,
+      "EditorTotal": 29,
+      "RuntimePreviewSeparate": 10,
+      "CargoDiscovered": 0,
+      "executed": 0
+    },
+    "proposalApplied": false,
+    "passed": false,
+    "accepted": false
+  },
+  "sharedNativeConsumerRev5": {
+    "report": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/penpot-shared-rev5-consumer.json",
+    "actualReadbackAtUtc": "2026-10-24T20:48:04.019319+00:00",
+    "sharedFileId": "b4a1e3ce-9e6a-81fe-8008-d69d607aac12",
+    "sharedRevision": 5,
+    "ownFileId": "b4a1e3ce-9e6a-81fe-8008-d69d60c876ee",
+    "ownSavedReopenedRevision": 40,
+    "objectsByPage": [
+      266,
+      35,
+      87
+    ],
+    "nativeLibraryUpdateSavedReopened": true,
+    "nativeNoteSavedReopened": true,
+    "businessPageAndPrivateMainUnchanged": true,
+    "sharedCopyRoots": 11,
+    "allSourceRefsValid": 106,
+    "sourceRefSignature": "3c4569548a054cd402bf3ce29ffc479f3926ebde6039004c348e5b9033285c30",
+    "captionOverridesPreserved": 11,
+    "masterFillBindings": 1,
+    "instanceFillBindingsInherited": 2,
+    "masterTypographyRefs": 0,
+    "styleId": "599586e3-022c-500b-ac80-5d9c490139af",
+    "images": [
+      {
+        "path": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/penpot-stack-shared-rev5.png",
+        "sha256": "be3075fc98dafefcb5033f7005aeb7236062e71fc029111a3a4effd0ad561229",
+        "width": 1920,
+        "height": 1280,
+        "savedRevision": 40,
+        "canvasZoomPercent": 100,
+        "fullWorkspaceOriginal": true,
+        "perImageReviewed": true,
+        "boardFullyFramed": false,
+        "scope": "Real Penpot workspace and partial Stack design only",
+        "normalExe": false,
+        "actualSystem150Dpi": false,
+        "sourceImageCroppedOrResized": false,
+        "fidelityAccepted": false,
+        "observations": [
+          "Left board edge/title/labels visibly clipped; original retained.",
+          "Four typed value slots remain empty; long Tree text remains two lines.",
+          "No actual viewport/timeline/graph/input, Reset handler or effect/save/undo proof.",
+          "Body DOM text was absent while real painted design is visible; earlier text wait timeout retained."
+        ]
+      },
+      {
+        "path": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/penpot-stack-shared-rev5-fit.png",
+        "sha256": "820e41f41136176b57f2fea6b1dc57fef065a514f632b25aa2b419c0b0e2844a",
+        "width": 1920,
+        "height": 1280,
+        "savedRevision": 40,
+        "canvasZoomPercent": 80,
+        "fullWorkspaceOriginal": true,
+        "perImageReviewed": true,
+        "boardFullyFramed": true,
+        "scope": "Real Penpot workspace and partial Stack design only",
+        "normalExe": false,
+        "actualSystem150Dpi": false,
+        "sourceImageCroppedOrResized": false,
+        "fidelityAccepted": false,
+        "observations": [
+          "Whole 1280x800 board and corrected outside-product note visible after native fit-all, no source geometry change.",
+          "Four typed value slots remain empty; long Tree text remains two lines.",
+          "No actual viewport/timeline/graph/input, Reset handler or effect/save/undo proof.",
+          "Body DOM text was absent while real painted design is visible; earlier text wait timeout retained."
+        ]
+      }
+    ],
+    "fullFamilyDesignOrProductAcceptance": false,
+    "officialExportVerified": false,
+    "productStyleABVerified": false,
+    "normalExeOrActual150DpiVerified": false,
+    "passed": false,
+    "accepted": false
+  },
+  "sharedPaletteNativeConsumer": {
+    "report": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\penpot-shared-palette-consumption.json",
+    "fileId": "b4a1e3ce-9e6a-81fe-8008-d69d60c876ee",
+    "pageId": "f2894894-da30-8095-8008-d6e405e95ace",
+    "boardId": "f2894894-da30-8095-8008-d6e431a06285",
+    "ownSavedReopenedRevision": 41,
+    "sharedFileId": "b4a1e3ce-9e6a-81fe-8008-d69d607aac12",
+    "sharedRevisionAtWrite": 5,
+    "nativeApiCommand": "update-file",
+    "normalServerValidation": true,
+    "skipValidate": false,
+    "bindings": [
+      {
+        "shapeId": "f2894894-da30-8095-8008-d6e431a06285",
+        "styleId": "5edd281a-cc68-597c-a6fa-1234e164adc8",
+        "styleName": "editor.surface.0",
+        "color": "#151515",
+        "opacity": 1
+      },
+      {
+        "shapeId": "7714b344-798c-4ee1-9b19-b253843a6f57",
+        "styleId": "599586e3-022c-500b-ac80-5d9c490139af",
+        "styleName": "editor.surface.1",
+        "color": "#242424",
+        "opacity": 1
+      },
+      {
+        "shapeId": "616bd3cb-b6db-45dc-af91-42ceb9dc593b",
+        "styleId": "599586e3-022c-500b-ac80-5d9c490139af",
+        "styleName": "editor.surface.1",
+        "color": "#242424",
+        "opacity": 1
+      },
+      {
+        "shapeId": "4794214b-5a2e-48ac-b09c-535407d3db50",
+        "styleId": "5edd281a-cc68-597c-a6fa-1234e164adc8",
+        "styleName": "editor.surface.0",
+        "color": "#151515",
+        "opacity": 1
+      },
+      {
+        "shapeId": "0b1f2857-514a-4168-90b8-4c00ad0a7439",
+        "styleId": "599586e3-022c-500b-ac80-5d9c490139af",
+        "styleName": "editor.surface.1",
+        "color": "#242424",
+        "opacity": 1
+      },
+      {
+        "shapeId": "fbc249ee-8cf9-4d61-ada2-a8fb8c17285e",
+        "styleId": "599586e3-022c-500b-ac80-5d9c490139af",
+        "styleName": "editor.surface.1",
+        "color": "#242424",
+        "opacity": 1
+      },
+      {
+        "shapeId": "217dbd19-f328-48d7-bf7c-5ddfa551347d",
+        "styleId": "599586e3-022c-500b-ac80-5d9c490139af",
+        "styleName": "editor.surface.1",
+        "color": "#242424",
+        "opacity": 1
+      },
+      {
+        "shapeId": "2aaa2339-a22e-49ef-95ff-f9e626617d1c",
+        "styleId": "599586e3-022c-500b-ac80-5d9c490139af",
+        "styleName": "editor.surface.1",
+        "color": "#242424",
+        "opacity": 1
+      },
+      {
+        "shapeId": "181f69ec-892a-484d-9a19-37474eaaeef1",
+        "styleId": "599586e3-022c-500b-ac80-5d9c490139af",
+        "styleName": "editor.surface.1",
+        "color": "#242424",
+        "opacity": 1
+      },
+      {
+        "shapeId": "6f0772b0-8f42-4d6b-9296-2178d2aa67f8",
+        "styleId": "599586e3-022c-500b-ac80-5d9c490139af",
+        "styleName": "editor.surface.1",
+        "color": "#242424",
+        "opacity": 1
+      },
+      {
+        "shapeId": "357d1fec-e7d1-4826-a01e-7efd544daeac",
+        "styleId": "599586e3-022c-500b-ac80-5d9c490139af",
+        "styleName": "editor.surface.1",
+        "color": "#242424",
+        "opacity": 1
+      },
+      {
+        "shapeId": "eba770d9-3233-422e-b2f5-acdcb7746c77",
+        "styleId": "599586e3-022c-500b-ac80-5d9c490139af",
+        "styleName": "editor.surface.1",
+        "color": "#242424",
+        "opacity": 1
+      },
+      {
+        "shapeId": "a7a717e9-94ea-4c29-a364-03a72ae6051a",
+        "styleId": "599586e3-022c-500b-ac80-5d9c490139af",
+        "styleName": "editor.surface.1",
+        "color": "#242424",
+        "opacity": 1
+      },
+      {
+        "shapeId": "7f73ad1a-a90c-4b40-bdcb-b8473ddff583",
+        "styleId": "599586e3-022c-500b-ac80-5d9c490139af",
+        "styleName": "editor.surface.1",
+        "color": "#242424",
+        "opacity": 1
+      }
+    ],
+    "modifiedExistingNonInstanceFrames": 14,
+    "rootOrComponentWrites": 0,
+    "sharedLibraryWrites": 0,
+    "allOtherDataUnchanged": true,
+    "maskedCompleteDataSha256": "6324fbf7c39624a16143a73501d33a1c9a630ace7614e4a903ad41e5478ee334",
+    "saveCloseFreshReopenVerified": true,
+    "browserUpdateFileRequests": 0,
+    "objects": 388,
+    "sourceRefsPreserved": 106,
+    "image": {
+      "path": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\penpot-stack-shared-palette.png",
+      "sha256": "696ce6f5d4e725e87d8446d0a619b64a24c66401b075bc0a57ae831352fd48cf",
+      "viewport": {
+        "width": 1920,
+        "height": 1280
+      },
+      "deviceScaleFactor": 1,
+      "framing": {
+        "board": {
+          "x": 446.40142822265625,
+          "y": 286.9009704589844,
+          "width": 1027.197021484375,
+          "height": 641.9981689453125,
+          "right": 1473.5984497070312,
+          "bottom": 928.8991394042969
+        },
+        "viewport": {
+          "x": 318,
+          "y": 0,
+          "width": 1284,
+          "height": 1280,
+          "right": 1602,
+          "bottom": 1280
+        },
+        "fullyWithin": true,
+        "fontStatus": "loaded"
+      },
+      "fullWorkspaceOriginal": true,
+      "imageCroppedOrResized": false,
+      "normalExe": false,
+      "actualSystem150Dpi": false,
+      "perImageReviewPending": false,
+      "perImageReviewed": true,
+      "reviewAtUtc": "2026-10-24T21:05:24.226058+00:00",
+      "canvasZoomPercentObserved": 80,
+      "boardFullyFramed": true,
+      "observations": [
+        "Original full workspace PNG opened and reviewed; complete Stack and outside-product note visible.",
+        "All four typed value slots remain empty; production viewport/timeline/graph/input/Reset handler absent.",
+        "Container fills retain existing colors; this is shared native reference consumption, not a style A-B/product screenshot-change proof.",
+        "Image is Penpot deviceScale1/native view-fit80%, not actual150%DPI, normal Engine EXE or1logicalpixel fidelity acceptance."
+      ]
+    },
+    "visualComparison": {
+      "referenceImage": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\penpot-stack-shared-rev5-fit.png",
+      "currentImage": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\penpot-stack-shared-palette.png",
+      "comparedNativeBoardRasterBox": [
+        446,
+        286,
+        1474,
+        929
+      ],
+      "boardComparedPixels": 661004,
+      "differentBoardPixels": 0,
+      "maxChannelDifference": 0,
+      "actualToolChunk": "58bef6",
+      "sourceImagesUnmodified": true,
+      "derivedImagesWritten": 0,
+      "isUEOrEngineComparison": false,
+      "isStyleABProductProof": false,
+      "helperDeprecationWarningRetained": "Pillow getdata deprecation emitted; metric completed, no package or product validation implied."
+    },
+    "fullFamilyDesignAcceptance": false,
+    "officialExportVerified": false,
+    "productStyleABVerified": false,
+    "normalExeOrActual150DpiVerified": false,
+    "typedInputOrLiveEffectOperationsVerified": false,
+    "passed": false,
+    "accepted": false
+  },
+  "sourceCurveBatchMutation": {
+    "sourcePacket": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/source-curve-batch-mutation.json",
+    "state": "source-and-static-checks-only-no-host-consumer-or-managed-Rust",
+    "writeSet": [
+      "zircon_plugins/particles/editor/src/source/curve.rs",
+      "zircon_plugins/particles/editor/src/tests/source_curve.rs"
+    ],
+    "api": "ParticleSourceCurveAdapter::apply_batch",
+    "newStaticDefinitions": 5,
+    "editorStaticDefinitions": 34,
+    "cargoDiscovery": null,
+    "executedRustTests": 0,
+    "sharedModelChanged": false,
+    "hostGestureHistoryVerified": false,
+    "hostAcceptanceStillRequired": [
+      "one actual gesture grouped by stable emitter/source key",
+      "same document/session/revision permit and retention",
+      "single inverse batch undo/redo",
+      "cancel/source-change/capture-lost retirement",
+      "dirty and durable save receipt",
+      "actual preview install and frame"
+    ],
+    "passed": false,
+    "accepted": false
+  },
+  "sourceBurstPairMutation": {
+    "sourcePacket": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/source-burst-edit-r01.json",
+    "state": "source-and-static-checks-only-no-host-consumer-or-managed-Rust",
+    "writeSet": [
+      "zircon_plugins/particles/editor/src/lib.rs",
+      "zircon_plugins/particles/editor/src/source/mod.rs",
+      "zircon_plugins/particles/editor/src/source/burst.rs",
+      "zircon_plugins/particles/editor/src/tests/source.rs",
+      "zircon_plugins/particles/editor/src/tests/source_burst.rs"
+    ],
+    "api": [
+      "ParticleSystemSource::validate_burst_edit",
+      "ParticleSystemSource::apply_burst_edit",
+      "parse_particle_burst_count"
+    ],
+    "newStaticDefinitions": 5,
+    "editorStaticDefinitions": 39,
+    "cargoDiscovery": null,
+    "executedRustTests": 0,
+    "realTemplateBurstCount": 0,
+    "twoBurstData": "explicitly authored test fixture in source_burst.rs",
+    "hostAcceptanceStillRequired": [
+      "strict decimal integer draft -> u32 without f32 conversion",
+      "same document/session/revision preflight and one permit",
+      "one pair inverse in existing undo/redo history",
+      "source switch / close / stale draft retirement",
+      "dirty and durable save receipt",
+      "actual CPU/GPU eligibility, preview install and native frame",
+      "focus/error/popover return"
+    ],
+    "passed": false,
+    "accepted": false
+  },
+  "supervisedResume": {
+    "atUtc": "2026-10-25T08:26:47.425198+00:00",
+    "goalStatus": "active",
+    "runnable": true,
+    "sharedGatesParallel": true,
+    "waitingForPerfectParentDelivery": false,
+    "sourceBurstCandidateAdded": true,
+    "penpotBurstBoardsSaved": true,
+    "penpotReport": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/penpot-burst-states-r01.json",
+    "productAccepted": false
+  },
+  "burstNativeSourceStateDesign": {
+    "report": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\penpot-burst-states-r01.json",
+    "fileId": "b4a1e3ce-9e6a-81fe-8008-d69d60c876ee",
+    "pageId": "f2894894-da30-8095-8008-d6e405e95ace",
+    "savedRevision": 49,
+    "boards": [
+      {
+        "state": "selected",
+        "id": "69a39493-325c-4bdf-81ad-64e8b5f1d5b1",
+        "name": "PFX Bursts / selected / 1280x800",
+        "width": 1280,
+        "height": 800,
+        "x": 1400,
+        "y": 0,
+        "domainInstanceId": "51959633-ad71-497f-89f8-c88e696b9737",
+        "fixture": true,
+        "imagePath": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\penpot-bursts-selected-1280.png"
+      },
+      {
+        "state": "empty",
+        "id": "d39eec70-1eb7-4239-ad48-2bec32032d7f",
+        "name": "PFX Bursts / empty / 900x620",
+        "width": 900,
+        "height": 620,
+        "x": 2780,
+        "y": 0,
+        "domainInstanceId": "4200dbff-2850-4312-9640-879807cf84ac",
+        "fixture": false,
+        "imagePath": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\penpot-bursts-empty-900.png"
+      },
+      {
+        "state": "stale",
+        "id": "6be8baed-28fb-4529-af30-183766afe4ce",
+        "name": "PFX Bursts / stale / 640x520",
+        "width": 640,
+        "height": 520,
+        "x": 3780,
+        "y": 0,
+        "domainInstanceId": "569090e0-3d77-4550-aaa4-56e1b348bb8f",
+        "fixture": true,
+        "imagePath": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\penpot-bursts-stale-640.png"
+      }
+    ],
+    "nativeEditableObjectsAdded": 91,
+    "nativeFlowFramesAdded": 25,
+    "originalObjectsUnchangedExceptRootChildren": true,
+    "copies": 21,
+    "sourceRefs": 118,
+    "invalidSourceRefs": 0,
+    "sharedRevision": 5,
+    "sharedUntouched": true,
+    "saveCloseFreshReopenVerified": true,
+    "images": [
+      {
+        "boardId": "69a39493-325c-4bdf-81ad-64e8b5f1d5b1",
+        "state": "selected",
+        "path": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\penpot-bursts-selected-1280.png",
+        "sha256": "be6f27342f16cfcf3cb6fce041b39c91a9d7aa4e34f5827ef0589a97aba6486b",
+        "framing": {
+          "board": {
+            "x": 355.76470947265625,
+            "y": 262.3529357910156,
+            "width": 1208.470703125,
+            "height": 755.2940673828125,
+            "right": 1564.2354125976562,
+            "bottom": 1017.6470031738281
+          },
+          "viewport": {
+            "x": 318,
+            "y": 0,
+            "width": 1284,
+            "height": 1280,
+            "right": 1602,
+            "bottom": 1280
+          },
+          "fullyWithin": true,
+          "fontStatus": "loaded"
+        },
+        "fullWorkspaceOriginal": true,
+        "imageCroppedOrResized": false,
+        "normalExe": false,
+        "actualSystem150Dpi": false,
+        "reviewPending": false,
+        "reviewed": true,
+        "reviewAtUtc": "2026-10-25T08:32:14.093833+00:00",
+        "reviewToolChunk": "final-three-images-viewed-after-native-layer-helper",
+        "observations": [
+          "Full 1280x800 board framed at native canvas fit94%; header/context/source/footer order corrected.",
+          "Both authored source rows and stable keys are visible in original authored order; proposed pair is 0.250/3 to0.500/7.",
+          "Three domain summary text lines, Unicode arrow and lifetime range readable.",
+          "Read-only source-state design; no typed field, handler, simulation frame or durable save shown."
+        ],
+        "designSourceStateReadable": true,
+        "ueFidelityAccepted": false
+      },
+      {
+        "boardId": "d39eec70-1eb7-4239-ad48-2bec32032d7f",
+        "state": "empty",
+        "path": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\penpot-bursts-empty-900.png",
+        "sha256": "84a5528351a763582d3ca25cf26ce20897880d9d588322c231ea473d9a8de3ad",
+        "framing": {
+          "board": {
+            "x": 370.40997314453125,
+            "y": 233.83140563964844,
+            "width": 1179.18017578125,
+            "height": 812.3240966796875,
+            "right": 1549.5901489257812,
+            "bottom": 1046.155502319336
+          },
+          "viewport": {
+            "x": 318,
+            "y": 0,
+            "width": 1284,
+            "height": 1280,
+            "right": 1602,
+            "bottom": 1280
+          },
+          "fullyWithin": true,
+          "fontStatus": "loaded"
+        },
+        "fullWorkspaceOriginal": true,
+        "imageCroppedOrResized": false,
+        "normalExe": false,
+        "actualSystem150Dpi": false,
+        "reviewPending": false,
+        "reviewed": true,
+        "reviewAtUtc": "2026-10-25T08:32:14.094293+00:00",
+        "reviewToolChunk": "final-three-images-viewed-after-native-layer-helper",
+        "observations": [
+          "Full900x620 board framed at native canvas fit131%.",
+          "Real template has0burst entries and continuous32/s; Chinese empty text renders visibly.",
+          "Summary wraps rate without clipping; no fake burst data attributed to template.",
+          "No product preview/interaction/150%DPI claim."
+        ],
+        "designSourceStateReadable": true,
+        "ueFidelityAccepted": false
+      },
+      {
+        "boardId": "6be8baed-28fb-4529-af30-183766afe4ce",
+        "state": "stale",
+        "path": "E:\\cargo-targets\\zircon-local\\reports\\ue-window-suite-20261024\\particles\\penpot-bursts-stale-640.png",
+        "sha256": "5eaffb1554085780eabe64f64dedc80ad71786e03d8544522f09d35b329d6e8d",
+        "framing": {
+          "board": {
+            "x": 389.3357238769531,
+            "y": 176.3352508544922,
+            "width": 1141.32861328125,
+            "height": 927.3294067382812,
+            "right": 1530.6643371582031,
+            "bottom": 1103.6646575927734
+          },
+          "viewport": {
+            "x": 318,
+            "y": 0,
+            "width": 1284,
+            "height": 1280,
+            "right": 1602,
+            "bottom": 1280
+          },
+          "fullyWithin": true,
+          "fontStatus": "loaded"
+        },
+        "fullWorkspaceOriginal": true,
+        "imageCroppedOrResized": false,
+        "normalExe": false,
+        "actualSystem150Dpi": false,
+        "reviewPending": false,
+        "reviewed": true,
+        "reviewAtUtc": "2026-10-25T08:32:14.094723+00:00",
+        "reviewToolChunk": "final-three-images-viewed-after-native-layer-helper",
+        "observations": [
+          "Full640x520 board framed at native canvas fit178%.",
+          "Negative-time draft and original0.250s/3 are both visible; Chinese diagnostic readable.",
+          "Summary long caption wraps completely inside expanded112px native domain copy.",
+          "Board legacy state key is stale; actual illustrated scenario is invalid negative-time draft. Host stale-value UX remains unverified.",
+          "Two columns retained; no automatic tab merge or product keyboard/error focus acceptance."
+        ],
+        "designSourceStateReadable": true,
+        "ueFidelityAccepted": false
+      }
+    ],
+    "actualScenarioOfLegacyStaleBoard": "invalid negative time draft; host stale-value UX unverified",
+    "passed": false,
+    "accepted": false,
+    "officialExportVerified": false,
+    "normalExeVerified": false,
+    "actual150DpiVerified": false
+  },
+  "sourceCurveGestureBoundary": {
+    "stageId": "source-curve-gesture-boundary-r01",
+    "implementedAtUtc": "2026-10-25T17:38:48.075531+00:00",
+    "sourcePaths": [
+      "zircon_plugins/particles/editor/src/source/curve.rs",
+      "zircon_plugins/particles/editor/src/tests/source_curve.rs"
+    ],
+    "protocol": "CurveModel<CurveId = ParticleSourceCurveId, Delta = Vec<ParticleSourceCurveEdit>, Error = ParticleSourceError>",
+    "traitApplyCallsExistingBatchOnce": true,
+    "inverseIsCompleteVector": true,
+    "sequentialPointApplyAllowed": false,
+    "newAdapterStoreClockBackend": false,
+    "sharedSourceWrites": false,
+    "supersedesSinglePointTraitDelta": true,
+    "historicalPacketsPreserved": true,
+    "regressions": [
+      "RGBA components share one time and complete inverse/redo",
+      "final-time swap through CurveModel::apply",
+      "last invalid edit rejects all source writes",
+      "ordering and other-emitter isolation",
+      "empty gesture and stale replay through shared trait"
+    ],
+    "staticDefinitions": {
+      "editorDirect": 21,
+      "editorCurve": 13,
+      "editorBurst": 5,
+      "editorTotal": 39,
+      "runtimeSeparate": 10,
+      "vfxSeparate": 5
+    },
+    "cargoDiscovered": 0,
+    "rustExecuted": 0,
+    "requiredHostContracts": [
+      "same actual document/session/revision and input owner",
+      "one whole-gesture retention/proof/permit and history command",
+      "dirty/preview install projected after actual commit",
+      "original toolkit SaveCtx/job/token/durable receipt",
+      "cancel/source-switch/close with no delta or history"
+    ],
+    "actualSharedGaps": [
+      "CurveModel has no generic curve transaction command",
+      "GraphDeltaCommand requires GraphModel and GraphEditContext",
+      "AnimationEditCommand owns animation_documents only",
+      "no installed particle source/revision command authority in host"
+    ],
+    "packet": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/source-curve-gesture-boundary-r01.json",
+    "hostContract": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/source-curve-gesture-host-integration-r01.md",
+    "formalJenkinsRevision": null,
+    "requestResubmitted": false,
+    "penpotChanged": false,
+    "zuiChanged": false,
+    "normalExeVerified": false,
+    "actual150DpiVerified": false,
+    "passed": false,
+    "accepted": false
+  },
+  "nativePropertyValueSlotAttempt": {
+    "stageId": "penpot-source-values-r01",
+    "receipt": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/penpot-source-values-r01.json",
+    "state": "native-insertion-not-confirmed-original-file-preserved",
+    "fileId": "b4a1e3ce-9e6a-81fe-8008-d69d60c876ee",
+    "pageId": "f2894894-da30-8095-8008-d6e405e95ace",
+    "boardId": "f2894894-da30-8095-8008-d6e431a06285",
+    "revision": 49,
+    "sharedRevision": 5,
+    "sourceAndSharedFullResponseHashesUnchanged": true,
+    "freshVerified": true,
+    "newValueTexts": 0,
+    "slotsStillEmpty": 4,
+    "sourceTemplateValues": [
+      "12648430",
+      "256",
+      "32 / s",
+      "1–1.5 s"
+    ],
+    "sourceValuesAreMounted": false,
+    "slotBlocked": false,
+    "nativeCopyParentResolverSkipsCopy": true,
+    "timeoutSoleCauseProven": false,
+    "sharedRecipeRequired": "canonical Slot instance content/swap and formal export, preserving source refs and reset",
+    "apiForceWrite": false,
+    "detach": false,
+    "newMaster": false,
+    "failureImage": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/penpot-source-values-attempt.png",
+    "typedInput": false,
+    "officialExport": false,
+    "normalExe": false,
+    "passed": false,
+    "accepted": false
+  },
+  "sourceBurstTypedCaller": {
+    "stageId": "source-burst-typed-caller-r01",
+    "packet": "E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/particles/source-burst-typed-caller-r01.json",
+    "sourcePaths": [
+      "zircon_plugins/particles/editor/src/source/burst.rs",
+      "zircon_plugins/particles/editor/src/tests/source_burst.rs"
+    ],
+    "captureMethod": "ParticleSystemSource::capture_burst_edit",
+    "draftMethod": "ParticleSourceBurstEdit::set_replacement_from_text",
+    "existingDtoReused": true,
+    "newDtoStoreClockWorld": false,
+    "capturedKeysExpectedRemainOriginal": true,
+    "parsePairBeforeDraftWrite": true,
+    "countStrictU32Text": true,
+    "countThroughFloat": false,
+    "timeFiniteNonnegativeReal": true,
+    "rejectNonzeroUnderflowToZero": true,
+    "newSimulationEpsilon": false,
+    "assignMissingKeys": false,
+    "captureIsNotDocumentRevisionAdmission": true,
+    "noopRequiresCurrentContextAndDomainPreflight": true,
+    "regressions": [
+      "same-time stable-key capture and exact16777217/u32MAX",
+      "invalid fields/overflow/underflow retain delta and expected",
+      "pending draft never rebases expected onto concurrent source",
+      "missing identities and stale noop still reject",
+      "paired apply/codec/inverse/redo and existing CPU path"
+    ],
+    "staticDefinitions": {
+      "editorDirect": 21,
+      "editorCurve": 13,
+      "editorBurst": 10,
+      "editorFilteredTotal": 44,
+      "casesOutsideFilter": 1,
+      "runtimeSeparate": 10,
+      "vfxSeparate": 5
+    },
+    "cargoDiscovered": 0,
+    "rustExecuted": 0,
+    "sourceFreeze": false,
+    "serverRevision": null,
+    "originalR2IdentityPreserved": true,
+    "newRequestOperationAttempt": false,
+    "penpotChanged": false,
+    "zuiChanged": false,
+    "hostInstalled": false,
+    "previewPermissionGranted": false,
+    "durableSaveVerified": false,
+    "passed": false,
+    "accepted": false
+  }
+}

@@ -7,6 +7,24 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn draws_s
     if is_frame_only_node(node) {
         return false;
     }
+    // Layout containers have no implicit panel. Explicit paint still follows
+    // the normal surface path, and genuine Panel/Mount fallbacks stay intact.
+    if matches!(
+        node.component_role.as_str(),
+        "horizontal-group" | "vertical-group" | "space" | "scrollable-box"
+    ) {
+        return !node.surface_variant.is_empty()
+            || !node.button_variant.is_empty()
+            || node.button_style.element.background_color.is_some()
+            || node.button_style.element.border_color.is_some()
+            || node.button_style.element.border_width > 0.0
+            || node.button_style.element.corner_radius > 0.0
+            || node.border_width > 0.0
+            || node.corner_radius > 0.0
+            || node.elevation > 0.0
+            || node.state_layer_enabled
+            || node.ripple_enabled;
+    }
     matches!(node.role.as_str(), "Panel" | "Button" | "Mount")
         || is_mui_overlay_surface_node(node)
         || !node.surface_variant.is_empty()

@@ -26,7 +26,7 @@ def codex = '@@CODEX@@'
 def capsule = '@@CAPSULE@@'
 def driver = '@@DRIVER@@'
 def runtime = '@@RUNTIME@@'
-def allowed = ['create-branch', 'create-worktree', 'prepare-merge', 'apply-patch', 'commit-worktree', 'release-worktree', 'recover-worktree', 'validate', 'generate', 'prepare-flow', 'submit-flow', 'prepare-worktree', 'inspect-worktree', 'retire-worktree-reader', 'preview-current-editor-r34']
+def allowed = ['create-branch', 'create-worktree', 'prepare-merge', 'apply-patch', 'commit-worktree', 'release-worktree', 'recover-worktree', 'validate', 'generate', 'prepare-flow', 'submit-flow', 'prepare-worktree', 'inspect-worktree', 'retire-worktree-reader', 'preview-current-editor-r34', 'prepare-node', 'validate-node']
 if (!(params.ACTION in allowed)) error('Unsupported management action')
 for (String name : ['SESSION_ID', 'REQUEST_ID', 'OPERATION_ID']) {
     if (!(params[name] ==~ /[A-Za-z0-9][A-Za-z0-9_.-]{0,79}/)) error("Invalid ${name}")

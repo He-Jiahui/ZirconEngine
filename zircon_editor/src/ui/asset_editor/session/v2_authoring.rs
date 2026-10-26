@@ -13,12 +13,13 @@ pub(super) fn build_v2_preview_host(
     document: &UiV2AssetDocument,
     preview_size: UiSize,
     imports: &UiAssetV2CompilerImports,
+    source_path: &str,
 ) -> Result<Option<UiAssetPreviewHost>, UiAssetEditorSessionError> {
     if is_v2_style_import_kind(document.asset.kind) {
         return Ok(None);
     }
 
-    let (document, store) = v2_document_and_prototype_store(document, imports);
+    let (document, store) = v2_document_and_prototype_store(document, imports, source_path);
     let compiled = UiV2DocumentCompiler::compile_with_prototype_store(&document, &store)?;
     Ok(Some(UiAssetPreviewHost::new_v2(
         preview_size,
@@ -61,10 +62,12 @@ fn extend_cloned_values<T: Clone>(target: &mut Vec<T>, source: &[T]) {
 fn v2_document_and_prototype_store(
     document: &UiV2AssetDocument,
     imports: &UiAssetV2CompilerImports,
+    source_path: &str,
 ) -> (UiV2AssetDocument, UiV2PrototypeStore) {
     let document = v2_preview_document_with_imported_styles(document, &imports.styles);
     let mut store = UiV2PrototypeStore::new();
-    let root = store.insert(document.clone());
+    // The editor route owns this source URI; the asset id alone is not its location.
+    let root = store.insert_with_source_path(document.clone(), source_path);
     store.insert_alias(document.asset.id.clone(), root);
     for (reference, import) in imports.widgets.iter().chain(imports.styles.iter()) {
         let imported = store.insert(import.clone());

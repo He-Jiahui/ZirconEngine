@@ -37,8 +37,34 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn select_
     node: &TemplatePaneNodeData,
     context: WorkbenchIconButtonContext,
 ) -> WorkbenchIconButtonStyle {
-    let state =
-        resolved_state_for_node(node).resolved_state_for_family(UiPainterFamily::IconButton);
+    let painter = resolved_state_for_node(node);
+    let state = painter.resolved_state_for_family(UiPainterFamily::IconButton);
+    if context == WorkbenchIconButtonContext::TabClose {
+        // FStarshipCoreStyle CloseButton: pressed wins over hovered, with no
+        // brush surface or pressed offset. Disabled dims the current brush.
+        let value = if painter.hovered && !painter.pressed {
+            255
+        } else {
+            192
+        };
+        return WorkbenchIconButtonStyle {
+            background: None,
+            border: None,
+            border_width: 0.0,
+            radius: 0.0,
+            glyph: [
+                value,
+                value,
+                value,
+                if painter.disabled || painter.loading {
+                    115
+                } else {
+                    255
+                },
+            ],
+            state,
+        };
+    }
     let danger = is_danger_icon(node);
 
     let style = WorkbenchIconButtonStyle {

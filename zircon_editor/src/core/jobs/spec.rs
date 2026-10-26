@@ -15,6 +15,7 @@ pub struct EditorJobSpec {
     pub(super) category: JobCategory,
     pub(super) priority: JobPriority,
     pub(super) primary_progress_visible: bool,
+    pub(super) progress_notification_visible: bool,
     pub(super) mutex_group: Option<MutexGroup>,
     pub(super) cancel: CancellationToken,
     pub(super) after: Vec<JobId>,
@@ -30,6 +31,7 @@ impl EditorJobSpec {
             category,
             priority: JobPriority::Normal,
             primary_progress_visible: true,
+            progress_notification_visible: true,
             mutex_group: None,
             cancel: CancellationToken::default(),
             after: Vec::new(),
@@ -43,6 +45,13 @@ impl EditorJobSpec {
     /// progress, cancellation and admission continue to include this job.
     pub fn with_primary_progress_visible(mut self, visible: bool) -> Self {
         self.primary_progress_visible = visible;
+        self
+    }
+
+    /// Controls automatic progress notifications independently of the retained
+    /// primary display. Detailed progress, cancellation and lifecycle remain available.
+    pub fn with_progress_notification_visible(mut self, visible: bool) -> Self {
+        self.progress_notification_visible = visible;
         self
     }
 

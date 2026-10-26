@@ -6,6 +6,7 @@ source coverage, fonts, or whole managed Workbench acceptance.
 from __future__ import annotations
 
 import hashlib
+import base64
 import json
 import math
 import os
@@ -14,6 +15,9 @@ import zlib
 from pathlib import Path
 
 MAX_BYTES = 24 * 1024 * 1024
+CASE_MAX_BYTES = 8 * 1024 * 1024
+SCENE_SCHEMA = "dev.zircon.editor.runtime-scene-media"
+SCENE_SOURCE = "res://ui/editor/unreal/components/viewport.zui"
 
 
 def require(condition: bool, reason: str) -> None:
@@ -119,7 +123,7 @@ def validate_case_publication(profile: dict, review_case: dict) -> None:
     bound = bound_normal.get("workbenchStatePublication")
     full_case = any(key in bound_normal for key in
                     ("presentationCursor", "presentedFrameCount", "viewportToolbarPublication",
-                     "designTokenInput", "arrangedInventoryPublication"))
+                     "designTokenInput", "arrangedInventoryPublication", "commands"))
     if bound is None and not full_case:
         return  # Static cases retain unknown business authority.
     expected_normal_fields = {"workbenchStatePublication"}
@@ -128,10 +132,12 @@ def validate_case_publication(profile: dict, review_case: dict) -> None:
         if "semanticNodes" in bound_normal:
             expected_normal_fields.add("semanticNodes")
         expected_normal_fields.update(
-            key for key in ("designTokenInput", "arrangedInventoryPublication")
+            key for key in ("designTokenInput", "arrangedInventoryPublication", "commands")
             if key in bound_normal)
     if "focusPublication" in bound_normal:
         expected_normal_fields.add("focusPublication")
+    if "runtimeSceneMedia" in bound_normal:
+        expected_normal_fields.add("runtimeSceneMedia")
     require(set(bound_normal) == expected_normal_fields,
             "The hashed case needs an exact legacy publication or a complete canonical seed publication")
     fields = {"authority", "observed", "presentationCursor",
@@ -197,6 +203,11 @@ def validate_case_publication(profile: dict, review_case: dict) -> None:
         require(("semanticNodes" in bound_normal) == ("semanticNodes" in normal) and
                 json_identity_equal(bound_normal.get("semanticNodes"), normal.get("semanticNodes")),
                 "Actual semantic nodes changed after case preparation")
+        if "commands" in bound_normal:
+            observed_submitted_commands(bound_normal)
+            observed_submitted_commands(normal)
+            require(json_identity_equal(bound_normal["commands"], normal["commands"]),
+                    "Actual submitted commands changed after case preparation")
         # Bind observations from the seed and the held normal present without
         # promoting a paired null or a pending inventory into readiness.
         paint_for_token_input = normal.get("paintEvidence")
@@ -247,6 +258,10 @@ def validate_case_publication(profile: dict, review_case: dict) -> None:
     require(("focusPublication" in bound_normal) == ("focusPublication" in normal) and
             json_identity_equal(bound_normal.get("focusPublication"), normal.get("focusPublication")),
             "Actual focus changed after case preparation; unknown is not known unfocused")
+    if "runtimeSceneMedia" in bound_normal:
+        packet = runtime_scene_packet(review_case)
+        scene = packet["bootstrapPixelAssociation"]["observed"]["normalReadbackReceipt"]["sceneImage"]
+        validate_scene_command(scene, profile)
 
 
 def validate_case_inputs(review_case: dict, repo_root: Path,
@@ -358,6 +373,361 @@ def decode_own_png(data: bytes, size: tuple[int, int]) -> bytes:
     return b"".join(rows[index + 1:index + stride] for index in range(0, len(rows), stride))
 
 
+def decode_scene_png(data: bytes, size: tuple[int, int]) -> bytes:
+    """Bounded, independent decoder for official noninterlaced RGBA8 scene PNGs.
+
+    The image crate may choose any of the five row filters and split IDAT.
+    This does not relax the separate desktop capture owner's fixed PNG format.
+    """
+    width, height = size
+    require(all(type(x) is int and 0 < x <= 8192 for x in size) and width * height * 4 <= MAX_BYTES and
+            len(data) <= CASE_MAX_BYTES and data.startswith(b"\x89PNG\r\n\x1a\n"), "Scene PNG extent or signature is invalid")
+    offset, compressed, kinds, ended_idat = 8, bytearray(), [], False
+    while offset < len(data):
+        require(len(kinds) < 1024 and offset + 12 <= len(data), "Scene PNG chunk count or extent is invalid")
+        length = struct.unpack_from(">I", data, offset)[0]
+        kind, end = data[offset + 4:offset + 8], offset + length + 12
+        require(end <= len(data) and all(65 <= x <= 90 or 97 <= x <= 122 for x in kind) and not kind[2] & 32,
+                "Scene PNG chunk is invalid")
+        body = data[offset + 8:end - 4]
+        require(zlib.crc32(kind + body) & 0xffffffff == struct.unpack_from(">I", data, end - 4)[0], "Scene PNG CRC differs")
+        if not kinds:
+            require(kind == b"IHDR" and body == struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0), "Scene PNG format differs")
+        elif kind == b"IHDR":
+            raise ValueError("Scene PNG has duplicate IHDR")
+        elif kind == b"IDAT":
+            require(not ended_idat, "Scene PNG IDAT chunks are not contiguous")
+            compressed.extend(body)
+        elif kind == b"IEND":
+            require(length == 0 and end == len(data) and b"IDAT" in kinds, "Scene PNG end or trailing bytes differ")
+        else:
+            require(kind[0] & 32, "Scene PNG has an unsupported critical chunk")
+            if b"IDAT" in kinds:
+                ended_idat = True
+            # Do not reinterpret the explicitly sRGB encoder input via an ICC,
+            # HDR or contradictory transfer declaration supplied by a file.
+            require(kind not in (b"iCCP", b"cICP", b"mDCV", b"cLLI", b"tRNS", b"acTL", b"fcTL", b"fdAT"), "Scene PNG has an unsupported color/animation profile")
+            if kind == b"gAMA":
+                require(body == struct.pack(">I", 45455) and b"IDAT" not in kinds and kind not in kinds,
+                        "Scene PNG transfer declaration differs")
+            if kind == b"sRGB":
+                require(len(body) == 1 and body[0] <= 3 and b"IDAT" not in kinds and kind not in kinds,
+                        "Scene PNG sRGB declaration differs")
+            if kind == b"cHRM":
+                require(body == struct.pack(">8I", 31270,32900,64000,33000,30000,60000,15000,6000) and b"IDAT" not in kinds and kind not in kinds,
+                        "Scene PNG primaries differ")
+        kinds.append(kind); offset = end
+    require(kinds and kinds[-1] == b"IEND", "Scene PNG is incomplete")
+    stride, expected = width * 4, height * (width * 4 + 1)
+    inflater = zlib.decompressobj()
+    filtered = inflater.decompress(bytes(compressed), expected + 1)
+    require(len(filtered) == expected and inflater.eof and not inflater.unconsumed_tail and not inflater.unused_data,
+            "Scene PNG inflated extent differs")
+    output = bytearray(width * height * 4)
+    for row in range(height):
+        method = filtered[row * (stride + 1)]
+        require(method <= 4, "Scene PNG row filter is invalid")
+        for column in range(stride):
+            left = output[row * stride + column - 4] if column >= 4 else 0
+            up = output[(row - 1) * stride + column] if row else 0
+            diagonal = output[(row - 1) * stride + column - 4] if row and column >= 4 else 0
+            if method == 0: predictor = 0
+            elif method == 1: predictor = left
+            elif method == 2: predictor = up
+            elif method == 3: predictor = (left + up) // 2
+            else:
+                estimate = left + up - diagonal
+                distances = (abs(estimate - left), abs(estimate - up), abs(estimate - diagonal))
+                predictor = (left, up, diagonal)[distances.index(min(distances))]
+            output[row * stride + column] = (filtered[row * (stride + 1) + 1 + column] + predictor) & 255
+    return bytes(output)
+
+
+def scene_source_alias(value: str) -> str:
+    return "zircon_editor/assets/" + value[6:] if value.startswith("res://ui/editor/") else value
+
+
+def scene_source_path(value: object) -> str:
+    require(isinstance(value, str) and bool(value.strip()), "Scene source path is incomplete")
+    path = scene_source_alias(value)
+    require("\\" not in path and not any(part in (".", "..") for part in path.split("/")), "Invalid Scene source alias")
+    return path
+
+
+def source_tuple(value: object) -> tuple:
+    require(isinstance(value, dict) and all(isinstance(value.get(key), str) and value[key].strip()
+            for key in ("sourcePath", "sourceNodeId")), "Scene source owner is incomplete")
+    path = value["instancePath"] if "instancePath" in value else None
+    if isinstance(path, str):
+        path = json.loads(path)
+    require(isinstance(path, list) and len(path) <= 64 and all(
+        isinstance(step, dict) and set(step) == {"sourcePath", "sourceNodeId"} and
+        all(isinstance(step[key], str) and step[key].strip() for key in step) for step in path),
+        "Scene invocation identity is incomplete")
+    steps = [{"sourcePath": scene_source_path(step["sourcePath"]), "sourceNodeId": step["sourceNodeId"]} for step in path]
+    return scene_source_path(value["sourcePath"]), value["sourceNodeId"], json.dumps(steps, sort_keys=True, separators=(",", ":"))
+
+
+def observed_submitted_commands(normal: dict) -> list:
+    commands = normal.get("commands")
+    require(isinstance(commands, list), "Actual submitted normal commands are absent")
+    indices = set()
+    for command in commands:
+        index = command.get("commandIndex") if isinstance(command, dict) else None
+        require(uint(index) and index <= 2**53 - 1 and index not in indices,
+                "Actual normal command indices are incomplete or duplicated")
+        indices.add(index)
+    return commands
+
+
+def validate_scene_command(scene: dict, profile: dict, *, frame_local: bool = False) -> dict:
+    require(isinstance(scene, dict) and scene.get("schema") == "dev.zircon.editor.normal-scene-image-readback" and
+            type(scene.get("version")) is int and scene["version"] == 1 and scene.get("authority") == "normal-actual-submitted-runtime-image-readback" and
+            scene.get("paneKind") == "Scene" and isinstance(scene.get("surfaceKey"), str) and bool(scene["surfaceKey"]) and
+            "atlasUv" in scene and scene["atlasUv"] is None and type(scene.get("overlayPresent")) is bool and
+            all(isinstance(scene.get(key), dict) and set(scene[key]) == {"sourcePath","sourceNodeId","instancePath"} and
+                isinstance(scene[key].get("instancePath"), str) for key in ("owner","viewportRoot")),
+            "Scene packet is not an exact submitted runtime image")
+    reference = scene.get("sourceRef")
+    require(isinstance(reference, dict) and set(reference) == {"authority", "primitiveIdentity", "treeId", "generation", "nodeId", "nodeCommandIndex", "fragmentIndex"} and
+            reference.get("authority") == "surface-node-owner" and reference.get("primitiveIdentity") is False and
+            isinstance(reference.get("treeId"), str) and bool(reference["treeId"]) and
+            all(uint(reference.get(key)) for key in ("generation", "nodeId", "nodeCommandIndex", "fragmentIndex")) and
+            uint(scene.get("commandIndex")) and all(isinstance(scene.get(key), dict) and set(scene[key]) == {"x", "y", "width", "height"} and
+                all(type(value) in (int, float) and math.isfinite(value) for value in scene[key].values()) and
+                scene[key]["width"] > 0 and scene[key]["height"] > 0 for key in ("commandBounds", "commandClip")),
+            "Scene source reference or actual command rectangles are incomplete")
+    owner, root = source_tuple(scene.get("owner")), source_tuple(scene.get("viewportRoot"))
+    viewport = (owner[0], "viewport", owner[2])
+    require(owner[:2] == (scene_source_path(SCENE_SOURCE), "scene_media") and
+            root[:2] == (scene_source_path(SCENE_SOURCE), "root") and owner[2] == root[2],
+            "Scene image has a different authored viewport owner")
+    normal = profile.get("normal_window_evidence") or {}
+    # Non-scene brushes may lack Source. A matching path/node must still provide
+    # a complete strict invocation, including when another valid target exists.
+    matches = [command for command in observed_submitted_commands(normal) if
+               isinstance(command, dict) and (command.get("paint") or {}).get("kind") == "image" and
+               isinstance(command.get("source"), dict) and command["source"].get("sourceNodeId") == owner[1] and
+               isinstance(command["source"].get("sourcePath"), str) and scene_source_alias(command["source"]["sourcePath"]) == owner[0] and
+               source_tuple(command["source"]) == owner]
+    require(len(matches) == 1, "Scene needs one actual source-owned submitted image command")
+    command, payload = matches[0], matches[0]["paint"]
+    require(payload.get("residentAfterSuccessfulPresent") is True and payload.get("hasUploadBytes") is False and
+            payload.get("resourceKey") == scene.get("resourceKey") and uint(scene.get("resourceGeneration")) and
+            payload.get("generation") == scene["resourceGeneration"] and
+            scene.get("physicalSize") == [payload.get("width"), payload.get("height")],
+            "Scene submitted image resource identity, size or residency differs")
+    source = command["source"]
+    require(source.get("controlId") == "WorkbenchViewportSurface" and source_tuple({
+            "sourcePath": source.get("parentSourcePath"), "sourceNodeId": source.get("parentSourceNodeId"),
+            "instancePath": source.get("parentInstancePath")}) == viewport,
+            "Scene submitted image has a different viewport parent")
+    if frame_local:
+        require(uint(scene.get("commandIndex")) and scene["commandIndex"] == command.get("commandIndex") and
+                json_identity_equal(scene.get("sourceRef"), source.get("sourceRef")) and
+                json_identity_equal(scene.get("commandBounds"), command.get("bounds")) and
+                json_identity_equal(scene.get("commandClip"), command.get("clip")),
+                "Scene receipt does not identify its actual frame-local command")
+    inventory = normal.get("arrangedInventoryPublication") or {}
+    require(inventory.get("schema") == "dev.zircon.editor.normal-arranged-inventory" and inventory.get("version") == 1 and
+            inventory.get("authority") == "normal-retained-runtime-surfaces" and inventory.get("observed") is True and
+            type(inventory.get("complete")) is bool and json_identity_equal(inventory.get("presentationCursor"), normal.get("presentationCursor")) and
+            type(inventory.get("presentedFrameCount")) is int and inventory["presentedFrameCount"] == normal.get("presentedFrameCount"),
+            "Scene owner inventory belongs to another normal frame")
+    surfaces = [value for value in inventory.get("surfaces") or [] if isinstance(value, dict) and value.get("scope") == "workbench-window"]
+    require(len(surfaces) == 1 and surfaces[0].get("documentId") == "res://ui/editor/unreal/level_editor_window.zui",
+            "Scene has no unique actual Workbench owner surface")
+    surface, by_id, surface_ids = surfaces[0], {}, set()
+    require(surface.get("schema") == "dev.zircon.editor.normal-surface-arranged-inventory" and surface.get("version") == 1 and
+            surface.get("coordinateSpace") == "surface-logical" and surface.get("frameAuthority") == "retained-host-projection" and
+            uint(surface.get("sourceFrameGeneration")), "Scene surface schema or source frame is incomplete")
+    for row in surface.get("nodes") or []:
+        require(isinstance(row, dict) and isinstance(row.get("nodeId"), str) and row["nodeId"] not in by_id, "Scene inventory has duplicate runtime IDs")
+        actual_id = row.get("surfaceNodeId")
+        if actual_id is not None:
+            require(uint(actual_id) and actual_id > 0 and actual_id not in surface_ids, "Scene inventory has invalid or duplicate actual source IDs")
+            surface_ids.add(actual_id)
+        by_id[row["nodeId"]] = row
+    roots = [row for row in by_id.values() if row.get("controlId") == "WorkbenchWindowRoot"]
+    def scene_rows(identity):
+        return [row for row in by_id.values() if row.get("sourceNodeId") == identity[1] and isinstance(row.get("sourcePath"), str) and
+                scene_source_path(row.get("sourcePath")) == identity[0] and source_tuple(row) == identity]
+    matches, authored_roots, viewports = scene_rows(owner), scene_rows(root), scene_rows(viewport)
+    reference = command["source"].get("sourceRef")
+    require(len(roots) == len(matches) == len(authored_roots) == len(viewports) == 1 and
+            matches[0].get("component") == "SceneViewViewport" and matches[0].get("controlId") == "WorkbenchViewportSurface" and
+            authored_roots[0].get("component") == "VerticalGroup" and authored_roots[0].get("controlId") == "WorkbenchMainBandViewportPanel" and
+            viewports[0].get("component") == "Overlay" and viewports[0].get("controlId") == "UnrealSceneViewViewport" and
+            roots[0].get("parent") is None and roots[0].get("component") == "Overlay" and
+            source_tuple(roots[0])[:2] == (scene_source_path("res://ui/editor/unreal/level_editor_window.zui"), "root") and
+            uint(roots[0].get("surfaceNodeId")) and roots[0]["surfaceNodeId"] > 0 and surface.get("rootIds") == [roots[0]["surfaceNodeId"]] and
+            isinstance(reference, dict) and set(reference) == {"authority", "primitiveIdentity", "treeId", "generation", "nodeId", "nodeCommandIndex", "fragmentIndex"} and
+            reference.get("authority") == "surface-node-owner" and reference.get("primitiveIdentity") is False and
+            reference.get("treeId") == "template.v2." + surface["documentId"] and
+            all(uint(reference.get(key)) and reference[key] <= 2**53 - 1 for key in ("generation", "nodeId", "nodeCommandIndex", "fragmentIndex")) and
+            reference["nodeId"] == matches[0].get("surfaceNodeId") and 0 < reference["generation"] <= surface["sourceFrameGeneration"] and
+            isinstance(matches[0].get("parent"), dict) and
+            source.get("parentNodeId") == matches[0]["parent"].get("nodeId"),
+            "Scene command lacks its exact actual surface owner")
+    row, visited = matches[0], set()
+    root_steps = json.loads(source_tuple(roots[0])[2])
+    require(json.loads(owner[2]) == root_steps + [{"sourcePath": scene_source_path(surface["documentId"]), "sourceNodeId": "viewport"}],
+            "Scene invocation is not the actual Workbench viewport mount")
+    require(source_tuple(row.get("parent")) == viewport and by_id.get(row["parent"].get("nodeId")) is viewports[0] and
+            source_tuple(viewports[0].get("parent")) == root and by_id.get(viewports[0]["parent"].get("nodeId")) is authored_roots[0],
+            "Actual scene root, viewport and media ancestry differs")
+    while True:
+        require(row["nodeId"] not in visited and uint(row.get("surfaceNodeId")) and row["surfaceNodeId"] > 0, "Scene owner ancestry is incomplete")
+        visited.add(row["nodeId"])
+        require(json.loads(source_tuple(row)[2])[:len(root_steps)] == root_steps, "Scene ancestry belongs to another full owner invocation")
+        projected = row.get("projected") or {}
+        require(projected.get("nodeId") == row["nodeId"] and projected.get("surfaceNodeId") == row["surfaceNodeId"] and
+                projected.get("component") == row.get("component") and projected.get("controlId") == row.get("controlId") and
+                source_tuple(projected) == source_tuple(row), "Scene actual source projection differs")
+        if row is roots[0]:
+            require(projected.get("parentId") is None, "Actual scene root was rebound")
+            break
+        parent = row.get("parent") or {}
+        actual_parent = by_id.get(parent.get("nodeId"))
+        require(isinstance(actual_parent, dict) and projected.get("parentId") == actual_parent["nodeId"] and
+                source_tuple(parent) == source_tuple(actual_parent), "Actual scene owner parent differs")
+        row = actual_parent
+    return command
+
+
+def scene_rgba(scene: dict, raw: bytes) -> bytes:
+    size = scene.get("physicalSize")
+    require(isinstance(size, list) and len(size) == 2 and all(type(x) is int and 0 < x <= 8192 for x in size) and
+            len(raw) == size[0] * size[1] * 4 <= MAX_BYTES and scene.get("rawRowBytes") == size[0] * 4 and
+            scene.get("rawByteLength") == len(raw) and digest(raw) == scene.get("rawSha256") and
+            scene.get("readbackCompleted") is True and scene.get("failure") is None and scene.get("alphaMode") == "opaque" and
+            scene.get("opaquePixels") is True and raw[3::4] == b"\xff" * (size[0] * size[1]) and
+            scene.get("pngColorEncoding") == "srgb", "Scene raw bytes, alpha, completion or row layout differ")
+    formats = {"Rgba8UnormSrgb": ("rgba8", "srgb"), "Bgra8UnormSrgb": ("bgra8", "srgb"),
+               "Rgba8Unorm": ("rgba8", "linear"), "Bgra8Unorm": ("bgra8", "linear")}
+    expected = formats.get(scene.get("sourceFormat"))
+    require(expected is not None and expected == (scene.get("sourceByteLayout"), scene.get("colorEncoding")),
+            "Scene GPU view format and transfer interpretation differ")
+    rgba = bytearray(raw)
+    if expected[0] == "bgra8":
+        rgba[0::4], rgba[2::4] = raw[2::4], raw[0::4]
+    algorithm = "identity-rgba8-srgb" if expected[0] == "rgba8" else "bgra8-srgb-to-rgba8-srgb"
+    if expected[1] == "linear":
+        lut = [math.floor(255 * (12.92 * (x / 255) if x / 255 <= 0.0031308
+               else 1.055 * (x / 255) ** (1 / 2.4) - 0.055) + 0.5) for x in range(256)]
+        for channel in range(3): rgba[channel::4] = bytes(lut[x] for x in rgba[channel::4])
+        algorithm = "linear8-to-rgba8-srgb-iec61966-2-1"
+    require(scene.get("conversion") == {"algorithm": algorithm, "inputSha256": digest(raw), "outputSha256": digest(rgba)} and
+            scene.get("rgba8Sha256") == digest(rgba), "Scene conversion evidence differs from its actual GPU bytes")
+    return bytes(rgba)
+
+
+def validate_scene_image(readback: dict, profile: dict, directory: Path) -> dict:
+    scene = readback.get("sceneImage")
+    require(isinstance(scene, dict), "Actual scene image readback is unavailable")
+    command = validate_scene_command(scene, profile, frame_local=True)
+    nonce = readback.get("nonce")
+    require(isinstance(nonce, str) and nonce and scene.get("rawFile") == f"normal-scene-{nonce}.color8" and
+            scene.get("pngFile") == f"normal-scene-{nonce}.png", "Scene file names do not belong to this actual nonce")
+    raw_path, png_path = (runtime_media_file(directory / scene[key]) for key in ("rawFile", "pngFile"))
+    require(raw_path.parent == directory.resolve(strict=True) and png_path.parent == raw_path.parent and
+            raw_path.stat().st_size <= MAX_BYTES and png_path.stat().st_size <= CASE_MAX_BYTES,
+            "Scene files exceed their physical directory or byte budget")
+    raw, png = raw_path.read_bytes(), png_path.read_bytes()
+    rgba = scene_rgba(scene, raw)
+    require(len(png) == scene.get("pngByteLength") and digest(png) == scene.get("pngSha256") and
+            decode_scene_png(png, tuple(scene["physicalSize"])) == rgba, "Official scene PNG differs from the actual converted GPU image")
+    receipt, ticket = scene.get("receipt"), readback.get("submission")
+    width, height = scene["physicalSize"]
+    padded = ((width * 4 + 255) // 256) * 256 * height
+    frame = receipt.get("frame_key") if isinstance(receipt, dict) else None
+    require(ticket_valid(ticket) and isinstance(frame, dict) and frame.get("submission") == ticket and
+            frame.get("device_id") == ticket["device_id"] and frame.get("generation") == ticket["generation"] and
+            uint(receipt.get("request")) and receipt.get("kind") == "Texture" and receipt.get("terminal") == "Succeeded" and
+            uint(receipt.get("byte_len")) and padded <= receipt["byte_len"] < padded + 256 and
+            isinstance(readback.get("receipt"), dict) and receipt["request"] != readback["receipt"].get("request") and
+            uint(readback["receipt"].get("byte_len")) and receipt["byte_len"] + readback["receipt"]["byte_len"] <= MAX_BYTES,
+            "Scene receipt is not a separate successful image in the same bounded native submission")
+    require(raw_path.read_bytes() == raw and png_path.read_bytes() == png, "Scene bytes changed during verification")
+    return {"sceneVerified": True, "sceneImage": scene, "command": command, "png": png,
+            "rawPath": str(raw_path), "pngPath": str(png_path)}
+
+
+def runtime_scene_packet(review_case: dict) -> dict:
+    packet = ((review_case.get("data") or {}).get("normal_window_evidence") or {}).get("runtimeSceneMedia")
+    require(isinstance(packet, dict) and set(packet) == {"schema", "version", "bootstrapCase", "bootstrapPixelAssociation", "image"} and
+            packet.get("schema") == SCENE_SCHEMA and type(packet.get("version")) is int and packet["version"] == 1,
+            "Runtime scene media requires the exact bootstrap case and original pixel association")
+    bootstrap, proof, image = packet["bootstrapCase"], packet["bootstrapPixelAssociation"], packet["image"]
+    require(isinstance(bootstrap, dict) and set(bootstrap) == {"path", "caseJsonSha256", "caseSha256"} and
+            isinstance(proof, dict) and set(proof) == {"path", "sha256", "observed"} and isinstance(proof.get("observed"), dict) and
+            isinstance(image, dict) and set(image) == {"mime", "byteLength", "pngSha256", "base64"} and image.get("mime") == "image/png" and
+            type(image.get("byteLength")) is int and 0 < image["byteLength"] <= CASE_MAX_BYTES and
+            isinstance(image.get("base64"), str) and len(image["base64"]) == 4 * ((image["byteLength"] + 2) // 3),
+            "Runtime scene media metadata or encoded extent differs")
+    for value in (bootstrap.get("caseJsonSha256"), bootstrap.get("caseSha256"), proof.get("sha256"), image.get("pngSha256")):
+        require(isinstance(value, str) and len(value) == 64 and all(x in "0123456789abcdef" for x in value), "Runtime scene media hash is invalid")
+    return packet
+
+
+def canonical_case_sha(value: dict) -> str:
+    def normalized(item):
+        if isinstance(item, dict): return {key: normalized(child) for key, child in item.items()}
+        if isinstance(item, list): return [normalized(child) for child in item]
+        return int(item) if isinstance(item, float) and item.is_integer() else item
+    return digest(json.dumps(normalized(value), sort_keys=True, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode())
+
+
+def validate_runtime_scene_media(review_case: dict, proof: dict, profile: dict) -> dict:
+    packet = runtime_scene_packet(review_case)
+    case_path, proof_path = (runtime_media_file(Path(packet[key]["path"])) for key in ("bootstrapCase", "bootstrapPixelAssociation"))
+    case_bytes, proof_bytes = case_path.read_bytes(), proof_path.read_bytes()
+    require(len(case_bytes) <= CASE_MAX_BYTES and len(proof_bytes) <= CASE_MAX_BYTES and
+            digest(case_bytes) == packet["bootstrapCase"]["caseJsonSha256"] and
+            digest(proof_bytes) == packet["bootstrapPixelAssociation"]["sha256"], "Bootstrap case or association bytes changed")
+    bootstrap = json.loads(case_bytes)
+    require(isinstance(bootstrap, dict) and "runtimeSceneMedia" not in ((bootstrap.get("data") or {}).get("normal_window_evidence") or {}) and
+            canonical_case_sha(bootstrap) == packet["bootstrapCase"]["caseSha256"], "Bootstrap case hash or media lifecycle differs")
+    observed = packet["bootstrapPixelAssociation"]["observed"]
+    require(json_identity_equal(json.loads(proof_bytes), observed) and observed.get("caseJsonSha256") == digest(case_bytes) and
+            observed.get("caseSha256") == packet["bootstrapCase"]["caseSha256"] and proof.get("nonce") != observed.get("nonce") and
+            proof.get("caseSha256") != observed.get("caseSha256"), "Scene needs two distinct actual case/nonce captures")
+    for key in ("officialCaseHashModuleSha256", "officialCaseHashInputAuditSha256"):
+        require(observed.get(key) == proof.get(key) and isinstance(observed.get(key), str) and len(observed[key]) == 64,
+                "Bootstrap and final cases need the same actual official hash contract")
+    contract = observed.get("caseContract") or {}
+    require(isinstance(contract.get("configurationPath"), str) and isinstance(contract.get("configurationSha256"), str),
+            "Bootstrap official case contract binding is absent")
+    current_binding = load_case_contract_configuration(Path(contract["configurationPath"]), contract["configurationSha256"], Path(__file__).resolve().parents[3])
+    require(json_identity_equal(current_binding, contract) and contract.get("moduleSha256") == observed["officialCaseHashModuleSha256"] and
+            contract.get("inputAuditSha256") == observed["officialCaseHashInputAuditSha256"] and
+            json_identity_equal(observed.get("processImage"), proof.get("processImage")), "Bootstrap source contract or actual product binary differs")
+    renderer = observed.get("processImage") or {}
+    renderer = {"path": renderer.get("path"), "actual_sha256": renderer.get("sha256")}
+    size, scale = tuple(observed.get("physicalSize") or ()), observed.get("actualWinitScaleFactor")
+    require(len(size) == 2 and scale == review_case.get("dpi") and bootstrap.get("viewport") == review_case.get("viewport"),
+            "Bootstrap and final scene cases differ in actual viewport or scale")
+    _, _, _, bootstrap_profile = validate_association(proof_path, observed["caseSha256"], size, scale, renderer,
+        ((bootstrap.get("data") or {}).get("normal_window_evidence") or {}).get("focusPublication"), bootstrap)
+    first = validate_scene_image(observed["normalReadbackReceipt"], bootstrap_profile, Path(observed["normalReadbackReceiptPath"]).parent)
+    current = validate_scene_image(proof["normalReadbackReceipt"], profile, Path(proof["normalReadbackReceiptPath"]).parent)
+    stable = ("owner", "viewportRoot", "surfaceKey", "paneKind", "resourceKey", "resourceGeneration", "physicalSize", "sourceFormat",
+              "sourceByteLayout", "colorEncoding", "alphaMode", "opaquePixels", "atlasUv", "overlayPresent", "rawRowBytes", "rawByteLength", "rawSha256",
+              "rgba8Sha256", "pngByteLength", "pngSha256", "pngColorEncoding", "conversion")
+    require(json_identity_equal({key: first["sceneImage"].get(key) for key in stable},
+                                {key: current["sceneImage"].get(key) for key in stable}), "Final nonce changed the actual scene resource or content")
+    encoded = packet["image"]
+    inline = base64.b64decode(encoded["base64"], validate=True)
+    require(base64.b64encode(inline).decode() == encoded["base64"] and inline == first["png"] == current["png"] and
+            len(inline) == encoded["byteLength"] and digest(inline) == encoded["pngSha256"], "Inline scene PNG differs from both actual nonce images")
+    require(case_path.read_bytes() == case_bytes and proof_path.read_bytes() == proof_bytes, "Bootstrap inputs changed during scene validation")
+    return {**{key: value for key, value in current.items() if key not in ("png", "command")},
+            "authority": "two-actual-normal-submission-scene-readbacks", "bootstrapCase": packet["bootstrapCase"],
+            "bootstrapPixelAssociation": {"path": str(proof_path), "sha256": digest(proof_bytes)},
+            "bootstrapNonce": observed["nonce"], "nonce": proof["nonce"], "commandIndex": current["command"]["commandIndex"],
+            "sourceRef": current["sceneImage"]["sourceRef"]}
+
+
 def validate_capture_instance(proof: dict, capture: dict, project: dict, path: Path) -> None:
     association = capture.get("normal_pixel_association") or {}
     require(uint(capture.get("process_id")) and capture["process_id"] > 0 and
@@ -384,7 +754,8 @@ def validate_capture_method(value: object) -> None:
 
 def validate_association(path: Path, case_sha: str, size: tuple[int, int], scale: float,
                          renderer: dict, bound_focus: object = None,
-                         bound_case: dict | None = None) -> tuple[dict, Path, Path, dict]:
+                         bound_case: dict | None = None,
+                         scene_validation: dict | None = None) -> tuple[dict, Path, Path, dict]:
     proof = read_json(path)
     validate_capture_method(proof.get("captureMethod"))
     require(proof.get("schema") == "dev.zircon.editor.normal-frame-pixel-association" and
@@ -435,6 +806,10 @@ def validate_association(path: Path, case_sha: str, size: tuple[int, int], scale
     desktop = decode_own_png(png, size)
     require(desktop == gpu and digest(desktop) == proof.get("decodedRgba8Sha256"),
             "Actual desktop PNG differs from its same-frame GPU bytes")
+    if bound_case is not None and "runtimeSceneMedia" in ((bound_case.get("data") or {}).get("normal_window_evidence") or {}):
+        scene_result = validate_runtime_scene_media(bound_case, proof, profile)
+        if scene_validation is not None:
+            scene_validation.update(scene_result)
     return proof, png_path, profile_path, profile
 
 def physical_file(path: Path) -> Path:
@@ -447,6 +822,19 @@ def physical_file(path: Path) -> Path:
     if os.path.normcase(str(physical)) != os.path.normcase(str(absolute)) or not physical.is_file():
         raise ValueError(f"Contract input is not its physical regular file: {path}")
     return physical
+
+
+def runtime_media_file(path: Path) -> Path:
+    physical = physical_file(path)
+    for drive in "DEF":
+        base = Path(f"{drive}:/cargo-targets/zircon-local")
+        if base.exists():
+            try:
+                if os.path.normcase(os.path.commonpath([physical, base.resolve(strict=True)])) == os.path.normcase(str(base.resolve(strict=True))):
+                    return physical
+            except ValueError:
+                pass
+    raise ValueError("Runtime scene receipt input is outside a physical approved artifact root")
 
 
 def file_sha(path: Path) -> str:
@@ -469,7 +857,7 @@ def validate_case_contract_documents(configuration: dict, audit: dict, repo: Pat
                 f"Missing immutable case contract identity: {key}")
     def key(path):
         return os.path.normcase(os.path.abspath(path))
-    canonical = repo / "dev/penpot/plugins/apps/zircon-zui-plugin"
+    canonical = repo / "tools/penpot/apps/zircon-zui-plugin"
     require(audit.get("schema") == "dev.zircon.editor.normal-workbench-contract-inputs"
             and audit.get("version") == 1
             and key(audit.get("repoRoot", "")) == key(repo)
@@ -481,7 +869,15 @@ def validate_case_contract_documents(configuration: dict, audit: dict, repo: Pat
     rows = audit.get("inputs")
     require(isinstance(rows, list) and bool(rows), "Compiled contract input closure is empty")
     paths = set()
-    plugin_root = repo / "dev/penpot/plugins"
+    support_files = {
+        key(repo / "tools/analysis/visual" / name)
+        for name in ("build-normal-workbench-contracts.mjs", "normal-workbench-case-producer.mjs")
+    }
+    toml_root = Path("D:/cargo-targets/zircon-local/penpot-public/zircon-plugin/workspace/tools/penpot/node_modules/.pnpm/smol-toml@1.8.0/node_modules/smol-toml/dist")
+    dependency_files = {
+        key(toml_root / (name + ".js"))
+        for name in ("date", "error", "extract", "index", "parse", "primitive", "stringify", "struct", "util")
+    }
     for row in rows:
         require(isinstance(row, dict) and isinstance(row.get("path"), str)
                 and isinstance(row.get("sha256"), str) and len(row["sha256"]) == 64
@@ -489,8 +885,12 @@ def validate_case_contract_documents(configuration: dict, audit: dict, repo: Pat
                 "Compiled contract input identity is malformed")
         path = key(row["path"])
         require(path not in paths, "Compiled contract input closure contains duplicate paths")
-        require(os.path.commonpath([path, key(plugin_root)]) == key(plugin_root),
-                "Compiled contract input is outside the canonical plugin tree")
+        try:
+            canonical_input = os.path.commonpath([path, key(canonical)]) == key(canonical)
+        except ValueError:
+            canonical_input = False
+        require(canonical_input or path in support_files or path in dependency_files,
+                "Compiled contract input is outside the canonical app and explicit compiler dependencies")
         paths.add(path)
     for required in ("tools/zui-layout-review-contract.ts",
                      "tools/zui-layout-workbench-presentation.ts",

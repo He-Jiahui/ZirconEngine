@@ -195,6 +195,7 @@ impl UiAssetEditorSession {
             source_cursor_byte_offset: source_outline_state.cursor_byte_offset,
             source_cursor_anchor,
             selection,
+            canvas_anchor_preset_lease: None,
             designer_tool_mode: Default::default(),
             last_preview_interact_dispatch: None,
             style_inspector,
@@ -284,11 +285,15 @@ impl UiAssetEditorSession {
                         &document.asset.display_name,
                     )
                 });
-        let (preview_host, diagnostics) =
-            match build_v2_preview_host(&v2_document, preview_size, &v2_compiler_imports) {
-                Ok(preview_host) => (preview_host, Vec::new()),
-                Err(error) => (None, vec![error.to_string()]),
-            };
+        let (preview_host, diagnostics) = match build_v2_preview_host(
+            &v2_document,
+            preview_size,
+            &v2_compiler_imports,
+            &route.asset_id,
+        ) {
+            Ok(preview_host) => (preview_host, Vec::new()),
+            Err(error) => (None, vec![error.to_string()]),
+        };
         let palette_catalog = palette_catalog::build_v2(&document, &v2_compiler_imports.widgets)?;
 
         Ok(Self {
@@ -317,6 +322,7 @@ impl UiAssetEditorSession {
             source_cursor_byte_offset: source_outline_state.cursor_byte_offset,
             source_cursor_anchor,
             selection,
+            canvas_anchor_preset_lease: None,
             designer_tool_mode: Default::default(),
             last_preview_interact_dispatch: None,
             style_inspector,
@@ -466,6 +472,7 @@ impl UiAssetEditorSession {
     }
 
     pub fn set_mode(&mut self, mode: UiAssetEditorMode) -> Result<(), UiAssetEditorSessionError> {
+        self.canvas_anchor_preset_lease = None;
         self.route.mode = mode;
         self.revalidate()
     }
@@ -478,6 +485,7 @@ impl UiAssetEditorSession {
             return Ok(false);
         }
 
+        self.canvas_anchor_preset_lease = None;
         self.route.preview_preset = preview_preset;
         self.refresh_preview_for_current_preset()?;
         Ok(true)
@@ -499,6 +507,7 @@ impl UiAssetEditorSession {
                     document,
                     current_preview_size(&self.preview_host, self.route.preview_preset),
                     &self.v2_compiler_imports,
+                    &self.route.asset_id,
                 )?;
             }
             return Ok(());
@@ -534,8 +543,12 @@ impl UiAssetEditorSession {
         }
         if self.source_schema == UiAssetSourceSchema::V2 {
             if let Some(document) = self.last_valid_v2_document.as_ref() {
-                self.preview_host =
-                    build_v2_preview_host(document, preview_size, &self.v2_compiler_imports)?;
+                self.preview_host = build_v2_preview_host(
+                    document,
+                    preview_size,
+                    &self.v2_compiler_imports,
+                    &self.route.asset_id,
+                )?;
             }
             return Ok(());
         }
@@ -785,6 +798,7 @@ impl UiAssetEditorSession {
             &document,
             current_preview_size(&self.preview_host, self.route.preview_preset),
             &self.v2_compiler_imports,
+            &self.route.asset_id,
         ) {
             Ok(preview_host) => {
                 self.last_valid_compiled = None;
@@ -826,7 +840,7 @@ impl UiAssetEditorSession {
                 palette_catalog::build_v2(document, &self.v2_compiler_imports.widgets)?
             }
         };
-        palette.set_visible_start(self.palette_catalog.visible_start());
+        palette.inherit_search_navigation(&self.palette_catalog);
         Ok(Some(palette))
     }
 

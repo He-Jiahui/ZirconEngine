@@ -1,6 +1,7 @@
 use super::{path_aliases, VisualAssetCache, MAX_VISUAL_ASSET_CACHE_ENTRIES};
 use crate::ui::retained_host::host_contract::paint_template_nodes::visual_assets::HostPaintImagePixels;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 #[test]
 fn changed_source_rejects_only_its_pending_background_product() {

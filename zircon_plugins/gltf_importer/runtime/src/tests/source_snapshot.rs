@@ -135,15 +135,16 @@ fn importer_rejects_required_extensions_outside_its_stable_policy() {
     let context = AssetImportContext::new(
         PathBuf::from("target/zircon-gltf-importer/missing/extension.gltf"),
         AssetUri::parse("res://models/extension.gltf").unwrap(),
-        br#"{"asset":{"version":"2.0"},"extensionsUsed":["EXT_meshopt_compression"],"extensionsRequired":["EXT_meshopt_compression"]}"#.to_vec(),
+        br#"{"asset":{"version":"2.0"},"extensionsUsed":["KHR_draco_mesh_compression"],"extensionsRequired":["KHR_draco_mesh_compression"]}"#.to_vec(),
         toml::Table::new(),
     );
 
-    let error = import_gltf(&context).expect_err("plugin must retain its narrower policy");
+    let error =
+        import_gltf(&context).expect_err("unsupported required extensions must be rejected");
     assert!(
         error
             .to_string()
-            .contains("requires unsupported extension `EXT_meshopt_compression`"),
+            .contains("requires unsupported extension `KHR_draco_mesh_compression`"),
         "{error}"
     );
 }

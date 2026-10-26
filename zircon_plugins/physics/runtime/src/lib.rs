@@ -62,8 +62,8 @@ pub use runtime_system::{
     PHYSICS_SYSTEM_SET, PHYSICS_TRIGGER_EVENT_ID, PHYSICS_TRIGGER_EVENT_SCHEMA,
 };
 pub use skeletal::{
-    RagdollBoneProfile, RagdollMode, RagdollProfile, RagdollProfileError, RagdollRuntime,
-    RagdollSpawn, RagdollSpawnError,
+    RagdollBoneProfile, RagdollMode, RagdollProfile, RagdollProfileEncodeError,
+    RagdollProfileError, RagdollRuntime, RagdollSpawn, RagdollSpawnError,
 };
 pub use zircon_runtime::core::framework::physics::{
     PhysicsQueryInterface, PHYSICS_QUERY_INTERFACE_ID,

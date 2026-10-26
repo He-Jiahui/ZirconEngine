@@ -19,6 +19,15 @@ use super::{
     editor_asset_error::editor_asset_error, parse_uuid::parse_uuid, DefaultEditorAssetManager,
 };
 impl EditorAssetManager for DefaultEditorAssetManager {
+    fn readonly_asset_snapshot(
+        &self,
+        reference: &zircon_runtime_interface::project::AssetRef,
+        expected: Option<&crate::ui::host::editor_asset_manager::EditorAssetReadScope>,
+        source_policy: Option<AssetSourceWritePolicy>,
+    ) -> crate::ui::host::editor_asset_manager::EditorAssetReadSnapshot {
+        self.readonly_asset_snapshot_record(reference, expected, source_policy)
+    }
+
     fn model_import_projection(
         &self,
         activation: &zircon_runtime::asset::project::ProjectActivationIdentity,

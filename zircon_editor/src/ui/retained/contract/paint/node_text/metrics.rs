@@ -5,6 +5,7 @@ use super::super::super::paint_theme::{
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) struct TemplateNodeTextGeometryMetrics {
+    pub(super) scale_factor: f32,
     pub(super) horizontal_inset: f32,
     pub(super) vertical_inset: f32,
     pub(super) minimum_text_height: f32,
@@ -71,6 +72,7 @@ fn template_node_text_geometry_metrics_from_host(
     metrics: HostControlMetrics,
 ) -> TemplateNodeTextGeometryMetrics {
     TemplateNodeTextGeometryMetrics {
+        scale_factor: metrics.scale_factor,
         horizontal_inset: metrics.gap_s,
         vertical_inset: metrics.gap_s,
         minimum_text_height: metrics

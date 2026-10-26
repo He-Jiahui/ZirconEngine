@@ -6,6 +6,89 @@ use crate::core::jobs::{
 };
 
 #[test]
+fn capture_export_progress_present_artifact_submit_stays_hidden_and_cancellable() {
+    use crate::core::editor_message::SharedEditorMessageBus;
+    use crate::core::jobs::test_job_scheduler;
+    use crate::core::notifications::EditorNotificationService;
+    use std::sync::mpsc;
+    use std::time::Instant;
+
+    struct Gate(mpsc::SyncSender<()>, mpsc::Receiver<()>);
+    impl EditorJob for Gate {
+        type Output = ();
+        fn run(self, _context: JobContext) -> Result<(), JobError> {
+            self.0.send(()).unwrap();
+            self.1.recv_timeout(Duration::from_secs(5)).unwrap();
+            Ok(())
+        }
+    }
+    let notifications = EditorNotificationService::default();
+    let jobs = EditorJobSystem::with_scheduler_and_bus_and_progress_observer(
+        test_job_scheduler(),
+        SharedEditorMessageBus::default(),
+        EditorJobLimits::default().with_limit(JobCategory::Export, 1),
+        notifications.job_progress_observer(),
+    );
+    let (started_sender, started_receiver) = mpsc::sync_channel(1);
+    let (release_sender, release_receiver) = mpsc::channel();
+    let gate = jobs
+        .submit(
+            EditorJobSpec::new("Export scene", JobCategory::Export),
+            Gate(started_sender, release_receiver),
+        )
+        .unwrap();
+    started_receiver
+        .recv_timeout(Duration::from_secs(5))
+        .unwrap();
+    let source = jobs.progress();
+    let primary = source
+        .primary_snapshot_if_changed(None)
+        .unwrap()
+        .generation();
+    let root = std::env::temp_dir().join(format!(
+        "zircon-profile-export-isolation-{}-{:x}",
+        std::process::id(),
+        fixture_nonce()
+    ));
+    assert!(!root.exists());
+    let export = PresentArtifactExport {
+        export_dir: root.clone(),
+        geometry: UiProfileGeometry::from_presentation(
+            &HostWindowPresentationData::default(),
+            &PhysicalSize::new(640, 480),
+            1.0,
+            HostPresenterBackend::Gpu,
+        ),
+        screenshot: None,
+    };
+    let expected_bytes = estimated_pending_bytes(&export);
+    let ticket = submit_present_artifact_after_admission(&jobs, expected_bytes, || export).unwrap();
+    assert_eq!(jobs.admission_snapshot().pending_entries(), 1);
+    assert_eq!(
+        jobs.admission_snapshot().pending_estimated_bytes(),
+        expected_bytes
+    );
+    assert_eq!(source.snapshot_for_ids([ticket.id()])[0].id(), ticket.id());
+    assert!(!source.progress_notification_visible(ticket.id()));
+    assert!(source.primary_snapshot_if_changed(Some(primary)).is_none());
+    let visible = notifications.progress().snapshot(&source);
+    assert_eq!(visible.len(), 1);
+    assert_eq!(visible[0].job().id(), gate.id());
+    assert!(jobs.cancel(ticket.id()));
+    assert_eq!(ticket.wait(), Err(JobError::Cancelled));
+    assert_eq!(jobs.admission_snapshot().pending_entries(), 0);
+    release_sender.send(()).unwrap();
+    gate.wait().unwrap();
+    assert!(jobs
+        .shutdown(Instant::now() + Duration::from_secs(5))
+        .is_empty());
+    assert!(
+        !root.exists(),
+        "pending profile cancellation must not write files"
+    );
+}
+
+#[test]
 fn present_artifact_export_runs_as_an_injected_export_job() {
     let root = std::env::temp_dir().join(format!(
         "zircon-editor-profile-artifact-job-{}-{:x}",

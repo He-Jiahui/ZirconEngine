@@ -440,7 +440,7 @@ fn workbench_shell_uses_tokenized_viewport_first_region_constraints() {
     assert_linear_slot(
         child_linear_slot(window, "main_band", "right_dock"),
         "Stretch",
-        0.25,
+        0.3333333333333333,
     );
     assert!(
         axis_f64(child_linear_slot(window, "main_band", "viewport"), "value")

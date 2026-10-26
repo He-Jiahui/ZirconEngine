@@ -285,13 +285,40 @@ fn top_toolbar_icon_button_uses_persistent_low_emphasis_tile() {
 }
 
 #[test]
-fn dock_tab_close_button_uses_toolbar_context_without_persistent_panel_surface() {
+fn dock_tab_close_button_uses_16px_context_without_persistent_panel_surface() {
     let node = icon_node("DockTabClose0", "close-outline", false, 20.0, 20.0);
     let context = icon_button_context(&node);
     let style = icon_button_style(&node, context);
 
-    assert_eq!(context, IconButtonContext::Toolbar);
+    assert_eq!(context, IconButtonContext::TabClose);
     assert_eq!(style.background, None);
     assert_eq!(style.border, None);
     assert_eq!(style.border_width, 0.0);
+}
+
+#[test]
+fn dock_tab_close_button_preserves_pressed_hovered_brush_priority_and_disabled_alpha() {
+    for (hovered, pressed, disabled, focused, glyph) in [
+        (false, false, false, false, [192, 192, 192, 255]),
+        (true, false, false, false, [255, 255, 255, 255]),
+        (true, true, false, false, [192, 192, 192, 255]),
+        (true, false, false, true, [255, 255, 255, 255]),
+        (true, false, true, false, [255, 255, 255, 115]),
+        (true, true, true, false, [192, 192, 192, 115]),
+    ] {
+        let mut node = icon_node(
+            "DockTabClose0",
+            "editor_pages/unreal/close-small.svg",
+            false,
+            20.0,
+            20.0,
+        );
+        node.hovered = hovered;
+        node.pressed = pressed;
+        node.disabled = disabled;
+        node.focused = focused;
+        let style = icon_button_style(&node, icon_button_context(&node));
+        assert_eq!(style.glyph, glyph);
+        assert_eq!((style.background, style.border), (None, None));
+    }
 }

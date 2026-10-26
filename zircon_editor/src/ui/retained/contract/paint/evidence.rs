@@ -16,6 +16,12 @@ struct MediaFileReceipt {
     sha256: String,
 }
 
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+struct PaintIdentityKey {
+    authored: (String, String, String),
+    repeated_item: Option<((String, String, String), String)>,
+}
+
 #[derive(Default)]
 struct StyleValues {
     background: BTreeSet<String>,
@@ -32,6 +38,7 @@ struct StyleValues {
     shadow_incomplete: bool,
     shadow_layers: Vec<Value>,
     identity: Option<Rc<PaintNodeIdentity>>,
+    identity_conflict: bool,
 }
 
 #[derive(Default)]
@@ -40,10 +47,40 @@ struct Capture {
     dpi: f32,
     allow_absolute_media: bool,
     design_token_input: Option<Value>,
-    styles: BTreeMap<(String, String, String), StyleValues>,
-    media: BTreeMap<(String, String, String, String), Value>,
+    styles: BTreeMap<PaintIdentityKey, StyleValues>,
+    media: BTreeMap<(PaintIdentityKey, String), Value>,
     issues: Vec<String>,
     native_hierarchy_draws: Vec<Value>,
+}
+
+impl Capture {
+    fn observe_owner(&mut self, owner: &Rc<PaintNodeIdentity>) -> Option<PaintIdentityKey> {
+        let key = match identity_key(owner) {
+            Ok(key) => key,
+            Err(issue) => {
+                if !self.issues.contains(&issue) {
+                    self.issues.push(issue);
+                }
+                return None;
+            }
+        };
+        let values = self.styles.entry(key.clone()).or_default();
+        if let Some(previous) = &values.identity {
+            // Multiple commands for the same physical row are expected. A
+            // second row or field cannot share one authored owner/item receipt.
+            if previous.as_ref() != owner.as_ref() && !values.identity_conflict {
+                values.identity_conflict = true;
+                self.issues.push(format!(
+                    "paint authored owner/item {:?} conflicts between nodes {} ({:?}) and {} ({:?})",
+                    key, previous.node_id, previous.property_field_id,
+                    owner.node_id, owner.property_field_id,
+                ));
+            }
+        } else {
+            values.identity = Some(owner.clone());
+        }
+        Some(key)
+    }
 }
 
 thread_local! {
@@ -103,7 +140,8 @@ impl PaintEvidenceScope {
         let styles = capture
             .styles
             .into_iter()
-            .map(|((source_path, source_node_id, instance_path), values)| {
+            .map(|(key, values)| {
+                let (source_path, source_node_id, instance_path) = key.authored;
                 let identity = values.identity.unwrap_or_else(|| {
                     Rc::new(PaintNodeIdentity {
                         node_id: String::new(),
@@ -111,6 +149,8 @@ impl PaintEvidenceScope {
                         source_path: source_path.clone(),
                         source_node_id: source_node_id.clone(),
                         instance_path: instance_path.clone(),
+                        item_key: None,
+                        property_field_id: None,
                         parent_source_path: None,
                         parent_source_node_id: None,
                         parent_instance_path: None,
@@ -129,8 +169,11 @@ impl PaintEvidenceScope {
                     unique_number(values.radius, "0", values.shadow_scan_complete);
                 let (opacity, opacity_complete) =
                     unique_number(values.opacity, "1", values.shadow_scan_complete);
-                let box_shadow_complete = values.shadow_scan_complete && !values.shadow_incomplete;
-                let style_complete = values.saw_shape
+                let box_shadow_complete = values.shadow_scan_complete
+                    && !values.shadow_incomplete
+                    && !values.identity_conflict;
+                let style_complete = !values.identity_conflict
+                    && values.saw_shape
                     && background_complete
                     && foreground_complete
                     && border_complete
@@ -167,6 +210,8 @@ impl PaintEvidenceScope {
                     "sourcePath": source_path,
                     "sourceNodeId": source_node_id,
                     "instancePath": instance_path,
+                    "itemKey": identity.item_key,
+                    "propertyFieldId": identity.property_field_id,
                     "parentNodeId": identity.parent_node_id,
                     "controlId": identity.control_id,
                     "parentSourcePath": identity.parent_source_path,
@@ -265,8 +310,10 @@ pub(super) fn record_identity_issue(issue: String) {
 pub(super) fn record_owner_commands_complete(owner: &Rc<PaintNodeIdentity>) {
     CAPTURE.with_borrow_mut(|capture| {
         let Some(capture) = capture else { return };
-        let values = capture.styles.entry(identity_key(owner)).or_default();
-        values.identity = Some(owner.clone());
+        let Some(key) = capture.observe_owner(owner) else {
+            return;
+        };
+        let values = capture.styles.entry(key).or_default();
         values.shadow_scan_complete = true;
     });
 }
@@ -284,10 +331,11 @@ pub(super) fn record_box_shadow_command(command: &HostPaintCommand) {
     };
     CAPTURE.with_borrow_mut(|capture| {
         let Some(capture) = capture else { return };
-        let key = identity_key(owner);
+        let Some(key) = capture.observe_owner(owner) else {
+            return;
+        };
         let dpi = capture.dpi;
         let values = capture.styles.entry(key).or_default();
-        values.identity = Some(owner.clone());
         let Some(color) = command.background_color else {
             values.shadow_incomplete = true;
             capture
@@ -366,10 +414,11 @@ pub(super) fn record_drawn_command(command: &HostPaintCommand) {
     }
     CAPTURE.with_borrow_mut(|capture| {
         let Some(capture) = capture else { return };
-        let key = identity_key(owner);
+        let Some(key) = capture.observe_owner(owner) else {
+            return;
+        };
         let dpi = capture.dpi;
         let values = capture.styles.entry(key).or_default();
-        values.identity = Some(owner.clone());
         values.saw_shape = true;
         values.opacity.insert(number(command.opacity));
 
@@ -439,6 +488,9 @@ pub(super) fn record_media_use(resource_key: &str) {
             ));
             return;
         };
+        let Some(identity) = capture.observe_owner(owner) else {
+            return;
+        };
         let file = MEDIA_FILES.with_borrow(|files| files.get(resource_key).cloned());
         let Some(Some(file)) = file else {
             capture.issues.push(format!(
@@ -461,26 +513,26 @@ pub(super) fn record_media_use(resource_key: &str) {
                 return;
             }
         };
-        let (source_path, node_id, instance_path) = identity_key(owner);
-        let key = (
-            source_path.clone(),
-            node_id.clone(),
-            instance_path.clone(),
-            path.clone(),
-        );
-        capture.media.insert(
-            key,
+        let key = (identity, path.clone());
+        capture.media.entry(key).or_insert_with(|| {
             json!({
                 "kind": "image",
                 "resourceKey": resource_key,
                 "path": path,
                 "sha256": file.sha256,
                 "loaded": true,
-                "sourcePath": source_path,
-                "sourceNodeId": node_id,
-                "instancePath": instance_path,
-            }),
-        );
+                "nodeId": owner.node_id,
+                "sourcePath": owner.source_path,
+                "sourceNodeId": owner.source_node_id,
+                "instancePath": owner.instance_path,
+                "parentNodeId": owner.parent_node_id,
+                "parentSourcePath": owner.parent_source_path,
+                "parentSourceNodeId": owner.parent_source_node_id,
+                "parentInstancePath": owner.parent_instance_path,
+                "itemKey": owner.item_key,
+                "propertyFieldId": owner.property_field_id,
+            })
+        });
     });
 }
 
@@ -545,6 +597,8 @@ pub(in crate::ui::retained_host::host_contract) fn owner_json(
             "sourcePath": owner.source_path,
             "sourceNodeId": owner.source_node_id,
             "instancePath": owner.instance_path,
+            "itemKey": owner.item_key,
+            "propertyFieldId": owner.property_field_id,
             "controlId": owner.control_id,
             "parentNodeId": owner.parent_node_id,
             "parentSourcePath": owner.parent_source_path,
@@ -554,12 +608,41 @@ pub(in crate::ui::retained_host::host_contract) fn owner_json(
     })
 }
 
-fn identity_key(owner: &PaintNodeIdentity) -> (String, String, String) {
-    (
-        owner.source_path.clone(),
-        owner.source_node_id.clone(),
-        owner.instance_path.clone(),
-    )
+fn identity_key(owner: &PaintNodeIdentity) -> Result<PaintIdentityKey, String> {
+    let repeated_item = match (&owner.item_key, &owner.property_field_id) {
+        (None, None) => None,
+        (Some(item), Some(field)) if !item.is_empty() && !field.is_empty() => {
+            let parent = owner
+                .parent_source_path
+                .as_ref()
+                .zip(owner.parent_source_node_id.as_ref())
+                .zip(owner.parent_instance_path.as_ref())
+                .filter(|((path, node), instance)| {
+                    !path.is_empty() && !node.is_empty() && !instance.is_empty()
+                });
+            let Some(((path, node), instance)) = parent else {
+                return Err(format!(
+                    "painted repeat row {} has no complete authored parent owner",
+                    owner.node_id,
+                ));
+            };
+            Some(((path.clone(), node.clone(), instance.clone()), item.clone()))
+        }
+        _ => {
+            return Err(format!(
+                "painted repeat row {} has incomplete itemKey/propertyFieldId",
+                owner.node_id,
+            ))
+        }
+    };
+    Ok(PaintIdentityKey {
+        authored: (
+            owner.source_path.clone(),
+            owner.source_node_id.clone(),
+            owner.instance_path.clone(),
+        ),
+        repeated_item,
+    })
 }
 
 fn unique_color(values: BTreeSet<String>, absence_proven: bool) -> (Value, bool) {

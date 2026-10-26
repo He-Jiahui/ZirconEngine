@@ -110,7 +110,9 @@ fn physics_limit_range_is_valid(value: [Real; 2]) -> bool {
     array2_is_finite(value) && value[0] <= value[1]
 }
 
-fn physics_joint_constraint_metadata_is_valid(constraint: &PhysicsJointConstraintMetadata) -> bool {
+pub(crate) fn physics_joint_constraint_metadata_is_valid(
+    constraint: &PhysicsJointConstraintMetadata,
+) -> bool {
     constraint
         .linear_limits
         .iter()
@@ -205,7 +207,7 @@ pub(super) fn physics_material_sync_state_is_valid(material: &PhysicsMaterialSyn
         && material_metadata_sync_input_is_finite(&material.material)
 }
 
-pub(super) fn physics_collider_shape_is_valid(shape: &PhysicsColliderShape) -> bool {
+pub(crate) fn physics_collider_shape_is_valid(shape: &PhysicsColliderShape) -> bool {
     match shape {
         PhysicsColliderShape::Box { half_extents } => {
             array3_is_finite(*half_extents) && half_extents.iter().all(|extent| *extent >= 0.0)

@@ -24,12 +24,18 @@ pub(super) fn button_content_layout(
     let max_text_width = (max_content_width - glyph_width - chevron_width).max(0.0);
     let visual_label_width = label_ink_width.max(0.0).min(max_text_width);
     let text_slot_width = label_text_slot_width(visual_label_width, max_text_width);
-    let content_width = (visual_label_width + glyph_width + chevron_width).min(max_content_width);
+    let natural_content_width = visual_label_width + glyph_width + chevron_width;
+    let content_width = natural_content_width.min(max_content_width);
+    let content_offset = if node.icon_placement.eq_ignore_ascii_case("icon_only") {
+        // A glyph keeps its real width even when the default padding leaves a smaller slot.
+        // The caller still requires the entire glyph to fit the outer button frame.
+        (max_content_width - natural_content_width) * CENTER_FACTOR
+    } else {
+        centered_offset(max_content_width, content_width)
+    };
     ButtonContentLayout {
         text_slot_width,
-        start_x: rect.x
-            + button_content_padding(node)[0]
-            + centered_offset(max_content_width, content_width),
+        start_x: rect.x + button_content_padding(node)[0] + content_offset,
     }
 }
 

@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn primary_workbench_button_paints_low_emphasis_surface_and_center_text() {
+fn primary_workbench_button_paints_primary_surface_and_center_text() {
     let bytes = paint_template_nodes_for_test(
         152,
         48,
@@ -16,7 +16,7 @@ fn primary_workbench_button_paints_low_emphasis_surface_and_center_text() {
         )]),
     );
 
-    assert_eq!(pixel_at(&bytes, 152, 24, 24), PALETTE.surface_pressed);
+    assert_eq!(pixel_at(&bytes, 152, 24, 24), PALETTE.accent);
     assert!(changed_pixel_count(&bytes, 152, 48, 16, 56, 18) > 0);
     assert_eq!(pixel_at(&bytes, 152, 140, 24), [0, 0, 0, 255]);
 }

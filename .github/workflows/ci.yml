@@ -433,7 +433,9 @@ jobs:
           toolchain: 1.94.1
           components: rustfmt, clippy
 
-
+      - name: Check runtime structure conventions
+        shell: pwsh
+        run: ./.github/scripts/invoke-cargo-msvc.ps1 cargo +1.94.1 test -p zircon_runtime --lib structure_convention --locked
 
       - name: Check Rust formatting
         shell: pwsh

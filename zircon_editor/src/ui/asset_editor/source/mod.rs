@@ -1,3 +1,5 @@
+pub(crate) mod binding_locator;
+
 #[path = "source_buffer.rs"]
 pub(crate) mod source_buffer;
 #[path = "source_sync.rs"]

@@ -750,6 +750,8 @@ pub struct UiSurfaceFrameReadbackRequest {
     pub physical_size: (u32, u32),
     pub expected_draw_generation: Option<u64>,
     pub deadline_ms: u64,
+    /// One exact external image sampled by the same submitted command stream.
+    pub image: Option<UiSurfaceImageReadbackRequest>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -758,6 +760,38 @@ pub enum UiSurfaceFramePixelFormat {
     Bgra8Srgb,
     Rgba8Linear,
     Bgra8Linear,
+}
+
+/// Identity of a whole external texture, not a crop of the composed surface.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UiSurfaceImageReadbackRequest {
+    pub command_index: usize,
+    pub resource_key: String,
+    pub resource_generation: u64,
+    pub physical_size: (u32, u32),
+    /// None discovers the actual texture format instead of inferring it from UI metadata.
+    pub expected_pixel_format: Option<UiSurfaceFramePixelFormat>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum UiSurfaceImageAlphaMode {
+    Opaque,
+    Premultiplied,
+}
+
+/// The original resource bytes and their own receipt, sharing the outer submission.
+#[derive(Debug)]
+pub struct UiSurfaceImageReadback {
+    pub request: UiSurfaceImageReadbackRequest,
+    pub command_frame: Option<UiSurfaceRect>,
+    pub command_clip: Option<UiSurfaceRect>,
+    pub receipt: Option<crate::DiagnosticReadbackReceipt>,
+    pub pixel_format: Option<UiSurfaceFramePixelFormat>,
+    pub alpha_mode: Option<UiSurfaceImageAlphaMode>,
+    /// Tightly packed original GPU bytes; no channel, alpha or color-space conversion.
+    pub color8: Option<Vec<u8>>,
+    pub opaque_pixels: Option<bool>,
+    pub failure: Option<String>,
 }
 
 /// Bytes and receipt come from the same actual normal surface submission.
@@ -775,6 +809,7 @@ pub struct UiSurfaceFrameReadback {
     pub opaque_pixels: Option<bool>,
     pub surface_alpha_mode: String,
     pub native_target: Option<crate::RenderNativeSurfaceTarget>,
+    pub image: Option<UiSurfaceImageReadback>,
     pub failure: Option<String>,
 }
 

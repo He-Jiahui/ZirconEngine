@@ -581,6 +581,39 @@ fn inject_payload_attributes(attributes: &mut BTreeMap<String, Value>, payload: 
                                 "package_source".to_string(),
                                 Value::String(plugin.package_source.clone()),
                             );
+                            if let Some(metadata) = plugin.package_metadata.as_ref() {
+                                use zircon_runtime::plugin::PluginMaturity;
+                                let maturity = match metadata.maturity {
+                                    PluginMaturity::Core => "core",
+                                    PluginMaturity::Stable => "stable",
+                                    PluginMaturity::Beta => "beta",
+                                    PluginMaturity::Experimental => "experimental",
+                                    PluginMaturity::Externalized => "externalized",
+                                    PluginMaturity::Stub => "stub",
+                                    PluginMaturity::Deprecated => "deprecated",
+                                };
+                                table.insert(
+                                    "package_metadata".to_string(),
+                                    Value::Table(Table::from_iter([
+                                        (
+                                            "version".to_string(),
+                                            Value::String(metadata.version.clone()),
+                                        ),
+                                        (
+                                            "category".to_string(),
+                                            Value::String(metadata.category.clone()),
+                                        ),
+                                        (
+                                            "description".to_string(),
+                                            Value::String(metadata.description.clone()),
+                                        ),
+                                        (
+                                            "maturity".to_string(),
+                                            Value::String(maturity.to_owned()),
+                                        ),
+                                    ])),
+                                );
+                            }
                             table.insert(
                                 "load_state".to_string(),
                                 Value::String(plugin.load_state.clone()),
@@ -791,3 +824,7 @@ fn string_array(items: &[String]) -> Value {
 #[cfg(test)]
 #[path = "tests/pane_payload_project_perf.rs"]
 mod performance_tests;
+
+#[cfg(test)]
+#[path = "tests/plugin_metadata_projection.rs"]
+mod plugin_metadata_tests;

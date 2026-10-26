@@ -74,11 +74,34 @@ fn popup_row_style_selector_resolves_state_priority_for_options_and_menu_items()
         checked.state,
         zircon_runtime_interface::ui::style::UiPainterResolvedState::Pressed
     );
-    assert_eq!(checked.background, Some(PALETTE.surface_pressed));
-    assert_ne!(checked.background, Some(PALETTE.surface_selected));
+    assert_eq!(checked.background, Some(PALETTE.surface_selected));
     assert_eq!(checked.outline, Some(PALETTE.accent));
     assert_ne!(checked.outline, Some(PALETTE.border));
-    assert_eq!(checked.adornment, PALETTE.text);
+    assert_eq!(checked.text, PALETTE.text_selected);
+    assert_eq!(checked.adornment, PALETTE.text_selected);
+}
+
+#[test]
+fn popup_menu_hover_uses_starship_primary_even_when_checked_or_focused() {
+    for (checked, focused) in [(false, false), (true, false), (false, true)] {
+        let style = popup_menu_row_style(&TemplatePaneMenuItemData {
+            hovered: true,
+            focused,
+            ..menu_item("Open", checked, false, false)
+        });
+        assert_eq!(style.background, Some(PALETTE.surface_selected));
+        assert_eq!(style.text, PALETTE.text_selected);
+        assert_eq!(style.adornment, PALETTE.text_selected);
+        assert_eq!(style.shortcut, PALETTE.text_muted);
+    }
+    let disabled = popup_menu_row_style(&TemplatePaneMenuItemData {
+        hovered: true,
+        pressed: true,
+        disabled: true,
+        ..menu_item("Disabled", true, false, false)
+    });
+    assert_eq!(disabled.background, None);
+    assert_eq!(disabled.text, PALETTE.text_disabled);
 }
 
 #[test]

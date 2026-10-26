@@ -15,6 +15,7 @@ mod tests;
 #[path = "sequence/time.rs"]
 mod time;
 
+pub use channel_sample::sample_animation_bool_channel;
 pub(crate) use channel_sample::AnimationChannelSampleExt;
 pub use compiled::{
     apply_compiled_sequence_to_world, compile_sequence_for_world, CompiledAnimationSequence,

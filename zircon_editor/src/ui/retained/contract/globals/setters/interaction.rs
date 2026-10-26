@@ -175,7 +175,7 @@ impl PaneSurfaceHostContext<'_> {
     ) {
         self.update_interaction(
             |state| state.activity_asset_reference_hover_frame != value,
-            |state| state.activity_asset_reference_hover_frame = value,
+            |state| state.activity_asset_reference_hover_frame = value.clone(),
         );
     }
 
@@ -240,7 +240,7 @@ impl PaneSurfaceHostContext<'_> {
     ) {
         self.update_interaction(
             |state| state.browser_asset_reference_hover_frame != value,
-            |state| state.browser_asset_reference_hover_frame = value,
+            |state| state.browser_asset_reference_hover_frame = value.clone(),
         );
     }
 }

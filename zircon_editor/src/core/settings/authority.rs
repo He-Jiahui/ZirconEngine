@@ -136,6 +136,17 @@ impl SettingsAuthority {
         ResolvedSettingsBatch::from_registry(&state.registry, keys)
     }
 
+    // Pair a projection's original generation with its resolved batch in this same lock.
+    pub(crate) fn resolved_settings_from_iter_at_generation<'a>(
+        &self,
+        expected_generation: u64,
+        keys: impl IntoIterator<Item = &'a SettingsKey>,
+    ) -> Result<ResolvedSettingsBatch, SettingsError> {
+        let state = self.lock_state();
+        ensure_generation(&state, expected_generation)?;
+        ResolvedSettingsBatch::from_registry(&state.registry, keys)
+    }
+
     /// Configures the one contextual hot-apply subscriber for this authority.
     ///
     /// The editor installs it before exposing the context, after it has synchronized the startup
@@ -221,6 +232,58 @@ impl SettingsAuthority {
             return Ok(Some(change));
         }
         Ok(None)
+    }
+
+    pub(crate) fn set_if_generation(
+        &self,
+        expected: u64,
+        scope: SettingsScope,
+        key: &SettingsKey,
+        value: SettingValue,
+    ) -> Result<Option<SettingChange>, SettingsError> {
+        let mut state = self.lock_state();
+        ensure_generation(&state, expected)?;
+        let Some(change) = state.registry.set(scope, key, value)? else {
+            return Ok(None);
+        };
+        let previous = self.snapshot.load_full();
+        let snapshot = Arc::new(SettingsSnapshot::after_change(
+            &previous,
+            &state.registry,
+            &change,
+        ));
+        self.snapshot.store(Arc::clone(&snapshot));
+        drop(state);
+        self.notify_change_subscriber(std::slice::from_ref(&change), snapshot.as_ref());
+        Ok(Some(change))
+    }
+
+    pub(crate) fn clear_if_generation(
+        &self,
+        expected: u64,
+        scope: SettingsScope,
+        key: &SettingsKey,
+    ) -> Result<Option<SettingChange>, SettingsError> {
+        let mut state = self.lock_state();
+        ensure_generation(&state, expected)?;
+        let Some(change) = state.registry.clear(scope, key)? else {
+            return Ok(None);
+        };
+        let previous = self.snapshot.load_full();
+        let snapshot = Arc::new(SettingsSnapshot::after_change(
+            &previous,
+            &state.registry,
+            &change,
+        ));
+        self.snapshot.store(Arc::clone(&snapshot));
+        drop(state);
+        self.notify_change_subscriber(std::slice::from_ref(&change), snapshot.as_ref());
+        Ok(Some(change))
+    }
+
+    // Absence of a displayed override is a no-op only at that same exact generation.
+    pub(crate) fn check_generation(&self, expected: u64) -> Result<(), SettingsError> {
+        ensure_generation(&self.lock_state(), expected)
     }
 
     pub(crate) fn replace_persistent_layer(
@@ -429,6 +492,18 @@ impl SettingsAuthority {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
+}
+
+fn ensure_generation(state: &SettingsAuthorityState, expected: u64) -> Result<(), SettingsError> {
+    let actual = state.registry.revision;
+    if actual != expected {
+        return Err(SettingsError::StaleGeneration { expected, actual });
+    }
+    // The legacy registry saturates at MAX. Conditional callers must not accept that alias.
+    if actual == u64::MAX {
+        return Err(SettingsError::GenerationExhausted);
+    }
+    Ok(())
 }
 
 #[cfg(test)]

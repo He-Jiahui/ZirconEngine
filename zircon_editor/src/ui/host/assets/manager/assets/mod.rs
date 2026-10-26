@@ -31,6 +31,8 @@ mod project_deactivation;
 mod project_deletion;
 #[path = "project_relocation.rs"]
 mod project_relocation;
+#[path = "readonly_query.rs"]
+mod readonly_query;
 #[path = "../../assets/subscribe_editor_asset_changes.rs"]
 mod subscribe_editor_asset_changes;
 #[path = "watch_projection.rs"]

@@ -73,8 +73,8 @@ pub use render::{
     ParticleGraphResourceNames, PARTICLE_GPU_MAX_PARTICLES,
 };
 pub use service::{
-    ParticleEmitterState, ParticleGpuRuntimeInstance, ParticleRuntimeDiagnostic,
-    ParticleRuntimeDiagnosticEntry, ParticleRuntimeDiagnosticPage,
+    ParticleEmitterState, ParticleGpuRuntimeInstance, ParticlePreviewClock, ParticlePreviewError,
+    ParticleRuntimeDiagnostic, ParticleRuntimeDiagnosticEntry, ParticleRuntimeDiagnosticPage,
     ParticleRuntimeDiagnosticSeverity, ParticleRuntimeSnapshot, ParticlesManager,
 };
 pub use simulation::{ParticleSimulationError, ParticleSpriteSnapshot};

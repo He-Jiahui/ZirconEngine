@@ -50,7 +50,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_bu
     let mut x = layout.start_x;
 
     if has_leading_asset_icon(node) {
-        let glyph_rect = offset_rect_y(leading_glyph_rect(rect, x), content_y_offset);
+        let glyph_rect = offset_rect_y(leading_glyph_rect(node, rect, x), content_y_offset);
         if frame_is_within(&glyph_rect, rect) {
             let rendered_asset = push_content_asset_icon(
                 commands,
@@ -75,7 +75,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_bu
         }
         x += glyph_width;
     } else if has_leading_glyph(glyph) {
-        let glyph_rect = offset_rect_y(leading_glyph_rect(rect, x), content_y_offset);
+        let glyph_rect = offset_rect_y(leading_glyph_rect(node, rect, x), content_y_offset);
         if frame_is_within(&glyph_rect, rect) {
             push_content_glyph(
                 commands,

@@ -137,8 +137,8 @@ struct EditorJobProgressNotificationObserver {
 }
 
 impl EditorJobProgressObserver for EditorJobProgressNotificationObserver {
-    fn job_admitted(&self, job: JobId, _source: &EditorJobProgressSource) {
-        if self.center.remaining_capacity() != 0 {
+    fn job_admitted(&self, job: JobId, source: &EditorJobProgressSource) {
+        if self.center.remaining_capacity() != 0 && source.progress_notification_visible(job) {
             self.track_job(job);
         }
     }
@@ -159,7 +159,7 @@ impl EditorJobProgressNotificationObserver {
         if self.center.remaining_capacity() == 0 {
             return;
         }
-        for snapshot in source.snapshot_limit(MAX_PROGRESS_NOTIFICATIONS) {
+        for snapshot in source.notification_snapshot_limit(MAX_PROGRESS_NOTIFICATIONS) {
             if self.center.remaining_capacity() == 0 {
                 break;
             }

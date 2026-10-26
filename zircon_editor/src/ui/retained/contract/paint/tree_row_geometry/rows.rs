@@ -12,7 +12,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn tree_di
 }
 
 /// Shared physical geometry for drawing and asset-tree disclosure hit testing.
-pub(in crate::ui::retained_host) fn tree_disclosure_rect_for_indent(
+pub(crate) fn tree_disclosure_rect_for_indent(
     tree_depth: i32,
     tree_indent_px: f32,
     rect: &FrameRect,

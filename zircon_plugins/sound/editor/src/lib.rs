@@ -1,3 +1,5 @@
+#[path = "authoring.rs"]
+mod authoring;
 #[path = "authoring_bindings.rs"]
 mod authoring_bindings;
 #[path = "capability.rs"]
@@ -9,6 +11,9 @@ mod live_output;
 #[path = "plugin.rs"]
 mod plugin;
 
+pub use authoring::{
+    SoundMixerAuthoringRoute, SoundMixerAuthoringSnapshot, SoundMixerAuthoringTrack,
+};
 pub use authoring_bindings::{
     register_sound_authoring_bindings, sound_editor_command_descriptors,
     SOUND_AUDIO_LISTENER_OPERATION_PATHS, SOUND_AUDIO_SOURCE_OPERATION_PATHS,
@@ -32,3 +37,7 @@ pub use plugin::{
 #[cfg(test)]
 #[path = "tests/cases.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "tests/mixer_authoring.rs"]
+mod mixer_authoring_tests;

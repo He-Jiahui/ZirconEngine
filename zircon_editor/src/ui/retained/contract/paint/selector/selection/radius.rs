@@ -30,6 +30,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_ra
     }
     match context {
         WorkbenchIconButtonContext::Rail => metrics.radius_control,
+        WorkbenchIconButtonContext::TabClose => 0.0,
         WorkbenchIconButtonContext::Toolbar | WorkbenchIconButtonContext::Panel => {
             metrics.radius_control
         }

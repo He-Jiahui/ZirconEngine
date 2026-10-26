@@ -69,7 +69,8 @@ pub(super) fn create_transition(
         .iter_mut()
         .find(|transition| transition.from_state == from_state && transition.to_state == to_state)
     {
-        let changed = (transition.duration_seconds - duration_seconds).abs() > f32::EPSILON;
+        // A stored duration change must survive prepare_mutation's no-op admission.
+        let changed = transition.duration_seconds.to_bits() != duration_seconds.to_bits();
         transition.duration_seconds = duration_seconds;
         return changed;
     }
@@ -117,18 +118,24 @@ pub(super) fn set_transition_condition(
     let Some(operator) = parse_condition_operator(operator) else {
         return false;
     };
-    let existing_value = transition
-        .conditions
-        .iter()
-        .find(|condition| condition.parameter == parameter_name)
-        .and_then(|condition| condition.value.clone());
-    let Some(value) = parse_parameter_value(existing_value.as_ref(), value_literal) else {
-        return false;
+    let value = if operator == AnimationConditionOperatorAsset::Triggered {
+        // Trigger conditions have no comparison operand, including when replacing a comparison.
+        None
+    } else {
+        let existing_value = transition
+            .conditions
+            .iter()
+            .find(|condition| condition.parameter == parameter_name)
+            .and_then(|condition| condition.value.as_ref());
+        let Some(value) = parse_parameter_value(existing_value, value_literal) else {
+            return false;
+        };
+        Some(value)
     };
     let next_condition = AnimationTransitionConditionAsset {
         parameter: parameter_name.to_string(),
         operator,
-        value: Some(value),
+        value,
     };
     if let Some(condition) = transition
         .conditions
@@ -240,3 +247,7 @@ fn parse_vector_literal<const N: usize>(value_literal: &str) -> Option<[f32; N]>
     }
     Some(values)
 }
+
+#[cfg(test)]
+#[path = "../tests/state_machine_duration.rs"]
+mod duration_receipt_tests;

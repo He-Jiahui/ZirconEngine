@@ -347,6 +347,72 @@ fn prepared_toolbar_preserves_original_logical_desired_sizes_across_hidden_popup
     assert!(bridge.prepared_viewport_toolbar_publication().is_some());
 }
 
+#[test]
+fn prepared_toolbar_mounted_model_layout_keeps_current_measurement_after_chrome_and_resize() {
+    use crate::ui::workbench::{
+        autolayout::WorkbenchChromeMetrics, fixture::default_preview_fixture,
+        model::WorkbenchViewModel,
+    };
+
+    let chrome = default_preview_fixture().build_chrome();
+    let model = WorkbenchViewModel::build(
+        &crate::core::commands::EditorCommandRegistry::default_workbench(),
+        &chrome,
+    );
+    let metrics = WorkbenchChromeMetrics::default();
+    let mut bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(960.0, 640.0)).unwrap();
+    let (_, original) = captured(&bridge);
+    let original_value = (*original).clone();
+    for (width, height, scale) in [
+        (1280.0, 800.0, 1.25),
+        (900.0, 620.0, 1.25),
+        (640.0, 520.0, 1.25),
+        (1280.0, 800.0, 1.5),
+        (1280.0, 800.0, 1.0),
+    ] {
+        bridge.prepare_chrome_state_for_layout(&chrome).unwrap();
+        bridge
+            .recompute_mounted_layout_with_workbench_model_at_scale(
+                zircon_runtime_interface::ui::layout::UiFrame::new(
+                    17.0,
+                    23.0,
+                    width * scale,
+                    height * scale,
+                ),
+                scale,
+                &model,
+                &metrics,
+            )
+            .unwrap();
+        let (frame, publication) = captured(&bridge);
+        assert!(std::sync::Arc::ptr_eq(
+            &frame,
+            &bridge.surface().surface_frame()
+        ));
+        let row = node(&publication, "UnrealViewportToolbarRow");
+        let left = row["bounds"]["x"].as_f64().unwrap();
+        let right = left + row["bounds"]["width"].as_f64().unwrap();
+        for child in publication["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|child| child["parentNodeId"] == row["nodeId"] && child["visible"] == true)
+        {
+            let x = child["bounds"]["x"].as_f64().unwrap();
+            let extent = child["bounds"]["width"].as_f64().unwrap();
+            assert!(
+                x >= left - 0.001 && x + extent <= right + 0.001,
+                "visible toolbar child escapes after {width}x{height} at {scale}: {child}"
+            );
+        }
+        assert_eq!(
+            *original, original_value,
+            "old source snapshot stays immutable"
+        );
+    }
+}
+
 fn toolbar_projection_source_node_mut<'a>(
     root: &'a mut crate::ui::template_runtime::RetainedUiNodeProjection,
     control: &str,

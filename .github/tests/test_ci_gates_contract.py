@@ -940,6 +940,37 @@ class CiGatesContractTests(unittest.TestCase):
             if rows[feature]["package"] == "zircon_runtime":
                 self.assertNotEqual(owner_package, frame["package"])
 
+    def test_first_party_editor_libraries_use_plugin_recipes_and_non_cargo_stays_source_only(self) -> None:
+        packages = SCOPE.catalog(REPO_ROOT)
+        recipes = SCOPE.registry(packages)
+        for package, path in (
+                ("zircon_plugin_particles_editor", "zircon_plugins/particles/editor/src/lib.rs"),
+                ("zircon_plugin_physics_editor", "zircon_plugins/physics/editor/src/lib.rs"),
+                ("zircon_plugin_sound_editor", "zircon_plugins/sound/editor/src/lib.rs"),
+                ("zircon_plugin_rendering_vfx_graph_editor",
+                 "zircon_plugins/rendering/features/vfx_graph/editor/src/lib.rs"),
+        ):
+            self.assertTrue((REPO_ROOT / path).is_file(), path)
+            chosen = SCOPE.plan_paths([path], packages, recipes)
+            identifiers = {value["id"] for value in chosen}
+            self.assertIn("plugin-" + package, identifiers, path)
+            self.assertNotIn("render-vfx_graph", identifiers, path)
+        editor = SCOPE.plan_paths(["zircon_editor/src/lib.rs"], packages, recipes)
+        self.assertIn("editor-zircon_editor", {value["id"] for value in editor})
+        facade = SCOPE.plan_paths(["zircon_runtime/src/rhi.rs"], packages, recipes)
+        self.assertEqual({value["id"] for value in facade},
+                         {"leaf-zr_rhi", "leaf-zr_rhi_wgpu", "runtime-graphics"})
+        for path in (".codex/config.toml", "tools/jenkins-management/entry.py",
+                     "zircon_plugins/material_editor/README.md",
+                     "docs/plans/penpot-ue-window-suite-20261024/particles-cases.json"):
+            self.assertEqual(SCOPE.plan_paths([path], packages, recipes), [], path)
+        with self.assertRaisesRegex(SCOPE.ScopeError, "shared build control"):
+            SCOPE.plan_paths(["zircon_plugins/Cargo.lock"], packages, recipes)
+        covered = SCOPE.plan_paths(
+            ["zircon_plugins/Cargo.lock", "zircon_plugins/particles/editor/Cargo.toml"],
+            packages, recipes)
+        self.assertIn("plugin-zircon_plugin_particles_editor", {value["id"] for value in covered})
+
     def test_unrelated_private_plugin_does_not_select_render_or_portable_contracts(self) -> None:
         packages = SCOPE.catalog(REPO_ROOT)
         recipes = SCOPE.registry(packages)

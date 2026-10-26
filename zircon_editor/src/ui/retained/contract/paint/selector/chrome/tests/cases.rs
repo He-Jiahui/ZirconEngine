@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use super::model::WorkbenchChromeKind;
 use super::palette::{
     workbench_chrome_palette_from_host, WORKBENCH_CHROME_CONTENT_BG, WORKBENCH_CHROME_DRAWER_BG,
@@ -9,8 +11,137 @@ use super::palette::{
 use super::selection::select_workbench_chrome_style;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_theme::{project_host_palette, PALETTE};
+use toml::Value;
+use zircon_runtime::ui::style::resolve_button_style_from_values;
 use zircon_runtime_interface::ui::design_tokens::EditorDesignTokens;
 use zircon_runtime_interface::ui::style::{UiPainterResolvedState, UiRgbaColor};
+
+fn chrome_node_with_background(background: &str) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        button_style: resolve_button_style_from_values(&BTreeMap::from([(
+            "background_color".to_owned(),
+            Value::String(background.to_owned()),
+        )])),
+        ..TemplatePaneNodeData::default()
+    }
+}
+
+#[test]
+fn chrome_panels_use_authored_normal_background_and_preserve_transparent_and_fallback() {
+    for kind in [
+        WorkbenchChromeKind::ScenePanel,
+        WorkbenchChromeKind::InspectorPanel,
+    ] {
+        for (background, expected_fill) in [
+            (None, WORKBENCH_CHROME_PANEL_BG),
+            (Some("#242424"), [36, 36, 36, 255]),
+            (Some("transparent"), [0, 0, 0, 0]),
+            (Some("inherit"), WORKBENCH_CHROME_PANEL_BG),
+        ] {
+            for focused in [false, true] {
+                let mut node = background
+                    .map(chrome_node_with_background)
+                    .unwrap_or_default();
+                node.focused = focused;
+
+                let style = select_workbench_chrome_style(&node, kind);
+
+                assert_eq!(
+                    style.state,
+                    if focused {
+                        UiPainterResolvedState::Focused
+                    } else {
+                        UiPainterResolvedState::Normal
+                    }
+                );
+                assert_eq!(style.fill, Some(expected_fill), "{kind:?} {background:?}");
+                assert_eq!(
+                    (
+                        style.separator,
+                        style.strong_separator,
+                        style.soft_separator
+                    ),
+                    if focused {
+                        (PALETTE.border, PALETTE.border, PALETTE.border)
+                    } else {
+                        (
+                            WORKBENCH_CHROME_SEPARATOR,
+                            WORKBENCH_CHROME_STRONG_SEPARATOR,
+                            WORKBENCH_CHROME_SOFT_SEPARATOR,
+                        )
+                    }
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn chrome_authored_normal_background_does_not_override_dynamic_panel_states() {
+    for kind in [
+        WorkbenchChromeKind::ScenePanel,
+        WorkbenchChromeKind::InspectorPanel,
+    ] {
+        for (state, expected_fill) in [
+            (UiPainterResolvedState::Hovered, PALETTE.surface_hover),
+            (UiPainterResolvedState::Pressed, PALETTE.surface_pressed),
+            (UiPainterResolvedState::Open, PALETTE.surface_selected),
+            (UiPainterResolvedState::Selected, PALETTE.surface_selected),
+            (UiPainterResolvedState::Checked, PALETTE.surface_selected),
+            (UiPainterResolvedState::Dragging, PALETTE.surface_selected),
+            (
+                UiPainterResolvedState::DropHovered,
+                PALETTE.surface_selected,
+            ),
+            (UiPainterResolvedState::Disabled, PALETTE.surface_disabled),
+            (UiPainterResolvedState::Loading, PALETTE.surface_disabled),
+        ] {
+            let mut node = chrome_node_with_background("#242424");
+            match state {
+                UiPainterResolvedState::Hovered => node.hovered = true,
+                UiPainterResolvedState::Pressed => node.pressed = true,
+                UiPainterResolvedState::Open => node.popup_open = true,
+                UiPainterResolvedState::Selected => node.selected = true,
+                UiPainterResolvedState::Checked => node.checked = true,
+                UiPainterResolvedState::Dragging => node.dragging = true,
+                UiPainterResolvedState::DropHovered => node.drop_hovered = true,
+                UiPainterResolvedState::Disabled => node.disabled = true,
+                UiPainterResolvedState::Loading => node.button_style.loading = true,
+                _ => unreachable!(),
+            }
+            // Exercise unavailable-state priority even when focus and pointer state are present.
+            if matches!(
+                state,
+                UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+            ) {
+                node.focused = true;
+                node.hovered = true;
+                node.selected = true;
+            }
+
+            let style = select_workbench_chrome_style(&node, kind);
+
+            assert_eq!(style.state, state, "{kind:?}");
+            assert_eq!(style.fill, Some(expected_fill), "{kind:?} {state:?}");
+            let separator = if matches!(
+                state,
+                UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading
+            ) {
+                PALETTE.border_disabled
+            } else {
+                PALETTE.border
+            };
+            assert_eq!(
+                (
+                    style.separator,
+                    style.strong_separator,
+                    style.soft_separator
+                ),
+                (separator, separator, separator)
+            );
+        }
+    }
+}
 
 #[test]
 fn chrome_selector_preserves_normal_shell_panel_colors() {
@@ -31,7 +162,7 @@ fn chrome_backgrounds_track_central_surface_ladder() {
     let chrome = workbench_chrome_palette_from_host(projected);
 
     assert_eq!(WORKBENCH_CHROME_ROOT_BG, projected.shell_background);
-    assert_eq!(WORKBENCH_CHROME_TOPBAR_BG, projected.shell_background);
+    assert_eq!(WORKBENCH_CHROME_TOPBAR_BG, projected.surface_panel);
     assert_eq!(WORKBENCH_CHROME_MAIN_BG, projected.shell_background);
     assert_eq!(WORKBENCH_CHROME_RAIL_BG, projected.surface_inset);
     assert_eq!(WORKBENCH_CHROME_PANEL_BG, projected.surface);
@@ -48,7 +179,7 @@ fn chrome_backgrounds_track_central_surface_ladder() {
     );
     assert_eq!(WORKBENCH_CHROME_SOFT_SEPARATOR, projected.separator_soft);
     assert_eq!(chrome.root_bg, projected.shell_background);
-    assert_eq!(chrome.topbar_bg, projected.shell_background);
+    assert_eq!(chrome.topbar_bg, projected.surface_panel);
     assert_eq!(chrome.content_bg, projected.surface_inset);
     assert_eq!(chrome.separator, projected.border);
     assert_eq!(chrome.strong_separator, projected.separator_strong);
@@ -182,4 +313,13 @@ fn chrome_drawer_column_stays_fillless_in_normal_and_selected_states() {
     );
     assert_eq!(selected_column_style.fill, None);
     assert_eq!(selected_column_style.soft_separator, PALETTE.border);
+
+    let mut authored_column = chrome_node_with_background("#242424");
+    for focused in [false, true] {
+        authored_column.focused = focused;
+        let authored_style =
+            select_workbench_chrome_style(&authored_column, WorkbenchChromeKind::DrawerColumn);
+
+        assert_eq!(authored_style.fill, None);
+    }
 }

@@ -1,22 +1,23 @@
-//! 以控件身份确定工具栏、侧轨或面板语境，随后交给集中选择器处理交互与主题；页签关闭按钮归工具栏语境。
+//! 以控件身份确定密度语境，页签关闭按钮使用 Starship 的独立无底板配方。
 
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::style_selector::{
     select_workbench_icon_button_style, WorkbenchIconButtonContext, WorkbenchIconButtonStyle,
 };
+use super::identity::is_tab_close_button;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) type IconButtonContext =
     WorkbenchIconButtonContext;
 
-/// 控件身份决定密度语境；页签关闭按钮沿用工具栏尺寸，新增身份需与布局端契约一同核对。
+/// 控件身份决定密度语境；页签关闭按钮使用 16px 图形和独立状态配方。
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_button_context(
     node: &TemplatePaneNodeData,
 ) -> IconButtonContext {
     let control_id = node.control_id.as_str();
-    if control_id.starts_with("WorkbenchRail") {
+    if is_tab_close_button(control_id) {
+        IconButtonContext::TabClose
+    } else if control_id.starts_with("WorkbenchRail") {
         IconButtonContext::Rail
-    } else if is_tab_close_button(control_id) {
-        IconButtonContext::Toolbar
     } else if control_id.starts_with("WorkbenchToolbar")
         || control_id.starts_with("WorkbenchTool")
         || control_id.starts_with("WorkbenchRun")
@@ -26,19 +27,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_bu
         IconButtonContext::Toolbar
     } else {
         IconButtonContext::Panel
-    }
-}
-
-fn is_tab_close_button(control_id: &str) -> bool {
-    if control_id.ends_with("TabClose") {
-        return true;
-    }
-    match control_id.as_bytes().first() {
-        Some(b'D') => {
-            control_id.starts_with("DockTabClose") || control_id.starts_with("DocumentTabClose")
-        }
-        Some(b'P') => control_id.starts_with("PageTabClose"),
-        _ => false,
     }
 }
 

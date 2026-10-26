@@ -17,6 +17,12 @@ fn report() -> EditorPluginStatusReport {
                 plugin_id: id.to_string(),
                 display_name: id.to_string(),
                 package_source: "native".to_string(),
+                package_metadata: Some(crate::ui::host::EditorPluginPackageMetadata {
+                    version: "1.2.3".to_owned(),
+                    category: "native test fixture".to_owned(),
+                    description: format!("Metadata for {id}"),
+                    maturity: zircon_runtime::plugin::PluginMaturity::Beta,
+                }),
                 load_state: "loaded".to_string(),
                 enabled: true,
                 required: false,
@@ -181,4 +187,60 @@ fn repeated_live_operations_replace_the_prior_operation_diagnostic() {
     assert_eq!(reloaded.plugins[0].load_state, "loaded");
     assert_eq!(reloaded.plugins[0].diagnostics.len(), 1);
     assert!(reloaded.plugins[0].diagnostics[0].contains("hot_reload.completed"));
+}
+
+#[test]
+fn live_result_preserves_package_metadata_and_the_full_enablement_outcome() {
+    use crate::ui::host::{
+        PluginEnablementApplied, PluginEnablementDurable, PluginEnablementOperationReport,
+        PluginEnablementPhase, PluginEnablementRecovery,
+    };
+    let mut previous = report();
+    previous.enablement = Some(PluginEnablementOperationReport {
+        operation_id: "metadata-preservation-fixture".to_owned(),
+        project_root: "fixture-project".into(),
+        project_instance: "fixture-instance".to_owned(),
+        session_generation: 7,
+        plugin_id: "native.demo".to_owned(),
+        requested_enabled: false,
+        expected_revision: Some(zircon_runtime::core::resource::io::SourceRevision::Missing),
+        committed_revision: None,
+        phase: PluginEnablementPhase::Reconcile,
+        durable: PluginEnablementDurable::NotCommitted,
+        applied: PluginEnablementApplied::Restored,
+        recovery: PluginEnablementRecovery::RestartRequired,
+        primary_cause: None,
+        rollback_cause: None,
+        detail: None,
+        recovery_admission: None,
+    });
+    let next = project_live_status_report(
+        &previous,
+        "native.demo",
+        "hot_reload",
+        &Err("replacement failed; last-good restored".to_owned()),
+        &Ok(true),
+    );
+    assert_eq!(
+        next.plugins[0].package_metadata,
+        previous.plugins[0].package_metadata
+    );
+    assert!(next.plugins[0].package_metadata.is_some());
+    assert_eq!(next.plugins[1], previous.plugins[1]);
+    assert_eq!(next.enablement, previous.enablement);
+    assert_eq!(
+        next.enablement.as_ref().unwrap().status_message(),
+        previous.enablement.as_ref().unwrap().status_message()
+    );
+    assert!(next
+        .enablement
+        .as_ref()
+        .unwrap()
+        .status_message()
+        .contains("reverted"));
+    assert_eq!(next.plugins[0].load_state, "loaded");
+    assert!(next.plugins[0]
+        .diagnostics
+        .iter()
+        .any(|item| item.contains("hot_reload.failed")));
 }

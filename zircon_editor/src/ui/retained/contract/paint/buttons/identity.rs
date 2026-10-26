@@ -1,4 +1,4 @@
-//! 决定普通按钮是否归此绘制器及其语义样式；共享组件家族判断后排除工具栏、状态栏等已有专用域。
+//! 决定普通按钮是否归此绘制器及其语义样式；声明的 Button 保留按钮内容布局，其他家族及已有专用域独立处理。
 
 use super::super::super::data::TemplatePaneNodeData;
 use super::super::super::template_component_family::{
@@ -15,8 +15,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_work
         || uses_editor_button_variant(node)
         || is_tab_like_workbench_button(node))
         && !control_id.starts_with("WorkbenchDrawerTab")
-        && !control_id.starts_with("WorkbenchTool")
-        && !control_id.starts_with("WorkbenchToolbar")
         && !control_id.starts_with("WorkbenchRail")
         && !control_id.starts_with("WorkbenchStatus")
         && !control_id.starts_with("WorkbenchMini")

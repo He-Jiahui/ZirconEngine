@@ -44,6 +44,10 @@ impl UiAssetEditorSession {
             return self.source_outline_index();
         }
 
+        self.last_valid_source_outline_index()
+    }
+
+    pub(super) fn last_valid_source_outline_index(&self) -> Ref<'_, UiAssetSourceOutlineIndex> {
         let source_generation = self.last_valid_source_generation;
         if !self
             .last_valid_source_outline_cache
@@ -317,7 +321,9 @@ impl UiAssetEditorSession {
         });
     }
 
-    fn select_node_id(&mut self, node_id: &str) {
+    pub(super) fn select_node_id(&mut self, node_id: &str) {
+        // Returning to the same node does not revive the preceding preset popup.
+        self.canvas_anchor_preset_lease = None;
         self.selection = selection_for_node(&self.last_valid_document, node_id);
         self.last_preview_interact_dispatch = None;
         self.clear_palette_drag_state();

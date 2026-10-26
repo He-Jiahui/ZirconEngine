@@ -5,13 +5,18 @@ use zircon_runtime_interface::ui::{component::UiHostCapabilitySet, template::UiA
 
 use super::{UiAssetPaletteEntry, UiAssetPaletteEntryKind};
 
+#[path = "catalog/search.rs"]
+mod search;
+
+pub(crate) use search::UiAssetPaletteSearchSnapshot;
+
 /// Immutable entries and the current session's bounded palette page.
 #[derive(Clone, Debug)]
 pub(crate) struct UiAssetPaletteCatalog {
     entries: Arc<[UiAssetPaletteEntry]>,
     reference_imports: Arc<BTreeMap<String, UiAssetDocument>>,
     builtin_references: Arc<BTreeMap<usize, String>>,
-    visible_start: usize,
+    search: Arc<search::UiAssetPaletteSearchState>,
     builtin_descriptors: Arc<BTreeMap<usize, crate::ui::template::EditorComponentDescriptor>>,
 }
 
@@ -55,11 +60,12 @@ impl UiAssetPaletteCatalog {
                 },
             });
         }
+        let search = Arc::new(search::UiAssetPaletteSearchState::new(&entries, "", 0));
         Self {
             entries: entries.into(),
             reference_imports: Arc::new(reference_imports),
             builtin_references: Arc::new(BTreeMap::new()),
-            visible_start: 0,
+            search,
             builtin_descriptors: Arc::new(BTreeMap::new()),
         }
     }
@@ -87,6 +93,11 @@ impl UiAssetPaletteCatalog {
             });
         }
         self.entries = entries.into();
+        self.search = Arc::new(search::UiAssetPaletteSearchState::new(
+            &self.entries,
+            self.search_query(),
+            self.visible_start(),
+        ));
         self.builtin_references = Arc::new(builtin_references);
         self.builtin_descriptors = Arc::new(builtin_descriptors);
         self
@@ -104,15 +115,11 @@ impl UiAssetPaletteCatalog {
     }
 
     pub(crate) fn visible_start(&self) -> usize {
-        self.visible_start
+        self.search.visible_start
     }
 
     pub(crate) fn set_visible_start(&mut self, index: usize) -> bool {
-        let last_page = self.entries.len().saturating_sub(1) / 4 * 4;
-        let next = (index / 4 * 4).min(last_page);
-        let changed = self.visible_start != next;
-        self.visible_start = next;
-        changed
+        self.set_search_visible_start(index)
     }
 
     pub(crate) fn entries(&self) -> &[UiAssetPaletteEntry] {

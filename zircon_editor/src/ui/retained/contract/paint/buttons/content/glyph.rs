@@ -50,7 +50,7 @@ pub(super) fn button_glyph_width(
     has_label: bool,
 ) -> f32 {
     if has_leading_asset_icon(node) || has_leading_glyph(glyph) {
-        button_icon_size()
+        leading_icon_size(node)
             + if has_label {
                 button_icon_gap(node)
             } else {
@@ -81,8 +81,22 @@ pub(super) fn has_trailing_chevron(glyph: ButtonGlyph) -> bool {
     glyph == ButtonGlyph::ChevronDown
 }
 
-pub(super) fn leading_glyph_rect(rect: &FrameRect, x: f32) -> FrameRect {
-    let icon_size = button_icon_size();
+// The mount projection has already converted layout_icon_size to physical pixels.
+// The reserved lane and painted glyph must consume the same authored size.
+fn leading_icon_size(node: &TemplatePaneNodeData) -> f32 {
+    if node.layout_icon_size.is_finite() && node.layout_icon_size > 0.0 {
+        node.layout_icon_size
+    } else {
+        button_icon_size()
+    }
+}
+
+pub(super) fn leading_glyph_rect(
+    node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+    x: f32,
+) -> FrameRect {
+    let icon_size = leading_icon_size(node);
     FrameRect {
         x,
         y: content_centered_y(rect, icon_size),

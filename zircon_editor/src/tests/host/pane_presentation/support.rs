@@ -396,6 +396,7 @@ pub(super) fn module_plugins_fixture() -> ModulePluginsPaneViewData {
             plugin_id: "physics".into(),
             display_name: "Physics".into(),
             package_source: "builtin".into(),
+            package_metadata: None,
             load_state: "loaded".into(),
             enabled: true,
             required: false,

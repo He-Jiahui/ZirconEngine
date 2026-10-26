@@ -6,6 +6,9 @@ license.workspace = true
 description = "Particles editor plugin package for Zircon."
 
 [dependencies]
+serde = { version = "1.0.228", features = ["derive"] }
+toml = { workspace = true }
+uuid = { version = "1.23.1", features = ["v4"] }
 zircon_editor = { workspace = true }
 zircon_plugin_editor_support = { path = "../../editor_support" }
 zircon_plugin_particles_runtime = { path = "../runtime" }

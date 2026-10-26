@@ -290,6 +290,8 @@ fn m3_asset_folders() -> Vec<AssetFolderSnapshot> {
             recursive_asset_count: 6,
             depth: 0,
             selected: false,
+            has_children: true,
+            expanded: true,
         },
         AssetFolderSnapshot {
             folder_id: "folder-ui".to_string(),
@@ -298,6 +300,8 @@ fn m3_asset_folders() -> Vec<AssetFolderSnapshot> {
             recursive_asset_count: 4,
             depth: 1,
             selected: true,
+            has_children: true,
+            expanded: true,
         },
         AssetFolderSnapshot {
             folder_id: "folder-icons".to_string(),
@@ -306,6 +310,8 @@ fn m3_asset_folders() -> Vec<AssetFolderSnapshot> {
             recursive_asset_count: 1,
             depth: 1,
             selected: false,
+            has_children: false,
+            expanded: false,
         },
         AssetFolderSnapshot {
             folder_id: "folder-workbench".to_string(),
@@ -314,6 +320,8 @@ fn m3_asset_folders() -> Vec<AssetFolderSnapshot> {
             recursive_asset_count: 4,
             depth: 2,
             selected: false,
+            has_children: false,
+            expanded: false,
         },
     ]
 }

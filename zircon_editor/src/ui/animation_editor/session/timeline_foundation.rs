@@ -4,7 +4,7 @@ use zircon_runtime::core::framework::animation::{
     AnimationChannelValueAsset, AnimationSequenceTrackAsset,
 };
 
-use super::support::{frame_to_seconds, sanitize_frames_per_second};
+use super::support::frame_to_seconds;
 use super::{AnimationEditorSession, AnimationEditorSessionError, AnimationSequenceSessionState};
 
 /// A sequence-session projection consumed by the shared time and preview foundations.
@@ -32,15 +32,21 @@ impl AnimationEditorSession {
         let sequence = self.sequence.as_ref().ok_or_else(|| {
             AnimationEditorSessionError::new("sequence source is missing its transient UI state")
         })?;
-        Ok(project_sequence_timeline(asset, sequence))
+        project_sequence_timeline(asset, sequence)
     }
 }
 
 pub(super) fn project_sequence_timeline(
     asset: &zircon_runtime::core::framework::animation::AnimationSequenceAsset,
     sequence: &AnimationSequenceSessionState,
-) -> AnimationTimelineFoundationView {
-    let frames_per_second = sanitize_frames_per_second(asset.frames_per_second);
+) -> Result<AnimationTimelineFoundationView, AnimationEditorSessionError> {
+    // A display fallback must not become a source time or a preview playback request.
+    if !asset.frames_per_second.is_finite() || asset.frames_per_second <= f32::EPSILON {
+        return Err(AnimationEditorSessionError::new(
+            "cannot project animation timeline: frames_per_second must be finite and greater than EPSILON",
+        ));
+    }
+    let frames_per_second = asset.frames_per_second;
     let track_count: usize = asset
         .bindings
         .iter()
@@ -71,7 +77,7 @@ pub(super) fn project_sequence_timeline(
             });
         }
     }
-    AnimationTimelineFoundationView {
+    Ok(AnimationTimelineFoundationView {
         range: TimelineRange::new(
             frame_to_seconds(sequence.timeline_start_frame, frames_per_second),
             frame_to_seconds(sequence.timeline_end_frame, frames_per_second),
@@ -84,7 +90,7 @@ pub(super) fn project_sequence_timeline(
             frame_to_seconds(sequence.current_frame, frames_per_second),
         ),
         tracks,
-    }
+    })
 }
 
 #[cfg(test)]

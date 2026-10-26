@@ -43,10 +43,9 @@ pub use change_log::{
 pub use defaults::{
     editor_keymap_overrides, settings_registry_with_defaults, EDITOR_AUTOSAVE_INTERVAL_SECS_KEY,
     EDITOR_COMMAND_PALETTE_MRU_KEY, EDITOR_DESIGN_TOKENS_KEY, EDITOR_KEYMAP_OVERRIDES_KEY,
-    EDITOR_LOCALE_KEY, EDITOR_SHOW_PREVIEW_FEATURES_KEY,
-    VIEWPORT_ROTATE_SNAP_ENABLED_KEY, VIEWPORT_ROTATE_STEP_DEGREES_KEY,
-    VIEWPORT_SCALE_SNAP_ENABLED_KEY, VIEWPORT_SCALE_STEP_KEY, VIEWPORT_TRANSLATE_SNAP_ENABLED_KEY,
-    VIEWPORT_TRANSLATE_STEP_KEY,
+    EDITOR_LOCALE_KEY, EDITOR_SHOW_PREVIEW_FEATURES_KEY, VIEWPORT_ROTATE_SNAP_ENABLED_KEY,
+    VIEWPORT_ROTATE_STEP_DEGREES_KEY, VIEWPORT_SCALE_SNAP_ENABLED_KEY, VIEWPORT_SCALE_STEP_KEY,
+    VIEWPORT_TRANSLATE_SNAP_ENABLED_KEY, VIEWPORT_TRANSLATE_STEP_KEY,
 };
 pub(crate) use definition::{SettingColorChannel, SettingNumericStepDirection};
 pub use definition::{
@@ -57,7 +56,9 @@ pub use io::{
     SETTINGS_USER_ROOT_ENV,
 };
 pub use keymap_overrides::EditorKeymapOverrides;
-pub(crate) use mutation::SettingsPersistenceHealthSubscriber;
+pub(crate) use mutation::{
+    SettingsMutationContext, SettingsPersistenceHealthSubscriber, SettingsPersistenceRetryContext,
+};
 pub use mutation::{
     SettingsMutationCoordinator, SettingsMutationDisposition, SettingsMutationError,
     SettingsMutationReceipt, SettingsPersistenceDocumentHealth, SettingsPersistenceHealthSnapshot,

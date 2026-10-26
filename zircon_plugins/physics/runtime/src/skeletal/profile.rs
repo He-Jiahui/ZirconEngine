@@ -16,6 +16,10 @@ use zircon_runtime::scene::components::{
 use zircon_runtime::scene::world::{DetachedEntityBatchRemoveError, SceneError, World};
 use zircon_runtime::scene::{EntityId, LifecycleTargetChange};
 
+use crate::manager::validation::{
+    physics_collider_shape_is_valid, physics_joint_constraint_metadata_is_valid,
+};
+
 use super::runtime::{RagdollMode, RagdollRuntime};
 
 const DEFAULT_RAGDOLL_BODY_MASS: Real = 1.0;
@@ -73,6 +77,9 @@ pub enum RagdollProfileError {
         bone_path: String,
     },
     InvalidTransform {
+        bone_path: String,
+    },
+    InvalidConstraint {
         bone_path: String,
     },
     MissingSkeletonTargets {
@@ -213,13 +220,20 @@ impl RagdollProfile {
                     bone_path: bone.bone_path.clone(),
                 });
             }
-            if !shape_is_valid(&bone.shape) {
+            // Keep the profile's stricter positive box extents and the manager's
+            // compound-child transform rules under the same admission boundary.
+            if !shape_is_valid(&bone.shape) || !physics_collider_shape_is_valid(&bone.shape) {
                 return Err(RagdollProfileError::InvalidShape {
                     bone_path: bone.bone_path.clone(),
                 });
             }
             if !transform_is_finite(bone.body_offset) {
                 return Err(RagdollProfileError::InvalidTransform {
+                    bone_path: bone.bone_path.clone(),
+                });
+            }
+            if !physics_joint_constraint_metadata_is_valid(&bone.constraint) {
+                return Err(RagdollProfileError::InvalidConstraint {
                     bone_path: bone.bone_path.clone(),
                 });
             }
@@ -376,6 +390,9 @@ impl fmt::Display for RagdollProfileError {
                     formatter,
                     "ragdoll bone {bone_path} has invalid body offset"
                 )
+            }
+            Self::InvalidConstraint { bone_path } => {
+                write!(formatter, "ragdoll bone {bone_path} has invalid constraint")
             }
             Self::MissingSkeletonTargets { skeleton } => {
                 write!(formatter, "skeleton {skeleton} has no target pose")

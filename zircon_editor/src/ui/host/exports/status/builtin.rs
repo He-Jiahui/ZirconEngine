@@ -95,6 +95,7 @@ impl EditorManager {
                     plugin_id: package.id.clone(),
                     display_name: package.display_name.clone(),
                     package_source: "builtin".to_string(),
+                    package_metadata: Some(package.into()),
                     load_state: "catalog".to_string(),
                     enabled: project_selection
                         .map(|selection| selection.enabled)

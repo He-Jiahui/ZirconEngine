@@ -81,12 +81,20 @@ impl RetainedEditorHost {
             BuildExportPaneViewData::default()
         };
         let template_v2_data = match target_instance_id
-            .and_then(|instance_id| find_tab_snapshot(chrome, instance_id))
-            .and_then(|tab| tab.pane_template.as_ref())
-        {
-            Some(template) => self
+            .and_then(|instance_id| {
+                find_tab_snapshot(chrome, instance_id).map(|tab| (instance_id, tab))
+            })
+            .and_then(|(instance_id, tab)| {
+                tab.pane_template
+                    .as_ref()
+                    .map(|template| (instance_id, template))
+            }) {
+            Some((instance_id, template)) => self
                 .runtime
-                .ui_template_pane_data_snapshot(&template.body.document_id)?
+                .ui_template_pane_data_snapshot(
+                    &template.body.document_id,
+                    &ViewInstanceId::new(instance_id),
+                )?
                 .map(|snapshot| (template.body.document_id.clone(), snapshot))
                 .into_iter()
                 .collect(),

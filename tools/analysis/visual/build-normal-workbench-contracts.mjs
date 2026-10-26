@@ -6,7 +6,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
-const app = resolve(repo, 'dev/penpot/plugins/apps/zircon-zui-plugin');
+const app = resolve(repo, 'tools/penpot/apps/zircon-zui-plugin');
 const cliArgs = process.argv.slice(2);
 assert.ok(cliArgs.length === 2 && cliArgs[0] === '--output-dir' && cliArgs[1],
   'build-normal-workbench-contracts.mjs --output-dir <existing approved artifact directory>');
@@ -79,6 +79,8 @@ async function main() {
   const rows = [];
   for (const path of compiledInputs) {
     const actual = await physical(resolve(repo, path));
+    assert.ok(!key(actual).startsWith(key(resolve(repo, 'dev/penpot/plugins')) + '\\'),
+      `Reference-tree module cannot own a current contract: ${path}`);
     const input = inputs.get(key(actual));
     assert.ok(input, `Compiled input was not captured: ${path}`);
     assert.equal(sha(await readFile(actual)), input.sha256, `Source changed during compilation: ${path}`);

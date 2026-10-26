@@ -130,6 +130,7 @@ impl AnimationDocumentMutation {
                 graph::add_node(asset, node_id, *node_kind)
             }
             (Self::RemoveGraphNode { node_id }, AnimationAuthoringAsset::Graph(asset)) => {
+                graph::validate_legacy_node_target(asset, node_id)?;
                 Ok(graph::remove_node(asset, node_id))
             }
             (
@@ -138,14 +139,22 @@ impl AnimationDocumentMutation {
                     to_node_id,
                 },
                 AnimationAuthoringAsset::Graph(asset),
-            ) => Ok(graph::connect_nodes(asset, from_node_id, to_node_id)),
+            ) => {
+                graph::validate_legacy_named_source(asset, from_node_id)?;
+                graph::validate_legacy_node_target(asset, to_node_id)?;
+                Ok(graph::connect_nodes(asset, from_node_id, to_node_id))
+            }
             (
                 Self::DisconnectGraphNodes {
                     from_node_id,
                     to_node_id,
                 },
                 AnimationAuthoringAsset::Graph(asset),
-            ) => Ok(graph::disconnect_nodes(asset, from_node_id, to_node_id)),
+            ) => {
+                graph::validate_legacy_named_source(asset, from_node_id)?;
+                graph::validate_legacy_node_target(asset, to_node_id)?;
+                Ok(graph::disconnect_nodes(asset, from_node_id, to_node_id))
+            }
             (
                 Self::SetGraphParameter {
                     parameter_name,

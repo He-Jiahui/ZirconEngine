@@ -17,6 +17,7 @@ pub(in crate::ui::retained_host::host_contract) fn source_rows(
         let node=match matches.as_slice(){[node]=>Some(node),_=>None};
         Some(json!({"sourceRef":{"treeId":frame.tree_id,"generation":frame.generation,"nodeId":reference.node_id,"nodeCommandIndex":reference.node_command_index,"fragmentIndex":fragment,"authority":"surface-node-owner","primitiveIdentity":false},
             "sourcePath":node.map(|node|node.source_path.as_str()),"sourceNodeId":node.map(|node|node.source_node_id.as_str()),"instancePath":node.map(|node|node.instance_path.as_str()),"controlId":control,"propertyFieldId":node.map(|node|node.inspector_property_field_id.as_str()),"itemKey":node.map(|node|node.inspector_property_item_key.as_str()),
+            "parentNodeId":node.map(|node|node.parent_node_id.as_str()),"parentSourcePath":node.map(|node|node.parent_source_path.as_str()),"parentSourceNodeId":node.map(|node|node.parent_source_node_id.as_str()),"parentInstancePath":node.map(|node|node.parent_instance_path.as_str()),
             "bounds":node.map(|node|json!({"x":node.frame.x,"y":node.frame.y,"width":node.frame.width,"height":node.frame.height})),"paintFragmentFrame":{"x":command.frame.x,"y":command.frame.y,"width":command.frame.width,"height":command.frame.height},"disabled":node.map(|node|node.disabled)}))
     }).collect()
 }

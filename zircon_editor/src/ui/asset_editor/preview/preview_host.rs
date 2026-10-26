@@ -20,6 +20,9 @@ use crate::ui::asset_editor::session::UiAssetEditorSessionError;
 use crate::ui::template::EditorTemplateRuntimeService;
 use crate::ui::v2_design_tokens::prepare_editor_v2_document;
 
+#[path = "visibility/mod.rs"]
+pub(crate) mod visibility;
+
 #[derive(Debug, PartialEq)]
 pub struct UiAssetPreviewHost {
     preview_size: UiSize,
@@ -29,6 +32,7 @@ pub struct UiAssetPreviewHost {
     input_feedback: String,
     last_input_result: Option<Arc<zircon_runtime_interface::ui::dispatch::UiInputDispatchResult>>,
     pointer_source: Option<PreviewPointerSource>,
+    visibility_state: Option<visibility::PreviewVisibilityState>,
 }
 
 impl UiAssetPreviewHost {
@@ -51,6 +55,7 @@ impl UiAssetPreviewHost {
             input_feedback: String::new(),
             last_input_result: None,
             pointer_source: None,
+            visibility_state: None,
         })
     }
 
@@ -74,6 +79,7 @@ impl UiAssetPreviewHost {
             input_feedback: String::new(),
             last_input_result: None,
             pointer_source: None,
+            visibility_state: None,
         })
     }
 
@@ -204,6 +210,8 @@ impl UiAssetPreviewHost {
         if !Arc::ptr_eq(source_frame, &current_frame) && !captured_continuation {
             return Err(UiAssetEditorSessionError::RetiredPreviewInput);
         }
+        // Input retires the property gesture; its old baseline must not overwrite input effects.
+        self.visibility_state = None;
         let mut manager = zircon_runtime::ui::dispatch::UiInputManager::default();
         let result = match event {
             UiWindowInputPumpEvent::Input(input) => {
@@ -407,6 +415,7 @@ impl UiAssetPreviewHost {
         if self.preview_size == preview_size {
             return Ok(());
         }
+        self.visibility_state = None;
         self.preview_size = preview_size;
         for root_index in 0..self.surface.tree.roots.len() {
             let root_id = self.surface.tree.roots[root_index];
@@ -487,6 +496,8 @@ impl Clone for UiAssetPreviewHost {
             last_input_result: self.last_input_result.clone(),
             // Clones inherit no permission to admit an old frame's captured continuation.
             pointer_source: None,
+            // A clone can share a cached frame, but never an active property gesture lease.
+            visibility_state: None,
         }
     }
 }

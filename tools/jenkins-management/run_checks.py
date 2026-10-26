@@ -230,7 +230,7 @@ def verify_pins(repo: Path, expected_driver: str, expected_runtime: str,
         raise ValueError("management_capsule_runtime_mismatch")
 
     files = config.get("files")
-    allowed_capsule_files = {"runner.py", "source_preparation.py", "zircon-management.groovy", "checkout_guard.py", "checkout_product.py"}
+    allowed_capsule_files = {"runner.py", "source_preparation.py", "zircon-management.groovy", "checkout_guard.py", "checkout_product.py", "managed_node.py"}
     if (not isinstance(files, dict) or not {"runner.py", "zircon-management.groovy"}.issubset(files)
             or not set(files).issubset(allowed_capsule_files)):
         raise ValueError("management_capsule_files_invalid")
@@ -239,10 +239,15 @@ def verify_pins(repo: Path, expected_driver: str, expected_runtime: str,
         for version in (1, 2)
     )
     if "checkout_product.py" in files:
-        if set(files) != allowed_capsule_files or config.get("checkoutProduct") not in product_capabilities:
+        if set(files) - {"managed_node.py"} != allowed_capsule_files - {"managed_node.py"} or config.get("checkoutProduct") not in product_capabilities:
             raise ValueError("management_product_capsule_files_invalid")
     elif config.get("checkoutProduct") is not None:
         raise ValueError("management_product_helper_missing")
+    if "managed_node.py" in files:
+        if config.get("managedNode") != installed.get("managedNode") or "checkout_guard.py" not in files:
+            raise ValueError("management_node_capability_differs")
+    elif config.get("managedNode") is not None:
+        raise ValueError("management_node_helper_missing")
     for name, expected_hash in files.items():
         if not isinstance(expected_hash, str) or not SHA256.fullmatch(expected_hash):
             raise ValueError("management_capsule_file_pin_invalid")
@@ -348,7 +353,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--expected-runtime", required=True)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--repo-root", required=True)
-    parser.add_argument("--suite", choices=("ordinary", "workflow-routing", "build-reuse"), default="ordinary")
+    parser.add_argument("--suite", choices=("ordinary", "workflow-routing", "build-reuse", "managed-node"), default="ordinary")
     args = parser.parse_args(argv)
 
     output: Path | None = None
@@ -373,7 +378,10 @@ def main(argv: list[str] | None = None) -> int:
                            "tools/jenkins-management/tests/test_test_job.py",
                            "tools/jenkins-management/zircon-management-tests.groovy") if args.suite == "workflow-routing" else ()
         build_reuse_sources = BUILD_REUSE_SOURCES if args.suite == "build-reuse" else ()
-        source_names = (*SOURCE_NAMES, *routing_sources, *build_reuse_sources, driver_manifest_name)
+        node_sources = ("tools/jenkins-management/managed_node.py", "tools/jenkins-management/checkout_guard.py",
+                        "tools/jenkins-management/tests/test_managed_node.py",
+                        "tools/dev/install-jenkins-management.ps1", "tools/jenkins-management/zircon-management.groovy") if args.suite == "managed-node" else ()
+        source_names = (*SOURCE_NAMES, *routing_sources, *build_reuse_sources, *node_sources, driver_manifest_name)
         source_before = {name: stable_hash(repo / Path(name)) for name in source_names}
         client_paths = {}
         capsule_digest = verify_pins(repo, args.expected_driver, args.expected_runtime, source_before,
@@ -411,6 +419,8 @@ def main(argv: list[str] | None = None) -> int:
         elif args.suite == "build-reuse":
             test_files = [str(repo / name.split("::", 1)[0]) + ("::" + name.split("::", 1)[1] if "::" in name else "")
                           for name in BUILD_REUSE_TESTS]
+        elif args.suite == "managed-node":
+            test_files = [str(repo / "tools/jenkins-management/tests/test_managed_node.py")]
         python = repo / ".jenkins/runtime/python/python.exe"
         basetemp = output / "basetemp"
         temp = output / "temp"

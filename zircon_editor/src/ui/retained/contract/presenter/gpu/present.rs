@@ -32,16 +32,6 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
         {
             return Ok(self.diagnostics.clone());
         }
-        if let Some(request) = self
-            .normal_capture_controller
-            .prepare_frame_readback(presentation_cursor, self.size)
-        {
-            if let Err(error) = self.surface.request_frame_readback(request) {
-                self.normal_capture_controller.fail_frame_readback(&format!(
-                    "normal GPU readback unsupported or refused: {error}"
-                ));
-            }
-        }
         self.submitted_text_profile = None;
         self.surface.set_text_layout_observation(
             super::super::super::profiling_artifacts::profile_capture_enabled(),
@@ -86,6 +76,16 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
         let submitted_damage = stream.damage().cloned();
         let region_present = submitted_damage.is_some();
         let surface_size = stream.surface_size();
+        let scene_image = sources
+            .as_ref()
+            .map(|sources| {
+                super::super::super::profiling_artifacts::normal_present::scene_image_selection(
+                    presentation,
+                    &stream,
+                    sources,
+                )
+            })
+            .unwrap_or(Ok(None));
         // A damage stream contains only commands for the damaged region. It is not a complete
         // projection and must never share the full-projection cache key across presents.
         let draw_list = ui_surface_draw_list_from_owned_stream_with_residency(
@@ -95,6 +95,18 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
                     .is_image_resource_resident(resource_key, generation)
             },
         );
+        // Freeze attribution before stream consumption, then verify the same actual RHI command.
+        if let Some(request) = self.normal_capture_controller.prepare_frame_readback(
+            presentation_cursor,
+            &draw_list,
+            scene_image,
+        ) {
+            if let Err(error) = self.surface.request_frame_readback(request) {
+                self.normal_capture_controller.fail_frame_readback(&format!(
+                    "normal GPU readback unsupported or refused: {error}"
+                ));
+            }
+        }
         let result = self.present_draw_list_with_damage_diagnostics(
             draw_list,
             surface_size,

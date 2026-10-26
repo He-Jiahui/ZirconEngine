@@ -314,6 +314,18 @@ fn button_label_uses_strong_text_style_when_node_font_weight_is_strong() {
 
 #[test]
 fn asset_browser_utility_tab_label_uses_ui_text_style() {
+    let font_manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../zircon_runtime/assets/fonts/editor-ui.font.toml");
+    let font_assets = zircon_runtime::ui::surface::UiHostFontAssets::load_runtime(&[font_manifest
+        .to_str()
+        .expect("checkout font manifest path")])
+    .expect("utility tab fixture requires the actual UI and mono font resources");
+    assert!(font_assets.ready().iter().any(|font| {
+        font.family.as_deref() == Some("Roboto") && font.registered_face_count >= 2
+    }));
+    let _theme = super::super::super::super::paint_theme::enter_host_paint_theme_scope(
+        super::super::super::super::paint_theme::host_paint_theme_snapshot_at_scale_for_test(1.0),
+    );
     let mut node = positioned_button_node(
         "AssetBrowserPreviewTabButton",
         "Preview",

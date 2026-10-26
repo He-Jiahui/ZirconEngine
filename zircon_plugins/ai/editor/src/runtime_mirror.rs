@@ -43,12 +43,41 @@ pub enum AiPieMirrorError {
     InvalidSnapshotWorld,
 }
 
+/// An accepted agent payload with its actual PIE delivery identity.
+/// This does not prove a source asset revision, runtime tick, trace or call stack.
+#[derive(Clone, Copy, Debug)]
+pub struct AiPieFrameRef<'a> {
+    play_session_id: u64,
+    delivery_sequence: u64,
+    frame: &'a AiBehaviorDebugFrame,
+}
+
+impl<'a> AiPieFrameRef<'a> {
+    pub fn play_session_id(&self) -> u64 {
+        self.play_session_id
+    }
+
+    pub fn delivery_sequence(&self) -> u64 {
+        self.delivery_sequence
+    }
+
+    pub fn frame(&self) -> &'a AiBehaviorDebugFrame {
+        self.frame
+    }
+}
+
+#[derive(Clone, Debug)]
+struct MirroredAgentFrame {
+    delivery_sequence: u64,
+    frame: AiBehaviorDebugFrame,
+}
+
 #[derive(Clone, Debug, Default)]
 /// 按会话、世界和实体保存调试帧；同一世界的新快照整体替换旧帧。
 pub struct AiPieMirror {
     play_session_id: Option<u64>,
     sequence: Option<u64>,
-    agents: BTreeMap<(u64, u64), AiBehaviorDebugFrame>,
+    agents: BTreeMap<(u64, u64), MirroredAgentFrame>,
 }
 
 impl AiPieMirror {
@@ -93,7 +122,13 @@ impl AiPieMirror {
         self.agents
             .retain(|(frame_world, _), _| *frame_world != world);
         for frame in snapshot.frames {
-            self.agents.insert((world, frame.report.entity), frame);
+            self.agents.insert(
+                (world, frame.report.entity),
+                MirroredAgentFrame {
+                    delivery_sequence: sequence,
+                    frame,
+                },
+            );
         }
         AiPieMirrorApply::Applied
     }
@@ -102,6 +137,7 @@ impl AiPieMirror {
         self.play_session_id
     }
 
+    /// Latest accepted delivery across all worlds, not the identity of every retained frame.
     pub fn sequence(&self) -> Option<u64> {
         self.sequence
     }
@@ -110,6 +146,7 @@ impl AiPieMirror {
         let mut agents = self
             .agents
             .values()
+            .map(|agent| &agent.frame)
             .filter(|frame| frame.report.entity == entity);
         let agent = agents.next()?;
         agents.next().is_none().then_some(agent)
@@ -120,11 +157,27 @@ impl AiPieMirror {
         world: &WorldHandle,
         entity: u64,
     ) -> Option<&AiBehaviorDebugFrame> {
-        self.agents.get(&(world.get(), entity))
+        self.agents
+            .get(&(world.get(), entity))
+            .map(|agent| &agent.frame)
+    }
+
+    /// Borrows the selected world's payload and its own delivery provenance together.
+    pub fn agent_frame_in_world(
+        &self,
+        world: &WorldHandle,
+        entity: u64,
+    ) -> Option<AiPieFrameRef<'_>> {
+        let agent = self.agents.get(&(world.get(), entity))?;
+        Some(AiPieFrameRef {
+            play_session_id: self.play_session_id?,
+            delivery_sequence: agent.delivery_sequence,
+            frame: &agent.frame,
+        })
     }
 
     pub fn agents(&self) -> impl ExactSizeIterator<Item = &AiBehaviorDebugFrame> {
-        self.agents.values()
+        self.agents.values().map(|agent| &agent.frame)
     }
 
     pub fn agents_in_world(
@@ -135,7 +188,7 @@ impl AiPieMirror {
         self.agents
             .iter()
             .filter(move |((frame_world, _), _)| *frame_world == world)
-            .map(|(_, frame)| frame)
+            .map(|(_, agent)| &agent.frame)
     }
 }
 

@@ -184,7 +184,7 @@ fn workbench_secondary_button_uses_declared_surface_color() {
 }
 
 #[test]
-fn workbench_primary_row_uses_low_emphasis_tokens_and_declared_metrics() {
+fn workbench_primary_row_uses_primary_tokens_and_declared_metrics() {
     let mut primary = positioned_button_node(
         "WorkbenchPrimaryButton",
         "Primary",
@@ -203,7 +203,7 @@ fn workbench_primary_row_uses_low_emphasis_tokens_and_declared_metrics() {
 
     assert_eq!(primary_rect.x, 15.0);
     assert_eq!(primary_rect.y, 7.0);
-    assert_eq!(primary_style.surface, PALETTE.surface_pressed);
+    assert_eq!(primary_style.surface, PALETTE.accent);
     assert_eq!(primary_style.border, PALETTE.border);
 
     let mut secondary = positioned_button_node(
@@ -250,10 +250,10 @@ fn editor_variant_button_ignores_legacy_declared_material_colors() {
 
     let style = button_style(&node, button_kind(&node));
 
-    assert_eq!(style.surface, PALETTE.surface_pressed);
+    assert_eq!(style.surface, PALETTE.accent);
     assert_eq!(style.border, PALETTE.border);
-    assert_eq!(style.text, PALETTE.text);
-    assert_eq!(style.glyph, PALETTE.text);
+    assert_eq!(style.text, PALETTE.shell_background);
+    assert_eq!(style.glyph, PALETTE.shell_background);
 }
 
 #[test]
@@ -297,7 +297,10 @@ fn workbench_variant_row_uses_declared_surface_and_border() {
         resolved_button_style([0, 0, 0, 0], [37, 46, 53, 255], [135, 146, 153, 255], 1.0);
     let outline_style = button_style(&outline, button_kind(&outline));
 
-    assert_eq!(outline_style.surface, PALETTE.surface_pressed);
+    assert_eq!(
+        outline_style.surface,
+        workbench_button_transparent_surface()
+    );
     assert_eq!(outline_style.border, [37, 46, 53, 255]);
     assert_eq!(outline_style.text, [135, 146, 153, 255]);
     assert_eq!(button_radius(&outline, &outline.frame_rect()), 5.0);

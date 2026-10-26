@@ -5,6 +5,7 @@ use zircon_runtime::asset::watch::AssetChange;
 use zircon_runtime::asset::AssetUri;
 use zircon_runtime::core::framework::channel::ChannelWakeCallback;
 use zircon_runtime::core::CoreError;
+use zircon_runtime_interface::project::AssetRef;
 
 use crate::core::asset::{
     AssetDeletePreflight, AssetSourceWritePolicy, EditorAssetDeletionTicket,
@@ -13,6 +14,16 @@ use crate::core::asset::{
 
 use super::{
     EditorAssetCatalogGeneration, EditorAssetChangeSubscription, EditorAssetDetailsGeneration,
+};
+
+#[path = "manager/assets/readonly_snapshot.rs"]
+mod readonly_snapshot;
+
+pub use readonly_snapshot::{
+    EditorAssetDependencyCoverage, EditorAssetDependencyObservation, EditorAssetReadFacts,
+    EditorAssetReadMissing, EditorAssetReadObservation, EditorAssetReadScope,
+    EditorAssetReadSnapshot, EditorAssetReadStale, EditorAssetReadUnknown,
+    EditorAssetRegistryReference,
 };
 
 pub trait EditorAssetManager: Send + Sync {
@@ -38,6 +49,18 @@ pub trait EditorAssetManager: Send + Sync {
     fn deactivate_runtime_project(&self) -> bool;
     fn catalog_snapshot(&self) -> Arc<EditorAssetCatalogGeneration>;
     fn asset_details(&self, uuid: &str) -> Option<Arc<EditorAssetDetailsGeneration>>;
+    /// Observes one exact GUID/sub against a coherent project/index/catalog publication.
+    /// This performs no IO, refresh, preview, save or callbacks. `source_policy` must
+    /// come from the caller's actual type definition; it is not save admission.
+    /// Custom managers without a coherent publication report unknown explicitly.
+    fn readonly_asset_snapshot(
+        &self,
+        reference: &AssetRef,
+        _expected: Option<&EditorAssetReadScope>,
+        _source_policy: Option<AssetSourceWritePolicy>,
+    ) -> EditorAssetReadSnapshot {
+        EditorAssetReadSnapshot::unknown(reference, EditorAssetReadUnknown::UnsupportedManager)
+    }
     /// Returns the runtime-registry delete admission for an asset without mutating source files.
     fn asset_delete_preflight(
         &self,
