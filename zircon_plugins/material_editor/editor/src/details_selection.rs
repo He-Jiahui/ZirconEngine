@@ -1,7 +1,10 @@
 use std::collections::BTreeSet;
 
+use zircon_runtime_interface::resource::ResourceKind;
+
 use super::{
-    MaterialGraphAsset, MaterialGraphDiagnostic, MaterialGraphNodeAsset, MaterialGraphNodeKindAsset,
+    AssetReference, MaterialGraphAsset, MaterialGraphDiagnostic, MaterialGraphNodeAsset,
+    MaterialGraphNodeKindAsset,
 };
 
 /// An object to inspect in this exact authoring source, not a compiled material.
@@ -123,4 +126,90 @@ pub fn project_material_graph_details_selection<'a>(
         )]);
     }
     Ok(selection)
+}
+
+/// One actual graph-level authoring field; values borrow the source or request.
+///
+/// Name is a String in the asset schema, so an empty value remains an explicit
+/// empty name. Shader None clears that optional authored reference; it does not
+/// install the compiler's fallback into the source. No UE property or editor
+/// metadata is inferred from these two Zircon fields.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MaterialGraphDetailsEdit<'a> {
+    Name(&'a str),
+    Shader(Option<&'a AssetReference>),
+}
+
+/// A source-borrowed candidate for the host's existing single-field transaction.
+///
+/// This owns no document, revision, delta, history or mutation permit. The host
+/// must retain the same document/subdocument/revision and resource catalog,
+/// revalidate the request, charge/copy its before and after values, then prepare
+/// one domain delta and inverse through the existing retention/permit/CAS path.
+/// UI focus, dirty state, compile/preview invalidation and save stay with that
+/// real host; merely constructing this candidate changes none of them.
+#[derive(Debug)]
+pub struct MaterialGraphDetailsEditPlan<'a> {
+    source: &'a MaterialGraphAsset,
+    edit: MaterialGraphDetailsEdit<'a>,
+}
+
+impl<'a> MaterialGraphDetailsEditPlan<'a> {
+    pub fn source(&self) -> &'a MaterialGraphAsset {
+        self.source
+    }
+
+    pub fn edit(&self) -> MaterialGraphDetailsEdit<'a> {
+        self.edit
+    }
+
+    pub fn previous_value(&self) -> MaterialGraphDetailsEdit<'a> {
+        match self.edit {
+            MaterialGraphDetailsEdit::Name(_) => MaterialGraphDetailsEdit::Name(&self.source.name),
+            MaterialGraphDetailsEdit::Shader(_) => {
+                MaterialGraphDetailsEdit::Shader(self.source.shader.as_ref())
+            }
+        }
+    }
+
+    pub fn changes_source(&self) -> bool {
+        self.edit != self.previous_value()
+    }
+}
+
+/// Plans a Name or Shader edit without changing the graph or compiling it.
+///
+/// Compare the complete reference pair, including UUID and locator. A changed
+/// non-empty Shader is resolved once through the caller's current catalog;
+/// neither its extension nor the previous reference proves its resource kind.
+/// Unchanged values and clearing a reference need no lookup. Invalid expressions
+/// remain repairable: unrelated node/link/parameter errors do not block a graph
+/// field edit, and this candidate never resets those authoring values.
+pub fn plan_material_graph_details_edit<'a>(
+    graph: &'a MaterialGraphAsset,
+    edit: MaterialGraphDetailsEdit<'a>,
+    mut resolve_kind: impl FnMut(&AssetReference) -> Result<ResourceKind, String>,
+) -> Result<MaterialGraphDetailsEditPlan<'a>, Vec<MaterialGraphDiagnostic>> {
+    let plan = MaterialGraphDetailsEditPlan {
+        source: graph,
+        edit,
+    };
+    if plan.changes_source() {
+        if let MaterialGraphDetailsEdit::Shader(Some(reference)) = edit {
+            match resolve_kind(reference) {
+                Ok(ResourceKind::Shader) => {}
+                Ok(kind) => {
+                    return Err(vec![MaterialGraphDiagnostic::graph(format!(
+                        "material graph Shader references {kind:?}, expected Shader"
+                    ))]);
+                }
+                Err(error) => {
+                    return Err(vec![MaterialGraphDiagnostic::graph(format!(
+                        "material graph Shader reference could not be resolved: {error}"
+                    ))]);
+                }
+            }
+        }
+    }
+    Ok(plan)
 }

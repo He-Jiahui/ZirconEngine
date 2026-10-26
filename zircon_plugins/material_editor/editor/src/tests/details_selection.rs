@@ -1,14 +1,15 @@
 use std::collections::BTreeMap;
 
 use super::{
-    compile_material_graph, project_material_graph_details_selection,
-    validate_material_graph_with_diagnostics, MaterialGraphDetailsTarget,
-    MaterialGraphDiagnosticTarget,
+    compile_material_graph, plan_material_graph_details_edit,
+    project_material_graph_details_selection, validate_material_graph_with_diagnostics,
+    MaterialGraphDetailsEdit, MaterialGraphDetailsTarget, MaterialGraphDiagnosticTarget,
 };
 use zircon_runtime::asset::{
     AssetReference, AssetUri, MaterialGraphAsset, MaterialGraphLinkAsset, MaterialGraphNodeAsset,
     MaterialGraphNodeKindAsset as Node, MaterialGraphParameterAsset as Value,
 };
+use zircon_runtime_interface::resource::{AssetUuid, ResourceKind};
 
 #[test]
 fn material_graph_details_empty_selection_inspects_original_even_with_ambiguous_nodes() {
@@ -195,6 +196,246 @@ fn material_graph_details_codec_reopen_keeps_author_presence_and_real_pbr_compil
     assert_eq!(material.roughness, 0.5);
     assert_eq!(material.base_color, [0.1, 0.2, 0.3, 1.0]);
     assert_eq!(reopened.to_toml_string().unwrap(), saved);
+}
+
+#[test]
+fn material_graph_details_name_edit_borrows_exact_chinese_and_long_request_without_lookup() {
+    let graph = graph();
+    let original = graph.to_toml_string().unwrap();
+    let name = format!("  材质名称_{}  ", "保留作者文字".repeat(40));
+    let plan =
+        plan_material_graph_details_edit(&graph, MaterialGraphDetailsEdit::Name(&name), |_| {
+            panic!("a Name edit does not resolve resources")
+        })
+        .unwrap();
+    assert!(std::ptr::eq(plan.source(), &graph));
+    assert!(plan.changes_source());
+    let MaterialGraphDetailsEdit::Name(before) = plan.previous_value() else {
+        unreachable!()
+    };
+    let MaterialGraphDetailsEdit::Name(after) = plan.edit() else {
+        unreachable!()
+    };
+    assert!(std::ptr::eq(before, graph.name.as_str()));
+    assert!(std::ptr::eq(after, name.as_str()));
+    assert_eq!(graph.to_toml_string().unwrap(), original);
+}
+
+#[test]
+fn material_graph_details_empty_name_is_explicit_and_equal_text_is_a_noop() {
+    let graph = graph();
+    let same_text = graph.name.clone();
+    let unchanged = plan_material_graph_details_edit(
+        &graph,
+        MaterialGraphDetailsEdit::Name(&same_text),
+        |_| panic!("equal text does not resolve resources"),
+    )
+    .unwrap();
+    assert!(!unchanged.changes_source());
+    let empty =
+        plan_material_graph_details_edit(&graph, MaterialGraphDetailsEdit::Name(""), |_| {
+            panic!("an empty name does not resolve resources")
+        })
+        .unwrap();
+    assert!(empty.changes_source());
+    assert_eq!(empty.edit(), MaterialGraphDetailsEdit::Name(""));
+    assert_eq!(graph.name, same_text);
+}
+
+#[test]
+fn material_graph_details_shader_edit_resolves_full_pair_once_even_with_repairable_graph() {
+    let mut graph = graph();
+    graph.nodes = vec![
+        node("duplicate", Node::Add),
+        node("duplicate", Node::Multiply),
+    ];
+    let original = graph.to_toml_string().unwrap();
+    let proposed = AssetReference::new(
+        AssetUuid::from_stable_label("details shader existing test identity"),
+        AssetUri::parse("res://shaders/actual_shader_without_extension").unwrap(),
+    );
+    let mut calls = 0;
+    let plan = plan_material_graph_details_edit(
+        &graph,
+        MaterialGraphDetailsEdit::Shader(Some(&proposed)),
+        |reference| {
+            calls += 1;
+            assert!(std::ptr::eq(reference, &proposed));
+            assert_eq!(reference.uuid, proposed.uuid);
+            assert_eq!(reference.locator, proposed.locator);
+            Ok(ResourceKind::Shader)
+        },
+    )
+    .unwrap();
+    assert_eq!(calls, 1);
+    assert!(plan.changes_source());
+    assert_eq!(
+        plan.previous_value(),
+        MaterialGraphDetailsEdit::Shader(graph.shader.as_ref())
+    );
+    assert_eq!(graph.to_toml_string().unwrap(), original);
+}
+
+#[test]
+fn material_graph_details_equal_shader_pair_and_absent_reference_are_noops_without_lookup() {
+    let mut graph = graph();
+    let same_pair = graph.shader.clone().unwrap();
+    let plan = plan_material_graph_details_edit(
+        &graph,
+        MaterialGraphDetailsEdit::Shader(Some(&same_pair)),
+        |_| panic!("an unchanged pair needs no resolver, even if currently unavailable"),
+    )
+    .unwrap();
+    assert!(!plan.changes_source());
+    graph.shader = None;
+    let plan =
+        plan_material_graph_details_edit(&graph, MaterialGraphDetailsEdit::Shader(None), |_| {
+            panic!("an absent reference needs no resolver")
+        })
+        .unwrap();
+    assert!(!plan.changes_source());
+}
+
+#[test]
+fn material_graph_details_shader_uuid_and_locator_changes_each_require_current_resolution() {
+    let graph = graph();
+    let original = graph.shader.as_ref().unwrap();
+    let mut moved = original.clone();
+    moved.locator = AssetUri::parse("res://shaders/moved.wgsl").unwrap();
+    let mut replaced = original.clone();
+    replaced.uuid = AssetUuid::from_stable_label("details different persistent shader");
+    for reference in [&moved, &replaced] {
+        let mut calls = 0;
+        let plan = plan_material_graph_details_edit(
+            &graph,
+            MaterialGraphDetailsEdit::Shader(Some(reference)),
+            |actual| {
+                calls += 1;
+                assert_eq!(actual, reference);
+                Ok(ResourceKind::Shader)
+            },
+        )
+        .unwrap();
+        assert_eq!(calls, 1);
+        assert!(plan.changes_source());
+    }
+    assert_eq!(graph.shader.as_ref().unwrap(), original);
+}
+
+#[test]
+fn material_graph_details_shader_rejects_wrong_kind_and_resolution_error_without_partial_write() {
+    let graph = graph();
+    let before = graph.to_toml_string().unwrap();
+    let proposed =
+        AssetReference::from_locator(AssetUri::parse("res://shaders/misleading.wgsl").unwrap());
+    for resolution in [
+        Ok(ResourceKind::Texture),
+        Ok(ResourceKind::Material),
+        Ok(ResourceKind::MaterialGraph),
+        Err("the UUID/locator pair is not in this project".to_owned()),
+    ] {
+        let mut calls = 0;
+        let errors = plan_material_graph_details_edit(
+            &graph,
+            MaterialGraphDetailsEdit::Shader(Some(&proposed)),
+            |_| {
+                calls += 1;
+                resolution.clone()
+            },
+        )
+        .unwrap_err();
+        assert_eq!(calls, 1);
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].target, MaterialGraphDiagnosticTarget::Graph);
+        assert_eq!(graph.to_toml_string().unwrap(), before);
+    }
+}
+
+#[test]
+fn material_graph_details_shader_clear_preserves_authored_none_through_codec_and_compile() {
+    let mut source = graph();
+    source.nodes = vec![
+        node("output", Node::Output),
+        scalar("roughness", "粗糙度", 0.3),
+    ];
+    source.links = vec![link("roughness", "roughness")];
+    source.parameters.insert("孤立".into(), Value::Scalar(-0.0));
+    let plan =
+        plan_material_graph_details_edit(&source, MaterialGraphDetailsEdit::Shader(None), |_| {
+            panic!("clearing an authored reference does not resolve the old shader")
+        })
+        .unwrap();
+    assert!(plan.changes_source());
+    assert!(matches!(
+        plan.previous_value(),
+        MaterialGraphDetailsEdit::Shader(Some(_))
+    ));
+    let MaterialGraphDetailsEdit::Shader(after) = plan.edit() else {
+        unreachable!()
+    };
+    // Exercise the candidate against the real asset codec/compiler. This test
+    // copy is not an implementation of the host's document/history transaction.
+    let mut edited = source.clone();
+    edited.shader = after.cloned();
+    let reopened = MaterialGraphAsset::from_toml_str(&edited.to_toml_string().unwrap()).unwrap();
+    assert!(reopened.shader.is_none());
+    assert_eq!(reopened.nodes, source.nodes);
+    assert_eq!(reopened.links, source.links);
+    let Some(Value::Scalar(orphan)) = reopened.parameters.get("孤立") else {
+        unreachable!()
+    };
+    assert!(orphan.is_sign_negative());
+    let material = compile_material_graph(&reopened).unwrap();
+    assert_eq!(material.roughness, 0.3);
+    assert!(source.shader.is_some());
+}
+
+#[test]
+fn material_graph_details_name_and_shader_candidates_survive_real_codec_with_source_identity() {
+    let mut source = graph();
+    source.nodes = vec![
+        node("output", Node::Output),
+        scalar("roughness", "粗糙度", 0.1),
+    ];
+    source.links = vec![link("roughness", "roughness")];
+    source
+        .parameters
+        .insert("粗糙度".into(), Value::Scalar(0.72));
+    let before = source.to_toml_string().unwrap();
+    let name = "  新材质 / 名称  ";
+    let shader = AssetReference::new(
+        AssetUuid::from_stable_label("details retained shader identity"),
+        AssetUri::parse("res://shaders/moved.wgsl").unwrap(),
+    );
+    let name_plan =
+        plan_material_graph_details_edit(&source, MaterialGraphDetailsEdit::Name(name), |_| {
+            panic!("Name edits never resolve resources")
+        })
+        .unwrap();
+    let shader_plan = plan_material_graph_details_edit(
+        &source,
+        MaterialGraphDetailsEdit::Shader(Some(&shader)),
+        |_| Ok(ResourceKind::Shader),
+    )
+    .unwrap();
+    let mut edited = source.clone();
+    let MaterialGraphDetailsEdit::Name(after_name) = name_plan.edit() else {
+        unreachable!()
+    };
+    let MaterialGraphDetailsEdit::Shader(after_shader) = shader_plan.edit() else {
+        unreachable!()
+    };
+    edited.name = after_name.into();
+    edited.shader = after_shader.cloned();
+    let reopened = MaterialGraphAsset::from_toml_str(&edited.to_toml_string().unwrap()).unwrap();
+    assert_eq!(reopened.name, name);
+    assert_eq!(reopened.shader, Some(shader));
+    assert_eq!(reopened.uri, source.uri);
+    assert_eq!(reopened.nodes, source.nodes);
+    assert_eq!(reopened.links, source.links);
+    assert_eq!(reopened.parameters, source.parameters);
+    assert_eq!(compile_material_graph(&reopened).unwrap().roughness, 0.72);
+    assert_eq!(source.to_toml_string().unwrap(), before);
 }
 
 fn graph() -> MaterialGraphAsset {

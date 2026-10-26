@@ -114,7 +114,8 @@ pub use connections::{
     MaterialGraphValueType,
 };
 pub use details_selection::{
-    project_material_graph_details_selection, MaterialGraphDetailsSelection,
+    plan_material_graph_details_edit, project_material_graph_details_selection,
+    MaterialGraphDetailsEdit, MaterialGraphDetailsEditPlan, MaterialGraphDetailsSelection,
     MaterialGraphDetailsTarget,
 };
 pub use diagnostics::{
