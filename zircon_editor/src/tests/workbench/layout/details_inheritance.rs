@@ -24,7 +24,7 @@ use crate::ui::{
 };
 
 #[test]
-fn unreal_details_axes_inherit_resolved_width_tokens_and_editability_contract() {
+fn unreal_details_rotation_axes_inherit_widths_and_enable_only_for_valid_selection() {
     let _guard = env_lock().lock().unwrap();
     let assets = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
     let mut cache = UiV2PrototypeStoreFileCache::new();
@@ -87,8 +87,8 @@ fn unreal_details_axes_inherit_resolved_width_tokens_and_editability_contract() 
         .expect("available rotation must synchronize through the actual bridge");
     // The bridge exposes its actual retained surface by shared reference.
     // Own that synchronized state to exercise the public runtime input consumer.
-    let mut readonly_surface = bridge.surface().clone();
-    let editable = readonly_surface
+    let mut live_surface = bridge.surface().clone();
+    let editable = live_surface
         .tree
         .nodes
         .values()
@@ -116,15 +116,15 @@ fn unreal_details_axes_inherit_resolved_width_tokens_and_editability_contract() 
         );
     }
     let editable_id = editable.node_id;
-    readonly_surface
+    live_surface
         .focus_node(editable_id)
         .expect("the same real surface must accept an editable axis");
-    assert_eq!(readonly_surface.focus.focused, Some(editable_id));
-    readonly_surface.clear_focus();
-    assert_eq!(readonly_surface.focus.focused, None);
+    assert_eq!(live_surface.focus.focused, Some(editable_id));
+    live_surface.clear_focus();
+    assert_eq!(live_surface.focus.focused, None);
     // Public focus release queues its legitimate Submit/IME lifecycle.
-    // Consume it through the real input entry before checking rotation rejection.
-    let focus_release = readonly_surface
+    // Consume it through the real input entry before checking rotation editing.
+    let focus_release = live_surface
         .dispatch_input_event(
             &UiPointerDispatcher::default(),
             &UiNavigationDispatcher::default(),
@@ -146,7 +146,7 @@ fn unreal_details_axes_inherit_resolved_width_tokens_and_editability_contract() 
             .all(|event| event.target == editable_id),
         "focus release must publish only the actual positive control's lifecycle"
     );
-    assert_eq!(readonly_surface.focus.focused, None);
+    assert_eq!(live_surface.focus.focused, None);
 
     for axis in [
         "position_x",
@@ -226,19 +226,6 @@ fn unreal_details_axes_inherit_resolved_width_tokens_and_editability_contract() 
         }
 
         if axis.starts_with("rotation_") {
-            assert!(
-                authored.events.is_empty(),
-                "{control_id} must remain read-only"
-            );
-            assert!(
-                compiled.events.is_empty(),
-                "{control_id} gained a compiled route"
-            );
-            assert!(
-                metadata.bindings.is_empty(),
-                "{control_id} gained a retained route"
-            );
-
             let axis_index = ["rotation_x", "rotation_y", "rotation_z"]
                 .iter()
                 .position(|rotation_axis| *rotation_axis == axis)
@@ -252,20 +239,8 @@ fn unreal_details_axes_inherit_resolved_width_tokens_and_editability_contract() 
                 projected.value_text.as_deref(),
                 Some(expected_value.as_str())
             );
-            assert!(
-                projected.routes.is_empty(),
-                "{control_id} must have no business route"
-            );
-            for event_kind in [UiEventKind::Change, UiEventKind::Submit] {
-                assert!(
-                    bridge
-                        .dispatch_control_state(control_id, event_kind)
-                        .expect("read-only dispatch must return a result")
-                        .is_none(),
-                    "{control_id} must reject actual bridge {event_kind:?} dispatch"
-                );
-            }
-            let live = readonly_surface
+            assert!(!projected.disabled);
+            let live = live_surface
                 .tree
                 .nodes
                 .values()
@@ -280,10 +255,7 @@ fn unreal_details_axes_inherit_resolved_width_tokens_and_editability_contract() 
                 .template_metadata
                 .as_ref()
                 .expect("available axis metadata");
-            assert!(
-                live_metadata.bindings.is_empty(),
-                "{control_id} must retain no route"
-            );
+            assert_eq!(live_metadata.bindings.len(), 2);
             assert_eq!(
                 live_metadata
                     .attributes
@@ -303,12 +275,12 @@ fn unreal_details_axes_inherit_resolved_width_tokens_and_editability_contract() 
             ] {
                 assert_eq!(
                     authored.props.get(property).and_then(toml::Value::as_bool),
-                    Some(expected),
-                    "{control_id} must retain its authored {property} contract"
+                    None,
+                    "{control_id} must inherit its primitive's {property} capability"
                 );
                 assert_eq!(
                     compiled.props.get(property).and_then(toml::Value::as_bool),
-                    Some(expected),
+                    Some(!expected),
                     "{control_id} must retain its compiled {property} contract"
                 );
                 assert_eq!(
@@ -316,28 +288,21 @@ fn unreal_details_axes_inherit_resolved_width_tokens_and_editability_contract() 
                         .attributes
                         .get(property)
                         .and_then(toml::Value::as_bool),
-                    Some(expected),
-                    "{control_id} must consume {property} in the retained surface"
+                    Some(!expected),
+                    "{control_id} must enable {property} for a valid rotation"
                 );
             }
-            assert!(!live.is_focus_candidate(), "{control_id} must reject focus");
+            assert!(live.is_focus_candidate(), "{control_id} must accept focus");
             assert!(
-                !live.supports_pointer(),
-                "{control_id} must reject pointer interaction"
+                live.supports_pointer(),
+                "{control_id} must accept pointer input"
             );
             let retained_id = live.node_id;
             let value_before = live_metadata.attributes.get("value").cloned();
-            assert!(
-                value_before.is_some(),
-                "{control_id} must retain its display value"
-            );
-            assert_eq!(readonly_surface.focus.focused, None);
-            assert!(
-                readonly_surface.focus_node(retained_id).is_err(),
-                "the real surface must reject focus on {control_id}"
-            );
-            assert_eq!(readonly_surface.focus.focused, None);
-            let result = readonly_surface
+            live_surface
+                .focus_node(retained_id)
+                .expect("valid rotation is focusable");
+            let result = live_surface
                 .dispatch_input_event(
                     &UiPointerDispatcher::default(),
                     &UiNavigationDispatcher::default(),
@@ -346,27 +311,23 @@ fn unreal_details_axes_inherit_resolved_width_tokens_and_editability_contract() 
                         text: "123".to_string(),
                     }),
                 )
-                .expect("a rejected text edit must return a dispatch result");
-            assert_eq!(result.reply.disposition, UiDispatchDisposition::Unhandled);
-            assert_eq!(result.diagnostics.route_target, None);
-            assert!(result.applied_effects.is_empty());
-            assert!(result.host_requests.is_empty());
-            assert!(result.component_events.is_empty());
-            assert!(result.widget_events.is_empty());
-            assert!(result.binding_reports.is_empty());
-            let metadata_after = readonly_surface
+                .expect("rotation text input must dispatch");
+            assert!(result
+                .component_events
+                .iter()
+                .any(|event| event.target == retained_id));
+            let metadata_after = live_surface
                 .tree
                 .node(retained_id)
-                .expect("read-only axis must remain mounted")
+                .unwrap()
                 .template_metadata
                 .as_ref()
-                .expect("read-only axis metadata");
-            assert_eq!(
+                .unwrap();
+            assert_ne!(
                 metadata_after.attributes.get("value"),
                 value_before.as_ref()
             );
-            assert!(metadata_after.bindings.is_empty());
-            continue;
+            live_surface.clear_focus();
         }
 
         for event_kind in [UiEventKind::Change, UiEventKind::Submit] {

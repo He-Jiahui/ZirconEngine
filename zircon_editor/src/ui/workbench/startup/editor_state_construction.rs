@@ -174,6 +174,7 @@ impl EditorState {
             name_field: String::new(),
             parent_field: String::new(),
             transform_fields: Default::default(),
+            rotation_fields: Default::default(),
             scale_fields: Default::default(),
             inspector_dynamic_fields: Default::default(),
             inspector_edited_fields: Default::default(),

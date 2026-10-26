@@ -10,6 +10,8 @@ pub(crate) mod command;
 pub(crate) mod context;
 #[path = "engine/mod.rs"]
 pub mod engine;
+#[path = "euler_rotation.rs"]
+pub(crate) mod euler_rotation;
 #[path = "intent.rs"]
 pub(crate) mod intent;
 #[path = "interactive_transform/mod.rs"]

@@ -100,6 +100,7 @@ impl From<InteractiveTransformError> for GizmoTransactionError {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InspectorTransformField {
     Translation,
+    Rotation,
     Scale,
 }
 
@@ -107,6 +108,7 @@ impl fmt::Display for InspectorTransformField {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Translation => formatter.write_str("translation"),
+            Self::Rotation => formatter.write_str("rotation (XYZ degrees)"),
             Self::Scale => formatter.write_str("scale"),
         }
     }
@@ -123,6 +125,8 @@ pub enum InspectorEditError {
     InvalidParentField { value: String },
     #[error("Transform {field} fields must be finite numbers")]
     InvalidTransformFields { field: InspectorTransformField },
+    #[error("Rotation editing requires a finite, nonzero local quaternion")]
+    InvalidRotationQuaternion,
     #[error("unsupported inspector field {field_id}")]
     UnsupportedFieldId { field_id: String },
     #[error("failed to read inspector field `{field_id}`: {source}")]

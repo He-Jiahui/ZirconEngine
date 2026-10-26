@@ -33,6 +33,7 @@ pub(crate) struct InspectorBindingUiCheckpoint {
     name_field: String,
     parent_field: String,
     transform_fields: [String; 3],
+    rotation_fields: [String; 3],
     scale_fields: [String; 3],
     dynamic_fields: BTreeMap<String, String>,
     edited_fields: InspectorEditedFields,
@@ -47,6 +48,7 @@ pub(crate) struct InspectorEditedFields {
     pub(crate) name: bool,
     pub(crate) parent: bool,
     pub(crate) translation: [bool; 3],
+    pub(crate) rotation: [bool; 3],
     pub(crate) scale: [bool; 3],
 }
 
@@ -55,6 +57,7 @@ impl InspectorEditedFields {
         !self.name
             && !self.parent
             && !self.translation.contains(&true)
+            && !self.rotation.contains(&true)
             && !self.scale.contains(&true)
     }
 }
@@ -75,6 +78,7 @@ pub struct EditorState {
     pub(crate) name_field: String,
     pub(crate) parent_field: String,
     pub(crate) transform_fields: [String; 3],
+    pub(crate) rotation_fields: [String; 3],
     pub(crate) scale_fields: [String; 3],
     pub(crate) inspector_dynamic_fields: BTreeMap<String, String>,
     pub(crate) inspector_edited_fields: InspectorEditedFields,
@@ -206,6 +210,7 @@ impl EditorState {
             name_field: self.name_field.clone(),
             parent_field: self.parent_field.clone(),
             transform_fields: self.transform_fields.clone(),
+            rotation_fields: self.rotation_fields.clone(),
             scale_fields: self.scale_fields.clone(),
             dynamic_fields: self.inspector_dynamic_fields.clone(),
             edited_fields: self.inspector_edited_fields,
@@ -230,6 +235,7 @@ impl EditorState {
             name_field,
             parent_field,
             transform_fields,
+            rotation_fields,
             scale_fields,
             dynamic_fields,
             edited_fields,
@@ -242,6 +248,7 @@ impl EditorState {
         self.name_field = name_field;
         self.parent_field = parent_field;
         self.transform_fields = transform_fields;
+        self.rotation_fields = rotation_fields;
         self.scale_fields = scale_fields;
         self.inspector_dynamic_fields = dynamic_fields;
         self.inspector_edited_fields = edited_fields;
