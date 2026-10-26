@@ -489,7 +489,8 @@ props = { text = "Canvas" }
                 .ui_asset
                 .nodes
                 .get(0)
-                .unwrap();
+                .unwrap()
+                .clone();
             mutate(&mut opener);
             presentation
                 .host_scene_data

@@ -47,7 +47,7 @@ mod paint_primitives;
 mod paint_recording;
 #[path = "paint/mod.rs"]
 mod paint_template_nodes;
-pub(in crate::ui::retained_host) use paint_template_nodes::tree_disclosure_rect_for_indent;
+pub(crate) use paint_template_nodes::tree_disclosure_rect_for_indent;
 pub(in crate::ui::retained_host) use paint_template_nodes::{
     bind_visual_asset_loader, clear_svg_tree_cache, clear_visual_asset_pixels_cache,
     invalidate_editor_sprite_atlas_cache, invalidate_svg_tree_paths,

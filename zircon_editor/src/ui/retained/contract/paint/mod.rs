@@ -175,7 +175,7 @@ pub(super) use template_node_pipeline::{
     draw_template_nodes, draw_template_nodes_with_transform, has_template_nodes,
     TemplateNodePaintTransform,
 };
-pub(in crate::ui::retained_host) use template_tree_row_geometry::tree_disclosure_rect_for_indent;
+pub(crate) use template_tree_row_geometry::tree_disclosure_rect_for_indent;
 pub(super) use template_viewport_scene::is_viewport_fallback_scene_node;
 pub(in crate::ui::retained_host) use visual_assets::{
     bind_visual_asset_loader, clear_svg_tree_cache, clear_visual_asset_pixels_cache,

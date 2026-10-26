@@ -246,7 +246,7 @@ fn sequence_create_admission_zero_or_unique_binding_commits_once_and_undoes_exac
             .unwrap();
         let mut transaction = engine.begin(mutation.label(), history).unwrap();
         transaction
-            .apply(AnimationEditCommand::new(
+            .push(AnimationEditCommand::new(
                 mutation.label(),
                 id,
                 revision,

@@ -6536,6 +6536,7 @@ name = "zircon_plugin_ai_editor"
 version = "0.1.0"
 dependencies = [
  "thiserror 2.0.18",
+ "toml",
  "zircon_editor",
  "zircon_plugin_ai_runtime",
  "zircon_plugin_editor_support",
@@ -7060,6 +7061,9 @@ dependencies = [
 name = "zircon_plugin_particles_editor"
 version = "0.1.0"
 dependencies = [
+ "serde",
+ "toml",
+ "uuid",
  "zircon_editor",
  "zircon_plugin_editor_support",
  "zircon_plugin_particles_runtime",

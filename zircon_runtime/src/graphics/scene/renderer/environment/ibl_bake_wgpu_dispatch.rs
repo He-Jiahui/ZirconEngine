@@ -186,7 +186,7 @@ fn command_kind_for_context(
     match context.executor_id.as_str() {
         IBL_BAKE_PMREM_EXECUTOR_ID => {
             let mip_level = ibl_bake_pmrem_mip_from_pass_name(context.pass_name.as_str())?;
-            (context.pass_name == ibl_bake_pmrem_pass_name(mip_level))
+            (ibl_bake_pmrem_pass_name(mip_level) == context.pass_name)
                 .then_some(IblBakeComputeKernelKind::Pmrem { mip_level })
         }
         IBL_BAKE_IRRADIANCE_SH9_EXECUTOR_ID => (context.pass_name == IBL_BAKE_IRRADIANCE_SH9_PASS)

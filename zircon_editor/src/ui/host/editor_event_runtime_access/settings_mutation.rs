@@ -756,7 +756,10 @@ mod settings_scope_mutation_tests {
                 .resolved_setting(&parse_key(key).unwrap())
                 .unwrap();
             assert_eq!(resolved.value(), &expected);
-            assert_eq!(resolved.source(), SettingValueSource::Session);
+            assert_eq!(
+                resolved.source(),
+                SettingValueSource::Scope(SettingsScope::Session)
+            );
             let repeated =
                 set_numeric_override(&mutations, key, SettingsScope::Session, text).unwrap();
             assert!(!repeated.changed());

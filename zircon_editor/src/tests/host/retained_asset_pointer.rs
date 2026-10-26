@@ -268,9 +268,9 @@ fn shared_asset_tree_pointer_bridge_scrolls_and_dispatches_folder_selection() {
 
 #[test]
 fn asset_tree_disclosure_click_changes_real_workspace_and_rejects_old_publication() {
-    use crate::ui::retained_host::host_contract::{
-        data::FrameRect, paint_theme::current_host_metrics, tree_disclosure_rect_for_indent,
-    };
+    use crate::ui::retained_host::data::FrameRect;
+    use crate::ui::retained_host::paint_theme::current_host_metrics;
+    use crate::ui::retained_host::tree_disclosure_rect_for_indent;
     let _guard = env_lock().lock().unwrap();
     let harness = EventRuntimeHarness::new("zircon_asset_tree_disclosure");
     let bridge = BuiltinAssetSurfaceTemplateBridge::new().unwrap();

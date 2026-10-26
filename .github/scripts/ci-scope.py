@@ -352,12 +352,22 @@ def registry(packages, root=ROOT):
         add(recipe("leaf-" + name, name, selector="tests::", reason="changed leaf and reviewed callers"))
     # Explicit library recipes for real plugin runtime owners; no dist/all-package loop.
     for name, package in packages.items():
-        if package["directory"].startswith("zircon_plugins/") and "/runtime" in package["directory"]:
-            data = package["data"]
-            if "lib" in data or (root / package["directory"] / "src/lib.rs").is_file():
-                add(recipe("plugin-" + name, name, selector="tests::", reason="changed plugin runtime library"))
-        if package["directory"].endswith("/dist") and "dist" in package["data"].get("features", {}):
+        directory = package["directory"]
+        data = package["data"]
+        library = "lib" in data or (root / directory / "src/lib.rs").is_file()
+        if library and directory.startswith("zircon_plugins/") and "/runtime" in directory:
+            add(recipe("plugin-" + name, name, selector="tests::", reason="changed plugin runtime library"))
+        # First-party editor plugins follow the same library recipe as runtime plugins.
+        if library and directory.startswith("zircon_plugins/") and directory.endswith("/editor"):
+            add(recipe("plugin-" + name, name, selector="tests::", reason="changed first-party editor library"))
+        if directory.endswith("/dist") and "dist" in data.get("features", {}):
             add(recipe("dist-" + name, name, group="dist", features=("dist",), verb="build"))
+    if "zircon_editor" in packages:
+        add(recipe("editor-zircon_editor", "zircon_editor", selector="tests::",
+                   reason="changed editor library"))
+    if "zircon_first_party_runtime_catalog" in packages:
+        add(recipe("plugin-zircon_first_party_runtime_catalog", "zircon_first_party_runtime_catalog",
+                   selector="tests::", reason="first-party runtime catalog consumer"))
     need(set(RENDER_SOURCE_OWNERS) == {row["feature"] for row in RENDER_ROWS},
          "Every real frame contract needs exactly one declared source owner")
     for feature, name in RENDER_SOURCE_OWNERS.items():
@@ -406,9 +416,13 @@ def registry(packages, root=ROOT):
 
 
 def non_code(path):
-    return (path.startswith("docs/") and Path(path).suffix.lower() in {".md", ".txt", ".svg", ".png", ".jpg"}
-            or path in {"LICENSE", "README.md", "AGENTS.md"}
-            or path.startswith(".github/") and Path(path).suffix in {".py", ".ps1", ".cmd", ".yml", ".yaml", ".gitignore"})
+    suffix = Path(path).suffix.lower()
+    # Docs, agent notes, and trees outside both Cargo workspaces have no compile owner.
+    # .codex/config.toml, Jenkins overlap, and other tools stay out of the recipe plan.
+    return (path.startswith("docs/") and suffix in {".md", ".txt", ".svg", ".png", ".jpg", ".json"}
+            or path in {"LICENSE", "README.md", "AGENTS.md"} or path.endswith("/README.md")
+            or path.startswith(".github/") and suffix in {".py", ".ps1", ".cmd", ".yml", ".yaml", ".gitignore"}
+            or path.startswith(("tools/", "third_party/", ".codex/")))
 
 
 def plan_paths(paths, packages, recipes, selected=()):
@@ -455,6 +469,9 @@ def plan_paths(paths, packages, recipes, selected=()):
                         candidates.add("portable-core")
                     if local.startswith(("graphics/", "render_graph/")):
                         candidates.update("render-" + row["feature"] for row in RENDER_ROWS)
+                elif local == "rhi.rs":
+                    # Facade reexports the reviewed zr_rhi leaf and its existing callers.
+                    candidates.update(("leaf-zr_rhi", "leaf-zr_rhi_wgpu", "runtime-graphics"))
             if not candidates:
                 unresolved.append(path + ": shared Runtime boundary; register explicit module/consumer contracts")
         elif name in LEAVES:
@@ -473,15 +490,19 @@ def plan_paths(paths, packages, recipes, selected=()):
                               if source_owner == name)
             if relative in {"Cargo.toml", "src/lib.rs"}:
                 dependents = sorted(p["name"] for p in packages.values() if name in p["dependencies"])
-                # Only explicitly declared dist consumers may be admitted automatically.
+                # Dist packages and first-party plugin/editor libraries are the reviewed callers.
                 for dependent in dependents:
-                    rid = "dist-" + dependent
-                    if rid in recipes:
-                        candidates.add(rid)
-                    else:
+                    covered = False
+                    for rid in ("dist-" + dependent, "plugin-" + dependent):
+                        if rid in recipes:
+                            candidates.add(rid)
+                            covered = True
+                    if not covered:
                         unresolved.append(path + ": uncovered reverse consumer " + dependent)
         elif "dist-" + name in recipes:
             candidates.add("dist-" + name)
+        elif name == "zircon_editor" and "editor-zircon_editor" in recipes:
+            candidates.add("editor-zircon_editor")
         elif name == "zircon_app" and relative.startswith("src/entry/"):
             # Profile is explicitly chosen because this common entry serves different targets.
             candidates.update(rid for rid in explicit if rid.startswith("profile-"))
