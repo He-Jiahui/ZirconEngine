@@ -12,7 +12,7 @@ use crate::text::atlas::{
     render_plan::GlyphAtlasScreenRect, GlyphAtlasFormat, GlyphHintingMode, GlyphRasterKey,
     GlyphRasterRequest, GlyphSmoothingMode, SyntheticGlyphStyle,
 };
-use crate::text::font::resolve_font_handle_batch;
+use crate::text::font::{resolve_font_handle_batch, resolve_font_handle_batch_from_snapshot};
 use crate::text::native_bitmap_atlas::{NativeBitmapAtlasGlyph, NativeBitmapAtlasGlyphRun};
 
 use super::font_id_report::{accumulate_resolved_glyph_faces, ScreenSpaceUiTextFontIdReport};
@@ -95,12 +95,15 @@ where
     if inputs.is_empty() {
         return None;
     }
-    let handles = resolve_font_handle_batch(
-        &inputs
-            .iter()
-            .map(|input| input.font_handles())
-            .collect::<Vec<_>>(),
-    );
+    let pairs = inputs
+        .iter()
+        .map(|input| input.font_handles())
+        .collect::<Vec<_>>();
+    let handles = if let Some(line) = text.glyph_artifact_line.as_ref() {
+        resolve_font_handle_batch_from_snapshot(line.artifact.font_lease.font_handles(), &pairs)
+    } else {
+        resolve_font_handle_batch(&pairs)
+    };
     if handles.len() != inputs.len() {
         return None;
     }
