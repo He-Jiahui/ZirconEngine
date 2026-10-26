@@ -34,7 +34,11 @@ fn reflected_editor_command_rejects_readonly_dynamic_field() {
     .err()
     .expect("read-only reflected dynamic fields must be rejected");
 
-    assert!(error.to_string().contains("not editable"));
+    assert!(matches!(
+        error,
+        crate::core::editing::engine::EditCommandError::ReflectError { source }
+            if source.to_string().contains("not editable")
+    ));
     assert_eq!(
         read_reflected_field(&scene, entity, CLOUD_LAYER_TYPE_PATH, "label"),
         ReflectedValue::String("thin".to_string())

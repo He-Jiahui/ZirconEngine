@@ -641,6 +641,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     fn initialize_live_control_state(
         &mut self,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        // Editable primitives supply input capabilities; availability is live host state.
+        // An authored disabled widget is terminal and cannot be enabled by an attribute patch.
+        self.sync_rotation_axis_values(None)?;
         self.initialize_workbench_window_menu_state()?;
         self.initialize_run_mode_menu_indicator()?;
         self.set_visible("UnrealContentDrawerRegion", false)?;

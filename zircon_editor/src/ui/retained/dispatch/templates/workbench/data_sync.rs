@@ -143,6 +143,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         inspector: Option<&InspectorSnapshot>,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         let Some(inspector) = inspector else {
+            self.sync_rotation_axis_values(None)?;
             self.mutate_control_property(
                 INSPECTOR_TITLE,
                 "text",
@@ -174,6 +175,20 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             UiValue::String(format_transform_scale(inspector)),
         )?;
         self.sync_transform_scale_axis_values(inspector)?;
+        self.sync_rotation_axis_values(inspector.rotation_degrees.as_ref())?;
+
+        let (label, properties) =
+            super::inspector_component_source::inspector_component_source(inspector);
+        self.mutate_control_property(MESH_LABEL, "text", UiValue::String(label.clone()))?;
+        self.set_inspector_filter_source(true, label, properties)?;
+        Ok(())
+    }
+
+    pub(super) fn sync_rotation_axis_values(
+        &mut self,
+        degrees: Option<&[String; 3]>,
+    ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
+        let available = degrees.is_some();
         for (axis, control_id) in [
             "WorkbenchTransformRotationX",
             "WorkbenchTransformRotationY",
@@ -182,16 +197,23 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         .into_iter()
         .enumerate()
         {
-            let value = inspector
-                .rotation_degrees
-                .as_ref()
+            let value = degrees
                 .map(|degrees| format!("{} deg", degrees[axis]))
                 .unwrap_or_else(|| "—".to_string());
             self.mutate_control_property(control_id, "value", UiValue::String(value))?;
+            for (property, enabled) in [
+                ("enabled", available),
+                ("disabled", !available),
+                ("editable_text", available),
+                ("input_interactive", available),
+                ("input_clickable", available),
+                ("input_hoverable", available),
+                ("input_focusable", available),
+            ] {
+                self.mutate_control_property(control_id, property, UiValue::Bool(enabled))?;
+            }
         }
-        let rotation = inspector
-            .rotation_degrees
-            .as_ref()
+        let rotation = degrees
             .map(|degrees| {
                 format!(
                     "X {} deg   Y {} deg   Z {} deg",
@@ -205,10 +227,6 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             UiValue::String(rotation),
         )?;
 
-        let (label, properties) =
-            super::inspector_component_source::inspector_component_source(inspector);
-        self.mutate_control_property(MESH_LABEL, "text", UiValue::String(label.clone()))?;
-        self.set_inspector_filter_source(true, label, properties)?;
         Ok(())
     }
 

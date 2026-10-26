@@ -121,6 +121,15 @@ fn apply_inspector_draft_field_value(
         "transform.translation.z" => {
             state.update_translation_field(2, binding_value_to_string(value, field_id)?);
         }
+        "transform.rotation_degrees.x" => {
+            state.update_rotation_field(0, binding_value_to_string(value, field_id)?);
+        }
+        "transform.rotation_degrees.y" => {
+            state.update_rotation_field(1, binding_value_to_string(value, field_id)?);
+        }
+        "transform.rotation_degrees.z" => {
+            state.update_rotation_field(2, binding_value_to_string(value, field_id)?);
+        }
         "transform.scale.x" => {
             state.update_scale_field(0, binding_value_to_string(value, field_id)?);
         }

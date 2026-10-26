@@ -16,7 +16,7 @@ pub struct InspectorSnapshot {
     pub name: String,
     pub parent: String,
     pub translation: [String; 3],
-    /// Read-only local XYZ Euler angles in degrees; None means unavailable.
+    /// Local XYZ Euler angles in degrees; None means unavailable for display or editing.
     pub rotation_degrees: Option<[String; 3]>,
     pub scale: [String; 3],
     pub render_layer_mask: u32,

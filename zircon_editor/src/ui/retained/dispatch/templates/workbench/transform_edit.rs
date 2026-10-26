@@ -12,6 +12,10 @@ const POSITION_ROW: &str = "WorkbenchTransformPosition";
 const POSITION_X: &str = "WorkbenchTransformPositionX";
 const POSITION_Y: &str = "WorkbenchTransformPositionY";
 const POSITION_Z: &str = "WorkbenchTransformPositionZ";
+const ROTATION_ROW: &str = "WorkbenchTransformRotation";
+const ROTATION_X: &str = "WorkbenchTransformRotationX";
+const ROTATION_Y: &str = "WorkbenchTransformRotationY";
+const ROTATION_Z: &str = "WorkbenchTransformRotationZ";
 const SCALE_ROW: &str = "WorkbenchTransformScale";
 const SCALE_X: &str = "WorkbenchTransformScaleX";
 const SCALE_Y: &str = "WorkbenchTransformScaleY";
@@ -51,6 +55,24 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 "Z",
                 "TransformPositionZCommit",
             ),
+            "Inspector/TransformRotationXCommit" => (
+                ROTATION_X,
+                "transform.rotation_degrees.x",
+                "X",
+                "TransformRotationXCommit",
+            ),
+            "Inspector/TransformRotationYCommit" => (
+                ROTATION_Y,
+                "transform.rotation_degrees.y",
+                "Y",
+                "TransformRotationYCommit",
+            ),
+            "Inspector/TransformRotationZCommit" => (
+                ROTATION_Z,
+                "transform.rotation_degrees.z",
+                "Z",
+                "TransformRotationZCommit",
+            ),
             "Inspector/TransformScaleXCommit" => {
                 (SCALE_X, "transform.scale.x", "X", "TransformScaleXCommit")
             }
@@ -68,7 +90,22 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         if !self.has_control(expected_control_id) {
             return Ok(None);
         }
-        let scalar = parse_finite_axis_scalar(value, axis_label)?;
+        if is_rotation_control(expected_control_id)
+            && self.control_bool(expected_control_id, "disabled")
+        {
+            return Ok(None);
+        }
+        let value = if is_rotation_control(expected_control_id) {
+            let scalar = strip_axis_prefix(value, axis_label);
+            scalar
+                .strip_suffix("deg")
+                .unwrap_or(&scalar)
+                .trim()
+                .to_owned()
+        } else {
+            value.to_owned()
+        };
+        let scalar = parse_finite_axis_scalar(&value, axis_label)?;
 
         Ok(Some(EditorUiBinding::new(
             "Inspector",
@@ -97,6 +134,9 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             return Ok(Some(false));
         }
         if !self.has_control(edit.control_id) {
+            return Ok(Some(false));
+        }
+        if is_rotation_control(edit.control_id) && self.control_bool(edit.control_id, "disabled") {
             return Ok(Some(false));
         }
 
@@ -135,6 +175,15 @@ fn transform_axis_edit_for_binding(binding_id: &str) -> Option<TransformAxisEdit
         "Inspector/TransformPositionZEdit" | "Inspector/TransformPositionZCommit" => {
             Some(position_edit(POSITION_Z, "Z"))
         }
+        "Inspector/TransformRotationXEdit" | "Inspector/TransformRotationXCommit" => {
+            Some(rotation_edit(ROTATION_X, "X"))
+        }
+        "Inspector/TransformRotationYEdit" | "Inspector/TransformRotationYCommit" => {
+            Some(rotation_edit(ROTATION_Y, "Y"))
+        }
+        "Inspector/TransformRotationZEdit" | "Inspector/TransformRotationZCommit" => {
+            Some(rotation_edit(ROTATION_Z, "Z"))
+        }
         "Inspector/TransformScaleXEdit" | "Inspector/TransformScaleXCommit" => {
             Some(scale_edit(SCALE_X, "X"))
         }
@@ -164,6 +213,19 @@ fn scale_edit(control_id: &'static str, axis_label: &'static str) -> TransformAx
         row_fields: [SCALE_X, SCALE_Y, SCALE_Z],
         axis_label,
     }
+}
+
+fn rotation_edit(control_id: &'static str, axis_label: &'static str) -> TransformAxisEdit {
+    TransformAxisEdit {
+        control_id,
+        row_control_id: ROTATION_ROW,
+        row_fields: [ROTATION_X, ROTATION_Y, ROTATION_Z],
+        axis_label,
+    }
+}
+
+fn is_rotation_control(control_id: &str) -> bool {
+    [ROTATION_X, ROTATION_Y, ROTATION_Z].contains(&control_id)
 }
 
 fn axis_field_value(

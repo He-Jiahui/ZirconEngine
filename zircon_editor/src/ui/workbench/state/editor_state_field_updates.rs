@@ -13,6 +13,13 @@ impl EditorState {
         false
     }
 
+    pub fn update_rotation_field(&mut self, axis: usize, value: String) -> bool {
+        self.begin_inspector_draft_edit();
+        self.rotation_fields[axis] = value;
+        self.inspector_edited_fields.rotation[axis] = true;
+        false
+    }
+
     pub fn update_scale_field(&mut self, axis: usize, value: String) -> bool {
         self.begin_inspector_draft_edit();
         self.scale_fields[axis] = value;
@@ -54,6 +61,12 @@ impl EditorState {
                 changes.push((
                     format!("transform.translation.{suffix}"),
                     self.transform_fields[axis].clone(),
+                ));
+            }
+            if edited.rotation[axis] {
+                changes.push((
+                    format!("transform.rotation_degrees.{suffix}"),
+                    self.rotation_fields[axis].clone(),
                 ));
             }
             if edited.scale[axis] {

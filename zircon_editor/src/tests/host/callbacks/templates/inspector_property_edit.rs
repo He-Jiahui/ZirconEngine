@@ -278,7 +278,15 @@ fn componentized_workbench_transform_axis_edit_updates_field_and_row_preview() {
         .host_projection()
         .node_by_control_id("WorkbenchTransformRotationY")
         .expect("rotation Y field projection");
-    assert!(rotation_y.routes.is_empty());
+    assert!(rotation_y.disabled, "unavailable rotation stays disabled");
+    assert!(bridge
+        .transform_axis_commit_binding(
+            "WorkbenchTransformRotationY",
+            "Inspector/TransformRotationYCommit",
+            "45",
+        )
+        .unwrap()
+        .is_none());
 
     dispatch_componentized_workbench_surface_control_edited(
         &mut bridge,
