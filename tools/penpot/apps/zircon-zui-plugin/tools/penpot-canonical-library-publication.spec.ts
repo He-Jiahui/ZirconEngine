@@ -1,5 +1,7 @@
 import { chromium } from 'playwright';
-import { assertCanonicalLibraryPreserved, publishCanonicalLibrary } from './penpot-canonical-library-publication';
+import { assertCanonicalLibraryPreserved, canonicalPublicationExportEvidence, collectCanonicalOwnerExportEvidence,
+  publishCanonicalLibrary } from './penpot-canonical-library-publication';
+import { parseZuiDocument } from '../src/bridge/zui-document';
 
 describe('canonical publication requires the existing plugin and strict worker build', () => {
   it('rejects an absent existing registration before launching a browser', async () => {
@@ -65,3 +67,71 @@ describe('append canonical sources without replacing library owners', () => {
     expect(() => assertCanonicalLibraryPreserved(before, removed)).toThrow('Existing shape disappeared');
   });
 });
+
+describe('canonical owner export retains source guards independently of PNG evidence', () => {
+  const originalSource = `[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/inputs/field.zui"
+version = 2
+
+[imports]
+widgets = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
+
+[components.WorkbenchField]
+root = "root"
+
+[nodes.root]
+component = "InputField"
+control_id = "WorkbenchFieldRoot"
+props = { value = "18446744073709551615", editable_text = true, foreground_color = "$editor.text.primary" }
+`;
+  const original = () => parseZuiDocument(originalSource).document;
+
+  it('exports the exact decimal-string owner source without requesting PNG in explicit source-owner mode', async () => {
+    const capture = vi.fn(async () => { throw new Error('PNG must be independently admitted'); });
+    const evidence = await collectCanonicalOwnerExportEvidence(original(), originalSource, 'source-owner', capture);
+    expect(evidence).toEqual({sourceSemanticMatch: true, pngEvidence: 'not-requested'});
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['stable control identity', 'WorkbenchFieldRoot', 'DifferentFieldRoot'],
+    ['source import', 'res://ui/editor/theme/editor_tokens.zui', 'res://ui/editor/theme/different_tokens.zui'],
+    ['token expression', '$editor.text.primary', '$editor.text.secondary'],
+    ['typed input state', 'editable_text = true', 'editable_text = false'],
+  ])('rejects a changed %s even when PNG was not requested', async (_name, from, to) => {
+    const capture = vi.fn(async () => ({pngPath: 'unused.png', canvas: {}}));
+    await expect(collectCanonicalOwnerExportEvidence(
+      original(), originalSource.replace(from, to), 'source-owner', capture)).rejects.toThrow();
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('requests PNG by default only after the owner source matches and waits for its downloader', async () => {
+    const capture = vi.fn(async () => ({pngPath: 'actual-sdk-download.png', canvas: {source: 'official-sdk'}}));
+    const evidence = await collectCanonicalOwnerExportEvidence(
+      original(), originalSource, canonicalPublicationExportEvidence(undefined), capture);
+    expect(capture).toHaveBeenCalledTimes(1);
+    expect(evidence).toEqual({sourceSemanticMatch: true, pngEvidence: 'captured',
+      pngPath: 'actual-sdk-download.png', canvas: {source: 'official-sdk'}});
+  });
+
+  it('preserves an actual PNG downloader failure in the default evidence mode', async () => {
+    const capture = vi.fn(async () => { throw new Error('official PNG download timed out'); });
+    await expect(collectCanonicalOwnerExportEvidence(
+      original(), originalSource, canonicalPublicationExportEvidence(undefined), capture))
+      .rejects.toThrow('official PNG download timed out');
+    expect(capture).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects an unknown evidence mode before browser launch or worker input reads', async () => {
+    const launch = vi.spyOn(chromium, 'launch');
+    try {
+      await expect(publishCanonicalLibrary({existingPlugin: {}, exportEvidence: 'skip-source-guards'}
+        as unknown as Parameters<typeof publishCanonicalLibrary>[0]))
+        .rejects.toThrow('exportEvidence must explicitly select');
+      expect(launch).not.toHaveBeenCalled();
+    } finally { launch.mockRestore(); }
+  });
+});
+

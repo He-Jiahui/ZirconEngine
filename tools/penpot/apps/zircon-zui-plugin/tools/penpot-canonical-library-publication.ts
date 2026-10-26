@@ -17,7 +17,31 @@ export interface CanonicalLibraryPublicationOptions {
   workerBuildReceipt: string; workerBuildReceiptSha256: string;
   transitPackage: string; fontResources?: string; sourcePaths: string[];
   append?: { fileId: string; revn: number; vern: number };
+  exportEvidence?: CanonicalPublicationExportEvidence;
   existingPlugin: { host: string; pluginId: string; registryEntrySha256: string; manifestSha256: string };
+}
+
+export type CanonicalPublicationExportEvidence = 'source-owner' | 'source-owner-and-png';
+
+export function canonicalPublicationExportEvidence(
+  requested: CanonicalPublicationExportEvidence | undefined,
+): CanonicalPublicationExportEvidence {
+  assert.ok(requested === undefined || requested === 'source-owner' || requested === 'source-owner-and-png',
+    'Canonical publication exportEvidence must explicitly select source-owner or source-owner-and-png');
+  return requested ?? 'source-owner-and-png';
+}
+
+/** PNG evidence is independent; opting out never bypasses the original source comparison. */
+export async function collectCanonicalOwnerExportEvidence(
+  original: Parameters<typeof normalizeZuiDocument>[0], exported: string,
+  requested: CanonicalPublicationExportEvidence,
+  capturePng: () => Promise<{pngPath: string; canvas: Record<string, unknown>}>,
+): Promise<{sourceSemanticMatch: true; pngEvidence: 'not-requested' | 'captured';
+  pngPath?: string; canvas?: Record<string, unknown>}> {
+  const selected = canonicalPublicationExportEvidence(requested);
+  assert.deepEqual(normalizeZuiDocument(parseZuiDocument(exported).document), normalizeZuiDocument(original));
+  if (selected === 'source-owner') return {sourceSemanticMatch: true, pngEvidence: 'not-requested'};
+  return {sourceSemanticMatch: true, pngEvidence: 'captured', ...await capturePng()};
 }
 
 /** An append may add mains; the previous source owners and styles stay intact. */
@@ -29,6 +53,7 @@ export function assertCanonicalLibraryPreserved(before: any, after: any): void {
 export async function publishCanonicalLibrary(options: CanonicalLibraryPublicationOptions): Promise<void> {
   assert.ok(options.existingPlugin,
     'Canonical publication requires the existing registered plugin; host creation is not permitted');
+  const exportEvidence = canonicalPublicationExportEvidence(options.exportEvidence);
   assert.ok(typeof options.workerBuildReceipt === 'string' && options.workerBuildReceipt.length > 0,
     'Canonical publication requires a pinned strict worker build receipt');
   assert.match(options.workerBuildReceiptSha256 ?? '', /^[0-9a-f]{64}$/, 'Pin the strict worker receipt SHA-256');
@@ -54,7 +79,8 @@ export async function publishCanonicalLibrary(options: CanonicalLibraryPublicati
   const receipt: Record<string, unknown> = {status: 'running', backend: 'real', identity,
     workspaceUrl: options.workspaceUrl, globalStylePropagationVerified: false,
     crossFileReuseVerified: false, canonicalSourceWritebackApplied: false,
-    nativeEditorAcceptance: false, formalAcceptance: false};
+    nativeEditorAcceptance: false, formalAcceptance: false,
+    exportEvidence, officialPngRequested: exportEvidence === 'source-owner-and-png', officialPngDownloaded: false};
   receipt['workerBuildEvidence'] = workerBuildEvidence;
   const checkpoint = async () => writeFile(resolve(output, 'publication-receipt.json'), JSON.stringify(receipt, null, 2));
   const dependencies = new LayoutDependencies();
@@ -236,18 +262,23 @@ export async function publishCanonicalLibrary(options: CanonicalLibraryPublicati
         });
       const target = resolve(output, `component-${index + 1}.zui`);
       await download.saveAs(target); const exported = await readFile(target, 'utf8');
-      assert.deepEqual(normalizeZuiDocument(parseZuiDocument(exported).document), normalizeZuiDocument(item.original));
-      const canvas: Record<string, unknown> = {};
-      await downloadActualCanvasPng(reopened.page, reopened.frame, record.assetBoardId, output, canvas);
-      const pngPath = resolve(output, `component-${index + 1}.png`);
-      await writeFile(pngPath, await readFile(resolve(output, 'canvas-export.png')));
+      const evidence = await collectCanonicalOwnerExportEvidence(item.original, exported, exportEvidence, async () => {
+        const canvas: Record<string, unknown> = {};
+        await downloadActualCanvasPng(reopened.page, reopened.frame, record.assetBoardId, output, canvas);
+        const pngPath = resolve(output, `component-${index + 1}.png`);
+        await writeFile(pngPath, await readFile(resolve(output, 'canvas-export.png')));
+        return {pngPath, canvas};
+      });
       exports.push({sourcePath: item.sourcePath, sourceSha256: item.sha256, exportPath: target,
-        exportSha256: sha256(exported), pngPath, canvas});
+        exportSha256: sha256(exported), ...evidence});
       assert.equal(sha256(await readFile(resolve(options.repoRoot, item.sourcePath))), item.sha256);
       await checkpoint();
     }
     receipt['exportSemanticMatch'] = true; receipt['sourceFingerprintMatched'] = true;
-    receipt['status'] = 'passed-component-publication-and-persistence';
+    receipt['officialPngDownloaded'] = exportEvidence === 'source-owner-and-png';
+    receipt['status'] = exportEvidence === 'source-owner'
+      ? 'passed-component-publication-and-owner-source-export'
+      : 'passed-component-publication-and-persistence';
   } catch (error) {
     if (error && typeof error === 'object' && 'nativeCopyDelta' in error)
       receipt['nativeCopyFailureDelta'] = error.nativeCopyDelta;
