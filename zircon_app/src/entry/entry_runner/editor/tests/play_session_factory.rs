@@ -1,3 +1,7 @@
+#[cfg(feature = "editor-scripting")]
+#[path = "orb_run_gameplay/mod.rs"]
+mod orb_run_gameplay;
+
 #[test]
 fn embedded_play_keeps_startup_cleanup_explicit_and_non_blocking() {
     let source = include_str!("../play_session_factory.rs");
