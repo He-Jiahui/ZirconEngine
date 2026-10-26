@@ -180,3 +180,197 @@ fn m6_model_mesh_resolution_uses_one_active_capture_and_rejects_drift() {
         "only a captured absence may use the original inline fallback"
     );
 }
+
+#[test]
+fn model_mesh_reference_keeps_explicit_uuid_and_repeated_valid_geometry() {
+    let manager = ProjectAssetManager::default();
+    let (reference, mesh, mut model) = model_mesh_reference_fixture();
+    let record = model_mesh_reference_record(&reference);
+    manager
+        .resource_manager()
+        .register_ready(record.clone(), mesh)
+        .unwrap();
+    model.primitives.push(model.primitives[0].clone());
+    let capture = manager.resource_manager().projection_snapshot();
+    ensure_cold_model_meshes(&manager, &model).unwrap();
+    let resolved = resolve_model_geometry(&manager, &model, &capture).unwrap();
+    assert_eq!(resolved.primitives.len(), 2);
+    assert_eq!(resolved.local_bounds.max, [4.0, 3.0, 0.0]);
+    assert_eq!(
+        resolved.dependency_keys,
+        vec![(record.id, capture.active().key(record.id))]
+    );
+    assert!(model_dependencies_are_current(
+        &manager,
+        &resolved.dependency_states
+    ));
+}
+
+#[test]
+fn model_mesh_reference_rejects_other_uuid_before_locator_cache_reuse() {
+    use crate::core::resource::ResourceActiveSnapshotError;
+    let manager = ProjectAssetManager::default();
+    let (reference, mesh, model) = model_mesh_reference_fixture();
+    let record = model_mesh_reference_record(&reference);
+    manager
+        .resource_manager()
+        .register_ready(record.clone(), mesh)
+        .unwrap();
+    let capture = manager.resource_manager().projection_snapshot();
+    let mut wrong = model.primitives[0].clone();
+    wrong.mesh = Some(AssetReference::new(
+        crate::asset::AssetUuid::from_stable_label("tests/model-mesh/other-uuid"),
+        reference.locator.clone(),
+    ));
+    for primitives in [
+        vec![model.primitives[0].clone(), wrong.clone()],
+        vec![wrong, model.primitives[0].clone()],
+    ] {
+        let candidate = ModelAsset {
+            uri: model.uri.clone(),
+            primitives,
+        };
+        assert!(matches!(
+            resolve_model_geometry(&manager, &candidate, &capture),
+            Err(ResourceActiveSnapshotError::Stale)
+        ));
+        assert!(ensure_cold_model_meshes(&manager, &candidate).is_err());
+    }
+    assert_eq!(
+        manager
+            .resource_manager()
+            .projection_snapshot()
+            .active()
+            .key(record.id),
+        capture.active().key(record.id)
+    );
+}
+
+#[test]
+fn model_mesh_reference_rejects_snapshot_with_different_payload_locator() {
+    use crate::core::resource::ResourceActiveSnapshotError;
+    let manager = ProjectAssetManager::default();
+    let (reference, mut mesh, model) = model_mesh_reference_fixture();
+    mesh.uri = crate::asset::AssetUri::parse("res://meshes/other-payload.zmesh").unwrap();
+    manager
+        .resource_manager()
+        .register_ready(model_mesh_reference_record(&reference), mesh)
+        .unwrap();
+    assert!(matches!(
+        resolve_model_geometry(
+            &manager,
+            &model,
+            &manager.resource_manager().projection_snapshot()
+        ),
+        Err(ResourceActiveSnapshotError::Stale)
+    ));
+}
+
+#[test]
+fn model_mesh_reference_rejects_moved_uuid_instead_of_inline_fallback() {
+    use crate::core::resource::ResourceActiveSnapshotError;
+    let manager = ProjectAssetManager::default();
+    let (reference, mut mesh, model) = model_mesh_reference_fixture();
+    let mut moved = model_mesh_reference_record(&reference);
+    mesh.uri = crate::asset::AssetUri::parse("res://meshes/moved-identity.zmesh").unwrap();
+    moved.primary_locator = mesh.uri.clone();
+    manager
+        .resource_manager()
+        .register_ready(moved, mesh)
+        .unwrap();
+    let capture = manager.resource_manager().projection_snapshot();
+    assert!(capture
+        .active()
+        .id_for_locator(&reference.locator)
+        .is_none());
+    assert!(matches!(
+        resolve_model_geometry(&manager, &model, &capture),
+        Err(ResourceActiveSnapshotError::Stale)
+    ));
+    assert!(ensure_cold_model_meshes(&manager, &model).is_err());
+}
+
+#[test]
+fn model_mesh_reference_checks_cold_candidate_and_keeps_real_absence_inline() {
+    use crate::core::resource::{ResourceActiveSnapshotError, ResourceState};
+    let manager = ProjectAssetManager::default();
+    let (reference, _mesh, model) = model_mesh_reference_fixture();
+    let resources = manager.resource_manager();
+    let exact = model_mesh_reference_record(&reference).with_state(ResourceState::Pending);
+    let mut other = exact.clone();
+    other.id = ResourceId::from_asset_uuid(crate::asset::AssetUuid::from_stable_label(
+        "tests/model-mesh/cold-other-uuid",
+    ));
+    resources.register_record(other.clone()).unwrap();
+    let original = resources.registry().get(other.id).unwrap();
+    assert!(matches!(
+        ensure_cold_model_meshes(&manager, &model),
+        Err(crate::graphics::types::GraphicsError::Asset(message))
+            if message.contains("UUID/locator mismatch")
+    ));
+    assert!(matches!(
+        resolve_model_geometry(&manager, &model, &resources.projection_snapshot()),
+        Err(ResourceActiveSnapshotError::Stale)
+    ));
+    assert_eq!(resources.registry().get(other.id).unwrap(), original);
+    assert!(resources
+        .projection_snapshot()
+        .active()
+        .key(other.id)
+        .is_none());
+
+    resources.remove_by_locator(&reference.locator).unwrap();
+    for candidate in [None, Some(exact)] {
+        if let Some(record) = candidate {
+            resources.register_record(record).unwrap();
+        }
+        ensure_cold_model_meshes(&manager, &model).unwrap();
+        let resolved =
+            resolve_model_geometry(&manager, &model, &resources.projection_snapshot()).unwrap();
+        assert_eq!(resolved.primitives[0].vertices[0].position, [0.25; 3]);
+    }
+}
+
+fn model_mesh_reference_fixture() -> (AssetReference, MeshAsset, ModelAsset) {
+    let locator = crate::asset::AssetUri::parse("res://meshes/model-reference.zmesh").unwrap();
+    let reference = AssetReference::new(
+        crate::asset::AssetUuid::from_stable_label("tests/model-mesh/explicit-uuid"),
+        locator.clone(),
+    );
+    let mesh = MeshAsset::new(
+        locator,
+        crate::core::framework::render::RenderMeshTopology::TriangleList,
+        std::collections::BTreeMap::from([(
+            crate::asset::MESH_ATTRIBUTE_POSITION.to_string(),
+            crate::asset::MeshAttributeValues::Float32x3(vec![
+                [0.0, 0.0, 0.0],
+                [4.0, 0.0, 0.0],
+                [0.0, 3.0, 0.0],
+            ]),
+        )]),
+        Some(crate::asset::MeshIndices::U32(vec![0, 1, 2])),
+    )
+    .unwrap();
+    let mut inline = mesh.to_model_primitive().unwrap();
+    inline.mesh = Some(reference.clone());
+    for vertex in &mut inline.vertices {
+        vertex.position = [0.25; 3];
+    }
+    let model = ModelAsset {
+        uri: crate::asset::AssetUri::parse("res://models/reference-model.glb").unwrap(),
+        primitives: vec![inline],
+    };
+    (reference, mesh, model)
+}
+
+fn model_mesh_reference_record(
+    reference: &AssetReference,
+) -> crate::core::resource::ResourceRecord {
+    crate::core::resource::ResourceRecord::new(
+        ResourceId::from_asset_uuid(reference.uuid),
+        crate::core::resource::ResourceKind::Mesh,
+        reference.locator.clone(),
+    )
+    .with_state(ResourceState::Ready)
+    .with_source_hash("model-reference-source")
+}

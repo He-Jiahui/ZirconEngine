@@ -60,6 +60,10 @@ pub(super) fn resolve_model_geometry(
             primitives.push(primitive.clone());
             continue;
         };
+        // A prior primitive at this locator cannot validate a different UUID.
+        if !mesh_reference_matches_projection(projection, reference) {
+            return Err(ResourceActiveSnapshotError::Stale);
+        }
         if !mesh_assets.contains_key(&reference.locator) {
             let state = dependency_state(projection, reference);
             if let Some(id) = state.resource_id {
@@ -77,6 +81,9 @@ pub(super) fn resolve_model_geometry(
                         ResourceHandle::<MeshMarker>::new(id),
                         &row.key,
                     )?;
+                if snapshot.resource().uri != reference.locator {
+                    return Err(ResourceActiveSnapshotError::Stale);
+                }
                 Some(std::sync::Arc::clone(snapshot.resource()))
             } else {
                 None
@@ -120,6 +127,12 @@ pub(super) fn ensure_cold_model_meshes(
         .filter_map(|primitive| primitive.mesh.as_ref())
     {
         let projection = asset_manager.resource_manager().projection_snapshot();
+        if !mesh_reference_matches_projection(&projection, reference) {
+            return Err(crate::graphics::types::GraphicsError::Asset(format!(
+                "Model mesh reference UUID/locator mismatch: {} at {}",
+                reference.uuid, reference.locator
+            )));
+        }
         if projection
             .active()
             .id_for_locator(&reference.locator)
@@ -147,6 +160,57 @@ pub(super) fn ensure_cold_model_meshes(
         }
     }
     Ok(())
+}
+
+// Keep the UUID and primary locator paired in both captured projections. An
+// expected UUID that moved elsewhere is stale, even when this locator is absent.
+fn mesh_reference_matches_projection(
+    projection: &crate::core::resource::ResourceProjectionSnapshot,
+    reference: &AssetReference,
+) -> bool {
+    let expected = ResourceId::from_asset_uuid(reference.uuid);
+    if let Some(row) = projection.active().row(expected) {
+        if row.record.primary_locator != reference.locator {
+            return false;
+        }
+    } else if let Some(row) = projection.management().row_by_id(expected) {
+        if !reference
+            .locator
+            .matches_display(row.primary_locator.as_ref())
+        {
+            return false;
+        }
+    }
+    if let Some(id) = projection.active().id_for_locator(&reference.locator) {
+        let row = projection
+            .active()
+            .row(id)
+            .expect("active locator has a row");
+        return mesh_reference_matches_id(reference, id)
+            && row.record.primary_locator == reference.locator;
+    }
+    projection
+        .management()
+        .row_by_locator(&reference.locator.to_string())
+        .is_none_or(|row| {
+            mesh_reference_matches_id(reference, row.id)
+                && reference
+                    .locator
+                    .matches_display(row.primary_locator.as_ref())
+        })
+}
+
+fn mesh_reference_matches_id(reference: &AssetReference, id: ResourceId) -> bool {
+    if id == ResourceId::from_asset_uuid(reference.uuid) {
+        return true;
+    }
+    // Existing address-derived references and resources use separate UUID
+    // namespaces. Accept only that exact deterministic pair, never another UUID
+    // found at the same locator. Memory resource IDs are not locator-derived.
+    reference.locator.scheme() != crate::core::resource::ResourceScheme::Memory
+        && reference.uuid
+            == crate::asset::AssetUuid::from_stable_label(&reference.locator.to_string())
+        && id == ResourceId::from_locator(&reference.locator)
 }
 
 pub(super) fn model_dependencies_are_current(
