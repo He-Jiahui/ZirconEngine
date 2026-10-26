@@ -110,6 +110,13 @@ const FIXTURE: &str = r##"#[cfg(test)] mod tests { #[test] fn fake() {} }"##;
                 self.assertEqual([(build, 'tests')], [(p, m.name) for p, m in inline])
                 self.assertEqual([], unresolved)
 
+    def test_growth_compares_test_count_and_inline_module_names(self) -> None:
+        previous = '#[cfg(test)]\nmod tests {\n    #[test]\n    fn a() {}\n    #[test]\n    fn b() {}\n}\n'
+        self.assertFalse(audit.violation_grew(2, ['tests'], previous))
+        self.assertTrue(audit.violation_grew(3, ['tests'], previous))
+        self.assertTrue(audit.violation_grew(1, ['extra'], previous))
+        self.assertTrue(audit.violation_grew(1, ['tests'], ''))
+
     def test_default_children_keep_their_own_nested_module_directory(self) -> None:
         old = audit.ROOT / 'synthetic/src/tests.rs'
         new = audit.ROOT / 'synthetic/src/tests/cases.rs'

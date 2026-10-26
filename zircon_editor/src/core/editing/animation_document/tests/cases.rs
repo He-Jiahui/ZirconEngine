@@ -1,4 +1,4 @@
-#[path = "state_machine_conditions.rs"]
+#[path = "conditions.rs"]
 mod state_machine_conditions;
 
 use zircon_runtime::asset::AssetUri;

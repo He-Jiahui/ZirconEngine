@@ -12,5 +12,5 @@ pub use error::SoundWaveSourceError;
 pub use source::{SoundWaveSource, SoundWaveSourceAdapter};
 
 #[cfg(test)]
-#[path = "tests.rs"]
+#[path = "tests/cases.rs"]
 mod tests;

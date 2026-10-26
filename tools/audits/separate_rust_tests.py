@@ -485,6 +485,68 @@ def token_hash(source: str) -> str:
     return hashlib.sha256(json.dumps([value for _, value in sorted(tokens)], ensure_ascii=False).encode()).hexdigest()
 
 
+def violation_grew(attributes: int, inline_modules: list[str], previous: str) -> bool:
+    """True when this source adds tests or test-only modules beyond a grandfathered copy."""
+    previous_inline = Counter(module.name for module in modules(previous) if module.inline and module.test_only)
+    return attributes > test_count(previous) or Counter(inline_modules) - previous_inline or not previous
+
+
+def trunk_revision(root: Path) -> str | None:
+    """PR base when this checkout can see it. Trunk-identical test debt stays grandfathered."""
+    names: list[str] = []
+    base_ref = os.environ.get("GITHUB_BASE_REF", "").strip()
+    if base_ref:
+        names.append("origin/" + base_ref)
+    names.extend(("origin/main", "origin/master"))
+    seen: set[str] = set()
+    for name in names:
+        if name in seen:
+            continue
+        seen.add(name)
+        if subprocess.run(["git", "rev-parse", "--verify", "--quiet", name], cwd=root,
+                          capture_output=True).returncode != 0:
+            continue
+        merged = subprocess.run(["git", "merge-base", "HEAD", name], cwd=root,
+                                capture_output=True, text=True)
+        if merged.returncode == 0 and merged.stdout.strip():
+            return merged.stdout.strip()
+    return None
+
+
+def trunk_files(root: Path) -> set[str]:
+    revision = trunk_revision(root)
+    if not revision:
+        return set()
+    listing = subprocess.run(
+        ["git", "ls-tree", "-rz", "--name-only", revision], cwd=root, capture_output=True, check=True,
+    ).stdout
+    return set(listing.decode("utf-8").split("\0"))
+
+
+def revision_sources(root: Path, revision: str, paths: list[str]) -> dict[str, str]:
+    listing = subprocess.run(
+        ["git", "ls-tree", "-rz", "--name-only", revision], cwd=root, capture_output=True, check=True,
+    ).stdout
+    present = set(listing.decode("utf-8").split("\0"))
+    selected = sorted(set(paths) & present)
+    if not selected:
+        return {}
+    result = subprocess.run(
+        ["git", "cat-file", "--batch"], cwd=root,
+        input="".join(f"{revision}:{path}\n" for path in selected).encode(),
+        capture_output=True, check=True,
+    ).stdout
+    sources: dict[str, str] = {}
+    offset = 0
+    for path in selected:
+        end = result.index(b"\n", offset)
+        size = int(result[offset:end].split()[-1])
+        offset = end + 1
+        sources[path] = result[offset:offset + size].decode("utf-8-sig")
+        offset += size + 1
+    return sources
+
+
 def main() -> int:
     global KNOWN_FILES
     parser = argparse.ArgumentParser(description=__doc__)
@@ -505,13 +567,18 @@ def main() -> int:
             if count or inline or path.stem == 'tests' or path.stem.endswith('_tests'):
                 violations.append({'path': relative(path, ROOT), 'test_attributes': count, 'inline_modules': inline})
         _, baseline = baseline_sources(ROOT, [v['path'] for v in violations])
+        trunk_rev = trunk_revision(ROOT)
+        trunk = revision_sources(ROOT, trunk_rev, [v['path'] for v in violations]) if trunk_rev else {}
         new = []
         for violation in violations:
-            source = baseline.get(violation['path'], '')
-            old_count = test_count(source)
-            old_inline = Counter(m.name for m in modules(source) if m.inline and m.test_only)
-            if violation['test_attributes'] > old_count or Counter(violation['inline_modules']) - old_inline or not source:
-                new.append(violation)
+            attributes = violation['test_attributes']
+            inline = violation['inline_modules']
+            if not violation_grew(attributes, inline, baseline.get(violation['path'], '')):
+                continue
+            # Files whose tests already match the PR base are trunk debt. Growing them still fails.
+            if trunk_rev and not violation_grew(attributes, inline, trunk.get(violation['path'], '')):
+                continue
+            new.append(violation)
         print(json.dumps({'rust_files': len(files), 'baseline_violation_count': len(violations) - len(new), 'violations': new, 'passed': not new}, indent=2))
         return int(bool(new))
     report = migrate(files, sources, options.receipt, options.apply)

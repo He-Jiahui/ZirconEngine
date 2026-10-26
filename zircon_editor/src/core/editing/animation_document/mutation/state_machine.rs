@@ -249,5 +249,5 @@ fn parse_vector_literal<const N: usize>(value_literal: &str) -> Option<[f32; N]>
 }
 
 #[cfg(test)]
-#[path = "../tests/state_machine_duration.rs"]
+#[path = "../tests/duration.rs"]
 mod duration_receipt_tests;

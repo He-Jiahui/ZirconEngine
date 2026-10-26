@@ -291,13 +291,13 @@ mod tests;
 mod bool_key_tests;
 
 #[cfg(test)]
-#[path = "../tests/sequence_frame_admission.rs"]
+#[path = "../tests/frame_admit.rs"]
 mod frame_admission_tests;
 
 #[cfg(test)]
-#[path = "../tests/sequence_rebind_isolation.rs"]
+#[path = "../tests/rebind.rs"]
 mod binding_isolation_tests;
 
 #[cfg(test)]
-#[path = "../tests/sequence_create_admission.rs"]
+#[path = "../tests/create_admit.rs"]
 mod creation_admission_tests;

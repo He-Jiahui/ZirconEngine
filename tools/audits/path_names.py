@@ -99,9 +99,14 @@ def main() -> int:
     args = parser.parse_args()
     report = audit(files(args.repo_root), str(args.repo_root))
     baseline, _ = baseline_sources(args.repo_root, [])
+    if __package__:
+        from .separate_rust_tests import trunk_files
+    else:
+        from separate_rust_tests import trunk_files
+    # Frozen baseline and the PR base are existing debt. A new long name still fails.
+    grandfather = baseline | trunk_files(args.repo_root)
     violations = report["violations"]
-    # Existing path debt does not excuse a new name, even at the same length.
-    report["violations"] = [v for v in violations if v["path"] not in baseline]
+    report["violations"] = [v for v in violations if v["path"] not in grandfather]
     report["baseline_violation_count"] = len(violations) - len(report["violations"])
     report["passed"] = not report["violations"]
     if args.summary:

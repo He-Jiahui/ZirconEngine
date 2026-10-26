@@ -650,6 +650,11 @@ class CiGatesContractTests(unittest.TestCase):
         excessive = {f"r{i}": SCOPE.recipe(f"r{i}", "zircon_runtime", selector="scene::") for i in range(33)}
         with self.assertRaisesRegex(SCOPE.ScopeError, "bounded CI plan"):
             SCOPE.plan_paths([], packages, excessive, tuple(excessive))
+        owners = {f"r{i}": SCOPE.recipe(f"r{i}", "zircon_runtime", selector="scene::") for i in range(32)}
+        matrix = {f"render-extra-{i}": SCOPE.recipe(
+            f"render-extra-{i}", "zircon_runtime", selector="scene::", group="render") for i in range(18)}
+        combined = {**owners, **matrix}
+        self.assertEqual(len(SCOPE.plan_paths([], packages, combined, tuple(combined))), 50)
 
     def test_scope_command_admission_keeps_defaults_disabled_target_and_filter(self) -> None:
         value = {**SCOPE.recipe("example", "zircon_runtime", features=("native-host",), selector="scene::ecs::"),

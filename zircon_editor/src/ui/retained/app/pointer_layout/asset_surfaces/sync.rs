@@ -115,5 +115,5 @@ impl AssetSurfacePointerState {
 }
 
 #[cfg(test)]
-#[path = "tests/scroll_sync.rs"]
+#[path = "tests/scroll.rs"]
 mod tests;

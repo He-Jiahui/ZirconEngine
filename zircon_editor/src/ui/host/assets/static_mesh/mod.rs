@@ -12,5 +12,5 @@ pub use error::StaticMeshSourceError;
 pub use source::{StaticMeshInstanceObservation, StaticMeshSource};
 
 #[cfg(test)]
-#[path = "tests.rs"]
+#[path = "tests/cases.rs"]
 mod tests;

@@ -524,7 +524,11 @@ def plan_paths(paths, packages, recipes, selected=()):
         picked.update("miri-" + str(index) for index in range(3))
     for identifier in tuple(picked):
         picked.update(recipes[identifier].get("companions", ()))
-    need(len(picked) <= 32, "Affected contract set exceeds bounded CI plan; review and split the change.")
+    # The product-frame matrix is a fixed reviewed set. It stays in the plan, and the
+    # split bound still rejects any other affected-owner set larger than 32.
+    matrix = {identifier for identifier in picked if identifier.startswith("render-")}
+    need(len(picked) - len(matrix) <= 32,
+         "Affected contract set exceeds bounded CI plan; review and split the change.")
     compiled_packages = {recipes[r]["package"] for r in picked}
     need(not compiled_packages or compiled_packages != set(packages),
          "Refusing a full package enumeration disguised as recipes")

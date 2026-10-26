@@ -264,5 +264,5 @@ impl EditorHostEventController {
 }
 
 #[cfg(test)]
-#[path = "tests/template_pane_data.rs"]
+#[path = "tests/pane_data.rs"]
 mod template_pane_data_tests;

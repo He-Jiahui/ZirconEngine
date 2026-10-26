@@ -1,6 +1,6 @@
 //! Pure memory contracts; no project asset, decoder registration or playback is produced here.
 
-#[path = "tests/visible_range.rs"]
+#[path = "visible_range.rs"]
 mod visible_range;
 
 use std::num::NonZeroUsize;
