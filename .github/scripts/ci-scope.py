@@ -439,6 +439,12 @@ def plan_paths(paths, packages, recipes, selected=()):
             continue
         owners = [p for p in packages.values() if path.startswith(p["directory"] + "/")]
         if path in public_controls or path.endswith("/build.rs"):
+            # Plugin lock edges are covered by the library recipes of the manifests
+            # in the same change. A lock-only edit, including Windows target churn,
+            # still needs its own reviewed rule.
+            if path == "zircon_plugins/Cargo.lock" and any(
+                    item.startswith("zircon_plugins/") and item.endswith("/Cargo.toml") for item in paths):
+                continue
             unresolved.append(path + ": shared build control; add a reviewed impact rule before compilation")
             continue
         if not owners:

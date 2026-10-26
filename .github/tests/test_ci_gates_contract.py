@@ -964,6 +964,12 @@ class CiGatesContractTests(unittest.TestCase):
                      "zircon_plugins/material_editor/README.md",
                      "docs/plans/penpot-ue-window-suite-20261024/particles-cases.json"):
             self.assertEqual(SCOPE.plan_paths([path], packages, recipes), [], path)
+        with self.assertRaisesRegex(SCOPE.ScopeError, "shared build control"):
+            SCOPE.plan_paths(["zircon_plugins/Cargo.lock"], packages, recipes)
+        covered = SCOPE.plan_paths(
+            ["zircon_plugins/Cargo.lock", "zircon_plugins/particles/editor/Cargo.toml"],
+            packages, recipes)
+        self.assertIn("plugin-zircon_plugin_particles_editor", {value["id"] for value in covered})
 
     def test_unrelated_private_plugin_does_not_select_render_or_portable_contracts(self) -> None:
         packages = SCOPE.catalog(REPO_ROOT)
