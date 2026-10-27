@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 
+use zircon_runtime::core::math::Real;
 use zircon_runtime_interface::resource::ResourceKind;
 
 use super::{
@@ -207,6 +208,193 @@ pub fn plan_material_graph_details_edit<'a>(
                     return Err(vec![MaterialGraphDiagnostic::graph(format!(
                         "material graph Shader reference could not be resolved: {error}"
                     ))]);
+                }
+            }
+        }
+    }
+    Ok(plan)
+}
+
+/// One field actually stored on an expression in the current asset schema.
+///
+/// Defaults belong to the selected node, not to the graph parameter override
+/// map. A required TextureSample reference has no invented None/reset value.
+/// Parameter-name remapping, grouping and UE-only properties are not inferred.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum MaterialGraphExpressionDetailsEdit<'a> {
+    ScalarDefault(Real),
+    VectorDefault([Real; 4]),
+    Texture(&'a AssetReference),
+}
+
+#[derive(Debug)]
+enum ExpressionFieldValues<'a> {
+    Scalar {
+        before: Real,
+        after: Real,
+    },
+    Vector {
+        before: [Real; 4],
+        after: [Real; 4],
+    },
+    Texture {
+        before: &'a AssetReference,
+        after: &'a AssetReference,
+    },
+}
+
+/// A borrowed candidate for the original host's expression-field transaction.
+///
+/// The node retains its exact ID, position, kind and parameter name. No graph,
+/// parameter store, revision, mutation permit or inverse history is created.
+/// Before applying, the host must recheck the original view/document/source,
+/// selection request and resource catalog, then charge and prepare one domain
+/// delta/inverse through its existing retention/permit/CAS/history lifecycle.
+#[derive(Debug)]
+pub struct MaterialGraphExpressionDetailsEditPlan<'a> {
+    source: &'a MaterialGraphAsset,
+    node: &'a MaterialGraphNodeAsset,
+    values: ExpressionFieldValues<'a>,
+}
+
+impl<'a> MaterialGraphExpressionDetailsEditPlan<'a> {
+    pub fn source(&self) -> &'a MaterialGraphAsset {
+        self.source
+    }
+
+    pub fn node(&self) -> &'a MaterialGraphNodeAsset {
+        self.node
+    }
+
+    pub fn edit(&self) -> MaterialGraphExpressionDetailsEdit<'a> {
+        match &self.values {
+            ExpressionFieldValues::Scalar { after, .. } => {
+                MaterialGraphExpressionDetailsEdit::ScalarDefault(*after)
+            }
+            ExpressionFieldValues::Vector { after, .. } => {
+                MaterialGraphExpressionDetailsEdit::VectorDefault(*after)
+            }
+            ExpressionFieldValues::Texture { after, .. } => {
+                MaterialGraphExpressionDetailsEdit::Texture(after)
+            }
+        }
+    }
+
+    /// Numeric before values copy only one scalar or four source channels.
+    pub fn previous_value(&self) -> MaterialGraphExpressionDetailsEdit<'a> {
+        match &self.values {
+            ExpressionFieldValues::Scalar { before, .. } => {
+                MaterialGraphExpressionDetailsEdit::ScalarDefault(*before)
+            }
+            ExpressionFieldValues::Vector { before, .. } => {
+                MaterialGraphExpressionDetailsEdit::VectorDefault(*before)
+            }
+            ExpressionFieldValues::Texture { before, .. } => {
+                MaterialGraphExpressionDetailsEdit::Texture(before)
+            }
+        }
+    }
+
+    /// Preserve authored signed zero as well as the complete reference pair.
+    pub fn changes_source(&self) -> bool {
+        match &self.values {
+            ExpressionFieldValues::Scalar { before, after } => after.to_bits() != before.to_bits(),
+            ExpressionFieldValues::Vector { before, after } => after
+                .iter()
+                .zip(before)
+                .any(|(after, before)| after.to_bits() != before.to_bits()),
+            ExpressionFieldValues::Texture { before, after } => after != before,
+        }
+    }
+}
+
+/// Plans an exact node default/reference edit without changing authoring state.
+///
+/// Reuse the same whole-source identity validation as Details selection. Invalid
+/// links, values or overrides remain repairable, but stale/ambiguous IDs cannot
+/// address a different expression. New numeric values must be finite; finite
+/// HDR/negative values are not clamped. Defaults never clear or rewrite an
+/// explicit override, including equal/default/zero and wrong-type overrides.
+/// A changed Texture is resolved once by UUID plus locator through the current
+/// catalog; an unchanged pair needs no lookup. Host focus/compile/save are not
+/// performed by planning the candidate.
+pub fn plan_material_graph_expression_details_edit<'a>(
+    graph: &'a MaterialGraphAsset,
+    node_id: &str,
+    edit: MaterialGraphExpressionDetailsEdit<'a>,
+    mut resolve_kind: impl FnMut(&AssetReference) -> Result<ResourceKind, String>,
+) -> Result<MaterialGraphExpressionDetailsEditPlan<'a>, Vec<MaterialGraphDiagnostic>> {
+    use MaterialGraphExpressionDetailsEdit as Edit;
+    let selection = project_material_graph_details_selection(graph, &[node_id])?;
+    let node = selection.selected_nodes().first().copied().ok_or_else(|| {
+        vec![MaterialGraphDiagnostic::graph(
+            "material graph Details did not resolve the selected expression",
+        )]
+    })?;
+    let values = match (&node.kind, edit) {
+        (
+            MaterialGraphNodeKindAsset::ScalarParameter { default, .. },
+            Edit::ScalarDefault(value),
+        ) => {
+            if !value.is_finite() {
+                return Err(vec![MaterialGraphDiagnostic::node(
+                    &node.id,
+                    "material graph scalar default must be finite",
+                )]);
+            }
+            ExpressionFieldValues::Scalar {
+                before: *default,
+                after: value,
+            }
+        }
+        (
+            MaterialGraphNodeKindAsset::VectorParameter { default, .. },
+            Edit::VectorDefault(value),
+        ) => {
+            if !value.iter().all(|channel| channel.is_finite()) {
+                return Err(vec![MaterialGraphDiagnostic::node(
+                    &node.id,
+                    "material graph vector default channels must be finite",
+                )]);
+            }
+            ExpressionFieldValues::Vector {
+                before: *default,
+                after: value,
+            }
+        }
+        (MaterialGraphNodeKindAsset::TextureSample { texture }, Edit::Texture(value)) => {
+            ExpressionFieldValues::Texture {
+                before: texture,
+                after: value,
+            }
+        }
+        _ => {
+            return Err(vec![MaterialGraphDiagnostic::node(
+                &node.id,
+                "material graph Details field does not belong to this expression kind",
+            )]);
+        }
+    };
+    let plan = MaterialGraphExpressionDetailsEditPlan {
+        source: graph,
+        node,
+        values,
+    };
+    if plan.changes_source() {
+        if let Edit::Texture(reference) = edit {
+            match resolve_kind(reference) {
+                Ok(ResourceKind::Texture) => {}
+                Ok(kind) => {
+                    return Err(vec![MaterialGraphDiagnostic::node(
+                        &node.id,
+                        format!("material graph texture references {kind:?}, expected Texture"),
+                    )]);
+                }
+                Err(error) => {
+                    return Err(vec![MaterialGraphDiagnostic::node(
+                        &node.id,
+                        format!("material graph texture reference could not be resolved: {error}"),
+                    )]);
                 }
             }
         }
