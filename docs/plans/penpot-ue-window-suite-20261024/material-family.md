@@ -2,6 +2,16 @@
 
 本会话：`01a16d50-6c7f-7370-853d-4581184b66a1`。Parent：`01a16d4e-0491-7353-84fa-038bd7706546`。套件日期：2026-10-24；实际运行回执使用 UTC。
 
+## Details tabs72：六板原生流式宽度修正（2026-10-27）
+
+在本域原Material文件 `b4a1e3ce-9e6a-81fe-8008-d69d6092d704`／page `b4a1e3ce-9e6a-81fe-8008-d69d6092d705` 的既有默认／root选中六板，修正 Details、Parameters、Nodes Overview 页签。原84宽等分allocation令96逻辑像素的Overview文字落入70宽clip。通过真实workspace inspector的Horizontal Fit content依次操作18个caption clip和18个tab allocation，不按截图坐标写几何；原生保存253→289，3906对象保持，48原对象变化、0新增／删除、页签以外0变化，文字／样式／组件引用／原prototype均保持。新宽为56／83／110，clip为42／69／96，原256宽row和2间距保持。六个原board UUID见本轮review，不重排fork的Instance／Hierarchy／四SearchInput。
+
+保存后显式关闭原context，再以新认证context重开，全部3906 shape哈希与保存结果逐一相等；viewer后再次核对仍相等。1280×800、900×620、640×520的默认／选中六张真实Penpot PNG已逐图打开复核，18个实际DOM text Range均在对应clip内。中文Name和Shader locator保持；选中仍是原蓝色描边，不能据此签UE阴影painter。预览与Compiler Results仍显示未编译设计状态，不是引擎渲染或实际编译结果。原交互metadata逐项相等，本轮没有重新执行页签跳转、焦点或快捷键。
+
+首轮多选inspector找不到原生控件、两次viewer测量scale0,0均保留为失败。实际只读诊断发现字体ready后同一frame ID出现隐藏0×0测量SVG；最终捕获按确切source frame选取含原caption的可见SVG，并等待fonts loaded、限定同一root测量。未改DOM样式或设计几何，也未将此局部捕获方法视为官方codec／capture source修复。最终Node49804正常exit0、browserClosed／authUnchanged为真，复用browser-overview-52临时目录空，释放0B。
+
+稳定报告根为 `E:/cargo-targets/zircon-local/reports/ue-material-family-20261024-01a16d50/`：`material-details-tabs-72-save-r2.json`、`material-details-tabs-72-reopen-r3.json`、`material-details-tabs-72-review.json`及六张`material-details-tabs-72-*-r3.png`。本轮只在ready工作树增量记录本md；[原material_workspace.zui](../../../zircon_editor/assets/ui/editor/modules/core/rendering/material_workspace.zui)没有写回。source69三Rust不变，复用同源插件／静态证据并执行单md结构、diff与guard；不新建Cargo身份、不重投已终态68／#496。正式原ZUI导出／加载、真实host／renderer／Apply／Save、正常EXE／实际150%DPI／双端≤1DIP仍open，whole-family passed／accepted=false，goal active。
+
 ## Shared 合同71：选择提示与键盘焦点分开（2026-10-27）
 
 已消费 Parent r125 的共享合同提交 `23dc04952ad52b501522119d84d3596efd60ee43`（queue26936／management#502 SUCCESS，仅 [component-reuse.md](component-reuse.md)，main integration pending）。其原回执 SHAab1a9ec686a8c07e0aca03af42562ff909a128c3d7d6cc59e5b246d5a5ec6233 与提交正文 SHAa5292635801b76ad64af5259300a6cc96711d7019e0b04f2d6fd20b99d4f5fdb 已实际核对。原58三图、source61、67三图和旧失败继续按各自时间保留，不重套设计或公共源。
