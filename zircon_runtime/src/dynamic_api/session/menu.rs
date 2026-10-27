@@ -115,12 +115,12 @@ fn menu_action_from_state(state: RuntimeMenuState) -> RuntimeMenuAction {
 fn menu_from_value(value: &serde_json::Value) -> Option<RuntimeMenu> {
     let state = menu_state_from_value(value)?;
     let default_title = match state {
-        RuntimeMenuState::Start => "Vampire Roguelite",
+        RuntimeMenuState::Start => "Ready to Play",
         RuntimeMenuState::GameOver => "Game Over",
     };
     let default_subtitle = match state {
-        RuntimeMenuState::Start => "WASD movement. Blood Bolt attacks automatically.",
-        RuntimeMenuState::GameOver => "The hunt ended. Return to the clearing and try again.",
+        RuntimeMenuState::Start => "Select Start Game to begin.",
+        RuntimeMenuState::GameOver => "Select Retry to try again.",
     };
     let default_button = match state {
         RuntimeMenuState::Start => "Start Game",

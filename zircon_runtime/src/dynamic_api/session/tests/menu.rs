@@ -31,17 +31,61 @@ fn runtime_session_menu_extract_builds_start_button_commands() {
     let extract = menu_extract(&world, UVec2::new(640, 360)).unwrap();
 
     assert_eq!(extract.list.commands.len(), 6);
-    assert!(extract
+    let text: Vec<_> = extract
         .list
         .commands
         .iter()
-        .any(|command| command.text.as_deref() == Some("Start Game")));
+        .filter_map(|command| command.text.as_deref())
+        .collect();
+    assert_eq!(text, ["Blood Moon", "Hold the clearing", "Start Game"]);
     assert!(extract
         .list
         .commands
         .iter()
         .filter(|command| command.kind == UiRenderCommandKind::Text)
         .all(|command| command.text_layout.is_some()));
+}
+
+#[test]
+fn runtime_session_menu_extract_uses_generic_defaults() {
+    let mut world = World::empty();
+    let entity = world
+        .spawn_node(NodeKind::Empty)
+        .expect("test scene spawn should succeed");
+
+    for (state, expected) in [
+        (
+            "start",
+            ["Ready to Play", "Select Start Game to begin.", "Start Game"],
+        ),
+        (
+            "game_over",
+            ["Game Over", "Select Retry to try again.", "Retry"],
+        ),
+    ] {
+        for value in [
+            serde_json::json!({ "state": state }),
+            serde_json::json!({
+                "state": state, "title": " \n ", "subtitle": "\t", "button": ""
+            }),
+            serde_json::json!({
+                "state": state, "title": null, "subtitle": 42, "button": false
+            }),
+        ] {
+            world
+                .set_dynamic_component(entity, GAMEPLAY_MENU_COMPONENT, value)
+                .unwrap();
+
+            let extract = menu_extract(&world, UVec2::new(640, 360)).unwrap();
+            let text: Vec<_> = extract
+                .list
+                .commands
+                .iter()
+                .filter_map(|command| command.text.as_deref())
+                .collect();
+            assert_eq!(text, expected, "generic defaults for {state}");
+        }
+    }
 }
 
 #[test]
@@ -183,33 +227,43 @@ fn runtime_session_fallback_ui_menu_hit_test_does_not_build_presentation_strings
 }
 
 #[test]
-fn runtime_session_menu_action_writes_start_control_state() {
+fn runtime_session_menu_actions_write_existing_control_states() {
     let mut world = World::empty();
     let entity = world
         .spawn_node(NodeKind::Empty)
         .expect("test scene spawn should succeed");
-    world
-        .set_dynamic_component(
-            entity,
-            GAMEPLAY_MENU_COMPONENT,
-            serde_json::json!({ "state": "start" }),
-        )
-        .unwrap();
     let layout = menu_layout(UVec2::new(640, 360));
 
-    let action = runtime_session_menu_action_at(
-        &world,
-        UVec2::new(640, 360),
-        Vec2::new(layout.button.x + 8.0, layout.button.y + 8.0),
-    )
-    .unwrap();
-    assert_eq!(action, RuntimeMenuAction::StartGame);
-
-    assert!(write_runtime_menu_action(&mut world, action));
-    assert_eq!(
+    for (state, expected_action, expected_control) in [
+        ("start", RuntimeMenuAction::StartGame, "start_game"),
+        ("game_over", RuntimeMenuAction::RetryGame, "retry_game"),
+    ] {
         world
-            .dynamic_component(entity, GAMEPLAY_CONTROL_COMPONENT)
-            .and_then(serde_json::Value::as_str),
-        Some(START_BUTTON_ACTION)
-    );
+            .set_dynamic_component(
+                entity,
+                GAMEPLAY_MENU_COMPONENT,
+                serde_json::json!({ "state": state }),
+            )
+            .unwrap();
+
+        let action = runtime_session_menu_action_at(
+            &world,
+            UVec2::new(640, 360),
+            Vec2::new(layout.button.x + 8.0, layout.button.y + 8.0),
+        )
+        .unwrap();
+        assert_eq!(action, expected_action);
+        assert_eq!(
+            runtime_session_menu_action_at(&world, UVec2::new(640, 360), Vec2::ZERO),
+            None
+        );
+
+        assert!(write_runtime_menu_action(&mut world, action));
+        assert_eq!(
+            world
+                .dynamic_component(entity, GAMEPLAY_CONTROL_COMPONENT)
+                .and_then(serde_json::Value::as_str),
+            Some(expected_control)
+        );
+    }
 }

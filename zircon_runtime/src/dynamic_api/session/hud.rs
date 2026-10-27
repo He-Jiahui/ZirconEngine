@@ -8,6 +8,7 @@ use zircon_runtime_interface::ui::surface::{
     UiTextRenderMode, UiTextWrap,
 };
 
+// Keep the legacy component ID readable for existing projects.
 pub(super) const HUD_COMPONENT_IDS: [&str; 2] = ["gameplay.hud_text", "vampire.hud_text"];
 const HUD_TREE_ID: &str = "runtime.gameplay.hud";
 const HUD_MARGIN: f32 = 16.0;
@@ -25,9 +26,6 @@ pub(super) fn runtime_session_hud_extract(
     text_measure_cache: &mut UiTextMeasureCache,
 ) -> Option<UiRenderExtract> {
     let text = collect_hud_text(world)?;
-    if is_vampire_combat_hud_text(&text) {
-        return None;
-    }
     Some(build_text_hud_extract(
         text,
         viewport_size,
@@ -148,40 +146,6 @@ fn hud_width(viewport_size: UVec2) -> f32 {
 
 fn hud_height(measured_text_height: f32) -> f32 {
     (measured_text_height + HUD_PADDING_Y * 2.0).clamp(HUD_MIN_HEIGHT, HUD_MAX_HEIGHT)
-}
-
-fn is_vampire_combat_hud_text(text: &str) -> bool {
-    let mut has_hp = false;
-    let mut has_xp = false;
-    let mut has_weapons = false;
-
-    for line in text.lines().map(str::trim).filter(|line| !line.is_empty()) {
-        let mut previous = None;
-        for token in line
-            .split_whitespace()
-            .map(|token| token.trim_end_matches(':'))
-        {
-            match previous {
-                Some("HP") => has_hp |= parse_f32_pair(token).is_some(),
-                Some("XP") => has_xp |= parse_i64_pair(token).is_some(),
-                Some("Orbit" | "Lance" | "Pulse") => has_weapons |= token.parse::<i64>().is_ok(),
-                _ => {}
-            }
-            previous = Some(token);
-        }
-    }
-
-    has_hp && has_xp && has_weapons
-}
-
-fn parse_i64_pair(value: &str) -> Option<(i64, i64)> {
-    let (left, right) = value.split_once('/')?;
-    Some((left.parse().ok()?, right.parse().ok()?))
-}
-
-fn parse_f32_pair(value: &str) -> Option<(f32, f32)> {
-    let (left, right) = value.split_once('/')?;
-    Some((left.parse().ok()?, right.parse().ok()?))
 }
 
 #[cfg(test)]

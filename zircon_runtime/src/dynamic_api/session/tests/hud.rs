@@ -104,41 +104,23 @@ fn runtime_session_fallback_ui_hud_lookup_uses_the_dynamic_component_sparse_inde
 }
 
 #[test]
-fn runtime_session_hud_extract_suppresses_vampire_combat_panel_text() {
+fn runtime_session_hud_extract_preserves_combat_text_for_generic_and_legacy_ids() {
     let mut world = World::empty();
     let entity = world
         .spawn_node(NodeKind::Empty)
         .expect("test scene spawn should succeed");
-    world
-        .set_dynamic_component(
-            entity,
-            "gameplay.hud_text",
-            serde_json::json!(
-                "Lv 3  XP 9/30  HP 80/120\nTime 01:10  Kills 7  Enemies 4\nWeapons Orbit 1 Lance 2 Pulse 0\nShield 18  Blood 6s  Haste 5s"
-            ),
-        )
-        .unwrap();
+    let text = "Lv 3  XP 9/30  HP 80/120\nTime 01:10  Kills 7  Enemies 4\nWeapons Orbit 1 Lance 2 Pulse 0\nShield 18  Blood 6s  Haste 5s";
+    for component_id in ["gameplay.hud_text", "vampire.hud_text"] {
+        world
+            .set_dynamic_component(entity, component_id, serde_json::json!(text))
+            .unwrap();
 
-    assert!(
-        hud_extract(&world, UVec2::new(1280, 720)).is_none(),
-        "vampire health must render through scene-following world HUD bars, not a screen-space panel"
-    );
-}
-
-#[test]
-fn vampire_combat_hud_detection_streams_tokens_without_collecting() {
-    let source = include_str!("../hud.rs");
-    let start = source
-        .find("fn is_vampire_combat_hud_text(")
-        .expect("vampire combat HUD detector");
-    let end = source[start..]
-        .find("#[cfg(test)]")
-        .map(|offset| start + offset)
-        .expect("vampire combat HUD detector end");
-    let detector_source = &source[start..end];
-
-    assert!(
-        !detector_source.contains("collect::<Vec<_>>()"),
-        "per-frame HUD classification must stream borrowed tokens without a temporary Vec"
-    );
+        let extract = hud_extract(&world, UVec2::new(1280, 720))
+            .expect("authored HUD text must not be filtered by game-specific tokens");
+        assert_eq!(extract.list.commands[1].text.as_deref(), Some(text));
+        assert!(extract.list.commands[1].text_layout.is_some());
+        world
+            .set_dynamic_component(entity, component_id, serde_json::Value::Null)
+            .unwrap();
+    }
 }
