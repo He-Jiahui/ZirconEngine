@@ -4,10 +4,10 @@ from pathlib import Path
 
 
 EXPECTED_FIXED_HOST_MODULES = 6
-EXPECTED_FIXED_HOST_FUNCTIONS = 73
+EXPECTED_FIXED_HOST_FUNCTIONS = 74
 EXPECTED_TYPE_DESCRIPTORS = 2
 EXPECTED_BUILTIN_CALLBACKS = 21
-EXPECTED_GAMEPLAY_CALLBACKS = 50
+EXPECTED_GAMEPLAY_CALLBACKS = 51
 EXPECTED_MACRO_HOST_FUNCTIONS = 2
 EXPECTED_HOST_CAPABILITIES = 14
 SCRIPT_LEDGER_TEST_MAX_LINES = 700
@@ -86,7 +86,7 @@ HOST_CAPABILITIES = (
     "bridge.call",
 )
 LEDGER_DOC_ANCHORS = (
-    "6 host modules, 73 fixed host functions, and 2 fixed script type descriptors",
+    "6 host modules, 74 fixed host functions, and 2 fixed script type descriptors",
     "`zr.zircon.bridge`",
     "dynamic module shape contract",
     "Value descriptors",

@@ -62,7 +62,7 @@ fn runtime_13_script_binding_mirror_docs_match_structure_audit_counts() {
     );
     assert_eq!(
         count_occurrences(gameplay_host, "HostExportFunction::new("),
-        50,
+        51,
         "Runtime 13 gameplay callback count should match script_binding_boundary"
     );
     assert_eq!(
@@ -102,7 +102,7 @@ fn runtime_13_script_binding_cargo_gate_stays_visible_until_script_filters_pass(
 
 #[test]
 fn runtime_13_script_binding_inventory_guard_requires_explicit_history() {
-    let current = "Runtime13 current source contract inventory: fixed_host_function_count = 73, builtin_callback_count = 21, gameplay_callback_count = 50, host_capability_count = 14";
+    let current = "Runtime13 current source contract inventory: fixed_host_function_count = 74, builtin_callback_count = 21, gameplay_callback_count = 51, host_capability_count = 14";
     let unlabelled = [
         "Current evidence reports fixed_host_function_count = 52",
         "Current owner hard-cut sync: builtin_callback_count = 11",

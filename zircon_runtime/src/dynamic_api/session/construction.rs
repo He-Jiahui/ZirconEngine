@@ -461,6 +461,7 @@ pub(super) fn build(
         last_scene_asset_reload_report: None,
         project_identity,
         scene_uri,
+        scene_transition_start_pending: false,
         selected_model_resource_id,
         selected_material_resource_id,
         camera_controller,

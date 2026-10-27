@@ -34,6 +34,7 @@ pub(super) const FIXED_HOST_FUNCTIONS: &[(&str, &str)] = &[
     ("zr.zircon.gameplay", "mouse_wheel_x"),
     ("zr.zircon.gameplay", "mouse_wheel_y"),
     ("zr.zircon.gameplay", "request_scene_transition"),
+    ("zr.zircon.gameplay", "scene_transition_result_json"),
     ("zr.zircon.gameplay", "position_json"),
     ("zr.zircon.gameplay", "position_x"),
     ("zr.zircon.gameplay", "position_y"),
@@ -108,14 +109,6 @@ pub(super) fn fixed_sources_contain_function(
     builtin_source.contains(&format!("HostExportFunction::new(\"{function}\""))
         || gameplay_source.contains(&format!("HostExportFunction::new(\"{function}\""))
         || builtin_source.contains(&format!("name = \"{function}\""))
-}
-
-pub(super) fn combined_fixed_sources_contain_module(
-    builtin_source: &str,
-    gameplay_source: &str,
-    module: &str,
-) -> bool {
-    builtin_source.contains(module) || gameplay_source.contains(module)
 }
 
 pub(super) fn missing_documented_functions(ledger: &str) -> Vec<String> {

@@ -51,7 +51,7 @@ use lifecycle::{
 use navigation::{nav_move_towards_entity, nav_next_point_json};
 use random::random_range;
 use rotation::set_rotation_euler;
-use scene_transition::request_scene_transition;
+use scene_transition::{request_scene_transition, scene_transition_result_json};
 use transform::{
     camera_follow, face_direction, follow_position, move_towards_entity, position_axis,
     position_json, set_position, set_position_json, set_scale, translate, translate_json,
@@ -83,6 +83,7 @@ pub fn register_gameplay_host_module(
                 .with_parameter(string_parameter("scene_uri"))
                 .with_required_capability("gameplay.scene_transition"),
         )
+        .with_function(descriptors::scene_transition_result())
         .with_function(
             function("position_json", 1, 1, ScriptHostValueKind::String)
                 .with_parameter(int_parameter("entity"))
@@ -349,6 +350,7 @@ pub fn register_gameplay_host_module(
             HostExportFunction::new("mouse_wheel_x", mouse_wheel_x),
             HostExportFunction::new("mouse_wheel_y", mouse_wheel_y),
             HostExportFunction::new("request_scene_transition", request_scene_transition),
+            HostExportFunction::new("scene_transition_result_json", scene_transition_result_json),
             HostExportFunction::new("position_json", position_json),
             HostExportFunction::new("position_x", |context| position_axis(context, 0)),
             HostExportFunction::new("position_y", |context| position_axis(context, 1)),

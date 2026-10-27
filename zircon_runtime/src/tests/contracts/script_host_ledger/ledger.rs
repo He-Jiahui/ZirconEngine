@@ -1,6 +1,6 @@
 use super::catalog::{
-    combined_fixed_sources_contain_module, count_occurrences, fixed_sources_contain_function,
-    missing_documented_functions, FIXED_HOST_FUNCTIONS, FIXED_HOST_MODULES, HOST_CAPABILITIES,
+    count_occurrences, fixed_sources_contain_function, missing_documented_functions,
+    FIXED_HOST_FUNCTIONS, FIXED_HOST_MODULES, HOST_CAPABILITIES,
 };
 use crate::tests::runtime_absorption::structure_convention::fixed_history_archive_source as history;
 
@@ -17,9 +17,9 @@ fn host_function_registry_matches_documented_ledger() {
         .find(|line| line.starts_with("Runtime13 current source contract inventory:"))
         .expect("the canonical ledger must have a current source inventory");
     for required in [
-        "fixed_host_function_count = 73",
+        "fixed_host_function_count = 74",
         "builtin_callback_count = 21",
-        "gameplay_callback_count = 50",
+        "gameplay_callback_count = 51",
         "host_capability_count = 14",
     ] {
         assert!(current_inventory.contains(required), "inventory {required}");
@@ -32,7 +32,7 @@ fn host_function_registry_matches_documented_ledger() {
     );
     assert_eq!(
         count_occurrences(gameplay_source, "HostExportFunction::new("),
-        50,
+        51,
         "gameplay host callback count changed; update function_ledger.md and Runtime 13 status"
     );
     assert_eq!(
@@ -43,7 +43,7 @@ fn host_function_registry_matches_documented_ledger() {
 
     for module in FIXED_HOST_MODULES {
         assert!(
-            combined_fixed_sources_contain_module(builtin_source, gameplay_source, module),
+            builtin_source.contains(module) || gameplay_source.contains(module),
             "fixed host module `{module}` should exist in host registration sources"
         );
         assert!(ledger.contains(module), "module {module}");
@@ -78,7 +78,7 @@ fn host_function_registry_matches_documented_ledger() {
     }
 
     for required_ledger_anchor in [
-        "6 host modules, 73 fixed host functions, and 2 fixed script type descriptors",
+        "6 host modules, 74 fixed host functions, and 2 fixed script type descriptors",
         "Version 0.3.0 deterministic value and scalar math ABI.",
         "`zr.zircon.bridge`",
         "dynamic module shape contract",

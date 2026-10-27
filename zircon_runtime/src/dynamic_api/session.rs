@@ -56,6 +56,8 @@ mod registry;
 mod runtime_ui;
 #[path = "session/scene_asset_reload_diagnostics.rs"]
 mod scene_asset_reload_diagnostics;
+#[path = "session/scene_transition.rs"]
+mod scene_transition;
 #[path = "session/script_systems.rs"]
 mod script_systems;
 #[path = "session/shutdown.rs"]

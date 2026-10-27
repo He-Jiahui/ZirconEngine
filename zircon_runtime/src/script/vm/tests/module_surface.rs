@@ -41,6 +41,21 @@ fn builtin_host_modules_register_gameplay_capabilities() {
     assert!(scene_transition
         .required_capabilities
         .contains(&"gameplay.scene_transition".to_string()));
+    let transition_result = gameplay
+        .descriptor
+        .functions
+        .iter()
+        .find(|function| function.name == "scene_transition_result_json")
+        .expect("gameplay scene transition result host function");
+    assert_eq!(transition_result.min_argument_count, 0);
+    assert_eq!(transition_result.max_argument_count, 0);
+    assert_eq!(
+        transition_result.return_value_kind,
+        ScriptHostValueKind::String
+    );
+    assert!(transition_result
+        .required_capabilities
+        .contains(&"gameplay.scene_transition".to_string()));
     assert!(gameplay
         .descriptor
         .functions

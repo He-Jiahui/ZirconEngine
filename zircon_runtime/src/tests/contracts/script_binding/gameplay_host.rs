@@ -3,7 +3,7 @@ use std::path::Path;
 
 use super::inventory::{
     GAMEPLAY_HOST_MODULE_ANCHORS, GAMEPLAY_HOST_OWNER_FILES, GAMEPLAY_HOST_OWNER_MAX_LINES,
-    GAMEPLAY_HOST_REGISTRATION_ANCHORS, GAMEPLAY_VALUE_ANCHORS,
+    GAMEPLAY_HOST_REGISTRATION_ANCHORS,
 };
 use super::support::{assert_file_line_budget, assert_files_exist};
 
@@ -39,7 +39,11 @@ fn runtime_13_gameplay_host_owner_split_keeps_domain_files() {
     }
 
     let values = include_str!("../../../script/vm/gameplay_host/values.rs");
-    for value_anchor in GAMEPLAY_VALUE_ANCHORS {
+    for value_anchor in [
+        "expect_vec3_json",
+        "resource_handle_from_script_ref",
+        "script_core_error",
+    ] {
         assert!(
             values.contains(value_anchor),
             "gameplay_host/values.rs should own shared value helper `{value_anchor}`"

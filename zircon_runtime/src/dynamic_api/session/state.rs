@@ -122,6 +122,7 @@ pub(super) struct RuntimeDynamicSession {
     pub(super) last_scene_asset_reload_report: Option<DynamicSceneAssetReloadFrameApplyReport>,
     pub(super) project_identity: Option<String>,
     pub(super) scene_uri: Option<String>,
+    pub(super) scene_transition_start_pending: bool,
     pub(super) selected_model_resource_id: Option<String>,
     pub(super) selected_material_resource_id: Option<String>,
     pub(super) camera_controller: RuntimeCameraController,
@@ -302,6 +303,7 @@ impl RuntimeDynamicSession {
                 .tick(&self.runtime.handle(), advance)
                 .map_err(|source| RuntimeDynamicSessionError::LevelTick { source })?;
         }
+        self.scene_transition_start_pending = false;
         {
             crate::profile_scope!("runtime", "frame", "runtime_operation_owner_apply");
             let core = self.runtime.handle();
@@ -343,12 +345,18 @@ impl RuntimeDynamicSession {
                 &snapshot,
             );
         }
+        // Linked editor Play only ticks; it does not drain platform host requests.
+        // Use the same consumer after a successful tick, outside all script callbacks.
+        self.consume_scene_transition();
         Ok(())
     }
 
     pub(super) fn frame_demand(&self) -> RuntimeFrameDemand {
         if self.scene_asset_reload_interruption().is_some() {
             return RuntimeFrameDemand::Idle;
+        }
+        if self.scene_transition_start_pending {
+            return RuntimeFrameDemand::Immediate;
         }
         let base_demand = asset_reload_frame_demand(
             self.scene_asset_reload_queue
@@ -425,6 +433,8 @@ impl RuntimeDynamicSession {
                 "runtime host request output is already in flight".to_string(),
             ));
         }
+        // Internal scene travel completes once, independently of platform-output retries.
+        self.consume_scene_transition();
         if self.pending_host_request_output.is_none() {
             self.pending_host_request_output = Some(self.collect_host_requests());
         }

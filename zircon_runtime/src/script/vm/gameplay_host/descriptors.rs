@@ -4,6 +4,16 @@ use crate::core::framework::script::{
     ScriptHostValueKind,
 };
 
+pub(super) fn scene_transition_result() -> ScriptHostFunctionDescriptor {
+    function(
+        "scene_transition_result_json",
+        0,
+        0,
+        ScriptHostValueKind::String,
+    )
+    .with_required_capability("gameplay.scene_transition")
+}
+
 pub(super) fn with_essentials(
     descriptor: ScriptHostModuleDescriptor,
 ) -> ScriptHostModuleDescriptor {

@@ -139,14 +139,13 @@ pub enum ZrRuntimeProjectSceneTransitionPolicyV1 {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 /// 游戏逻辑发起的项目场景切换意图；构造器仅校验 `res://` URI 的词法形式。
-/// 构造检查不探测目标资源或执行切换；消费与结果回报路径仍待核实，见本批 TODO。
+/// 构造检查不探测目标资源或执行切换。动态会话在成功 tick 后或 host-request drain 边界消费请求。
 ///
 /// 该类型不是 [`ZrRuntimeHostRequestV1`] 的 variant；Gameplay host 将它写入当前 World 的 typed
 /// resource。`try_new` 只做 URI 词法检查，Serde 反序列化也不会调用该构造器。
 ///
-/// TODO: [ZCA-HRQ-001] 目前追踪只确认 Gameplay producer 将此值插入 World resource，尚未定位读取该资源并生成
-/// [`ZrRuntimeProjectSceneTransitionResultV1`] 的消费/回传入口；需确认这是预留契约还是遗漏接线。
-/// 下一步用实际 Gameplay 调用连续推进 Runtime tick，验证 request 被消费且存在可观察的 result 出口。
+/// `zircon_runtime::dynamic_api::session::scene_transition` 加载并替换活动 World，随后将
+/// [`ZrRuntimeProjectSceneTransitionResultV1`] 写入当前 World；加载失败保留原场景。
 pub struct ZrRuntimeProjectSceneTransitionRequestV1 {
     /// Gameplay producer 分配的请求 ID；直接构造时不检查范围或唯一性。
     pub request_id: u64,
@@ -200,10 +199,10 @@ pub enum ZrRuntimeProjectSceneTransitionStatusV1 {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-/// 场景切换请求的 typed result 形状；当前批次通路中没有该结果类型。
+/// 场景切换请求的最近一次完成结果，由动态会话写入活动 World 的 typed resource。
 ///
 /// `request_id` 与 URI 可关联来源；status 和可选 diagnostic 描述结果。该结构没有构造器或自动事件发送逻辑。
-/// 当前追踪未定位结果生产者或回传时机；请求侧的待确认项见 `ZCA-HRQ-001`。
+/// Gameplay 脚本用 `scene_transition_result_json()` 读取（无结果时返回 JSON null）；读取不消费结果。
 pub struct ZrRuntimeProjectSceneTransitionResultV1 {
     /// 与原 request 相同的请求关联 ID。
     pub request_id: u64,

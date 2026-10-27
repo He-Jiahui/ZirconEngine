@@ -78,10 +78,10 @@ pub(super) const SCRIPT_BINDING_MIRROR_DOC_ANCHORS: &[&str] = &[
     "expected_guard_file_count = 8",
     "missing_guard_files = []",
     "fixed_host_module_count = 6",
-    "fixed_host_function_count = 73",
+    "fixed_host_function_count = 74",
     "type_descriptor_count = 2",
     "builtin_callback_count = 21",
-    "gameplay_callback_count = 50",
+    "gameplay_callback_count = 51",
     "macro_host_function_count = 2",
     "host_capability_count = 14",
     "guard_anchor_count = 9",
@@ -126,10 +126,4 @@ pub(super) const GAMEPLAY_HOST_REGISTRATION_ANCHORS: &[&str] = &[
     "HostExportFunction::new(\"damage_entity\"",
     "HostExportFunction::new(\"spawn_empty\"",
     "HostExportFunction::new(\"nav_next_point_json\"",
-];
-
-pub(super) const GAMEPLAY_VALUE_ANCHORS: &[&str] = &[
-    "expect_vec3_json",
-    "resource_handle_from_script_ref",
-    "script_core_error",
 ];
