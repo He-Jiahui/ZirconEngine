@@ -9,7 +9,12 @@ use crate::core::gateway::EditorRuntimeGatewayHandle;
 use serde_json::{json, Value};
 use zircon_runtime::core::framework::scene::ComponentTypeDescriptor;
 use zircon_runtime::scene::components::{Name, NodeKind};
+use zircon_runtime::scene::reflect::VmTypeBacking;
 use zircon_runtime::scene::{DefaultLevelManager, LevelMetadata};
+use zircon_runtime_interface::reflect::{
+    ReflectEditorHint, ReflectFieldInfo, ReflectSerializationStrategy, ReflectTypeInfo,
+    ReflectTypePath, ReflectTypeRegistration, ReflectedValue,
+};
 
 const TYPE: &str = "weather.Component.CloudLayer";
 
@@ -22,10 +27,17 @@ fn fixture(record_bytes: u64) -> (EditorTransactionEngine, Vec<NodeId>, HistoryC
                 .with_property("label", "String", false),
         )
         .unwrap();
-    let targets = vec![
-        scene.spawn((Name("A".into()),)).unwrap(),
-        scene.spawn((Name("B".into()),)).unwrap(),
-    ];
+    fixture_with_scene(scene, record_bytes, 2)
+}
+
+fn fixture_with_scene(
+    mut scene: Scene,
+    record_bytes: u64,
+    target_count: usize,
+) -> (EditorTransactionEngine, Vec<NodeId>, HistoryContextId) {
+    let targets: Vec<_> = (0..target_count)
+        .map(|index| scene.spawn((Name(format!("Target {index}")),)).unwrap())
+        .collect();
     let level = DefaultLevelManager::default().create_level(scene, LevelMetadata::default());
     let mut core = CoreEditContext::new(EditorRuntimeGatewayHandle::detached());
     core.bind_scene(
@@ -46,6 +58,15 @@ fn fixture(record_bytes: u64) -> (EditorTransactionEngine, Vec<NodeId>, HistoryC
 }
 
 fn request(engine: &EditorTransactionEngine, history: HistoryContextId) -> AddComponentRequest {
+    let mut request = default_request(engine, history);
+    request.component.value = json!({"coverage": 0.25, "label": "thin"});
+    request
+}
+
+fn default_request(
+    engine: &EditorTransactionEngine,
+    history: HistoryContextId,
+) -> AddComponentRequest {
     engine
         .with_context::<CoreEditContext, _>(|core| {
             let selection = core.scene_selection().unwrap();
@@ -59,7 +80,7 @@ fn request(engine: &EditorTransactionEngine, history: HistoryContextId) -> AddCo
                 targets: selection.items().to_vec(),
                 primary: selection.primary(),
             };
-            let mut component = core
+            let component = core
                 .with_scene(|scene| {
                     scene
                         .dynamic_component_creation_template(TYPE)
@@ -67,7 +88,6 @@ fn request(engine: &EditorTransactionEngine, history: HistoryContextId) -> AddCo
                         .spec
                 })
                 .unwrap();
-            component.value = json!({"coverage": 0.25, "label": "thin"});
             AddComponentRequest { scope, component }
         })
         .unwrap()
@@ -160,6 +180,64 @@ fn registered_add_operation_commits_one_document_record_and_round_trips_multi_ta
         .unwrap();
     assert_eq!(selection.items(), initial_selection.items());
     assert_eq!(selection.primary(), initial_selection.primary());
+}
+
+#[test]
+fn add_large_declared_default_round_trips_multi_target_undo_redo() {
+    let label = "x".repeat(256 * 1024);
+    let registration = ReflectTypeRegistration::new(
+        ReflectTypePath::new(TYPE, "CloudLayer").unwrap(),
+        "Cloud Layer",
+        ReflectTypeInfo::json_with_fields(vec![ReflectFieldInfo::from_stable_keys(
+            TYPE,
+            "label",
+            "label",
+            "String",
+            ReflectEditorHint::String,
+        )
+        .with_default_value(ReflectedValue::String(label.clone()))]),
+        ReflectSerializationStrategy::Json,
+    )
+    .as_component()
+    .with_plugin_id("weather")
+    .unwrap();
+    let mut scene = Scene::empty();
+    scene
+        .register_vm_type(registration, VmTypeBacking::DynamicComponent)
+        .unwrap();
+    assert!(scene
+        .dynamic_component_creation_template(TYPE)
+        .unwrap()
+        .required_fields
+        .is_empty());
+    // Staging clones the default for each target; history owns one payload and
+    // its schema. Keep the ordinary budgets while making staging exceed that owner.
+    let (engine, targets, history) =
+        fixture_with_scene(scene, HistoryRetentionBudgetV1::default().record_bytes, 4);
+    let request = default_request(&engine, history);
+    let expected = json!({"label": label});
+    assert_eq!(request.component.value, expected);
+    assert_eq!(values(&engine, &targets), vec![None; targets.len()]);
+
+    execute(&engine, request).expect("large declared defaults must be admitted before mutation");
+    assert_eq!(
+        values(&engine, &targets),
+        vec![Some(expected.clone()); targets.len()]
+    );
+    assert_eq!(engine.history_status(history).unwrap().len, 1);
+    assert!(engine
+        .undo(history)
+        .expect("staged removal must use the materialization allowance"));
+    assert_eq!(values(&engine, &targets), vec![None; targets.len()]);
+    assert!(engine.history_status(history).unwrap().can_redo);
+    assert!(engine
+        .redo(history)
+        .expect("staged creation must use the materialization allowance"));
+    assert_eq!(
+        values(&engine, &targets),
+        vec![Some(expected); targets.len()]
+    );
+    assert_eq!(engine.history_status(history).unwrap().len, 1);
 }
 
 #[test]
@@ -312,6 +390,10 @@ fn add_journal_replays_through_registered_codec_with_fresh_instance_receipts_and
 #[test]
 fn add_then_ordinary_delete_undo_restores_the_same_instances_before_add_undo() {
     let (engine, targets, history) = fixture(64 * 1024 * 1024);
+    // Ordinary deletion requires a surviving camera under the B5 policy.
+    mutate(&engine, |scene| {
+        scene.spawn_node(NodeKind::Camera).unwrap();
+    });
     let request = request(&engine, history);
     let expected = request.component.value.clone();
     execute(&engine, request).unwrap();

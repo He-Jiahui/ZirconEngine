@@ -3,7 +3,8 @@
 
 use super::*;
 use crate::core::editing::engine::{
-    CommandRetentionPlanV1, HistoryContextId, RetentionMaterializationV1, RetentionPhaseV1,
+    CommandRetentionLimitsV1, CommandRetentionPlanV1, HistoryContextId, RetentionMaterializationV1,
+    RetentionPhaseV1,
 };
 use crate::core::editing::operation::{
     OperationCommand, OperationCommandFactory, OperationCommandFactoryError,
@@ -244,15 +245,13 @@ impl AddDynamicComponentCommand {
         })?
         .map_err(creation_error)
     }
-}
-
-impl EditCommand for AddDynamicComponentCommand {
-    fn retention_plan_v1(
+    fn plan_v1(
         &self,
         context: &dyn EditContext,
         phase: RetentionPhaseV1,
         model: RetainedAccountingModelV1,
         limit: u64,
+        peak_limit: u64,
     ) -> Result<CommandRetentionPlanV1, EditCommandError> {
         let core = context.as_any().downcast_ref::<CoreEditContext>().ok_or(
             EditCommandError::ContextTypeMismatch {
@@ -284,7 +283,10 @@ impl EditCommand for AddDynamicComponentCommand {
         }
         // Removal and compensation may also clone archetype signatures. Admit
         // the same conservative staged-row peak for every phase before mutation.
-        let mut scratch = RetainedBoundBuilderV1::with_limit(model, RetainedBytesV1::new(limit));
+        // Staged rows are transient; quoted replay reserves them through the
+        // materialization allowance rather than the retained command payload.
+        let mut scratch =
+            RetainedBoundBuilderV1::with_limit(model, RetainedBytesV1::new(peak_limit));
         core.with_scene(|scene| {
             scene.dynamic_component_creation_peak_v1(
                 &self.payload.targets,
@@ -296,6 +298,34 @@ impl EditCommand for AddDynamicComponentCommand {
         plan.add_peak(scratch.bytes().get())?;
         plan.add_peak(plan.retained_bytes)?;
         Ok(plan)
+    }
+}
+
+impl EditCommand for AddDynamicComponentCommand {
+    fn retention_plan_v1(
+        &self,
+        context: &dyn EditContext,
+        phase: RetentionPhaseV1,
+        model: RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<CommandRetentionPlanV1, EditCommandError> {
+        self.plan_v1(context, phase, model, limit, limit)
+    }
+
+    fn retention_plan_with_limits_v1(
+        &self,
+        context: &dyn EditContext,
+        phase: RetentionPhaseV1,
+        model: RetainedAccountingModelV1,
+        limits: CommandRetentionLimitsV1,
+    ) -> Result<CommandRetentionPlanV1, EditCommandError> {
+        self.plan_v1(
+            context,
+            phase,
+            model,
+            limits.retained_bytes,
+            limits.materialization_bytes,
+        )
     }
 
     fn prepare_retention_v1(
