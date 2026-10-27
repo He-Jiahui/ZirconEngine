@@ -1,7 +1,8 @@
 use super::editor_state::EditorState;
 use crate::core::editor_event::ConsoleMessageFilter;
 use crate::ui::workbench::snapshot::{
-    ConsoleOutputSnapshot, EditorConsoleMessageLevel, StatusTaskProgressSnapshot,
+    ConsoleOutputSnapshot, EditorConsoleMessageLevel, InspectorNativeFieldSnapshot,
+    StatusTaskProgressSnapshot,
 };
 use zircon_runtime_interface::reflect::{ReflectObjectAddress, ReflectReadRequest};
 
@@ -91,11 +92,6 @@ impl EditorState {
         let Some((component_type_path, field_name)) = field_id.rsplit_once('.') else {
             return Ok(false);
         };
-        if crate::ui::workbench::snapshot::InspectorNativeFieldSnapshot::is_component_type(
-            component_type_path,
-        ) {
-            return Ok(false);
-        }
         let Some(selected) = self.viewport_controller.selection().active_primary() else {
             return Ok(false);
         };
@@ -117,7 +113,13 @@ impl EditorState {
                 };
                 scene
                     .reflect_read(ReflectReadRequest::new(address, field.id))
-                    .is_ok()
+                    .is_ok_and(|response| {
+                        !InspectorNativeFieldSnapshot::is_component_type(component_type_path)
+                            || InspectorNativeFieldSnapshot::supports_editing(
+                                field_name,
+                                &response.field.value,
+                            )
+                    })
             })?
             .unwrap_or(false))
     }
