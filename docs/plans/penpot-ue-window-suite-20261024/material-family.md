@@ -281,6 +281,24 @@ AssetReference构造不查注册表，因此纹理预检显式调用宿主resolv
 
 证据位于原报告根 `E:/cargo-targets/zircon-local/reports/ue-material-family-20261024-01a16d50/` 的material-fork-30.json、material-hierarchy-30.json、material-instance-search-flow-31.json、browser-session-30-receipt.json及guard-67.json。自有browser PID14168已实际exit0，context/browser关闭，认证文件哈希未变，专属临时目录为空；本轮未删除文件，释放0B，必要失败证据及他人活动产物保留。原ZUI官方回写、真实作者文档/图宿主/renderer、Jenkins产品聚焦测试、正常EXE与实际144DPI、双端逐图≤1DIP及全族passed/accepted仍open；goal保持active，继续独立工作并沿Parent统筹交接。
 
+### fork32 后继：Hierarchy native Overlay 的历史交接消费70
+
+原fork32于2026-10-26T01:33–01:40Z保存并新context重开至rev205／3404objects；本会话于后续时点消费原件，不把205写成当前设计版本，也不回写覆盖66／67后来rev253或69源码。原3401IDs／5业务main保持，仅原生增加overlay `0e6a6a6d-2d5a-8037-8008-d8b5262edf4b`及两文本`...edf4c`／`...edf4d`，并修改以下3个原按钮的interactions。它们连同overlay的6个自有对象在fresh context逐项exact；四原Shared SearchInput roots／source refs保持，未detach或修改Shared。
+
+| 历史设计尺寸／原board | 原Hierarchy trigger | rev205原生输入结果 |
+| --- | --- | --- |
+| 1280×800／eb526e4e-6399-4857-9f4c-37a7ac29f26d | 1b77b5dc-466d-4a61-bed2-12de205c6284 | 打开／外点关闭成功；Esc不关闭、focus BODY。 |
+| 900×620／9c6906df-acb7-4646-8d9d-280fe7025700 | 6289ad06-c3ad-4f05-8e5d-9504839918a6 | 同一overlay；打开／外点关闭成功；Esc／焦点失败。 |
+| 640×520／0206676f-5e96-42f2-ad25-31508a2f0a84 | 3d9ad777-bffc-4b78-8b06-f744ed46f8c8 | 原生280×80弹层可见并覆盖部分Details；外点关闭成功，Esc／焦点失败。 |
+
+原Navigate／Previous screen及bottom-left错误取景保留为早期失败；后继为真实click→toggle-overlay、relative-to原按钮、manual x=0／y=真实源高32、closeClickOutside=true。这里的源锚点差异＜0.001只是该设计几何，不是Engine行框／边界≤1DIP通过。关闭态青色提示不能证明焦点返回，未注入JS伪造Esc、keyboard action或focus。Parent Chain／No Parent Found仍是明确无父设计数据，不当作已查询真实instance／registry结果。
+
+本会话核对原handoff SHA058d9ec250bd8f08407ac0cf1539becf0abfecc35db491cf5d8ebced9a6b511c、report SHAa698760bf8e67dfd446e3c571f6ec09ce8ad3838935aacd80ca50a9a112ab80a及checks SHAe9d7e4405c4f7750a16f5d8201b32e0da795dd3f5ed9bdd9411533cd7a945488；16PNG原哈希／1600×1050原始像素尺寸全部匹配，复用原owner16图逐图结论。本会话额外直接打开1280fresh／640fresh-open／640closed三图，确认可见空父文案、窄窗遮盖及关闭态；未把采样复核说成自己重做16条输入。另4份UE／Penpot interaction／原ZUI／Search源指纹仍匹配。
+
+真实宿主继续消费[既有共享popup边界](shared-node-graph-contract.md)：使用实际authoring instance／父链AssetReference与registry／Toolkit路由、document/subdocument/revision、popup incarnation/source generation、当前retained trigger instancePath和同代际viewport变换；DPI只转换一次。Outside／Escape／selection关闭同一popup，source切换拒绝旧callback，焦点仅在原source／pane仍有效时归还原input owner；关闭弹层不新增Document mutation／undo。不得新造第二popup模型或用颜色当焦点回执。
+
+原v2仍SHA5856c886…／29nodes／27controls／13events，无Instance Hierarchy源控件或对应事件；需要真实作者父链及source-bound追加／事件映射和官方codec，不能把Penpot原型metadata签成已导出产品。原helper70890／PID25276缺原receipt／native EOF继续open；r02／PID35272明确close／exit0／auth unchanged仅证明自身，不关闭旧profile。旧profile11414415逻辑B及必要失败证据保留，释放0B。本轮只在本owned工作树增量合并本文，不写fork对象／源码／公共源／原ZUI；不新建Cargo身份，不因docs改变重跑Rust或单插件检查。真实Instance宿主／renderer／正常EXE／144DPI／双端≤1DIP仍open，goal active，passed=false，accepted=false。证据沿原任务reports根material-hierarchy-overlay-32-*及本次material-hierarchy-intake-70-*。
+
 ## 监督恢复31：节点搜索实际设计与域内实现
 Parent于2026-10-25 01:02 PDT明确解除共享等待，goal实际active、runnable恢复授权有效。本轮继续独立实现和验证，不再把缺少完美共享交付作为整族停止的理由；旧28/29按原时点保留。并发fork30（01a1721d-c601-7b60-aea2-93eb528fa2c4）仅处理其Hierarchy/Instance SearchInput，本轮保留其全部对象、文档、helper和产物；原会话只增加Node Search31三板及下述四个材质Rust路径，不改公共graph、runtime、catalog、tokens或主题。
 
