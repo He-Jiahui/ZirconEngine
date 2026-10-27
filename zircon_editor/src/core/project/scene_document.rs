@@ -1,4 +1,5 @@
 //! 项目场景读写只允许项目拥有的完整场景资源；创建先准备暂存文档，再由上游事务发布或回滚，目录链租约必须覆盖该交接期间。
+#[cfg(not(target_os = "linux"))]
 use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -104,23 +105,26 @@ impl PreparedSceneCreation {
     }
 
     fn publish(&mut self) -> Result<(), ProjectAuthorityError> {
-        let result = fs::hard_link(&self.staging_path, self.document().source_path());
-        match result {
-            Ok(()) => {
-                self.published = true;
-                Ok(())
-            }
+        #[cfg(target_os = "linux")]
+        self._path_guard.publish_scene(&self.staging_path)?;
+        #[cfg(not(target_os = "linux"))]
+        match fs::hard_link(&self.staging_path, self.document().source_path()) {
+            Ok(()) => {}
             Err(source) if source.kind() == std::io::ErrorKind::AlreadyExists => {
-                Err(ProjectAuthorityError::SceneAlreadyExists {
+                return Err(ProjectAuthorityError::SceneAlreadyExists {
                     path: self.document().source_path.clone(),
-                })
+                });
             }
-            Err(source) => Err(ProjectAuthorityError::io(
-                "publish new scene asset",
-                self.document().source_path(),
-                source,
-            )),
+            Err(source) => {
+                return Err(ProjectAuthorityError::io(
+                    "publish new scene asset",
+                    self.document().source_path(),
+                    source,
+                ));
+            }
         }
+        self.published = true;
+        Ok(())
     }
 
     /// Makes the target source visible only after its staging sibling is gone, so a catalog scan
@@ -141,13 +145,7 @@ impl PreparedSceneCreation {
 
     pub(crate) fn rollback(&mut self) -> Result<(), ProjectAuthorityError> {
         if self.published {
-            fs::remove_file(self.document().source_path()).map_err(|source| {
-                ProjectAuthorityError::io(
-                    "remove rejected scene asset",
-                    self.document().source_path(),
-                    source,
-                )
-            })?;
+            self.remove_published()?;
             self.published = false;
         }
         self.remove_staging()
@@ -161,6 +159,11 @@ impl PreparedSceneCreation {
     }
 
     fn remove_staging(&mut self) -> Result<(), ProjectAuthorityError> {
+        #[cfg(target_os = "linux")]
+        return self
+            ._path_guard
+            .remove_owned_file(&self.staging_path, self.document().source_revision());
+        #[cfg(not(target_os = "linux"))]
         match fs::remove_file(&self.staging_path) {
             Ok(()) => Ok(()),
             Err(ref error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
@@ -171,16 +174,32 @@ impl PreparedSceneCreation {
             )),
         }
     }
+
+    fn remove_published(&self) -> Result<(), ProjectAuthorityError> {
+        #[cfg(target_os = "linux")]
+        return self._path_guard.remove_owned_file(
+            self.document().source_path(),
+            self.document().source_revision(),
+        );
+        #[cfg(not(target_os = "linux"))]
+        fs::remove_file(self.document().source_path()).map_err(|source| {
+            ProjectAuthorityError::io(
+                "remove rejected scene asset",
+                self.document().source_path(),
+                source,
+            )
+        })
+    }
 }
 
 impl Drop for PreparedSceneCreation {
     fn drop(&mut self) {
-        if self.published {
-            if let Some(document) = self.document.as_ref() {
-                let _ = fs::remove_file(&document.source_path);
+        if self.document.is_some() {
+            if self.published {
+                let _ = self.remove_published();
             }
+            let _ = self.remove_staging();
         }
-        let _ = fs::remove_file(&self.staging_path);
     }
 }
 
@@ -193,8 +212,18 @@ impl ProjectAuthority {
     ) -> Result<ProjectSceneDocument, ProjectAuthorityError> {
         let source_path = existing_scene_source_path(project, request.scene_uri())?;
         let _path_guard = protect_scene_path(project.paths().root(), &source_path, true)?;
-        let (world, source_revision) =
-            Scene::load_scene_document(project, request.scene_uri())?.into_parts();
+        #[cfg(target_os = "linux")]
+        let loaded = Scene::load_scene_document_from_snapshot(
+            project,
+            request.scene_uri(),
+            source_path.clone(),
+            _path_guard.read_snapshot()?,
+        )?;
+        #[cfg(not(target_os = "linux"))]
+        let loaded = Scene::load_scene_document(project, request.scene_uri())?;
+        #[cfg(target_os = "linux")]
+        _path_guard.verify()?;
+        let (world, source_revision) = loaded.into_parts();
         Ok(ProjectSceneDocument {
             scene_uri: request.scene_uri,
             source_path,
@@ -235,6 +264,9 @@ impl ProjectAuthority {
         request: SceneCreateRequest,
     ) -> Result<PreparedSceneCreation, ProjectAuthorityError> {
         validate_scene_uri(request.scene_uri())?;
+        #[cfg(target_os = "linux")]
+        let source_path = project.primary_project_source_path_for_no_follow(request.scene_uri())?;
+        #[cfg(not(target_os = "linux"))]
         let source_path = project.primary_project_source_path_for_uri(request.scene_uri())?;
         let parent = source_path
             .parent()
@@ -250,17 +282,33 @@ impl ProjectAuthority {
             });
         }
         let path_guard = protect_scene_path(project.paths().root(), &source_path, false)?;
+        #[cfg(target_os = "linux")]
+        let mut path_guard = path_guard;
         let world = Scene::default();
         let staging_uri = scene_staging_uri(request.scene_uri());
+        #[cfg(target_os = "linux")]
+        let staging_path = project.primary_project_source_path_for_no_follow(&staging_uri)?;
+        #[cfg(not(target_os = "linux"))]
         let staging_path = project.primary_project_source_path_for_uri(&staging_uri)?;
+        #[cfg(target_os = "linux")]
+        let source_revision = {
+            let document = world
+                .to_scene_asset(project)?
+                .to_project_toml_string(|reference| project.persist_runtime_reference(reference))
+                .map_err(zircon_runtime::scene::world::SceneProjectError::from)?;
+            path_guard.stage_scene(&staging_path, document.as_bytes())?
+        };
+        #[cfg(not(target_os = "linux"))]
         let receipt =
             match world.save_scene_to_project(project, &staging_uri, &SceneSourceRevision::Missing)
             {
                 Ok(receipt) => receipt,
                 Err(error) => return Err(error.into()),
             };
+        #[cfg(not(target_os = "linux"))]
         receipt.ensure_durable()?;
         // The final create-only hard link publishes this exact staged object.
+        #[cfg(not(target_os = "linux"))]
         let source_revision = receipt.source_revision().clone();
         Ok(PreparedSceneCreation {
             document: Some(ProjectSceneDocument {
@@ -281,6 +329,9 @@ fn existing_scene_source_path(
     scene_uri: &AssetUri,
 ) -> Result<PathBuf, ProjectAuthorityError> {
     validate_scene_uri(scene_uri)?;
+    #[cfg(target_os = "linux")]
+    let source_path = project.source_path_for_no_follow(scene_uri)?;
+    #[cfg(not(target_os = "linux"))]
     let source_path = project.source_path_for_uri(scene_uri)?;
     reject_linked_components(&source_path)?;
     Ok(source_path)

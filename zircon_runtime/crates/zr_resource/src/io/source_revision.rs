@@ -80,6 +80,34 @@ impl SourceSnapshot {
         Ok(Self { bytes, revision })
     }
 
+    /// Reads and pins an already-open regular file without resolving its path again.
+    ///
+    /// The caller owns path validation, including any no-follow traversal. Reading starts at the
+    /// beginning, and the revision retains this same object even if its pathname is replaced.
+    #[cfg(unix)]
+    pub fn from_file(mut file: File) -> io::Result<Self> {
+        use std::io::Seek;
+
+        ensure_regular_metadata(&file.metadata()?)?;
+        let identity = platform::identity(&file)?;
+        file.rewind()?;
+        let mut bytes = Vec::new();
+        file.read_to_end(&mut bytes)?;
+        if platform::identity(&file)? != identity {
+            return Err(io::Error::new(
+                io::ErrorKind::Interrupted,
+                "source object changed during read",
+            ));
+        }
+        let revision = SourceRevision::Present(FileRevision {
+            identity,
+            digest: blake3::hash(&bytes),
+            length: bytes.len() as u64,
+            _object: Arc::new(file),
+        });
+        Ok(Self { bytes, revision })
+    }
+
     pub fn bytes(&self) -> &[u8] {
         &self.bytes
     }

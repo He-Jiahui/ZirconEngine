@@ -80,9 +80,34 @@ impl World {
         project: &ProjectManager,
         uri: &AssetUri,
     ) -> Result<LoadedSceneDocument, SceneProjectError> {
-        let result = (|| {
+        Self::load_scene_document_with_source(project, uri, || {
             let path = project.source_path_for_uri(uri)?;
-            let (bytes, source_revision) = SourceSnapshot::read(&path)?.into_parts();
+            let snapshot = SourceSnapshot::read(&path)?;
+            Ok((path, snapshot))
+        })
+    }
+
+    /// Parses the exact source object opened by the caller's no-follow path lease.
+    /// `source_path` must be the same path leased by that caller; it supplies parser context
+    /// and diagnostics without reselecting or canonicalizing the source after it was opened.
+    #[cfg(unix)]
+    pub fn load_scene_document_from_snapshot(
+        project: &ProjectManager,
+        uri: &AssetUri,
+        source_path: PathBuf,
+        snapshot: SourceSnapshot,
+    ) -> Result<LoadedSceneDocument, SceneProjectError> {
+        Self::load_scene_document_with_source(project, uri, || Ok((source_path, snapshot)))
+    }
+
+    fn load_scene_document_with_source(
+        project: &ProjectManager,
+        uri: &AssetUri,
+        read_source: impl FnOnce() -> Result<(PathBuf, SourceSnapshot), SceneProjectError>,
+    ) -> Result<LoadedSceneDocument, SceneProjectError> {
+        let result = (|| {
+            let (path, snapshot) = read_source()?;
+            let (bytes, source_revision) = snapshot.into_parts();
             let roots = Arc::new(
                 project
                     .manifest()
