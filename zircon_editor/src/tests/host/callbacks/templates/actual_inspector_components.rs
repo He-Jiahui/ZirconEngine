@@ -95,7 +95,7 @@ fn actual_dynamic_component_rejects_type_outside_owner_namespace() {
 }
 
 #[test]
-fn actual_default_components_reach_snapshot_virtual_rows_and_reject_writes() {
+fn actual_default_components_reach_snapshot_virtual_rows_and_honour_editability() {
     let _guard = env_lock().lock().unwrap();
     let mut state = default_state();
     let entities = state
@@ -116,23 +116,39 @@ fn actual_default_components_reach_snapshot_virtual_rows_and_reject_writes() {
             .unwrap();
         let property = inspector
             .native_fields
-            .first()
-            .expect("default Camera/Sun/Cube has native fields");
+            .iter()
+            .find(|field| {
+                matches!(
+                    field.name.as_str(),
+                    "fov_y_radians" | "intensity" | "material"
+                )
+            })
+            .expect("default Camera/Sun/Cube must expose its representative native field");
+        let editable = property.name != "material";
+        assert_eq!(property.editable, editable);
         found.insert(property.component_type_path.clone());
         let control = row_for_field(&bridge, &property.field_id);
         assert_eq!(
             control_string(&bridge, &control, "value").as_deref(),
             Some(property.value.as_str())
         );
-        assert!(!control_bool(
-            &bridge,
-            &control,
-            "inspector_property_editable"
-        ));
-        assert!(!control_bool(&bridge, &control, "editable_text"));
-        assert!(control_bool(&bridge, &control, "read_only"));
-        assert!(!control_bool(&bridge, &control, "input_focusable"));
-        assert_actual_row_input_state(&bridge, &control, false);
+        assert_eq!(
+            control_bool(&bridge, &control, "inspector_property_editable"),
+            property.editable
+        );
+        assert_eq!(
+            control_bool(&bridge, &control, "editable_text"),
+            property.editable
+        );
+        assert_eq!(
+            control_bool(&bridge, &control, "read_only"),
+            !property.editable
+        );
+        assert_eq!(
+            control_bool(&bridge, &control, "input_focusable"),
+            property.editable
+        );
+        assert_actual_row_input_state(&bridge, &control, property.editable);
         let center = control_center(&bridge, &control);
         bridge
             .route_pointer_event(
@@ -140,9 +156,10 @@ fn actual_default_components_reach_snapshot_virtual_rows_and_reject_writes() {
                     .with_button(UiPointerButton::Primary),
             )
             .unwrap();
-        assert!(
-            bridge.pointer_focused_target().is_none(),
-            "read-only native row must not take text focus"
+        assert_eq!(
+            bridge.pointer_focused_target().is_some(),
+            property.editable,
+            "only editable native rows may take text focus"
         );
         bridge
             .route_pointer_event(
@@ -158,7 +175,7 @@ fn actual_default_components_reach_snapshot_virtual_rows_and_reject_writes() {
                     "999"
                 )
                 .unwrap(),
-            Some(false)
+            Some(property.editable)
         );
         let effects = dispatch_componentized_workbench_surface_control_edited(
             &mut bridge,
@@ -171,11 +188,18 @@ fn actual_default_components_reach_snapshot_virtual_rows_and_reject_writes() {
         assert!(!effects.presentation_dirty);
         assert_eq!(
             control_string(&bridge, &control, "value").as_deref(),
-            Some(property.value.as_str())
+            Some(if property.editable {
+                "999"
+            } else {
+                property.value.as_str()
+            })
         );
-        assert!(!state
-            .can_edit_dynamic_component_field(&property.field_id)
-            .unwrap());
+        assert_eq!(
+            state
+                .can_edit_dynamic_component_field(&property.field_id)
+                .unwrap(),
+            property.editable
+        );
         let binding = EditorUiBinding::new(
             "InspectorView",
             "ApplyBatchButton",
@@ -188,21 +212,28 @@ fn actual_default_components_reach_snapshot_virtual_rows_and_reject_writes() {
                 )],
             ),
         );
-        assert!(matches!(
-            crate::ui::binding_dispatch::apply_inspector_binding(&mut state, &binding),
-            Err(
-                crate::ui::binding_dispatch::EditorBindingDispatchError::UnsupportedInspectorField(
-                    _
+        if property.editable {
+            assert!(
+                crate::ui::binding_dispatch::apply_inspector_binding(&mut state, &binding).unwrap()
+            );
+            assert!(state.apply_intent(EditorIntent::Undo).unwrap());
+        } else {
+            assert!(matches!(
+                crate::ui::binding_dispatch::apply_inspector_binding(&mut state, &binding),
+                Err(
+                    crate::ui::binding_dispatch::EditorBindingDispatchError::UnsupportedInspectorField(
+                        _
+                    )
                 )
+            ));
+            assert!(crate::ui::binding_dispatch::apply_inspector_draft_field(
+                &mut state,
+                "entity://selected",
+                &property.field_id,
+                "999".to_string()
             )
-        ));
-        assert!(crate::ui::binding_dispatch::apply_inspector_draft_field(
-            &mut state,
-            "entity://selected",
-            &property.field_id,
-            "999".to_string()
-        )
-        .is_err());
+            .is_err());
+        }
         assert_eq!(
             state.snapshot().inspector.unwrap().native_fields,
             inspector.native_fields

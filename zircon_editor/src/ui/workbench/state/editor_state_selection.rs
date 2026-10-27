@@ -11,6 +11,7 @@ use crate::core::editing::context::CoreEditContext;
 use crate::core::editing::engine::MergeMode;
 use crate::core::editing::intent::EditorIntent;
 use crate::core::play::WorldDomain;
+use crate::ui::workbench::snapshot::InspectorNativeFieldSnapshot;
 
 use super::no_project_open::no_project_open;
 use super::parse_parent_field::parse_parent_field;
@@ -640,13 +641,25 @@ fn read_reflected_inspector_value(
                 source,
             }
         })?;
-    scene
+    let value = scene
         .reflect_read(ReflectReadRequest::new(address, field_stable_id))
         .map(|response| response.field.value)
         .map_err(|source| InspectorEditError::ReflectionRead {
             field_id: field_id.to_owned(),
             source,
-        })
+        })?;
+    // Apply the same native-kind policy to drafts and active Play-world edits.
+    if InspectorNativeFieldSnapshot::is_component_type(component_type_path) {
+        if !InspectorNativeFieldSnapshot::supports_editing(field_name, &value) {
+            return Err(InspectorEditError::UnsupportedFieldId {
+                field_id: field_id.to_owned(),
+            });
+        }
+        if scene.mobility(node_id) == Some(zircon_runtime::scene::components::Mobility::Static) {
+            return Err(InspectorEditError::StaticNativeComponent { node_id });
+        }
+    }
+    Ok(value)
 }
 
 struct SelectedInspectorState {

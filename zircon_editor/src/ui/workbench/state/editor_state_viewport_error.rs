@@ -129,6 +129,8 @@ pub enum InspectorEditError {
     InvalidRotationQuaternion,
     #[error("unsupported inspector field {field_id}")]
     UnsupportedFieldId { field_id: String },
+    #[error("static entity {node_id} cannot edit native component fields in Details")]
+    StaticNativeComponent { node_id: NodeId },
     #[error("failed to read inspector field `{field_id}`: {source}")]
     ReflectionRead {
         field_id: String,

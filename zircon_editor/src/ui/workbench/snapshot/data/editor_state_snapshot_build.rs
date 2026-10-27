@@ -71,6 +71,15 @@ impl EditorState {
                             super::inspector_snapshot::InspectorNativeFieldSnapshot::project(
                                 artifact.fields(),
                             );
+                        if self.inspector_draft_context_is_current() {
+                            for field in fields.iter_mut().filter(|field| field.editable) {
+                                if let Some(value) =
+                                    self.inspector_dynamic_fields.get(&field.field_id)
+                                {
+                                    field.value.clone_from(value);
+                                }
+                            }
+                        }
                         self.asset_workspace
                             .resolve_inspector_resource_labels(&mut fields);
                         fields

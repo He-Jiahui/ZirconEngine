@@ -15,6 +15,7 @@ pub struct InspectorNativeFieldSnapshot {
     /// Authoritative resource identity retained separately from its displayed locator.
     pub resource_id: Option<String>,
     pub value_kind: String,
+    pub editable: bool,
     pub field_editor: FieldEditorInstance,
 }
 
@@ -32,6 +33,18 @@ impl InspectorNativeFieldSnapshot {
                 | "zircon_runtime::scene::components::RectLight"
                 | "zircon_runtime::scene::components::SpotLight"
         )
+    }
+
+    /// Only colour vectors have an editor here; resource references need an asset picker.
+    pub(crate) fn supports_editing(field_name: &str, value: &ReflectedValue) -> bool {
+        matches!(
+            value,
+            ReflectedValue::Bool(_)
+                | ReflectedValue::Integer(_)
+                | ReflectedValue::Unsigned(_)
+                | ReflectedValue::Scalar(_)
+        ) || (field_name == "color"
+            && matches!(value, ReflectedValue::Vec3(_) | ReflectedValue::Vec4(_)))
     }
 
     pub(crate) fn project(fields: &[WorldInspectionFieldRow]) -> Vec<Self> {
@@ -60,12 +73,14 @@ impl InspectorNativeFieldSnapshot {
                 };
                 let value =
                     super::super::editor_state_snapshot_build::reflected_value_label(&field.value);
+                let editable =
+                    field.writable && Self::supports_editing(&field.field_name, &field.value);
                 let field_editor = InspectorField::new(
                     field_id.clone(),
                     label.clone(),
                     field.value_type_path.clone(),
                     value.clone(),
-                    false,
+                    editable,
                 )
                 .map(|field| editors.resolve(field))
                 .unwrap_or_else(|_| FieldEditorInstance::automatic());
@@ -100,6 +115,7 @@ impl InspectorNativeFieldSnapshot {
                         _ => None,
                     },
                     value_kind: field.value_type_path.clone(),
+                    editable,
                     field_editor,
                 }
             })
