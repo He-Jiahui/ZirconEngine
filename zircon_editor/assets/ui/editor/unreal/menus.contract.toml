@@ -1,6 +1,6 @@
 # Ordered command IDs only. Labels, shortcuts and enablement come from the registry.
 [menus]
-UnrealFileMenuPopup = ["file.scene.create", "file.scene.open", "file.project.save", "file.documents.save_all", "file.project.close"]
+UnrealFileMenuPopup = ["file.scene.create", "file.scene.open", "file.project.save", "file.scene.save_as", "file.documents.save_all", "file.project.close"]
 UnrealEditMenuPopup = ["edit.history.undo", "edit.history.redo", "editor.settings.open"]
 UnrealWindowMenuPopup = ["window.layout.save", "window.layout.reset", "view.hierarchy.open", "view.inspector.open", "view.console.open"]
 UnrealToolsMenuPopup = ["view.plugin_manager.open", "view.asset_browser.open"]

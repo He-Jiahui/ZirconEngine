@@ -451,6 +451,7 @@ pub enum EditorEventEffect {
     PlaySessionStarted,
     OpenScenePickerRequested,
     CreateScenePickerRequested,
+    SaveSceneAsPickerRequested,
     /// Explicitly opened view identity; the UI host decides whether its current
     /// authored drawer is reachable without changing layout on mere resize.
     OpenedViewVisibilityRequested {

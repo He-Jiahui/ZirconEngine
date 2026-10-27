@@ -263,6 +263,16 @@ impl ProjectAuthority {
         project: &ProjectManager,
         request: SceneCreateRequest,
     ) -> Result<PreparedSceneCreation, ProjectAuthorityError> {
+        self.prepare_scene_publication(project, request, Scene::default())
+    }
+
+    /// New and Save As share the same create-only lease, staging, publication and rollback.
+    pub(crate) fn prepare_scene_publication(
+        &self,
+        project: &ProjectManager,
+        request: SceneCreateRequest,
+        world: Scene,
+    ) -> Result<PreparedSceneCreation, ProjectAuthorityError> {
         validate_scene_uri(request.scene_uri())?;
         #[cfg(target_os = "linux")]
         let source_path = project.primary_project_source_path_for_no_follow(request.scene_uri())?;
@@ -284,7 +294,6 @@ impl ProjectAuthority {
         let path_guard = protect_scene_path(project.paths().root(), &source_path, false)?;
         #[cfg(target_os = "linux")]
         let mut path_guard = path_guard;
-        let world = Scene::default();
         let staging_uri = scene_staging_uri(request.scene_uri());
         #[cfg(target_os = "linux")]
         let staging_path = project.primary_project_source_path_for_no_follow(&staging_uri)?;

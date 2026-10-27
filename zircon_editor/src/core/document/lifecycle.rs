@@ -14,6 +14,8 @@ use crate::core::editor_message::{DocumentId, DocumentMessage};
 
 #[path = "lifecycle/retention_snapshot.rs"]
 mod retention_snapshot;
+#[path = "lifecycle/scene_save_as.rs"]
+mod scene_save_as;
 
 pub use retention_snapshot::DocumentLifecycleRetentionSnapshot;
 
@@ -56,6 +58,7 @@ impl<'de> Deserialize<'de> for ProjectSessionId {
 pub struct ScenePickerTicket {
     project_root: PathBuf,
     session: ProjectSessionId,
+    active_scene: Option<ActiveSceneDocumentIdentity>,
 }
 
 impl ScenePickerTicket {
@@ -155,6 +158,8 @@ pub enum SceneDocumentLifecycleError {
         active: Option<ProjectSessionId>,
     },
     SceneActivationRevisionExhausted,
+    NoActiveScene,
+    StaleSaveAsScene,
 }
 
 impl fmt::Display for SceneDocumentLifecycleError {
@@ -178,6 +183,10 @@ impl fmt::Display for SceneDocumentLifecycleError {
             ),
             Self::SceneActivationRevisionExhausted => {
                 formatter.write_str("scene document activation revision is exhausted")
+            }
+            Self::NoActiveScene => formatter.write_str("no active scene is available for Save As"),
+            Self::StaleSaveAsScene => {
+                formatter.write_str("the active scene changed while the Save As picker was open")
             }
         }
     }
@@ -462,6 +471,7 @@ impl DocumentLifecycleAuthority {
         Ok(ScenePickerTicket {
             project_root: root.to_path_buf(),
             session,
+            active_scene: active_scene_identity_from_state(&state, Some(root)),
         })
     }
 

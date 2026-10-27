@@ -335,6 +335,7 @@ fn invalidation_mask_for_effects(effects: &[EditorEventEffect]) -> EditorViewInv
             | EditorEventEffect::PlaySessionStarted
             | EditorEventEffect::OpenScenePickerRequested
             | EditorEventEffect::CreateScenePickerRequested
+            | EditorEventEffect::SaveSceneAsPickerRequested
             | EditorEventEffect::OpenedViewVisibilityRequested { .. } => {
                 mask.insert(EditorViewInvalidationMask::PRESENTATION_DATA);
             }

@@ -12,6 +12,7 @@ pub enum MenuAction {
     OpenScene,
     CreateScene,
     SaveProject,
+    SaveSceneAs,
     SaveAllDocuments,
     CloseProject,
     SaveLayout,

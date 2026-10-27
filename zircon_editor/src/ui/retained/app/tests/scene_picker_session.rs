@@ -8,7 +8,7 @@ use crate::ui::host::editor_asset_manager::{
 
 use super::scene_picker_session::{
     scene_create_request_for_query, scene_entries_from_catalog, scene_entry_for_open_submission,
-    scene_open_palette_state, ScenePickerMode,
+    scene_open_palette_state, ScenePickerMode, ScenePickerSession, ScenePickerSubmission,
 };
 
 fn catalog_record(locator: &str, kind: ResourceKind) -> EditorAssetCatalogRecord {
@@ -189,6 +189,79 @@ fn create_scene_picker_requires_an_explicit_project_scene_uri() {
             scene_create_request_for_query(invalid).is_err(),
             "{invalid} must not become a project scene creation request"
         );
+    }
+}
+
+#[test]
+fn save_as_picker_submits_its_destination_and_original_project_ticket() {
+    let lifecycle = crate::core::document::DocumentLifecycleAuthority::default();
+    let root = std::path::Path::new("save-as-picker-project");
+    let project_session = lifecycle.begin_project_session(root).session;
+    lifecycle
+        .activate_scene(project_session, root, "res://levels/original.scene.toml")
+        .unwrap();
+    let ticket = lifecycle.issue_scene_picker_ticket(root).unwrap();
+    let catalog = EditorAssetCatalogGeneration::from_snapshot_record(
+        EditorAssetCatalogSnapshotRecord::default(),
+        9,
+    );
+    let picker = ScenePickerSession::new(ticket.clone(), ScenePickerMode::SaveAs, &catalog);
+    let destination = "res://levels/copy.scene.toml";
+    let state = picker.command_palette_state(destination, 0, false);
+    assert_eq!(state.total_match_count, 1);
+    assert_eq!(state.selected_command_id, "scene-picker-save-as-confirm");
+
+    let submission = picker
+        .submission(&state.selected_command_id, destination, state.window_offset)
+        .expect("the visible Save As destination must be submit-able");
+    let ScenePickerSubmission::SaveAs {
+        ticket: submitted_ticket,
+        request,
+    } = submission
+    else {
+        panic!("Save As must not submit an Open or New scene request");
+    };
+    assert_eq!(submitted_ticket, ticket);
+    assert_eq!(request.scene_uri().to_string(), destination);
+    assert_eq!(
+        lifecycle.active_scene_identity(root).unwrap().scene_uri(),
+        "res://levels/original.scene.toml",
+        "constructing a picker request must not change the active scene"
+    );
+}
+
+#[test]
+fn save_as_picker_rejects_other_mode_commands_and_invalid_scene_destinations() {
+    let lifecycle = crate::core::document::DocumentLifecycleAuthority::default();
+    let root = std::path::Path::new("save-as-picker-invalid-destination");
+    lifecycle.begin_project_session(root);
+    let catalog = EditorAssetCatalogGeneration::from_snapshot_record(
+        EditorAssetCatalogSnapshotRecord::default(),
+        1,
+    );
+    let picker = ScenePickerSession::new(
+        lifecycle.issue_scene_picker_ticket(root).unwrap(),
+        ScenePickerMode::SaveAs,
+        &catalog,
+    );
+    for command in ["scene-picker-create-confirm", "scene-picker-open-0"] {
+        assert!(picker
+            .submission(command, "res://copy.scene.toml", 0)
+            .is_err());
+    }
+    for destination in [
+        "",
+        "levels/copy.scene.toml",
+        "file://outside.scene.toml",
+        "res://copy.toml",
+        "res://copy.scene.toml#node",
+    ] {
+        let state = picker.command_palette_state(destination, 0, false);
+        assert_eq!(state.total_match_count, 0, "{destination}");
+        assert!(state.selected_command_id.is_empty(), "{destination}");
+        assert!(picker
+            .submission("scene-picker-save-as-confirm", destination, 0)
+            .is_err());
     }
 }
 

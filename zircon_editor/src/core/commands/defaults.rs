@@ -75,7 +75,7 @@ pub(super) fn default_workbench_commands() -> Vec<EditorCommandDescriptor> {
     commands
 }
 
-const DEFAULT_WORKBENCH_COMMAND_CAPACITY: usize = 76;
+const DEFAULT_WORKBENCH_COMMAND_CAPACITY: usize = 77;
 
 fn append_animation_asset_toolkit_open_operations(commands: &mut Vec<EditorCommandDescriptor>) {
     for operation in [
@@ -188,6 +188,16 @@ fn append_file_commands(commands: &mut Vec<EditorCommandDescriptor>) {
             Some("Ctrl+S"),
             WhenClause::ProjectOpen,
             ["project", "save"],
+        ),
+        command(
+            "file.scene.save_as",
+            EditorCommandCategory::File,
+            "file",
+            &[],
+            EditorEvent::WorkbenchMenu(MenuAction::SaveSceneAs),
+            None,
+            WhenClause::ProjectOpen,
+            ["scene", "save", "as", "copy"],
         ),
         command(
             "file.documents.save_all",

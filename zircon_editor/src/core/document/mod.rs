@@ -30,6 +30,9 @@ mod scene_reload_tests;
 #[cfg(test)]
 #[path = "tests/scene_route_tests.rs"]
 mod scene_route_tests;
+#[cfg(all(test, any(windows, target_os = "linux")))]
+#[path = "tests/scene_save_as.rs"]
+mod scene_save_as_tests;
 #[cfg(test)]
 #[path = "tests/scene_save_tests.rs"]
 mod scene_save_tests;

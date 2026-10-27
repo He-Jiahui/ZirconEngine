@@ -39,6 +39,31 @@ struct DocumentJournalSlot {
     writer: Option<JournalWriter>,
 }
 
+/// Reserves a validated document identity until its new source has been published.
+///
+/// Holding the binding map prevents another bind or unbind from invalidating the reservation.
+/// Dropping it leaves both the original binding and its writer active and untouched.
+#[must_use = "commit the journal rebind only after publishing the new source"]
+pub(crate) struct PreparedDocumentJournalRebind<'a> {
+    bindings: MutexGuard<'a, BTreeMap<DocumentId, Arc<BoundDocumentJournal>>>,
+    document: DocumentId,
+    previous: Arc<BoundDocumentJournal>,
+    replacement: Arc<BoundDocumentJournal>,
+}
+
+impl PreparedDocumentJournalRebind<'_> {
+    /// Retires the old append owner before exposing the new durable identity.
+    pub(crate) fn commit(mut self) {
+        let _append_guard = lock(&self.previous.append_gate);
+        let mut slot = lock(&self.previous.slot);
+        slot.active = false;
+        slot.writer = None;
+        // Preparation retained this map lock with an existing entry. Replacing that entry
+        // needs no allocation, and callbacks that captured the old Arc must now reject it.
+        self.bindings.insert(self.document, self.replacement);
+    }
+}
+
 impl DocumentJournalCoordinator {
     pub fn new(project_root: impl Into<PathBuf>) -> Self {
         let project_root = project_root.into();
@@ -71,6 +96,46 @@ impl DocumentJournalCoordinator {
                 }
             })?;
         self.bind_document(document, project_relative_source)
+    }
+
+    /// Validates and reserves a source identity before Save As publishes scene bytes.
+    ///
+    /// No writer or historical journal is changed until the caller commits this reservation
+    /// after successful source publication. All fallible work precedes that publication.
+    pub(crate) fn prepare_project_document_rebind(
+        &self,
+        document: DocumentId,
+        source_path: &Path,
+    ) -> Result<PreparedDocumentJournalRebind<'_>, DocumentJournalCoordinatorError> {
+        let project_relative_source =
+            source_path.strip_prefix(&self.project_root).map_err(|_| {
+                DocumentJournalCoordinatorError::SourceOutsideProject {
+                    project_root: self.project_root.clone(),
+                    source_path: source_path.to_path_buf(),
+                }
+            })?;
+        let key = JournalDocumentKey::from_project_relative_path(project_relative_source)
+            .map_err(DocumentJournalCoordinatorError::DocumentKey)?;
+        let bindings = self.lock_bindings();
+        let previous = bindings.get(&document).cloned().ok_or(
+            DocumentJournalCoordinatorError::DocumentNotBound {
+                document: document.value(),
+            },
+        )?;
+        let replacement = Arc::new(BoundDocumentJournal {
+            key,
+            append_gate: Mutex::new(()),
+            slot: Mutex::new(DocumentJournalSlot {
+                active: true,
+                writer: None,
+            }),
+        });
+        Ok(PreparedDocumentJournalRebind {
+            bindings,
+            document,
+            previous,
+            replacement,
+        })
     }
 
     pub fn bind_document(
