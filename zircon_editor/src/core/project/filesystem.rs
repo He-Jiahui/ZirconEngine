@@ -124,12 +124,14 @@ pub(super) fn reject_linked_components(path: &Path) -> Result<(), ProjectAuthori
     Ok(())
 }
 
-/// Keeps the project-owned directory chain stable while a scene source is opened or published.
+/// Leases the project-owned directory chain while a scene source is opened or published.
 ///
 /// On Windows, metadata checks alone are not sufficient because an attacker can replace a checked
 /// directory with a reparse point before the runtime opens the scene path. The guarded handles are
 /// opened without following reparse points and deny delete sharing, so the existing runtime path
 /// APIs cannot be redirected while this guard is alive.
+/// Linux operations use the leased descriptors themselves and revalidate path identities: open
+/// directory descriptors alone do not prevent a concurrent rename on POSIX.
 pub(super) fn protect_scene_path(
     project_root: &Path,
     path: &Path,
@@ -145,22 +147,26 @@ pub(super) fn protect_scene_path(
     ScenePathGuard::acquire(project_root, path, include_file)
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "linux")]
+#[path = "filesystem/posix.rs"]
+mod posix;
+
+#[cfg(target_os = "linux")]
+pub(super) use posix::ScenePathGuard;
+
+#[cfg(not(any(windows, target_os = "linux")))]
 pub(super) struct ScenePathGuard;
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "linux")))]
 impl ScenePathGuard {
     fn acquire(
         _project_root: &Path,
         path: &Path,
         _include_file: bool,
     ) -> Result<Self, ProjectAuthorityError> {
-        // POSIX directory descriptors do not prevent a concurrent rename. The runtime loader
-        // currently accepts only paths, not an openat-derived descriptor, so allowing this route
-        // would reintroduce a path-replacement window after the guard returns.
         Err(ProjectAuthorityError::SceneTarget {
             uri: path.display().to_string(),
-            reason: "scene document paths require Windows no-follow lease support",
+            reason: "scene document paths require platform no-follow lease support",
         })
     }
 }

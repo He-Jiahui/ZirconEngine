@@ -33,6 +33,10 @@ zr_runtime_dev_dylib = { workspace = true, optional = true }
 [target.'cfg(windows)'.dependencies]
 windows-sys.workspace = true
 
+[target.'cfg(target_os = "linux")'.dependencies]
+# Scene leases use openat/linkat/unlinkat; reuse the libc version already in Cargo.lock.
+libc = "0.2.186"
+
 [dev-dependencies]
 crossbeam-channel.workspace = true
 zircon_runtime = { path = "../zircon_runtime", default-features = false, features = ["test-support"] }

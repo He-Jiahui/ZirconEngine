@@ -19,7 +19,7 @@ impl ProjectManager {
         &self,
         uri: &AssetUri,
     ) -> Result<ResolvedProjectPath, AssetImportError> {
-        let path = ProjectPaths::resolve_path(self.source_operation_path_for_uri(uri)?)?;
+        let path = ProjectPaths::resolve_path(self.source_path_for_no_follow(uri)?)?;
         if uri.scheme() == ResourceScheme::Res {
             self.validate_project_source_path_for_write(&path)?;
         }
@@ -63,7 +63,11 @@ impl ProjectManager {
             .map(ResolvedProjectPath::into_operation_path)
     }
 
-    fn source_operation_path_for_uri(&self, uri: &AssetUri) -> Result<PathBuf, AssetImportError> {
+    /// Selects the unique source without resolving symbolic links in its path.
+    ///
+    /// This is only an input to descriptor-based no-follow traversal, never permission for raw
+    /// path I/O. Canonicalizing first would erase the link components that traversal must reject.
+    pub fn source_path_for_no_follow(&self, uri: &AssetUri) -> Result<PathBuf, AssetImportError> {
         match uri.scheme() {
             ResourceScheme::Res => self.source_operation_path_for_project_uri(uri),
             ResourceScheme::Library => Err(AssetImportError::UnsupportedFormat(format!(
@@ -105,7 +109,7 @@ impl ProjectManager {
         uri: &AssetUri,
     ) -> Result<ResolvedProjectPath, AssetImportError> {
         Ok(ProjectPaths::resolve_path(
-            self.primary_project_source_operation_path_for_uri(uri)?,
+            self.primary_project_source_path_for_no_follow(uri)?,
         )?)
     }
 
@@ -118,7 +122,9 @@ impl ProjectManager {
             .map(ResolvedProjectPath::into_operation_path)
     }
 
-    fn primary_project_source_operation_path_for_uri(
+    /// Selects a creation destination for descriptor-based no-follow traversal.
+    /// The caller must lease and validate every component before any filesystem operation.
+    pub fn primary_project_source_path_for_no_follow(
         &self,
         uri: &AssetUri,
     ) -> Result<PathBuf, AssetImportError> {
