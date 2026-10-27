@@ -87,6 +87,9 @@ impl RetainedEditorHost {
         if effects.create_scene_picker_requested {
             self.open_workbench_scene_picker(ScenePickerMode::Create);
         }
+        if effects.save_scene_as_picker_requested {
+            self.open_workbench_scene_picker(ScenePickerMode::SaveAs);
+        }
         if effects.present_welcome_surface {
             if let Err(error) = self.present_welcome_surface(
                 "Open an existing project or create a renderable empty project.",

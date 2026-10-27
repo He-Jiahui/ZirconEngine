@@ -60,6 +60,7 @@ pub(crate) struct UiHostEventEffects {
     pub play_started_sequence: Option<u64>,
     pub open_scene_picker_requested: bool,
     pub create_scene_picker_requested: bool,
+    pub save_scene_as_picker_requested: bool,
     pub opened_view_visibility_requests: Vec<ViewInstanceId>,
     pub toast_notifications: Vec<ToastNotification>,
 }
@@ -159,6 +160,7 @@ impl UiHostEventEffects {
             && self.play_started_sequence.is_none()
             && !self.open_scene_picker_requested
             && !self.create_scene_picker_requested
+            && !self.save_scene_as_picker_requested
             && self.opened_view_visibility_requests.is_empty()
             && self.toast_notifications.is_empty()
     }
@@ -305,6 +307,10 @@ pub(crate) fn apply_record_effects(target: &mut UiHostEventEffects, record: &Edi
             }
             EditorEventEffect::CreateScenePickerRequested => {
                 target.create_scene_picker_requested = true;
+                target.request_presentation();
+            }
+            EditorEventEffect::SaveSceneAsPickerRequested => {
+                target.save_scene_as_picker_requested = true;
                 target.request_presentation();
             }
             EditorEventEffect::OpenedViewVisibilityRequested { instance_id } => {

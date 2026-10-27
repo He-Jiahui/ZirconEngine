@@ -130,6 +130,152 @@ fn document_journal_coordinator_derives_document_keys_only_from_its_own_project_
 }
 
 #[test]
+fn save_as_journal_prepare_failure_preserves_the_original_binding() {
+    let directory = TestDirectory::new();
+    let coordinator = DocumentJournalCoordinator::new(directory.path());
+    let document = DocumentId::new(95);
+    coordinator
+        .bind_project_document(
+            document,
+            &directory.path().join("assets/scenes/main.zscene"),
+        )
+        .unwrap();
+    let engine = EditorTransactionEngine::new(FixtureContext::default());
+    let transaction = committed_transaction(&engine, document, "original durable edit");
+    coordinator
+        .append_for_test(&engine, document, transaction)
+        .unwrap();
+    let original_journal = coordinator.journal_path(document).unwrap();
+    let original_bytes = fs::read(&original_journal).unwrap();
+
+    let foreign_source = directory.path().parent().unwrap().join("foreign.zscene");
+    assert!(matches!(
+        coordinator.prepare_project_document_rebind(document, &foreign_source),
+        Err(DocumentJournalCoordinatorError::SourceOutsideProject { .. })
+    ));
+    assert!(matches!(
+        coordinator.prepare_project_document_rebind(
+            document,
+            &directory.path().join("../escaped.zscene"),
+        ),
+        Err(DocumentJournalCoordinatorError::DocumentKey(_))
+    ));
+    assert!(matches!(
+        coordinator.prepare_project_document_rebind(
+            DocumentId::new(96),
+            &directory.path().join("assets/scenes/new.zscene"),
+        ),
+        Err(DocumentJournalCoordinatorError::DocumentNotBound { .. })
+    ));
+
+    assert_eq!(
+        coordinator.journal_path(document).unwrap(),
+        original_journal
+    );
+    assert_eq!(fs::read(original_journal).unwrap(), original_bytes);
+    assert_eq!(
+        coordinator.read_document(document).unwrap().entries().len(),
+        1
+    );
+}
+
+#[test]
+fn save_as_dropped_journal_preparation_keeps_the_original_writer_active() {
+    let directory = TestDirectory::new();
+    let coordinator = DocumentJournalCoordinator::new(directory.path());
+    let document = DocumentId::new(97);
+    coordinator
+        .bind_project_document(
+            document,
+            &directory.path().join("assets/scenes/main.zscene"),
+        )
+        .unwrap();
+    let engine = EditorTransactionEngine::new(FixtureContext::default());
+    let transaction = committed_transaction(&engine, document, "before cancelled Save As");
+    coordinator
+        .append_for_test(&engine, document, transaction)
+        .unwrap();
+    let original_journal = coordinator.journal_path(document).unwrap();
+    let original_bytes = fs::read(&original_journal).unwrap();
+    let new_source = directory.path().join("assets/scenes/new.zscene");
+
+    let prepared = coordinator
+        .prepare_project_document_rebind(document, &new_source)
+        .unwrap();
+    drop(prepared);
+
+    assert_eq!(
+        coordinator.journal_path(document).unwrap(),
+        original_journal
+    );
+    assert_eq!(fs::read(&original_journal).unwrap(), original_bytes);
+    let transaction = committed_transaction(&engine, document, "after cancelled Save As");
+    assert_eq!(
+        coordinator
+            .append_for_test(&engine, document, transaction)
+            .unwrap()
+            .sequence(),
+        2
+    );
+    assert_eq!(
+        coordinator.read_document(document).unwrap().entries().len(),
+        2
+    );
+    assert!(!new_source.exists());
+}
+
+#[test]
+fn save_as_committed_journal_rebind_preserves_original_source_and_history() {
+    let directory = TestDirectory::new();
+    let coordinator = DocumentJournalCoordinator::new(directory.path());
+    let document = DocumentId::new(98);
+    let original_source = directory.path().join("assets/scenes/main.zscene");
+    let new_source = directory.path().join("assets/scenes/new.zscene");
+    fs::create_dir_all(original_source.parent().unwrap()).unwrap();
+    let source_bytes = b"original source snapshot";
+    fs::write(&original_source, source_bytes).unwrap();
+    coordinator
+        .bind_project_document(document, &original_source)
+        .unwrap();
+    let engine = EditorTransactionEngine::new(FixtureContext::default());
+    let transaction = committed_transaction(&engine, document, "before Save As");
+    coordinator
+        .append_for_test(&engine, document, transaction)
+        .unwrap();
+    let original_journal = coordinator.journal_path(document).unwrap();
+    let original_journal_bytes = fs::read(&original_journal).unwrap();
+
+    let prepared = coordinator
+        .prepare_project_document_rebind(document, &new_source)
+        .unwrap();
+    fs::write(&new_source, b"published Save As snapshot").unwrap();
+    prepared.commit();
+
+    let new_journal = coordinator.journal_path(document).unwrap();
+    let new_key =
+        JournalDocumentKey::from_project_relative_path(Path::new("assets/scenes/new.zscene"))
+            .unwrap();
+    assert_ne!(new_journal, original_journal);
+    assert!(new_journal.ends_with(Path::new(new_key.as_str()).join("transactions.zjr")));
+    assert!(!new_journal.exists());
+    let transaction = committed_transaction(&engine, document, "after Save As");
+    assert_eq!(
+        coordinator
+            .append_for_test(&engine, document, transaction)
+            .unwrap()
+            .sequence(),
+        1
+    );
+    assert_eq!(
+        coordinator.read_document(document).unwrap().entries().len(),
+        1
+    );
+    assert_eq!(fs::read(original_source).unwrap(), source_bytes);
+    assert_eq!(fs::read(original_journal).unwrap(), original_journal_bytes);
+    assert_eq!(fs::read(new_source).unwrap(), b"published Save As snapshot");
+}
+
+#[test]
 fn document_journal_coordinator_admits_materialization_through_the_document_append_gate() {
     let source = include_str!("../../core/recovery/document_journal/coordinator.rs");
     let append = source

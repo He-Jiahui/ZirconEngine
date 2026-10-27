@@ -13,6 +13,9 @@ use super::{
     SceneDocumentLifecycleError, ScenePickerTicket,
 };
 
+#[path = "scene_route/save_as.rs"]
+mod save_as;
+
 /// Host port that atomically installs a scene only after its project identity has been resolved.
 pub trait AuthoringSceneInstaller {
     type Error;

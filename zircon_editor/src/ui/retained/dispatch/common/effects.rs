@@ -22,6 +22,7 @@ pub(crate) fn merge_effects(target: &mut UiHostEventEffects, source: UiHostEvent
     }
     target.open_scene_picker_requested |= source.open_scene_picker_requested;
     target.create_scene_picker_requested |= source.create_scene_picker_requested;
+    target.save_scene_as_picker_requested |= source.save_scene_as_picker_requested;
     target
         .opened_view_visibility_requests
         .extend(source.opened_view_visibility_requests);

@@ -239,6 +239,53 @@ impl EditorHostEventController {
         Ok(self.finish_scene_document_submission(result))
     }
 
+    /// Uses Save's generation token while preserving the live world, selection and undo stack.
+    pub fn submit_scene_save_as_request(
+        &self,
+        ticket: ScenePickerTicket,
+        request: SceneCreateRequest,
+    ) -> Result<(), String> {
+        {
+            let manager = self
+                .enter_editor_manager()
+                .map_err(|error| error.to_string())?;
+            let mut shell = self.shell().lock();
+            let history = shell
+                .state
+                .authoring_scene_history_context()
+                .map_err(|error| error.to_string())?;
+            let transactions = shell.state.transactions();
+            let token = transactions
+                .capture_save_token(history)
+                .map_err(|error| error.to_string())?;
+            let world = shell
+                .state
+                .project_scene()
+                .map_err(|error| error.to_string())?
+                .ok_or_else(|| "no authoring scene is available for Save As".to_string())?;
+            let identity = manager
+                .save_scene_document_as(ticket, request, &world)
+                .map_err(|error| error.to_string())?;
+            transactions
+                .mark_saved_if_unchanged(history, token)
+                .map_err(|error| {
+                    format!(
+                        "scene {} was saved, but its history checkpoint failed: {error}",
+                        identity.scene_uri()
+                    )
+                })?;
+            shell.state.mark_project_open();
+            shell
+                .state
+                .set_status_line(format!("Saved scene as {}", identity.scene_uri()));
+        }
+        self.refresh_workbench(
+            crate::core::editor_message::EditorViewInvalidationMask::RENDER
+                .union(crate::core::editor_message::EditorViewInvalidationMask::PRESENTATION_DATA),
+        );
+        Ok(())
+    }
+
     /// Captures the active session before a UI picker is shown.
     pub fn begin_scene_picker(&self) -> Result<ScenePickerTicket, String> {
         let manager = self

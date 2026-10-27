@@ -11,11 +11,13 @@ use crate::ui::retained_host::callback_dispatch::WorkbenchCommandPaletteOpenStat
 
 const SCENE_PICKER_WINDOW_ENTRIES: usize = 12;
 const SCENE_CREATE_COMMAND_ID: &str = "scene-picker-create-confirm";
+const SCENE_SAVE_AS_COMMAND_ID: &str = "scene-picker-save-as-confirm";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum ScenePickerMode {
     Open,
     Create,
+    SaveAs,
 }
 
 impl ScenePickerMode {
@@ -23,6 +25,7 @@ impl ScenePickerMode {
         match self {
             Self::Open => "scene-picker-open",
             Self::Create => "scene-picker-create",
+            Self::SaveAs => "scene-picker-save-as",
         }
     }
 
@@ -30,6 +33,7 @@ impl ScenePickerMode {
         match self {
             Self::Open => "Search project scenes",
             Self::Create => "Enter res://path/new.scene.toml",
+            Self::SaveAs => "Enter res://path/copy.scene.toml",
         }
     }
 
@@ -37,6 +41,7 @@ impl ScenePickerMode {
         match self {
             Self::Open => "No scene assets found in this project",
             Self::Create => "Enter a project-owned res://*.scene.toml destination",
+            Self::SaveAs => "Enter a new project-owned res://*.scene.toml destination",
         }
     }
 
@@ -44,6 +49,7 @@ impl ScenePickerMode {
         match self {
             Self::Open => "Open project scene",
             Self::Create => "Create project scene",
+            Self::SaveAs => "Save scene as",
         }
     }
 }
@@ -100,7 +106,7 @@ impl ScenePickerSession {
             mode,
             entries: match mode {
                 ScenePickerMode::Open => scene_entries_from_catalog(catalog),
-                ScenePickerMode::Create => Vec::new(),
+                ScenePickerMode::Create | ScenePickerMode::SaveAs => Vec::new(),
             },
             catalog_generation: catalog.publish_epoch,
         }
@@ -120,7 +126,12 @@ impl ScenePickerSession {
             ScenePickerMode::Open => {
                 self.open_scene_palette_state(query, requested_offset, focus_last)
             }
-            ScenePickerMode::Create => self.create_scene_palette_state(query),
+            ScenePickerMode::Create => {
+                self.destination_scene_palette_state(query, SCENE_CREATE_COMMAND_ID, "Create")
+            }
+            ScenePickerMode::SaveAs => {
+                self.destination_scene_palette_state(query, SCENE_SAVE_AS_COMMAND_ID, "Save as")
+            }
         }
     }
 
@@ -153,6 +164,15 @@ impl ScenePickerSession {
                     request: scene_create_request_for_query(query)?,
                 })
             }
+            ScenePickerMode::SaveAs => {
+                if command_id != SCENE_SAVE_AS_COMMAND_ID {
+                    return Err("Save As requires the current destination entry".to_string());
+                }
+                Ok(ScenePickerSubmission::SaveAs {
+                    ticket: self.ticket.clone(),
+                    request: scene_create_request_for_query(query)?,
+                })
+            }
         }
     }
 
@@ -171,22 +191,27 @@ impl ScenePickerSession {
         )
     }
 
-    fn create_scene_palette_state(&self, query: &str) -> WorkbenchCommandPaletteOpenState {
+    fn destination_scene_palette_state(
+        &self,
+        query: &str,
+        command_id: &str,
+        action_label: &str,
+    ) -> WorkbenchCommandPaletteOpenState {
         let candidate = scene_create_request_for_query(query).ok();
         let has_candidate = candidate.is_some();
         let commands = candidate
             .as_ref()
             .map(|request| {
                 UiValue::Array(vec![command_value(
-                    SCENE_CREATE_COMMAND_ID,
-                    &format!("Create {}", request.scene_uri()),
-                    ScenePickerMode::Create.command_source(),
+                    command_id,
+                    &format!("{action_label} {}", request.scene_uri()),
+                    self.mode.command_source(),
                 )])
             })
             .unwrap_or_else(|| UiValue::Array(Vec::new()));
         let selected_command_id = candidate
             .as_ref()
-            .map(|_| SCENE_CREATE_COMMAND_ID.to_string())
+            .map(|_| command_id.to_string())
             .unwrap_or_default();
 
         WorkbenchCommandPaletteOpenState {
@@ -213,6 +238,10 @@ pub(super) enum ScenePickerSubmission {
         request: SceneOpenRequest,
     },
     Create {
+        ticket: ScenePickerTicket,
+        request: SceneCreateRequest,
+    },
+    SaveAs {
         ticket: ScenePickerTicket,
         request: SceneCreateRequest,
     },

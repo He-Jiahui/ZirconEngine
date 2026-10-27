@@ -20,6 +20,7 @@ pub(crate) fn undo_policy_for_event(event: &EditorEvent) -> EditorEventUndoPolic
             | MenuAction::OpenScene
             | MenuAction::CreateScene
             | MenuAction::SaveProject
+            | MenuAction::SaveSceneAs
             | MenuAction::SaveAllDocuments
             | MenuAction::CloseProject
             | MenuAction::SaveLayout
