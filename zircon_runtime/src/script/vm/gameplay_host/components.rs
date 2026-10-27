@@ -1,6 +1,7 @@
 //! 动态组件查询按当前世界反射和实体状态生成脚本值；调用者只能通过同步宿主帧访问，不能把借用世界状态留给 VM。
 use crate::core::framework::script::{
-    ScriptHostCallFrame, ScriptHostError, ScriptHostHotPathMetrics, ScriptHostValue,
+    ScriptHostCallFrame, ScriptHostError, ScriptHostFromArgument, ScriptHostHotPathMetrics,
+    ScriptHostValue,
 };
 use crate::script::runtime_context_for_frame;
 use crate::script::vm::scene_system::{
@@ -58,6 +59,31 @@ pub(super) fn component_string(
             });
             Ok(ScriptHostValue::String(value))
         })
+    })
+}
+
+pub(super) fn component_number(
+    context: &ScriptHostCallFrame<'_>,
+) -> Result<ScriptHostValue, ScriptHostError> {
+    let entity = expect_entity(context, 0)?;
+    let fallback = context
+        .arguments
+        .with_argument(2, |value| f64::from_script_host_argument(value, 2))?;
+    if !fallback.is_finite() {
+        return Err(ScriptHostError::new(
+            "component_number fallback must be finite",
+        ));
+    }
+    let runtime = runtime_context_for_frame(context)?;
+    with_string(context, 1, |component_id: &str| {
+        let value = runtime.level.with_world(|world| {
+            world
+                .dynamic_component(entity, component_id)
+                .and_then(serde_json::Value::as_f64)
+                .filter(|value| value.is_finite())
+                .unwrap_or(fallback)
+        });
+        Ok(ScriptHostValue::Float(value))
     })
 }
 

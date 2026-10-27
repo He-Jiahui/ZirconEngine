@@ -170,12 +170,8 @@ fn runtime_15_gameplay_host_tests_are_folder_backed() {
 
 #[test]
 fn runtime_15_script_vm_gameplay_host_guard_is_child_owner() {
-    let parent = read_runtime_src(
-        "tests/runtime_absorption/structure_convention/test_file_budget/script_vm_tests.rs",
-    );
-    let child = read_runtime_src(
-        "tests/runtime_absorption/structure_convention/test_file_budget/script_vm_tests/gameplay_host.rs",
-    );
+    let parent = read_runtime_src("tests/contracts/structure/test_size/script_vm.rs");
+    let child = read_runtime_src("tests/structure/test_size/script_vm_tests/gameplay_host.rs");
 
     assert_contains_all(
         "script VM test-budget guard mounts gameplay host child owner",
@@ -191,14 +187,11 @@ fn runtime_15_script_vm_gameplay_host_guard_is_child_owner() {
     for moved_anchor in [
         "let spawn_transform = read_runtime_src(\"script/vm/gameplay_host/tests/spawn_transform.rs\")",
         concat!("fn gameplay_pose_exports_update_entity_", "transform"),
-        concat!(
-            "runtime_15_gameplay_host_tests_folder_split_",
-            "static_passed_cargo_deferred"
-        ),
+        concat!("let existing_", "test_count = ["),
     ] {
         assert!(
             !parent.contains(moved_anchor),
-            "script_vm_tests.rs should delegate gameplay host anchor `{moved_anchor}` to ../../../structure/test_size/script_vm_tests/gameplay_host.rs"
+            "tests/contracts/structure/test_size/script_vm.rs should delegate gameplay host anchor `{moved_anchor}` to tests/structure/test_size/script_vm_tests/gameplay_host.rs"
         );
     }
     assert_contains_all(
@@ -208,23 +201,24 @@ fn runtime_15_script_vm_gameplay_host_guard_is_child_owner() {
             "pub(super) fn assert_gameplay_host_tests_are_folder_backed",
             "script/vm/gameplay_host/tests/cases.rs",
             "script/vm/gameplay_host/tests/spawn_transform.rs",
+            "script/vm/gameplay_host/tests/essentials.rs",
+            "script/vm/gameplay_host/tests/random.rs",
             concat!("fn gameplay_pose_exports_update_entity_", "transform"),
-            concat!(
-                "runtime_15_gameplay_host_tests_folder_split_",
-                "static_passed_cargo_deferred"
-            ),
-            "runtime_15_script_vm_gameplay_host_guard_is_child_owner",
+            "gameplay host parent test module mounts child owners",
+            concat!("let existing_", "test_count = ["),
+            "mod essentials;",
+            "mod random;",
         ],
     );
     gameplay_host::assert_gameplay_host_tests_are_folder_backed();
 
     for (path, source) in [
         (
-            "tests/runtime_absorption/structure_convention/test_file_budget/script_vm_tests.rs",
+            "tests/contracts/structure/test_size/script_vm.rs",
             parent.as_str(),
         ),
         (
-            "tests/runtime_absorption/structure_convention/test_file_budget/script_vm_tests/gameplay_host.rs",
+            "tests/structure/test_size/script_vm_tests/gameplay_host.rs",
             child.as_str(),
         ),
     ] {

@@ -2,9 +2,15 @@ use crate::core::framework::input::InputButton;
 
 use super::script_input_button;
 
+#[path = "mouse.rs"]
+mod mouse;
+
 #[test]
 fn gameplay_key_query_compiles_codes_and_names_to_typed_buttons() {
     assert_eq!(script_input_button("KeyCode:87"), InputButton::KeyCode(87));
+    assert_eq!(script_input_button("87"), InputButton::KeyCode(87));
+    assert_eq!(script_input_button("KeyCode:1"), InputButton::KeyCode(1));
+    assert_eq!(script_input_button("1"), InputButton::Key("1".to_string()));
     assert_eq!(
         script_input_button("Jump"),
         InputButton::Key("Jump".to_string())

@@ -138,6 +138,12 @@ pub(super) fn fixed_capability_cases() -> Vec<CapabilityCase> {
         ),
         CapabilityCase::new(
             "zr.zircon.gameplay",
+            "random_range",
+            "gameplay.random",
+            vec![ScriptHostValue::Float(0.0), ScriptHostValue::Float(1.0)],
+        ),
+        CapabilityCase::new(
+            "zr.zircon.gameplay",
             "entity",
             "gameplay.entity",
             Vec::new(),

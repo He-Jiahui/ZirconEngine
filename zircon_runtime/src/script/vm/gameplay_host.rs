@@ -1,7 +1,6 @@
 //! gameplay 宿主模块是脚本触达场景、输入和战斗的受控入口；描述符的能力要求由导出注册表执行，回调借当前同步调用的场景上下文。
 use crate::core::framework::script::{
-    ScriptHostFunctionDescriptor, ScriptHostModuleDescriptor, ScriptHostParameterDescriptor,
-    ScriptHostValue, ScriptHostValueKind,
+    ScriptHostModuleDescriptor, ScriptHostValue, ScriptHostValueKind,
 };
 use crate::script::{
     runtime_context_for_frame, script_float, HostExportFunction, HostExportRegistry, HostHandle,
@@ -12,6 +11,8 @@ use crate::script::{
 mod combat;
 #[path = "gameplay_host/components.rs"]
 mod components;
+#[path = "gameplay_host/descriptors.rs"]
+mod descriptors;
 #[path = "gameplay_host/error.rs"]
 mod error;
 #[path = "gameplay_host/input.rs"]
@@ -20,6 +21,10 @@ mod input;
 mod lifecycle;
 #[path = "gameplay_host/navigation.rs"]
 mod navigation;
+#[path = "gameplay_host/random.rs"]
+mod random;
+#[path = "gameplay_host/rotation.rs"]
+mod rotation;
 #[path = "gameplay_host/scene_transition.rs"]
 mod scene_transition;
 #[path = "gameplay_host/script_bindings.rs"]
@@ -31,15 +36,21 @@ mod values;
 
 use combat::{current_hp, damage_entity, damage_entity_report, heal_entity, set_animation_bool};
 use components::{
-    component_json, component_string, count_by_script_property, entity_exists, find_by_component,
-    nearest_by_script_property, script_number, script_number_at_most, script_property_matches,
-    set_component_json,
+    component_json, component_number, component_string, count_by_script_property, entity_exists,
+    find_by_component, nearest_by_script_property, script_number, script_number_at_most,
+    script_property_matches, set_component_json,
 };
-use input::key_pressed;
+use descriptors::{float_parameter, function, int_parameter, string_parameter};
+use input::{
+    key_pressed, mouse_delta_x, mouse_delta_y, mouse_pressed, mouse_wheel_x, mouse_wheel_y,
+    mouse_x, mouse_y,
+};
 use lifecycle::{
     despawn, set_hud_text, set_particle_sprites, set_world_hud_bar, spawn_empty, spawn_model,
 };
 use navigation::{nav_move_towards_entity, nav_next_point_json};
+use random::random_range;
+use rotation::set_rotation_euler;
 use scene_transition::request_scene_transition;
 use transform::{
     camera_follow, face_direction, follow_position, move_towards_entity, position_axis,
@@ -58,6 +69,7 @@ pub fn register_gameplay_host_module(
 
     let descriptor = ScriptHostModuleDescriptor::new(GAMEPLAY_MODULE, GAMEPLAY_MODULE_VERSION)
         .with_capability("gameplay.input")
+        .with_capability("gameplay.random")
         .with_capability("gameplay.entity")
         .with_capability("gameplay.navigation")
         .with_capability("gameplay.scene_transition")
@@ -65,11 +77,6 @@ pub fn register_gameplay_host_module(
         .with_function(
             function("entity", 0, 0, ScriptHostValueKind::Int)
                 .with_required_capability("gameplay.entity"),
-        )
-        .with_function(
-            function("key_pressed", 1, 1, ScriptHostValueKind::Bool)
-                .with_parameter(string_parameter("key"))
-                .with_required_capability("gameplay.input"),
         )
         .with_function(
             function("request_scene_transition", 1, 1, ScriptHostValueKind::Int)
@@ -235,10 +242,7 @@ pub fn register_gameplay_host_module(
             function("set_animation_bool", 3, 3, ScriptHostValueKind::Bool)
                 .with_parameter(int_parameter("entity"))
                 .with_parameter(string_parameter("parameter"))
-                .with_parameter(ScriptHostParameterDescriptor::new(
-                    "value",
-                    ScriptHostValueKind::Bool,
-                ))
+                .with_parameter(descriptors::bool_parameter("value"))
                 .with_required_capability("gameplay.entity"),
         )
         .with_function(
@@ -325,7 +329,7 @@ pub fn register_gameplay_host_module(
         .with_documentation("Runtime gameplay host calls scoped to the active script entity.");
 
     let handle = exports.register_module(
-        descriptor,
+        descriptors::with_essentials(descriptor),
         [
             HostExportFunction::new("delta_seconds", |frame| {
                 let context = runtime_context_for_frame(frame)?;
@@ -336,6 +340,14 @@ pub fn register_gameplay_host_module(
                 Ok(ScriptHostValue::Int(context.entity as i64))
             }),
             HostExportFunction::new("key_pressed", key_pressed),
+            HostExportFunction::new("random_range", random_range),
+            HostExportFunction::new("mouse_pressed", mouse_pressed),
+            HostExportFunction::new("mouse_x", mouse_x),
+            HostExportFunction::new("mouse_y", mouse_y),
+            HostExportFunction::new("mouse_delta_x", mouse_delta_x),
+            HostExportFunction::new("mouse_delta_y", mouse_delta_y),
+            HostExportFunction::new("mouse_wheel_x", mouse_wheel_x),
+            HostExportFunction::new("mouse_wheel_y", mouse_wheel_y),
             HostExportFunction::new("request_scene_transition", request_scene_transition),
             HostExportFunction::new("position_json", position_json),
             HostExportFunction::new("position_x", |context| position_axis(context, 0)),
@@ -347,11 +359,13 @@ pub fn register_gameplay_host_module(
             HostExportFunction::new("translate", translate),
             HostExportFunction::new("face_direction", face_direction),
             HostExportFunction::new("set_scale", set_scale),
+            HostExportFunction::new("set_rotation_euler", set_rotation_euler),
             HostExportFunction::new("follow_position", follow_position),
             HostExportFunction::new("move_towards_entity", move_towards_entity),
             HostExportFunction::new("camera_follow", camera_follow),
             HostExportFunction::new("component_json", component_json),
             HostExportFunction::new("component_string", component_string),
+            HostExportFunction::new("component_number", component_number),
             HostExportFunction::new("set_component_json", set_component_json),
             HostExportFunction::new("find_by_component", find_by_component),
             HostExportFunction::new("entity_exists", entity_exists),
@@ -376,32 +390,6 @@ pub fn register_gameplay_host_module(
         ],
     )?;
     Ok(Some(handle))
-}
-
-fn function(
-    name: impl Into<String>,
-    min_argument_count: usize,
-    max_argument_count: usize,
-    return_value_kind: ScriptHostValueKind,
-) -> ScriptHostFunctionDescriptor {
-    ScriptHostFunctionDescriptor::new(
-        name,
-        min_argument_count,
-        max_argument_count,
-        return_value_kind,
-    )
-}
-
-fn string_parameter(name: impl Into<String>) -> ScriptHostParameterDescriptor {
-    ScriptHostParameterDescriptor::new(name, ScriptHostValueKind::String)
-}
-
-fn int_parameter(name: impl Into<String>) -> ScriptHostParameterDescriptor {
-    ScriptHostParameterDescriptor::new(name, ScriptHostValueKind::Int)
-}
-
-fn float_parameter(name: impl Into<String>) -> ScriptHostParameterDescriptor {
-    ScriptHostParameterDescriptor::new(name, ScriptHostValueKind::Float)
 }
 
 #[cfg(test)]

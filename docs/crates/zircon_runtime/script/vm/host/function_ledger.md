@@ -53,11 +53,11 @@ doc_type: module-detail
 
 # ZrVM Host Function Ledger
 
-Runtime13 current source contract inventory: `script_binding_boundary` reports `expected_source_file_count = 28`, `expected_test_file_count = 3`, `expected_guard_file_count = 8`, `fixed_host_function_count = 63`, `builtin_callback_count = 21`, `gameplay_callback_count = 40`, `host_capability_count = 13`, `missing_source_files = []`, `missing_guard_files = []`, and `risks = []`. `script.rs` remains the public facade for `argument_views`, `call_frame`, `descriptors`, `hot_path_metrics`, and `value_contracts`; the argument-view facade now routes to byte transport, borrowed value, argument source, and typed conversion owners. `request_scene_transition` stores a capability-gated `ReplaceActive` project request for the project transition owner, and the managed script Cargo gates remain pending.
+Runtime13 current source contract inventory: `script_binding_boundary` reports `expected_source_file_count = 31`, `expected_test_file_count = 3`, `expected_guard_file_count = 8`, `fixed_host_function_count = 73`, `builtin_callback_count = 21`, `gameplay_callback_count = 50`, `host_capability_count = 14`, `missing_source_files = []`, `missing_guard_files = []`, and `risks = []`. `script.rs` remains the public facade for `argument_views`, `call_frame`, `descriptors`, `hot_path_metrics`, and `value_contracts`; the argument-view facade now routes to byte transport, borrowed value, argument source, and typed conversion owners. `request_scene_transition` stores a capability-gated `ReplaceActive` project request for the project transition owner, and the managed script Cargo gates remain pending.
 
 Historical Runtime13 source snapshot (2026-08-02): `script_binding_boundary` reports `expected_source_file_count = 18`, `expected_test_file_count = 3`, `expected_guard_file_count = 9`, `missing_source_files = []`, `missing_guard_files = []`, `fixed_host_module_count = 6`, `fixed_host_function_count = 61`, `type_descriptor_count = 2`, `builtin_callback_count = 20`, `gameplay_callback_count = 39`, `macro_host_function_count = 2`, `host_capability_count = 12`, `guard_anchor_count = 9`, `native_ecs_abi_references = []`, `oversized_test_files = []`, `mirror_docs_guard_present = true`, and `risks = []`. The nine guard owners include the two route parents plus ledger/capability/ECS-facade, gameplay-host/mirror, despawn behavior, and Runtime 13 Cargo children. `runtime_13_script_binding_mirror_docs_match_structure_audit_counts` keeps the plan, runtime index, function ledger, M0 review, and interface-convergence mirror aligned; script package gates remain pending.
 
-Runtime 13 M0 treats the script host surface as a descriptor ledger, not as an ad hoc callback list. The current fixed built-in baseline is 6 host modules, 63 fixed host functions, and 2 fixed script type descriptors. The total includes 21 builtin callbacks, 40 gameplay callbacks, and 2 macro-generated math functions. The plugin bridge host module is dynamic: its module name and required baseline capability are fixed, but its callable functions are supplied by bridge method descriptors at registration time.
+Runtime 13 M0 treats the script host surface as a descriptor ledger, not as an ad hoc callback list. The current fixed built-in baseline is 6 host modules, 73 fixed host functions, and 2 fixed script type descriptors. The total includes 21 builtin callbacks, 50 gameplay callbacks, and 2 macro-generated math functions. The plugin bridge host module is dynamic: its module name and required baseline capability are fixed, but its callable functions are supplied by bridge method descriptors at registration time.
 
 `HostExportRegistry::register_module(...)` is the runtime enforcement point. It validates module names, declared module capabilities, function arity, required function capabilities, callback/descriptor parity, type descriptors, and call-time capability grants. `builtin_host_module_descriptors()` plus `zircon_host_reflection_docs` are the machine-renderable source for the fixed built-in ledger.
 
@@ -81,7 +81,7 @@ descriptor generation behavior remain unchanged.
 | `zr.zircon.scene` | `builtin_host_modules.rs` | `scene.handle`, `scene.query` | Stable host-handle projection, not raw world access. |
 | `zr.zircon.render` | `builtin_host_modules.rs` | `render.query` | Read-only render metadata. |
 | `zr.zircon.math` | `builtin_host_modules.rs` | `math.scalar` | Version 0.3.0 deterministic value and scalar math ABI. |
-| `zr.zircon.gameplay` | `gameplay_host.rs` | `gameplay.entity`, `gameplay.input`, `gameplay.navigation`, `gameplay.scene_transition` | Current gameplay ECS facade through `ScriptRuntimeCallContext`; scene transitions are project requests, not direct world replacement. |
+| `zr.zircon.gameplay` | `gameplay_host.rs` | `gameplay.entity`, `gameplay.input`, `gameplay.random`, `gameplay.navigation`, `gameplay.scene_transition` | Current gameplay ECS facade through `ScriptRuntimeCallContext`; scene transitions are project requests, not direct world replacement. |
 
 ## Foundation
 
@@ -144,6 +144,14 @@ Runtime 15 F12 script host value descriptor dead-code cleanup keeps the descript
 | `delta_seconds` | none | `Float` | none |
 | `entity` | none | `Int` | `gameplay.entity` |
 | `key_pressed` | `key:String` | `Bool` | `gameplay.input` |
+| `random_range` | `min:Float`, `max:Float` | `Float` | `gameplay.random` |
+| `mouse_pressed` | `button:Int` | `Bool` | `gameplay.input` |
+| `mouse_x` | none | `Float` | `gameplay.input` |
+| `mouse_y` | none | `Float` | `gameplay.input` |
+| `mouse_delta_x` | none | `Float` | `gameplay.input` |
+| `mouse_delta_y` | none | `Float` | `gameplay.input` |
+| `mouse_wheel_x` | none | `Float` | `gameplay.input` |
+| `mouse_wheel_y` | none | `Float` | `gameplay.input` |
 | `request_scene_transition` | `scene_uri:String` | `Int` | `gameplay.scene_transition` |
 | `position_json` | `entity:Int` | `String` | `gameplay.entity` |
 | `position_x` | `entity:Int` | `Float` | `gameplay.entity` |
@@ -155,11 +163,13 @@ Runtime 15 F12 script host value descriptor dead-code cleanup keeps the descript
 | `translate` | `entity:Int`, `x:Float`, `y:Float`, `z:Float` | `Bool` | `gameplay.entity` |
 | `face_direction` | `entity:Int`, `x:Float`, `z:Float` | `Bool` | `gameplay.entity` |
 | `set_scale` | `entity:Int`, `x:Float`, `y:Float`, `z:Float` | `Bool` | `gameplay.entity` |
+| `set_rotation_euler` | `entity:Int`, `x:Float`, `y:Float`, `z:Float` | `Bool` | `gameplay.entity` |
 | `follow_position` | `entity:Int`, `target_entity:Int`, `offset_x:Float`, `offset_y:Float`, `offset_z:Float` | `Bool` | `gameplay.entity` |
 | `move_towards_entity` | `entity:Int`, `target_entity:Int`, `speed:Float`, `dt:Float` | `Bool` | `gameplay.entity` |
 | `camera_follow` | `entity:Int`, `target_entity:Int`, `offset_x:Float`, `offset_y:Float`, `offset_z:Float` | `Bool` | `gameplay.entity` |
 | `component_json` | `entity:Int`, `component_id:String` | `String` | `gameplay.entity` |
 | `component_string` | `entity:Int`, `component_id:String`, `fallback:String` | `String` | `gameplay.entity` |
+| `component_number` | `entity:Int`, `component_id:String`, `fallback:Float` | `Float` | `gameplay.entity` |
 | `set_component_json` | `entity:Int`, `component_id:String`, `component_json:String` | `Bool` | `gameplay.entity` |
 | `find_by_component` | `component_id:String` | `String` | `gameplay.entity` |
 | `entity_exists` | `entity:Int` | `Bool` | `gameplay.entity` |
@@ -182,9 +192,15 @@ Runtime 15 F12 script host value descriptor dead-code cleanup keeps the descript
 | `nav_next_point_json` | `start_json:String`, `end_json:String` | `String` | `gameplay.navigation` |
 | `nav_move_towards_entity` | `entity:Int`, `target_entity:Int`, `speed:Float`, `dt:Float` | `Bool` | `gameplay.navigation` |
 
+`random_range` draws from the runtime's seeded stream for the current world replacement epoch and entity generation. Bounds must be finite and ordered; distinct bounds return a value in `[min, max)`, and equal bounds return that value without consuming a draw.
+
+`mouse_pressed` queries held state with the runtime ABI's button ids: `1` left, `2` right, and `3` middle; other ids are rejected. Position helpers preserve the input manager's absolute coordinates, movement helpers report this frame's relative delta, and wheel helpers report line-normalized horizontal/vertical totals using the existing pixel conversion. Reads preserve input events, and a new frame clears movement and wheel totals while retaining position and held buttons.
+
+`set_rotation_euler` writes world-space XYZ Euler angles in radians through the existing validated transform path, preserving position and scale. `component_number` reads a numeric dynamic component value and uses its finite fallback for missing or nonnumeric values.
+
 ## Gameplay Host Owner Layout
 
-`gameplay_host.rs` owns only the `zr.zircon.gameplay` module descriptor and the 40 `HostExportFunction::new(...)` registration anchors. The callback implementations are folder-backed domain owners: `input.rs`, `transform.rs`, `components.rs`, `combat.rs`, `lifecycle.rs`, `navigation.rs`, `scene_transition.rs`, `script_bindings.rs`, and `values.rs`.
+`gameplay_host.rs` owns the `zr.zircon.gameplay` module registration and the 50 `HostExportFunction::new(...)` callback anchors; `descriptors.rs` supplies gameplay-essential descriptors and shared parameter builders. The callback implementations are folder-backed domain owners: `input.rs`, `random.rs`, `rotation.rs`, `transform.rs`, `components.rs`, `combat.rs`, `lifecycle.rs`, `navigation.rs`, `scene_transition.rs`, `script_bindings.rs`, and `values.rs`.
 
 Runtime 15 F5 gameplay host typed errors keeps the VM-visible function ledger unchanged while adding `script/vm/gameplay_host/error.rs` as the local typed-error owner. `GameplayHostError` / `GameplayHostResult` preserve `SceneError`, `NavigationError`, JSON serialization failures, and missing-entity categories inside gameplay host mutation/navigation paths; `ScriptHostError` string diagnostics remain only at the host-call boundary. Status: `runtime_15_gameplay_host_typed_errors_static_passed_cargo_deferred`; guard: `review_f5_gameplay_host_uses_typed_errors_before_script_host_boundary`.
 

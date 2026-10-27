@@ -22,8 +22,12 @@ use crate::script::{
 mod combat_lifecycle;
 #[path = "component_state.rs"]
 mod component_state;
+#[path = "essentials.rs"]
+mod essentials;
 #[path = "property_animation.rs"]
 mod property_animation;
+#[path = "random.rs"]
+mod random;
 #[path = "spawn_transform.rs"]
 mod spawn_transform;
 

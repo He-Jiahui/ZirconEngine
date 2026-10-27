@@ -8,13 +8,15 @@ pub(super) fn assert_gameplay_host_tests_are_folder_backed() {
     let combat_lifecycle = read_runtime_src("script/vm/gameplay_host/tests/combat_lifecycle.rs");
     let property_animation =
         read_runtime_src("script/vm/gameplay_host/tests/property_animation.rs");
+    let essentials = read_runtime_src("script/vm/gameplay_host/tests/essentials.rs");
+    let random = read_runtime_src("script/vm/gameplay_host/tests/random.rs");
     let _runtime_15_plan =
         read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
     let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
     let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let _gameplay_doc = read_repo("docs/zircon_runtime/script/vm/gameplay_host.md");
+    let _module_doc = read_repo("docs/crates/zircon_runtime/structure/module-convention.md");
+    let _gameplay_doc = read_repo("docs/crates/zircon_runtime/script/vm/gameplay_host.md");
 
     assert_contains_all(
         "gameplay host parent test module mounts child owners",
@@ -22,7 +24,9 @@ pub(super) fn assert_gameplay_host_tests_are_folder_backed() {
         &[
             "mod combat_lifecycle;",
             "mod component_state;",
+            "mod essentials;",
             "mod property_animation;",
+            "mod random;",
             "mod spawn_transform;",
             "fn assert_vec3_close",
             "fn assert_quat_close",
@@ -31,7 +35,7 @@ pub(super) fn assert_gameplay_host_tests_are_folder_backed() {
     assert_eq!(
         parent.matches("#[test]").count(),
         0,
-        "script/vm/gameplay_host/tests.rs should mount child owners instead of keeping executable tests"
+        "script/vm/gameplay_host/tests/cases.rs should mount child owners instead of keeping executable tests"
     );
 
     for moved_test in [
@@ -47,7 +51,7 @@ pub(super) fn assert_gameplay_host_tests_are_folder_backed() {
     ] {
         assert!(
             !parent.contains(moved_test),
-            "script/vm/gameplay_host/tests.rs should mount child test owners instead of defining {moved_test}"
+            "script/vm/gameplay_host/tests/cases.rs should mount child test owners instead of defining {moved_test}"
         );
     }
 
@@ -89,7 +93,29 @@ pub(super) fn assert_gameplay_host_tests_are_folder_backed() {
         ],
     );
 
-    let migrated_test_count = [
+    assert_contains_all(
+        "gameplay essentials child owns descriptor, component and rotation contracts",
+        &essentials,
+        &[
+            "use super::*;",
+            "fn gameplay_host_essentials_descriptors_enforce_types_arity_and_capabilities",
+            "fn gameplay_host_component_number_reads_integer_and_float_components_without_f32_narrowing",
+            "fn gameplay_host_rotation_euler_sets_world_xyz_radians_and_preserves_position_and_scale",
+        ],
+    );
+    assert_contains_all(
+        "gameplay random child owns deterministic stream and capability contracts",
+        &random,
+        &[
+            "use super::*;",
+            "fn gameplay_host_random_range_replays_seeded_progress_across_host_calls",
+            "fn gameplay_host_random_range_requires_random_capability_and_active_context_entity",
+            "fn gameplay_host_random_range_separates_recreated_entities_and_replaced_worlds",
+        ],
+    );
+
+    // The four original owners retained nine migrated tests and gained six before G-12.
+    let existing_test_count = [
         spawn_transform.as_str(),
         component_state.as_str(),
         combat_lifecycle.as_str(),
@@ -99,8 +125,8 @@ pub(super) fn assert_gameplay_host_tests_are_folder_backed() {
     .map(|source| source.matches("#[test]").count())
     .sum::<usize>();
     assert_eq!(
-        migrated_test_count, 9,
-        "gameplay host child modules should preserve the original 9 tests"
+        existing_test_count, 15,
+        "the four existing gameplay host child owners should preserve their 15-test baseline"
     );
 
     for (path, source) in [
@@ -121,6 +147,11 @@ pub(super) fn assert_gameplay_host_tests_are_folder_backed() {
             "script/vm/gameplay_host/tests/property_animation.rs",
             property_animation.as_str(),
         ),
+        (
+            "script/vm/gameplay_host/tests/essentials.rs",
+            essentials.as_str(),
+        ),
+        ("script/vm/gameplay_host/tests/random.rs", random.as_str()),
     ] {
         let line_count = source.lines().count();
         assert!(

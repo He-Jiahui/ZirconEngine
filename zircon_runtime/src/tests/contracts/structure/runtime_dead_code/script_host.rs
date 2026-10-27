@@ -5,11 +5,12 @@ use super::{read_repo, read_runtime_src, DEAD_CODE_ALLOW_ATTRIBUTE};
 #[test]
 fn runtime_15_script_host_value_descriptors_do_not_suppress_dead_code() {
     let builtin_host_modules = read_runtime_src("script/vm/host/builtin_host_modules.rs");
-    let script_host_ledger = read_repo("docs/zircon_runtime/script/vm/host/function_ledger.md");
+    let script_host_ledger =
+        read_repo("docs/crates/zircon_runtime/script/vm/host/function_ledger.md");
     let current_anchor_owner = read_repo(
         "docs/plans/zircon_runtime/runtime/15/2026-07-17-descriptor-filter-plan-anchor-current-owner.md",
     );
-    let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let module_doc = read_repo("docs/crates/zircon_runtime/structure/module-convention.md");
 
     assert!(
         !builtin_host_modules.contains(DEAD_CODE_ALLOW_ATTRIBUTE),
@@ -33,7 +34,7 @@ fn runtime_15_script_host_value_descriptors_do_not_suppress_dead_code() {
         "script host ledger keeps descriptor counts stable",
         &script_host_ledger,
         &[
-            "6 host modules, 63 fixed host functions, and 2 fixed script type descriptors",
+            "6 host modules, 73 fixed host functions, and 2 fixed script type descriptors",
             "Type `Vec3`",
             "Type `ColorRgba`",
         ],

@@ -2,6 +2,9 @@
 related_code:
   - zircon_runtime/src/script/vm/gameplay_host.rs
   - zircon_runtime/src/script/vm/gameplay_host/input.rs
+  - zircon_runtime/src/script/vm/gameplay_host/descriptors.rs
+  - zircon_runtime/src/script/vm/gameplay_host/random.rs
+  - zircon_runtime/src/script/vm/gameplay_host/rotation.rs
   - zircon_runtime/src/script/vm/gameplay_host/error.rs
   - zircon_runtime/src/script/vm/gameplay_host/combat.rs
   - zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs
@@ -18,6 +21,9 @@ related_code:
 implementation_files:
   - zircon_runtime/src/script/vm/gameplay_host.rs
   - zircon_runtime/src/script/vm/gameplay_host/input.rs
+  - zircon_runtime/src/script/vm/gameplay_host/descriptors.rs
+  - zircon_runtime/src/script/vm/gameplay_host/random.rs
+  - zircon_runtime/src/script/vm/gameplay_host/rotation.rs
   - zircon_runtime/src/script/vm/gameplay_host/error.rs
   - zircon_runtime/src/script/vm/gameplay_host/combat.rs
   - zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs
@@ -63,7 +69,21 @@ The gameplay host functions include entity transform reads/writes, entity existe
 
 The vampire example deliberately uses these generic host functions from `examples/vampire/scripts/vampire_game/main.zr`. The host does not need vampire-specific lifecycle delegates for the current script path: `onStart` and `onUpdate` query `script.bindings` properties and call the generic movement, combat, navigation, animation, particle, and HUD functions directly.
 
-`gameplay.key_pressed` uses the lightweight `InputSnapshot` because it only needs the pressed-button set. It does not clone `InputFrameSnapshot`'s transition sets, wheel history, touch/gamepad state, IME queues, window status, file drag/drop data, or host-request vectors for every script key query. A later Runtime 12 interface milestone may add a direct zero-copy button query; the current change keeps the public input trait unchanged while removing the unrelated frame-wide clone from the MVP script hot path.
+`gameplay.key_pressed` and `gameplay.mouse_pressed` use direct `InputManager::button_pressed` queries. Named keys include letters, single digits, Escape, navigation, modifiers, function keys and punctuation; `KeyCode:n` requests a raw code explicitly, and bare multi-digit numeric codes remain supported. The runtime mapper accepts embedded editor DOM codes and the standalone host's existing physical-key codes, including its FNV-derived codes.
+
+## Gameplay essentials (G-12)
+
+`random_range(min, max)` requires `gameplay.random` and returns a seeded `Float` in `[min, max)`. Equal bounds return that bound without consuming a draw. Both bounds must be finite and ordered. The engine random service owns stream progress; streams are isolated by level replacement and entity incarnation, and use the runtime master seed for replay. No global RNG or script-owned cache is added.
+
+Mouse queries require `gameplay.input`: `mouse_pressed(button)` uses the runtime button IDs `1` (left), `2` (right), `3` (middle), rejecting other IDs; `mouse_x()` / `mouse_y()` read cursor coordinates; `mouse_delta_x()` / `mouse_delta_y()` read accumulated relative motion; `mouse_wheel_x()` / `mouse_wheel_y()` read line-normalized wheel deltas, applying the existing pixel conversion per event. Scalar queries read the current frame snapshot and do not consume input. Motion and wheel values reset with the input frame; cursor and held buttons persist.
+
+`set_rotation_euler(entity, x, y, z)` requires `gameplay.entity` and writes world-space XYZ Euler angles in **radians**, preserving world position and scale. It reuses the transform owner's inverse-parent conversion and mutation checks. Non-finite angles, missing entities, singular parents and rotations requiring local shear are rejected without a partial write.
+
+`component_number(entity, component_id, fallback)` requires `gameplay.entity` and reads a scalar JSON number as `Float` without narrowing through `f32`. Missing entities/components and nonnumeric values return the finite caller-supplied fallback, matching `component_string`'s scalar component semantics. Numeric strings and object fields are not coerced.
+
+Stop is already configurable through the User setting `editor.commands.keymap_overrides`, keyed by `runtime.play_mode.exit`. For example, its tagged setting value can be `{"kind":"keymap_overrides","value":{"runtime.play_mode.exit":{"key":"F5","ctrl":false,"shift":true,"alt":false,"meta":false}}}`. A `null` command override removes that shortcut. With Game focused and no popup/drawer owning Escape, the existing editor dispatcher forwards Escape to gameplay after Stop is rebound; `key_pressed("Escape")` then queries the forwarded name. No editor routing change is required.
+
+The focused G-12 tests exercise every new export through the capability-checked host registry, including seeded progress and rejection, numeric fallbacks, parented rotation, mouse frame semantics, and real runtime keyboard ingress with both host transports. These focused unit tests do not establish GUI or full demo acceptance.
 
 ## Script State Ownership
 
@@ -75,7 +95,7 @@ Per-frame gameplay state for the current vampire slice remains intentionally sma
 
 The 2026-07-17 performance slice adds `gameplay_key_query_reads_the_lightweight_snapshot_for_codes_and_names` for numeric key-code and logical-name lookup. Scoped rustfmt and diff hygiene are required immediately; package Cargo acceptance remains pending while another coordinated session owns the CPU lane.
 
-The focused host registration test verifies that the built-in gameplay module exposes the reflected gameplay API. The `gameplay_host_component_string_reads_string_dynamic_state` unit test locks the string-component read helper used by the vampire menu command flow. `gameplay_host_script_property_match_and_heal_update_bindings` now also covers `entity_exists` and `script_number_at_most`, and `host_function_registry_matches_documented_ledger` keeps the ledger aligned at 52 fixed host functions / 39 gameplay callbacks. The vampire project manifest test verifies that the project script imports this host module and drives gameplay through generic markers such as `gameplay.key_pressed`, `gameplay.translate`, `gameplay.face_direction`, `gameplay.camera_follow`, `gameplay.follow_position`, `gameplay.nearest_by_script_property`, `gameplay.nav_move_towards_entity`, `gameplay.component_string`, `gameplay.entity_exists`, `gameplay.script_number_at_most`, `gameplay.damage_entity`, `gameplay.set_world_hud_bar`, `gameplay.set_animation_bool`, and `gameplay.set_particle_sprites`.
+The focused host registration test verifies that the built-in gameplay module exposes the reflected gameplay API. The `gameplay_host_component_string_reads_string_dynamic_state` unit test locks the string-component read helper used by the vampire menu command flow. `gameplay_host_script_property_match_and_heal_update_bindings` now also covers `entity_exists` and `script_number_at_most`, and `host_function_registry_matches_documented_ledger` keeps the ledger aligned at 73 fixed host functions / 50 gameplay callbacks. The vampire project manifest test verifies that the project script imports this host module and drives gameplay through generic markers such as `gameplay.key_pressed`, `gameplay.translate`, `gameplay.face_direction`, `gameplay.camera_follow`, `gameplay.follow_position`, `gameplay.nearest_by_script_property`, `gameplay.nav_move_towards_entity`, `gameplay.component_string`, `gameplay.entity_exists`, `gameplay.script_number_at_most`, `gameplay.damage_entity`, `gameplay.set_world_hud_bar`, `gameplay.set_animation_bool`, and `gameplay.set_particle_sprites`.
 
 The 2026-06-11 real VM diagnostic run reported `fps_current=60.872053031732605` and `last_ui_command_count=0` for the vampire scene after disabled duplicate bindings and the fixed-update phase skip, which confirms the gameplay host path is driving scene-following HUD data and not a screen-space upper-left combat HUD.
 

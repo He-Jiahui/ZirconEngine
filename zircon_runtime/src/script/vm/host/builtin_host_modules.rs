@@ -570,6 +570,7 @@ pub fn builtin_host_capabilities() -> CapabilitySet {
         .with("render.query")
         .with(MATH_SCALAR_CAPABILITY)
         .with("gameplay.input")
+        .with("gameplay.random")
         .with("gameplay.entity")
         .with("gameplay.navigation")
         .with("gameplay.scene_transition")

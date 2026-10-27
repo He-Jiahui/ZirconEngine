@@ -22,7 +22,7 @@ class RuntimeScriptBindingAuditTests(unittest.TestCase):
 
         audit = script_binding_boundary_audit(self.repo_root)
 
-        self.assertEqual(audit["expected_source_file_count"], 28)
+        self.assertEqual(audit["expected_source_file_count"], 31)
         self.assertEqual(audit["expected_test_file_count"], 3)
         self.assertEqual(audit["expected_guard_file_count"], 8)
         self.assertEqual(audit["missing_guard_files"], [])
@@ -46,13 +46,13 @@ class RuntimeScriptBindingAuditTests(unittest.TestCase):
         with mock.patch.object(boundary, "_read_text", side_effect=reject_plan_reads):
             audit = boundary.script_binding_boundary_audit(self.repo_root)
 
-        self.assertEqual(audit["expected_source_file_count"], 28)
+        self.assertEqual(audit["expected_source_file_count"], 31)
         self.assertEqual(audit["expected_test_file_count"], 3)
         self.assertEqual(audit["expected_guard_file_count"], 8)
-        self.assertEqual(audit["fixed_host_function_count"], 63)
+        self.assertEqual(audit["fixed_host_function_count"], 73)
         self.assertEqual(audit["builtin_callback_count"], 21)
-        self.assertEqual(audit["gameplay_callback_count"], 40)
-        self.assertEqual(audit["host_capability_count"], 13)
+        self.assertEqual(audit["gameplay_callback_count"], 50)
+        self.assertEqual(audit["host_capability_count"], 14)
         self.assertEqual(audit["missing_ledger_doc_anchors"], [])
         self.assertEqual(audit["missing_cargo_gate_anchors"], [])
         self.assertEqual(audit["risks"], [])

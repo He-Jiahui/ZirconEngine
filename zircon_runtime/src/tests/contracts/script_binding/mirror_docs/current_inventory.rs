@@ -32,10 +32,10 @@ pub(super) fn assert_current_inventory(mirror_anchors: &[&str]) {
             doc_name,
             inventories[0],
             &[
-                "fixed_host_function_count = 63",
+                "fixed_host_function_count = 73",
                 "builtin_callback_count = 21",
-                "gameplay_callback_count = 40",
-                "host_capability_count = 13",
+                "gameplay_callback_count = 50",
+                "host_capability_count = 14",
             ],
         );
         let unlabelled = unlabelled_host_inventories(doc_source);

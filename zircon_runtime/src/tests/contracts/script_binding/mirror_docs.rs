@@ -12,7 +12,7 @@ use super::support::{assert_file_line_budget, assert_files_exist, count_occurren
 
 #[test]
 fn runtime_13_script_binding_mirror_docs_match_structure_audit_counts() {
-    assert_eq!(EXPECTED_RUNTIME_13_SOURCE_FILES.len(), 28);
+    assert_eq!(EXPECTED_RUNTIME_13_SOURCE_FILES.len(), 31);
     assert_eq!(EXPECTED_RUNTIME_13_TEST_FILES.len(), 3);
 
     let runtime_root = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -62,7 +62,7 @@ fn runtime_13_script_binding_mirror_docs_match_structure_audit_counts() {
     );
     assert_eq!(
         count_occurrences(gameplay_host, "HostExportFunction::new("),
-        40,
+        50,
         "Runtime 13 gameplay callback count should match script_binding_boundary"
     );
     assert_eq!(
@@ -102,7 +102,7 @@ fn runtime_13_script_binding_cargo_gate_stays_visible_until_script_filters_pass(
 
 #[test]
 fn runtime_13_script_binding_inventory_guard_requires_explicit_history() {
-    let current = "Runtime13 current source contract inventory: fixed_host_function_count = 63, builtin_callback_count = 21, gameplay_callback_count = 40, host_capability_count = 13";
+    let current = "Runtime13 current source contract inventory: fixed_host_function_count = 73, builtin_callback_count = 21, gameplay_callback_count = 50, host_capability_count = 14";
     let unlabelled = [
         "Current evidence reports fixed_host_function_count = 52",
         "Current owner hard-cut sync: builtin_callback_count = 11",

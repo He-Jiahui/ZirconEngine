@@ -4,12 +4,12 @@ from pathlib import Path
 
 
 EXPECTED_FIXED_HOST_MODULES = 6
-EXPECTED_FIXED_HOST_FUNCTIONS = 63
+EXPECTED_FIXED_HOST_FUNCTIONS = 73
 EXPECTED_TYPE_DESCRIPTORS = 2
 EXPECTED_BUILTIN_CALLBACKS = 21
-EXPECTED_GAMEPLAY_CALLBACKS = 40
+EXPECTED_GAMEPLAY_CALLBACKS = 50
 EXPECTED_MACRO_HOST_FUNCTIONS = 2
-EXPECTED_HOST_CAPABILITIES = 13
+EXPECTED_HOST_CAPABILITIES = 14
 SCRIPT_LEDGER_TEST_MAX_LINES = 700
 GAMEPLAY_TEST_MAX_LINES = 1000
 
@@ -18,10 +18,13 @@ RUNTIME_13_SOURCE_FILES = (
     "zircon_runtime/src/script/vm/gameplay_host.rs",
     "zircon_runtime/src/script/vm/gameplay_host/combat.rs",
     "zircon_runtime/src/script/vm/gameplay_host/components.rs",
+    "zircon_runtime/src/script/vm/gameplay_host/descriptors.rs",
     "zircon_runtime/src/script/vm/gameplay_host/error.rs",
     "zircon_runtime/src/script/vm/gameplay_host/input.rs",
     "zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs",
     "zircon_runtime/src/script/vm/gameplay_host/navigation.rs",
+    "zircon_runtime/src/script/vm/gameplay_host/random.rs",
+    "zircon_runtime/src/script/vm/gameplay_host/rotation.rs",
     "zircon_runtime/src/script/vm/gameplay_host/scene_transition.rs",
     "zircon_runtime/src/script/vm/gameplay_host/script_bindings.rs",
     "zircon_runtime/src/script/vm/gameplay_host/transform.rs",
@@ -76,13 +79,14 @@ HOST_CAPABILITIES = (
     "render.query",
     "math.scalar",
     "gameplay.input",
+    "gameplay.random",
     "gameplay.entity",
     "gameplay.navigation",
     "gameplay.scene_transition",
     "bridge.call",
 )
 LEDGER_DOC_ANCHORS = (
-    "6 host modules, 63 fixed host functions, and 2 fixed script type descriptors",
+    "6 host modules, 73 fixed host functions, and 2 fixed script type descriptors",
     "`zr.zircon.bridge`",
     "dynamic module shape contract",
     "Value descriptors",

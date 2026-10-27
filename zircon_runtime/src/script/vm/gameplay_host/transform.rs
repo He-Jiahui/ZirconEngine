@@ -296,7 +296,7 @@ pub(super) fn move_entity_towards_target(
 /// The scene stores TRS transforms, so the inverse-parent matrix is decomposed back to local TRS
 /// after applying it. Translation remains exact for affine parent transforms, including rotated
 /// and non-uniformly scaled parents; rotations/scales follow the scene's matrix decomposition.
-fn update_world_transform(
+pub(super) fn update_world_transform(
     world: &mut crate::scene::World,
     entity: u64,
     transform: Transform,
