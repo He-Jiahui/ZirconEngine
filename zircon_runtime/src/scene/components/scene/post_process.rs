@@ -4,7 +4,7 @@ use crate::core::framework::render::{
 };
 use crate::core::math::Real;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct PostProcessSettingsComponent {
     pub ambient_occlusion: AoSourceSettings,
     pub bloom: RenderBloomSettings,
@@ -43,7 +43,7 @@ impl PostProcessSettingsComponent {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 /// 摄像机周围可混合的后处理体积配置；提取阶段按空间关系与优先级组合，而非直接修改全局渲染设置。
 pub struct PostProcessVolumeComponent {
     pub active: bool,

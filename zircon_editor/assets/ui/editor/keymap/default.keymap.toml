@@ -6,6 +6,7 @@
 "file.documents.save_all" = "Ctrl+Shift+S"
 "edit.history.undo" = "Ctrl+Z"
 "edit.history.redo" = "Ctrl+Shift+Z"
+"scene.node.duplicate_selected" = "Ctrl+D"
 "scene.node.delete_selected" = "Delete"
 "runtime.play_mode.enter" = "Alt+P"
 "runtime.play_mode.exit" = "Esc"

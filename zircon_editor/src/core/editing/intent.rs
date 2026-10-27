@@ -8,6 +8,7 @@ pub enum EditorIntent {
     CreateNode(NodeKind),
     DeleteNode(NodeId),
     DeleteNodes(Vec<NodeId>),
+    DuplicateSelected,
     SelectNode(NodeId),
     RenameNode(NodeId, String),
     SetParent(NodeId, Option<NodeId>),

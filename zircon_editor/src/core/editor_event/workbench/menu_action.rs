@@ -27,5 +27,6 @@ pub enum MenuAction {
     Redo,
     CreateNode(NodeKind),
     DeleteSelected,
+    DuplicateSelected,
     OpenView(ViewDescriptorId),
 }

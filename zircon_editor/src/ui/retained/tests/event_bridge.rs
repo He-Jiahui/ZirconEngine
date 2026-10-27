@@ -6,7 +6,7 @@ use crate::core::editor_event::{
 use super::{apply_record_effects, UiHostEventEffects};
 
 #[test]
-fn scene_interaction_redraw_covers_committed_commands_without_promoting_pointer_motion() {
+fn duplicate_and_history_commands_redraw_scene_interaction_without_promoting_pointer_motion() {
     let mut record = EditorEventRecord {
         event_id: EditorEventId::new(1),
         sequence: EditorEventSequence::new(1),
@@ -28,6 +28,10 @@ fn scene_interaction_redraw_covers_committed_commands_without_promoting_pointer_
     let mut committed = UiHostEventEffects::default();
     apply_record_effects(&mut committed, &record);
     assert!(committed.redraw_scene_interaction);
+    record.event = EditorEvent::WorkbenchMenu(MenuAction::DuplicateSelected);
+    let mut duplicate = UiHostEventEffects::default();
+    apply_record_effects(&mut duplicate, &record);
+    assert!(duplicate.redraw_scene_interaction);
     record.event = EditorEvent::Viewport(
         crate::core::editor_event::EditorViewportEvent::PointerMoved { x: 1.0, y: 2.0 },
     );

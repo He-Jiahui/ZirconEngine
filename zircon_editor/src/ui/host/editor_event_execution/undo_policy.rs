@@ -5,6 +5,7 @@ pub(crate) fn undo_policy_for_event(event: &EditorEvent) -> EditorEventUndoPolic
         EditorEvent::WorkbenchMenu(
             MenuAction::CreateNode(_)
             | MenuAction::DeleteSelected
+            | MenuAction::DuplicateSelected
             | MenuAction::KeepPlayChanges
             | MenuAction::Undo
             | MenuAction::Redo,

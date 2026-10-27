@@ -36,6 +36,45 @@ fn shipped_keymap_matches_every_descriptor_default_and_has_no_conflicts() {
 }
 
 #[test]
+fn duplicate_ctrl_d_resolves_only_for_an_edit_scene_with_selection() {
+    use crate::core::commands::{CommandEvalCtx, DocumentKind, EditorCommandRegistry};
+    use crate::core::editor_message::PlayStateKind;
+
+    let registry = EditorCommandRegistry::default_workbench();
+    let keymap = EditorKeymap::default_workbench();
+    let input = keyboard_event("d", 68, true, false, false, false);
+    let context = CommandEvalCtx::interactive()
+        .with_project_open(true)
+        .with_focused_document_kind(DocumentKind::scene())
+        .with_selection_count(1);
+    assert!(keymap
+        .conflicts_with_when(|id| registry.command(id).map(|command| command.effective_when()))
+        .is_empty());
+    assert_eq!(
+        keymap.resolve_keyboard_input_when(&input, |id| registry
+            .command(id)
+            .unwrap()
+            .is_enabled(&context)),
+        Some("scene.node.duplicate_selected")
+    );
+    for disabled in [
+        context.clone().with_selection_count(0),
+        context
+            .clone()
+            .with_focused_document_kind(DocumentKind::material()),
+        context.clone().with_play_state(PlayStateKind::Playing),
+    ] {
+        assert_eq!(
+            keymap.resolve_keyboard_input_when(&input, |id| registry
+                .command(id)
+                .unwrap()
+                .is_enabled(&disabled)),
+            None
+        );
+    }
+}
+
+#[test]
 fn user_and_session_keymap_overrides_resolve_through_settings_registry() {
     let key = SettingsKey::parse(EDITOR_KEYMAP_OVERRIDES_KEY).unwrap();
     let mut settings = settings_registry_with_defaults();
@@ -272,7 +311,7 @@ fn keyboard_input_uses_the_generated_signature_index_for_large_keymaps() {
     );
     let keymap = EditorKeymap::default_workbench().with_overrides(&overrides);
 
-    assert_eq!(keymap.signature_index.len(), 10_017);
+    assert_eq!(keymap.signature_index.len(), 10_018);
     assert_eq!(
         keymap.resolve_keyboard_input_when(
             &keyboard_event("F10000", 0, true, false, false, false),

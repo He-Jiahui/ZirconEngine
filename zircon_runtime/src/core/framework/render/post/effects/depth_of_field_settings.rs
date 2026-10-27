@@ -11,7 +11,7 @@ const DEFAULT_DEPTH_OF_FIELD_BOKEH_BLADE_COUNT: u32 = 6;
 
 /// 景深在时间重建前消耗场景深度，并产生后续重建可读取的颜色结果。
 /// 相机设置可以保留未启用的镜头参数；只有启用谓词成立时才安排对应通道。
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RenderDepthOfFieldSettings {
     pub focus_distance: Real,
     pub focus_range: Real,

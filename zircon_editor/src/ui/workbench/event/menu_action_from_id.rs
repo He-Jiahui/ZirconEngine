@@ -66,6 +66,7 @@ pub(super) fn menu_action_from_id(action_id: &str) -> Option<MenuAction> {
         "workbench.history.undo" => Some(MenuAction::Undo),
         "workbench.history.redo" => Some(MenuAction::Redo),
         "workbench.selection.delete_selected" => Some(MenuAction::DeleteSelected),
+        "workbench.selection.duplicate_selected" => Some(MenuAction::DuplicateSelected),
         "OpenProject" => Some(MenuAction::OpenProject),
         "OpenScene" => Some(MenuAction::OpenScene),
         "CreateScene" => Some(MenuAction::CreateScene),
@@ -83,6 +84,7 @@ pub(super) fn menu_action_from_id(action_id: &str) -> Option<MenuAction> {
         "Undo" => Some(MenuAction::Undo),
         "Redo" => Some(MenuAction::Redo),
         "DeleteSelected" => Some(MenuAction::DeleteSelected),
+        "DuplicateSelected" => Some(MenuAction::DuplicateSelected),
         _ => {
             if let Some(kind) = action_id.strip_prefix("workbench.scene.node.create.") {
                 return node_kind_from_id(kind)

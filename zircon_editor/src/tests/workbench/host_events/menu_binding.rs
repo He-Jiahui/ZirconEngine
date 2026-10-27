@@ -26,6 +26,26 @@ fn menu_action_binding_roundtrips_through_headless_dispatch() {
 }
 
 #[test]
+fn duplicate_menu_action_roundtrips_and_maps_to_the_registered_operation() {
+    let action = MenuAction::DuplicateSelected;
+    let binding = menu_action_binding(&action);
+    assert_eq!(
+        binding.native_binding(),
+        r#"WorkbenchMenuBar/DuplicateSelected:onClick(MenuAction("workbench.selection.duplicate_selected"))"#
+    );
+    assert_eq!(
+        dispatch_editor_host_binding(&binding).unwrap(),
+        EditorHostEvent::Menu(action.clone())
+    );
+    assert_eq!(
+        crate::ui::workbench::event::operation_path_for_menu_action(&action)
+            .unwrap()
+            .as_str(),
+        "scene.node.duplicate_selected"
+    );
+}
+
+#[test]
 /// 调试窗口沿通用打开视图链编码，避免为其引入另一套菜单事件语义。
 fn debug_observatory_window_menu_binding_roundtrips_through_headless_dispatch() {
     let action = MenuAction::OpenView(ViewDescriptorId::new("editor.debug_observatory"));

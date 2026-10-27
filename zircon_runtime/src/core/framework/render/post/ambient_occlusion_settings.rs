@@ -2,7 +2,7 @@ use crate::core::math::Real;
 
 pub const AO_SOURCE_SETTINGS_VERSION: u32 = 1;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[repr(u8)]
 pub enum AoQualityTier {
     Low = 0,
@@ -30,7 +30,7 @@ impl AoQualityTier {
 
 /// 场景空间遮蔽的源参数，先随相机体积求值，再由渲染管线选择实际 AO 通道。
 /// `temporal` 仅表达创作请求；缺少合格的运动历史时编译阶段必须关闭时间累积。
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct AoSourceSettings {
     /// Strength applied only by an indirect-light AO consumer.
     pub intensity: Real,

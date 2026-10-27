@@ -19,6 +19,16 @@ use super::{
 };
 
 #[test]
+fn duplicate_menu_action_delegates_undo_to_the_transaction_engine() {
+    assert_eq!(
+        super::super::undo_policy_for_event(
+            &crate::core::editor_event::EditorEvent::WorkbenchMenu(MenuAction::DuplicateSelected),
+        ),
+        crate::core::editor_event::EditorEventUndoPolicy::DelegatedToTransactionEngine
+    );
+}
+
+#[test]
 fn play_start_notice_requires_a_new_committed_live_runtime() {
     use crate::core::editor_event::EditorEventEffect;
     for mode in [PlayModeKind::Edit, PlayModeKind::Building, PlayModeKind::CleanupFailed] {

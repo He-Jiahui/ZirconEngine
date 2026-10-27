@@ -6,7 +6,7 @@ const MAX_SSR_ROUGHNESS_MIP_BIAS: Real = 1.0;
 
 /// SSR 创作参数在后重建场景阶段驱动反射金字塔与合成通道。
 /// 时间复用还需要有效历史和运动向量；仅凭 `is_enabled` 不能认定该分支可用。
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RenderScreenSpaceReflectionSettings {
     pub intensity: Real,
     pub thickness: Real,

@@ -300,6 +300,20 @@ impl World {
         self.vm_dynamic_type_paths.contains(type_path)
     }
 
+    /// Borrows every dynamic JSON row on an entity without copying values or descriptors.
+    ///
+    /// Iteration order is unspecified. A missing entity or one without dynamic rows yields no items.
+    pub fn dynamic_component_values_for_entity(
+        &self,
+        entity: EntityId,
+    ) -> impl Iterator<Item = (&str, &Value)> + '_ {
+        self.dynamic_components
+            .get(&entity)
+            .into_iter()
+            .flat_map(|components| components.iter())
+            .map(|(component_id, value)| (component_id.as_str(), value))
+    }
+
     /// 按类型路径排序复制实体上的全部动态组件，返回可独立持有的快照。
     ///
     /// 空结果不区分实体缺席与没有动态组件；描述符副本仅在当前目录能查到时提供。

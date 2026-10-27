@@ -633,7 +633,7 @@ fn compile_entity_records(
         let target = remapped_entity(remap, entity.source_entity)?;
         record.id = target;
         record.parent = remapped_parent(world, remap, entity.source_entity, record.parent)?;
-        remap_record_entity_references(&mut record, remap);
+        remap.remap_node_record_entity_references(&mut record);
         records.push(record);
     }
     Ok(records)
@@ -723,19 +723,6 @@ fn remapped_parent(
         return Ok(Some(parent));
     }
     Err(DynamicSceneError::MissingSceneParent { entity, parent })
-}
-
-fn remap_record_entity_references(record: &mut NodeRecord, remap: &EntityRemap) {
-    if let Some(joint) = &mut record.joint {
-        if let Some(entity) = joint.connected_entity {
-            joint.connected_entity = Some(remap.get(entity).unwrap_or(entity));
-        }
-        if let Some(binding) = &mut joint.skeleton_binding {
-            binding.skeleton_entity = remap
-                .get(binding.skeleton_entity)
-                .unwrap_or(binding.skeleton_entity);
-        }
-    }
 }
 
 #[cfg(test)]

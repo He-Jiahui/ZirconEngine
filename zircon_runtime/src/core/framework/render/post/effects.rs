@@ -32,7 +32,7 @@ pub use style_settings::{
 
 /// 体积求值和相机提取共享的创作参数集合；启用谓词决定后处理栈是否安排效果族。
 /// 资源是否已绑定由运行时状态报告，不能把此值对象当作 GPU 资源就绪证明。
-#[derive(Clone, Copy, Debug, PartialEq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Default, serde::Serialize, serde::Deserialize)]
 pub struct RenderPostProcessEffectStackSettings {
     pub tonemap: RenderTonemapSettings,
     pub color_lookup: RenderColorLookupSettings,

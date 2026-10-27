@@ -34,6 +34,7 @@ pub(super) fn menu_action_id(action: &MenuAction) -> String {
             format!("workbench.scene.node.create.{}", node_kind_action_id(kind))
         }
         MenuAction::DeleteSelected => "workbench.selection.delete_selected".to_string(),
+        MenuAction::DuplicateSelected => "workbench.selection.duplicate_selected".to_string(),
         MenuAction::OpenView(descriptor_id) => format!("workbench.view.open.{}", descriptor_id.0),
     }
 }
@@ -92,6 +93,7 @@ pub(super) fn menu_action_control_id(action: &MenuAction) -> String {
         MenuAction::Redo => "Redo".to_string(),
         MenuAction::CreateNode(kind) => format!("CreateNode.{}", node_kind_id(kind)),
         MenuAction::DeleteSelected => "DeleteSelected".to_string(),
+        MenuAction::DuplicateSelected => "DuplicateSelected".to_string(),
         MenuAction::OpenView(descriptor_id) => format!("OpenView.{}", descriptor_id.0),
     }
 }

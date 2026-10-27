@@ -77,6 +77,7 @@ pub(crate) fn operation_path_for_menu_action(action: &MenuAction) -> Option<Edit
         MenuAction::CreateNode(NodeKind::RectLight) => "scene.node.create_rect_light",
         MenuAction::CreateNode(NodeKind::SpotLight) => "scene.node.create_spot_light",
         MenuAction::DeleteSelected => "scene.node.delete_selected",
+        MenuAction::DuplicateSelected => "scene.node.duplicate_selected",
         MenuAction::OpenView(descriptor_id) => builtin_view_operation_path(&descriptor_id.0)?,
         _ => return None,
     };

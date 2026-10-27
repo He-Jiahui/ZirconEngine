@@ -45,8 +45,14 @@ pub(crate) use batch_transform::{
 };
 use play_transform::PlayTransformCommand;
 
+#[path = "command/duplicate.rs"]
+mod duplicate;
+use duplicate::DuplicateNodesCommand;
+pub(crate) use duplicate::DuplicateNodesJournalPayload;
+
 pub(crate) enum EditorCommand {
     CreateNode(CreateNodeCommand),
+    DuplicateNodes(DuplicateNodesCommand),
     DeleteNode(DeleteNodeCommand),
     UpdateNode(UpdateNodeCommand),
     BatchTransform(BatchTransformCommand),
@@ -72,6 +78,20 @@ impl EditorCommand {
 
     pub(crate) fn delete_node(scene: &Scene, node_id: NodeId) -> Result<Self, EditCommandError> {
         DeleteNodeCommand::capture(scene, node_id).map(Self::DeleteNode)
+    }
+
+    pub(crate) fn duplicate_nodes(
+        scene: &Scene,
+        node_ids: Vec<NodeId>,
+        primary: Option<NodeId>,
+    ) -> Result<Self, EditCommandError> {
+        DuplicateNodesCommand::capture(scene, node_ids, primary).map(Self::DuplicateNodes)
+    }
+
+    pub(crate) fn from_journal_duplicate(
+        payload: DuplicateNodesJournalPayload,
+    ) -> Result<Self, EditCommandError> {
+        DuplicateNodesCommand::from_journal(payload).map(Self::DuplicateNodes)
     }
 
     pub(crate) fn rename_node(
@@ -206,6 +226,9 @@ impl EditorCommand {
         }
         core.with_scene(|scene| -> Result<(), EditCommandError> {
             plan.owner_revision = Some(scene.world_generation());
+            if let Self::DuplicateNodes(command) = self {
+                command.plan_v1(scene, phase, model, peak_limit, &mut plan)?;
+            }
             if let Self::SetScriptBindings(command) = self {
                 // Staging is transient; quoted replay retains only the command
                 // payload and reserves this scratch through materialization.
@@ -308,6 +331,9 @@ impl EditCommand for EditorCommand {
         if let Self::DeleteNode(command) = self {
             command.prepared_generation_v1 = Some(generation);
         }
+        if let Self::DuplicateNodes(command) = self {
+            command.prepared_generation_v1 = Some(generation);
+        }
         if let Self::CreateNode(command) = self {
             if let Some(quote) = &permit.plan().create_quote_v1 {
                 core.with_scene(|scene| scene.validate_create_history_quote_v1(quote))
@@ -322,6 +348,7 @@ impl EditCommand for EditorCommand {
     fn label(&self) -> &str {
         match self {
             Self::CreateNode(_) => "Create scene node",
+            Self::DuplicateNodes(_) => "Duplicate scene nodes",
             Self::DeleteNode(_) => "Delete scene node",
             Self::UpdateNode(_) => "Update scene node",
             Self::BatchTransform(_) => "Transform scene selection",
@@ -335,6 +362,7 @@ impl EditCommand for EditorCommand {
         let context = core_context(context)?;
         match self {
             Self::CreateNode(command) => command.apply(context),
+            Self::DuplicateNodes(command) => command.apply(context),
             Self::DeleteNode(command) => command.apply(context),
             Self::UpdateNode(command) => command.apply(context),
             Self::BatchTransform(command) => command.apply(context),
@@ -348,6 +376,7 @@ impl EditCommand for EditorCommand {
         let context = core_context(context)?;
         match self {
             Self::CreateNode(command) => command.revert(context),
+            Self::DuplicateNodes(command) => command.revert(context),
             Self::DeleteNode(command) => command.revert(context),
             Self::UpdateNode(command) => command.revert(context),
             Self::BatchTransform(command) => command.revert(context),
@@ -384,6 +413,7 @@ impl EditCommand for EditorCommand {
     fn journal_payload(&self) -> Result<CommandJournalPayload, CommandJournalUnavailable> {
         match self {
             Self::CreateNode(command) => command.journal_payload(),
+            Self::DuplicateNodes(command) => command.journal_payload(),
             Self::DeleteNode(command) => command.journal_payload(),
             Self::UpdateNode(command) => command.journal_payload(),
             Self::BatchTransform(command) => command.journal_payload(),
@@ -1257,6 +1287,7 @@ impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for EditorComman
         use zircon_runtime_interface::retained_memory::RetainedOwnerV1;
         match self {
             Self::CreateNode(v) => v.retained_bound_v1(m),
+            Self::DuplicateNodes(v) => v.retained_bound_v1(m),
             Self::DeleteNode(v) => v.retained_bound_v1(m),
             Self::UpdateNode(v) => v.retained_bound_v1(m),
             Self::BatchTransform(v) => v.retained_bound_v1(m),

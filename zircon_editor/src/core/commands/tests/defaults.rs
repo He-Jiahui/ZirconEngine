@@ -1,6 +1,59 @@
 use super::*;
 
 #[test]
+fn duplicate_selected_is_an_edit_scene_selection_command_with_ctrl_d() {
+    use crate::core::commands::{CommandEvalCtx, EditorCommandRegistry, EditorKeymap};
+    use crate::core::editor_message::PlayStateKind;
+
+    let registry = EditorCommandRegistry::default_workbench();
+    let command = registry.command("scene.node.duplicate_selected").unwrap();
+    assert_eq!(
+        command.default_chord().map(ToString::to_string).as_deref(),
+        Some("Ctrl+D")
+    );
+    assert_eq!(
+        command.menu_path().map(|path| path.root().id().as_str()),
+        Some("selection")
+    );
+    assert_eq!(
+        command.event(),
+        Some(&EditorEvent::WorkbenchMenu(MenuAction::DuplicateSelected))
+    );
+    let context = CommandEvalCtx::interactive()
+        .with_project_open(true)
+        .with_focused_document_kind(DocumentKind::scene())
+        .with_selection_count(2);
+    assert!(command.is_enabled(&context));
+    for disabled in [
+        context.clone().with_selection_count(0),
+        context.clone().with_project_open(false),
+        context
+            .clone()
+            .with_focused_document_kind(DocumentKind::material()),
+        context.clone().with_play_state(PlayStateKind::Playing),
+        context.clone().with_play_state(PlayStateKind::Building),
+        context
+            .clone()
+            .with_play_state(PlayStateKind::CleanupFailed),
+    ] {
+        assert!(!command.is_enabled(&disabled));
+    }
+    let keymap = EditorKeymap::default_workbench();
+    let ctrl_d = EditorKeyChord::from_str("Ctrl+D").unwrap();
+    assert_eq!(
+        keymap.chord_for_command("scene.node.duplicate_selected"),
+        Some(&ctrl_d)
+    );
+    assert_eq!(
+        registry
+            .commands()
+            .filter(|entry| entry.default_chord() == Some(&ctrl_d))
+            .count(),
+        1
+    );
+}
+
+#[test]
 fn viewport_commands_resolve_focus_at_execution_and_drawer_uses_a_host_intent() {
     use crate::core::commands::{CommandEvalCtx, DocumentKind, EditorCommandRegistry};
     use crate::core::editor_event::EditorViewportEvent;

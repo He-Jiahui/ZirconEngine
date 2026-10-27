@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::scene::EntityId;
+use crate::scene::{components::NodeRecord, EntityId};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 /// 记录本次场景应用的源/目标实体关系；未列出的 ID 被视为场景外引用，写入时保持原值。
@@ -35,5 +35,19 @@ impl EntityRemap {
         self.mappings
             .iter()
             .map(|(source, target)| (*source, *target))
+    }
+
+    /// Native references follow the same mapping for scene spawning and record copies.
+    pub(crate) fn remap_node_record_entity_references(&self, record: &mut NodeRecord) {
+        if let Some(joint) = &mut record.joint {
+            if let Some(entity) = joint.connected_entity {
+                joint.connected_entity = Some(self.get(entity).unwrap_or(entity));
+            }
+            if let Some(binding) = &mut joint.skeleton_binding {
+                binding.skeleton_entity = self
+                    .get(binding.skeleton_entity)
+                    .unwrap_or(binding.skeleton_entity);
+            }
+        }
     }
 }

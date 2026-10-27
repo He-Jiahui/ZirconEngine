@@ -5,7 +5,7 @@ const MAX_MOTION_BLUR_SAMPLES: u32 = 32;
 
 /// 时间重建后的运动模糊请求，执行时依赖场景速度及运动向量预通道。
 /// 诊断报告会单独列出资源缺口，因此启用请求本身不代表当前帧可完整执行。
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RenderMotionBlurSettings {
     pub shutter_angle: Real,
     pub samples: u32,

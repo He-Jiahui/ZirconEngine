@@ -209,6 +209,7 @@ pub(crate) fn apply_record_effects(target: &mut UiHostEventEffects, record: &Edi
                 | EditorEvent::WorkbenchMenu(
                     MenuAction::CreateNode(_)
                         | MenuAction::DeleteSelected
+                        | MenuAction::DuplicateSelected
                         | MenuAction::Undo
                         | MenuAction::Redo
                 )

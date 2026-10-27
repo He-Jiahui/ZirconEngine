@@ -28,6 +28,7 @@ impl EditorState {
             EditorIntent::CreateNode(_)
                 | EditorIntent::DeleteNode(_)
                 | EditorIntent::DeleteNodes(_)
+                | EditorIntent::DuplicateSelected
                 | EditorIntent::RenameNode(_, _)
                 | EditorIntent::SetParent(_, _)
                 | EditorIntent::SetParents(_, _)
@@ -87,6 +88,29 @@ impl EditorState {
                 let deleted_count = commands.len();
                 self.execute_scene_commands("Delete scene nodes", commands, MergeMode::Disable)?;
                 self.set_status_line(format!("Deleted {deleted_count} scene node(s)"));
+                Ok(true)
+            }
+            EditorIntent::DuplicateSelected => {
+                let selection = self.viewport_controller.selection();
+                let active_domain = selection.active_domain();
+                if active_domain != WorldDomain::Edit {
+                    return Err(EditorStateOperationError::SelectionWorldMismatch {
+                        requested: WorldDomain::Edit,
+                        active: active_domain,
+                    });
+                }
+                let node_ids = selection.active_items().iter().copied().collect::<Vec<_>>();
+                if node_ids.is_empty() {
+                    self.set_status_line("Nothing selected");
+                    return Ok(false);
+                }
+                let selected_count = node_ids.len();
+                let primary = selection.active_primary();
+                let command = self.capture_scene_command(|scene| {
+                    EditorCommand::duplicate_nodes(scene, node_ids, primary)
+                })?;
+                self.execute_scene_command("Duplicate scene nodes", command)?;
+                self.set_status_line(format!("Duplicated {selected_count} scene node(s)"));
                 Ok(true)
             }
             EditorIntent::SelectNode(id) => self.select_node_in_world(WorldDomain::Edit, id),

@@ -645,6 +645,13 @@ pub(super) fn execute_menu_action_with_save_authorization(
                 effects: scene_effects(),
             })
         }
+        MenuAction::DuplicateSelected => {
+            let mut shell = controller.shell().lock();
+            Ok(scene_intent_event(
+                &mut shell,
+                EditorIntent::DuplicateSelected,
+            )?)
+        }
         MenuAction::OpenView(descriptor_id) => {
             let manager = controller.enter_editor_manager()?;
             let mut shell = controller.shell().lock();

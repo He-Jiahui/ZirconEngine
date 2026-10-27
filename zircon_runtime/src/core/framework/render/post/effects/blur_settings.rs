@@ -1,7 +1,7 @@
 use crate::core::math::Real;
 
 /// 由相机或体积覆盖的模糊半径；效果栈仅在正半径时加入模糊节点。
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RenderBlurSettings {
     pub radius: Real,
 }

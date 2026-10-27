@@ -172,6 +172,157 @@ fn duplicate_node_record_batch_leaves_world_unchanged() {
 }
 
 #[test]
+fn prepare_node_record_copies_remaps_selected_references_without_reserving_live_ids() {
+    use crate::core::framework::scene::PhysicsSkeletonJointBinding;
+    use crate::scene::components::JointComponent;
+
+    let mut world = World::empty();
+    let external = world.spawn_node(NodeKind::Empty).unwrap();
+    let parent = world.spawn_node(NodeKind::Empty).unwrap();
+    let child = world.spawn_node(NodeKind::Empty).unwrap();
+    world.set_parent_checked(parent, Some(external)).unwrap();
+    world.set_parent_checked(child, Some(parent)).unwrap();
+    let parent_before = world.node_record(parent).unwrap();
+    let child_before = world.node_record(child).unwrap();
+    let mut records = vec![child_before.clone(), parent_before.clone()];
+    records[0].joint = Some(JointComponent {
+        connected_entity: Some(parent),
+        skeleton_binding: Some(PhysicsSkeletonJointBinding {
+            skeleton_entity: external,
+            bone_path: "root/hand".into(),
+            parent_bone_path: Some("root".into()),
+        }),
+        ..JointComponent::default()
+    });
+    records[1].joint = Some(JointComponent {
+        connected_entity: Some(external),
+        skeleton_binding: Some(PhysicsSkeletonJointBinding {
+            skeleton_entity: child,
+            ..PhysicsSkeletonJointBinding::default()
+        }),
+        ..JointComponent::default()
+    });
+    let generation = world.world_generation();
+    let next_id = world.entity_id_allocator.next_id();
+
+    let remap = world.prepare_node_record_copies(&mut records).unwrap();
+
+    assert_eq!(world.world_generation(), generation);
+    assert_eq!(world.entity_id_allocator.next_id(), next_id);
+    assert_eq!(world.node_record(parent), Some(parent_before));
+    assert_eq!(world.node_record(child), Some(child_before));
+    assert_eq!(records[0].id, next_id);
+    assert_eq!(records[1].id, next_id + 1);
+    assert_eq!(records[0].parent, remap.get(parent));
+    assert_eq!(records[1].parent, Some(external));
+    let child_joint = records[0].joint.as_ref().unwrap();
+    assert_eq!(child_joint.connected_entity, remap.get(parent));
+    assert_eq!(
+        child_joint
+            .skeleton_binding
+            .as_ref()
+            .unwrap()
+            .skeleton_entity,
+        external
+    );
+    let parent_joint = records[1].joint.as_ref().unwrap();
+    assert_eq!(parent_joint.connected_entity, Some(external));
+    assert_eq!(
+        parent_joint
+            .skeleton_binding
+            .as_ref()
+            .unwrap()
+            .skeleton_entity,
+        remap.get(child).unwrap()
+    );
+    world.insert_owned_node_records(records).unwrap();
+    assert!(world.contains_entity(remap.get(child).unwrap()));
+    assert!(world.contains_entity(remap.get(parent).unwrap()));
+    assert_eq!(world.entity_id_allocator.next_id(), next_id + 2);
+}
+
+#[test]
+fn prepare_node_record_copies_rejects_duplicate_sources_and_missing_parents_before_changes() {
+    let mut world = World::empty();
+    let source = world.spawn_node(NodeKind::Empty).unwrap();
+    let record = world.node_record(source).unwrap();
+    let generation = world.world_generation();
+    let next_id = world.entity_id_allocator.next_id();
+    let mut duplicate = vec![record.clone(), record.clone()];
+    let before = duplicate.clone();
+    assert_eq!(
+        world.prepare_node_record_copies(&mut duplicate),
+        Err(crate::scene::SceneError::DuplicateEntity { entity: source })
+    );
+    assert_eq!(duplicate, before);
+
+    let mut missing_parent = vec![record];
+    missing_parent[0].parent = Some(99);
+    let before = missing_parent.clone();
+    assert_eq!(
+        world.prepare_node_record_copies(&mut missing_parent),
+        Err(crate::scene::SceneError::MissingParent {
+            child: source,
+            parent: 99,
+        })
+    );
+    assert_eq!(missing_parent, before);
+    assert_eq!(world.world_generation(), generation);
+    assert_eq!(world.entity_id_allocator.next_id(), next_id);
+}
+
+#[test]
+fn prepare_node_record_copies_exhaustion_preserves_records_and_live_allocator() {
+    let mut world = World::empty();
+    let mut records = vec![node_record_with_id(11), node_record_with_id(12)];
+    world
+        .entity_id_allocator
+        .replace_next(u64::MAX - 1)
+        .unwrap();
+    let before = records.clone();
+    let generation = world.world_generation();
+
+    assert!(matches!(
+        world.prepare_node_record_copies(&mut records),
+        Err(crate::scene::SceneError::EntityIdExhausted { .. })
+    ));
+    assert_eq!(records, before);
+    assert_eq!(world.entity_id_allocator.next_id(), u64::MAX - 1);
+    assert_eq!(world.world_generation(), generation);
+}
+
+#[test]
+fn duplicate_dynamic_values_borrow_all_rows_without_descriptor_or_json_copies() {
+    let mut world = World::empty();
+    let source = world.spawn_node(NodeKind::Empty).unwrap();
+    world
+        .set_dynamic_component(
+            source,
+            "duplicate.undeclared",
+            serde_json::json!({"items": [1, 2]}),
+        )
+        .unwrap();
+    world
+        .set_dynamic_component(source, "script.bindings", serde_json::json!([]))
+        .unwrap();
+
+    let mut values = world
+        .dynamic_component_values_for_entity(source)
+        .collect::<Vec<_>>();
+    values.sort_by_key(|(component_id, _)| *component_id);
+    assert_eq!(values.len(), 2);
+    assert_eq!(values[0].0, "duplicate.undeclared");
+    assert_eq!(values[1].0, "script.bindings");
+    for (component_id, value) in values {
+        assert!(std::ptr::eq(
+            value,
+            world.dynamic_component(source, component_id).unwrap()
+        ));
+    }
+    assert_eq!(world.dynamic_component_values_for_entity(99).count(), 0);
+}
+
+#[test]
 fn stale_registry_identity_rejects_the_entire_node_record_batch_before_commit() {
     let mut world = World::empty();
     world

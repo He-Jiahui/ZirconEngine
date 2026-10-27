@@ -194,8 +194,8 @@ fn default_palette_keeps_contextual_operations_registered_without_exposing_rows(
     let locale = i18n.active_locale();
     let context = CommandEvalCtx::interactive();
 
-    assert_eq!(registry.commands().count(), 76);
-    assert_eq!(catalog.len(), 69);
+    assert_eq!(registry.commands().count(), 77);
+    assert_eq!(catalog.len(), 70);
     for id in [
         "view.editor.ui_asset.open",
         "timeline_sequence.authoring.open",

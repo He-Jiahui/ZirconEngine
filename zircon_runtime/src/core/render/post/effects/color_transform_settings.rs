@@ -7,7 +7,7 @@ pub const MIN_COLOR_LOOKUP_TEXTURE_SIZE: u32 = 2;
 pub const MAX_COLOR_LOOKUP_TEXTURE_SIZE: u32 = 256;
 const MIN_TONEMAP_WHITE_POINT: Real = 0.001;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum RenderTonemapOperator {
     #[default]
     None,
@@ -16,7 +16,7 @@ pub enum RenderTonemapOperator {
     Filmic,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RenderTonemapSettings {
     pub operator: RenderTonemapOperator,
     pub exposure_bias: Real,
@@ -59,7 +59,7 @@ impl RenderTonemapSettings {
 }
 
 /// LUT 布局声明要求尺寸与纹理维度严格匹配：二维条带为 size²×size，三维纹理为 size³；Auto 只按现有描述符推断，不申请资源。
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum RenderColorLookupTextureLayout {
     #[default]
     Auto,
@@ -136,7 +136,7 @@ impl RenderColorLookupTextureLayout {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RenderColorLookupSettings {
     pub texture: Option<ResourceHandle<TextureMarker>>,
     pub texture_layout: RenderColorLookupTextureLayout,

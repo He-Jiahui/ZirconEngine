@@ -1,7 +1,7 @@
 use crate::core::math::{Real, Vec3};
 
 /// 场景作者的调色参数快照；单位默认值是中性设置，提交阶段再决定是否执行效果。
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RenderColorGradingSettings {
     pub exposure: Real,
     pub contrast: Real,

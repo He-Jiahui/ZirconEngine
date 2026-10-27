@@ -24,6 +24,7 @@ pub(crate) fn register_scene_command_codecs(
     codecs: &mut EditCommandCodecRegistry,
 ) -> Result<(), JournalCodecError> {
     codecs.register(CreateNodeCodec)?;
+    codecs.register(DuplicateNodesCodec)?;
     codecs.register(DeleteNodeCodec)?;
     codecs.register(UpdateNodeCodec)?;
     codecs.register(BatchTransformCodec)?;
@@ -53,6 +54,28 @@ impl EditCommandCodec for CreateNodeCodec {
 }
 
 struct DeleteNodeCodec;
+
+struct DuplicateNodesCodec;
+
+impl EditCommandCodec for DuplicateNodesCodec {
+    fn command_type(&self) -> &str {
+        "zircon.editor.scene.duplicate_nodes"
+    }
+
+    fn schema_version(&self) -> u16 {
+        SCHEMA_VERSION
+    }
+
+    fn decode(&self, payload: &serde_json::Value) -> Result<CommandBox, JournalCodecDecodeError> {
+        let payload = decode_payload::<crate::core::editing::command::DuplicateNodesJournalPayload>(
+            payload,
+            self.command_type(),
+        )?;
+        EditorCommand::from_journal_duplicate(payload)
+            .map(|command| Box::new(command) as CommandBox)
+            .map_err(command_decode_error)
+    }
+}
 
 impl EditCommandCodec for DeleteNodeCodec {
     fn command_type(&self) -> &str {

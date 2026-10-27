@@ -9,8 +9,8 @@ use crate::core::editor_event::{
 use crate::core::editor_operation::EditorOperationPath;
 
 use super::{
-    EditorCommandAction, EditorCommandCategory, EditorCommandDescriptor, EditorCommandMenuPath,
-    EditorKeyChord, PlayModePredicate, WhenClause,
+    DocumentKind, EditorCommandAction, EditorCommandCategory, EditorCommandDescriptor,
+    EditorCommandMenuPath, EditorKeyChord, PlayModePredicate, WhenClause,
 };
 
 #[path = "defaults/viewport.rs"]
@@ -75,7 +75,7 @@ pub(super) fn default_workbench_commands() -> Vec<EditorCommandDescriptor> {
     commands
 }
 
-const DEFAULT_WORKBENCH_COMMAND_CAPACITY: usize = 76;
+const DEFAULT_WORKBENCH_COMMAND_CAPACITY: usize = 77;
 
 fn append_animation_asset_toolkit_open_operations(commands: &mut Vec<EditorCommandDescriptor>) {
     for operation in [
@@ -275,6 +275,21 @@ fn append_selection_commands(commands: &mut Vec<EditorCommandDescriptor>) {
             ["scene", "node", "create"],
         ));
     }
+    commands.push(command(
+        "scene.node.duplicate_selected",
+        EditorCommandCategory::Selection,
+        "selection",
+        &[],
+        EditorEvent::WorkbenchMenu(MenuAction::DuplicateSelected),
+        Some("Ctrl+D"),
+        WhenClause::All(vec![
+            WhenClause::ProjectOpen,
+            WhenClause::FocusedDocumentKind(DocumentKind::scene()),
+            WhenClause::SelectionNonEmpty,
+            WhenClause::PlayMode(PlayModePredicate::Edit),
+        ]),
+        ["scene", "node", "duplicate"],
+    ));
     commands.push(command(
         "scene.node.delete_selected",
         EditorCommandCategory::Selection,

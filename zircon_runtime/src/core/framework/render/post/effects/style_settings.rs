@@ -5,7 +5,7 @@ const MIN_VIGNETTE_ROUNDNESS: Real = 0.001;
 const MIN_DITHER_SCALE: Real = 0.001;
 
 /// 晕影属于显示映射阶段的合成风格参数，由统一后处理通道消费。
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RenderVignetteSettings {
     pub intensity: Real,
     pub smoothness: Real,
@@ -40,7 +40,7 @@ impl RenderVignetteSettings {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RenderFilmGrainSettings {
     pub intensity: Real,
     pub response: Real,
@@ -69,7 +69,7 @@ impl RenderFilmGrainSettings {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RenderDitherSettings {
     pub intensity: Real,
     pub scale: Real,
@@ -98,7 +98,7 @@ impl RenderDitherSettings {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RenderChromaticAberrationSettings {
     pub intensity: Real,
     pub sample_spread: Real,
@@ -128,7 +128,7 @@ impl RenderChromaticAberrationSettings {
 }
 
 /// 屏幕空间雾参与场景合成，必须在颜色映射和终端抗锯齿之前确定。
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct RenderFogSettings {
     pub density: Real,
     pub height_falloff: Real,
