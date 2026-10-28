@@ -144,7 +144,10 @@ pub use overview::MaterialGraphTextureUsage;
 pub use palette_search::{
     search_material_graph_node_palette, MaterialGraphNodeSearch, MaterialGraphNodeSearchNavigation,
 };
-pub use parameters::MaterialGraphParameterView;
+pub use parameters::{
+    plan_material_graph_parameter_edit, MaterialGraphParameterEdit, MaterialGraphParameterEditPlan,
+    MaterialGraphParameterView,
+};
 pub use plugin::{
     editor_capabilities, editor_plugin, editor_plugin_descriptor,
     material_editor_dist_module_manifest, package_manifest, plugin_registration,

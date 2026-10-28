@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
 use super::{
-    compile_material_graph, validate_material_graph_with_diagnostics,
-    MaterialGraphDiagnosticTarget, MaterialGraphPresentation,
+    compile_material_graph, plan_material_graph_parameter_edit,
+    validate_material_graph_with_diagnostics, MaterialGraphDiagnosticTarget,
+    MaterialGraphParameterEdit as Edit, MaterialGraphPresentation,
 };
 use zircon_runtime::asset::{
     AssetReference, AssetUri, MaterialGraphAsset, MaterialGraphLinkAsset, MaterialGraphNodeAsset,
@@ -283,6 +284,304 @@ fn material_graph_parameter_declarations_keep_nonfinite_sources_and_validation_e
         diagnostics
     );
     assert_eq!(graph.to_toml_string().unwrap(), before);
+}
+
+#[test]
+fn material_graph_parameter_edit_preserves_presence_default_and_signed_zero() {
+    let mut graph = graph();
+    graph.nodes = vec![scalar("gain", "Gain", 0.0)];
+    let before = graph.clone();
+    let plan =
+        plan_material_graph_parameter_edit(&graph, "gain", Edit::Set(Value::Scalar(0.0))).unwrap();
+    assert!(std::ptr::eq(plan.source(), &graph));
+    assert!(std::ptr::eq(plan.node(), &graph.nodes[0]));
+    assert!(plan.previous_value().is_none());
+    assert_eq!(plan.proposed_value(), Some(&Value::Scalar(0.0)));
+    assert!(plan.changes_source());
+    assert_eq!(graph, before);
+    assert!(
+        !plan_material_graph_parameter_edit(&graph, "gain", Edit::Reset)
+            .unwrap()
+            .changes_source()
+    );
+    graph.parameters.insert("Gain".into(), Value::Scalar(0.0));
+    let same =
+        plan_material_graph_parameter_edit(&graph, "gain", Edit::Set(Value::Scalar(0.0))).unwrap();
+    assert!(!same.changes_source());
+    assert!(std::ptr::eq(
+        same.previous_value().unwrap(),
+        graph.parameters.get("Gain").unwrap()
+    ));
+    assert!(
+        plan_material_graph_parameter_edit(&graph, "gain", Edit::Set(Value::Scalar(-0.0)))
+            .unwrap()
+            .changes_source()
+    );
+    let reset = plan_material_graph_parameter_edit(&graph, "gain", Edit::Reset).unwrap();
+    assert!(reset.changes_source());
+    assert!(reset.proposed_value().is_none());
+    assert_eq!(reset.previous_value(), Some(&Value::Scalar(0.0)));
+    assert_eq!(graph.nodes, before.nodes);
+}
+
+#[test]
+fn material_graph_parameter_edit_retains_exact_keys_and_all_affected_source_nodes() {
+    let mut graph = graph();
+    graph.nodes = vec![
+        scalar("first", " 增益_Gain ", 0.1),
+        scalar("lower", "gain", 0.2),
+        scalar("last", " 增益_Gain ", 0.8),
+        scalar("upper", "Gain", 0.3),
+    ];
+    graph
+        .parameters
+        .insert("增益_Gain".into(), Value::Scalar(0.4));
+    graph
+        .parameters
+        .insert("Orphan".into(), Value::Vector([0.5; 4]));
+    let before = graph.clone();
+    let plan =
+        plan_material_graph_parameter_edit(&graph, "last", Edit::Set(Value::Scalar(-3.0))).unwrap();
+    assert_eq!(plan.key(), " 增益_Gain ");
+    let Node::ScalarParameter { name, .. } = &graph.nodes[2].kind else {
+        unreachable!()
+    };
+    assert_eq!(plan.key().as_ptr(), name.as_ptr());
+    assert_eq!(
+        plan.affected_nodes()
+            .map(|node| node.id.as_str())
+            .collect::<Vec<_>>(),
+        ["first", "last"]
+    );
+    assert!(plan.previous_value().is_none());
+    assert_eq!(plan.proposed_value(), Some(&Value::Scalar(-3.0)));
+    assert_eq!(graph, before);
+}
+
+#[test]
+fn material_graph_parameter_edit_rejects_cross_kind_alias_but_reset_repairs_one_entry() {
+    let mut graph = graph();
+    graph.nodes = vec![
+        scalar("scalar", "Shared", 0.5),
+        node(
+            "vector",
+            Node::VectorParameter {
+                name: "Shared".into(),
+                default: [0.2; 4],
+            },
+        ),
+    ];
+    graph
+        .parameters
+        .insert("Shared".into(), Value::Vector([0.4; 4]));
+    let before = graph.clone();
+    for (target, value, offending) in [
+        ("scalar", Value::Scalar(0.6), "vector"),
+        ("vector", Value::Vector([0.7; 4]), "scalar"),
+    ] {
+        let errors =
+            plan_material_graph_parameter_edit(&graph, target, Edit::Set(value)).unwrap_err();
+        assert_eq!(errors.len(), 1);
+        assert_eq!(
+            errors[0].target,
+            MaterialGraphDiagnosticTarget::Node {
+                node_id: offending.into()
+            }
+        );
+    }
+    let reset = plan_material_graph_parameter_edit(&graph, "scalar", Edit::Reset).unwrap();
+    assert_eq!(reset.affected_nodes().count(), 2);
+    assert_eq!(reset.previous_value(), Some(&Value::Vector([0.4; 4])));
+    assert!(reset.proposed_value().is_none());
+    assert!(reset.changes_source());
+    assert_eq!(graph, before);
+}
+
+#[test]
+fn material_graph_parameter_edit_rejects_stale_and_ambiguous_ids_without_key_fallback() {
+    let mut graph = graph();
+    graph.nodes = vec![
+        scalar("node", "Gain", 0.5),
+        node("output", Node::Output),
+        node("math", Node::Add),
+    ];
+    graph.parameters.insert("Orphan".into(), Value::Scalar(0.3));
+    for id in ["missing", "Gain", "Orphan", "output", "math", "", " node "] {
+        assert!(plan_material_graph_parameter_edit(&graph, id, Edit::Reset).is_err());
+    }
+    let before = graph.clone();
+    graph.nodes.push(node("math", Node::Multiply));
+    assert!(
+        plan_material_graph_parameter_edit(&graph, "node", Edit::Set(Value::Scalar(0.8))).is_err()
+    );
+    assert!(plan_material_graph_parameter_edit(&graph, "node", Edit::Reset).is_err());
+    graph.nodes.pop();
+    graph.nodes.push(node(" ", Node::Multiply));
+    assert!(plan_material_graph_parameter_edit(&graph, "node", Edit::Reset).is_err());
+    graph.nodes.pop();
+    assert_eq!(graph, before);
+}
+
+#[test]
+fn material_graph_parameter_edit_rejects_nonfinite_proposals_and_retains_inverse_bits() {
+    let mut graph = graph();
+    graph.nodes = vec![
+        scalar("scalar", "Gain", 0.1),
+        node(
+            "vector",
+            Node::VectorParameter {
+                name: "Tint".into(),
+                default: [0.2; 4],
+            },
+        ),
+    ];
+    let payload = f32::from_bits(0x7fc0_002a);
+    graph
+        .parameters
+        .insert("Gain".into(), Value::Scalar(payload));
+    for value in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+        for (id, proposed) in [
+            ("scalar", Value::Scalar(value)),
+            ("vector", Value::Vector([0.1, value, 0.2, 1.0])),
+        ] {
+            let errors =
+                plan_material_graph_parameter_edit(&graph, id, Edit::Set(proposed)).unwrap_err();
+            assert!(matches!(
+                &errors[0].target,
+                MaterialGraphDiagnosticTarget::Parameter { .. }
+            ));
+            assert!(errors[0].message.contains("finite"));
+        }
+    }
+    let reset = plan_material_graph_parameter_edit(&graph, "scalar", Edit::Reset).unwrap();
+    let Some(Value::Scalar(original)) = reset.previous_value() else {
+        unreachable!()
+    };
+    assert_eq!(original.to_bits(), payload.to_bits());
+    assert!(reset.changes_source());
+    let repair =
+        plan_material_graph_parameter_edit(&graph, "scalar", Edit::Set(Value::Scalar(-2.0)))
+            .unwrap();
+    let Some(Value::Scalar(original)) = repair.previous_value() else {
+        unreachable!()
+    };
+    assert_eq!(original.to_bits(), payload.to_bits());
+    assert_eq!(repair.proposed_value(), Some(&Value::Scalar(-2.0)));
+    let hdr = plan_material_graph_parameter_edit(
+        &graph,
+        "vector",
+        Edit::Set(Value::Vector([2.0, -1.0, 4.0, -0.0])),
+    )
+    .unwrap();
+    let Some(Value::Vector(value)) = hdr.proposed_value() else {
+        unreachable!()
+    };
+    assert_eq!(value, &[2.0, -1.0, 4.0, -0.0]);
+    assert!(value[3].is_sign_negative());
+}
+
+#[test]
+fn material_graph_parameter_edit_reset_repairs_empty_keys_without_hiding_invalid_defaults() {
+    let mut graph = graph();
+    graph.nodes = vec![scalar("bad", " \t", f32::NAN)];
+    graph
+        .parameters
+        .insert(" \t".into(), Value::Vector([0.3; 4]));
+    let before = graph.to_toml_string().unwrap();
+    assert!(
+        plan_material_graph_parameter_edit(&graph, "bad", Edit::Set(Value::Scalar(0.1))).is_err()
+    );
+    let plan = plan_material_graph_parameter_edit(&graph, "bad", Edit::Reset).unwrap();
+    assert_eq!(plan.key(), " \t");
+    assert_eq!(plan.previous_value(), Some(&Value::Vector([0.3; 4])));
+    assert!(plan.proposed_value().is_none());
+    let diagnostic = validate_material_graph_with_diagnostics(&graph);
+    assert!(diagnostic
+        .iter()
+        .any(|entry| entry.message.contains("empty parameter name")));
+    assert!(diagnostic
+        .iter()
+        .any(|entry| entry.message.contains("non-finite default")));
+    assert!(diagnostic
+        .iter()
+        .any(|entry| entry.message.contains("incompatible override type")));
+    assert_eq!(graph.to_toml_string().unwrap(), before);
+}
+
+#[test]
+fn material_graph_parameter_edit_codec_compile_and_inverse_keep_exact_presence() {
+    let mut graph = graph();
+    graph.nodes = vec![
+        node("output", Node::Output),
+        scalar("roughness", "粗糙度", 0.6),
+        node(
+            "color",
+            Node::VectorParameter {
+                name: "颜色".into(),
+                default: [0.1, 0.2, 0.3, 1.0],
+            },
+        ),
+    ];
+    graph.links = vec![link("roughness", "roughness"), link("color", "base_color")];
+    graph.parameters.insert("Orphan".into(), Value::Scalar(0.4));
+    let before = graph.to_toml_string().unwrap();
+    // Test-only installation into the real asset codec/compiler, not a host undo implementation.
+    let scalar_inverse = install_parameter_candidate_for_test(
+        &mut graph,
+        "roughness",
+        Edit::Set(Value::Scalar(0.125)),
+    );
+    let vector_inverse = install_parameter_candidate_for_test(
+        &mut graph,
+        "color",
+        Edit::Set(Value::Vector([0.3, 0.4, 0.5, 0.8])),
+    );
+    assert!(scalar_inverse.is_none() && vector_inverse.is_none());
+    let reopened = MaterialGraphAsset::from_toml_str(&graph.to_toml_string().unwrap()).unwrap();
+    let material = compile_material_graph(&reopened).unwrap();
+    assert_eq!(material.roughness, 0.125);
+    assert_eq!(material.base_color, [0.3, 0.4, 0.5, 0.8]);
+    assert_eq!(graph, reopened);
+    let old = install_parameter_candidate_for_test(&mut graph, "roughness", Edit::Reset).unwrap();
+    assert_eq!(old, Value::Scalar(0.125));
+    assert_eq!(compile_material_graph(&graph).unwrap().roughness, 0.6);
+    assert!(!graph.parameters.contains_key("粗糙度"));
+    install_parameter_candidate_for_test(&mut graph, "roughness", Edit::Set(old));
+    assert_eq!(compile_material_graph(&graph).unwrap().roughness, 0.125);
+    install_parameter_candidate_for_test(&mut graph, "roughness", Edit::Reset);
+    install_parameter_candidate_for_test(&mut graph, "color", Edit::Reset);
+    assert_eq!(graph.to_toml_string().unwrap(), before);
+    assert_eq!(graph.parameters.get("Orphan"), Some(&Value::Scalar(0.4)));
+    let default = install_parameter_candidate_for_test(
+        &mut graph,
+        "roughness",
+        Edit::Set(Value::Scalar(0.6)),
+    );
+    assert!(default.is_none());
+    let reopened = MaterialGraphAsset::from_toml_str(&graph.to_toml_string().unwrap()).unwrap();
+    assert_eq!(reopened.parameters.get("粗糙度"), Some(&Value::Scalar(0.6)));
+}
+
+fn install_parameter_candidate_for_test(
+    graph: &mut MaterialGraphAsset,
+    node_id: &str,
+    edit: Edit,
+) -> Option<Value> {
+    let plan = plan_material_graph_parameter_edit(graph, node_id, edit).unwrap();
+    let (key, previous, proposed) = (
+        plan.key().to_owned(),
+        plan.previous_value().cloned(),
+        plan.proposed_value().cloned(),
+    );
+    match proposed {
+        Some(value) => {
+            graph.parameters.insert(key, value);
+        }
+        None => {
+            graph.parameters.remove(&key);
+        }
+    }
+    previous
 }
 
 fn graph() -> MaterialGraphAsset {
