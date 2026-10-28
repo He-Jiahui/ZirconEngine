@@ -150,6 +150,16 @@ pub(super) unsafe extern "C" fn invoke_command(
         // SAFETY: The host supplies one immutable input allocation for this callback;
         // the bounded length and non-null shape were checked before reading it.
         let bytes = unsafe { native::bytes_from_slice(payload) };
+        // Derived named structs also accept positional sequences. Keep the wire
+        // contract object-only without a Value pass that would discard duplicate keys.
+        if bytes
+            .iter()
+            .copied()
+            .find(|byte| !matches!(*byte, b' ' | b'\t' | b'\n' | b'\r'))
+            != Some(b'{')
+        {
+            return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
+        }
         let result = if slot == 2 {
             let Ok(arguments) = serde_json::from_slice::<ShaderArguments>(bytes) else {
                 return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
