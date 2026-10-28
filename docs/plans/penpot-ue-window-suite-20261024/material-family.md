@@ -1,3 +1,12 @@
+## 材质接续109：真实宿主消费路径与窄页签协议（2026-10-28）
+
+- 原唯一 producer/request 与 ready `w448b90023f-native94`接续108/e6813e03；本轮仓库仅此台账，四份 dist Rust/manifest 原字节保持。108整份490403字节作为原样后缀保留，原Source79的204=203普通+1ignored透明更正沿接续99，不混入当前native60项定义。无新Rust定义/编译/产品身份；不重投旧r10、#448或任何terminal operation，不写fork/Shared/原ZUI/host。
+- 实际canonical源码观测是 `5436b180`，与managed `e6813e03`分开。typed `material_editor/editor/src/plugin.rs`确有 `register_authoring_extensions`及Material/MaterialGraph Toolkit augment，view实际为 `material_editor.graph`；builtin表单独缺项不能证明最终enabled registry无Toolkit。当前native batch的7命令/1本地化不含该typed augment；serialized AssetType materializer当前走presentation define，没有凭空发布可用的augment schema。源码存在不证明当前产品已安装。
+- `OpenAsset`沿enabled registry/open command准入，再open_view、写入原 `AssetToolkitOpenRoute`并focus；这一步没有附加材质作者文档。`invoke_native_command`只解码callback/result codec并记录 `EditorEventResult::success(result)`，没有材质事务/renderer消费者。当前builtin材质仍3 canned profiles+`Not implemented (preview)`，而所读 `CoreEditContext`只有animation document owner。不能以generic native success冒充material ok、编译、保存或渲染完成，也不臆造现成Material document accessor。
+- 精确17路径/行锚/hash与可审阅8步接入合同位于原报告根 `material-host-seam-109-source.json`、`material-host-seam-109-contract.json`。下一真实切片从原Toolkit/project/source authority加载原作者Graph/Material文档，接原DocumentToolkit生命周期，按同incarnation/view/document/subdocument/revision/lease/selection request/native generation消费实际slot0/3/5及1/2结果；参数slot6再走一个map-entry raw Option delta/inverse/prepare/permit/CAS/history。affected声明只是显示依赖，Reset不是default，undo不是validated Set(previous)。错误保留作者dirty source与最后真实preview，不建另一store/clock/history、dummy factory或装饰renderer。Parent共享host/事务/public接入责任及具体失败检查已实际queue交接；当前WT不越过原五路径。
+- Function原file/page fresh读rev497/5775对象，受控三板439对象在旧context关闭/新context重开后逐对象全同，原components hash保持，未编辑设计。UE `SDockingTabWell::ComputeChildSize`等分页签；`SDockTab.h`默认 `LabelOverflowPolicy=Ellipsis`且实际LabelWidget消费该值。原设计等分保持，现有硬裁切缺口继续open；本轮不缩字号、改宽度或把原完整caption替换成假的省略串。正式ellipsis/source identity/tooltip/allocated clip/一次DPI/export/painter合同交public owner。107图只保留历史，不新增相同图冒充修复。
+- 浏览器首个plain-pipe启动因stdin EOF直接关闭，保留原receipt；第二次真实独立headless context导航/只读API/重开后明确关闭，认证文件只读。无桌面/服务/系统DPI操作。原dist60项仍仅定义，受管recipe原拒绝按同entry字节证据复用；不借文档检查签Rust/SDK/画面。official export、真实host/history/save/renderer、正常EXE、实际150%DPI与双端1DIP继续open；passed=false、accepted=false、goal active。
+
 ## 材质接续108：原生参数编辑候选接既有 Set/Reset 规划（2026-10-28）
 
 - 原唯一producer/request `ue-material-graph-20261024-01`与ready `w448b90023f-native94`接续107/bc67bca3；恰原dist commands、tests及本台账三路径。原domain/Runtime/host/共享Graph/组件/主题/Penpot/ZUI、fork与manifest/ABI不改，原107整份486610字节作为后缀保持。
