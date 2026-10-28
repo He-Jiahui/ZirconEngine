@@ -5,15 +5,16 @@ use std::io::{self, Write};
 
 use serde_json::{json, Value};
 use zircon_plugin_material_editor_editor::{
-    compile_material_graph_with_diagnostics, validate_material_graph_with_diagnostics,
-    MaterialGraphDiagnostic, MaterialGraphDiagnosticTarget,
+    compile_material_graph_with_diagnostics, compile_material_graph_with_shader_contract,
+    validate_material_graph_with_diagnostics, MaterialGraphDiagnostic,
+    MaterialGraphDiagnosticTarget, MaterialGraphShaderCompileError,
 };
 use zircon_plugin_sdk::native::{
     self, callback_status, NativePluginByteSliceV3, NativePluginCallbackStatusV3,
     NativePluginOutputSinkV4, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
     ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
-use zircon_runtime::asset::MaterialGraphAsset;
+use zircon_runtime::asset::{AssetReference, MaterialGraphAsset, ShaderAsset};
 
 pub(super) const MAX_INPUT_BYTES: usize = 1024 * 1024;
 pub(super) const MAX_OUTPUT_BYTES: usize = 1024 * 1024;
@@ -28,6 +29,11 @@ max_output_bytes = 1048576
 name = "material_editor.graph.compile"
 slot = 1
 payload_schema = "material_editor.compile_graph.v1"
+max_output_bytes = 1048576
+[[commands]]
+name = "material_editor.graph.compile_shader_contract"
+slot = 2
+payload_schema = "material_editor.compile_graph_shader.v1"
 max_output_bytes = 1048576
 "#,
     "\0"
@@ -74,6 +80,22 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
       }
     },
     {
+      "kind": "command",
+      "id": "material_editor.graph.compile_shader_contract",
+      "schema": "zircon.editor.command/3",
+      "localization_bundle_id": "material_editor",
+      "label_key": "command.material_editor.graph.compile_shader_contract.label",
+      "description_key": "command.material_editor.graph.compile_shader_contract.description",
+      "execution_contract": {
+        "result_codec": "zircon.editor.command-result.v1",
+        "resource_budget": {
+          "max_input_bytes": 1048576,
+          "max_output_bytes": 1048576,
+          "max_execution_time_ms": 5000
+        }
+      }
+    },
+    {
       "kind": "localization_bundle",
       "id": "material_editor",
       "schema": "zircon.editor.localization-bundle/1",
@@ -82,13 +104,17 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
           "command.material_editor.graph.validate.label": "Validate Material Graph",
           "command.material_editor.graph.validate.description": "Validate the submitted material graph",
           "command.material_editor.graph.compile.label": "Compile Material Graph",
-          "command.material_editor.graph.compile.description": "Compile the submitted material graph into a MaterialAsset"
+          "command.material_editor.graph.compile.description": "Compile the submitted material graph into a MaterialAsset",
+          "command.material_editor.graph.compile_shader_contract.label": "Check Compiled Material Shader Contract",
+          "command.material_editor.graph.compile_shader_contract.description": "Compile the submitted graph and check the supplied shader contract"
         },
         "zh-CN": {
           "command.material_editor.graph.validate.label": "校验材质图",
           "command.material_editor.graph.validate.description": "校验本次请求中的材质图",
           "command.material_editor.graph.compile.label": "编译材质图",
-          "command.material_editor.graph.compile.description": "将本次请求中的材质图编译为 MaterialAsset"
+          "command.material_editor.graph.compile.description": "将本次请求中的材质图编译为 MaterialAsset",
+          "command.material_editor.graph.compile_shader_contract.label": "校验编译材质的着色器契约",
+          "command.material_editor.graph.compile_shader_contract.description": "编译本次材质图并校验传入的着色器契约"
         }
       }
     }
@@ -97,9 +123,10 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
     "\0"
 ).as_bytes();
 
-const COMPLETED: &[u8] = b"material graph command completed; inspect result ok and diagnostics\0";
+const COMPLETED: &[u8] = b"material command completed; inspect the result status and diagnostics\0";
 const UNKNOWN_SLOT: &[u8] = b"material graph command slot is unknown\0";
-const INVALID_REQUEST: &[u8] = b"material graph command requires one bounded JSON graph argument\0";
+const INVALID_REQUEST: &[u8] =
+    b"material command requires one bounded JSON material command argument\0";
 const OUTPUT_FAILED: &[u8] = b"material graph command could not encode its bounded result\0";
 const PANICKED: &[u8] = b"material graph command panicked\0";
 
@@ -111,7 +138,7 @@ pub(super) unsafe extern "C" fn invoke_command(
     output: NativePluginOutputSinkV4,
 ) -> NativePluginCallbackStatusV3 {
     native::catch_native_callback_panic(PANICKED, || {
-        if slot > 1 {
+        if slot > 2 {
             return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, UNKNOWN_SLOT);
         }
         if payload.len == 0 || payload.len > MAX_INPUT_BYTES || payload.data.is_null() {
@@ -123,25 +150,21 @@ pub(super) unsafe extern "C" fn invoke_command(
         // SAFETY: The host supplies one immutable input allocation for this callback;
         // the bounded length and non-null shape were checked before reading it.
         let bytes = unsafe { native::bytes_from_slice(payload) };
-        let Some(graph) = decode_graph(bytes) else {
-            return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
-        };
-        let (diagnostics, material) = if slot == 0 {
-            (validate_material_graph_with_diagnostics(&graph), None)
+        let result = if slot == 2 {
+            let Ok(arguments) = serde_json::from_slice::<ShaderArguments>(bytes) else {
+                return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
+            };
+            shader_result(
+                &arguments.graph,
+                &arguments.shader_reference,
+                &arguments.shader,
+            )
         } else {
-            match compile_material_graph_with_diagnostics(&graph) {
-                Ok(material) => (Vec::new(), Some(material)),
-                Err(diagnostics) => (diagnostics, None),
-            }
+            let Some(graph) = decode_graph(bytes) else {
+                return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
+            };
+            graph_result(&graph, slot)
         };
-        // Native OK denotes a completed request, including a graph with compile errors.
-        // Only result.ok with an empty diagnostic list qualifies a successful compile.
-        let result = json!({
-            "graph_uri": graph.uri,
-            "ok": diagnostics.is_empty(),
-            "diagnostics": diagnostics.iter().map(diagnostic_json).collect::<Vec<_>>(),
-            "material": material,
-        });
         let mut encoded = BoundedOutput {
             bytes: Vec::new(),
             limit: output.max_output_bytes.min(MAX_OUTPUT_BYTES),
@@ -157,6 +180,86 @@ pub(super) unsafe extern "C" fn invoke_command(
         }
         callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, COMPLETED)
     })
+}
+
+fn graph_result(graph: &MaterialGraphAsset, slot: u32) -> Value {
+    let (diagnostics, material) = if slot == 0 {
+        (validate_material_graph_with_diagnostics(graph), None)
+    } else {
+        match compile_material_graph_with_diagnostics(graph) {
+            Ok(material) => (Vec::new(), Some(material)),
+            Err(diagnostics) => (diagnostics, None),
+        }
+    };
+    // Native OK denotes a completed request, including a graph with compile errors.
+    // Only result.ok with an empty diagnostic list qualifies a successful compile.
+    json!({
+        "graph_uri": graph.uri,
+        "ok": diagnostics.is_empty(),
+        "diagnostics": diagnostics.iter().map(diagnostic_json).collect::<Vec<_>>(),
+        "material": material,
+    })
+}
+
+/// Checks the original full reference before using the supplied shader payload.
+/// The host still owns ResourceManager resolution, source generation and result admission.
+fn shader_result(
+    graph: &MaterialGraphAsset,
+    shader_reference: &AssetReference,
+    shader: &ShaderAsset,
+) -> Value {
+    let (diagnostics, shader_error, material) = if graph.shader.as_ref() != Some(shader_reference) {
+        (
+            Vec::new(),
+            json!({
+                "kind": "reference_mismatch",
+                "expected": graph.shader,
+                "actual": shader_reference,
+            }),
+            None,
+        )
+    } else {
+        match compile_material_graph_with_shader_contract(graph, shader) {
+            Ok(material) => (Vec::new(), Value::Null, Some(material)),
+            Err(MaterialGraphShaderCompileError::Graph(diagnostics)) => (
+                diagnostics.iter().map(diagnostic_json).collect(),
+                Value::Null,
+                None,
+            ),
+            Err(MaterialGraphShaderCompileError::ShaderLocatorMismatch { expected, actual }) => (
+                Vec::new(),
+                json!({"kind":"locator_mismatch", "expected":expected, "actual":actual}),
+                None,
+            ),
+            Err(MaterialGraphShaderCompileError::ShaderImportDiagnostics(diagnostics)) => (
+                Vec::new(),
+                json!({"kind":"import_diagnostics", "diagnostics":diagnostics}),
+                None,
+            ),
+            Err(MaterialGraphShaderCompileError::ShaderContract(diagnostics)) => (
+                Vec::new(),
+                // Serialize the existing Runtime error DTOs, including their real source/path.
+                json!({"kind":"contract", "diagnostics":diagnostics}),
+                None,
+            ),
+        }
+    };
+    json!({
+        "graph_uri": graph.uri,
+        "shader_reference": shader_reference,
+        "ok": material.is_some(),
+        "diagnostics": diagnostics,
+        "shader_error": shader_error,
+        "material": material,
+    })
+}
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ShaderArguments {
+    graph: MaterialGraphAsset,
+    shader_reference: AssetReference,
+    shader: ShaderAsset,
 }
 
 #[derive(serde::Deserialize)]
