@@ -228,6 +228,20 @@ export async function closeCanonicalPublicationSaveContext<T>(
   return result;
 }
 
+/** Exports are read-only. Verify the complete saved library after the export
+ * workspace closes, including changes that materialize during close. */
+export async function verifyCanonicalPublicationExportReadback<T extends {
+  id: string; revn: number; vern: number; data: unknown;
+}>(before: T, close: () => Promise<void>, readFresh: () => Promise<T>): Promise<T> {
+  await close();
+  const after = await readFresh();
+  assert.equal(after.id, before.id, 'Canonical export readback returned a different file');
+  assert.equal(after.vern, before.vern, 'Read-only canonical export changed file version');
+  assert.equal(after.revn, before.revn, 'Read-only canonical export changed file revision');
+  assert.deepEqual(after.data, before.data, 'Read-only canonical export changed file data');
+  return after;
+}
+
 /** Official editable import, actual save ACK, fresh-context readback and source export. */
 export async function publishCanonicalLibrary(options: CanonicalLibraryPublicationOptions): Promise<void> {
   assert.ok(options.existingPlugin,
@@ -372,16 +386,22 @@ export async function publishCanonicalLibrary(options: CanonicalLibraryPublicati
     receipt['uiBuildEvidence'] = await verifyCurrentPluginUi({buildReceiptPath: options.uiBuildReceipt,
       repositoryRoot: options.repoRoot, dist: options.dist, host, indexBytes: await index.body(),
       get: (url: string) => context!.request.get(url)});
+    const observeSaves = async (page: Parameters<typeof observeRealSaveHttp>[0],
+      key: 'saveObserver' | 'exportSaveObserver') => {
+      // Each observer numbers its captures from one; retain the original save files.
+      const observerOutput = key === 'saveObserver' ? output : resolve(output, 'export-save-observer');
+      await mkdir(observerOutput, {recursive: true});
+      receipt[`${key}Output`] = observerOutput;
+      receipt[key] = await observeRealSaveHttp(page, {fileId: identity.fileId, output: observerOutput, pending,
+        diagnostics: [], onError: error => saveErrors.push(String(error)), onResponse: async actual => {
+          const request = decode(actual.requestBody.toString('utf8')) as Parameters<typeof verifySaveResponse>[3];
+          const revn = verifySaveResponse(decode(actual.responseBody.toString('utf8')), identity,
+            initial.revn, request);
+          saves.push({revn, requestSha256: sha256(actual.requestBody), responseSha256: sha256(actual.responseBody)});
+        }});
+    };
     const session = await openWorkspace(context, options.workspaceUrl, host, manifest, bundleSha256, errors, decode,
-      async page => {
-        receipt['saveObserver'] = await observeRealSaveHttp(page, {fileId: identity.fileId, output, pending,
-          diagnostics: [], onError: error => saveErrors.push(String(error)), onResponse: async actual => {
-            const request = decode(actual.requestBody.toString('utf8')) as Parameters<typeof verifySaveResponse>[3];
-            const revn = verifySaveResponse(decode(actual.responseBody.toString('utf8')), identity,
-              initial.revn, request);
-            saves.push({revn, requestSha256: sha256(actual.requestBody), responseSha256: sha256(actual.responseBody)});
-          }});
-      }, options.existingPlugin);
+      page => observeSaves(page, 'saveObserver'), options.existingPlugin);
     receipt['installation'] = session.installation;
     if (options.fontResources) {
       await session.frame.locator('[data-font-resource-manifest]').setInputFiles(options.fontResources);
@@ -441,7 +461,7 @@ export async function publishCanonicalLibrary(options: CanonicalLibraryPublicati
     receipt['nativeCopyFreshReopen'] = assertNativeInstanceGeometryPreserved(saved, reopenedFile);
     assertCanonicalLibraryPreserved(initial, reopenedFile);
     const reopened = await openWorkspace(context, options.workspaceUrl, host, manifest, bundleSha256, errors, decode,
-      undefined, options.existingPlugin);
+      page => observeSaves(page, 'exportSaveObserver'), options.existingPlugin);
     const exports: unknown[] = []; receipt['exports'] = exports;
     for (const [index, item] of prepared.entries()) {
       const record = records.find(record => record.sourcePath === item.sourcePath)!;
@@ -469,6 +489,17 @@ export async function publishCanonicalLibrary(options: CanonicalLibraryPublicati
       assert.equal(sha256(await readFile(resolve(options.repoRoot, item.sourcePath))), item.sha256);
       await checkpoint();
     }
+    const exportReadback = await verifyCanonicalPublicationExportReadback(reopenedFile,
+      () => closeCanonicalPublicationSaveContext(pending, saveErrors, async () => {
+        await context!.close(); context = undefined; receipt['closedExportContext'] = true;
+      }), async () => {
+        context = await browser!.newContext({storageState: authentication, acceptDownloads: true,
+          viewport: {width: 1920, height: 1200}, locale: 'en-US', serviceWorkers: 'block'});
+        receipt['newExportReadbackContext'] = true;
+        return rpc<any>(context, identity.origin, 'get-file', {id: identity.fileId}, decode);
+      });
+    receipt['exportReadbackVerified'] = true;
+    receipt['exportReadbackRevision'] = {revn: exportReadback.revn, vern: exportReadback.vern};
     await assertCanonicalPublicationSourcePins(sourcePins, readSourceSha256);
     receipt['exportSemanticMatch'] = true; receipt['sourceFingerprintMatched'] = true;
     receipt['officialPngDownloaded'] = exportEvidence === 'source-owner-and-png';
