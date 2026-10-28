@@ -17,12 +17,11 @@ pub struct CameraComponent {
     #[zr_reflect(skip)]
     pub core_pipeline: CorePipelineKind,
     #[serde(default)]
-    #[zr_reflect(skip)]
+    #[zr_reflect(value_type_path = "Enum")]
     pub projection_mode: ProjectionMode,
     #[serde(default = "default_camera_fov_y_radians")]
     pub fov_y_radians: Real,
     #[serde(default = "default_camera_ortho_size")]
-    #[zr_reflect(skip)]
     pub ortho_size: Real,
     #[serde(default = "default_camera_z_near")]
     pub z_near: Real,

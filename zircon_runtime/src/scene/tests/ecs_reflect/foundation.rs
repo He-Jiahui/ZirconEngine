@@ -25,6 +25,8 @@ use crate::scene::{
 
 #[path = "foundation/address_routing.rs"]
 mod address_routing;
+#[path = "foundation/camera.rs"]
+mod camera;
 #[path = "foundation/fixed_lights_name.rs"]
 mod fixed_lights_name;
 #[path = "foundation/fixed_registry.rs"]

@@ -15,6 +15,9 @@ use crate::ui::workbench::state::EditorState;
 
 use super::support::read_reflected_field;
 
+#[path = "native_fields/camera_projection.rs"]
+mod camera_projection;
+
 const CAMERA: &str = "zircon_runtime::scene::components::CameraComponent";
 const POINT_LIGHT: &str = "zircon_runtime::scene::components::PointLight";
 const MESH: &str = "zircon_runtime::scene::components::MeshRenderer";

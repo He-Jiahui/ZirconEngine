@@ -43,6 +43,7 @@ impl InspectorNativeFieldSnapshot {
                 | ReflectedValue::Integer(_)
                 | ReflectedValue::Unsigned(_)
                 | ReflectedValue::Scalar(_)
+                | ReflectedValue::Enum(_)
         ) || (field_name == "color"
             && matches!(value, ReflectedValue::Vec3(_) | ReflectedValue::Vec4(_)))
     }
