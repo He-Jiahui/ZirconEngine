@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 import { createHash } from 'node:crypto';
-import { assertCanonicalLibraryPreserved, canonicalPublicationEmbeddedSvgPins, canonicalPublicationExportEvidence, canonicalPublicationSourcePins,
+import { assertCanonicalLibraryPreserved, assertCanonicalPublicationSavedReadback, canonicalPublicationEmbeddedSvgPins, canonicalPublicationExportEvidence, canonicalPublicationSourcePins,
   closeCanonicalPublicationSaveContext, verifyCanonicalPublicationExportReadback,
   collectCanonicalOwnerExportEvidence, collectCanonicalPublicationExportEvidence,
   publishCanonicalLibrary, requestCanonicalPluginResource, withCanonicalPublicationSourcePins,
@@ -682,5 +682,103 @@ describe('canonical publication verifies the complete library after the read-onl
       }), read)).rejects.toThrow('actual export save body unavailable');
     expect(read).not.toHaveBeenCalled();
     expect(pending.size).toBe(0);
+  });
+});
+
+describe('canonical publication preserves the complete saved snapshot before admitting owner export', () => {
+  function fixture() {
+    const original = {id: 'shared-file', revn: 7, vern: 0, data: {
+      pages: ['page'],
+      components: {original: {'main-instance-id': 'original-main', name: 'WorkbenchButton'}},
+      colors: {primary: {id: 'original-color', color: '#0070e0'}},
+      typographies: {body: {id: 'original-typography', 'font-size': '14'}},
+      'pages-index': {page: {name: 'Shared', objects: {
+        '00000000-0000-0000-0000-000000000000': {id: 'root', shapes: ['original-main']},
+        'original-main': {id: 'original-main', 'component-id': 'original', x: 12},
+      }}},
+      options: {nativeTextCacheVersion: 1},
+    }};
+    const saved = { ...structuredClone(original), revn: 8, data: {
+      ...structuredClone(original.data),
+      components: {...original.data.components,
+        added: {'main-instance-id': 'added-main', name: 'WorkbenchField'}},
+      'pages-index': {page: {name: 'Shared', objects: {
+        ...structuredClone(original.data['pages-index'].page.objects),
+        '00000000-0000-0000-0000-000000000000': {id: 'root', shapes: ['original-main', 'added-main']},
+        'added-main': {id: 'added-main', 'component-id': 'added', x: 240},
+        'added-caption': {id: 'added-caption', 'parent-id': 'added-main', content: {text: 'Value'},
+          fills: [{color: '#c0c0c0'}], positionData: [{width: 48, text: 'Value'}]},
+        'added-vector': {id: 'added-vector', 'parent-id': 'added-main', content: 'M0 0L1 1'},
+      }}},
+    }};
+    return {original, saved};
+  }
+
+  it('admits an independent exact saved readback without changing either snapshot', () => {
+    const {saved} = fixture();
+    const before = structuredClone(saved), reopened = structuredClone(saved);
+    expect(() => assertCanonicalPublicationSavedReadback(saved, reopened)).not.toThrow();
+    expect(saved).toEqual(before);
+    expect(reopened).toEqual(before);
+  });
+
+  it.each(['id', 'revn', 'vern'] as const)('rejects a changed %s before adopting the reopened export baseline', key => {
+    const {saved} = fixture();
+    const reopened = structuredClone(saved);
+    if (key === 'id') reopened.id = 'other-file';
+    else reopened[key] += 1;
+    expect(() => assertCanonicalPublicationSavedReadback(saved, reopened)).toThrow();
+    expect(saved).toEqual(fixture().saved);
+  });
+
+  it.each(['new-main-geometry', 'new-caption-paint', 'new-position-data', 'new-vector', 'new-membership', 'file-options'])
+    ('rejects %s that the pre-append original-content guard does not protect', changed => {
+      const {original, saved} = fixture();
+      const reopened = structuredClone(saved);
+      const objects = reopened.data['pages-index'].page.objects;
+      switch (changed) {
+        case 'new-main-geometry': objects['added-main'].x += 1; break;
+        case 'new-caption-paint': objects['added-caption'].fills[0].color = '#ffffff'; break;
+        case 'new-position-data': objects['added-caption'].positionData[0].width += 1.0625; break;
+        case 'new-vector': objects['added-vector'].content = 'M0 0L2 2'; break;
+        case 'new-membership': Reflect.deleteProperty(objects, 'added-caption'); break;
+        case 'file-options': reopened.data.options.nativeTextCacheVersion += 1; break;
+      }
+      expect(() => assertCanonicalLibraryPreserved(original, reopened)).not.toThrow();
+      expect(reopened.data.components).toEqual(saved.data.components);
+      expect(() => assertCanonicalPublicationSavedReadback(saved, reopened))
+        .toThrow('Canonical save readback changed file data');
+      expect(saved).toEqual(fixture().saved);
+    });
+
+  it('rejects a late save during original workspace close even when an exact change ACK was observed', async () => {
+    const {saved} = fixture();
+    const request = {id: saved.id, 'session-id': '22222222-2222-4222-8222-222222222222',
+      revn: 7, changes: [{type: 'mod-obj', id: 'added-caption'}]};
+    const acknowledged = verifySaveResponse({revn: 8, lagged: [{
+      id: '33333333-3333-4333-8333-333333333333', 'file-id': saved.id,
+      'session-id': request['session-id'], revn: 8, changes: request.changes,
+    }]}, {fileId: saved.id}, 7, request);
+    expect(acknowledged).toBe(saved.revn);
+    const persisted = structuredClone(saved);
+    const pending = new Set<Promise<void>>();
+    const errors: string[] = [];
+    const events: string[] = [];
+    const exportOwner = vi.fn();
+    const readback = async () => {
+      await closeCanonicalPublicationSaveContext(pending, errors, async () => {
+        events.push('closed');
+        persisted.revn += 1;
+        persisted.data['pages-index'].page.objects['added-caption'].positionData[0].width += 1.0625;
+      });
+      events.push('fresh-read');
+      const reopened = structuredClone(persisted);
+      assertCanonicalPublicationSavedReadback(saved, reopened);
+      exportOwner();
+    };
+    await expect(readback()).rejects.toThrow('Canonical save readback changed file revision');
+    expect(events).toEqual(['closed', 'fresh-read']);
+    expect(exportOwner).not.toHaveBeenCalled();
+    expect(saved).toEqual(fixture().saved);
   });
 });
