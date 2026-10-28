@@ -11,21 +11,12 @@ use zircon_runtime::asset::{
 };
 
 #[test]
-fn material_editor_dist_native_manifest_preserves_registration_and_declares_real_slots() {
+fn material_editor_dist_native_manifest_declares_real_slots_and_contribution_schema() {
     let behavior = behavior();
-    // SAFETY: behavior() returns immutable SDK static tables with NUL-terminated manifest bytes.
-    let registration = unsafe { CStr::from_ptr(behavior.registration_manifest) };
-    assert_eq!(
-        registration.to_bytes_with_nul(),
-        crate::NATIVE_EDITOR_REGISTRATION_MANIFEST
-    );
-    // SAFETY: The unchanged SDK registration schema is a static NUL-terminated string.
+    // SAFETY: The entry exposes a static NUL-terminated editor contribution schema.
     let registration_schema =
         unsafe { CStr::from_ptr(behavior.schema_versions.registration_manifest_schema) };
-    assert_eq!(
-        registration_schema.to_bytes_with_nul(),
-        native::NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3
-    );
+    assert_eq!(registration_schema.to_bytes_with_nul(), REGISTRATION_SCHEMA);
     // SAFETY: The behavior command manifest points to the static NUL-terminated MANIFEST.
     let command_manifest = unsafe { CStr::from_ptr(behavior.command_manifest) };
     let manifest =
@@ -269,6 +260,165 @@ fn material_editor_dist_native_requires_a_live_output_writer() {
     );
     assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
     assert_eq!(capture.calls, 0);
+}
+
+#[test]
+fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract() {
+    use zircon_plugin_sdk::editor_contribution::EditorContributionBuilder;
+
+    // These two contracts are the host's existing typed execution DTOs, inferred
+    // from the SDK builder's concrete parameter type, not a new transport model.
+    let contract = || {
+        serde_json::from_value(json!({
+        "result_codec":"zircon.editor.command-result.v1",
+        "resource_budget":{"max_input_bytes":1048576,"max_output_bytes":1048576,"max_execution_time_ms":5000}
+    })).unwrap()
+    };
+    let expected = EditorContributionBuilder::new("material_editor")
+        .command_with_execution_contract(
+            "material_editor.graph.validate",
+            "command.material_editor.graph.validate.label",
+            "command.material_editor.graph.validate.description",
+            contract(),
+        )
+        .command_with_execution_contract(
+            "material_editor.graph.compile",
+            "command.material_editor.graph.compile.label",
+            "command.material_editor.graph.compile.description",
+            contract(),
+        )
+        .localization_bundle(
+            [
+                (
+                    "en",
+                    [
+                        (
+                            "command.material_editor.graph.validate.label",
+                            "Validate Material Graph",
+                        ),
+                        (
+                            "command.material_editor.graph.validate.description",
+                            "Validate the submitted material graph",
+                        ),
+                        (
+                            "command.material_editor.graph.compile.label",
+                            "Compile Material Graph",
+                        ),
+                        (
+                            "command.material_editor.graph.compile.description",
+                            "Compile the submitted material graph into a MaterialAsset",
+                        ),
+                    ],
+                ),
+                (
+                    "zh-CN",
+                    [
+                        ("command.material_editor.graph.validate.label", "校验材质图"),
+                        (
+                            "command.material_editor.graph.validate.description",
+                            "校验本次请求中的材质图",
+                        ),
+                        ("command.material_editor.graph.compile.label", "编译材质图"),
+                        (
+                            "command.material_editor.graph.compile.description",
+                            "将本次请求中的材质图编译为 MaterialAsset",
+                        ),
+                    ],
+                ),
+            ]
+            .into_iter()
+            .map(|(locale, entries)| {
+                (
+                    locale.to_string(),
+                    entries
+                        .into_iter()
+                        .map(|(key, value)| (key.to_string(), value.to_string()))
+                        .collect(),
+                )
+            })
+            .collect(),
+        )
+        .build()
+        .unwrap();
+    let actual = deserialize_like(registration_json(), &expected);
+    assert_eq!(actual, expected);
+    assert_eq!(actual.package_id(), "material_editor");
+    assert_eq!(actual.contributions().len(), 3);
+}
+
+#[test]
+fn material_editor_dist_native_contribution_commands_match_every_callback_slot_and_budget() {
+    let batch: Value = serde_json::from_str(registration_json()).unwrap();
+    let contributions = batch["contributions"].as_array().unwrap();
+    let commands: Vec<_> = contributions
+        .iter()
+        .filter(|item| item["kind"] == "command")
+        .collect();
+    let manifest = native::command_manifest_v4_from_toml(
+        // SAFETY: behavior() returns the immutable SDK static command manifest.
+        unsafe { CStr::from_ptr(behavior().command_manifest) }
+            .to_str()
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(commands.len(), manifest.commands.len());
+    for endpoint in manifest.commands {
+        let matching: Vec<_> = commands
+            .iter()
+            .filter(|command| command["id"] == endpoint.name)
+            .collect();
+        assert_eq!(matching.len(), 1);
+        let command = matching[0];
+        assert_eq!(command["schema"], "zircon.editor.command/3");
+        assert_eq!(
+            command["execution_contract"]["result_codec"],
+            "zircon.editor.command-result.v1"
+        );
+        let budget = &command["execution_contract"]["resource_budget"];
+        assert_eq!(budget["max_input_bytes"], MAX_INPUT_BYTES);
+        assert_eq!(budget["max_output_bytes"], endpoint.max_output_bytes);
+        assert_eq!(budget["max_execution_time_ms"], 5000);
+        let bundle = contributions
+            .iter()
+            .find(|item| item["kind"] == "localization_bundle")
+            .unwrap();
+        for locale in ["en", "zh-CN"] {
+            for key in ["label_key", "description_key"] {
+                let name = command[key].as_str().unwrap();
+                assert!(!bundle["locales"][locale][name].as_str().unwrap().is_empty());
+            }
+        }
+    }
+}
+
+#[test]
+fn material_editor_dist_native_without_material_capability_exposes_no_behavior() {
+    let host = NativePluginHostFunctionTableV3 {
+        abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
+        host_handle: 1,
+        granted_capabilities: b"\0".as_ptr().cast(),
+        host_abi_version: Some(host_abi_version),
+        host_has_capability: None,
+        host_log: None,
+        host_diagnostic: None,
+    };
+    let report = crate::zircon_plugin_material_editor_editor_entry_v3(&host);
+    assert!(!report.is_null());
+    // SAFETY: The SDK entry returns a live static missing-capability report.
+    let report = unsafe { &*report };
+    assert!(report.behavior.is_null());
+    assert!(report.bridge_methods.is_null());
+}
+
+fn registration_json() -> &'static str {
+    // SAFETY: The granted entry points to the immutable static NUL-terminated batch.
+    unsafe { CStr::from_ptr(behavior().registration_manifest) }
+        .to_str()
+        .unwrap()
+}
+
+fn deserialize_like<T: serde::de::DeserializeOwned>(json: &str, _expected: &T) -> T {
+    serde_json::from_str(json).unwrap()
 }
 
 struct Capture {

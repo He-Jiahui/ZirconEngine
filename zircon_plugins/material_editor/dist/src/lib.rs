@@ -1,8 +1,7 @@
 mod commands;
 
 use zircon_plugin_material_editor_editor::{
-    NATIVE_EDITOR_ENTRY, NATIVE_EDITOR_REGISTRATION_MANIFEST, NATIVE_PLUGIN_ID,
-    NATIVE_REQUESTED_CAPABILITIES,
+    NATIVE_EDITOR_ENTRY, NATIVE_PLUGIN_ID, NATIVE_REQUESTED_CAPABILITIES,
 };
 use zircon_plugin_sdk::native::ZIRCON_NATIVE_PLUGIN_ABI_VERSION;
 
@@ -31,10 +30,10 @@ zircon_plugin_sdk::native_dist_editor_plugin_v3! {
         state_schema_version: 0,
         command_manifest_schema: Some(zircon_plugin_sdk::native::NATIVE_COMMAND_MANIFEST_SCHEMA_V4),
         event_manifest_schema: None,
-        registration_manifest_schema: Some(zircon_plugin_sdk::native::NATIVE_REGISTRATION_MANIFEST_SCHEMA_V3),
+        registration_manifest_schema: Some(commands::REGISTRATION_SCHEMA),
         command_manifest: Some(commands::MANIFEST),
         event_manifest: Some(EMPTY_MANIFEST),
-        registration_manifest: Some(NATIVE_EDITOR_REGISTRATION_MANIFEST),
+        registration_manifest: Some(commands::REGISTRATION_MANIFEST),
         invoke_command: Some(commands::invoke_command),
         save_state: None,
         restore_state: None,

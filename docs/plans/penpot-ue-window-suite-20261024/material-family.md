@@ -1,3 +1,14 @@
+## 接续95：材质原生命令使用既有 Editor 贡献批次（2026-10-28）
+
+- 继续原唯一 producer/request，在已ready的 w448b90023f-native94 四路径接续94 immutable db931fdc；dist Cargo/锁、原editor包/245定义、Instance/Hierarchy/fork、公共SDK/host/catalog/theme、ZUI/Penpot均不改。
+- 已读真实 loader native_plugin_abi.rs:428 的 editor_contribution_batch_from_behavior：editor入口只在 registration schema为 zircon.editor.contribution-batch/1 时解码。旧V3即使已有命令回调也不会得到 contribution batch；现有 native_contribution.rs:124 使用原 live plugin.bind_editor_command，materializer.rs:194 将同包命令/原schema/结果codec/有界budget物化为 NativeEndpoint，再进原generation executor。本轮不新增公共绑定接口。
+- 因单一registration槽位只能声明一种schema，材质dist editor-entry从空系统/事件/扩展的V3模块投影切换为现有贡献协议；原editor/capability.rs的模块/包身份/能力声明保持，原V3导出constant未删除也未重写，但不再作为该dist entry的registration payload。94保留V3的旧断点/测试/提交属于历史，不以并存fallback假称双方同时发布。
+- 新batch仅含原 material_editor.graph.validate/compile 两项真实callback的命令贡献与一份en/zh-CN本地化bundle；command schema3、payload仍由原V4 callback manifest给出，结果codec沿 zircon.editor.command-result.v1；预算每项1MiB输入/输出、5000ms，计时与generation撤销仍由既有host registry完成，不造第二clock。无Menu/View/Toolkit/创建/预览占位贡献，不能把新声明当完整材质窗口。
+- 两命令经原宿主native batch路径可取得同代实际binding的源码接线已具备；原bounded输入/parser/compiler/diagnostic目标/一次sink发布函数均原字节不改。原editor-entry symbol、Host能力协商、stateless、零bridge methods、插件包/TOML metadata保持；无材质能力时SDK原missing-host report继续不暴露behavior。
+- 更新94首条manifest测试以匹配当前协议切换，不放宽为同时接受V3/V1；其余10条callback回归和两条旧dist测试原样保留。新增3定义覆盖真实entry batch与SDK typed builder的完整相等、全部命令与slot/budget/双语key的一一对应、缺能力入口无behavior。dist总16定义（原2+94十一条+95三条），editor245总/242 material_graph_不变；Rust发现/类型检查/执行未知。
+- 执行本域静态source-preservation/格式/plugin ABI/guard与正常managed deliver；正式dist有限recipe及新增3边锁闭包继续原94工具链待办，不借editor-only recipe或旧r10/#370/#651/93输入，不自行Cargo/改锁/重装gate。编译后的真实DLL加载、同incarnation/view/document/subdocument/revision/request/catalog传实际图、结果资格、原delta/inverse/prepare/一次permit/CAS/history/dirty/renderer/save/focus及normalEXE/150%DPI/双端1DIP仍open。
+- 当前 canned workspace与缺失graph.zui/默认模板不是通过项；official export/真实preview/passed/accepted仍false，goal active。94与所有历史失败/manifest/逐图记录完整保留。公共owner只需接真实宿主source与UI事件，无需为本域另造绑定协议；实际部署和捕获必须另取正常引擎证据。
+
 ## 接续94：原生分发 Validate/Compile 实际回调候选（2026-10-28）
 
 - 唯一 producer 仍为材质原聊天 01a16d50；基于接续93 immutable 87f804c2 的新受管 native94 范围，仅 dist/Cargo.toml、dist/src/lib.rs、新 commands.rs/其测试和本记录。Instance/Hierarchy/fork、公共 SDK/host、原 ZUI/Penpot 均不改。

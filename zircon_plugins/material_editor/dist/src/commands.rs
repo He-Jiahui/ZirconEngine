@@ -33,6 +33,70 @@ max_output_bytes = 1048576
     "\0"
 )
 .as_bytes();
+// The existing native editor loader recognizes this schema and materializes real
+// generation-bound NativeEndpoint commands. This replaces the empty V3 editor
+// registration projection; package modules/capabilities remain in the original declaration.
+pub(super) const REGISTRATION_SCHEMA: &[u8] = b"zircon.editor.contribution-batch/1\0";
+pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
+    r#"{
+  "package_id": "material_editor",
+  "contributions": [
+    {
+      "kind": "command",
+      "id": "material_editor.graph.validate",
+      "schema": "zircon.editor.command/3",
+      "localization_bundle_id": "material_editor",
+      "label_key": "command.material_editor.graph.validate.label",
+      "description_key": "command.material_editor.graph.validate.description",
+      "execution_contract": {
+        "result_codec": "zircon.editor.command-result.v1",
+        "resource_budget": {
+          "max_input_bytes": 1048576,
+          "max_output_bytes": 1048576,
+          "max_execution_time_ms": 5000
+        }
+      }
+    },
+    {
+      "kind": "command",
+      "id": "material_editor.graph.compile",
+      "schema": "zircon.editor.command/3",
+      "localization_bundle_id": "material_editor",
+      "label_key": "command.material_editor.graph.compile.label",
+      "description_key": "command.material_editor.graph.compile.description",
+      "execution_contract": {
+        "result_codec": "zircon.editor.command-result.v1",
+        "resource_budget": {
+          "max_input_bytes": 1048576,
+          "max_output_bytes": 1048576,
+          "max_execution_time_ms": 5000
+        }
+      }
+    },
+    {
+      "kind": "localization_bundle",
+      "id": "material_editor",
+      "schema": "zircon.editor.localization-bundle/1",
+      "locales": {
+        "en": {
+          "command.material_editor.graph.validate.label": "Validate Material Graph",
+          "command.material_editor.graph.validate.description": "Validate the submitted material graph",
+          "command.material_editor.graph.compile.label": "Compile Material Graph",
+          "command.material_editor.graph.compile.description": "Compile the submitted material graph into a MaterialAsset"
+        },
+        "zh-CN": {
+          "command.material_editor.graph.validate.label": "校验材质图",
+          "command.material_editor.graph.validate.description": "校验本次请求中的材质图",
+          "command.material_editor.graph.compile.label": "编译材质图",
+          "command.material_editor.graph.compile.description": "将本次请求中的材质图编译为 MaterialAsset"
+        }
+      }
+    }
+  ]
+}"#,
+    "\0"
+).as_bytes();
+
 const COMPLETED: &[u8] = b"material graph command completed; inspect result ok and diagnostics\0";
 const UNKNOWN_SLOT: &[u8] = b"material graph command slot is unknown\0";
 const INVALID_REQUEST: &[u8] = b"material graph command requires one bounded JSON graph argument\0";
