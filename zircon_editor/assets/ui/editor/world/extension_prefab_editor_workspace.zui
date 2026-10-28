@@ -6,6 +6,7 @@ display_name = "Workbench Extension Prefab Editor Workspace"
 
 [imports]
 widgets = [
+  "res://ui/editor/components/workbench/primitives/data/label.zui#WorkbenchLabel",
   "res://ui/editor/components/workbench/primitives/data/tree_row.zui#WorkbenchTreeRow",
   "res://ui/editor/components/workbench/primitives/inputs/button.zui#WorkbenchButton",
   "res://ui/editor/workbench/primitives/inputs/dropdown.zui#WorkbenchDropdown",
@@ -99,7 +100,7 @@ component = "VerticalGroup"
 control_id = "WorkbenchExtensionPrefabEditorCenterPanel"
 classes = ["workbench-panel", "workbench-module-center"]
 layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "prefab_editor_center_header" }, { node = "prefab_editor_composition_table" }, { node = "prefab_editor_output" }]
+children = [{ node = "prefab_editor_center_header" }, { node = "prefab_editor_source_reference" }, { node = "prefab_editor_source_status" }, { node = "prefab_editor_composition_table" }, { node = "prefab_editor_output" }]
 
 [nodes.prefab_editor_center_header]
 component = "ScrollableBox"
@@ -272,3 +273,17 @@ component = "WorkbenchTreeRow"
 control_id = "WorkbenchExtensionPrefabEditorSourcePrototype"
 props = { text = "", icon = "", tree_depth = 0, expanded = false, selected = false, focused = false, hovered = false, pressed = false, visibility = "collapsed", disabled = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
+
+# Both texts come from one admitted pane snapshot, never product fallback data.
+# Keep the source cue outside compact Details and outside the virtual row pool.
+[nodes.prefab_editor_source_reference]
+component = "WorkbenchLabel"
+control_id = "WorkbenchExtensionPrefabEditorSourceReference"
+props = { text = "", text_overflow = "ellipsis", visibility = "collapsed", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.label.min_height", preferred = "$editor.density.label.preferred_height", max = "$editor.density.label.max_height", stretch = "Fixed" } }
+
+[nodes.prefab_editor_source_status]
+component = "WorkbenchLabel"
+control_id = "WorkbenchExtensionPrefabEditorSourceStatus"
+props = { text = "", text_overflow = "ellipsis", visibility = "collapsed", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.density.label.min_height", preferred = "$editor.density.label.preferred_height", max = "$editor.density.label.max_height", stretch = "Fixed" } }
