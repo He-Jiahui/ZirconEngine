@@ -1,3 +1,14 @@
+## 材质接续113：原生连线候选、旧输入替换和精确原序逆数据（2026-10-28）
+
+- 原唯一producer/request，原ready `w448b90023f-native94` 接112/c4d3c279，只改dist commands、其tests及本台账三路径。112完整505530 raw字节作为精确后缀保留；domain connections/Graph/Runtime/host/Shared/catalog/theme、fork、Penpot和原ZUI不写，不新建store、clock、history或persistent edge ID。
+- 原slots0–9和schema/本地化原值保持；新增slot10 `material_editor.graph.plan_connection` / `material_editor.plan_graph_connection.v1`。11命令+1原bundle、en/zh-CN，原ABI3/V4 callback、1MiB输入/输出及5秒声明预算保持。请求是严格named JSON object：graph、from_node/from_pin/to_node/to_pin，精确源键不trim/改名；复用原finite-f32 graph解码，拒未知/重复/缺失字段、根array及overflow。
+- 实际直接委托既有 `can_connect_material_graph`，不复制类型/循环算法。返回connect、replace或unchanged；replace含原借用previous_link与其previous_source_index，完整保留UUID/locator之外的端点源键及相应源序。source_index仅为该提交revision中的occurrence，不是持续身份/permit。unchanged明确changes_source=false，不得写history；缺输入的undetermined type是合法作者候选，不等于compile ready。
+- 原source diagnostics和connection_error分列。旧边坏source可由同输入replace修复，但旧诊断仍显示、ok仍false；其它无关坏边或重复occupied input不能被局部有效pin对掩盖。没有过滤作者图、发布partial plan、伪造连接、调用资源resolver、启动renderer或提交文档。
+- 七项有意义回归仅定义：新连线保原CJK/空格键及source并经真实codec/CPU编译改变roughness；replace精确原序、保其它fanout/参数HDR/subnormal/signed-zero及test-local raw inverse；原边no-op；stale/方向/类型/normal/循环/重复输入/歧义node整批拒绝；repair原诊断与未定类型；严格请求/duplicate/overflow零发布；exact输出budget及host拒绝。当前dist原生83普通定义=76原+7新，74原行为test bodies字节同，另2原metadata回归仅扩新slot/两语言/计数；非harness发现，执行0。
+- UE真实只读 `MaterialEditor/Private/MaterialGraph/MaterialGraphSchema.cpp:577–671`：non-exec仅替换input，output可fanout；TryCreateConnection成功才UpdateMaterialAfterGraphChange。UE循环此处保留warning（禁止return被注释），Zircon现有compiler拒cycle是明确能力差异，本轮不放宽。UE完整exec/类型族、真实wire paint/hit/drag/Esc/focus仍非本命令范围。
+- 最小host消费：同原view/material asset/document/subdocument/source incarnation、revision/lease、selection/gesture request和native generation核request/result；按原source pin keys及同一retained transform命中，释放手势时一个已计预算delta，replace在同事务删除精确旧occurrence并插新边，保完整raw inverse，一次prepare/permit/CAS/history/dirty/compile/renderer/SaveCtx。Esc取消/无变化不发作者事务。不得按error字符串反推SourceLocator、逐边分发或在resolver/异步回调后重采fresh expected来授权旧请求；原retention契约不绕过。
+- 当前正式entry仍829b326e（原341a capsule），与111同字节，原dist有限配方的实际build_scope_policy拒绝保留；canonical尚无新增commands源、原PR/main链pending。未重新投已知无效recipe、未nested-worktree验证、未root/editor包fallback；原r10/448/旧terminal不重放。格式/插件ABI3/guard/结构证据是source-only；Rust类型/harness/执行、正式export/真实host/Engine EXE/实际150%DPI/双端≤1DIP均open，passed/accepted=false、goal active。
+
 ## 材质接续112：原参数板当前全属性重开证据与旧裁切勘误（2026-10-28）
 
 - 原唯一producer/request，接续111/90232683；本轮只追加本台账，111整份502638 raw字节保留为精确后缀。Rust、原ZUI、Public/Shared、fork四Search/Hierarchy、Runtime、host和全部Penpot对象均不写。Parent r317四份审阅原件已核同源；原79的204=203普通+1ignored是不可变提交的静态计数，201保留为历史，不当harness发现或本轮测试。
