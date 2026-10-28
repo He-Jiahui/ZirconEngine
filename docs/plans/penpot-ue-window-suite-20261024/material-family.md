@@ -1,3 +1,13 @@
+## 材质接续82：参数向量分量作者适配（原唯一 producer，2026-10-28 UTC）
+
+- 接续81受管文档提交 `5bb1a0173440b90dc0c2f045fb2d915c5990a820`（queue29087/#627 SUCCESS），在原就绪session `w47ec1661d3` 的同四路径实现；保留81及全部早期正文、本域源后继、fork30和原终态。Penpot仍为81真实rev422，本轮无新浏览器/Shared/原ZUI/主题/公共Graph或host写入。
+- 新 `plan_material_graph_parameter_vector_edit(graph,node_id,[Option<f32>;4])` 按R/G/B/A次序接收分量意图，返回既有 `MaterialGraphParameterEditPlan` 的完整Vector Set。未改动分量取自同一 exact key 的本地Vector覆盖，缺席时取选中声明的原默认；同键声明的不同默认不汇总、不从展平MaterialAsset或显示文字重建。候选只复制固定4个f32，原Graph/Node/key/previous仍借用；不复制全图或另建参数store/clock/history。
+- 提取原target解析为私有共享helper，仍走整个source的ID合法性/歧义守卫；原Set/Reset校验与构造尾部逐字保持。完整新Vector仍须通过原同键全部声明类型、精确空键与有限值校验。错类型旧覆盖拒绝分量编辑，须显式全值修复或Reset；全None拒绝，避免无操作误建覆盖。编辑值等于默认仍产生显式presence，已有覆盖的bit相同才no-op；未编辑的符号零/HDR/其它bits保留。只修所给非有限通道，不悄悄清除其它坏通道或隐藏原坏默认诊断。
+- 此接口直接承接80三个参数板的R/G/B/A显示port：宿主在当前source/revision下把被改通道置Some，其余None，接收一个全Vector候选，再预收key/before/after/inverse预算，走原Document的一次delta/prepare/retention/permit/CAS/history。预览拖动与release/取消、view incarnation/request/同代source守卫仍归真实host；本API不执行mutation/保存/撤销或renderer，不当MaterialAsset Instance ABI、UE完整颜色编辑器或参数分组完成。
+- 八项回归定义覆盖四通道默认/原键/借用身份、覆盖优先及其它bits、presence/no-op/空输入、同键不同默认及混合类型整次拒绝、整个source的stale/重复/空ID与空键、错类型覆盖显式修复、NaN/Inf局部修复及旧bits、真实MaterialGraphAsset codec/CPU compile与None/Some逆值恢复。测试安装仅在既有test helper中，不新增生产apply来绕历史。原201定义和旧测试/helper正文精确保留（只调整import与追加分隔），累计209静态=208普通+原1ignored；未Rust发现/编译/执行。
+- 实际canonical main只读观察HEAD `5436b180047256ed17fb296a3cebad75c230c64b`，79的b71426aa不是其ancestor，canonical parameters还没有原Set/Reset；原main lib.rs已有foreign dirty并原样保留。故不把此工作树投到已知不支持的nested验证，也不拿旧canonical代码代验82。沿Parent r162/r249既定PR/main集成与原78管理缺口修复链，真实canonical source/admission到位后再按原独立manifest/material单包/features[]/defaults-off/lib/test/locked/jobs1/material_graph_/threads1/E的有限recipe执行；本轮不新建Cargo身份或重放r10/#370/旧失败。
+- 正常源码deliver使用原request `ue-material-graph-20261024-01`、现session、新operation `deliver-material-parameter-vector-01a16d50-20261028-82`，准确lib.rs/parameters.rs/tests/parameters.rs/本md，validation[]。原报告根 `material-parameter-vector-82-{before,source,patch,guard,validation,handoff}` 保存实际源指纹/小补丁/检查/回执；第一次误用2024格式检查仅属工具回执，按实际workspace edition2021检查和人工格式修正后通过，不改旧源去迎合2024排序。正式集成、受管Rust、原始v2导出、真实host/renderer及normal EXE/150%DPI/双端<=1DIP仍open，全族passed/accepted=false、goal active。
+
 ## 材质接续81：参数板 Palette 原生文字测量修复（原唯一 producer，2026-10-28 UTC）
 
 - 接续80原板和原 managed worktree `w47ec1661d3-par79` / `c8b140cafce6cfa3be538894bd0edb6c32251f5c`，本轮只在本 md 增量记录；三个79 Rust raw不变，201静态定义仍未发现/执行。Parent r249已核75的6db5c0c8提交及78真实集成缺口，本轮不重复apply64/75、不重投旧#448/r10或nested worktree验证；原Jenkins/Git owner沿既有78通知链处理显式run inventory/immutable component。
