@@ -6,15 +6,16 @@ use std::io::{self, Write};
 use serde_json::{json, Value};
 use zircon_plugin_material_editor_editor::{
     compile_material_graph_with_diagnostics, compile_material_graph_with_shader_contract,
-    validate_material_graph_with_diagnostics, MaterialGraphDiagnostic,
-    MaterialGraphDiagnosticTarget, MaterialGraphPresentation, MaterialGraphShaderCompileError,
+    project_authored_material_document, validate_material_graph_with_diagnostics,
+    MaterialDocumentProjectionError, MaterialGraphDiagnostic, MaterialGraphDiagnosticTarget,
+    MaterialGraphPresentation, MaterialGraphShaderCompileError,
 };
 use zircon_plugin_sdk::native::{
     self, callback_status, NativePluginByteSliceV3, NativePluginCallbackStatusV3,
     NativePluginOutputSinkV4, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
     ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
-use zircon_runtime::asset::{AssetReference, MaterialGraphAsset, ShaderAsset};
+use zircon_runtime::asset::{AssetReference, MaterialGraphAsset, ShaderAsset, ZMaterialDocument};
 
 pub(super) const MAX_INPUT_BYTES: usize = 1024 * 1024;
 pub(super) const MAX_OUTPUT_BYTES: usize = 1024 * 1024;
@@ -39,6 +40,11 @@ max_output_bytes = 1048576
 name = "material_editor.graph.parameters"
 slot = 3
 payload_schema = "material_editor.graph_parameters.v1"
+max_output_bytes = 1048576
+[[commands]]
+name = "material_editor.material.inspect"
+slot = 4
+payload_schema = "material_editor.inspect_material.v1"
 max_output_bytes = 1048576
 "#,
     "\0"
@@ -117,6 +123,22 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
       }
     },
     {
+      "kind": "command",
+      "id": "material_editor.material.inspect",
+      "schema": "zircon.editor.command/3",
+      "localization_bundle_id": "material_editor",
+      "label_key": "command.material_editor.material.inspect.label",
+      "description_key": "command.material_editor.material.inspect.description",
+      "execution_contract": {
+        "result_codec": "zircon.editor.command-result.v1",
+        "resource_budget": {
+          "max_input_bytes": 1048576,
+          "max_output_bytes": 1048576,
+          "max_execution_time_ms": 5000
+        }
+      }
+    },
+    {
       "kind": "localization_bundle",
       "id": "material_editor",
       "schema": "zircon.editor.localization-bundle/1",
@@ -129,7 +151,9 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
           "command.material_editor.graph.compile_shader_contract.label": "Check Compiled Material Shader Contract",
           "command.material_editor.graph.compile_shader_contract.description": "Compile the submitted graph and check the supplied shader contract",
           "command.material_editor.graph.parameters.label": "Inspect Material Graph Parameters",
-          "command.material_editor.graph.parameters.description": "Read exact declarations and overrides from the submitted authoring graph"
+          "command.material_editor.graph.parameters.description": "Read exact declarations and overrides from the submitted authoring graph",
+          "command.material_editor.material.inspect.label": "Inspect Authored Material",
+          "command.material_editor.material.inspect.description": "Read local material overrides and optional shader schema without flattening inheritance"
         },
         "zh-CN": {
           "command.material_editor.graph.validate.label": "校验材质图",
@@ -139,7 +163,9 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
           "command.material_editor.graph.compile_shader_contract.label": "校验编译材质的着色器契约",
           "command.material_editor.graph.compile_shader_contract.description": "编译本次材质图并校验传入的着色器契约",
           "command.material_editor.graph.parameters.label": "查看材质图参数",
-          "command.material_editor.graph.parameters.description": "读取本次作者材质图的精确参数声明与覆盖值"
+          "command.material_editor.graph.parameters.description": "读取本次作者材质图的精确参数声明与覆盖值",
+          "command.material_editor.material.inspect.label": "查看作者材质",
+          "command.material_editor.material.inspect.description": "读取材质局部覆盖与可选着色器结构，保留原继承关系"
         }
       }
     }
@@ -163,7 +189,7 @@ pub(super) unsafe extern "C" fn invoke_command(
     output: NativePluginOutputSinkV4,
 ) -> NativePluginCallbackStatusV3 {
     native::catch_native_callback_panic(PANICKED, || {
-        if slot > 3 {
+        if slot > 4 {
             return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, UNKNOWN_SLOT);
         }
         if payload.len == 0 || payload.len > MAX_INPUT_BYTES || payload.data.is_null() {
@@ -185,7 +211,17 @@ pub(super) unsafe extern "C" fn invoke_command(
         {
             return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
         }
-        let result = if slot == 2 {
+        let result = if slot == 4 {
+            let Ok(arguments) = serde_json::from_slice::<MaterialArguments>(bytes) else {
+                return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
+            };
+            // A shader payload and its complete resolved reference form one input.
+            // URI equality alone cannot qualify a different shader UUID.
+            if arguments.shader.is_some() != arguments.shader_reference.is_some() {
+                return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
+            }
+            authored_material_result(&arguments)
+        } else if slot == 2 {
             let Ok(arguments) = serde_json::from_slice::<ShaderArguments>(bytes) else {
                 return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
             };
@@ -324,6 +360,87 @@ fn shader_result(
         "shader_error": shader_error,
         "material": material,
     })
+}
+
+/// Reads the original author document rather than a flattened runtime material.
+/// Rows do not establish parent resolution, shader/GPU readiness or write authority.
+fn authored_material_result(arguments: &MaterialArguments) -> Value {
+    let document = &arguments.document;
+    let mut error = Value::Null;
+    let projection = if document.version != 2 {
+        error = json!({
+            "kind": "unsupported_document_version", "expected": 2, "actual": document.version,
+        });
+        None
+    } else if arguments
+        .shader_reference
+        .as_ref()
+        .is_some_and(|reference| reference != &document.shader)
+    {
+        error = json!({
+            "kind": "reference_mismatch", "expected": document.shader,
+            "actual": arguments.shader_reference,
+        });
+        None
+    } else {
+        match project_authored_material_document(document, arguments.shader.as_ref()) {
+            Ok(projection) => Some(projection),
+            Err(reason) => {
+                error = match reason {
+                    MaterialDocumentProjectionError::ShaderLocatorMismatch { expected, actual } => {
+                        json!({"kind": "locator_mismatch", "expected": expected, "actual": actual})
+                    }
+                    MaterialDocumentProjectionError::DuplicatePropertyName(name) => {
+                        json!({"kind": "duplicate_property", "name": name})
+                    }
+                    MaterialDocumentProjectionError::DuplicateTextureSlotName(name) => {
+                        json!({"kind": "duplicate_texture_slot", "name": name})
+                    }
+                };
+                None
+            }
+        }
+    };
+    // No prefix of an ambiguous schema is published. A null projection leaves
+    // the host's original document/diagnostics intact; it is not an empty panel.
+    let ok = projection
+        .as_ref()
+        .is_some_and(|projection| projection.diagnostics.is_empty());
+    let schema_available = projection.is_some() && arguments.shader.is_some();
+    let projection = projection.map(|projection| {
+        json!({
+            "properties": projection.properties.iter().map(|row| json!({
+                "name": row.name, "kind": row.kind, "group": row.group, "label": row.label,
+                "default_value": row.default_value, "override_value": row.override_value,
+                "is_overridden": row.is_overridden,
+            })).collect::<Vec<_>>(),
+            "texture_slots": projection.texture_slots.iter().map(|row| json!({
+                "name": row.name, "kind": row.kind, "group": row.group, "label": row.label,
+                "default_fallback": row.default_fallback, "reference": row.reference,
+                "fallback": row.fallback, "is_overridden": row.is_overridden,
+                "local_value": document.textures.get(&row.name),
+            })).collect::<Vec<_>>(),
+            "diagnostics": projection.diagnostics.iter().map(|row| json!({
+                "source": row.source, "path": row.path, "message": row.message,
+            })).collect::<Vec<_>>(),
+        })
+    });
+    json!({
+        "document_version": document.version, "material_name": document.name,
+        "shader_reference": document.shader, "parent_reference": document.parent,
+        "options": document.options, "queue": document.queue,
+        "validation_diagnostics": document.validation_diagnostics,
+        "ok": ok, "schema_available": schema_available,
+        "projection_error": error, "projection": projection,
+    })
+}
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MaterialArguments {
+    document: ZMaterialDocument,
+    shader_reference: Option<AssetReference>,
+    shader: Option<ShaderAsset>,
 }
 
 #[derive(serde::Deserialize)]

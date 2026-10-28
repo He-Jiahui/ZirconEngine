@@ -8,6 +8,7 @@ use zircon_plugin_sdk::native::{
 use zircon_runtime::asset::{
     AssetReference, AssetUri, MaterialGraphLinkAsset, MaterialGraphNodeAsset,
     MaterialGraphNodeKindAsset as Node, MaterialGraphParameterAsset as Parameter,
+    MaterialTextureSlotValue,
 };
 
 #[test]
@@ -21,7 +22,7 @@ fn material_editor_dist_native_manifest_declares_real_slots_and_contribution_sch
     let command_manifest = unsafe { CStr::from_ptr(behavior.command_manifest) };
     let manifest =
         native::command_manifest_v4_from_toml(command_manifest.to_str().unwrap()).unwrap();
-    assert_eq!(manifest.commands.len(), 4);
+    assert_eq!(manifest.commands.len(), 5);
     for (slot, name, schema) in [
         (
             0,
@@ -42,6 +43,11 @@ fn material_editor_dist_native_manifest_declares_real_slots_and_contribution_sch
             3,
             "material_editor.graph.parameters",
             "material_editor.graph_parameters.v1",
+        ),
+        (
+            4,
+            "material_editor.material.inspect",
+            "material_editor.inspect_material.v1",
         ),
     ] {
         let command = &manifest.commands[slot as usize];
@@ -309,6 +315,12 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
             "command.material_editor.graph.parameters.description",
             contract(),
         )
+        .command_with_execution_contract(
+            "material_editor.material.inspect",
+            "command.material_editor.material.inspect.label",
+            "command.material_editor.material.inspect.description",
+            contract(),
+        )
         .localization_bundle(
             [
                 (
@@ -346,6 +358,14 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
                             "command.material_editor.graph.parameters.description",
                             "Read exact declarations and overrides from the submitted authoring graph",
                         ),
+                        (
+                            "command.material_editor.material.inspect.label",
+                            "Inspect Authored Material",
+                        ),
+                        (
+                            "command.material_editor.material.inspect.description",
+                            "Read local material overrides and optional shader schema without flattening inheritance",
+                        ),
                     ],
                 ),
                 (
@@ -377,6 +397,14 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
                             "command.material_editor.graph.parameters.description",
                             "读取本次作者材质图的精确参数声明与覆盖值",
                         ),
+                        (
+                            "command.material_editor.material.inspect.label",
+                            "查看作者材质",
+                        ),
+                        (
+                            "command.material_editor.material.inspect.description",
+                            "读取材质局部覆盖与可选着色器结构，保留原继承关系",
+                        ),
                     ],
                 ),
             ]
@@ -397,7 +425,7 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
     let actual = deserialize_like(registration_json(), &expected);
     assert_eq!(actual, expected);
     assert_eq!(actual.package_id(), "material_editor");
-    assert_eq!(actual.contributions().len(), 5);
+    assert_eq!(actual.contributions().len(), 6);
 }
 
 #[test]
@@ -1029,6 +1057,350 @@ fn material_editor_dist_native_parameters_use_existing_strict_transport_and_sing
     assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED);
     assert_eq!(capture.calls, 1);
     assert!(capture.bytes.is_empty());
+}
+
+#[test]
+fn material_editor_dist_native_material_inspect_keeps_schema_order_groups_and_local_presence() {
+    let document = inspect_document();
+    let schema = inspect_shader(&document);
+    let payload = inspect_request(&document, Some(&schema));
+    let before = payload.clone();
+    let (status, capture) = invoke(
+        4,
+        &payload,
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    assert_eq!(capture.calls, 1);
+    let result: Value = serde_json::from_slice(&capture.bytes).unwrap();
+    assert_eq!(result["ok"], true);
+    assert_eq!(result["schema_available"], true);
+    assert!(result["projection_error"].is_null());
+    assert_eq!(
+        result["parent_reference"],
+        serde_json::to_value(&document.parent).unwrap()
+    );
+    assert_eq!(
+        result["shader_reference"],
+        serde_json::to_value(&document.shader).unwrap()
+    );
+    let rows = result["projection"]["properties"].as_array().unwrap();
+    assert_eq!(
+        rows.iter()
+            .map(|row| row["name"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        ["z", "roughness", " roughness ", "未知 参数"]
+    );
+    assert_eq!(rows[0]["is_overridden"], false);
+    assert!(rows[0]["override_value"].is_null());
+    assert_eq!(rows[1]["group"], "表面参数 / Surface");
+    assert_eq!(rows[1]["label"], "粗糙度：保留显示名");
+    assert_eq!(rows[1]["default_value"], 0.5);
+    assert_eq!(rows[1]["override_value"], 0.5);
+    assert_eq!(rows[1]["is_overridden"], true);
+    assert_eq!(rows[2]["override_value"], 0.3);
+    assert!(rows[2]["kind"].is_null());
+    let textures = result["projection"]["texture_slots"].as_array().unwrap();
+    assert_eq!(textures[0]["name"], "base_color");
+    assert_eq!(textures[0]["is_overridden"], true);
+    assert_eq!(textures[0]["local_value"], json!({}));
+    assert!(textures[0]["reference"].is_null());
+    assert_eq!(textures[0]["default_fallback"], "white");
+    assert_eq!(textures[1]["is_overridden"], false);
+    assert!(textures[1]["local_value"].is_null());
+    assert_eq!(
+        result["options"],
+        serde_json::to_value(&document.options).unwrap()
+    );
+    assert_eq!(
+        result["queue"],
+        serde_json::to_value(&document.queue).unwrap()
+    );
+    assert!(result.get("material").is_none());
+    assert_eq!(payload, before);
+}
+
+#[test]
+fn material_editor_dist_native_material_inspect_without_schema_keeps_exact_values_and_texture_identity(
+) {
+    let document = inspect_document();
+    let payload = inspect_request(&document, None);
+    let before = payload.clone();
+    let (status, capture) = invoke(
+        4,
+        &payload,
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    let result: Value = serde_json::from_slice(&capture.bytes).unwrap();
+    assert_eq!(result["ok"], false);
+    assert_eq!(result["schema_available"], false);
+    assert!(result["projection_error"].is_null());
+    let rows = result["projection"]["properties"].as_array().unwrap();
+    assert_eq!(
+        rows.iter()
+            .map(|row| row["name"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        [" roughness ", "roughness", "未知 参数"]
+    );
+    assert!(rows
+        .iter()
+        .all(|row| row["kind"].is_null() && row["default_value"].is_null()));
+    assert_eq!(
+        rows[2]["override_value"].as_i64(),
+        Some(9_007_199_254_740_993)
+    );
+    let detail = result["projection"]["texture_slots"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["name"] == "detail")
+        .unwrap();
+    assert_eq!(
+        detail["reference"],
+        serde_json::to_value(&document.textures["detail"].reference).unwrap()
+    );
+    assert_eq!(
+        detail["local_value"],
+        serde_json::to_value(&document.textures["detail"]).unwrap()
+    );
+    assert_eq!(detail["local_value"]["uv_channel"], 3);
+    assert!(result["projection"]["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|row| row["path"] == "shader" && row["source"] == "dependency_resolution"));
+    assert_eq!(payload, before);
+}
+
+#[test]
+fn material_editor_dist_native_material_inspect_rejects_uuid_or_locator_mismatch_without_rows() {
+    let document = inspect_document();
+    let schema = inspect_shader(&document);
+    let mut wrong_uuid = document.shader.clone();
+    wrong_uuid.uuid = reference("builtin://shader/other-identity").uuid;
+    assert_ne!(wrong_uuid.uuid, document.shader.uuid);
+    for wrong in [wrong_uuid, reference("builtin://shader/other-locator")] {
+        let payload = serde_json::to_vec(&json!({
+            "document":document, "shader_reference":wrong, "shader":schema,
+        }))
+        .unwrap();
+        let (status, capture) = invoke(
+            4,
+            &payload,
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        let result: Value = serde_json::from_slice(&capture.bytes).unwrap();
+        assert_eq!(
+            result["projection_error"],
+            json!({
+                "kind":"reference_mismatch", "expected":document.shader, "actual":wrong,
+            })
+        );
+        assert!(result["projection"].is_null());
+        assert_eq!(result["ok"], false);
+        assert_eq!(result["schema_available"], false);
+    }
+    let mut wrong = schema;
+    wrong.uri = AssetUri::parse("builtin://shader/unrelated-payload").unwrap();
+    let (status, capture) = invoke(
+        4,
+        &inspect_request(&document, Some(&wrong)),
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    let result: Value = serde_json::from_slice(&capture.bytes).unwrap();
+    assert_eq!(result["projection_error"]["kind"], "locator_mismatch");
+    assert!(result["projection"].is_null());
+}
+
+#[test]
+fn material_editor_dist_native_material_inspect_rejects_ambiguous_schema_as_one_projection() {
+    let document = inspect_document();
+    for (texture, kind, name) in [
+        (false, "duplicate_property", "roughness"),
+        (true, "duplicate_texture_slot", "base_color"),
+    ] {
+        let mut schema = inspect_shader(&document);
+        if texture {
+            schema.texture_slots.push(schema.texture_slots[0].clone());
+        } else {
+            schema
+                .property_schema
+                .push(schema.property_schema[1].clone());
+        }
+        let (status, capture) = invoke(
+            4,
+            &inspect_request(&document, Some(&schema)),
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        assert_eq!(capture.calls, 1);
+        let result: Value = serde_json::from_slice(&capture.bytes).unwrap();
+        assert_eq!(result["projection_error"], json!({"kind":kind,"name":name}));
+        assert!(result["projection"].is_null());
+        assert_eq!(result["ok"], false);
+    }
+}
+
+#[test]
+fn material_editor_dist_native_material_inspect_rejects_unsupported_document_versions_and_keeps_diagnostics(
+) {
+    for version in [0, 1, 3, u32::MAX] {
+        let mut document = inspect_document();
+        document.version = version;
+        document
+            .validation_diagnostics
+            .push("作者原诊断必须保留".into());
+        let (status, capture) = invoke(
+            4,
+            &inspect_request(&document, None),
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        let result: Value = serde_json::from_slice(&capture.bytes).unwrap();
+        assert_eq!(
+            result["projection_error"],
+            json!({
+                "kind":"unsupported_document_version","expected":2,"actual":version,
+            })
+        );
+        assert!(result["projection"].is_null());
+        assert_eq!(
+            result["validation_diagnostics"],
+            json!(["作者原诊断必须保留"])
+        );
+        assert_eq!(result["ok"], false);
+    }
+}
+
+#[test]
+fn material_editor_dist_native_material_inspect_preserves_source_diagnostics_in_original_order() {
+    let mut document = inspect_document();
+    document.validation_diagnostics = vec!["原作者诊断1".into(), "原作者诊断2".into()];
+    let mut schema = inspect_shader(&document);
+    schema.validation_diagnostics = vec![
+        "wgsl_capture original capture error".into(),
+        "原shader诊断".into(),
+    ];
+    let (status, capture) = invoke(
+        4,
+        &inspect_request(&document, Some(&schema)),
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    let result: Value = serde_json::from_slice(&capture.bytes).unwrap();
+    assert_eq!(result["ok"], false);
+    assert_eq!(result["schema_available"], true);
+    let rows = result["projection"]["diagnostics"].as_array().unwrap();
+    assert_eq!(
+        rows.iter()
+            .map(|row| row["message"].as_str().unwrap())
+            .collect::<Vec<_>>(),
+        [
+            "原作者诊断1",
+            "原作者诊断2",
+            "wgsl_capture original capture error",
+            "原shader诊断"
+        ]
+    );
+    assert_eq!(rows[0]["path"], "material.validation_diagnostics");
+    assert_eq!(rows[2]["path"], "shader.validation_diagnostics");
+    assert_eq!(rows[2]["source"], "wgsl_capture");
+    assert!(rows[0]["source"].is_null());
+}
+
+#[test]
+fn material_editor_dist_native_material_inspect_uses_strict_bounded_single_publish_transport() {
+    let document = inspect_document();
+    let schema = inspect_shader(&document);
+    let encoded = serde_json::to_string(&document).unwrap();
+    let invalid = vec![
+        serde_json::to_vec(&json!([document])).unwrap(),
+        serde_json::to_vec(&json!({"document":document,"unexpected":true})).unwrap(),
+        serde_json::to_vec(&json!({"document":document,"shader_reference":document.shader}))
+            .unwrap(),
+        serde_json::to_vec(&json!({"document":document,"shader":schema})).unwrap(),
+        format!("{{\"document\":{encoded},\"document\":{encoded}}}").into_bytes(),
+    ];
+    for payload in invalid {
+        let (status, capture) = invoke(
+            4,
+            &payload,
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+        assert_eq!(capture.calls, 0);
+        assert!(capture.bytes.is_empty());
+    }
+    let payload = inspect_request(&document, Some(&schema));
+    for budget in [0, 1, 24] {
+        let (status, capture) = invoke(4, &payload, budget, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+        assert_eq!(capture.calls, 0);
+        assert!(capture.bytes.is_empty());
+    }
+    let (status, capture) = invoke(
+        4,
+        &payload,
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED);
+    assert_eq!(capture.calls, 1);
+    assert!(capture.bytes.is_empty());
+}
+
+fn inspect_document() -> ZMaterialDocument {
+    let mut document: ZMaterialDocument = serde_json::from_value(json!({
+        "version":2,"name":"真实输入 / Material Instance",
+        "shader":reference("builtin://shader/pbr"),
+        "parent":reference("res://materials/父材质.zmaterial"),
+        "overrides":{"roughness":0.5," roughness ":0.3,"未知 参数":9_007_199_254_740_993_i64},
+        "textures":{"base_color":{}},"options":{"USE_DETAIL":false},"queue":{"offset":0},
+        "editor":{"unknown_author_metadata":"保留，不从投影重建保存"},
+    }))
+    .unwrap();
+    let mut texture = MaterialTextureSlotValue::new(reference("res://textures/原纹理.ztex#color"));
+    texture.uv_channel = 3;
+    document.textures.insert("detail".into(), texture);
+    document
+}
+
+fn inspect_shader(document: &ZMaterialDocument) -> ShaderAsset {
+    use zircon_runtime::core::framework::render::MaterialPropertyKind;
+    let mut schema = shader(&graph(0.25));
+    schema.uri = document.shader.locator.clone();
+    schema.property_schema = serde_json::from_value(json!([
+        {"name":"z","kind":MaterialPropertyKind::Float,"default":0.25},
+        {"name":"roughness","kind":MaterialPropertyKind::Float,"default":0.5,
+         "editor":{"group":"表面参数 / Surface","label":"粗糙度：保留显示名"}},
+    ]))
+    .unwrap();
+    schema.texture_slots = serde_json::from_value(json!([
+        {"name":"base_color","kind":"texture2d","default":"white"},
+        {"name":"normal","kind":"texture2d","default":"normal"},
+    ]))
+    .unwrap();
+    schema
+}
+
+fn inspect_request(document: &ZMaterialDocument, schema: Option<&ShaderAsset>) -> Vec<u8> {
+    let mut value = json!({"document":document});
+    if let Some(schema) = schema {
+        value["shader_reference"] = serde_json::to_value(&document.shader).unwrap();
+        value["shader"] = serde_json::to_value(schema).unwrap();
+    }
+    serde_json::to_vec(&value).unwrap()
 }
 
 // Same Runtime ShaderAsset DTO and schema defaults as the source47 contract tests.
