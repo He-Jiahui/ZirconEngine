@@ -395,6 +395,137 @@ impl<'a> MaterialGraphExpressionDetailsEditPlan<'a> {
     }
 }
 
+/// One field edit across the original expression selection.
+///
+/// None vector channels retain each node's own authored bits, including mixed
+/// or invalid values still awaiting repair. Only supplied channels must be
+/// finite. An all-None vector request remains a typed, source-validated no-op.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum MaterialGraphExpressionDetailsBatchEdit<'a> {
+    ScalarDefault(Real),
+    VectorChannels([Option<Real>; 4]),
+    Texture(&'a AssetReference),
+}
+
+/// A complete candidate, never a sequence of independently authorized edits.
+///
+/// Entries include no-ops and retain every selected node in source order. A
+/// stale identity, incompatible kind or invalid request rejects the whole
+/// candidate before resource lookup. No source or history is changed here.
+/// The real host must revalidate the original document/revision/selection,
+/// account for all changed fields and inverses, then prepare one retained
+/// domain delta under one permit/CAS/history operation. Do not execute each
+/// entry as a separate command, or recapture expected source after a callback.
+#[derive(Debug)]
+pub struct MaterialGraphExpressionDetailsBatchPlan<'a> {
+    source: &'a MaterialGraphAsset,
+    edits: Vec<MaterialGraphExpressionDetailsEditPlan<'a>>,
+}
+
+impl<'a> MaterialGraphExpressionDetailsBatchPlan<'a> {
+    pub fn source(&self) -> &'a MaterialGraphAsset {
+        self.source
+    }
+
+    pub fn edits(&self) -> &[MaterialGraphExpressionDetailsEditPlan<'a>] {
+        &self.edits
+    }
+
+    pub fn changes_source(&self) -> bool {
+        self.edits.iter().any(|edit| edit.changes_source())
+    }
+}
+
+/// Plans a complete multi-object Details edit using the current authored nodes.
+///
+/// Defaults and parameter overrides remain separate. This validates source
+/// identities once and copies only the bounded field values, not a graph or
+/// material snapshot. A changed Texture pair is resolved once for the whole
+/// selection after all its kinds have passed preflight; an all-no-op request
+/// performs no resource lookup. Compile, preview, dirty state and save still
+/// belong to the host's actual document transaction, not this candidate.
+pub fn plan_material_graph_expression_details_batch_edit<'a>(
+    graph: &'a MaterialGraphAsset,
+    selected_node_ids: &[&str],
+    edit: MaterialGraphExpressionDetailsBatchEdit<'a>,
+    mut resolve_kind: impl FnMut(&AssetReference) -> Result<ResourceKind, String>,
+) -> Result<MaterialGraphExpressionDetailsBatchPlan<'a>, Vec<MaterialGraphDiagnostic>> {
+    use MaterialGraphExpressionDetailsBatchEdit as Edit;
+    if selected_node_ids.is_empty() {
+        return Err(vec![MaterialGraphDiagnostic::graph(
+            "material graph expression Details batch requires a non-empty selection",
+        )]);
+    }
+    let selection = project_material_graph_details_selection(graph, selected_node_ids)?;
+    let mut edits = Vec::with_capacity(selection.selected_nodes.len());
+    for node in selection.selected_nodes {
+        let values = match (&node.kind, edit) {
+            (
+                MaterialGraphNodeKindAsset::ScalarParameter { default, .. },
+                Edit::ScalarDefault(value),
+            ) => {
+                if !value.is_finite() {
+                    return Err(vec![MaterialGraphDiagnostic::node(
+                        &node.id,
+                        "material graph scalar default must be finite",
+                    )]);
+                }
+                ExpressionFieldValues::Scalar {
+                    before: *default,
+                    after: value,
+                }
+            }
+            (
+                MaterialGraphNodeKindAsset::VectorParameter { default, .. },
+                Edit::VectorChannels(channels),
+            ) => {
+                let mut after = *default;
+                for (index, channel) in channels.into_iter().enumerate() {
+                    if let Some(value) = channel {
+                        if !value.is_finite() {
+                            return Err(vec![MaterialGraphDiagnostic::node(
+                                &node.id,
+                                "material graph edited vector default channels must be finite",
+                            )]);
+                        }
+                        after[index] = value;
+                    }
+                }
+                ExpressionFieldValues::Vector {
+                    before: *default,
+                    after,
+                }
+            }
+            (MaterialGraphNodeKindAsset::TextureSample { texture }, Edit::Texture(reference)) => {
+                ExpressionFieldValues::Texture {
+                    before: texture,
+                    after: reference,
+                }
+            }
+            _ => {
+                return Err(vec![MaterialGraphDiagnostic::node(
+                    &node.id,
+                    "material graph Details field does not belong to this expression kind",
+                )]);
+            }
+        };
+        edits.push(MaterialGraphExpressionDetailsEditPlan {
+            source: graph,
+            node,
+            values,
+        });
+    }
+    if let Edit::Texture(reference) = edit {
+        if let Some(changed) = edits.iter().find(|edit| edit.changes_source()) {
+            validate_expression_texture_reference(&changed.node.id, reference, &mut resolve_kind)?;
+        }
+    }
+    Ok(MaterialGraphExpressionDetailsBatchPlan {
+        source: graph,
+        edits,
+    })
+}
+
 /// Plans an exact node default/reference edit without changing authoring state.
 ///
 /// Reuse the same whole-source identity validation as Details selection. Invalid
@@ -469,22 +600,26 @@ pub fn plan_material_graph_expression_details_edit<'a>(
     };
     if plan.changes_source() {
         if let Edit::Texture(reference) = edit {
-            match resolve_kind(reference) {
-                Ok(ResourceKind::Texture) => {}
-                Ok(kind) => {
-                    return Err(vec![MaterialGraphDiagnostic::node(
-                        &node.id,
-                        format!("material graph texture references {kind:?}, expected Texture"),
-                    )]);
-                }
-                Err(error) => {
-                    return Err(vec![MaterialGraphDiagnostic::node(
-                        &node.id,
-                        format!("material graph texture reference could not be resolved: {error}"),
-                    )]);
-                }
-            }
+            validate_expression_texture_reference(&node.id, reference, &mut resolve_kind)?;
         }
     }
     Ok(plan)
+}
+
+fn validate_expression_texture_reference(
+    node_id: &str,
+    reference: &AssetReference,
+    resolve_kind: &mut impl FnMut(&AssetReference) -> Result<ResourceKind, String>,
+) -> Result<(), Vec<MaterialGraphDiagnostic>> {
+    match resolve_kind(reference) {
+        Ok(ResourceKind::Texture) => Ok(()),
+        Ok(kind) => Err(vec![MaterialGraphDiagnostic::node(
+            node_id,
+            format!("material graph texture references {kind:?}, expected Texture"),
+        )]),
+        Err(error) => Err(vec![MaterialGraphDiagnostic::node(
+            node_id,
+            format!("material graph texture reference could not be resolved: {error}"),
+        )]),
+    }
 }

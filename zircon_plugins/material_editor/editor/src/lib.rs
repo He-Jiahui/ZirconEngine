@@ -114,10 +114,11 @@ pub use connections::{
     MaterialGraphValueType,
 };
 pub use details_selection::{
-    plan_material_graph_details_edit, plan_material_graph_expression_details_edit,
-    project_material_graph_details_selection, MaterialGraphDetailsEdit,
-    MaterialGraphDetailsEditPlan, MaterialGraphDetailsSelection, MaterialGraphDetailsTarget,
-    MaterialGraphDetailsValue, MaterialGraphExpressionDetailsEdit,
+    plan_material_graph_details_edit, plan_material_graph_expression_details_batch_edit,
+    plan_material_graph_expression_details_edit, project_material_graph_details_selection,
+    MaterialGraphDetailsEdit, MaterialGraphDetailsEditPlan, MaterialGraphDetailsSelection,
+    MaterialGraphDetailsTarget, MaterialGraphDetailsValue, MaterialGraphExpressionDetailsBatchEdit,
+    MaterialGraphExpressionDetailsBatchPlan, MaterialGraphExpressionDetailsEdit,
     MaterialGraphExpressionDetailsEditPlan, MaterialGraphExpressionDetailsValues,
 };
 pub use diagnostics::{
