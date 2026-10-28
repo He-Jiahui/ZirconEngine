@@ -1,3 +1,17 @@
+## 材质接续85：直接复用作者文档的实例参数投影（2026-10-28 UTC）
+
+本轮是独立域源码实现，原唯一Rust／Cargo producer、request `ue-material-graph-20261024-01` 和旧失败保持。84的canonical验证 queue29399／#651仍沿原操作；07:54Z认证API building、archive为checkout_source_busy／原r19 reader，不由此新投或把新216定义塞进旧161定义payload。当前par79 ownedPaths不含两个新子模块，故经正常create-worktree `material-instance-worktree-01a16d50-20261028-85`／queue29532／#656 SUCCESS，从已核实 `fff20d312e38122f9294d752f4287019914ef0d8` 建立受管 `w16726e4ff5/inst85`，精确四路径。未手工Git／复制源码树／snapshot；创建回执的before-after隔离不证明原r19连续性、终态或reader已释放。
+
+`instance_projection.rs`新增 `project_authored_material_document(&ZMaterialDocument, Option<&ShaderAsset>)`，直接返回现有 `MaterialEditorProjection`及现有property／texture／diagnostic row类型，没有平行UI模型／store／clock。原 `from_material`面对已inherit的effective MaterialAsset时会把继承map条目视作本地override；新入口只按原作者overrides／textures的精确key presence生成checkbox，保留显式等于default的覆盖、显式空纹理槽、未知key修复行。schema默认／group／label按原shader序保留；未知本地key按原BTree序追加，不trim／casefold，不以未知key制造shader声明。没有schema时只显示原本地条目和缺少schema的真实依赖诊断，不合成零值／分组。
+
+传入错URI shader、property重名或texture slot重名会拒绝整组投影；property与texture是独立namespace，同名不误拒绝。URI相同仍不证明UUID／payload／load generation，caller须保原ResourceManager、view incarnation／Document／request／revision。schema default只表示默认元数据；有parent时不能直接当作当前继承显示值，须由同source版本的真实父链另解。作者／shader导入诊断原样保留，WgslCapture来源仍用原词汇；本入口不执行Runtime类型／shader contract／GPU readiness校验。原文档parent、editor、options、纹理transform／uv等不被改写；投影行未公开的元数据不等于已有编辑器控件支持。没有flatten／从effective重建ZMaterialDocument，也没有编译、修改、保存、preview或撤销权限。
+
+只读UE `MaterialEditorInstanceDetailCustomization.cpp:371`按实际ParameterGroups、GroupAssociation、VisibleExpressions与override状态决定参数行；`:622–638`对组参数显式设置各Parameter.bOverride，不是比较值是否等于默认。本轮只接Zircon实际shader metadata和本地presence，不宣称已实现UE层／blend association、隐藏参数、排序优先级或组勾选事务。参考raw pin、当前源和精确范围存原E根 `material-instance-projection-85-{before,source,validation,handoff}.json`。
+
+七个新增回归定义覆盖真实MaterialAsset父值继承后旧／新override旗标差异、default／空槽presence、中文／空格key／group及源序、缺schema、错shader整批拒绝、两种重复namespace及独立同名、原正式project codec保存重开和parent／options／editor／纹理metadata／无效值与诊断保留。它们继续使用原material_graph_过滤器；当前branch216静态定义＝215普通＋原1ignored，Rust发现／类型检查／执行均未发生。最初formatter stdin因text-mode将CRLF重复转换而报bare CR，已改二进制LF stdin；lib re-export排序按实际rustfmt修正；这些失败保留，不当Rust编译失败或通过。无新Cargo请求，后续仍先走真实PR/main链，再按当时current source透明有限验证，当前canonical#651不替本轮背书。
+
+只改本域lib结构、新投影／测试子模块及本计划，fork30的Instance／Hierarchy／四Search copies、原parameters82三源、公共host／Graph／catalog／theme／Runtime五源与原ZUI都保持。本轮没有Penpot／浏览器／服务／桌面／EXE动作；83三尺寸设计证据复用，官方codec／真实Field／Document事务／父链显示／renderer／保存应用／EXE150%DPI／双端1DIP仍open，整族passed／accepted=false，goal active。只提交本域四路径、validation[]，实际commit／PR及后续原生结果按原receipt登记，手工释放0B。
+
 ## 材质接续84：canonical 单包托管验证与参数宿主精确接点（2026-10-28 UTC）
 
 本轮沿原 request `ue-material-graph-20261024-01`、原唯一producer，透明新增 operation `matgraph-canonical-01a16d50-20261028-84`。验证的是实际 canonical checkout `5436b180047256ed17fb296a3cebad75c230c64b`，42份材质Rust和13份依赖的当前hash已重新登记；不是重放r10／任何旧终态，也不是对尚未集成分支冒签。原参数分支82的 `e7d7755a` 和83文档 `38b2aea8` 仍 integration pending，本轮不将 canonical 的161静态 `material_graph_` 定义混为82的209定义或其Set／Reset／vector覆盖。

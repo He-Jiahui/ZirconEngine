@@ -10,6 +10,7 @@ mod extension_ids;
 mod graph_contract;
 mod graph_index;
 mod graph_presentation;
+mod instance_projection;
 mod node_creation;
 mod node_creation_autowire;
 mod node_deletion;
@@ -100,6 +101,10 @@ mod search_creation_tests;
 #[path = "tests/shader_compilation.rs"]
 mod shader_compilation_tests;
 
+#[cfg(test)]
+#[path = "tests/instance_projection.rs"]
+mod instance_projection_tests;
+
 pub use capability::{
     CAPABILITY, EDITOR_CAPABILITIES, EDITOR_CRATE_NAME, MATERIAL_EDITOR_DECLARATION,
     NATIVE_EDITOR_ENTRY, NATIVE_EDITOR_REGISTRATION_MANIFEST, NATIVE_PLUGIN_ID,
@@ -132,6 +137,9 @@ pub use extension_ids::{
 use graph_index::MaterialGraphIndex;
 pub use graph_presentation::{
     MaterialGraphEdgeProjection, MaterialGraphEdgeSplineProjection, MaterialGraphPresentation,
+};
+pub use instance_projection::{
+    project_authored_material_document, MaterialDocumentProjectionError,
 };
 pub use node_creation::validate_material_graph_node_creation;
 pub use node_creation_autowire::{
