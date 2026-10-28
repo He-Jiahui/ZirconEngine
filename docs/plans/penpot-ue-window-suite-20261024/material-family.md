@@ -1,3 +1,25 @@
+## Material77 静态计数口径勘误92（2026-10-28）
+
+已消费 Parent r276 的不可变 source／consumer 审阅；原 `queue28701 / #586 SUCCESS`、commit `1e4a483137d68121e19b2471bacebbabee0d97d3` 与 parent `9c0aebafa3882962dd6c2dcfa885390b9e417f29`、四路径补丁和全部旧报告保持。此处仅追加计数口径勘误，未重签旧 receipt，也不以当前 dirty 后继替代77原始字节。
+
+只读 `git show` 按各版本 `lib.rs` 明示的 `#[cfg(test)]`／`#[path]` 模块计数；每个 `#[test]` 均与实际命名函数及其 `#[ignore]` 属性配对，并逐文件核对原始属性数。结果如下，均为源码静态定义，不是 Rust harness 发现、类型检查或执行数：
+
+| 不可变源码版本 | lib 声明测试模块 | 包内全部定义（普通＋ignored） | 名称匹配 `material_graph_`（普通＋ignored） | Details 定义 |
+| --- | ---: | ---: | ---: | ---: |
+| 77 parent `9c0aebaf` | 19 | 190（189＋1） | 187（186＋1） | 34 |
+| Material77 `1e4a4831` | 19 | 197（196＋1） | 194（193＋1） | 41 |
+| 当前本域 Source91 `196cae41`，含90作者引用核对 | 20 | 238（237＋1） | 235（234＋1） | 41 |
+
+原77 ledger／source／handoff 的“总静态定义187→194（193普通＋1原ignored）”将筛选范围误写成包内总数，正式更正为包内190→197、增量7；187→194仅是 `material_graph_` 名称匹配范围。旧194／193＋1和更早187陈述及原件原位保留。原90／91的235也应明确为同一名称匹配范围，包内总数为238；本次没有增加、删除或改写测试，不把238填入任何旧验证 payload。
+
+三项未匹配过滤器的真实定义在三个版本均相同，均位于 `tests/cases.rs`：`material_authoring_registration_exposes_menu_items_and_payload_schemas`、`material_editor_package_manifest_declares_editor_only_metadata`、`material_editor_package_manifest_declares_editor_dist_contract`。因此有限 recipe 的 `material_graph_` 仍不覆盖这三项；静态名称匹配不能替代 Cargo 实际发现，任何 future harness 数目须由当时真实回执登记。
+
+77的原34项 Details 测试体与既有单项 enum／签名／projection 保持，七个 batch 回归沿原版本审阅；本勘误不扩大原77格式／guard／plugin ABI静态证据到当前源码。Parent r276 原件三 SHA：review `db1bbf19a3bc6c0279159c41e6d4cf00bbcee55d158800d1f7545f55d58b951d`；source-review `5e93b11036c1d7193504347a16f33356bdcb501d74a1bacf23c2795b25f5e0e9`；consumer-review `df741e337a777acba9e4b5c7279f79dc131818e65fc869bdb2b4edcd7f2f268a`。路径为 `E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/parent-01a16d4e/material-expression-batch-review-r276/`；本域逐模块／定义／行号及源码 SHA 在 `material-expression-count-92-before.json`，后继交付记录在同报告根 `material-expression-count-92-*`。
+
+生产接线仍要求同一 incarnation／view／document／subdocument／revision／selection request／catalog 下的源序整批 entries（含 no-op）→一次核算 material delta／完整 inverse／prepare／一次 permit／CAS／history→dirty／compile／renderer／save／focus。不得逐 entry 提交或在 resolver callback 后重捕 expected source。canonical `material_workspace_state` 的三个 canned profiles 与 `Not implemented` preview 仍是缺口。沿已存在 PR／main 链集成77／75／76／当前域后继，不 reapply64、不重放r10／68或nested-worktree Cargo，不为794历史缺失 manifest 造证或清锁。
+
+本轮仅本域 ledger 文档，三份本域 Rust 与 fork Instance／Hierarchy、Penpot rev433／5586、Shared／catalog／tokens／Starship／Runtime／原ZUI保持；没有新的浏览器、桌面、服务、source capture、测试 identity 或 Cargo。原77 branch committed／integration pending／main未推进／validation false与各旧 native／reader／resource未知独立保留；官方导出、正常EXE、真实renderer、实际150%DPI、双端≤1DIP及整族 passed／accepted仍false，goal active，释放0B，cleanup open。
+
 ## 接续91：网格与节点的原生绘制顺序、三尺寸重开（2026-10-28 UTC）
 
 90已由唯一后继 `deliver-material-instance-source-01a16d50-20261028-90`／queue29979／management#707 SUCCESS提交 `1d76585b6ec098b62f1d903a96a678aa1c837067`（parent515e39b）；exact四路径raw／Git blob一致、25静态＋19提交后核验通过，branch clean／index.lock absent，integration pending／mainAdvanced=false／validationPerformed=false。新6定义及本树235仅静态，不把fork60的11／167计数相加；本轮三Rust逐项raw未变。fork已queued `01a18229-4041-7d31-8c17-9e1ff1b26554`，Parent因queue100cap拒绝，原stderr保留；queued不作已读，未为消息投递重试旧产品operation。
