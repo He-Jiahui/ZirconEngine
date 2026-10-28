@@ -1,6 +1,12 @@
+#[path = "animation_player.rs"]
+pub(super) mod animation_player;
 #[path = "local_transform.rs"]
 pub(super) mod local_transform;
 #[path = "mesh_renderer.rs"]
 pub(super) mod mesh_renderer;
+#[path = "physics_display.rs"]
+pub(super) mod physics_display;
+#[path = "post_process.rs"]
+pub(super) mod post_process;
 #[path = "rigid_body.rs"]
 pub(super) mod rigid_body;

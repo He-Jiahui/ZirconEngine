@@ -20,7 +20,7 @@ pub struct InspectorNativeFieldSnapshot {
 }
 
 impl InspectorNativeFieldSnapshot {
-    /// Limits this surface to scene rendering components with registered reflection contracts.
+    /// Limits this surface to native scene components with registered reflection contracts.
     /// Transform and RenderLayerMask retain their existing typed owners.
     pub(crate) fn is_component_type(type_path: &str) -> bool {
         matches!(
@@ -32,11 +32,29 @@ impl InspectorNativeFieldSnapshot {
                 | "zircon_runtime::scene::components::PointLight"
                 | "zircon_runtime::scene::components::RectLight"
                 | "zircon_runtime::scene::components::SpotLight"
+                | "zircon_runtime::scene::components::RigidBodyComponent"
+                | "zircon_runtime::scene::components::ColliderComponent"
+                | "zircon_runtime::scene::components::JointComponent"
+                | "zircon_runtime::scene::components::PostProcessSettingsComponent"
+                | "zircon_runtime::scene::components::PostProcessVolumeComponent"
+                | "zircon_runtime::scene::components::AnimationPlayerComponent"
+                | "zircon_runtime::scene::components::Sprite2dComponent"
         )
     }
 
     /// Only colour vectors have an editor here; resource references need an asset picker.
-    pub(crate) fn supports_editing(field_name: &str, value: &ReflectedValue) -> bool {
+    pub(crate) fn supports_editing(
+        component_type_path: &str,
+        field_name: &str,
+        value: &ReflectedValue,
+    ) -> bool {
+        // These virtual setters replace mass_properties, including unprojected inertia.
+        // Field-value undo cannot restore that state, so Details must only display them.
+        if component_type_path == "zircon_runtime::scene::components::RigidBodyComponent"
+            && matches!(field_name, "mass_properties_mode" | "mass_density")
+        {
+            return false;
+        }
         matches!(
             value,
             ReflectedValue::Bool(_)
@@ -74,8 +92,12 @@ impl InspectorNativeFieldSnapshot {
                 };
                 let value =
                     super::super::editor_state_snapshot_build::reflected_value_label(&field.value);
-                let editable =
-                    field.writable && Self::supports_editing(&field.field_name, &field.value);
+                let editable = field.writable
+                    && Self::supports_editing(
+                        &field.component_type_path,
+                        &field.field_name,
+                        &field.value,
+                    );
                 let field_editor = InspectorField::new(
                     field_id.clone(),
                     label.clone(),
@@ -105,6 +127,25 @@ impl InspectorNativeFieldSnapshot {
                         }
                         "zircon_runtime::scene::components::RectLight" => "Rect Light".to_string(),
                         "zircon_runtime::scene::components::SpotLight" => "Spot Light".to_string(),
+                        "zircon_runtime::scene::components::RigidBodyComponent" => {
+                            "Rigid Body".to_string()
+                        }
+                        "zircon_runtime::scene::components::ColliderComponent" => {
+                            "Collider".to_string()
+                        }
+                        "zircon_runtime::scene::components::JointComponent" => "Joint".to_string(),
+                        "zircon_runtime::scene::components::PostProcessSettingsComponent" => {
+                            "Post Process".to_string()
+                        }
+                        "zircon_runtime::scene::components::PostProcessVolumeComponent" => {
+                            "Post Process Volume".to_string()
+                        }
+                        "zircon_runtime::scene::components::AnimationPlayerComponent" => {
+                            "Animation Player".to_string()
+                        }
+                        "zircon_runtime::scene::components::Sprite2dComponent" => {
+                            "Sprite 2D".to_string()
+                        }
                         _ => title_case(&field.component_display_name),
                     },
                     field_id,

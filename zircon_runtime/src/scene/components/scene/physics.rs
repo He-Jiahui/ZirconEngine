@@ -159,15 +159,35 @@ impl Default for ColliderShape {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, zircon_reflect_derive::ZrReflect)]
+#[zr_reflect(
+    component,
+    type_path = "zircon_runtime::scene::components::ColliderComponent"
+)]
 pub struct ColliderComponent {
+    #[zr_reflect(
+        value_type_path = "Enum",
+        read = "super::reflection::physics_display::read_shape",
+        readonly
+    )]
     pub shape: ColliderShape,
+    #[zr_reflect(readonly)]
     pub sensor: bool,
+    #[zr_reflect(readonly)]
     pub layer: u32,
+    #[zr_reflect(readonly)]
     pub collision_group: u32,
+    #[zr_reflect(readonly)]
     pub collision_mask: u32,
+    #[zr_reflect(
+        value_type_path = "Resource",
+        read = "super::reflection::physics_display::read_material",
+        readonly
+    )]
     pub material: Option<ResourceHandle<PhysicsMaterialMarker>>,
+    #[zr_reflect(skip)]
     pub material_override: Option<PhysicsMaterialMetadata>,
+    #[zr_reflect(skip)]
     pub local_transform: Transform,
 }
 
@@ -198,17 +218,37 @@ pub enum JointKind {
     Generic6Dof,
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, zircon_reflect_derive::ZrReflect)]
+#[zr_reflect(
+    component,
+    type_path = "zircon_runtime::scene::components::JointComponent"
+)]
 pub struct JointComponent {
+    #[zr_reflect(
+        value_type_path = "Enum",
+        read = "super::reflection::physics_display::read_joint_type",
+        readonly
+    )]
     pub joint_type: JointKind,
+    #[zr_reflect(value_type_path = "Entity", readonly)]
     pub connected_entity: Option<EntityId>,
+    #[zr_reflect(readonly)]
     pub anchor: Vec3,
+    #[zr_reflect(readonly)]
     pub axis: Vec3,
+    #[zr_reflect(
+        value_type_path = "Vec2",
+        read = "super::reflection::physics_display::read_limits",
+        readonly
+    )]
     pub limits: Option<[Real; 2]>,
+    #[zr_reflect(readonly)]
     pub collide_connected: bool,
     #[serde(default)]
+    #[zr_reflect(skip)]
     pub constraint: PhysicsJointConstraintMetadata,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[zr_reflect(skip)]
     pub skeleton_binding: Option<PhysicsSkeletonJointBinding>,
 }
 

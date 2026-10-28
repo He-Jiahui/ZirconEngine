@@ -1,8 +1,10 @@
 use zircon_runtime_interface::reflect::ReflectError;
 
 use crate::scene::components::{
-    ActiveSelf, AmbientLight, CameraComponent, DirectionalLight, LocalTransform, MeshRenderer,
-    Mobility, Name, PointLight, RectLight, RenderLayerMask, RigidBodyComponent, SpotLight,
+    ActiveSelf, AmbientLight, AnimationPlayerComponent, CameraComponent, ColliderComponent,
+    DirectionalLight, JointComponent, LocalTransform, MeshRenderer, Mobility, Name, PointLight,
+    PostProcessSettingsComponent, PostProcessVolumeComponent, RectLight, RenderLayerMask,
+    RigidBodyComponent, SpotLight, Sprite2dComponent,
 };
 use crate::scene::{derived_component_registration, TypeRegistry};
 
@@ -24,6 +26,14 @@ pub(in crate::scene::reflect) fn register(registry: &mut TypeRegistry) -> Result
     registry.register(derived_component_registration::<RectLight>()?)?;
     registry.register(derived_component_registration::<SpotLight>()?)?;
     registry.register(derived_component_registration::<RigidBodyComponent>()?)?;
+    registry.register(derived_component_registration::<ColliderComponent>()?)?;
+    registry.register(derived_component_registration::<JointComponent>()?)?;
+    registry.register(derived_component_registration::<
+        PostProcessSettingsComponent,
+    >()?)?;
+    registry.register(derived_component_registration::<PostProcessVolumeComponent>()?)?;
+    registry.register(derived_component_registration::<AnimationPlayerComponent>()?)?;
+    registry.register(derived_component_registration::<Sprite2dComponent>()?)?;
     registry.register(script_bindings::registration()?)?;
     Ok(())
 }

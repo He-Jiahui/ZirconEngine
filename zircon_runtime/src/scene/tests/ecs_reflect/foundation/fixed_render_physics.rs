@@ -64,7 +64,10 @@ fn rigid_body_reflection_exposes_selected_safe_fields() {
             },
         )
         .unwrap();
-    let address = fixed_component_address(entity, "RigidBodyComponent");
+    let address = fixed_component_address(
+        entity,
+        "zircon_runtime::scene::components::RigidBodyComponent",
+    );
 
     let fields = world
         .reflect_fields(
@@ -224,14 +227,27 @@ fn rigid_body_reflection_exposes_selected_safe_fields() {
         ))
         .expect("same rigid body mass should be accepted as unchanged");
     assert!(!unchanged_mass.changed);
-    assert!(matches!(
-        world.reflect_write(ReflectWriteRequest::new(
+    let before_invalid = world.get::<RigidBodyComponent>(entity).unwrap().clone();
+    let error = world
+        .reflect_write(ReflectWriteRequest::new(
             address.clone(),
-            reflected_field_id("zircon_runtime::scene::components::RigidBodyComponent", "mass"),
+            reflected_field_id(
+                "zircon_runtime::scene::components::RigidBodyComponent",
+                "mass",
+            ),
             ReflectedValue::Scalar(f32::INFINITY),
-        )),
-        Err(ReflectError::TypeMismatch { expected, .. }) if expected == "finite Scalar"
-    ));
+        ))
+        .expect_err("nonfinite mass must be rejected before the component setter");
+    assert!(
+        matches!(&error, ReflectError::InvalidValue { type_path, field_name, reason }
+            if type_path == "zircon_runtime::scene::components::RigidBodyComponent"
+                && field_name == "mass" && reason.contains("not finite")),
+        "{error:?}"
+    );
+    assert_eq!(
+        world.get::<RigidBodyComponent>(entity),
+        Some(&before_invalid)
+    );
     assert_eq!(
         world
             .reflect_write(ReflectWriteRequest::new(

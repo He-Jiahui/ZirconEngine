@@ -4,11 +4,49 @@ use crate::core::framework::render::{
 };
 use crate::core::math::Real;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, zircon_reflect_derive::ZrReflect)]
+#[zr_reflect(
+    component,
+    type_path = "zircon_runtime::scene::components::PostProcessSettingsComponent",
+    field(
+        name = "ao_intensity",
+        value_type_path = "Scalar",
+        read = "super::reflection::post_process::read_ao_intensity",
+        readonly
+    ),
+    field(
+        name = "bloom_threshold",
+        value_type_path = "Scalar",
+        read = "super::reflection::post_process::read_bloom_threshold",
+        readonly
+    ),
+    field(
+        name = "bloom_intensity",
+        value_type_path = "Scalar",
+        read = "super::reflection::post_process::read_bloom_intensity",
+        readonly
+    ),
+    field(
+        name = "bloom_radius",
+        value_type_path = "Scalar",
+        read = "super::reflection::post_process::read_bloom_radius",
+        readonly
+    ),
+    field(
+        name = "color_grading_exposure",
+        value_type_path = "Scalar",
+        read = "super::reflection::post_process::read_color_grading_exposure",
+        readonly
+    )
+)]
 pub struct PostProcessSettingsComponent {
+    #[zr_reflect(skip)]
     pub ambient_occlusion: AoSourceSettings,
+    #[zr_reflect(skip)]
     pub bloom: RenderBloomSettings,
+    #[zr_reflect(skip)]
     pub color_grading: RenderColorGradingSettings,
+    #[zr_reflect(skip)]
     pub effect_stack: RenderPostProcessEffectStackSettings,
 }
 
@@ -43,16 +81,26 @@ impl PostProcessSettingsComponent {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, zircon_reflect_derive::ZrReflect)]
+#[zr_reflect(
+    component,
+    type_path = "zircon_runtime::scene::components::PostProcessVolumeComponent"
+)]
 /// 摄像机周围可混合的后处理体积配置；提取阶段按空间关系与优先级组合，而非直接修改全局渲染设置。
 pub struct PostProcessVolumeComponent {
+    #[zr_reflect(readonly)]
     pub active: bool,
+    #[zr_reflect(readonly)]
     pub is_global: bool,
+    #[zr_reflect(readonly)]
     pub priority: Real,
+    #[zr_reflect(readonly)]
     pub weight: Real,
     /// Scene-space fade distance outside a local volume collider.
     /// Global volumes ignore this field.
+    #[zr_reflect(readonly)]
     pub blend_distance: Real,
+    #[zr_reflect(skip)]
     pub profile: RenderPostProcessVolumeProfile,
 }
 

@@ -13,6 +13,12 @@ fn fixed_component_registrations_exist_in_empty_world() {
         "zircon_runtime::scene::components::RectLight",
         "zircon_runtime::scene::components::RenderLayerMask",
         "zircon_runtime::scene::components::RigidBodyComponent",
+        "zircon_runtime::scene::components::ColliderComponent",
+        "zircon_runtime::scene::components::JointComponent",
+        "zircon_runtime::scene::components::PostProcessSettingsComponent",
+        "zircon_runtime::scene::components::PostProcessVolumeComponent",
+        "zircon_runtime::scene::components::AnimationPlayerComponent",
+        "zircon_runtime::scene::components::Sprite2dComponent",
     ];
 
     for type_path in expected {

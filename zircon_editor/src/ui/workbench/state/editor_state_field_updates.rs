@@ -116,6 +116,7 @@ impl EditorState {
                     .is_ok_and(|response| {
                         !InspectorNativeFieldSnapshot::is_component_type(component_type_path)
                             || InspectorNativeFieldSnapshot::supports_editing(
+                                component_type_path,
                                 field_name,
                                 &response.field.value,
                             )

@@ -35,6 +35,8 @@ mod fixed_registry;
 mod fixed_render_physics;
 #[path = "foundation/fixed_transform_active.rs"]
 mod fixed_transform_active;
+#[path = "foundation/native_display.rs"]
+mod native_display;
 #[path = "foundation/registry.rs"]
 mod registry;
 #[path = "foundation/value_conversion.rs"]

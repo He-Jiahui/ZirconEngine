@@ -17,6 +17,10 @@ use super::support::read_reflected_field;
 
 #[path = "native_fields/camera_projection.rs"]
 mod camera_projection;
+#[path = "native_fields/display_readonly.rs"]
+mod display_readonly;
+#[path = "native_fields/rigid_body.rs"]
+mod rigid_body;
 
 const CAMERA: &str = "zircon_runtime::scene::components::CameraComponent";
 const POINT_LIGHT: &str = "zircon_runtime::scene::components::PointLight";

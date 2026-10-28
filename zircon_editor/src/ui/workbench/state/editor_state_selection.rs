@@ -650,7 +650,8 @@ fn read_reflected_inspector_value(
         })?;
     // Apply the same native-kind policy to drafts and active Play-world edits.
     if InspectorNativeFieldSnapshot::is_component_type(component_type_path) {
-        if !InspectorNativeFieldSnapshot::supports_editing(field_name, &value) {
+        if !InspectorNativeFieldSnapshot::supports_editing(component_type_path, field_name, &value)
+        {
             return Err(InspectorEditError::UnsupportedFieldId {
                 field_id: field_id.to_owned(),
             });
