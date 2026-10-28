@@ -117,7 +117,8 @@ pub use details_selection::{
     plan_material_graph_details_edit, plan_material_graph_expression_details_edit,
     project_material_graph_details_selection, MaterialGraphDetailsEdit,
     MaterialGraphDetailsEditPlan, MaterialGraphDetailsSelection, MaterialGraphDetailsTarget,
-    MaterialGraphExpressionDetailsEdit, MaterialGraphExpressionDetailsEditPlan,
+    MaterialGraphDetailsValue, MaterialGraphExpressionDetailsEdit,
+    MaterialGraphExpressionDetailsEditPlan, MaterialGraphExpressionDetailsValues,
 };
 pub use diagnostics::{
     validate_material_graph, validate_material_graph_with_diagnostics, MaterialGraphDiagnostic,

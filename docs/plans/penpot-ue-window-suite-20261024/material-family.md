@@ -1,5 +1,29 @@
 # 材质窗口族：源码盘点、实现与证据
 
+## Scalar Details74：真实样式与三尺寸重开复核（2026-10-27）
+
+接续source73，在原Material file b4a1e3ce-9e6a-81fe-8008-d69d6092d704／page b4a1e3ce-9e6a-81fe-8008-d69d6092d705 完成三张可编辑表达式Details设计板。状态为未连线ScalarParameter RoughnessParam／Default Value 0.4；这是作者语义的设计夹具，尚非EXE资产、输入事务或材质预览。UE Public/Materials/MaterialExpressionScalarParameter.h:32 与Zircon原ScalarParameter.default提供字段依据；重命名、Group及完整UE属性不在本切片完成项内。原五业务main、所有旧板及fork30 Instance／Hierarchy／四SearchInput保持。
+
+| 逻辑尺寸 | 新板UUID | Parameter copy UUID |
+| --- | --- | --- |
+| 1280×800 | 6028a9f2-2ce0-800b-8008-da098a092b4d | 9d7dafa4-ae18-8087-8008-da0da3f4b371 |
+| 900×620 | 6028a9f2-2ce0-800b-8008-da099a184a1b | 9d7dafa4-ae18-8087-8008-da0de63e5b03 |
+| 640×520 | 6028a9f2-2ce0-800b-8008-da09ac0e8fef | 9d7dafa4-ae18-8087-8008-da0e213b131c |
+
+三个Parameter为本文件component 904a343b-18f1-4af9-928f-b7d5d028a69a／main a4544d75-53ca-40e7-99c8-8dfeabdb69ed 的真实native copies。六个Name／Default Value行仍是原Shared linked instances：file b4a1e3ce-9e6a-81fe-8008-d69d607aac12、component 6ddc248b-bd35-80c5-8008-d6c8cab1e7d0、main 6ddc248b-bd35-80c5-8008-d6c8c84d848f；逐copy／label／value／slot身份保存在material-expression-design-74-save-r4.json。未detach或复制Shared主件。Name为只读投影；Default目前是文字slot，不能当作NumberField、真实schema/value绑定或输入事件。原copied source metadata仍保留历史baseline，手工设计覆盖不重签codec／reset资格。
+
+首轮289→341／3906→4414对象的三张R2图实际复核失败：absolute label与value重叠、Search排在字段后、固定94高的Parameter裁掉0.4；原material-expression-design-74-review.json和三张R2 PNG保留。后继只改新增copies：原生flex row-reverse、label static／auto-height、交叉轴居中与value slot Fill；Details用原生column-reverse顺序；Parameter body／root以内容撑高到110。原“移至顶层”不改变flex children的失败观察保留，不拿层叠命令冒充flow排序。
+
+Shared真实读回为rev5／4主件／34颜色／3字体，consumer本地styles0不是库0。十二个新字段text应用实际editor.typography.body UUID 99eb86f9-12ff-5935-96ad-3d1a985e61f0和editor.text.primary UUID e022fcac-39df-51eb-8515-4723f9932060；字号13.333333／Roboto regular400／行高1.2及#c0c0c0均来自真实Shared完整样式。原native update-file协议在缺vern时HTTP400的失败保留；补齐实际vern后HTTP200，382→383仅改这12对象，文本不变、无增删、Shared源数据哈希不变。paragraph＋leaf共24个typography ref及24个color ref，没有伪造style UUID。随后用原生文字编辑器Enter／Esc产生真实positionData，383→384，未手写行框。此为真实设计引用，仍不证明官方source-token导出、跨文件更新／reset或全局主题传播。
+
+03:39:25Z原生保存rev384／4414对象；3906个原对象除Root Frame新增children外全部未改、0原对象删除、净增508。显式关闭旧context后新认证context重开，逐shape hash与viewer后再读完全一致。三张最终material-expression-design-74-{1280,900,640}-r4.png已逐图实际打开；DPR1精确逻辑尺寸，无EXE／系统DPI推断。六行label/value的实际DOM glyph Y差均0，标签与值横向无重叠，glyph各自在原生文本框内；默认值0.4也在110高节点内。最终逐图记录material-expression-design-74-review-r2.json只确认这些局部设计缺陷已修复。三尺寸保留同graph-local Parameter(48,72)／Output(360,72)、zoom1和edges=[]；640的Output仍在clip外，须真实host pan／fit，未为截图改变作者节点位置。原tabs继承旧默认／Overview prototype，并非表达式上下文切换／焦点返回已接通。
+
+服务时序独立保留：03:08:38Z Penpot19001／16060连接拒绝，最新修复在首次get-file前失败；03:17:41Z两端恢复200后才继续原页，不重启服务。首次style-picker定位、native定位race、R3缺行框超时和初版布局失败均留原回执。source73已由queue27748／management#549 SUCCESS提交bb88532ea260ec0c9da73b1beb512287574f44e2，HTTP／Home回执一致；main integration pending、validationPerformed=false。三Rust仍与source73同源，181静态定义不是harness发现／执行数。pinned31652db8仍只接受canonical nested插件，而canonical三源与本工作树不同；不回写main或用root／本地Cargo兜底。
+
+本md74正式deliver-task原operation deliver-material-expression-design-01a16d50-20261027-74在POST前被“Jenkins agent offline”拒绝，原input／失败原字节保留，官方本地query为not-started，无queue／build。03:44:54Z再经正式read-only runtime_context得到WinError10061连接拒绝；不盲重投、不改服务。最终文档只替换自己的74首节并保留source73和全部旧文档字节，按单md执行diff／reverse／guard；原初版guard只签当时初版，最终检查另列r2。全部报告复用E:/cargo-targets/zircon-local/reports/ue-material-family-20261024-01a16d50/。
+
+仍待真实宿主的源revision／selection重新核对、有限delta／inverse／retention／一次permit／CAS／history、Details输入／脏标记／编译反馈／renderer／Apply／Save；官方codec→原material_workspace.zui导出／产品加载尚无有效回执。LayoutReviewCase的资源、EXE／主题闭包及nonce／generation／PID+birth未齐，正常EXE、实际150%DPI、双端并排／差异、≤1DIP均open。原ZUI不写，未申请桌面或伪造捕获，整族goal active、passed=false／accepted=false；释放0B。
+
 本会话：`01a16d50-6c7f-7370-853d-4581184b66a1`。Parent：`01a16d4e-0491-7353-84fa-038bd7706546`。套件日期：2026-10-24；实际运行回执使用 UTC。
 
 ## Expression Details73：节点默认值与真实纹理引用（2026-10-27）
@@ -1430,3 +1454,30 @@ UE 参考为原只读 `GraphEditorSettings.cpp` 155–170 和 `ConnectionDrawing
 本轮未写Penpot/Shared/主题/catalog/原ZUI/Runtime/锁/服务/gates，没有desktop操作或新增producer。复用Palette48的rev170设计证据，不将源码边界方法冒充Frame All按钮、paint/hit/focus、正式codec、实际renderer或正常EXE/150%DPI/双端1DIP完成。goal active、passed=false/accepted=false；释放0B，原391/source37/r19及首版静态回执全部保留。
 
 15:19:28.789346Z 补充原47终态：认证 API 已读 queue19353/#410 building=false/result=FAILURE，duration2573483ms；499B归档仍SHA e4c1f5bb67f71bf9ad5d2502132b4cf4e2b786ee0cf7ccb52c17df883f2d5024、waiting/management_git_busy。该pipeline终态与原生/reader/resource收口分开；compileStarted与真实Rust发现/执行继续unknown。保留15:03 building观察，未重投47或创建49 operation。见[47终态观察03](E:/cargo-targets/zircon-local/reports/ue-material-family-20261024-01a16d50/material-shader-contract-47-build-observation-03.json)。
+
+
+## 接续75：原448终态与多选Details投影（进行中，2026-10-27）
+
+已消费Parent r138/result.json（268500a3b91149f910212277287c1c925700654577bb9e95246f05127f0c554a）：原matgraph-details-01a16d50-20261026-61／queue25902／#448实际FAILURE，491B archive为7d907c538ea013f9dac30df13afb0d117aa9bdddf3ca5335d5c49ad31c318d83；原State v480仍waiting／management_git_busy，input d2638ae2未变。20:21的542B／checkout_source_busy／r19仅为历史，不当当前reason；Rust、native与资源闭合未知，不重投或重复交付61。完整消费见material-details-common-75-parent-r138-consumption.json，73后继独立保留。
+
+现有源内已增加MaterialGraphDetailsSelection::expression_values与Common／Mixed类型：仅投影已验证的原选中节点，scalar按bit、vector逐通道、texture按完整引用比较；不同kind不伪造共有field，override／非finite修复状态不被展平。UE PropertyHandleImpl.cpp:224和SPropertyEditorNumeric.h:486-498提供多值依据。本轮尚未补完回归、托管验证或host消费，不能把源码候选当已工作的多选输入／事务。
+
+Penpot75原生首轮仅新增1280板56d97234-a2fa-808f-8008-da248d84bd62及第二Parameter，04:06只读为rev390／4616，原4414对象除Root children未改。文本仍是RoughnessParam／0.4，未形成最终Multiple Values状态，900／640未做。首次viewport外编辑失败保留；R2因ENOSPC在首个报告写入时失败，0B文件保留，browser35400已关闭／auth未变。04:06:53Z物理E仅45056B空闲；已暂停新browser／大写入，无切盘／服务／锁／cache动作。Parent队列100cap拒绝资源通知；public与Jenkins原owner分别queued01a17b87-34a6、01a17b87-4462，queued不证明已读／治理准入。原74最终三图和全部失败保留；资源与代码后续待真实变化，goal active，整族passed／accepted=false，释放0B。
+
+75后继：六个material_graph_details_回归定义已补入原tests/details_selection.rs，三Rust按edition2021／skip_children=true格式检查exit0；187静态定义不当Rust发现或执行。首个edition2024未限制children的只读格式命令返回1并涉及未授权子文件建议，未写那些文件；随后已用真实edition2021限定三源，不扩格式范围。先前“尚未补完回归”为当时状态，保留其时序。E容量仍低，不再次启动浏览器或以静态检查冒充产品通过。
+
+### 75 后续：真实 API 多值设计与 r141 阴影合同接续（2026-10-27）
+
+04:23:57–59Z，只修改既有75板 `56d97234-a2fa-808f-8008-da248d84bd62` 的五处文字，真实 update-file HTTP200 将 rev390 保存至391／4616对象：两个节点为 RoughnessA／RoughnessB，第二默认值0.8，Details 的 Name／Default Value 为 Multiple Values。04:27独立新Node进程仅GET，五对象、全页digest及非文字样式一致；4414个既有对象除Root children保持原hash，Shared与业务component引用保留。此前390／未形成多值的描述按时点保留。API读回不等于关闭重开画布；原生文字重算、900／640、交互与正式导出仍未通过。Name多值标题只为设计，源75尚未提供表达式重命名或多选写事务。详见[75 API交接](E:/cargo-targets/zircon-local/reports/ue-material-family-20261024-01a16d50/material-details-common-75-api-handoff-r1.json)。
+
+已实际消费 Parent r141 result（SHA2200e7453cf72d6eccd20b42eca180871e165779cd1144f9237c7b56c85e6071）及原受管 component-reuse.md 后像（SHA7764883df257c9d3ec9e9e5f422060a2c80a2638c762a29d41362492b9ac7f9e）。默认 shadow 每侧12／size+24；非默认 dx=12+min(padding,0)、dy=12，不加clamp；18/64是texture slice。仅扩paint，不改child、pin、wire、hit／selection bounds，同代clip且变换／DPI各一次。纹理、颜色、alpha、9slice与painter仍open，58板2px描边继续标近似；不修改公共源或补造纹理。来源见[r141原结果](E:/cargo-targets/zircon-local/reports/ue-window-suite-20261024/parent-01a16d4e/material-shadow-geometry-contract-r141/result.json)。
+
+r141 的 deliver-shared73-material-shadow-contract-r141 唯一调用因agent offline停在POST前，无marker／queue／build／commit；该03:41观察不冒充当前服务状态。本域75交付仍只prepared，未提交；不重放61／r10。三Rust及187静态定义沿75原源与验证，实际Rust发现／执行仍null。本节仅文档后继，旧75四路径回执不签本次新md字节；追加补丁、当前四路径guard与结构核验独立记录。E盘04:27:55曾0B，容量后来短暂回升仅足够小记录，不启动browser／Cargo，不切盘、重启服务或手动清理。goal active、整族passed／accepted=false。
+
+### 74 公共 codec 审阅39：引用、来源与几何的分别记录
+
+已核实原 public fixture 的39130B／SHA dadcbb08a47cf9e7968c52c6892956e047f32ed560389436867c828c0f0e6b86。382→383真实内容中，12文字的paragraph／leaf共24组typography pair与24组paint pair匹配Shared body／primary及dc231 token源；384保存／fresh viewer为另一时点证据，不作为下一次执行token。
+
+六个value仍缺语义metadata、sourceRef和正式Material value-port；六个label旧provider guard缺fontId／variant。原生refs不补签这些来源。后续仍需原69／73 owner链fresh保护当前file，取得真实source／callsite／instancePath／typed port，并在同操作校验连接库、token依赖、文本reflow及strict capture；不full-import、不复制Shared或增加producer。
+
+几何勘误：六个save-r4 fieldShapes均匹配各自5／4／90.5／24 guard；嵌套row缓存和fresh viewer行框属于不同证据层，尚无当前SDK几何结果。保留原生ref与全部copy，不采用“六几何均失败”推断，也不以本审阅记为已跑export。fixture及各门见[公共codec39原件](E:/cargo-targets/zircon-local/reports/penpot-unreal-01a0f04d/ue-penpot-resume-20261023/local-execution/public-component-closure-01/material-consumer-preservation-39-r01/material-details74-ref-capture-contract-r01.json)。

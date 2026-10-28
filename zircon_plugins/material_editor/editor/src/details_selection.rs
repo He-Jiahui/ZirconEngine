@@ -21,6 +21,37 @@ pub enum MaterialGraphDetailsTarget<'a> {
     Expression(&'a MaterialGraphNodeAsset),
 }
 
+/// A common authored value, or a field whose selected values differ.
+///
+/// Mixed is not zero, an absent override or the first selected value. The UI
+/// supplies its localized multiple-values caption without writing that caption
+/// into the source. Numeric comparison below preserves authored bit patterns.
+#[derive(Clone, Copy, Debug)]
+pub enum MaterialGraphDetailsValue<T> {
+    Common(T),
+    Mixed,
+}
+
+impl<T> MaterialGraphDetailsValue<T> {
+    fn retain_when(self, equal: impl FnOnce(&T) -> bool) -> Self {
+        match self {
+            Self::Common(value) if equal(&value) => Self::Common(value),
+            _ => Self::Mixed,
+        }
+    }
+}
+
+/// One expression field shared by every selected node's actual kind.
+///
+/// Vectors preserve common and mixed channels independently. Texture Common
+/// borrows the first original reference after comparing both UUID and locator.
+#[derive(Clone, Copy, Debug)]
+pub enum MaterialGraphExpressionDetailsValues<'a> {
+    ScalarDefault(MaterialGraphDetailsValue<Real>),
+    VectorDefault([MaterialGraphDetailsValue<Real>; 4]),
+    Texture(MaterialGraphDetailsValue<&'a AssetReference>),
+}
+
 /// Source-borrowed Details objects and the original selected nodes.
 ///
 /// Build on selection change, not for every paint. Source order is stable even
@@ -56,6 +87,62 @@ impl<'a> MaterialGraphDetailsSelection<'a> {
         self.targets
             .iter()
             .any(|target| matches!(target, MaterialGraphDetailsTarget::Expression(_)))
+    }
+
+    /// Projects defaults/references from these exact selected source nodes.
+    ///
+    /// None means no common expression-field schema: empty selection, a root,
+    /// a math node or different expression kinds. Mixed retains that field's
+    /// schema while withholding a uniform value. Unselected nodes and graph
+    /// parameter overrides do not participate. Non-finite source values remain
+    /// visible for repair; this is not the validation of a proposed edit.
+    ///
+    /// This walks the borrowed selection without allocating, resolving assets,
+    /// changing source order or creating transaction/focus authority. The real
+    /// host must still revalidate its document/revision/selection on publication
+    /// and use its existing single transaction for any subsequent multi-edit.
+    pub fn expression_values(&self) -> Option<MaterialGraphExpressionDetailsValues<'a>> {
+        use MaterialGraphDetailsValue::Common;
+        use MaterialGraphExpressionDetailsValues as Values;
+        let first = *self.selected_nodes.first()?;
+        match &first.kind {
+            MaterialGraphNodeKindAsset::ScalarParameter { default, .. } => {
+                let mut value = Common(*default);
+                for node in self.selected_nodes.iter().skip(1) {
+                    let MaterialGraphNodeKindAsset::ScalarParameter { default, .. } = &node.kind
+                    else {
+                        return None;
+                    };
+                    value = value.retain_when(|previous| previous.to_bits() == default.to_bits());
+                }
+                Some(Values::ScalarDefault(value))
+            }
+            MaterialGraphNodeKindAsset::VectorParameter { default, .. } => {
+                let mut values = (*default).map(Common);
+                for node in self.selected_nodes.iter().skip(1) {
+                    let MaterialGraphNodeKindAsset::VectorParameter { default, .. } = &node.kind
+                    else {
+                        return None;
+                    };
+                    for (value, channel) in values.iter_mut().zip(default) {
+                        *value = (*value)
+                            .retain_when(|previous| previous.to_bits() == channel.to_bits());
+                    }
+                }
+                Some(Values::VectorDefault(values))
+            }
+            MaterialGraphNodeKindAsset::TextureSample { texture } => {
+                let mut value = Common(texture);
+                for node in self.selected_nodes.iter().skip(1) {
+                    let MaterialGraphNodeKindAsset::TextureSample { texture } = &node.kind else {
+                        return None;
+                    };
+                    value = value.retain_when(|previous| *previous == texture);
+                }
+                Some(Values::Texture(value))
+            }
+            _ => None,
+        }
     }
 }
 

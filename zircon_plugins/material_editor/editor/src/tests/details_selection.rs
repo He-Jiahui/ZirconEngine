@@ -4,8 +4,9 @@ use super::{
     compile_material_graph, plan_material_graph_details_edit,
     plan_material_graph_expression_details_edit, project_material_graph_details_selection,
     validate_material_graph_with_diagnostics, MaterialGraphDetailsEdit, MaterialGraphDetailsTarget,
-    MaterialGraphDiagnosticTarget, MaterialGraphExpressionDetailsEdit as ExpressionEdit,
-    MaterialGraphPresentation,
+    MaterialGraphDetailsValue as CommonValue, MaterialGraphDiagnosticTarget,
+    MaterialGraphExpressionDetailsEdit as ExpressionEdit,
+    MaterialGraphExpressionDetailsValues as ExpressionValues, MaterialGraphPresentation,
 };
 use zircon_runtime::asset::{
     AssetReference, AssetUri, MaterialGraphAsset, MaterialGraphLinkAsset, MaterialGraphNodeAsset,
@@ -941,6 +942,204 @@ fn material_graph_expression_details_texture_edit_roundtrips_to_real_material_bi
         Some(proposed)
     );
     assert_eq!(graph.to_toml_string().unwrap(), before);
+}
+
+#[test]
+fn material_graph_details_common_scalar_uses_original_defaults_not_override_or_input_order() {
+    let mut graph = graph();
+    graph.nodes = vec![
+        scalar("a", "粗糙度A", 0.4),
+        scalar("ignored", "Ignored", 9.0),
+        scalar("b", "粗糙度B", 0.4),
+    ];
+    graph
+        .parameters
+        .insert("粗糙度A".into(), Value::Scalar(0.9));
+    graph
+        .parameters
+        .insert("粗糙度B".into(), Value::Vector([7.0; 4]));
+    let before = graph.to_toml_string().unwrap();
+    let selection = project_material_graph_details_selection(&graph, &["b", "a"]).unwrap();
+    assert!(matches!(
+        selection.expression_values(),
+        Some(ExpressionValues::ScalarDefault(CommonValue::Common(value)))
+            if value.to_bits() == 0.4_f32.to_bits()
+    ));
+    assert!(std::ptr::eq(selection.selected_nodes()[0], &graph.nodes[0]));
+    assert!(std::ptr::eq(selection.selected_nodes()[1], &graph.nodes[2]));
+    assert_eq!(graph.to_toml_string().unwrap(), before);
+}
+
+#[test]
+fn material_graph_details_mixed_scalar_never_recovers_last_value_or_erases_signed_zero() {
+    let mut graph = graph();
+    for values in [[0.4, 0.8, 0.4], [0.0, -0.0, 0.0]] {
+        graph.nodes = vec![
+            scalar("a", "A", values[0]),
+            scalar("b", "B", values[1]),
+            scalar("c", "C", values[2]),
+        ];
+        let selection = project_material_graph_details_selection(&graph, &["c", "a", "b"]).unwrap();
+        assert!(matches!(
+            selection.expression_values(),
+            Some(ExpressionValues::ScalarDefault(CommonValue::Mixed))
+        ));
+    }
+}
+
+#[test]
+fn material_graph_details_vector_common_channels_preserve_mixed_zero_and_repairable_nan() {
+    let mut graph = graph();
+    let nan = f32::from_bits(0x7fc0_0017);
+    graph.nodes = vec![
+        node(
+            "a",
+            Node::VectorParameter {
+                name: "A".into(),
+                default: [0.1, 0.0, 3.0, nan],
+            },
+        ),
+        node(
+            "b",
+            Node::VectorParameter {
+                name: "B".into(),
+                default: [0.1, -0.0, 4.0, nan],
+            },
+        ),
+    ];
+    let diagnostics = validate_material_graph_with_diagnostics(&graph);
+    assert!(!diagnostics.is_empty());
+    let selection = project_material_graph_details_selection(&graph, &["b", "a"]).unwrap();
+    let Some(ExpressionValues::VectorDefault(values)) = selection.expression_values() else {
+        panic!("same-kind vector fields retain their actual channel schema")
+    };
+    assert!(
+        matches!(values[0], CommonValue::Common(value) if value.to_bits() == 0.1_f32.to_bits())
+    );
+    assert!(matches!(values[1], CommonValue::Mixed));
+    assert!(matches!(values[2], CommonValue::Mixed));
+    assert!(matches!(values[3], CommonValue::Common(value) if value.to_bits() == nan.to_bits()));
+    assert_eq!(
+        validate_material_graph_with_diagnostics(&graph),
+        diagnostics
+    );
+}
+
+#[test]
+fn material_graph_details_texture_common_borrows_first_and_compares_uuid_and_locator() {
+    let mut graph = graph();
+    let first = AssetReference::new(
+        AssetUuid::from_stable_label("common texture first"),
+        AssetUri::parse("res://textures/first.png").unwrap(),
+    );
+    for (second, common) in [
+        (first.clone(), true),
+        (
+            AssetReference::new(
+                AssetUuid::from_stable_label("common texture second"),
+                first.locator.clone(),
+            ),
+            false,
+        ),
+        (
+            AssetReference::new(
+                first.uuid,
+                AssetUri::parse("res://textures/second.png").unwrap(),
+            ),
+            false,
+        ),
+    ] {
+        graph.nodes = vec![
+            node(
+                "a",
+                Node::TextureSample {
+                    texture: first.clone(),
+                },
+            ),
+            node("b", Node::TextureSample { texture: second }),
+        ];
+        // The returned reference remains a source borrow after the projection drops.
+        let values = project_material_graph_details_selection(&graph, &["b", "a"])
+            .unwrap()
+            .expression_values()
+            .unwrap();
+        let ExpressionValues::Texture(value) = values else {
+            panic!("texture schema")
+        };
+        match value {
+            CommonValue::Common(reference) => {
+                assert!(common);
+                let Node::TextureSample { texture } = &graph.nodes[0].kind else {
+                    unreachable!()
+                };
+                assert!(std::ptr::eq(reference, texture));
+            }
+            CommonValue::Mixed => assert!(!common),
+        }
+    }
+}
+
+#[test]
+fn material_graph_details_without_common_expression_schema_never_invents_a_value() {
+    let mut graph = graph();
+    graph.nodes = vec![
+        node("output", Node::Output),
+        node("add", Node::Add),
+        node("multiply", Node::Multiply),
+        scalar("scalar", "Value", 0.4),
+        node(
+            "vector",
+            Node::VectorParameter {
+                name: "Value".into(),
+                default: [0.4; 4],
+            },
+        ),
+        node(
+            "texture",
+            Node::TextureSample {
+                texture: AssetReference::from_locator(
+                    AssetUri::parse("res://textures/a.png").unwrap(),
+                ),
+            },
+        ),
+    ];
+    for selected in [
+        vec![],
+        vec!["output"],
+        vec!["add"],
+        vec!["multiply"],
+        vec!["scalar", "output"],
+        vec!["scalar", "add"],
+        vec!["scalar", "vector"],
+        vec!["vector", "texture"],
+    ] {
+        let selection = project_material_graph_details_selection(&graph, &selected).unwrap();
+        assert!(selection.expression_values().is_none(), "{selected:?}");
+    }
+}
+
+#[test]
+fn material_graph_details_common_nonfinite_source_preserves_bits_instead_of_hiding_repair() {
+    let mut graph = graph();
+    let nan = f32::from_bits(0x7fc0_0017);
+    for value in [nan, f32::INFINITY, f32::NEG_INFINITY, -0.0] {
+        graph.nodes = vec![scalar("a", "A", value), scalar("b", "B", value)];
+        let selection = project_material_graph_details_selection(&graph, &["a", "b"]).unwrap();
+        assert!(matches!(
+            selection.expression_values(),
+            Some(ExpressionValues::ScalarDefault(CommonValue::Common(actual)))
+                if actual.to_bits() == value.to_bits()
+        ));
+    }
+    graph.nodes = vec![
+        scalar("a", "A", nan),
+        scalar("b", "B", f32::from_bits(0x7fc0_0018)),
+    ];
+    let selection = project_material_graph_details_selection(&graph, &["a", "b"]).unwrap();
+    assert!(matches!(
+        selection.expression_values(),
+        Some(ExpressionValues::ScalarDefault(CommonValue::Mixed))
+    ));
 }
 
 fn graph() -> MaterialGraphAsset {
