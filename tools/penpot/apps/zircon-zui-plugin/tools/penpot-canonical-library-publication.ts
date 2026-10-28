@@ -228,6 +228,18 @@ export async function closeCanonicalPublicationSaveContext<T>(
   return result;
 }
 
+/** Closing and reopening must retain the complete saved snapshot, including
+ * newly appended main descendants that the original-content guard cannot cover.
+ * A later revision is a reconciliation failure, not a new export baseline. */
+export function assertCanonicalPublicationSavedReadback<T extends {
+  id: string; revn: number; vern: number; data: unknown;
+}>(saved: T, reopened: T): void {
+  assert.equal(reopened.id, saved.id, 'Canonical save readback returned a different file');
+  assert.equal(reopened.vern, saved.vern, 'Canonical save readback changed file version');
+  assert.equal(reopened.revn, saved.revn, 'Canonical save readback changed file revision');
+  assert.deepEqual(reopened.data, saved.data, 'Canonical save readback changed file data');
+}
+
 /** Exports are read-only. Verify the complete saved library after the export
  * workspace closes, including changes that materialize during close. */
 export async function verifyCanonicalPublicationExportReadback<T extends {
@@ -454,7 +466,9 @@ export async function publishCanonicalLibrary(options: CanonicalLibraryPublicati
       viewport: {width: 1920, height: 1200}, locale: 'en-US', serviceWorkers: 'block'});
     receipt['newAuthenticatedContext'] = true;
     const reopenedFile = await rpc<any>(context, identity.origin, 'get-file', {id: identity.fileId}, decode);
-    assert.equal(reopenedFile.id, saved.id); assert.ok(reopenedFile.revn >= saved.revn);
+    assertCanonicalPublicationSavedReadback(saved, reopenedFile);
+    receipt['savedReadbackVerified'] = true;
+    receipt['savedReadbackRevision'] = {revn: reopenedFile.revn, vern: reopenedFile.vern};
     assert.deepEqual(persistedZuiMetadata(reopenedFile, identity.pageId), metadata);
     assert.deepEqual(reopenedFile.data.components, saved.data.components);
     receipt['reopenedSameFile'] = true; receipt['metadataMatched'] = true;
