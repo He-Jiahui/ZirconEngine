@@ -1,3 +1,13 @@
+## 材质接续81：参数板 Palette 原生文字测量修复（原唯一 producer，2026-10-28 UTC）
+
+- 接续80原板和原 managed worktree `w47ec1661d3-par79` / `c8b140cafce6cfa3be538894bd0edb6c32251f5c`，本轮只在本 md 增量记录；三个79 Rust raw不变，201静态定义仍未发现/执行。Parent r249已核75的6db5c0c8提交及78真实集成缺口，本轮不重复apply64/75、不重投旧#448/r10或nested worktree验证；原Jenkins/Git owner沿既有78通知链处理显式run inventory/immutable component。
+- 原 file/page `b4a1e3ce-9e6a-81fe-8008-d69d6092d704` / `b4a1e3ce-9e6a-81fe-8008-d69d6092d705` 实读rev415/5585对象。1280、900、640仍分别为80的 `f02a46ad-39f2-8081-8008-db7e736c5ba0`、`4ad7bd44-bf74-8024-8008-db81afeb267b`、`3a8f714d-e676-802c-8008-db8265291bb4`，没有新增板/main或对象。只读UE `MaterialEditor.cpp:576–584/5876–5903`核对Palette/Named Reroutes原名；本轮未改变sidebar/tab命令语义。
+- 三处Palette实际content原有文字而无positionData；原生viewer对应g均为空，旁边同字体/旋转的Named Reroutes有测量数据且能显示。本地Penpot `frontend/src/app/main/ui/shapes/text.cljs:30–46`的SVG/缺数据分支与此现象一致。仅进入编辑、重录相同文字或尾空格均未持久修复，保留原探针结果；通过真实图层选择/Enter，在原文本中临时提交PaletteX，再恢复精确Palette，令Penpot原生生成缓存，未手填测量值、画替代字或改字体/全局源。此前首次测量为何遗漏这三字仍未定位，不泛化为字体失败。
+- 最终rev422/5585对象：只有三个原text ID `f02a46ad-39f2-8081-8008-db7e736c5bac`、`4ad7bd44-bf74-8024-8008-db81afeb2687`、`3a8f714d-e676-802c-8008-db8265291bc0`新增positionData，content、字体/颜色/旋转/坐标等其余字段精确不变；全部ID、五main、原生实例及fork30范围保持。关闭旧context、只读原认证storage创建新context，实际重开工作区和三viewer，5585全对象hash与保存点一致。
+- 三处原生文字墨迹均为16×42.609375逻辑尺寸且在原25×160侧栏内。六原始PNG、三并排和三差异图共12张均已打开逐图复核。逐RGB像素比较的三板差异只在Palette墨迹，原侧栏外变化像素均为0；这是同一Penpot设计修复前后比较，绝不是Penpot/Engine双端差异或<=1DIP验收。浏览器DPR1、viewer尺寸1280×800/900×620/640×520，不是实际系统150%DPI。
+- 80其它差异继续open：页签caption裁切、640 Output右缘/Roughness下部裁切、真实Palette停靠/焦点输入、参数Field/颜色/Reset/撤销、作者source/callsite/instancePath与正式codec/export、renderer/保存应用及正常EXE/native证据。未改原v2 ZUI、Shared/catalog/tokens/Starship或公共host，也未用临时PaletteX改变最终内容。全族passed/accepted=false，goal active。
+- 原报告根 `material-parameter-sidebar-81-{before,diagnosis,edit,reopen,review}.json`与12PNG保留；review SHA `15b678cf5aebabbcab35d079008bddfa91e5521488d38318fec62d32736f2417`。首次脚本stdin EOF退出0、r02原生浏览器44560真实退出0均保留，browser.close完成/auth不变/自有tmp为空，手工释放0B。文档单路径正常deliver沿原request/session、新operation `deliver-material-parameters-sidebar-01a16d50-20261028-81`、validation[]；实际queue/build/commit另由原receipt补记，PR/main/产品验收独立open。
+
 ## 材质接续80：非空参数三板与真实声明消费边界（原唯一 producer，2026-10-28 UTC）
 
 - 原 goal 实读仍 active。接续79受管提交 `b71426aa69c80f477e7f4149be6753ab0c161300`（queue28912/#601 SUCCESS，integration pending），本轮只在其准确四路径 owned scope 内追加本 md；三个 Rust raw 与79一致，未新增 Cargo/验证身份、未重投64/旧#448/r10或79的终态 operation。原mat64四份79 dirty候选继续保留。本次设计不是 Material Instance/Function 后端完成。
