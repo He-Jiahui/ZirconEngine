@@ -6,11 +6,12 @@ use std::io::{self, Write};
 use serde_json::{json, Value};
 use zircon_plugin_material_editor_editor::{
     compile_material_graph_with_diagnostics, compile_material_graph_with_shader_contract,
+    plan_material_graph_parameter_edit, plan_material_graph_parameter_vector_edit,
     project_authored_material_document, project_material_graph_details_selection,
     validate_material_graph_with_diagnostics, MaterialDocumentProjectionError,
     MaterialGraphDetailsTarget, MaterialGraphDetailsValue, MaterialGraphDiagnostic,
-    MaterialGraphDiagnosticTarget, MaterialGraphExpressionDetailsValues, MaterialGraphPresentation,
-    MaterialGraphShaderCompileError,
+    MaterialGraphDiagnosticTarget, MaterialGraphExpressionDetailsValues,
+    MaterialGraphParameterEdit, MaterialGraphPresentation, MaterialGraphShaderCompileError,
 };
 use zircon_plugin_sdk::native::{
     self, callback_status, NativePluginByteSliceV3, NativePluginCallbackStatusV3,
@@ -55,6 +56,11 @@ max_output_bytes = 1048576
 name = "material_editor.graph.details"
 slot = 5
 payload_schema = "material_editor.graph_details.v1"
+max_output_bytes = 1048576
+[[commands]]
+name = "material_editor.graph.plan_parameter_edit"
+slot = 6
+payload_schema = "material_editor.plan_graph_parameter_edit.v1"
 max_output_bytes = 1048576
 "#,
     "\0"
@@ -165,6 +171,22 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
       }
     },
     {
+      "kind": "command",
+      "id": "material_editor.graph.plan_parameter_edit",
+      "schema": "zircon.editor.command/3",
+      "localization_bundle_id": "material_editor",
+      "label_key": "command.material_editor.graph.plan_parameter_edit.label",
+      "description_key": "command.material_editor.graph.plan_parameter_edit.description",
+      "execution_contract": {
+        "result_codec": "zircon.editor.command-result.v1",
+        "resource_budget": {
+          "max_input_bytes": 1048576,
+          "max_output_bytes": 1048576,
+          "max_execution_time_ms": 5000
+        }
+      }
+    },
+    {
       "kind": "localization_bundle",
       "id": "material_editor",
       "schema": "zircon.editor.localization-bundle/1",
@@ -181,7 +203,9 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
           "command.material_editor.material.inspect.label": "Inspect Authored Material",
           "command.material_editor.material.inspect.description": "Read local material overrides and optional shader schema without flattening inheritance",
           "command.material_editor.graph.details.label": "Inspect Material Graph Selection",
-          "command.material_editor.graph.details.description": "Read original Details targets and common or mixed values for the submitted selection"
+          "command.material_editor.graph.details.description": "Read original Details targets and common or mixed values for the submitted selection",
+          "command.material_editor.graph.plan_parameter_edit.label": "Plan Material Graph Parameter Edit",
+          "command.material_editor.graph.plan_parameter_edit.description": "Plan one presence-sensitive parameter override edit without applying it"
         },
         "zh-CN": {
           "command.material_editor.graph.validate.label": "校验材质图",
@@ -195,7 +219,9 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
           "command.material_editor.material.inspect.label": "查看作者材质",
           "command.material_editor.material.inspect.description": "读取材质局部覆盖与可选着色器结构，保留原继承关系",
           "command.material_editor.graph.details.label": "查看材质图选择详情",
-          "command.material_editor.graph.details.description": "读取本次选择的原始详情对象及共同值或混合值"
+          "command.material_editor.graph.details.description": "读取本次选择的原始详情对象及共同值或混合值",
+          "command.material_editor.graph.plan_parameter_edit.label": "规划材质图参数编辑",
+          "command.material_editor.graph.plan_parameter_edit.description": "规划一个保留覆盖存在性的参数编辑候选，不提交作者事务"
         }
       }
     }
@@ -219,7 +245,7 @@ pub(super) unsafe extern "C" fn invoke_command(
     output: NativePluginOutputSinkV4,
 ) -> NativePluginCallbackStatusV3 {
     native::catch_native_callback_panic(PANICKED, || {
-        if slot > 5 {
+        if slot > 6 {
             return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, UNKNOWN_SLOT);
         }
         if payload.len == 0 || payload.len > MAX_INPUT_BYTES || payload.data.is_null() {
@@ -241,7 +267,12 @@ pub(super) unsafe extern "C" fn invoke_command(
         {
             return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
         }
-        let result = if slot == 5 {
+        let result = if slot == 6 {
+            let Ok(arguments) = serde_json::from_slice::<ParameterEditArguments>(bytes) else {
+                return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
+            };
+            graph_parameter_edit_result(&arguments)
+        } else if slot == 5 {
             let Ok(arguments) = serde_json::from_slice::<DetailsArguments>(bytes) else {
                 return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
             };
@@ -538,6 +569,85 @@ fn graph_details_result(arguments: &DetailsArguments) -> Value {
         "selection_error": selection_error,
         "projection": projection,
     })
+}
+
+/// Transports one existing domain candidate; it never applies a map update.
+/// The host must retain the exact submitted source/selection/native generation,
+/// then account for the raw Option before/after in one delta/inverse and its
+/// original prepare/permit/CAS/history. A Reset inverse is raw restoration, not
+/// a newly validated Set; neither diagnostics nor a no-op grant mutation authority.
+fn graph_parameter_edit_result(arguments: &ParameterEditArguments) -> Value {
+    let graph = &arguments.graph;
+    let diagnostics = validate_material_graph_with_diagnostics(graph);
+    let candidate = match &arguments.edit {
+        ParameterEditRequest::SetScalar { value } => plan_material_graph_parameter_edit(
+            graph,
+            &arguments.node_id,
+            MaterialGraphParameterEdit::Set(MaterialGraphParameterAsset::Scalar(*value)),
+        ),
+        ParameterEditRequest::SetVector { value } => plan_material_graph_parameter_edit(
+            graph,
+            &arguments.node_id,
+            MaterialGraphParameterEdit::Set(MaterialGraphParameterAsset::Vector(*value)),
+        ),
+        ParameterEditRequest::Reset {} => plan_material_graph_parameter_edit(
+            graph,
+            &arguments.node_id,
+            MaterialGraphParameterEdit::Reset,
+        ),
+        ParameterEditRequest::SetVectorComponents { components } => {
+            plan_material_graph_parameter_vector_edit(graph, &arguments.node_id, *components)
+        }
+    };
+    let (edit_error, plan) = match candidate {
+        Err(errors) => (
+            json!({"diagnostics": errors.iter().map(diagnostic_json).collect::<Vec<_>>()}),
+            None,
+        ),
+        Ok(plan) => (
+            Value::Null,
+            Some(json!({
+                "node_id": plan.node().id,
+                "key": plan.key(),
+                "previous_present": plan.previous_value().is_some(),
+                "previous_value": plan.previous_value(),
+                "proposed_present": plan.proposed_value().is_some(),
+                "proposed_value": plan.proposed_value(),
+                "affected_node_ids": plan.affected_nodes().map(|node| node.id.as_str())
+                    .collect::<Vec<_>>(),
+                "changes_source": plan.changes_source(),
+            })),
+        ),
+    };
+    // A repair candidate may exist while unrelated graph errors remain visible.
+    // Native OK means completion; this result is neither a compile nor a commit.
+    json!({
+        "graph_uri": graph.uri,
+        "ok": plan.is_some() && diagnostics.is_empty(),
+        "diagnostics": diagnostics.iter().map(diagnostic_json).collect::<Vec<_>>(),
+        "edit_error": edit_error,
+        "plan": plan,
+    })
+}
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ParameterEditArguments {
+    #[serde(deserialize_with = "deserialize_graph")]
+    graph: MaterialGraphAsset,
+    node_id: String,
+    edit: ParameterEditRequest,
+}
+
+// A strict command DTO maps fixed-size numeric payloads into the original asset
+// enum; it is not another authoring document or parameter store.
+#[derive(serde::Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+enum ParameterEditRequest {
+    SetScalar { value: f32 },
+    SetVector { value: [f32; 4] },
+    Reset {},
+    SetVectorComponents { components: [Option<f32>; 4] },
 }
 
 fn details_value_json<T: serde::Serialize>(value: MaterialGraphDetailsValue<T>) -> Value {

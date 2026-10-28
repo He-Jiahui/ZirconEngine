@@ -1,3 +1,13 @@
+## 材质接续108：原生参数编辑候选接既有 Set/Reset 规划（2026-10-28）
+
+- 原唯一producer/request `ue-material-graph-20261024-01`与ready `w448b90023f-native94`接续107/bc67bca3；恰原dist commands、tests及本台账三路径。原domain/Runtime/host/共享Graph/组件/主题/Penpot/ZUI、fork与manifest/ABI不改，原107整份486610字节作为后缀保持。
+- 实际canonical宿主 `material_workspace_state.rs`仍为三组固定profiles和 `Not implemented (preview)`，本轮不据插件命令已注册声称有真实宿主。新增原native slot6 `material_editor.graph.plan_parameter_edit`/schema `material_editor.plan_graph_parameter_edit.v1`，沿既有V4 callback/命令贡献/result codec和原material capability；原slots0–5/能力/状态schema保持。描述与中英本地化已进实际registration，7commands+1localization，仍ABI3/无状态，不造另一store、clock或历史。
+- 严格具名请求为 `graph`、真实声明 `node_id`、`edit`。原typed graph有限数值守卫保持；edit仅四种带字段的tag：`set_scalar(value:f32)`、`set_vector(value:[f32;4])`、`set_vector_components(components:[Option<f32>;4])`、`reset{}`。直接委托原 `plan_material_graph_parameter_edit`及`plan_material_graph_parameter_vector_edit`，不复制类型/同key检查/向量规则。显式default覆盖保留presence，±0按原bits区分，HDR不clamp；部分分量的None取原覆盖或原选中声明default，空分量编辑仍由domain拒绝。
+- 返回单个原map-entry候选：原node_id/exact key、source-order affected IDs、previous/proposed各自presence及原typed value、changes_source。Reset的proposed absent，绝非写入default；同key的多声明只形成一个候选，不按每个affected node分发事务。错误/过期/歧义目标不发布部分plan，原source diagnostics独立保留，坏图可有修复plan而ok仍false；native OK只表示请求完成，不是compile、事务或renderer成功。输入/输出仍原1MiB、5秒、原bounded writer一次发布，host拒绝原样传播。
+- 宿主仍须在原view/document/subdocument incarnation、revision/lease、selection request及native generation下准入同一source，再计费捕获raw Option before/after，一次原delta/inverse/prepare/permit/CAS/history，最后接dirty/compile/renderer/save/focus。撤销是原值恢复，不是重新validated Set(previous)。JSON source守卫继续拒绝非有限Graph；不能以本通道声称legacy NaN历史已可编码，原domain/raw作者历史仍由宿主持有。生产callback无graph clone、map mutation或新permit。
+- 新9项回归定义覆盖presence/显式default/负零、同key源序和类型整批拒绝、部分向量None及全向量HDR/次正规数、wrongtype/空key Reset、数值溢出、17类严格请求、预算及host拒绝，并通过真实callback编译本地测试图的候选后像及raw inverse。它们只是定义：51→60普通native测试；原49个行为test body原样，原2个manifest/contribution测试只扩到第7槽/第8贡献。没有把本地测试图当产品输入或Renderer实测。
+- 本轮静态检查/metadata与确切源码、patch及正式交付记录沿 `E:/cargo-targets/zircon-local/reports/ue-material-family-20261024-01a16d50/material-native-parameter-edit-108-*`。最初格式检查误用2024风格已保留，修正为workspace声明的2021；最终按真实edition核对。既有dist有限Rust recipe的正式入口拒绝证据按实际当前entry字节复用/刷新，不投已知不支持的配方，不借editor-only包/root/全仓或本地Cargo签这60项。PR/main/合法当前源准入、真实host/one-permit/save/renderer/normal EXE/150%DPI/official export/双端1DIP继续open；passed=false、accepted=false、goal active。
+
 ## 材质接续107：Function Details 原生搜索提示对齐 UE（2026-10-28）
 
 - 原唯一 producer、request `ue-material-graph-20261024-01`与 ready worktree `w448b90023f-native94`接续106/bf466c63；本轮仓库仅增补本台账，四份 dist Rust/manifest 保持。整份106及既有正文483300字节作为原样后缀保留；不覆盖 fork 的 Instance/Hierarchy/四 SearchInput copies，不写 Shared、公共源码或原 ZUI。
