@@ -1,3 +1,13 @@
+## 材质接续102：UE 参数标题原生编辑、保存及新上下文重开（2026-10-28）
+
+- 同一真实 Material file `b4a1e3ce-9e6a-81fe-8008-d69d6092d704` / page `b4a1e3ce-9e6a-81fe-8008-d69d6092d705`，只用原生文本编辑修改原 Parameters80 的1280/900/640三板中六个既有标题；rev459→465、5769对象、5业务主件，关闭旧context后新context重开六个完整对象一致。全部原ID、其他5763对象及组件定义哈希保持；不涉及fork的Instance/Hierarchy板。
+- UE `MaterialExpressions.cpp:8194–8235,8587–8603`的GetCaption生成默认值与带单引号参数名，`MaterialGraphNode.cpp:194–235`的GetNodeTitle按反序组成正常节点标题。因此当前标量为`'粗糙度'`/`Param (0.6)`，向量为`'颜色'`/`Param (0.1,0.2,0.3,1)`。原`Value`是输出pin标签，保留；默认值与右侧实际作者覆盖0.125及(0.3,0.4,0.5,0.8)有不同语义，不为截图改作者值。
+- 原固定标题框208×32与640既有图缩放下155.999948×23.999992、字体、Shared色ref均保持；两行在原框内完整显示。原1280×800、900×620、640×520的真实viewer按原board UUID和visible not-fixed SVG/viewBox捕获，六张前后图逐图复核，三组并排及差异图变化仅在原两标题框内；这是Penpot设计变化证据，不能当作产品A/B。
+- 捕获先遇同ID隐藏/固定/非固定表面导致strict locator失败，原错保留；随后用原生可见SVG及board身份校验成功，不重建板或复制main。原浏览器PID37852已显式关闭/exit0，原storage只读且哈希不变，无桌面输入或系统DPI修改。
+- 正式能力预检102保留无repo参数的错误和带canonical repo的更正结果：当前安装341a997d的真实parse仍以`build_scope_policy`拒绝dist单包；101的6da41baf尚未进入当时canonical main5436b180。未提交已知不支持的nested worktree/扩大editor配方或本地Cargo。后续仍走原PR/main、canonical精确dist单包recipe与实际generation/资源准入；不重投旧终结operation。
+- 当前图预览仍明确未编译；900/640侧栏页签裁切、host Command3接线、真实Document事务/renderer/保存、正式codec/source export及正常EXE/150%DPI/双端1DIP逐图验收继续open。39项静态/图像核验，Rust执行0；本阶段及整族passed/accepted=false，goal active。
+- 原始证据根`E:/cargo-targets/zircon-local/reports/ue-material-family-20261024-01a16d50/`：`material-native-capture-102-{source-before,caption-save,caption-reopen,validation,browser-receipt}.json`、`material-native-capture-102-{viewer,after,pair,diff}-{1280,900,640}.png`；原完整前文按字节后缀保持。
+
 ## 接续101：真实作者图参数的原生命令入口（2026-10-28）
 
 - 原 request `ue-material-graph-20261024-01`、唯一 producer 与 `w448b90023f-native94` 继续；沿99/b01ed676 的当前三路径增加只读 `material_editor.graph.parameters`（原 ABI 回调 slot3、`material_editor.graph_parameters.v1`）。原 slots0/1/2 的校验、编译和着色器契约行为保留；同一注册 batch、en/zh-CN、1MiB 输入/输出和5秒宿主预算，不新增 capability/store/clock/模型或写命令。
