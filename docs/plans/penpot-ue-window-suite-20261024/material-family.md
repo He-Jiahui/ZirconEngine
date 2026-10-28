@@ -1,3 +1,12 @@
+## 材质接续107：Function Details 原生搜索提示对齐 UE（2026-10-28）
+
+- 原唯一 producer、request `ue-material-graph-20261024-01`与 ready worktree `w448b90023f-native94`接续106/bf466c63；本轮仓库仅增补本台账，四份 dist Rust/manifest 保持。整份106及既有正文483300字节作为原样后缀保留；不覆盖 fork 的 Instance/Hierarchy/四 SearchInput copies，不写 Shared、公共源码或原 ZUI。
+- UE 只读依据为 `dev/UnrealEngine/Engine/Source/Editor/PropertyEditor/Private/SDetailsView.cpp:313–323`，第320行 `SearchDetailsHint` 的真实占位文字是 `Search`；55079字节/SHA256 `c599e0e193e842f99eea7e5a22a76dee94de3f417a5b22e8910fea25a8429e19`。原设计写作 `Search details`，640下后缀被裁切。只在原 Penpot 原生 Layers/富文本编辑器将三个既有文字改为 `Search`，保留原字体和布局规则；没有直接 API 写文件或注入页面操作。
+- 原 file `b4a1e3ce-9e6a-81fe-8008-d69d6092d704`/page `b4a1e3ce-9e6a-81fe-8008-d69d6092d705`。三板1280/900/640仍为 `b154e2cc-f1d6-4291-99df-6c0fa61fc29d`、`3bdd85e0-f901-4c4c-864c-b4a99a14f594`、`7f2846d3-3895-4b07-82d2-13141f628f1a`；仅文字 `be315ea6-3d86-4d04-b34e-8ca5477b5054`、`6eab7140-4dc6-4e8b-a282-5ab374cda34b`、`d2216b20-13b7-4ae8-ba05-d8267f36e656` 改动。原 linked Search roots、source/copy/shapeRef、文字样式、fills、pluginData、x/y/height保持；自然文字宽度随原自动布局变为41，不声称文本宽度未变，也未缩小字号或 restamp source metadata。
+- 实际从rev482/5769对象开始；首读484仅两个文字已保存，原失败/时序保留；后读485三者完整保存。关闭旧 browser context，原只读认证的新 context重开486三者整对象一致，原生 viewer分别捕获1280×800、900×620、640×520。浏览器关闭后独立只读API读488/5770对象，三个文字精确、其余688个 Function 对象精确、原ID无删除、原5业务main hash保持。期间另三项 Hierarchy对象变化和一个新 Board属并发外域变化，writer未归因，原样保留；不以对象总数变化声称本轮新增。
+- 原三张104最终截图作为前图直接复用，不复制或修图。三张最终图、三张并排图与三张差异图均实际打开复核；1280/900各251像素、640为212像素变化，均仅原后缀区域，Search ROI外0。三尺寸当前 `Search`完整可见，原节点/连线/编译状态保留；1280的Nodes Overview及900/640的多个页签标题仍被裁切，保持open。图像仅为 Penpot前后比较，未充当 Penpot–EXE双端证据或一逻辑像素验收。
+- 实际文件与逐图记录在 `E:/cargo-targets/zircon-local/reports/ue-material-family-20261024-01a16d50/material-details-layout-107-{before,save,reopen,review,browser-receipt}.json`及同前缀 final/pair/diff PNG。原浏览器明确关闭、Node退出0、原认证文件不变、任务临时目录为空；无桌面/服务操作。原生文字 override 不等于正式 codec/export/reset；真实搜索输入/焦点/弹层、Toolkit宿主、生产 renderer、原 ZUI加载、正常 EXE、实际150%DPI及双端1DIP继续open。仅执行本轮文档/图像静态校验，不重跑106未运行的51项Rust定义；整族 passed=false、accepted=false、goal active。
+
 ## 材质接续106：原生材质图拒绝数值溢出变成 null（2026-10-28）
 
 - 原唯一producer、request `ue-material-graph-20261024-01`与ready worktree `w448b90023f-native94`接续105/3ca02222；只改原dist commands、原tests及本台账。原105详情命令/六槽、manifest/ABI/locale/预算、所有旧测试body、整份前文原字节后缀保持；不写Runtime/domain/host/共享组件、fork、锁或原ZUI/Penpot。
