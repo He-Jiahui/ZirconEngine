@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 use zircon_plugin_material_editor_editor::{
     compile_material_graph_with_diagnostics, compile_material_graph_with_shader_contract,
     validate_material_graph_with_diagnostics, MaterialGraphDiagnostic,
-    MaterialGraphDiagnosticTarget, MaterialGraphShaderCompileError,
+    MaterialGraphDiagnosticTarget, MaterialGraphPresentation, MaterialGraphShaderCompileError,
 };
 use zircon_plugin_sdk::native::{
     self, callback_status, NativePluginByteSliceV3, NativePluginCallbackStatusV3,
@@ -34,6 +34,11 @@ max_output_bytes = 1048576
 name = "material_editor.graph.compile_shader_contract"
 slot = 2
 payload_schema = "material_editor.compile_graph_shader.v1"
+max_output_bytes = 1048576
+[[commands]]
+name = "material_editor.graph.parameters"
+slot = 3
+payload_schema = "material_editor.graph_parameters.v1"
 max_output_bytes = 1048576
 "#,
     "\0"
@@ -96,6 +101,22 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
       }
     },
     {
+      "kind": "command",
+      "id": "material_editor.graph.parameters",
+      "schema": "zircon.editor.command/3",
+      "localization_bundle_id": "material_editor",
+      "label_key": "command.material_editor.graph.parameters.label",
+      "description_key": "command.material_editor.graph.parameters.description",
+      "execution_contract": {
+        "result_codec": "zircon.editor.command-result.v1",
+        "resource_budget": {
+          "max_input_bytes": 1048576,
+          "max_output_bytes": 1048576,
+          "max_execution_time_ms": 5000
+        }
+      }
+    },
+    {
       "kind": "localization_bundle",
       "id": "material_editor",
       "schema": "zircon.editor.localization-bundle/1",
@@ -106,7 +127,9 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
           "command.material_editor.graph.compile.label": "Compile Material Graph",
           "command.material_editor.graph.compile.description": "Compile the submitted material graph into a MaterialAsset",
           "command.material_editor.graph.compile_shader_contract.label": "Check Compiled Material Shader Contract",
-          "command.material_editor.graph.compile_shader_contract.description": "Compile the submitted graph and check the supplied shader contract"
+          "command.material_editor.graph.compile_shader_contract.description": "Compile the submitted graph and check the supplied shader contract",
+          "command.material_editor.graph.parameters.label": "Inspect Material Graph Parameters",
+          "command.material_editor.graph.parameters.description": "Read exact declarations and overrides from the submitted authoring graph"
         },
         "zh-CN": {
           "command.material_editor.graph.validate.label": "校验材质图",
@@ -114,7 +137,9 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
           "command.material_editor.graph.compile.label": "编译材质图",
           "command.material_editor.graph.compile.description": "将本次请求中的材质图编译为 MaterialAsset",
           "command.material_editor.graph.compile_shader_contract.label": "校验编译材质的着色器契约",
-          "command.material_editor.graph.compile_shader_contract.description": "编译本次材质图并校验传入的着色器契约"
+          "command.material_editor.graph.compile_shader_contract.description": "编译本次材质图并校验传入的着色器契约",
+          "command.material_editor.graph.parameters.label": "查看材质图参数",
+          "command.material_editor.graph.parameters.description": "读取本次作者材质图的精确参数声明与覆盖值"
         }
       }
     }
@@ -138,7 +163,7 @@ pub(super) unsafe extern "C" fn invoke_command(
     output: NativePluginOutputSinkV4,
 ) -> NativePluginCallbackStatusV3 {
     native::catch_native_callback_panic(PANICKED, || {
-        if slot > 2 {
+        if slot > 3 {
             return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, UNKNOWN_SLOT);
         }
         if payload.len == 0 || payload.len > MAX_INPUT_BYTES || payload.data.is_null() {
@@ -173,7 +198,11 @@ pub(super) unsafe extern "C" fn invoke_command(
             let Some(graph) = decode_graph(bytes) else {
                 return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
             };
-            graph_result(&graph, slot)
+            if slot == 3 {
+                parameter_result(&graph)
+            } else {
+                graph_result(&graph, slot)
+            }
         };
         let mut encoded = BoundedOutput {
             bytes: Vec::new(),
@@ -189,6 +218,39 @@ pub(super) unsafe extern "C" fn invoke_command(
             return status;
         }
         callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, COMPLETED)
+    })
+}
+
+/// Projects the original authored declarations, not compiled visibility or an instance ABI.
+/// The host must retain this request's document/revision and native generation;
+/// returned node IDs/keys do not grant selection, editing or history authority.
+fn parameter_result(graph: &MaterialGraphAsset) -> Value {
+    let (diagnostics, parameters) = match MaterialGraphPresentation::new(graph) {
+        Err(diagnostics) => (diagnostics, Vec::new()),
+        Ok(presentation) => (
+            validate_material_graph_with_diagnostics(graph),
+            presentation
+                .parameter_declarations()
+                .map(|parameter| {
+                    json!({
+                        "node_id": parameter.node().id,
+                        "key": parameter.name(),
+                        "default": parameter.default_value(),
+                        "override_present": parameter.override_value().is_some(),
+                        "override_value": parameter.override_value(),
+                        "effective_value": parameter.effective_value(),
+                    })
+                })
+                .collect(),
+        ),
+    };
+    // Invalid graphs still expose unambiguous declarations for repair; the
+    // original diagnostics remain visible and ok never implies renderer readiness.
+    json!({
+        "graph_uri": graph.uri,
+        "ok": diagnostics.is_empty(),
+        "diagnostics": diagnostics.iter().map(diagnostic_json).collect::<Vec<_>>(),
+        "parameters": parameters,
     })
 }
 
