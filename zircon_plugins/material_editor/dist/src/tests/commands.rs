@@ -22,7 +22,7 @@ fn material_editor_dist_native_manifest_declares_real_slots_and_contribution_sch
     let command_manifest = unsafe { CStr::from_ptr(behavior.command_manifest) };
     let manifest =
         native::command_manifest_v4_from_toml(command_manifest.to_str().unwrap()).unwrap();
-    assert_eq!(manifest.commands.len(), 14);
+    assert_eq!(manifest.commands.len(), 15);
     for (slot, name, schema) in [
         (
             0,
@@ -93,6 +93,11 @@ fn material_editor_dist_native_manifest_declares_real_slots_and_contribution_sch
             13,
             "material_editor.material.plan_texture_edit",
             "material_editor.plan_material_texture_edit.v1",
+        ),
+        (
+            14,
+            "material_editor.graph.plan_expression_details_edit",
+            "material_editor.plan_expression_details_edit.v1",
         ),
     ] {
         let command = &manifest.commands[slot as usize];
@@ -420,6 +425,12 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
             "command.material_editor.material.plan_texture_edit.description",
             contract(),
         )
+        .command_with_execution_contract(
+            "material_editor.graph.plan_expression_details_edit",
+            "command.material_editor.graph.plan_expression_details_edit.label",
+            "command.material_editor.graph.plan_expression_details_edit.description",
+            contract(),
+        )
         .localization_bundle(
             [
                 (
@@ -537,6 +548,14 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
                             "command.material_editor.material.plan_texture_edit.description",
                             "Preflight an exact local texture Set or ClearOverride, preserving empty presence and UV values",
                         ),
+                        (
+                            "command.material_editor.graph.plan_expression_details_edit.label",
+                            "Plan Material Expression Details Edit",
+                        ),
+                        (
+                            "command.material_editor.graph.plan_expression_details_edit.description",
+                            "Preflight one complete selected-expression Details candidate without changing parameter overrides or authoring state",
+                        ),
                     ],
                 ),
                 (
@@ -648,6 +667,14 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
                             "command.material_editor.material.plan_texture_edit.description",
                             "预检精确局部纹理设置或清除覆盖，保留显式空值与UV数据",
                         ),
+                        (
+                            "command.material_editor.graph.plan_expression_details_edit.label",
+                            "规划材质表达式详情编辑",
+                        ),
+                        (
+                            "command.material_editor.graph.plan_expression_details_edit.description",
+                            "预检完整选择的表达式详情候选，保留原参数覆盖与作者状态",
+                        ),
                     ],
                 ),
             ]
@@ -668,7 +695,7 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
     let actual = deserialize_like(registration_json(), &expected);
     assert_eq!(actual, expected);
     assert_eq!(actual.package_id(), "material_editor");
-    assert_eq!(actual.contributions().len(), 15);
+    assert_eq!(actual.contributions().len(), 16);
 }
 
 #[test]
@@ -2027,6 +2054,453 @@ fn material_editor_dist_native_property_commands_bound_one_publish_and_propagate
         assert_eq!(denied.calls, 1);
         assert!(denied.bytes.is_empty());
     }
+}
+
+#[test]
+fn material_editor_dist_native_expression_edit_scalar_batch_keeps_source_order_and_noops() {
+    let mut graph = expression_details_graph(
+        Node::ScalarParameter {
+            name: "roughness".into(),
+            default: 0.25,
+        },
+        Node::ScalarParameter {
+            name: "roughness".into(),
+            default: -0.0,
+        },
+    );
+    graph
+        .parameters
+        .insert("roughness".into(), Parameter::Scalar(0.9));
+    graph
+        .parameters
+        .insert("unrelated".into(), Parameter::Vector([1.0; 4]));
+    let payload = expression_details_request(
+        &graph,
+        &["second", "tint"],
+        json!({"kind":"scalar_default","value":0.25}),
+        None,
+    );
+    let source_before = serde_json::to_vec(&graph).unwrap();
+    let input_before = payload.clone();
+    let result = property_command_result(14, &payload);
+    assert!(result["details_error"].is_null());
+    assert_eq!(result["resource_observations_consumed"], 0);
+    assert_eq!(result["plan"]["changes_source"], true);
+    let entries = result["plan"]["entries"].as_array().unwrap();
+    assert_eq!(entries.len(), 2);
+    assert_eq!(entries[0]["node_id"], "tint");
+    assert_eq!(entries[1]["node_id"], "second");
+    assert_eq!(entries[0]["changes_source"], false);
+    assert_eq!(entries[1]["changes_source"], true);
+    assert_eq!(entries[0]["before"], entries[0]["after"]);
+    let old: f32 = serde_json::from_value(entries[1]["before"]["value"].clone()).unwrap();
+    assert_eq!(old.to_bits(), (-0.0_f32).to_bits());
+    assert_eq!(
+        entries[1]["after"],
+        json!({"kind":"scalar_default","value":0.25})
+    );
+    assert_eq!(serde_json::to_vec(&graph).unwrap(), source_before);
+    assert_eq!(payload, input_before);
+}
+
+#[test]
+fn material_editor_dist_native_expression_edit_vector_channels_keep_each_original_bit() {
+    let graph = expression_details_graph(
+        Node::VectorParameter {
+            name: "tint".into(),
+            default: [-0.0, 0.2, 2.0, 0.0],
+        },
+        Node::VectorParameter {
+            name: "tint".into(),
+            default: [0.0, -1.0, -2.0, -0.0],
+        },
+    );
+    let payload = expression_details_request(
+        &graph,
+        &["second", "tint"],
+        json!({"kind":"vector_channels","channels":[null,f32::MAX,null,-0.0]}),
+        None,
+    );
+    let original = payload.clone();
+    let result = property_command_result(14, &payload);
+    assert!(result["details_error"].is_null());
+    let entries = result["plan"]["entries"].as_array().unwrap();
+    for (entry, expected) in entries
+        .iter()
+        .zip([[-0.0_f32, 0.2, 2.0, 0.0], [0.0, -1.0, -2.0, -0.0]])
+    {
+        let before: [f32; 4] = serde_json::from_value(entry["before"]["value"].clone()).unwrap();
+        let after: [f32; 4] = serde_json::from_value(entry["after"]["value"].clone()).unwrap();
+        assert_eq!(before.map(f32::to_bits), expected.map(f32::to_bits));
+        assert_eq!(after[0].to_bits(), before[0].to_bits());
+        assert_eq!(after[2].to_bits(), before[2].to_bits());
+        assert_eq!(after[1].to_bits(), f32::MAX.to_bits());
+        assert_eq!(after[3].to_bits(), (-0.0_f32).to_bits());
+    }
+    assert_eq!(payload, original);
+}
+
+#[test]
+fn material_editor_dist_native_expression_edit_noop_batches_do_not_consume_observation() {
+    let texture = reference("res://textures/相同引用.ztex#color");
+    for (first, second, edit) in [
+        (
+            Node::ScalarParameter {
+                name: "r".into(),
+                default: -0.0,
+            },
+            Node::ScalarParameter {
+                name: "r".into(),
+                default: -0.0,
+            },
+            json!({"kind":"scalar_default","value":-0.0}),
+        ),
+        (
+            Node::VectorParameter {
+                name: "t".into(),
+                default: [-0.0, 2.0, 3.0, 4.0],
+            },
+            Node::VectorParameter {
+                name: "t".into(),
+                default: [0.0, 5.0, 6.0, 7.0],
+            },
+            json!({"kind":"vector_channels","channels":[null,null,null,null]}),
+        ),
+        (
+            Node::TextureSample {
+                texture: texture.clone(),
+            },
+            Node::TextureSample {
+                texture: texture.clone(),
+            },
+            json!({"kind":"texture","reference":texture}),
+        ),
+    ] {
+        let graph = expression_details_graph(first, second);
+        let result = property_command_result(
+            14,
+            &expression_details_request(&graph, &["tint", "second"], edit.clone(), None),
+        );
+        assert!(result["details_error"].is_null());
+        assert_eq!(result["resource_observations_consumed"], 0);
+        assert_eq!(result["plan"]["changes_source"], false);
+        assert_eq!(result["plan"]["entries"].as_array().unwrap().len(), 2);
+        for entry in result["plan"]["entries"].as_array().unwrap() {
+            assert_eq!(entry["changes_source"], false);
+        }
+        let unused = property_command_result(
+            14,
+            &expression_details_request(
+                &graph,
+                &["tint", "second"],
+                edit,
+                Some(json!({"reference":texture,"kind":AssetKind::Texture})),
+            ),
+        );
+        assert_eq!(
+            unused["details_error"]["kind"],
+            "unexpected_resource_observation"
+        );
+        assert_eq!(unused["resource_observations_consumed"], 0);
+        assert!(unused["plan"].is_null());
+    }
+}
+
+#[test]
+fn material_editor_dist_native_expression_edit_texture_consumes_one_full_identity_observation() {
+    let texture = reference("res://textures/新纹理.ztex#color");
+    let previous = reference("res://textures/old.ztex#color");
+    let graph = expression_details_graph(
+        Node::TextureSample {
+            texture: texture.clone(),
+        },
+        Node::TextureSample {
+            texture: previous.clone(),
+        },
+    );
+    let edit = json!({"kind":"texture","reference":texture});
+    let mut wrong_uuid = texture.clone();
+    wrong_uuid.uuid = previous.uuid;
+    let mut wrong_locator = texture.clone();
+    wrong_locator.locator = previous.locator.clone();
+    for (observation, success) in [
+        (
+            Some(json!({"reference":texture,"kind":AssetKind::Texture})),
+            true,
+        ),
+        (None, false),
+        (
+            Some(json!({"reference":wrong_uuid,"kind":AssetKind::Texture})),
+            false,
+        ),
+        (
+            Some(json!({"reference":wrong_locator,"kind":AssetKind::Texture})),
+            false,
+        ),
+        (
+            Some(json!({"reference":texture,"kind":AssetKind::Material})),
+            false,
+        ),
+    ] {
+        let payload =
+            expression_details_request(&graph, &["second", "tint"], edit.clone(), observation);
+        let before = payload.clone();
+        let result = property_command_result(14, &payload);
+        assert_eq!(result["resource_observations_consumed"], 1);
+        assert!(result["binding_ready"].is_null());
+        if success {
+            assert!(result["details_error"].is_null());
+            let entries = result["plan"]["entries"].as_array().unwrap();
+            assert_eq!(entries[0]["changes_source"], false);
+            assert_eq!(entries[1]["changes_source"], true);
+            assert_eq!(entries[1]["before"]["reference"], json!(previous));
+            for entry in entries {
+                let actual: AssetReference =
+                    serde_json::from_value(entry["after"]["reference"].clone()).unwrap();
+                assert_eq!(actual, texture);
+            }
+        } else {
+            assert!(result["plan"].is_null());
+            assert_eq!(result["details_error"]["kind"], "domain");
+        }
+        assert_eq!(payload, before);
+    }
+}
+
+#[test]
+fn material_editor_dist_native_expression_edit_preflight_rejects_entire_selection_before_observation(
+) {
+    let texture = reference("res://textures/proposed.ztex");
+    let good = expression_details_graph(
+        Node::TextureSample {
+            texture: texture.clone(),
+        },
+        Node::TextureSample {
+            texture: texture.clone(),
+        },
+    );
+    let mut duplicate = good.clone();
+    duplicate.nodes[1].id = "tint".into();
+    let mut mixed = good.clone();
+    mixed.nodes[1].kind = Node::Add;
+    for (graph, selection) in [
+        (good.clone(), vec![]),
+        (good.clone(), vec!["tint", "missing"]),
+        (good.clone(), vec!["tint", "tint"]),
+        (good.clone(), vec!["tint", "output"]),
+        (duplicate, vec!["tint"]),
+        (mixed, vec!["tint", "second"]),
+    ] {
+        let result = property_command_result(
+            14,
+            &expression_details_request(
+                &graph,
+                &selection,
+                json!({"kind":"texture","reference":texture}),
+                None,
+            ),
+        );
+        assert!(result["plan"].is_null());
+        assert_eq!(result["details_error"]["kind"], "domain");
+        assert_eq!(result["resource_observations_consumed"], 0);
+    }
+}
+
+#[test]
+fn material_editor_dist_native_expression_edit_preserves_original_repair_diagnostics() {
+    let mut graph = expression_details_graph(
+        Node::VectorParameter {
+            name: "tint".into(),
+            default: [1.0; 4],
+        },
+        Node::VectorParameter {
+            name: "other".into(),
+            default: [2.0; 4],
+        },
+    );
+    graph.links[0].from_pin = "missing pin".into();
+    graph
+        .parameters
+        .insert("tint".into(), Parameter::Scalar(0.5));
+    let original = serde_json::to_vec(&graph).unwrap();
+    let errors = property_command_result(0, &request(&graph));
+    assert!(!errors["diagnostics"].as_array().unwrap().is_empty());
+    let result = property_command_result(
+        14,
+        &expression_details_request(
+            &graph,
+            &["tint", "second"],
+            json!({"kind":"vector_channels","channels":[0.25,null,null,null]}),
+            None,
+        ),
+    );
+    assert_eq!(result["diagnostics"], errors["diagnostics"]);
+    assert_eq!(result["ok"], false);
+    assert!(result["details_error"].is_null());
+    assert_eq!(result["plan"]["changes_source"], true);
+    assert_eq!(serde_json::to_vec(&graph).unwrap(), original);
+}
+
+#[test]
+fn material_editor_dist_native_expression_edit_strict_wire_never_publishes_partial_results() {
+    let graph = graph(0.25);
+    let base = expression_details_request(
+        &graph,
+        &["tint"],
+        json!({"kind":"vector_channels","channels":[null,null,null,null]}),
+        None,
+    );
+    let source: Value = serde_json::from_slice(&base).unwrap();
+    let valid = serde_json::to_value(reference("res://textures/valid.ztex")).unwrap();
+    let mut invalid = vec![serde_json::to_vec(&json!([source])).unwrap()];
+    for edit in [
+        json!({"kind":"scalar_default","value":0.5,"extra":true}),
+        json!({"kind":"vector_channels","channels":[null,null,null]}),
+        json!({"kind":"vector_channels","channels":[false,null,null,null]}),
+        json!({"kind":"texture","reference":{"uuid":valid["uuid"]}}),
+        json!({"kind":"texture","reference":{"url":valid["url"]}}),
+        json!({"kind":"texture","reference":{"uuid":valid["uuid"],"locator":valid["url"]}}),
+        json!({"kind":"texture","reference":{"uuid":valid["uuid"],"url":valid["url"],"extra":true}}),
+        json!({"kind":"texture","reference":{"uuid":"invalid","url":valid["url"]}}),
+        json!({"kind":"texture","reference":null}),
+        json!({"kind":"vector_default","value":[1.0,1.0,1.0,1.0]}),
+    ] {
+        let mut payload = source.clone();
+        payload["edit"] = edit;
+        invalid.push(serde_json::to_vec(&payload).unwrap());
+    }
+    let mut extra = source.clone();
+    extra["extra"] = json!(true);
+    invalid.push(serde_json::to_vec(&extra).unwrap());
+    let encoded = String::from_utf8(base).unwrap();
+    invalid.push(
+        encoded
+            .replacen(
+                "\"selected_node_ids\":[\"tint\"]",
+                "\"selected_node_ids\":[\"tint\"],\"selected_node_ids\":[\"tint\"]",
+                1,
+            )
+            .into_bytes(),
+    );
+    let mut texture = source;
+    texture["edit"] = json!({"kind":"texture","reference":valid});
+    let encoded = serde_json::to_string(&texture).unwrap();
+    for key in ["uuid", "url"] {
+        let member = format!("\"{key}\":{}", serde_json::to_string(&valid[key]).unwrap());
+        invalid.push(
+            encoded
+                .replacen(&member, &format!("{member},{member}"), 1)
+                .into_bytes(),
+        );
+    }
+    for payload in invalid {
+        let (status, capture) = invoke(
+            14,
+            &payload,
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(
+            status.code,
+            ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+            "{}",
+            String::from_utf8_lossy(&payload)
+        );
+        assert_eq!(capture.calls, 0);
+        assert!(capture.bytes.is_empty());
+    }
+}
+
+#[test]
+fn material_editor_dist_native_expression_edit_overflow_is_rejected_without_clamping_or_null() {
+    for sign in [1.0_f64, -1.0] {
+        let scalar = expression_details_graph(
+            Node::ScalarParameter {
+                name: "roughness".into(),
+                default: 0.25,
+            },
+            Node::ScalarParameter {
+                name: "roughness".into(),
+                default: 0.5,
+            },
+        );
+        let mut cases = vec![(scalar, json!({"kind":"scalar_default","value":sign*1e100}))];
+        for index in 0..4 {
+            let mut channels = [Value::Null, Value::Null, Value::Null, Value::Null];
+            channels[index] = json!(sign * 1e100);
+            cases.push((
+                graph(0.25),
+                json!({"kind":"vector_channels","channels":channels}),
+            ));
+        }
+        for (graph, edit) in cases {
+            let result = property_command_result(
+                14,
+                &expression_details_request(&graph, &["tint"], edit, None),
+            );
+            assert!(result["plan"].is_null());
+            assert_eq!(result["details_error"]["kind"], "domain");
+            assert_eq!(result["resource_observations_consumed"], 0);
+        }
+    }
+}
+
+#[test]
+fn material_editor_dist_native_expression_edit_keeps_single_bounded_publish_and_host_denial() {
+    let graph = graph(0.25);
+    let payload = expression_details_request(
+        &graph,
+        &["tint"],
+        json!({"kind":"vector_channels","channels":[0.5,null,null,null]}),
+        None,
+    );
+    let (status, ok) = invoke(
+        14,
+        &payload,
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    assert_eq!(ok.calls, 1);
+    let length = ok.bytes.len();
+    assert!(length > 1);
+    for budget in [0, length - 1] {
+        let (status, capture) = invoke(14, &payload, budget, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+        assert_eq!(capture.calls, 0);
+        assert!(capture.bytes.is_empty());
+    }
+    let (status, exact) = invoke(14, &payload, length, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    assert_eq!(exact.calls, 1);
+    assert_eq!(exact.bytes, ok.bytes);
+    let (status, denied) = invoke(14, &payload, length, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED);
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED);
+    assert_eq!(denied.calls, 1);
+    assert!(denied.bytes.is_empty());
+}
+
+fn expression_details_request(
+    graph: &MaterialGraphAsset,
+    selected: &[&str],
+    edit: Value,
+    observation: Option<Value>,
+) -> Vec<u8> {
+    serde_json::to_vec(&json!({"graph":graph,"selected_node_ids":selected,"edit":edit,"resource_observation":observation})).unwrap()
+}
+
+fn expression_details_graph(first: Node, second: Node) -> MaterialGraphAsset {
+    let mut graph = graph(0.25);
+    graph.nodes[0].kind = first;
+    let mut extra = graph.nodes[0].clone();
+    extra.id = "second".into();
+    extra.position = [20.0, 40.0];
+    extra.kind = second;
+    graph.nodes.insert(1, extra);
+    if matches!(graph.nodes[0].kind, Node::TextureSample { .. }) {
+        graph.links[0].from_pin = "color".into();
+    }
+    graph
 }
 
 #[test]
