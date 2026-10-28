@@ -6,8 +6,12 @@ use zircon_editor::ui::material_editor::{
     MaterialEditorDiagnosticRow, MaterialEditorProjection, MaterialEditorPropertyRow,
     MaterialEditorTextureSlotRow,
 };
-use zircon_runtime::asset::{AssetReference, AssetUri, ShaderAsset, ZMaterialDocument};
-use zircon_runtime::core::framework::render::RenderMaterialDiagnosticSource;
+use zircon_runtime::asset::{
+    AssetReference, AssetUri, ShaderAsset, ShaderMaterialPropertyAsset, ZMaterialDocument,
+};
+use zircon_runtime::core::framework::render::{
+    MaterialPropertyKind, RenderMaterialDiagnosticSource, RenderMaterialPropertyValue,
+};
 
 #[derive(Debug, PartialEq)]
 pub enum MaterialDocumentProjectionError {
@@ -41,6 +45,208 @@ impl fmt::Display for MaterialDocumentProjectionError {
 
 impl Error for MaterialDocumentProjectionError {}
 
+/// One proposed change to an exact local property key, before a document write.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum MaterialDocumentPropertyEdit<'a> {
+    Set(&'a RenderMaterialPropertyValue),
+    ClearOverride,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum MaterialDocumentPropertyEditError {
+    Source(MaterialDocumentProjectionError),
+    SchemaUnavailable,
+    EmptyPropertyName,
+    UndeclaredProperty(String),
+    TypeMismatch {
+        name: String,
+        expected: MaterialPropertyKind,
+        actual: &'static str,
+    },
+    NonFiniteValue(String),
+}
+
+impl fmt::Display for MaterialDocumentPropertyEditError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Source(error) => fmt::Display::fmt(error, formatter),
+            Self::SchemaUnavailable => {
+                formatter.write_str("material property Set requires the current shader schema")
+            }
+            Self::EmptyPropertyName => {
+                formatter.write_str("cannot set an empty material property key")
+            }
+            Self::UndeclaredProperty(name) => {
+                write!(
+                    formatter,
+                    "material shader does not declare property `{name}`"
+                )
+            }
+            Self::TypeMismatch {
+                name,
+                expected,
+                actual,
+            } => write!(
+                formatter,
+                "material property `{name}` requires `{expected}`, received `{actual}`"
+            ),
+            Self::NonFiniteValue(name) => {
+                write!(formatter, "new material property `{name}` must be finite")
+            }
+        }
+    }
+}
+
+impl Error for MaterialDocumentPropertyEditError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Source(error) => Some(error),
+            _ => None,
+        }
+    }
+}
+
+/// A borrow-only domain proposal for the original Document transaction owner.
+///
+/// This retains no cloned document, previous TOML value, undo record or clock.
+/// The host must pin its real view/document/request/revision and shader handles,
+/// charge the raw previous entry and new payload, then prepare/apply one inverse
+/// delta under its existing permit/history protocol. This value grants no write.
+/// No-op/CAS comparisons must use the exact authored values, not f32 projections.
+/// ClearOverride removes only local presence; it does not write a schema default
+/// or prove that a required property's parent-chain value resolves. A reset that
+/// retains an override must instead resolve its real default and propose Set.
+/// Existing diagnostics and unrelated invalid authored entries remain intact.
+#[derive(Debug)]
+pub struct MaterialDocumentPropertyEditPlan<'a> {
+    document: &'a ZMaterialDocument,
+    name: &'a str,
+    property: Option<&'a ShaderMaterialPropertyAsset>,
+    edit: MaterialDocumentPropertyEdit<'a>,
+}
+
+impl<'a> MaterialDocumentPropertyEditPlan<'a> {
+    pub fn source_document(&self) -> &'a ZMaterialDocument {
+        self.document
+    }
+
+    pub fn name(&self) -> &'a str {
+        self.name
+    }
+
+    pub fn property_definition(&self) -> Option<&'a ShaderMaterialPropertyAsset> {
+        self.property
+    }
+
+    pub fn edit(&self) -> MaterialDocumentPropertyEdit<'a> {
+        self.edit
+    }
+
+    pub fn was_overridden(&self) -> bool {
+        self.document.overrides.contains_key(self.name)
+    }
+
+    pub fn will_be_overridden(&self) -> bool {
+        matches!(self.edit, MaterialDocumentPropertyEdit::Set(_))
+    }
+}
+
+/// Checks a typed property proposal without mutating or flattening its source.
+///
+/// Set accepts only a unique declared key and its exact runtime property kind
+/// (Color uses Vec4). It does not coerce strings/integers, trim keys or clamp HDR
+/// components. A missing schema, ambiguous target or non-finite new value fails.
+/// ClearOverride can repair unknown/empty keys or invalid values without a schema.
+/// A supplied shader must still match, and a duplicated target remains ambiguous.
+/// Other schema entries are not validated by this single-key preflight.
+pub fn plan_material_document_property_edit<'a>(
+    document: &'a ZMaterialDocument,
+    shader: Option<&'a ShaderAsset>,
+    name: &'a str,
+    edit: MaterialDocumentPropertyEdit<'a>,
+) -> Result<MaterialDocumentPropertyEditPlan<'a>, MaterialDocumentPropertyEditError> {
+    let mut property = None;
+    if let Some(shader) = shader {
+        check_shader_locator(document, shader)
+            .map_err(MaterialDocumentPropertyEditError::Source)?;
+        for candidate in &shader.property_schema {
+            if candidate.name == name {
+                if property.is_some() {
+                    return Err(MaterialDocumentPropertyEditError::Source(
+                        MaterialDocumentProjectionError::DuplicatePropertyName(name.into()),
+                    ));
+                }
+                property = Some(candidate);
+            }
+        }
+    }
+    if let MaterialDocumentPropertyEdit::Set(value) = edit {
+        if name.is_empty() {
+            return Err(MaterialDocumentPropertyEditError::EmptyPropertyName);
+        }
+        if shader.is_none() {
+            return Err(MaterialDocumentPropertyEditError::SchemaUnavailable);
+        }
+        let declaration = property
+            .ok_or_else(|| MaterialDocumentPropertyEditError::UndeclaredProperty(name.into()))?;
+        let actual = typed_property_kind(value);
+        if actual != Some(declaration.kind)
+            && !(declaration.kind == MaterialPropertyKind::Color
+                && actual == Some(MaterialPropertyKind::Vec4))
+        {
+            return Err(MaterialDocumentPropertyEditError::TypeMismatch {
+                name: name.into(),
+                expected: declaration.kind,
+                actual: actual.map_or("string", MaterialPropertyKind::token),
+            });
+        }
+        let finite = match value {
+            RenderMaterialPropertyValue::Float { value } => value.is_finite(),
+            RenderMaterialPropertyValue::Vec2 { value } => value.iter().all(|v| v.is_finite()),
+            RenderMaterialPropertyValue::Vec3 { value } => value.iter().all(|v| v.is_finite()),
+            RenderMaterialPropertyValue::Vec4 { value } => value.iter().all(|v| v.is_finite()),
+            _ => true,
+        };
+        if !finite {
+            return Err(MaterialDocumentPropertyEditError::NonFiniteValue(
+                name.into(),
+            ));
+        }
+    }
+    Ok(MaterialDocumentPropertyEditPlan {
+        document,
+        name,
+        property,
+        edit,
+    })
+}
+
+fn typed_property_kind(value: &RenderMaterialPropertyValue) -> Option<MaterialPropertyKind> {
+    Some(match value {
+        RenderMaterialPropertyValue::Bool { .. } => MaterialPropertyKind::Bool,
+        RenderMaterialPropertyValue::Float { .. } => MaterialPropertyKind::Float,
+        RenderMaterialPropertyValue::Int { .. } => MaterialPropertyKind::Int,
+        RenderMaterialPropertyValue::UInt { .. } => MaterialPropertyKind::UInt,
+        RenderMaterialPropertyValue::Vec2 { .. } => MaterialPropertyKind::Vec2,
+        RenderMaterialPropertyValue::Vec3 { .. } => MaterialPropertyKind::Vec3,
+        RenderMaterialPropertyValue::Vec4 { .. } => MaterialPropertyKind::Vec4,
+        RenderMaterialPropertyValue::String { .. } => return None,
+    })
+}
+
+fn check_shader_locator(
+    document: &ZMaterialDocument,
+    shader: &ShaderAsset,
+) -> Result<(), MaterialDocumentProjectionError> {
+    if document.shader.locator != shader.uri {
+        return Err(MaterialDocumentProjectionError::ShaderLocatorMismatch {
+            expected: document.shader.clone(),
+            actual: shader.uri.clone(),
+        });
+    }
+    Ok(())
+}
+
 /// Projects local authoring presence into the existing editor property rows.
 ///
 /// An effective MaterialAsset can contain inherited values. Its maps cannot
@@ -63,12 +269,7 @@ pub fn project_authored_material_document(
     shader: Option<&ShaderAsset>,
 ) -> Result<MaterialEditorProjection, MaterialDocumentProjectionError> {
     if let Some(shader) = shader {
-        if document.shader.locator != shader.uri {
-            return Err(MaterialDocumentProjectionError::ShaderLocatorMismatch {
-                expected: document.shader.clone(),
-                actual: shader.uri.clone(),
-            });
-        }
+        check_shader_locator(document, shader)?;
     }
 
     let mut properties = Vec::with_capacity(

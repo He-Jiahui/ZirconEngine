@@ -1,3 +1,17 @@
+## 材质接续86：实例属性的 typed Set 与 ClearOverride 前置语义（2026-10-28 UTC）
+
+85已由正常 `deliver-material-instance-projection-01a16d50-20261028-85`／queue29734／#661 SUCCESS提交 `8f57d3733e0ae9483bf368222cf280ba4b62858f`，parent `fff20d31`，恰四路径、原blob全等，tracked clean；integration pending／mainAdvanced=false／validationPerformed=false。本轮复用同一已授权受管 `w16726e4ff5/inst85` 的四路径，不创建新工作树、第二Cargo producer或完整源码副本；84的canonical#651仍沿其原操作，不把本轮223定义换进旧161定义身份。
+
+实际核对现有public `EditContext`／私有CoreEditContext、operation factory与plugin registration后，仍无材质作者Document访问器／参数写入工厂，不能用候选或新store绕过原事务。域内新增 `plan_material_document_property_edit`，输入借用原ZMaterialDocument／ShaderAsset／精确key及现成 `RenderMaterialPropertyValue`，返回借用式 `MaterialDocumentPropertyEditPlan`。成功路径不clone文档、TOML前值、schema、payload或undo；没有新的clock／store／history／apply API。原父链／diagnostics／editor／options／texture metadata均保持，host必须在原view／Document／request／revision和ResourceManager handle下，按实际原始entry与请求payload计费，prepare一条delta／inverse并消费一次permit，再经原history／CAS／保存发布。不能用Float32投影比较原作者TOML的No-op／CAS；原高精度／无效修复数据不先转renderer类型。
+
+Set要求真实shader locator、唯一的目标声明与精确运行时类型，复用八类MaterialPropertyKind／RenderMaterialPropertyValue；Color接受Vec4，bool不转数值、int／uint不互转、数值字符串不解析，向量宽度严格；新Float／vector必须有限，但不替业务／shader语义clamp HDR或PBR范围。i32／u32按原ABI保持，未通过f32转整数；schema default／label／editor metadata不成为用户输入。空key不能Set，空格／中文key不trim／casefold；未知key不能冒充声明。原来无覆盖时即使Set为schema default仍是显式Set。ClearOverride仅表示删除本地presence，允许修复未知／空key／错误类型／NaN前值，缺schema仍可形成清除提案；提供错误shader或目标key重名则拒绝。未覆盖的key清除候选不应产生空history记录，由原host确认原始entry无变化后跳过。单key前置不验证其它schema条目、required／父链求值、静态switch permutation、texture ABI／UV或GPU就绪，原诊断不能因此抹除。
+
+本轮新读只读UE `MaterialPropertyHelpers.cpp:1199–1215`：checkbox OnOverrideParameter在真实FScopedTransaction下修改bOverride并通知／刷新；`:1285–1301`的ResetToDefault另行获取真实默认值、SetValue、通知并CopyToSourceInstance，不能把两者概括为同一个“删除override”。故新域枚举明确使用 `ClearOverride`；保留覆盖的重置必须由原同版本父链／默认解析取得真实typed值，再提出Set，不能用schema default占位。UE层／blend association及静态参数限制仍未泛化为Zircon字符串key。
+
+新增七个回归定义覆盖显式default／原输入借用、NaN与required诊断／未知key清除、八类ABI／HDR／i32MIN／u32MAX／负零、六类拒绝coercion、六类NaN／Inf scalar-vector、缺schema／错shader／目标重名与非全schema验收边界，以及中文空格／空key与Set-default和ClearOverride的区别。继续使用原material_graph_过滤器；当前223静态定义＝222普通＋原1ignored，未编译／未Rust发现执行。85原7个回归与原投影公共API保留，Source85旧guard只签其8f57源码；本轮新guard／patch／hash与实际delivery另登记，不用旧通过回执背书后继。
+
+本轮只写原四条owned路径，fork30 Instance／Hierarchy／四Search copy、Penpot全部IDs、原ZUI、Runtime／公共Graph／Field／catalog／tokens／Starship和management源不变。已有83设计图复用为历史，不当本轮host／焦点／renderer／应用保存／正式export／正常EXE／150%DPI／双端1DIP验收。保留所有旧失败，后续仍沿支持的PR/main集成，再按当时真实canonical源申请有限托管验证；本轮delivery validation[]，不是nested工作树Cargo。整族未完成，passed／accepted=false、goal active；受管树／源码与必要失败证据保留，手工释放0B。
+
 ## 材质接续85：直接复用作者文档的实例参数投影（2026-10-28 UTC）
 
 本轮是独立域源码实现，原唯一Rust／Cargo producer、request `ue-material-graph-20261024-01` 和旧失败保持。84的canonical验证 queue29399／#651仍沿原操作；07:54Z认证API building、archive为checkout_source_busy／原r19 reader，不由此新投或把新216定义塞进旧161定义payload。当前par79 ownedPaths不含两个新子模块，故经正常create-worktree `material-instance-worktree-01a16d50-20261028-85`／queue29532／#656 SUCCESS，从已核实 `fff20d312e38122f9294d752f4287019914ef0d8` 建立受管 `w16726e4ff5/inst85`，精确四路径。未手工Git／复制源码树／snapshot；创建回执的before-after隔离不证明原r19连续性、终态或reader已释放。
