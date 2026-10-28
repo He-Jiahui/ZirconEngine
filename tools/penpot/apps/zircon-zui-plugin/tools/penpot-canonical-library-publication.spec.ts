@@ -1,8 +1,68 @@
 import { chromium } from 'playwright';
 import { assertCanonicalLibraryPreserved, canonicalPublicationExportEvidence, canonicalPublicationSourcePins,
-  collectCanonicalOwnerExportEvidence, publishCanonicalLibrary, withCanonicalPublicationSourcePins,
+  collectCanonicalOwnerExportEvidence, publishCanonicalLibrary, requestCanonicalPluginResource, withCanonicalPublicationSourcePins,
 } from './penpot-canonical-library-publication';
 import { parseZuiDocument } from '../src/bridge/zui-document';
+
+describe('canonical publication checks the manifest and worker response CORS before native Open', () => {
+  const origin = 'http://127.0.0.1:19001';
+  const manifestUrl = 'http://127.0.0.1:19002/manifest.json';
+  const workerUrl = 'http://127.0.0.1:19002/assets/plugin.js';
+  const response = (url: string, allowOrigin?: string) => ({
+    status: () => 200, url: () => url,
+    headers: (): Record<string, string> => allowOrigin === undefined ? {} : {'access-control-allow-origin': allowOrigin},
+  });
+
+  it.each([manifestUrl, workerUrl])('rejects HTTP200 without CORS and retains its exact response: %s', async url => {
+    const get = vi.fn(async () => response(url));
+    const record = vi.fn();
+    await expect(requestCanonicalPluginResource(origin, url, get, record)).rejects.toThrow('CORS rejected');
+    expect(get).toHaveBeenCalledWith(url, {headers: {Origin: origin}, maxRedirects: 0});
+    expect(record).toHaveBeenCalledTimes(1);
+    expect(record).toHaveBeenCalledWith({resourceUrl: url, responseUrl: url, httpStatus: 200,
+      requestOrigin: origin, crossOrigin: true, accessControlAllowOrigin: null});
+  });
+
+  it.each(['*', origin, '  *  '])('admits the response header for the existing noncredentialed cross-origin fetch: %j', async header => {
+    const actual = response(workerUrl, header);
+    const record = vi.fn();
+    await expect(requestCanonicalPluginResource(origin, workerUrl, async () => actual, record)).resolves.toBe(actual);
+    expect(record).toHaveBeenCalledTimes(1);
+    expect(record).toHaveBeenCalledWith({resourceUrl: workerUrl, responseUrl: workerUrl, httpStatus: 200,
+      requestOrigin: origin, crossOrigin: true, accessControlAllowOrigin: header});
+  });
+
+  it.each(['http://localhost:19001', 'http://127.0.0.1:19002', 'null', `${origin}, http://localhost:19001`, ''])
+    ('rejects an absent or different authorized origin header: %j', async header => {
+      await expect(requestCanonicalPluginResource(origin, manifestUrl, async () => response(manifestUrl, header), vi.fn()))
+        .rejects.toThrow('CORS rejected');
+    });
+
+  it('does not demand a CORS header on a same-origin resource', async () => {
+    const url = `${origin}/manifest.json`;
+    const actual = response(url);
+    await expect(requestCanonicalPluginResource(origin, url, async () => actual, vi.fn())).resolves.toBe(actual);
+  });
+
+  it.each([302, 404])('preserves HTTP%s as failure even with an allowed origin', async status => {
+    const actual = {...response(manifestUrl, '*'), status: () => status};
+    await expect(requestCanonicalPluginResource(origin, manifestUrl, async () => actual, vi.fn()))
+      .rejects.toThrow('Plugin resource HTTP status');
+  });
+
+  it('rejects a response from a different resource instead of qualifying redirected bytes', async () => {
+    await expect(requestCanonicalPluginResource(origin, workerUrl, async () => response(`${workerUrl}?other=1`, '*'), vi.fn()))
+      .rejects.toThrow('Plugin resource redirected');
+  });
+
+  it('retains a transport failure without fabricating an HTTP or SDK result', async () => {
+    const failure = new Error('original connection refused');
+    const record = vi.fn();
+    await expect(requestCanonicalPluginResource(origin, manifestUrl, async () => { throw failure; }, record))
+      .rejects.toBe(failure);
+    expect(record).not.toHaveBeenCalled();
+  });
+});
 
 describe('canonical publication requires the existing plugin and strict worker build', () => {
   it('rejects an absent existing registration before launching a browser', async () => {

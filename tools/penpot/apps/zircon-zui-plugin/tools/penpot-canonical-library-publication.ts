@@ -23,6 +23,38 @@ export interface CanonicalLibraryPublicationOptions {
 
 export type CanonicalPublicationExportEvidence = 'source-owner' | 'source-owner-and-png';
 
+interface CanonicalPluginResourceResponse {
+  status(): number; url(): string; headers(): Record<string, string>;
+}
+
+interface CanonicalPluginResponseEvidence {
+  resourceUrl: string; responseUrl: string; httpStatus: number;
+  requestOrigin: string; crossOrigin: boolean; accessControlAllowOrigin: string | null;
+}
+
+/** API requests bypass browser CORS. Check the response needed by Penpot's
+ * cors/same-origin manifest and code fetches before native Open or SDK writes.
+ * Header admission alone does not establish browser, plugin or SDK readiness. */
+export async function requestCanonicalPluginResource<T extends CanonicalPluginResourceResponse>(
+  workspaceOrigin: string, url: string,
+  get: (url: string, options: {headers: {Origin: string}; maxRedirects: 0}) => Promise<T>,
+  record: (evidence: CanonicalPluginResponseEvidence) => void,
+): Promise<T> {
+  const requestOrigin = new URL(workspaceOrigin).origin;
+  const resourceUrl = new URL(url).href;
+  const response = await get(resourceUrl, {headers: {Origin: requestOrigin}, maxRedirects: 0});
+  const accessControlAllowOrigin = response.headers()['access-control-allow-origin'] ?? null;
+  const crossOrigin = new URL(resourceUrl).origin !== requestOrigin;
+  record({resourceUrl, responseUrl: response.url(), httpStatus: response.status(),
+    requestOrigin, crossOrigin, accessControlAllowOrigin});
+  assert.equal(response.status(), 200, `Plugin resource HTTP status: ${resourceUrl}`);
+  assert.equal(response.url(), resourceUrl, `Plugin resource redirected: ${resourceUrl}`);
+  const allowedOrigin = accessControlAllowOrigin?.trim();
+  assert.ok(!crossOrigin || allowedOrigin === '*' || allowedOrigin === requestOrigin,
+    `Plugin resource CORS rejected ${requestOrigin}: ${resourceUrl}; Access-Control-Allow-Origin=${accessControlAllowOrigin}`);
+  return response;
+}
+
 interface CanonicalPublicationSourcePin { sourcePath: string; sha256: string }
 
 /** Bind parsed owners to the exact dependency bytes used by their projection. */
@@ -219,15 +251,19 @@ export async function publishCanonicalLibrary(options: CanonicalLibraryPublicati
     await checkpoint();
     const host = options.existingPlugin.host;
     assert.ok(['127.0.0.1', 'localhost'].includes(new URL(host).hostname), 'Plugin host must be local');
+    const pluginResponses: CanonicalPluginResponseEvidence[] = [];
+    receipt['pluginResponsePreflight'] = pluginResponses;
+    const getPluginResource = (url: string) => requestCanonicalPluginResource(identity.origin, url,
+      (url, options) => context!.request.get(url, options), evidence => { pluginResponses.push(evidence); });
     const manifest = JSON.parse(await readFile(resolve(options.dist, 'manifest.json'), 'utf8'));
     if (options.existingPlugin) {
-      const servedManifest = await context.request.get(new URL('manifest.json', host).href);
+      const servedManifest = await getPluginResource(new URL('manifest.json', host).href);
       assert.equal(servedManifest.status(), 200);
       assert.equal(sha256(await servedManifest.body()), options.existingPlugin.manifestSha256,
         'Managed plugin manifest changed');
       assert.deepEqual(JSON.parse(await servedManifest.text()), manifest, 'Served manifest differs from the selected distribution');
     }
-    const servedWorker = await context.request.get(new URL(manifest['code'], host).href);
+    const servedWorker = await getPluginResource(new URL(manifest['code'], host).href);
     assert.equal(servedWorker.status(), 200);
     assert.equal(sha256(await servedWorker.body()), bundleSha256, 'Managed worker differs from the selected canonical build');
     receipt['pluginBundleSha256'] = bundleSha256;
