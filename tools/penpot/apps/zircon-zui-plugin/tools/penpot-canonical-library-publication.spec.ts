@@ -1,12 +1,14 @@
 import { chromium } from 'playwright';
 import { createHash } from 'node:crypto';
 import { assertCanonicalLibraryPreserved, canonicalPublicationEmbeddedSvgPins, canonicalPublicationExportEvidence, canonicalPublicationSourcePins,
+  closeCanonicalPublicationSaveContext,
   collectCanonicalOwnerExportEvidence, collectCanonicalPublicationExportEvidence,
   publishCanonicalLibrary, requestCanonicalPluginResource, withCanonicalPublicationSourcePins,
 } from './penpot-canonical-library-publication';
 import { withSourceColorRevisionFence } from './zui-layout-real-session';
 import { parseZuiDocument, type ZuiDocument } from '../src/bridge/zui-document';
 import { FIELD_ICON_PATHS } from '../src/bridge/zui-field-projection';
+import { verifySaveResponse } from './zui-layout-real-session-contract.mjs';
 
 describe('canonical publication checks the manifest and worker response CORS before native Open', () => {
   const origin = 'http://127.0.0.1:19001';
@@ -88,6 +90,116 @@ describe('canonical publication requires the existing plugin and strict worker b
         .rejects.toThrow('requires a pinned strict worker build receipt');
       expect(launch).not.toHaveBeenCalled();
     } finally { launch.mockRestore(); }
+  });
+});
+
+describe('canonical publication settles the original save observer before acknowledging persistence', () => {
+  function fixture() {
+    const identity = {fileId: '11111111-1111-4111-8111-111111111111'};
+    const request = {id: identity.fileId, 'session-id': '22222222-2222-4222-8222-222222222222',
+      revn: 5, changes: [{type: 'mod-obj', id: 'original-shape'}]};
+    const response = {revn: 6, lagged: [{id: '33333333-3333-4333-8333-333333333333',
+      'file-id': identity.fileId, 'session-id': request['session-id'], revn: 6, changes: request.changes}]};
+    return {identity, request, response, saves: [verifySaveResponse(response, identity, 5, request)],
+      errors: [] as string[], pending: new Set<Promise<void>>()};
+  }
+
+  // Actual observer tasks catch into onError and remove themselves in finally.
+  function observe(state: ReturnType<typeof fixture>, operation: Promise<void>) {
+    const handled: Promise<void> = operation.catch(error => { state.errors.push(String(error)); })
+      .finally(() => state.pending.delete(handled));
+    state.pending.add(handled);
+    return handled;
+  }
+
+  it('rejects a late failed body capture despite an earlier exact file/session/change ACK', async () => {
+    const state = fixture();
+    let complete!: () => void;
+    observe(state, new Promise<void>(resolve => { complete = resolve; }).then(() => {
+      throw new Error('actual save response body unavailable');
+    }));
+    const close = vi.fn(async () => 'existing-authentication');
+    const result = closeCanonicalPublicationSaveContext(state.pending, state.errors, close);
+    complete();
+    await expect(result).rejects.toThrow('actual save response body unavailable');
+    expect(state.saves).toEqual([6]);
+    expect(state.pending.size).toBe(0);
+    expect(close).not.toHaveBeenCalled();
+  });
+
+  it('retains a later same-file response that does not acknowledge the actual session and changes', async () => {
+    const state = fixture();
+    const otherSession = structuredClone(state.response);
+    otherSession.lagged[0]['session-id'] = '44444444-4444-4444-8444-444444444444';
+    observe(state, Promise.resolve().then(() => {
+      state.saves.push(verifySaveResponse(otherSession, state.identity, 5, state.request));
+    }));
+    const close = vi.fn(async () => 'existing-authentication');
+    await expect(closeCanonicalPublicationSaveContext(state.pending, state.errors, close))
+      .rejects.toThrow('update-file did not acknowledge this file');
+    expect(state.saves).toEqual([6]);
+    expect(close).not.toHaveBeenCalled();
+  });
+
+  it('waits for another response task registered while the first observation settles', async () => {
+    const state = fixture();
+    let complete!: () => void;
+    const later = new Promise<void>(resolve => { complete = resolve; });
+    const first = observe(state, Promise.resolve().then(() => {
+      observe(state, later.then(() => { throw new Error('later actual save capture failed'); }));
+    }));
+    const close = vi.fn(async () => 'existing-authentication');
+    const result = closeCanonicalPublicationSaveContext(state.pending, state.errors, close);
+    await first;
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(close).not.toHaveBeenCalled();
+    complete();
+    await expect(result).rejects.toThrow('later actual save capture failed');
+    expect(state.pending.size).toBe(0);
+    expect(close).not.toHaveBeenCalled();
+  });
+
+  it.each(['loading-failed', 'response-capture'])('rejects %s reported while closing before fresh-context work', async phase => {
+    const state = fixture();
+    const failure = new Error(`actual save ${phase} during close`);
+    const close = vi.fn(async () => {
+      if (phase === 'loading-failed') state.errors.push(String(failure));
+      else observe(state, Promise.resolve().then(() => { throw failure; }));
+      return 'existing-authentication';
+    });
+    const reopen = vi.fn();
+    await expect(closeCanonicalPublicationSaveContext(state.pending, state.errors, close).then(reopen))
+      .rejects.toThrow(failure.message);
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(reopen).not.toHaveBeenCalled();
+    expect(state.saves).toEqual([6]);
+    expect(state.pending.size).toBe(0);
+  });
+
+  it('preserves the original context-close failure instead of admitting a fresh context', async () => {
+    const state = fixture();
+    const failure = new Error('original context close failed');
+    const reopen = vi.fn();
+    await expect(closeCanonicalPublicationSaveContext(state.pending, state.errors, async () => {
+      throw failure;
+    }).then(reopen)).rejects.toBe(failure);
+    expect(reopen).not.toHaveBeenCalled();
+    expect(state.errors).toEqual([]);
+  });
+
+  it.each([false, true])('returns unchanged authentication only after clean observation and close (pending=%s)', async hasPending => {
+    const state = fixture();
+    const events: string[] = [];
+    const authentication = {cookies: [], origins: []};
+    if (hasPending) observe(state, Promise.resolve().then(() => { events.push('observed'); }));
+    const close = vi.fn(async () => { events.push('closed'); return authentication; });
+    await expect(closeCanonicalPublicationSaveContext(state.pending, state.errors, close)).resolves.toBe(authentication);
+    expect(events).toEqual(hasPending ? ['observed', 'closed'] : ['closed']);
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(state.pending.size).toBe(0);
+    expect(state.errors).toEqual([]);
+    expect(state.saves).toEqual([6]);
   });
 });
 
