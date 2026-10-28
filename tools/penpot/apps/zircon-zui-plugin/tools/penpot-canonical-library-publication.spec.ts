@@ -1,6 +1,7 @@
 import { chromium } from 'playwright';
-import { assertCanonicalLibraryPreserved, canonicalPublicationExportEvidence, collectCanonicalOwnerExportEvidence,
-  publishCanonicalLibrary } from './penpot-canonical-library-publication';
+import { assertCanonicalLibraryPreserved, canonicalPublicationExportEvidence, canonicalPublicationSourcePins,
+  collectCanonicalOwnerExportEvidence, publishCanonicalLibrary, withCanonicalPublicationSourcePins,
+} from './penpot-canonical-library-publication';
 import { parseZuiDocument } from '../src/bridge/zui-document';
 
 describe('canonical publication requires the existing plugin and strict worker build', () => {
@@ -135,3 +136,60 @@ props = { value = "18446744073709551615", editable_text = true, foreground_color
   });
 });
 
+describe('canonical publication pins current owner and dependency bytes', () => {
+  const owner = {sourcePath: 'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/field.zui',
+    sha256: 'a'.repeat(64)};
+  const number = {sourcePath: 'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/number_field.zui',
+    sha256: 'b'.repeat(64)};
+  const theme = {sourcePath: 'zircon_editor/assets/ui/editor/theme/editor_tokens.zui', sha256: 'c'.repeat(64)};
+
+  it('shares the same dependency pin across two independently prepared owners', () => {
+    expect(canonicalPublicationSourcePins([
+      {...owner, sourceFingerprints: [owner, theme]},
+      {...number, sourceFingerprints: [number, theme]},
+    ])).toEqual([owner, theme, number]);
+  });
+
+  it('rejects an owner read that differs from the bytes parsed for its projection', () => {
+    expect(() => canonicalPublicationSourcePins([
+      {...owner, sha256: 'd'.repeat(64), sourceFingerprints: [owner, theme]},
+    ])).toThrow('changed during dependency preparation');
+  });
+
+  it('rejects conflicting dependency revisions instead of replacing a previous pin', () => {
+    expect(() => canonicalPublicationSourcePins([
+      {...owner, sourceFingerprints: [owner, theme]},
+      {...number, sourceFingerprints: [number, {...theme, sha256: 'd'.repeat(64)}]},
+    ])).toThrow('Conflicting canonical dependency fingerprints');
+  });
+
+  it.each([owner, theme])('blocks an import when $sourcePath changed before its write', async changed => {
+    const current = new Map([owner, theme].map(pin => [pin.sourcePath, pin.sha256]));
+    current.set(changed.sourcePath, 'd'.repeat(64));
+    const write = vi.fn(async () => 'imported');
+    await expect(withCanonicalPublicationSourcePins([owner, theme], async path => current.get(path)!, write))
+      .rejects.toThrow(`Canonical source bytes changed: ${changed.sourcePath}`);
+    expect(write).not.toHaveBeenCalled();
+  });
+
+  it('rejects drift during an awaited import without claiming its partial write was undone', async () => {
+    const current = new Map([owner, theme].map(pin => [pin.sourcePath, pin.sha256]));
+    const actualWrites: string[] = [];
+    await expect(withCanonicalPublicationSourcePins([owner, theme], async path => current.get(path)!, async () => {
+      actualWrites.push('actual-main');
+      await Promise.resolve();
+      current.set(theme.sourcePath, 'd'.repeat(64));
+      return 'imported';
+    })).rejects.toThrow(`Canonical source bytes changed: ${theme.sourcePath}`);
+    expect(actualWrites).toEqual(['actual-main']);
+    expect(current.get(theme.sourcePath)).toBe('d'.repeat(64));
+  });
+
+  it('returns an official operation result when all prepared source bytes remain current', async () => {
+    const current = new Map([owner, theme].map(pin => [pin.sourcePath, pin.sha256]));
+    const write = vi.fn(async () => ({mainInstanceId: 'actual-main'}));
+    await expect(withCanonicalPublicationSourcePins([owner, theme], async path => current.get(path)!, write))
+      .resolves.toEqual({mainInstanceId: 'actual-main'});
+    expect(write).toHaveBeenCalledTimes(1);
+  });
+});

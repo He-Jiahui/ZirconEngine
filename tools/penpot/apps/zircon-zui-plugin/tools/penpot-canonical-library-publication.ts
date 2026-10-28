@@ -23,6 +23,53 @@ export interface CanonicalLibraryPublicationOptions {
 
 export type CanonicalPublicationExportEvidence = 'source-owner' | 'source-owner-and-png';
 
+interface CanonicalPublicationSourcePin { sourcePath: string; sha256: string }
+
+/** Bind parsed owners to the exact dependency bytes used by their projection. */
+export function canonicalPublicationSourcePins(sources: readonly {
+  sourcePath: string; sha256: string; sourceFingerprints: readonly CanonicalPublicationSourcePin[];
+}[]): CanonicalPublicationSourcePin[] {
+  const pins = new Map<string, string>();
+  for (const source of sources) {
+    const owner = source.sourceFingerprints.filter(pin => pin.sourcePath === source.sourcePath);
+    const [ownerPin] = owner;
+    assert.ok(ownerPin && owner.length === 1, `Missing or ambiguous canonical source fingerprint: ${source.sourcePath}`);
+    assert.equal(ownerPin.sha256, source.sha256,
+      `Canonical source changed during dependency preparation: ${source.sourcePath}`);
+    for (const pin of source.sourceFingerprints) {
+      assert.match(pin.sha256, /^[0-9a-f]{64}$/, `Invalid canonical source fingerprint: ${pin.sourcePath}`);
+      const previous = pins.get(pin.sourcePath);
+      assert.ok(previous === undefined || previous === pin.sha256,
+        `Conflicting canonical dependency fingerprints: ${pin.sourcePath}`);
+      pins.set(pin.sourcePath, pin.sha256);
+    }
+  }
+  assert.ok(pins.size > 0, 'Canonical publication needs pinned source bytes');
+  return [...pins].map(([sourcePath, sha256]) => ({sourcePath, sha256}));
+}
+
+async function assertCanonicalPublicationSourcePins(
+  pins: readonly CanonicalPublicationSourcePin[], readSha256: (sourcePath: string) => Promise<string>,
+): Promise<void> {
+  assert.ok(pins.length > 0, 'Canonical publication needs pinned source bytes');
+  assert.equal(new Set(pins.map(pin => pin.sourcePath)).size, pins.length, 'Duplicate canonical source pins');
+  const current = await Promise.all(pins.map(pin => readSha256(pin.sourcePath)));
+  for (const [index, pin] of pins.entries())
+    assert.equal(current[index], pin.sha256, `Canonical source bytes changed: ${pin.sourcePath}`);
+}
+
+/** Detect drift around awaited SDK work; the managed writer still owns exclusion.
+ * A post-operation failure retains any actual partial write for reconciliation. */
+export async function withCanonicalPublicationSourcePins<T>(
+  pins: readonly CanonicalPublicationSourcePin[], readSha256: (sourcePath: string) => Promise<string>,
+  operation: () => Promise<T>,
+): Promise<T> {
+  await assertCanonicalPublicationSourcePins(pins, readSha256);
+  const result = await operation();
+  await assertCanonicalPublicationSourcePins(pins, readSha256);
+  return result;
+}
+
 export function canonicalPublicationExportEvidence(
   requested: CanonicalPublicationExportEvidence | undefined,
 ): CanonicalPublicationExportEvidence {
@@ -95,17 +142,23 @@ export async function publishCanonicalLibrary(options: CanonicalLibraryPublicati
     // embed returns change descriptions; the actual source closure is metadata.
     const closure = projection['penpot_dependency_sources'];
     assert.ok(Array.isArray(closure) && closure.every(path => typeof path === 'string'));
-    projection['penpot_source_fingerprints'] = [...new Set([sourcePath,
+    const sourceFingerprints = [...new Set([sourcePath,
       ...closure.filter((path): path is string => typeof path === 'string' && path.endsWith('.zui'))])].map(path => {
       const fingerprint = dependencies.sourceFingerprint(path);
       assert.ok(fingerprint, `Missing canonical source fingerprint: ${path}`);
       return fingerprint;
     });
+    projection['penpot_source_fingerprints'] = sourceFingerprints;
     projection['penpot_original_source'] = source;
     projection['penpot_original_source_path'] = sourcePath;
-    return {sourcePath, source, original, projection: serializeZuiDocument(projection), sha256: sha256(source)};
+    return {sourcePath, source, original, projection: serializeZuiDocument(projection), sha256: sha256(source),
+      sourceFingerprints};
   }));
   receipt['sources'] = prepared.map(({sourcePath, sha256}) => ({sourcePath, sha256}));
+  const sourcePins = canonicalPublicationSourcePins(prepared);
+  const readSourceSha256 = async (sourcePath: string) => sha256(await readFile(resolve(options.repoRoot, sourcePath)));
+  await assertCanonicalPublicationSourcePins(sourcePins, readSourceSha256);
+  receipt['zuiSourcePins'] = sourcePins;
   const temp = resolve(output, 'browser-temp');
   const downloads = resolve(output, 'downloads');
   await mkdir(temp, {recursive: true}); await mkdir(downloads, {recursive: true});
@@ -198,11 +251,13 @@ export async function publishCanonicalLibrary(options: CanonicalLibraryPublicati
       await session.frame.locator('.status-panel').filter({hasText: '字体资源清单'}).waitFor();
     }
     for (const item of imports) {
-      await session.frame.locator('[data-component-master-input]').setInputFiles({name: item.sourcePath.split('/').pop()!,
-        mimeType: 'text/plain', buffer: Buffer.from(item.projection)});
-      await session.frame.locator('.status-panel:not([data-level="working"])').waitFor({timeout: 120_000});
-      assert.notEqual(await session.frame.locator('.status-panel').getAttribute('data-level'), 'error',
-        await session.frame.locator('.status-panel').innerText());
+      await withCanonicalPublicationSourcePins(sourcePins, readSourceSha256, async () => {
+        await session.frame.locator('[data-component-master-input]').setInputFiles({name: item.sourcePath.split('/').pop()!,
+          mimeType: 'text/plain', buffer: Buffer.from(item.projection)});
+        await session.frame.locator('.status-panel:not([data-level="working"])').waitFor({timeout: 120_000});
+        assert.notEqual(await session.frame.locator('.status-panel').getAttribute('data-level'), 'error',
+          await session.frame.locator('.status-panel').innerText());
+      });
       await checkpoint();
     }
     let saved: any; let metadata: ReturnType<typeof persistedZuiMetadata> = [];
@@ -254,12 +309,13 @@ export async function publishCanonicalLibrary(options: CanonicalLibraryPublicati
       assert.ok(record);
       await reopened.page.locator(`[data-testid="layer-row"][id="${record.assetBoardId}"]`).click();
       await reopened.frame.locator(`.selection-band[data-selected-board-id="${record.assetBoardId}"]`).waitFor();
-      const download = await withSourceColorRevisionFence(context, identity, record.assetBoardId,
+      const download = await withCanonicalPublicationSourcePins(sourcePins, readSourceSha256,
+        () => withSourceColorRevisionFence(context!, identity, record.assetBoardId,
         parseZuiDocument(item.projection).document, decode, receipt, async () => {
           const downloadPending = reopened.page.waitForEvent('download', {timeout: 30_000});
           await reopened.frame.getByRole('button', {name: 'Export selected', exact: true}).click();
           return downloadPending;
-        });
+        }));
       const target = resolve(output, `component-${index + 1}.zui`);
       await download.saveAs(target); const exported = await readFile(target, 'utf8');
       const evidence = await collectCanonicalOwnerExportEvidence(item.original, exported, exportEvidence, async () => {
@@ -274,6 +330,7 @@ export async function publishCanonicalLibrary(options: CanonicalLibraryPublicati
       assert.equal(sha256(await readFile(resolve(options.repoRoot, item.sourcePath))), item.sha256);
       await checkpoint();
     }
+    await assertCanonicalPublicationSourcePins(sourcePins, readSourceSha256);
     receipt['exportSemanticMatch'] = true; receipt['sourceFingerprintMatched'] = true;
     receipt['officialPngDownloaded'] = exportEvidence === 'source-owner-and-png';
     receipt['status'] = exportEvidence === 'source-owner'
