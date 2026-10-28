@@ -139,9 +139,11 @@ pub use graph_presentation::{
     MaterialGraphEdgeProjection, MaterialGraphEdgeSplineProjection, MaterialGraphPresentation,
 };
 pub use instance_projection::{
-    plan_material_document_property_edit, project_authored_material_document,
-    MaterialDocumentProjectionError, MaterialDocumentPropertyEdit,
-    MaterialDocumentPropertyEditError, MaterialDocumentPropertyEditPlan,
+    plan_material_document_property_edit, plan_material_document_texture_edit,
+    project_authored_material_document, MaterialDocumentProjectionError,
+    MaterialDocumentPropertyEdit, MaterialDocumentPropertyEditError,
+    MaterialDocumentPropertyEditPlan, MaterialDocumentTextureEdit,
+    MaterialDocumentTextureEditError, MaterialDocumentTextureEditPlan,
 };
 pub use node_creation::validate_material_graph_node_creation;
 pub use node_creation_autowire::{

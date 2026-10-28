@@ -1,3 +1,21 @@
+## 接续88：实例纹理槽作者提案，显式空值与移除覆盖分离（2026-10-28）
+
+沿本域唯一 producer、原 request `ue-material-graph-20261024-01` 和受管 `w16726e4ff5-inst85`，仅改原四 owned paths；新源码接续86 commit `903e3bf4013630e5c7e93411e24618ff709b4f54`。复用原 `ZMaterialDocument.textures`、`MaterialTextureSlotValue`、`ShaderTextureSlotAsset` 与 `RenderMaterialTextureTransform`，新增借用式 `plan_material_document_texture_edit` / `MaterialDocumentTextureEdit::{Set,ClearOverride}` / plan/error。`Set(&slot)` 保留完整资产引用身份、fallback、可选UV变换和u32通道；引用与fallback均空仍是显式本地覆盖，不能改成 ClearOverride 或自动选白纹理。ClearOverride 仅移除本地presence；无shader时仍可修复未知/空key和旧非有限变换。
+
+Set要求非空精确key、当前locator匹配的shader、目标声明唯一和新UV五分量有限；不trim中文/空格key、不规范化alias/fallback/URI、不限制u32通道或clamp有限负值/零/大UV。提供错误shader或目标重名时整项拒绝。此为单目标作者预检，不把其他schema/必需绑定诊断抹除；缺parent、实际纹理handle/dimension/UUID/generation、sampler/mesh UV/renderer readiness仍由原host真实能力检查，成功plan不是可绑定GPU证明。UE `MaterialPropertyHelpers.cpp:320-326` 仅复制bOverride参数，1199-1215为原事务checkbox；本域不把 ClearOverride 冒充1285-1301的保留override ResetToDefault。
+
+成功路径仅借用原document/key/schema/完整slot，不克隆文档或旧payload，不插入map/保存/编译，不建第二store/clock/history；原Document owner须pin view/document/request/revision和ResourceManager世代、按完整旧slot+新slot计预算，沿一次prepare/permit/inverse delta/history/CAS完成原写入。无效果按钮/假预览未接入。六项有意义回归定义覆盖空slot/required诊断、完整引用与UV保留、缺失/错误/重名schema、未知空key/NaN修复、五UV分量NaN/±Inf以及中文空格/alias/命名空间。原85/86十四测试体保留；当前静态定义229（228普通+原1 ignored），均未据此声称Rust类型检查/发现/执行。
+
+源码/依赖/patch、guard与结构检查见原报告根 `material-instance-texture-88-{before,source,validation,guard,handoff}.json`。87三图测量与服务拒绝证据同次增量保留。后继交付 operation `deliver-material-instance-texture-01a16d50-20261028-88`；仅正常deliver-task，不重投任何终结validation或nested worktree Cargo。Canonical84原#651 FAILURE与waiting/source-busy归档、r19 reader/native/resource不一致独立保留；本候选待原PR/main集成后再按当时canonical源正常准入。正式host/原ZUI codec/export、引擎实际渲染/保存/撤销/EXE/150%DPI/1DIP与全族passed/accepted仍false。
+
+## 接续87：原参数三板真实重开测量；640图裁切未修（2026-10-28）
+
+本域原 Penpot file/page `b4a1e3ce-9e6a-81fe-8008-d69d6092d704` / `b4a1e3ce-9e6a-81fe-8008-d69d6092d705` 实际读回 rev422 / 5585 objects / 5 business mains。09:16:58Z 捕获并逐张打开 Parameters80 原1280/900/640三张 native PNG；当前900的三个节点主体已 contained，不能以历史75板的900裁切覆盖本次证据。640 Output 右溢102.8、粗糙度底溢52.4逻辑像素仍存在；参数节点上方的网格绘制顺序及窄栏页签文字裁切也仍 open。
+
+先查 Penpot 官方 Layers 比例缩放工具，拟将节点/文字/pins/wires作同一设计视图投影，并保留作者坐标与原生实例引用，未执行任何设计写入。隔离浏览器随后断开，原因未证；09:21:42Z 无认证、无proxy只读GET19001/readyz、16060/readyz均 Win10061，08:57的200仍只保留为历史。两个自有后继 helper 已显式关闭/exit0，认证文件哈希不变；不启停/延长服务、不占桌面。服务变化已一次通知原 public owner，queue ACK `01a181d1-927f-7e81-a050-c857fe2e23ee` 仅为投递。
+
+原三图、精确行框/节点边界、初次命中 hidden export SVG 的选择器失败及改用可见 interactions SVG 的证据，见原报告根 `material-graph-fit-87-{before,probe,review,handoff,native-steps}.json` 和三张 `*-before.png`。没有 after/reopen/export/EXE 截图，不生成假对比；设计修正、实际Graph输入、正式codec/原ZUI、renderer/正常EXE/150%DPI/1DIP仍未通过。原5585 ID与fork30范围未由本轮写入；服务恢复后仍须 fresh读保护后才可变更。不因此停止全族：接续88继续现作者Document的纹理槽语义。
+
 ## 材质接续86：实例属性的 typed Set 与 ClearOverride 前置语义（2026-10-28 UTC）
 
 85已由正常 `deliver-material-instance-projection-01a16d50-20261028-85`／queue29734／#661 SUCCESS提交 `8f57d3733e0ae9483bf368222cf280ba4b62858f`，parent `fff20d31`，恰四路径、原blob全等，tracked clean；integration pending／mainAdvanced=false／validationPerformed=false。本轮复用同一已授权受管 `w16726e4ff5/inst85` 的四路径，不创建新工作树、第二Cargo producer或完整源码副本；84的canonical#651仍沿其原操作，不把本轮223定义换进旧161定义身份。
