@@ -1,5 +1,70 @@
 import { chromium } from 'playwright';
-import { assertCanonicalLibraryPreserved, publishCanonicalLibrary } from './penpot-canonical-library-publication';
+import { createHash } from 'node:crypto';
+import { assertCanonicalLibraryPreserved, canonicalPublicationEmbeddedSvgPins, canonicalPublicationExportEvidence, canonicalPublicationSourcePins,
+  collectCanonicalOwnerExportEvidence, publishCanonicalLibrary, requestCanonicalPluginResource, withCanonicalPublicationSourcePins,
+} from './penpot-canonical-library-publication';
+import { parseZuiDocument, type ZuiDocument } from '../src/bridge/zui-document';
+import { FIELD_ICON_PATHS } from '../src/bridge/zui-field-projection';
+
+describe('canonical publication checks the manifest and worker response CORS before native Open', () => {
+  const origin = 'http://127.0.0.1:19001';
+  const manifestUrl = 'http://127.0.0.1:19002/manifest.json';
+  const workerUrl = 'http://127.0.0.1:19002/assets/plugin.js';
+  const response = (url: string, allowOrigin?: string) => ({
+    status: () => 200, url: () => url,
+    headers: (): Record<string, string> => allowOrigin === undefined ? {} : {'access-control-allow-origin': allowOrigin},
+  });
+
+  it.each([manifestUrl, workerUrl])('rejects HTTP200 without CORS and retains its exact response: %s', async url => {
+    const get = vi.fn(async () => response(url));
+    const record = vi.fn();
+    await expect(requestCanonicalPluginResource(origin, url, get, record)).rejects.toThrow('CORS rejected');
+    expect(get).toHaveBeenCalledWith(url, {headers: {Origin: origin}, maxRedirects: 0});
+    expect(record).toHaveBeenCalledTimes(1);
+    expect(record).toHaveBeenCalledWith({resourceUrl: url, responseUrl: url, httpStatus: 200,
+      requestOrigin: origin, crossOrigin: true, accessControlAllowOrigin: null});
+  });
+
+  it.each(['*', origin, '  *  '])('admits the response header for the existing noncredentialed cross-origin fetch: %j', async header => {
+    const actual = response(workerUrl, header);
+    const record = vi.fn();
+    await expect(requestCanonicalPluginResource(origin, workerUrl, async () => actual, record)).resolves.toBe(actual);
+    expect(record).toHaveBeenCalledTimes(1);
+    expect(record).toHaveBeenCalledWith({resourceUrl: workerUrl, responseUrl: workerUrl, httpStatus: 200,
+      requestOrigin: origin, crossOrigin: true, accessControlAllowOrigin: header});
+  });
+
+  it.each(['http://localhost:19001', 'http://127.0.0.1:19002', 'null', `${origin}, http://localhost:19001`, ''])
+    ('rejects an absent or different authorized origin header: %j', async header => {
+      await expect(requestCanonicalPluginResource(origin, manifestUrl, async () => response(manifestUrl, header), vi.fn()))
+        .rejects.toThrow('CORS rejected');
+    });
+
+  it('does not demand a CORS header on a same-origin resource', async () => {
+    const url = `${origin}/manifest.json`;
+    const actual = response(url);
+    await expect(requestCanonicalPluginResource(origin, url, async () => actual, vi.fn())).resolves.toBe(actual);
+  });
+
+  it.each([302, 404])('preserves HTTP%s as failure even with an allowed origin', async status => {
+    const actual = {...response(manifestUrl, '*'), status: () => status};
+    await expect(requestCanonicalPluginResource(origin, manifestUrl, async () => actual, vi.fn()))
+      .rejects.toThrow('Plugin resource HTTP status');
+  });
+
+  it('rejects a response from a different resource instead of qualifying redirected bytes', async () => {
+    await expect(requestCanonicalPluginResource(origin, workerUrl, async () => response(`${workerUrl}?other=1`, '*'), vi.fn()))
+      .rejects.toThrow('Plugin resource redirected');
+  });
+
+  it('retains a transport failure without fabricating an HTTP or SDK result', async () => {
+    const failure = new Error('original connection refused');
+    const record = vi.fn();
+    await expect(requestCanonicalPluginResource(origin, manifestUrl, async () => { throw failure; }, record))
+      .rejects.toBe(failure);
+    expect(record).not.toHaveBeenCalled();
+  });
+});
 
 describe('canonical publication requires the existing plugin and strict worker build', () => {
   it('rejects an absent existing registration before launching a browser', async () => {
@@ -63,5 +128,220 @@ describe('append canonical sources without replacing library owners', () => {
     const removed = structuredClone(before);
     Reflect.deleteProperty(removed.data['pages-index'].page.objects, 'original-main');
     expect(() => assertCanonicalLibraryPreserved(before, removed)).toThrow('Existing shape disappeared');
+  });
+});
+
+describe('canonical owner export retains source guards independently of PNG evidence', () => {
+  const originalSource = `[asset]
+kind = "component"
+id = "res://ui/editor/components/workbench/primitives/inputs/field.zui"
+version = 2
+
+[imports]
+widgets = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
+
+[components.WorkbenchField]
+root = "root"
+
+[nodes.root]
+component = "InputField"
+control_id = "WorkbenchFieldRoot"
+props = { value = "18446744073709551615", editable_text = true, foreground_color = "$editor.text.primary" }
+`;
+  const original = () => parseZuiDocument(originalSource).document;
+
+  it('exports the exact decimal-string owner source without requesting PNG in explicit source-owner mode', async () => {
+    const capture = vi.fn(async () => { throw new Error('PNG must be independently admitted'); });
+    const evidence = await collectCanonicalOwnerExportEvidence(original(), originalSource, 'source-owner', capture);
+    expect(evidence).toEqual({sourceSemanticMatch: true, pngEvidence: 'not-requested'});
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['stable control identity', 'WorkbenchFieldRoot', 'DifferentFieldRoot'],
+    ['source import', 'res://ui/editor/theme/editor_tokens.zui', 'res://ui/editor/theme/different_tokens.zui'],
+    ['token expression', '$editor.text.primary', '$editor.text.secondary'],
+    ['typed input state', 'editable_text = true', 'editable_text = false'],
+  ])('rejects a changed %s even when PNG was not requested', async (_name, from, to) => {
+    const capture = vi.fn(async () => ({pngPath: 'unused.png', canvas: {}}));
+    await expect(collectCanonicalOwnerExportEvidence(
+      original(), originalSource.replace(from, to), 'source-owner', capture)).rejects.toThrow();
+    expect(capture).not.toHaveBeenCalled();
+  });
+
+  it('requests PNG by default only after the owner source matches and waits for its downloader', async () => {
+    const capture = vi.fn(async () => ({pngPath: 'actual-sdk-download.png', canvas: {source: 'official-sdk'}}));
+    const evidence = await collectCanonicalOwnerExportEvidence(
+      original(), originalSource, canonicalPublicationExportEvidence(undefined), capture);
+    expect(capture).toHaveBeenCalledTimes(1);
+    expect(evidence).toEqual({sourceSemanticMatch: true, pngEvidence: 'captured',
+      pngPath: 'actual-sdk-download.png', canvas: {source: 'official-sdk'}});
+  });
+
+  it('preserves an actual PNG downloader failure in the default evidence mode', async () => {
+    const capture = vi.fn(async () => { throw new Error('official PNG download timed out'); });
+    await expect(collectCanonicalOwnerExportEvidence(
+      original(), originalSource, canonicalPublicationExportEvidence(undefined), capture))
+      .rejects.toThrow('official PNG download timed out');
+    expect(capture).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects an unknown evidence mode before browser launch or worker input reads', async () => {
+    const launch = vi.spyOn(chromium, 'launch');
+    try {
+      await expect(publishCanonicalLibrary({existingPlugin: {}, exportEvidence: 'skip-source-guards'}
+        as unknown as Parameters<typeof publishCanonicalLibrary>[0]))
+        .rejects.toThrow('exportEvidence must explicitly select');
+      expect(launch).not.toHaveBeenCalled();
+    } finally { launch.mockRestore(); }
+  });
+});
+
+describe('canonical publication pins current owner and dependency bytes', () => {
+  const owner = {sourcePath: 'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/field.zui',
+    sha256: 'a'.repeat(64)};
+  const number = {sourcePath: 'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/number_field.zui',
+    sha256: 'b'.repeat(64)};
+  const theme = {sourcePath: 'zircon_editor/assets/ui/editor/theme/editor_tokens.zui', sha256: 'c'.repeat(64)};
+
+  it('shares the same dependency pin across two independently prepared owners', () => {
+    expect(canonicalPublicationSourcePins([
+      {...owner, sourceFingerprints: [owner, theme]},
+      {...number, sourceFingerprints: [number, theme]},
+    ])).toEqual([owner, theme, number]);
+  });
+
+  it('rejects an owner read that differs from the bytes parsed for its projection', () => {
+    expect(() => canonicalPublicationSourcePins([
+      {...owner, sha256: 'd'.repeat(64), sourceFingerprints: [owner, theme]},
+    ])).toThrow('changed during dependency preparation');
+  });
+
+  it('rejects conflicting dependency revisions instead of replacing a previous pin', () => {
+    expect(() => canonicalPublicationSourcePins([
+      {...owner, sourceFingerprints: [owner, theme]},
+      {...number, sourceFingerprints: [number, {...theme, sha256: 'd'.repeat(64)}]},
+    ])).toThrow('Conflicting canonical dependency fingerprints');
+  });
+
+  it.each([owner, theme])('blocks an import when $sourcePath changed before its write', async changed => {
+    const current = new Map([owner, theme].map(pin => [pin.sourcePath, pin.sha256]));
+    current.set(changed.sourcePath, 'd'.repeat(64));
+    const write = vi.fn(async () => 'imported');
+    await expect(withCanonicalPublicationSourcePins([owner, theme], async path => current.get(path)!, write))
+      .rejects.toThrow(`Canonical source bytes changed: ${changed.sourcePath}`);
+    expect(write).not.toHaveBeenCalled();
+  });
+
+  it('rejects drift during an awaited import without claiming its partial write was undone', async () => {
+    const current = new Map([owner, theme].map(pin => [pin.sourcePath, pin.sha256]));
+    const actualWrites: string[] = [];
+    await expect(withCanonicalPublicationSourcePins([owner, theme], async path => current.get(path)!, async () => {
+      actualWrites.push('actual-main');
+      await Promise.resolve();
+      current.set(theme.sourcePath, 'd'.repeat(64));
+      return 'imported';
+    })).rejects.toThrow(`Canonical source bytes changed: ${theme.sourcePath}`);
+    expect(actualWrites).toEqual(['actual-main']);
+    expect(current.get(theme.sourcePath)).toBe('d'.repeat(64));
+  });
+
+  it('returns an official operation result when all prepared source bytes remain current', async () => {
+    const current = new Map([owner, theme].map(pin => [pin.sourcePath, pin.sha256]));
+    const write = vi.fn(async () => ({mainInstanceId: 'actual-main'}));
+    await expect(withCanonicalPublicationSourcePins([owner, theme], async path => current.get(path)!, write))
+      .resolves.toEqual({mainInstanceId: 'actual-main'});
+    expect(write).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('canonical publication fences the SVG bytes embedded in its actual projection', () => {
+  const owner = {sourcePath: 'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/field.zui',
+    sha256: 'a'.repeat(64)};
+  const digest = (text: string) => createHash('sha256').update(text).digest('hex');
+  const projection = (): ZuiDocument => ({
+    asset: {kind: 'component', id: 'res://ui/editor/components/workbench/primitives/inputs/field.zui', version: 2},
+    components: {WorkbenchField: {root: 'root'}},
+    nodes: {root: {component: 'InputField', control_id: 'WorkbenchFieldRoot'}},
+  });
+  const search = '<svg viewBox="0 0 16 16">\r\n<path d="M1 1L2 2"/>\r\n</svg>';
+
+  it('pins every loaded Field SVG with exact bytes without changing source metadata or nodes', () => {
+    const document = projection();
+    const icons = {search, clear: '<svg><path d="M1 1L3 3"/></svg>', stepper: '<svg><path d="M2 1L1 2"/></svg>'};
+    document['penpot_field_icons'] = icons;
+    document['penpot_source_fingerprints'] = [owner];
+    const before = structuredClone(document);
+    expect(canonicalPublicationEmbeddedSvgPins(document, [owner.sourcePath, ...Object.values(FIELD_ICON_PATHS)]))
+      .toEqual(Object.entries(icons).map(([key, svg]) => ({
+        sourcePath: FIELD_ICON_PATHS[key as keyof typeof FIELD_ICON_PATHS], sha256: digest(svg),
+      })));
+    expect(digest(search)).not.toBe(digest(search.replaceAll('\r\n', '\n')));
+    expect(document).toEqual(before);
+  });
+
+  it('keeps explicit callee-owned SVG and native tab sources separate from the caller', () => {
+    const document = projection();
+    document.nodes!['icon'] = {component: 'Icon', props: {source: 'res://icons/tools/pin.svg'},
+      penpot_review_source_path: 'zircon_plugins/fixture/assets/ui/primitives/icon.zui', penpot_icon_svg: search};
+    document.nodes!['tab'] = {component: 'Button', props: {icon: 'res://icons/old-authored.svg'},
+      penpot_review_source_path: owner.sourcePath, penpot_review_native_tab_icon: {assetPath: 'ionicons/grid-outline.svg'},
+      penpot_icon_svg: '<svg><path d="M0 0H4"/></svg>'};
+    document['penpot_native_icon_svgs'] = {'ionicons/grid-outline.svg': '<svg><path d="M0 0H4"/></svg>'};
+    expect(canonicalPublicationEmbeddedSvgPins(document, [])).toEqual([
+      {sourcePath: 'zircon_editor/assets/icons/ionicons/grid-outline.svg', sha256: digest('<svg><path d="M0 0H4"/></svg>')},
+      {sourcePath: 'zircon_plugins/fixture/assets/icons/tools/pin.svg', sha256: digest(search)},
+    ]);
+  });
+
+  it.each([false, true])('rejects an actual SVG revision change around SDK work; changed before=%j', async changedBefore => {
+    const document = projection();
+    document['penpot_field_icons'] = {search};
+    const pins = canonicalPublicationSourcePins([{...owner,
+      sourceFingerprints: [owner, ...canonicalPublicationEmbeddedSvgPins(document, [FIELD_ICON_PATHS.search])]}]);
+    const current = new Map(pins.map(pin => [pin.sourcePath, pin.sha256]));
+    const changed = digest('<svg><path d="M9 9L8 8"/></svg>');
+    if (changedBefore) current.set(FIELD_ICON_PATHS.search, changed);
+    const writes: string[] = [];
+    await expect(withCanonicalPublicationSourcePins(pins, async path => current.get(path)!, async () => {
+      writes.push('original-main');
+      await Promise.resolve();
+      current.set(FIELD_ICON_PATHS.search, changed);
+    })).rejects.toThrow('Canonical source bytes changed: ' + FIELD_ICON_PATHS.search);
+    expect(writes).toEqual(changedBefore ? [] : ['original-main']);
+    expect(current.get(FIELD_ICON_PATHS.search)).toBe(changed);
+  });
+
+  it.each(['zircon_editor/assets/icons/not-embedded.svg', 'zircon_editor/assets/icons/not-supported.png'])
+    ('refuses a declared resource without loaded byte provenance: %s', sourcePath => {
+      expect(() => canonicalPublicationEmbeddedSvgPins(projection(), [owner.sourcePath, sourcePath]))
+        .toThrow('no embedded SVG provenance');
+    });
+
+  it('refuses conflicting bytes for the same physical SVG source', () => {
+    const document = projection();
+    document['penpot_field_icons'] = {search};
+    document['penpot_native_icon_svgs'] = {'zircon_editor_shell/controls/search.svg': '<svg/>'};
+    expect(() => canonicalPublicationEmbeddedSvgPins(document, [])).toThrow('Conflicting embedded SVG bytes');
+  });
+
+  it('refuses unknown Field mappings and unowned or escaping per-node SVGs', () => {
+    const unknown = projection();
+    unknown['penpot_field_icons'] = {invented: search};
+    expect(() => canonicalPublicationEmbeddedSvgPins(unknown, [])).toThrow('Unknown embedded field SVG');
+    for (const props of [
+      {source: 'res://icons/../outside.svg', owner: 'zircon_editor/assets/ui/editor/icon.zui'},
+      {source: 'res://icons/pin.svg', owner: undefined},
+      {source: 'res://icons/pin.svg', owner: 'outside/assets/ui/icon.zui'},
+    ]) {
+      const document = projection();
+      document.nodes!['icon'] = {component: 'Icon', props: {source: props.source}, penpot_icon_svg: search};
+      if (props.owner) document.nodes!['icon']['penpot_review_source_path'] = props.owner;
+      expect(() => canonicalPublicationEmbeddedSvgPins(document, [])).toThrow();
+    }
+    const missing = projection();
+    missing.nodes!['icon'] = {component: 'Icon', penpot_icon_svg: search};
+    expect(() => canonicalPublicationEmbeddedSvgPins(missing, [])).toThrow('no authored or native tab source');
   });
 });
