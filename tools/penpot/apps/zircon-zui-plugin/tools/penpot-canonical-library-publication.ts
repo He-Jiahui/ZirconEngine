@@ -213,6 +213,21 @@ export function assertCanonicalLibraryPreserved(before: any, after: any): void {
   assertExistingPenpotContentPreserved(before, after);
 }
 
+/** The observer records failures through onError, so fulfilled pending tasks
+ * alone do not prove a save succeeded. Include errors raised during close. */
+export async function closeCanonicalPublicationSaveContext<T>(
+  pending: ReadonlySet<Promise<void>>, saveErrors: readonly string[], close: () => Promise<T>,
+): Promise<T> {
+  const settle = async () => {
+    do { await Promise.all([...pending]); } while (pending.size);
+    if (saveErrors.length) throw new Error(saveErrors.join('\n'));
+  };
+  await settle();
+  const result = await close();
+  await settle();
+  return result;
+}
+
 /** Official editable import, actual save ACK, fresh-context readback and source export. */
 export async function publishCanonicalLibrary(options: CanonicalLibraryPublicationOptions): Promise<void> {
   assert.ok(options.existingPlugin,
@@ -406,13 +421,15 @@ export async function publishCanonicalLibrary(options: CanonicalLibraryPublicati
       assert.equal(saved.data.components[record.componentId]['main-instance-id'], record.mainInstanceId);
       assert.equal(saved.data['pages-index'][identity.pageId].objects[record.mainInstanceId]['component-id'], record.componentId);
     }
-    receipt['saveAcknowledged'] = imports.length > 0;
-    receipt['noSaveRequired'] = imports.length === 0;
     receipt['existingLibraryPreserved'] = true; receipt['canonicalComponents'] = records;
     await writeFile(resolve(output, 'saved-metadata.json'), JSON.stringify(metadata, null, 2));
-    await Promise.all([...pending]);
-    const authentication = await context.storageState();
-    await context.close(); context = undefined; receipt['closedOriginalContext'] = true;
+    const authentication = await closeCanonicalPublicationSaveContext(pending, saveErrors, async () => {
+      const authentication = await context!.storageState();
+      await context!.close(); context = undefined; receipt['closedOriginalContext'] = true;
+      return authentication;
+    });
+    receipt['saveAcknowledged'] = imports.length > 0;
+    receipt['noSaveRequired'] = imports.length === 0;
     context = await browser.newContext({storageState: authentication, acceptDownloads: true,
       viewport: {width: 1920, height: 1200}, locale: 'en-US', serviceWorkers: 'block'});
     receipt['newAuthenticatedContext'] = true;
