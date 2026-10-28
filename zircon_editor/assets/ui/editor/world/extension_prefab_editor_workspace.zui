@@ -6,6 +6,7 @@ display_name = "Workbench Extension Prefab Editor Workspace"
 
 [imports]
 widgets = [
+  "res://ui/editor/components/workbench/primitives/data/tree_row.zui#WorkbenchTreeRow",
   "res://ui/editor/components/workbench/primitives/inputs/button.zui#WorkbenchButton",
   "res://ui/editor/workbench/primitives/inputs/dropdown.zui#WorkbenchDropdown",
   "res://ui/editor/components/workbench/primitives/inputs/field.zui#WorkbenchField",
@@ -14,7 +15,7 @@ widgets = [
   "res://ui/editor/workbench/primitives/data/table_row.zui#WorkbenchTableRow",
   "res://ui/editor/workbench/inputs/property_editor_row.zui#WorkbenchPropertyEditorRow",
 ]
-styles = []
+styles = ["res://ui/editor/theme/editor_tokens.zui"]
 
 [components.WorkbenchExtensionPrefabEditorWorkspace]
 root = "prefab_editor_workspace"
@@ -57,11 +58,11 @@ layout = { container = { kind = "VerticalBox", gap = "$editor.density.gap.medium
 children = [{ node = "prefab_editor_title" }, { node = "prefab_editor_left_content" }]
 
 [nodes.prefab_editor_left_content]
-component = "ScrollableBox"
+component = "VerticalGroup"
 control_id = "WorkbenchExtensionPrefabEditorLeftContent"
 props = { input_hoverable = true }
-layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = "$editor.density.gap.small", scrollbar_visibility = "Auto" }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "prefab_editor_root_row" }, { node = "prefab_editor_mesh_component_row" }, { node = "prefab_editor_loot_socket_row" }]
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "prefab_editor_source_tree" }, { node = "prefab_editor_root_row" }, { node = "prefab_editor_mesh_component_row" }, { node = "prefab_editor_loot_socket_row" }]
 
 [nodes.prefab_editor_title]
 component = "WorkbenchSectionTitle"
@@ -255,3 +256,19 @@ events = [
   { id = "WorkbenchExtension/PrefabEditorInstanceEdit", event = "Change", route = "workbench.extension.prefab_editor.instance.edit" },
   { id = "WorkbenchExtension/PrefabEditorInstanceCommit", event = "Submit", route = "workbench.extension.prefab_editor.instance.commit" },
 ]
+
+# Real source rows are materialized by the admitted host, never these legacy labels.
+# One native scroll owner/prototype reuses the Runtime slot pool and captured bindings.
+[nodes.prefab_editor_source_tree]
+component = "ScrollableBox"
+control_id = "WorkbenchExtensionPrefabEditorSourceTree"
+props = { input_hoverable = true, input_focusable = false }
+layout = { clip = true, container = { kind = "ScrollableBox", axis = "Vertical", gap = 0.0, scrollbar_visibility = "Auto", virtualization = { item_extent = "$editor.control.height.dense", overscan = 2 } }, input_policy = "Receive", width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+repeat = { kind = "virtual_rows", prototype = "WorkbenchExtensionPrefabEditorSourcePrototype", virtual_control_prefix = "WorkbenchExtensionPrefabEditorSourceVirtualRow", authored_count = 1, node_path_namespace = "v2" }
+children = [{ node = "prefab_editor_source_prototype" }]
+
+[nodes.prefab_editor_source_prototype]
+component = "WorkbenchTreeRow"
+control_id = "WorkbenchExtensionPrefabEditorSourcePrototype"
+props = { text = "", icon = "", tree_depth = 0, expanded = false, selected = false, focused = false, hovered = false, pressed = false, visibility = "collapsed", disabled = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+layout = { width = { stretch = "Stretch" }, height = { min = "$editor.control.height.dense", preferred = "$editor.control.height.dense", max = "$editor.control.height.dense", stretch = "Fixed" } }
