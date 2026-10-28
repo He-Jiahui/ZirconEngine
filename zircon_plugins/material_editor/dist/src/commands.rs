@@ -7,16 +7,17 @@ use serde_json::{json, Value};
 use zircon_plugin_material_editor_editor::{
     can_connect_material_graph, compile_material_graph_with_diagnostics,
     compile_material_graph_with_shader_contract, plan_material_document_property_edit,
-    plan_material_document_property_reset, plan_material_graph_node_deletion,
-    plan_material_graph_node_search_creation, plan_material_graph_parameter_edit,
-    plan_material_graph_parameter_vector_edit, project_authored_material_document,
-    project_material_graph_details_selection, validate_material_graph_with_diagnostics,
-    MaterialDocumentProjectionError, MaterialDocumentPropertyEdit,
-    MaterialDocumentPropertyEditError, MaterialDocumentPropertyResetError,
-    MaterialGraphConnectionAction, MaterialGraphDetailsTarget, MaterialGraphDetailsValue,
-    MaterialGraphDiagnostic, MaterialGraphDiagnosticTarget, MaterialGraphExpressionDetailsValues,
-    MaterialGraphNodeSearch, MaterialGraphParameterEdit, MaterialGraphPresentation,
-    MaterialGraphShaderCompileError, MaterialGraphValueType,
+    plan_material_document_property_reset, plan_material_document_texture_edit,
+    plan_material_graph_node_deletion, plan_material_graph_node_search_creation,
+    plan_material_graph_parameter_edit, plan_material_graph_parameter_vector_edit,
+    project_authored_material_document, project_material_graph_details_selection,
+    validate_material_graph_with_diagnostics, MaterialDocumentProjectionError,
+    MaterialDocumentPropertyEdit, MaterialDocumentPropertyEditError,
+    MaterialDocumentPropertyResetError, MaterialDocumentTextureEdit,
+    MaterialDocumentTextureEditError, MaterialGraphConnectionAction, MaterialGraphDetailsTarget,
+    MaterialGraphDetailsValue, MaterialGraphDiagnostic, MaterialGraphDiagnosticTarget,
+    MaterialGraphExpressionDetailsValues, MaterialGraphNodeSearch, MaterialGraphParameterEdit,
+    MaterialGraphPresentation, MaterialGraphShaderCompileError, MaterialGraphValueType,
 };
 use zircon_plugin_sdk::native::{
     self, callback_status, NativePluginByteSliceV3, NativePluginCallbackStatusV3,
@@ -24,10 +25,13 @@ use zircon_plugin_sdk::native::{
     ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
 use zircon_runtime::asset::{
-    AssetKind, AssetReference, MaterialGraphAsset, MaterialGraphLinkAsset, MaterialGraphNodeAsset,
-    MaterialGraphNodeKindAsset, MaterialGraphParameterAsset, ShaderAsset, ZMaterialDocument,
+    AssetKind, AssetReference, AssetUri, MaterialGraphAsset, MaterialGraphLinkAsset,
+    MaterialGraphNodeAsset, MaterialGraphNodeKindAsset, MaterialGraphParameterAsset,
+    MaterialTextureSlotValue, ShaderAsset, ZMaterialDocument,
 };
-use zircon_runtime::core::framework::render::RenderMaterialPropertyValue;
+use zircon_runtime::core::framework::render::{
+    RenderMaterialPropertyValue, RenderMaterialTextureTransform,
+};
 
 pub(super) const MAX_INPUT_BYTES: usize = 1024 * 1024;
 pub(super) const MAX_OUTPUT_BYTES: usize = 1024 * 1024;
@@ -97,6 +101,11 @@ max_output_bytes = 1048576
 name = "material_editor.material.plan_property_reset"
 slot = 12
 payload_schema = "material_editor.plan_material_property_reset.v1"
+max_output_bytes = 1048576
+[[commands]]
+name = "material_editor.material.plan_texture_edit"
+slot = 13
+payload_schema = "material_editor.plan_material_texture_edit.v1"
 max_output_bytes = 1048576
 "#,
     "\0"
@@ -319,6 +328,22 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
       }
     },
     {
+      "kind": "command",
+      "id": "material_editor.material.plan_texture_edit",
+      "schema": "zircon.editor.command/3",
+      "localization_bundle_id": "material_editor",
+      "label_key": "command.material_editor.material.plan_texture_edit.label",
+      "description_key": "command.material_editor.material.plan_texture_edit.description",
+      "execution_contract": {
+        "result_codec": "zircon.editor.command-result.v1",
+        "resource_budget": {
+          "max_input_bytes": 1048576,
+          "max_output_bytes": 1048576,
+          "max_execution_time_ms": 5000
+        }
+      }
+    },
+    {
       "kind": "localization_bundle",
       "id": "material_editor",
       "schema": "zircon.editor.localization-bundle/1",
@@ -349,7 +374,9 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
           "command.material_editor.material.plan_property_edit.label": "Plan Authored Material Property Edit",
           "command.material_editor.material.plan_property_edit.description": "Preflight one exact local property Set or ClearOverride without applying it",
           "command.material_editor.material.plan_property_reset.label": "Plan Authored Material Property Reset",
-          "command.material_editor.material.plan_property_reset.description": "Plan a reset from the host's observed default while preserving override presence"
+          "command.material_editor.material.plan_property_reset.description": "Plan a reset from the host's observed default while preserving override presence",
+          "command.material_editor.material.plan_texture_edit.label": "Plan Authored Material Texture Edit",
+          "command.material_editor.material.plan_texture_edit.description": "Preflight an exact local texture Set or ClearOverride, preserving empty presence and UV values"
         },
         "zh-CN": {
           "command.material_editor.graph.validate.label": "校验材质图",
@@ -377,7 +404,9 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
           "command.material_editor.material.plan_property_edit.label": "规划作者材质属性编辑",
           "command.material_editor.material.plan_property_edit.description": "预检精确局部属性的设置或清除覆盖，不提交作者事务",
           "command.material_editor.material.plan_property_reset.label": "规划作者材质属性重置",
-          "command.material_editor.material.plan_property_reset.description": "使用宿主实际观测的默认值规划重置，保留覆盖存在性"
+          "command.material_editor.material.plan_property_reset.description": "使用宿主实际观测的默认值规划重置，保留覆盖存在性",
+          "command.material_editor.material.plan_texture_edit.label": "规划作者材质纹理编辑",
+          "command.material_editor.material.plan_texture_edit.description": "预检精确局部纹理设置或清除覆盖，保留显式空值与UV数据"
         }
       }
     }
@@ -401,7 +430,7 @@ pub(super) unsafe extern "C" fn invoke_command(
     output: NativePluginOutputSinkV4,
 ) -> NativePluginCallbackStatusV3 {
     native::catch_native_callback_panic(PANICKED, || {
-        if slot > 12 {
+        if slot > 13 {
             return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, UNKNOWN_SLOT);
         }
         if payload.len == 0 || payload.len > MAX_INPUT_BYTES || payload.data.is_null() {
@@ -423,7 +452,15 @@ pub(super) unsafe extern "C" fn invoke_command(
         {
             return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
         }
-        let result = if slot == 12 {
+        let result = if slot == 13 {
+            let Ok(arguments) = serde_json::from_slice::<TextureEditArguments>(bytes) else {
+                return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
+            };
+            if arguments.shader.is_some() != arguments.shader_reference.is_some() {
+                return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
+            }
+            material_texture_edit_result(&arguments)
+        } else if slot == 12 {
             let Ok(arguments) = serde_json::from_slice::<PropertyResetArguments>(bytes) else {
                 return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
             };
@@ -781,6 +818,122 @@ fn material_property_reset_result(arguments: &PropertyResetArguments) -> Value {
         Err(error) => (None, error),
     };
     material_property_response(document, arguments.shader.as_ref(), plan, error)
+}
+
+fn material_texture_edit_result(arguments: &TextureEditArguments) -> Value {
+    let document = &arguments.document;
+    let candidate = (|| {
+        if let Some(error) =
+            material_property_source_error(document, arguments.shader_reference.as_ref())
+        {
+            return Err(error);
+        }
+        let edit = match &arguments.edit {
+            TextureEditRequest::Set { value } => MaterialDocumentTextureEdit::Set(value),
+            TextureEditRequest::ClearOverride {} => MaterialDocumentTextureEdit::ClearOverride,
+        };
+        let plan = plan_material_document_texture_edit(
+            document,
+            arguments.shader.as_ref(),
+            &arguments.name,
+            edit,
+        )
+        .map_err(|error| material_texture_edit_error(&error))?;
+        let reference = match plan.edit() {
+            MaterialDocumentTextureEdit::Set(value) => value.reference.as_ref(),
+            MaterialDocumentTextureEdit::ClearOverride => None,
+        };
+        match (reference, arguments.resource_observation.as_ref()) {
+            (Some(_), None) => return Err(json!({"kind": "resource_observation_required"})),
+            (Some(reference), Some(observed)) if reference != &observed.reference => {
+                return Err(
+                    json!({"kind": "resource_reference_mismatch", "expected": reference, "actual": observed.reference}),
+                );
+            }
+            (Some(_), Some(observed)) if observed.kind != AssetKind::Texture => {
+                return Err(
+                    json!({"kind": "resource_kind_mismatch", "expected": AssetKind::Texture, "actual": observed.kind}),
+                );
+            }
+            (None, Some(_)) => return Err(json!({"kind": "unexpected_resource_observation"})),
+            _ => {}
+        }
+        let edit = match plan.edit() {
+            MaterialDocumentTextureEdit::Set(value) => {
+                json!({"kind": "set", "value": texture_value_json(value)})
+            }
+            MaterialDocumentTextureEdit::ClearOverride => json!({"kind": "clear_override"}),
+        };
+        Ok(json!({
+            "name": plan.name(),
+            "was_overridden": plan.was_overridden(),
+            "will_be_overridden": plan.will_be_overridden(),
+            "declared_required": plan.slot_definition().map(|slot| slot.required),
+            "edit": edit,
+        }))
+    })();
+    let (plan, error) = match candidate {
+        Ok(plan) => (Some(plan), Value::Null),
+        Err(error) => (None, error),
+    };
+    let shader_diagnostics = arguments
+        .shader
+        .as_ref()
+        .map(|shader| shader.validation_diagnostics.as_slice())
+        .unwrap_or(&[]);
+    // The observed resource kind is an input from the original host, not a
+    // lease or sampler/dimension/UV/readiness proof. Required bindings stay open.
+    json!({
+        "document_version": document.version,
+        "material_name": document.name,
+        "shader_reference": document.shader,
+        "parent_reference": document.parent,
+        "validation_diagnostics": document.validation_diagnostics,
+        "shader_validation_diagnostics": shader_diagnostics,
+        "validation_scope": "authoring_candidate_only",
+        "binding_ready": Value::Null,
+        "ok": plan.is_some() && document.validation_diagnostics.is_empty() && shader_diagnostics.is_empty(),
+        "texture_error": error,
+        "plan": plan,
+    })
+}
+
+fn material_texture_edit_error(error: &MaterialDocumentTextureEditError) -> Value {
+    match error {
+        MaterialDocumentTextureEditError::Source(error) => {
+            json!({"kind": "source", "message": error.to_string()})
+        }
+        MaterialDocumentTextureEditError::SchemaUnavailable => {
+            json!({"kind": "schema_unavailable"})
+        }
+        MaterialDocumentTextureEditError::EmptySlotName => json!({"kind": "empty_slot_name"}),
+        MaterialDocumentTextureEditError::UndeclaredSlot(name) => {
+            json!({"kind": "undeclared_slot", "name": name})
+        }
+        MaterialDocumentTextureEditError::NonFiniteTransform(name) => {
+            json!({"kind": "non_finite_transform", "name": name})
+        }
+    }
+}
+
+fn texture_value_json(value: &MaterialTextureSlotValue) -> Value {
+    let mut encoded = json!({"uv_channel": value.uv_channel});
+    if let Some(reference) = &value.reference {
+        encoded["uuid"] = json!(reference.uuid);
+        encoded["url"] = json!(reference.locator);
+    }
+    if let Some(fallback) = &value.fallback {
+        encoded["fallback"] = json!(fallback);
+    }
+    if let Some(transform) = value.transform {
+        // The general Runtime serializer omits rotation==0, including -0.0.
+        // A native edit candidate must retain that proposed finite f32 bit.
+        encoded["transform"] = json!({
+            "scale": transform.scale, "offset": transform.offset,
+            "rotation": transform.rotation,
+        });
+    }
+    encoded
 }
 
 fn material_property_source_error(
@@ -1254,6 +1407,102 @@ struct MaterialArguments {
     document: ZMaterialDocument,
     shader_reference: Option<AssetReference>,
     shader: Option<ShaderAsset>,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct TextureEditArguments {
+    document: ZMaterialDocument,
+    shader_reference: Option<AssetReference>,
+    shader: Option<ShaderAsset>,
+    name: String,
+    edit: TextureEditRequest,
+    resource_observation: Option<ResourceKindObservation>,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+enum TextureEditRequest {
+    Set {
+        #[serde(deserialize_with = "deserialize_texture_value")]
+        value: MaterialTextureSlotValue,
+    },
+    ClearOverride {},
+}
+
+fn deserialize_texture_value<'de, D>(deserializer: D) -> Result<MaterialTextureSlotValue, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    #[derive(serde::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct WireTexture {
+        #[serde(default, deserialize_with = "deserialize_present_texture_component")]
+        uuid: Option<String>,
+        #[serde(
+            rename = "url",
+            default,
+            deserialize_with = "deserialize_present_texture_component"
+        )]
+        locator: Option<AssetUri>,
+        fallback: Option<String>,
+        transform: Option<WireTransform>,
+        #[serde(default)]
+        uv_channel: u32,
+    }
+    #[derive(serde::Deserialize)]
+    #[serde(default, deny_unknown_fields)]
+    struct WireTransform {
+        scale: [f32; 2],
+        offset: [f32; 2],
+        rotation: f32,
+    }
+    impl Default for WireTransform {
+        fn default() -> Self {
+            let identity = RenderMaterialTextureTransform::IDENTITY;
+            Self {
+                scale: identity.scale,
+                offset: identity.offset,
+                rotation: identity.rotation,
+            }
+        }
+    }
+    let wire = <WireTexture as serde::Deserialize<'de>>::deserialize(deserializer)?;
+    // Do not use flatten Option<AssetReference> for this strict command: a
+    // partial or invalid authored reference must not silently become an empty Set.
+    let reference = match (wire.uuid, wire.locator) {
+        (Some(uuid), Some(locator)) => Some(AssetReference {
+            uuid: uuid.parse().map_err(serde::de::Error::custom)?,
+            locator,
+        }),
+        (None, None) => None,
+        _ => {
+            return Err(serde::de::Error::custom(
+                "texture reference requires both uuid and url",
+            ))
+        }
+    };
+    Ok(MaterialTextureSlotValue {
+        reference,
+        fallback: wire.fallback,
+        transform: wire
+            .transform
+            .map(|transform| RenderMaterialTextureTransform {
+                scale: transform.scale,
+                offset: transform.offset,
+                rotation: transform.rotation,
+            }),
+        uv_channel: wire.uv_channel,
+    })
+}
+
+fn deserialize_present_texture_component<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
+where
+    T: serde::Deserialize<'de>,
+    D: serde::Deserializer<'de>,
+{
+    // Missing fields use None; an explicitly supplied null component is invalid.
+    T::deserialize(deserializer).map(Some)
 }
 
 #[derive(serde::Deserialize)]
