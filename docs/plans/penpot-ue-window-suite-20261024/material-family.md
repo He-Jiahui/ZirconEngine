@@ -1,3 +1,13 @@
+## 接续99：Material79 静态计数与参数原始 inverse 勘误（2026-10-28）
+
+- 依Parent r293具体审阅，在原w448b90023f-native94/HEAD35d84385之后只追加本台账；原79/后继Rust、旧mat64的四dirty候选、新par79的fff20d31后继及fork源均不回写。本轮原文457651B/SHA7d26dde3完整保留为后缀；不能以文档更正重签任何旧源码或测试结果。
+- 对不可变Material79 b71426aa69c80f477e7f4149be6753ab0c161300（parent1e4a483137d68121e19b2471bacebbabee0d97d3），按lib实际声明19测试模块读取原Git blob；全部19份bytes/SHA与Parent source-review一致，属性配对实际函数。完整静态定义204＝203普通＋1原ignored；父197＋7新增。原201历史不改，它实际等于material_graph_名称筛选201＝200普通＋1ignored；另三项为原registration/package metadata定义。此处不是Rust harness发现或执行数。
+- Parent r293审阅原79四blob/完整patch+495/-5、原8参数回归body及7新增定义，不升级类型/执行资格。原#595/28817 ownership FAILURE、正常新scope ready#597/28825与committed#601/28912保持分离；#601两份最终2630B/4ab32b84归档仍仅branch committed、integration pending/mainfalse/validationfalse，旧Git waiting字段不覆盖committed。原scope文档更正是在原79内容中insert-only810B，保持原内容顺序，并非整份prefix或suffix；旧4965B/443749c6 checks与scope后6588B/a35dc2c7按各自原时点保留。
+- 当前本域parameters.rs的Reset已提出None、previous_value借用原始Option，changes_source逐位比较数值；未发现需要重写的域逻辑，本轮不加测试凑数。Set仍先核exact key所有声明kind与新finite值；Reset允许修复原wrongtype/NaN/空key而不抹原diagnostics。host须一次map-entry delta及raw Option before/after inverse，保absence/显式default/±0/NaN payload；undo不可走会拒历史NaN的validated Set(previous)，也不可给每个affected声明各发命令。
+- 同一MaterialGraph role/source/view/document/subdocument incarnation、revision/lease及真实selection request仍由原宿主先捕获、发布前重验，经原prepare/一次permit/CAS/history，再走原dirty/compile/renderer/save/focus。Parent r293四source-root读点未找到host caller、原workspace仍三canned profiles/Not implemented(preview)；本轮没有写或安装宿主，不把展示profile、planner或文档当真实资源来源，不造factory/store/clock/renderer/MaterialAsset Instance ABI。
+- 证据沿Parent material-parameter-edit-review-r293的review/source-review/parameter-transaction-contract及本域material-parameter-count-99-counts.json（19模块钉针与精确两种计数）。原98 editor245/242及dist26/24仍是该后继源码的静态库存，不能拿79的204替换当前后继或反向用当前守卫重签79。原source-owner export、normalEXE/实际150%DPI/双端1DIP/native资源门继续open。
+- 本轮仅单文档结构/guard/diff检查及正常managed deliver，validation数组为空；不新Cargo/锁生成/源码捕获身份、不重投79/旧r10或nested WT验证、不改Shared/ZUI/Penpot/服务/State/锁。原scheduled PR/main链消费实际合法后继，原#794 inventory修复仍归原owner；goal active，passed/accepted=false，释放0B，必要原证据保留且cleanup open。
+
 ## 接续98：材质原生命令拒绝位置数组并保留对象协议（2026-10-28）
 
 - 本轮在原w448b90023f-native94、request ue-material-graph-20261024-01接续97 immutable3a02a6a1，仅改dist/src/commands.rs、原tests/commands.rs和本台账。初始三路径干净、index.lock不存在；原Doc全字节后缀、旧callback各slot/manifest/DTO/预算、原22项native测试均保留，不写fork/SDK/host/renderer/公共Graph/theme/catalog、Cargo/锁或原ZUI/Penpot。
