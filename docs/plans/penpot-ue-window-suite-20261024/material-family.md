@@ -1,3 +1,25 @@
+## 接续89：640图节点内容的原生等比投影与保存重开（2026-10-28 UTC）
+
+88已由原 `deliver-material-instance-texture-01a16d50-20261028-88`／queue29879／management#684 SUCCESS提交 `852a0f31059bec1260ee63f00e6d5da7054cbc97`（parent903e3bf4），四路径raw／Git blob精确一致；integration pending／mainAdvanced=false／validationPerformed=false。本轮只在原受管 `w16726e4ff5-inst85` 增量写本计划，不改三Rust、fork30 Hierarchy源码／四Instance搜索copy、公共组件／主题或原ZUI；保留原417436B文档完整suffix。Canonical84原#651已于08:48Z认证读为FAILURE，544B原归档仍waiting／checkout_source_busy／r19 reader，compile／tests／server native与资源释放未知，不重投该终态。
+
+原Material file/page `b4a1e3ce-9e6a-81fe-8008-d69d6092d704`／`b4a1e3ce-9e6a-81fe-8008-d69d6092d705` fresh读rev422／5585对象；19001与16060本次ready为200，保留87的09:21 Win10061历史，不启停服务。只对640 Parameters80原board `3a8f714d-e676-802c-8008-db8265291bb4` 的graph `...1bc8` 操作：以原生Layers选择子项，再逐一取消49条网格线，精确保留原三node及两wire五根；Ctrl+G生成真实group `d87dc1b7-9a37-8086-8008-dbc29098e4f5`。无复制板／main／节点或detach、无新虚构identity。原37个内容对象与componentId／componentFile／shapeRef／全部既有style refs保持；组件定义hash不变，原5585 ID无删除。另有fork CJK范围 `553b857d…578b17` 一对象并发后继，差异单列保留，未整页回滚或声称本轮写者归属。
+
+UE只读 `SNodePanel.cpp:69,225,596-614,1821-1869,1887-1920` 的离散0.75档、25图空间padding与最终居中为依据；三UE raw pins与83原包仍相同。对原作者测试夹具union(48,72,542×262)，在487.2×281.6逻辑viewport中，内容投影zoom0.75／pan(4.35,-11.45)，得到(40.35,42.55,406.5×196.5)。实际以原生K scale-content拖拽统一缩放节点／文字／pins／SVG路径及1.5→1.125线宽，再用原生X/Y输入居中。数字宽度resize未等比缩放内部固定布局、首次吸附落414×200两次失败均保留，并分别原生Undo；四种吸附偏好临时关闭后已全部恢复原启用状态。未按截图逐节点补坐标、未写domain Document／camera源码，也没有重签原codec guard。
+
+保存rev431／5586对象／原5 business mains；关闭旧context后新context重开三个viewer及真实workspace，38个group／descendant哈希与保存时完全相同。新workspace仍能选中真实group并显示W406.5／H196.5／X40.35／Y42.55。原节点／文本native边界对统一投影最大误差0.000087逻辑像素；两SVG路径控制点最大误差0.000782，文字／font身份保留。path的selrect／points／SVG commands是本次实际边界，raw x/y/width/height仍是原作者字段，不能混用后宣称路径失败或补写缓存。
+
+| 原板 | 真实native viewport | 重开三node body余量 L/T/R/B | 本轮图像复核 |
+| --- | --- | --- | --- |
+| 1280／f02a46ad…5ba0 | 999.2×505.6 | 48／72／409.2／171.6 | 与87 before及本轮after／reopen逐字节一致；网格盖在参数header上仍open |
+| 900／4ad7bd44…267b | 695.2×361.6 | 48／72／105.2／27.6 | 同上，未按旧75板的裁切结论覆盖当前板 |
+| 640／3a8f714d…1bb4 | 487.2×281.6 | 40.35／42.55／40.35／42.55 | 原Output右溢102.8／Roughness底溢52.4的本设计夹具修正；全部node与两wire完整 |
+
+原三before PNG沿87哈希复用；本轮6张after／reopen、3并排、3差异及1workspace PNG共13张均实际打开逐图复核，三after／reopen逐字节相同。1280／900像素差0；640差82237像素，仅在原graph内。所有对比均是Penpot原生设计前后，绝不当Penpot与EXE双端验收。证据见原E报告根 `material-graph-fit-89-{before,save,reopen,native-steps,review,handoff}.json` 与相同前缀PNG。
+
+本切片仅验证节点内容设计投影，背景网格仍16间距／未同camera缩放平移；真实滚轮／拖动／Home／选中与焦点、paint/hit同世代、viewport clip／DPI一次施加仍缺host接线。窄栏页签文字裁切、fixture Details与graph值未连接、Compile-material预览／not-compiled反馈、菜单／保存应用仍未完成。原native group／位置变动尚无正式view-transform codec／sourceGuard映射，不将投影坐标写回原作者节点、不full import／导出原ZUI。正常EXE／实际150%DPI／1DIP双端、真实GPU材质／保存／撤销及全族passed／accepted仍false。两个隔离helper显式关闭exit0、auth哈希不变，临时目录0文件；必要失败／源与图证据保留，手工释放0B。
+
+本轮doc-only正常deliver后继 `deliver-material-graph-fit-01a16d50-20261028-89`，依赖88，validation[]；仅结构／链接／精确doc guard，不借88的229静态定义当Rust执行，不创建第二producer或nested worktree Cargo。共享Graph导航扩展仍沿MAT-GRAPH-NAV-83原合同，公共host／codec／painter由原owner集成；goal active，不因这些缺件停止独立域工作。
+
 ## 接续88：实例纹理槽作者提案，显式空值与移除覆盖分离（2026-10-28）
 
 沿本域唯一 producer、原 request `ue-material-graph-20261024-01` 和受管 `w16726e4ff5-inst85`，仅改原四 owned paths；新源码接续86 commit `903e3bf4013630e5c7e93411e24618ff709b4f54`。复用原 `ZMaterialDocument.textures`、`MaterialTextureSlotValue`、`ShaderTextureSlotAsset` 与 `RenderMaterialTextureTransform`，新增借用式 `plan_material_document_texture_edit` / `MaterialDocumentTextureEdit::{Set,ClearOverride}` / plan/error。`Set(&slot)` 保留完整资产引用身份、fallback、可选UV变换和u32通道；引用与fallback均空仍是显式本地覆盖，不能改成 ClearOverride 或自动选白纹理。ClearOverride 仅移除本地presence；无shader时仍可修复未知/空key和旧非有限变换。
