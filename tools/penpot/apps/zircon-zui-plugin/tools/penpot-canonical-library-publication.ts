@@ -188,6 +188,26 @@ export async function collectCanonicalOwnerExportEvidence(
   return {sourceSemanticMatch: true, pngEvidence: 'captured', ...await capturePng()};
 }
 
+type CanonicalPublicationExportResult = Awaited<ReturnType<typeof collectCanonicalOwnerExportEvidence>> & {
+  exportPath: string; exportSha256: string;
+};
+
+/** Keep both source fences open through download persistence, semantic comparison
+ * and any requested PNG. A download event alone does not complete the evidence. */
+export async function collectCanonicalPublicationExportEvidence(
+  pins: readonly CanonicalPublicationSourcePin[], readSha256: (sourcePath: string) => Promise<string>,
+  sourceColorFence: (operation: () => Promise<CanonicalPublicationExportResult>) => Promise<CanonicalPublicationExportResult>,
+  original: Parameters<typeof normalizeZuiDocument>[0], requested: CanonicalPublicationExportEvidence,
+  exportSource: () => Promise<{exportPath: string; exported: string}>,
+  capturePng: () => Promise<{pngPath: string; canvas: Record<string, unknown>}>,
+): Promise<CanonicalPublicationExportResult> {
+  return withCanonicalPublicationSourcePins(pins, readSha256, () => sourceColorFence(async () => {
+    const source = await exportSource();
+    const evidence = await collectCanonicalOwnerExportEvidence(original, source.exported, requested, capturePng);
+    return {exportPath: source.exportPath, exportSha256: sha256(source.exported), ...evidence};
+  }));
+}
+
 /** An append may add mains; the previous source owners and styles stay intact. */
 export function assertCanonicalLibraryPreserved(before: any, after: any): void {
   assertExistingPenpotContentPreserved(before, after);
@@ -411,24 +431,24 @@ export async function publishCanonicalLibrary(options: CanonicalLibraryPublicati
       assert.ok(record);
       await reopened.page.locator(`[data-testid="layer-row"][id="${record.assetBoardId}"]`).click();
       await reopened.frame.locator(`.selection-band[data-selected-board-id="${record.assetBoardId}"]`).waitFor();
-      const download = await withCanonicalPublicationSourcePins(sourcePins, readSourceSha256,
-        () => withSourceColorRevisionFence(context!, identity, record.assetBoardId,
-        parseZuiDocument(item.projection).document, decode, receipt, async () => {
+      const evidence = await collectCanonicalPublicationExportEvidence(sourcePins, readSourceSha256,
+        operation => withSourceColorRevisionFence(context!, identity, record.assetBoardId,
+          parseZuiDocument(item.projection).document, decode, receipt, operation),
+        item.original, exportEvidence, async () => {
           const downloadPending = reopened.page.waitForEvent('download', {timeout: 30_000});
           await reopened.frame.getByRole('button', {name: 'Export selected', exact: true}).click();
-          return downloadPending;
-        }));
-      const target = resolve(output, `component-${index + 1}.zui`);
-      await download.saveAs(target); const exported = await readFile(target, 'utf8');
-      const evidence = await collectCanonicalOwnerExportEvidence(item.original, exported, exportEvidence, async () => {
-        const canvas: Record<string, unknown> = {};
-        await downloadActualCanvasPng(reopened.page, reopened.frame, record.assetBoardId, output, canvas);
-        const pngPath = resolve(output, `component-${index + 1}.png`);
-        await writeFile(pngPath, await readFile(resolve(output, 'canvas-export.png')));
-        return {pngPath, canvas};
-      });
-      exports.push({sourcePath: item.sourcePath, sourceSha256: item.sha256, exportPath: target,
-        exportSha256: sha256(exported), ...evidence});
+          const download = await downloadPending;
+          const exportPath = resolve(output, `component-${index + 1}.zui`);
+          await download.saveAs(exportPath);
+          return {exportPath, exported: await readFile(exportPath, 'utf8')};
+        }, async () => {
+          const canvas: Record<string, unknown> = {};
+          await downloadActualCanvasPng(reopened.page, reopened.frame, record.assetBoardId, output, canvas);
+          const pngPath = resolve(output, `component-${index + 1}.png`);
+          await writeFile(pngPath, await readFile(resolve(output, 'canvas-export.png')));
+          return {pngPath, canvas};
+        });
+      exports.push({sourcePath: item.sourcePath, sourceSha256: item.sha256, ...evidence});
       assert.equal(sha256(await readFile(resolve(options.repoRoot, item.sourcePath))), item.sha256);
       await checkpoint();
     }

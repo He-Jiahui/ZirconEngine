@@ -1,8 +1,10 @@
 import { chromium } from 'playwright';
 import { createHash } from 'node:crypto';
 import { assertCanonicalLibraryPreserved, canonicalPublicationEmbeddedSvgPins, canonicalPublicationExportEvidence, canonicalPublicationSourcePins,
-  collectCanonicalOwnerExportEvidence, publishCanonicalLibrary, requestCanonicalPluginResource, withCanonicalPublicationSourcePins,
+  collectCanonicalOwnerExportEvidence, collectCanonicalPublicationExportEvidence,
+  publishCanonicalLibrary, requestCanonicalPluginResource, withCanonicalPublicationSourcePins,
 } from './penpot-canonical-library-publication';
+import { withSourceColorRevisionFence } from './zui-layout-real-session';
 import { parseZuiDocument, type ZuiDocument } from '../src/bridge/zui-document';
 import { FIELD_ICON_PATHS } from '../src/bridge/zui-field-projection';
 
@@ -195,6 +197,133 @@ props = { value = "18446744073709551615", editable_text = true, foreground_color
         .rejects.toThrow('exportEvidence must explicitly select');
       expect(launch).not.toHaveBeenCalled();
     } finally { launch.mockRestore(); }
+  });
+
+  function fencedExportFixture() {
+    const identity = {origin: 'http://127.0.0.1:19001',
+      fileId: '11111111-1111-4111-8111-111111111111', pageId: '22222222-2222-4222-8222-222222222222'};
+    const boardId = '33333333-3333-4333-8333-333333333333';
+    const libraryId = '44444444-4444-4444-8444-444444444444';
+    const colorId = '55555555-5555-4555-8555-555555555555';
+    const sourcePath = 'zircon_editor/assets/ui/editor/theme/editor_tokens.zui';
+    const sourceSha256 = 'a'.repeat(64);
+    const mapping = {schema: 'zircon.penpot-token-source.v1', version: 1, penpotStyleId: colorId,
+      sourcePath, sourceSha256, token: 'editor.text.primary', sourceTable: 'palette', sourceKey: 'text',
+      originalValue: '#c0c0c0'};
+    const document: ZuiDocument = {...original(), tokens: {'editor.text.primary': '#c0c0c0'},
+      penpot_host_theme_source: sourcePath, penpot_host_palette: {text: '#c0c0c0'},
+      penpot_source_fingerprints: [{sourcePath, sha256: sourceSha256}],
+      penpot_token_source_owners: {'editor.text.primary': {sourcePath, sha256: sourceSha256}}};
+    const file = {id: identity.fileId, revn: 5, vern: 0, data: {'pages-index': {
+      [identity.pageId]: {objects: {[boardId]: {id: boardId, fills: [{'fill-color': '#c0c0c0',
+        'fill-color-ref-id': colorId, 'fill-color-ref-file': libraryId}]}}},
+    }}};
+    const library = {id: libraryId, revn: 2, vern: 0, data: {colors: {[colorId]: {
+      id: colorId, color: '#c0c0c0', opacity: 1,
+      'plugin-data': {'shared/dev.zircon.zui': {'token-source': JSON.stringify(mapping)}},
+    }}}};
+    const events: string[] = [];
+    const context = {request: {post: vi.fn(async (url: string, options: {data: Record<string, unknown>}) => {
+      let value: unknown;
+      if (url.endsWith('/get-file-libraries')) {
+        expect(options.data).toEqual({'file-id': identity.fileId});
+        events.push('read-connected-libraries'); value = [{id: libraryId}];
+      } else {
+        expect(url).toBe(`${identity.origin}/api/rpc/command/get-file`);
+        expect([identity.fileId, libraryId]).toContain(options.data['id']);
+        const consumer = options.data['id'] === identity.fileId;
+        events.push(consumer ? 'read-consumer' : 'read-library'); value = consumer ? file : library;
+      }
+      return {ok: () => true, status: () => 200, headers: () => ({'content-type': 'application/json'}),
+        json: async () => structuredClone(value)};
+    })}} as unknown as Parameters<typeof withSourceColorRevisionFence>[0];
+    const receipt: Record<string, unknown> = {};
+    const sourceBytes = new Map([[sourcePath, sourceSha256]]);
+    const readSourceSha256 = vi.fn(async (path: string) => {
+      expect(sourceBytes.has(path)).toBe(true); return sourceBytes.get(path)!;
+    });
+    const sourceColorFence: Parameters<typeof collectCanonicalPublicationExportEvidence>[2] = operation =>
+      withSourceColorRevisionFence(context, identity, boardId, document, JSON.parse, receipt, operation);
+    const collect = (requested: Parameters<typeof collectCanonicalPublicationExportEvidence>[4],
+      exportSource: Parameters<typeof collectCanonicalPublicationExportEvidence>[5],
+      capturePng: Parameters<typeof collectCanonicalPublicationExportEvidence>[6]) =>
+      collectCanonicalPublicationExportEvidence([{sourcePath, sha256: sourceSha256}], readSourceSha256,
+        sourceColorFence, original(), requested, exportSource, capturePng);
+    return {file, library, events, receipt, sourcePath, sourceBytes, readSourceSha256, collect};
+  }
+
+  it.each(['source-owner', 'source-owner-and-png'] as const)
+    ('finishes authenticated revision reads after all requested %s evidence is persisted', async requested => {
+      const fixture = fencedExportFixture();
+      const capture = vi.fn(async () => {
+        fixture.events.push('png-start'); await Promise.resolve(); fixture.events.push('png-persisted');
+        return {pngPath: 'actual-sdk-download.png', canvas: {source: 'official-sdk'}};
+      });
+      const result = await fixture.collect(requested, async () => {
+        fixture.events.push('download-event'); await Promise.resolve(); fixture.events.push('source-persisted');
+        return {exportPath: 'actual-owner.zui', exported: originalSource};
+      }, capture);
+      const reads = ['read-consumer', 'read-connected-libraries', 'read-library'];
+      expect(fixture.events).toEqual([...reads, 'download-event', 'source-persisted',
+        ...(requested === 'source-owner-and-png' ? ['png-start', 'png-persisted'] : []), ...reads]);
+      expect(result.exportSha256).toBe(createHash('sha256').update(originalSource).digest('hex'));
+      expect(result.pngEvidence).toBe(requested === 'source-owner' ? 'not-requested' : 'captured');
+      expect(capture).toHaveBeenCalledTimes(requested === 'source-owner' ? 0 : 1);
+      expect(fixture.readSourceSha256).toHaveBeenCalledTimes(2);
+      expect(fixture.receipt['sourceColorRevisionFences']).toEqual([
+        expect.objectContaining({status: 'exported-with-stable-source-color-revisions'}),
+      ]);
+    });
+
+  it.each([
+    ['source-persistence', 'consumer'], ['source-persistence', 'library'],
+    ['png-persistence', 'consumer'], ['png-persistence', 'library'],
+  ] as const)('rejects a late %s %s revision change even when source and cached RGBA match', async (stage, target) => {
+    const fixture = fencedExportFixture();
+    const advance = () => { (target === 'consumer' ? fixture.file : fixture.library).revn++; };
+    const capture = vi.fn(async () => {
+      advance(); return {pngPath: 'actual-sdk-download.png', canvas: {source: 'official-sdk'}};
+    });
+    await expect(fixture.collect(stage === 'source-persistence' ? 'source-owner' : 'source-owner-and-png', async () => {
+      await Promise.resolve();
+      if (stage === 'source-persistence') advance();
+      return {exportPath: 'actual-owner.zui', exported: originalSource};
+    }, capture)).rejects.toThrow('revision, RGBA or canonical source changed during export');
+    expect(capture).toHaveBeenCalledTimes(stage === 'source-persistence' ? 0 : 1);
+    expect(fixture.receipt['sourceColorRevisionFences']).toEqual([expect.objectContaining({status: 'failed'})]);
+  });
+
+  it.each(['source-persistence', 'png-persistence'] as const)
+    ('rejects source dependency drift during %s without accepting completed evidence', async stage => {
+      const fixture = fencedExportFixture();
+      const changeBytes = () => { fixture.sourceBytes.set(fixture.sourcePath, 'b'.repeat(64)); };
+      const capture = vi.fn(async () => {
+        changeBytes(); return {pngPath: 'actual-sdk-download.png', canvas: {source: 'official-sdk'}};
+      });
+      await expect(fixture.collect(stage === 'source-persistence' ? 'source-owner' : 'source-owner-and-png', async () => {
+        if (stage === 'source-persistence') changeBytes();
+        return {exportPath: 'actual-owner.zui', exported: originalSource};
+      }, capture)).rejects.toThrow(`Canonical source bytes changed: ${fixture.sourcePath}`);
+    });
+
+  it('preserves a source persistence failure after the download event and skips PNG', async () => {
+    const fixture = fencedExportFixture(), failure = new Error('original source download save failed');
+    const capture = vi.fn(async () => ({pngPath: 'unused.png', canvas: {}}));
+    await expect(fixture.collect('source-owner-and-png', async () => {
+      fixture.events.push('download-event'); await Promise.resolve(); throw failure;
+    }, capture)).rejects.toBe(failure);
+    expect(capture).not.toHaveBeenCalled();
+    expect(fixture.events).toEqual(['read-consumer', 'read-connected-libraries', 'read-library', 'download-event']);
+    expect(fixture.receipt['sourceColorRevisionFences']).toEqual([expect.objectContaining({status: 'failed'})]);
+  });
+
+  it('retains an actual PNG failure and leaves its authenticated export fence failed', async () => {
+    const fixture = fencedExportFixture(), failure = new Error('original official PNG save failed');
+    await expect(fixture.collect('source-owner-and-png', async () =>
+      ({exportPath: 'actual-owner.zui', exported: originalSource}), async () => {
+        await Promise.resolve(); throw failure;
+      })).rejects.toBe(failure);
+    expect(fixture.receipt['sourceColorRevisionFences']).toEqual([expect.objectContaining({status: 'failed'})]);
   });
 });
 
