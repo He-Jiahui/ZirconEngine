@@ -1,3 +1,13 @@
+## 材质接续112：原参数板当前全属性重开证据与旧裁切勘误（2026-10-28）
+
+- 原唯一producer/request，接续111/90232683；本轮只追加本台账，111整份502638 raw字节保留为精确后缀。Rust、原ZUI、Public/Shared、fork四Search/Hierarchy、Runtime、host和全部Penpot对象均不写。Parent r317四份审阅原件已核同源；原79的204=203普通+1ignored是不可变提交的静态计数，201保留为历史，不当harness发现或本轮测试。
+- 复用既有有界独立无头browser helper及只读认证，真实读取原Material file `b4a1e3ce-9e6a-81fe-8008-d69d6092d704` / page `b4a1e3ce-9e6a-81fe-8008-d69d6092d705`：rev498、5775对象；只检原Parameters80三板 `f02a46ad-39f2-8081-8008-db7e736c5ba0`、`4ad7bd44-bf74-8024-8008-db81afeb267b`、`3a8f714d-e676-802c-8008-db8265291bb4`。其当前566对象含既有33个native copies/24个Shared copies，全部保留原引用。当前566不能回签原80的565或旧5020整页。
+- 新证据在原reports根 `material-palette-caption-112-{before,save,reopen,review,browser-receipt}.json`。before保存当前完整原生形状及全属性hash；save文件明确是关闭前对已保存状态的只读复核，未发送update-file/保存请求。真正关闭旧context、新认证context重开后，566份完整属性hash逐一相同，components摘要相同；不是只比选定字段投影。三张before和三张fresh-reopened PNG均实际逐图打开复核，每对PNG字节相同。
+- 当前1280×800、900×620、640×520三图的Palette/Named Reroutes均可见；640的Output和Roughness节点也在图pane内，参数0.125及R/G/B/A=0.3/0.4/0.5/0.8均可见。这些是当前已有后继状态，无本轮设计修复，不把旧80失败改写成功，也未确定历史Palette不可见的根因。旧80首轮缺字/裁切及r317不能独立重算565全属性的限制原样保留。
+- 当前仍见Details/Parameters/Nodes Overview页签硬裁切；没有用删字、字面省略号、缩字号或移动源node掩盖。Preview仍明确Not compiled。RGBA数值设计不证明Field/color/Reset/source-port绑定、Graph原事务/保存/编译或真实renderer链路。
+- 保留两次native viewer路由错误（缺index和历史index756选到文档tab）以及一次未指定JSON Accept的Transit解码错误；均在写入前失败且未更改设计。当前三board实际index757/475/193仅是该rev查看入口，稳定身份仍用board UUID。只读readyz两端200不当设计/SDK/export验收。
+- 本轮Rust/插件构建0，未提交已知不支持的dist配方或nested worktree Cargo，不重放r10/448/旧terminal。原111源码76普通定义未运行；其#854源码commit仍integration pending。正常Engine EXE、实际150%DPI、官方导出→原ZUI→产品加载、host焦点/撤销及双端≤1逻辑像素均open；passed/accepted=false，goal active。
+
 ## 材质接续111：原生删除候选与精确原序逆数据（2026-10-28）
 
 - 沿原唯一producer/request及ready `w448b90023f-native94`，接续110/99465582，只改原dist commands、tests和本台账三路径；原110整份498329 raw字节作为精确后缀保留。原manifest/lib、domain、Runtime、shared Graph/host/catalog/theme、fork与Penpot/ZUI不改，不新增store、clock、history或persistent edge ID。
