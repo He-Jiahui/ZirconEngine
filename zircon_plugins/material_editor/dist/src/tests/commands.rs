@@ -22,7 +22,7 @@ fn material_editor_dist_native_manifest_declares_real_slots_and_contribution_sch
     let command_manifest = unsafe { CStr::from_ptr(behavior.command_manifest) };
     let manifest =
         native::command_manifest_v4_from_toml(command_manifest.to_str().unwrap()).unwrap();
-    assert_eq!(manifest.commands.len(), 9);
+    assert_eq!(manifest.commands.len(), 10);
     for (slot, name, schema) in [
         (
             0,
@@ -68,6 +68,11 @@ fn material_editor_dist_native_manifest_declares_real_slots_and_contribution_sch
             8,
             "material_editor.graph.plan_node_creation",
             "material_editor.plan_graph_node_creation.v1",
+        ),
+        (
+            9,
+            "material_editor.graph.plan_node_deletion",
+            "material_editor.plan_graph_node_deletion.v1",
         ),
     ] {
         let command = &manifest.commands[slot as usize];
@@ -365,6 +370,12 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
             "command.material_editor.graph.plan_node_creation.description",
             contract(),
         )
+        .command_with_execution_contract(
+            "material_editor.graph.plan_node_deletion",
+            "command.material_editor.graph.plan_node_deletion.label",
+            "command.material_editor.graph.plan_node_deletion.description",
+            contract(),
+        )
         .localization_bundle(
             [
                 (
@@ -442,6 +453,14 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
                             "command.material_editor.graph.plan_node_creation.description",
                             "Preflight one typed node and optional autowire without changing the authoring graph",
                         ),
+                        (
+                            "command.material_editor.graph.plan_node_deletion.label",
+                            "Plan Material Node Deletion",
+                        ),
+                        (
+                            "command.material_editor.graph.plan_node_deletion.description",
+                            "Preflight original nodes and incident link occurrences without applying a deletion",
+                        ),
                     ],
                 ),
                 (
@@ -513,6 +532,14 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
                             "command.material_editor.graph.plan_node_creation.description",
                             "预检一个类型化节点及可选自动连线，不提交作者材质图",
                         ),
+                        (
+                            "command.material_editor.graph.plan_node_deletion.label",
+                            "规划材质节点删除",
+                        ),
+                        (
+                            "command.material_editor.graph.plan_node_deletion.description",
+                            "预检原始节点及关联连线，不提交删除事务",
+                        ),
                     ],
                 ),
             ]
@@ -533,7 +560,7 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
     let actual = deserialize_like(registration_json(), &expected);
     assert_eq!(actual, expected);
     assert_eq!(actual.package_id(), "material_editor");
-    assert_eq!(actual.contributions().len(), 10);
+    assert_eq!(actual.contributions().len(), 11);
 }
 
 #[test]
@@ -3109,4 +3136,377 @@ fn material_editor_dist_native_parameter_full_vector_set_keeps_hdr_bits_and_type
             );
         }
     }
+}
+
+#[test]
+fn material_editor_dist_native_node_deletion_empty_root_and_mixed_selection_retains_output() {
+    let source = graph(0.25);
+    for selected in [vec![], vec!["output"]] {
+        let result = node_deletion_result(&source, &selected);
+        assert_eq!(result["ok"], true);
+        assert_eq!(result["selected_node_ids"], json!(selected));
+        assert!(result["deletion_error"].is_null());
+        assert_eq!(result["plan"]["can_delete"], false);
+        assert_eq!(result["plan"]["removed_nodes"], json!([]));
+        assert_eq!(result["plan"]["removed_links"], json!([]));
+        let protected = if selected.is_empty() {
+            json!([])
+        } else {
+            json!([source.nodes[1]])
+        };
+        assert_eq!(result["plan"]["protected_nodes"], protected);
+    }
+    let result = node_deletion_result(&source, &["output", "tint"]);
+    assert_eq!(result["plan"]["can_delete"], true);
+    assert_eq!(
+        result["plan"]["removed_nodes"],
+        json!([{"source_index":0,"node":source.nodes[0]}])
+    );
+    assert_eq!(
+        result["plan"]["removed_links"],
+        json!([{"source_index":0,"link":source.links[0]}])
+    );
+    assert_eq!(result["plan"]["protected_nodes"], json!([source.nodes[1]]));
+    assert!(result["plan"].get("parameters").is_none());
+}
+
+#[test]
+fn material_editor_dist_native_node_deletion_preserves_source_order_and_incident_link_occurrences()
+{
+    let mut source = parameter_edit_graph();
+    source.nodes[2].id = " 参数/节点 ".into();
+    source.nodes.push(creation_node("数学 / 尾节点", Node::Add));
+    source.links.extend([
+        MaterialGraphLinkAsset {
+            from_node: " 参数/节点 ".into(),
+            from_pin: "value".into(),
+            to_node: "数学 / 尾节点".into(),
+            to_pin: "a".into(),
+        },
+        MaterialGraphLinkAsset {
+            from_node: "数学 / 尾节点".into(),
+            from_pin: "value".into(),
+            to_node: "output".into(),
+            to_pin: "roughness".into(),
+        },
+        MaterialGraphLinkAsset {
+            from_node: "missing".into(),
+            from_pin: "value".into(),
+            to_node: "数学 / 尾节点".into(),
+            to_pin: "b".into(),
+        },
+        source.links[0].clone(),
+        MaterialGraphLinkAsset {
+            from_node: "unrelated missing".into(),
+            from_pin: "value".into(),
+            to_node: "another missing".into(),
+            to_pin: "a".into(),
+        },
+    ]);
+    let selected = ["数学 / 尾节点", "output", " 参数/节点 ", "tint"];
+    let result = node_deletion_result(&source, &selected);
+    assert_eq!(result["selected_node_ids"], json!(selected));
+    assert_eq!(result["ok"], false);
+    assert!(!result["diagnostics"].as_array().unwrap().is_empty());
+    assert!(result["deletion_error"].is_null());
+    let plan = &result["plan"];
+    assert_eq!(plan["can_delete"], true);
+    assert_eq!(
+        plan["removed_nodes"],
+        json!([
+            {"source_index":0,"node":source.nodes[0]},
+            {"source_index":2,"node":source.nodes[2]},
+            {"source_index":3,"node":source.nodes[3]}
+        ])
+    );
+    assert_eq!(plan["protected_nodes"], json!([source.nodes[1]]));
+    let links = plan["removed_links"].as_array().unwrap();
+    assert_eq!(links.len(), 5);
+    for (index, entry) in links.iter().enumerate() {
+        assert_eq!(entry["source_index"].as_u64(), Some(index as u64));
+        assert_eq!(
+            entry["link"],
+            serde_json::to_value(&source.links[index]).unwrap()
+        );
+    }
+    assert_eq!(links[0]["link"], links[4]["link"]);
+    assert_ne!(links[0]["source_index"], links[4]["source_index"]);
+}
+
+#[test]
+fn material_editor_dist_native_node_deletion_rejects_whole_stale_duplicate_or_ambiguous_selection()
+{
+    let source = parameter_edit_graph();
+    for selected in [
+        vec!["Tint"],
+        vec!["tint "],
+        vec!["missing"],
+        vec!["tint", "tint"],
+        vec!["gain", "missing"],
+        vec![""],
+        vec!["\u{3000}"],
+    ] {
+        let result = node_deletion_result(&source, &selected);
+        assert_eq!(result["ok"], false);
+        assert!(result["plan"].is_null(), "selection {selected:?}");
+        assert!(!result["deletion_error"]["diagnostics"]
+            .as_array()
+            .unwrap()
+            .is_empty());
+    }
+    let mut duplicate = source.clone();
+    duplicate.nodes.push(source.nodes[0].clone());
+    let mut blank = source;
+    blank.nodes[0].id = "  ".into();
+    for ambiguous in [duplicate, blank] {
+        let result = node_deletion_result(&ambiguous, &["gain"]);
+        assert!(result["plan"].is_null());
+        assert!(!result["deletion_error"]["diagnostics"]
+            .as_array()
+            .unwrap()
+            .is_empty());
+    }
+}
+
+#[test]
+fn material_editor_dist_native_node_deletion_test_local_codec_and_raw_inverse_restore_compile() {
+    let mut source = parameter_edit_graph();
+    let values = [-0.0_f32, 256.0, f32::from_bits(1), -0.0];
+    source.nodes.push(creation_node(
+        "unconnected",
+        Node::VectorParameter {
+            name: "Unused / 未连接".into(),
+            default: values,
+        },
+    ));
+    source.nodes.push(creation_node(
+        "shared declaration survivor",
+        Node::ScalarParameter {
+            name: " Gain 原始 ".into(),
+            default: 0.25,
+        },
+    ));
+    source.links.push(MaterialGraphLinkAsset {
+        from_node: "gain".into(),
+        from_pin: "value".into(),
+        to_node: "output".into(),
+        to_pin: "roughness".into(),
+    });
+    source
+        .parameters
+        .insert(" Gain 原始 ".into(), Parameter::Scalar(0.125));
+    source
+        .parameters
+        .insert("Orphan / 原作者值".into(), Parameter::Vector(values));
+    source
+        .parameters
+        .insert("tint".into(), Parameter::Vector([0.3, 0.4, 0.5, 0.8]));
+    let saved = source.to_toml_string().unwrap();
+    let reopened = MaterialGraphAsset::from_toml_str(&saved).unwrap();
+    let before = zircon_plugin_material_editor_editor::compile_material_graph(&reopened).unwrap();
+    assert_eq!(before.roughness, 0.125);
+    let result = node_deletion_result(&reopened, &["unconnected", "output", "gain"]);
+    assert_eq!(result["ok"], true);
+    let plan = &result["plan"];
+    assert_eq!(plan["protected_nodes"], json!([reopened.nodes[1]]));
+    assert_eq!(plan["removed_nodes"].as_array().unwrap().len(), 2);
+    assert_eq!(plan["removed_links"].as_array().unwrap().len(), 1);
+    assert!(plan.get("parameters").is_none());
+
+    // Only this test applies the returned occurrence data to a local clone.
+    // Production must use the retained document's single accounted transaction.
+    let mut edited = reopened.clone();
+    for entry in plan["removed_links"].as_array().unwrap().iter().rev() {
+        edited
+            .links
+            .remove(entry["source_index"].as_u64().unwrap() as usize);
+    }
+    for entry in plan["removed_nodes"].as_array().unwrap().iter().rev() {
+        edited
+            .nodes
+            .remove(entry["source_index"].as_u64().unwrap() as usize);
+    }
+    let mut edited = MaterialGraphAsset::from_toml_str(&edited.to_toml_string().unwrap()).unwrap();
+    assert_eq!(edited.parameters, reopened.parameters);
+    assert!(edited
+        .nodes
+        .iter()
+        .any(|node| node.id == "shared declaration survivor"));
+    assert_eq!(
+        edited.parameters.get(" Gain 原始 "),
+        Some(&Parameter::Scalar(0.125))
+    );
+    let Some(Parameter::Vector(orphan)) = edited.parameters.get("Orphan / 原作者值") else {
+        panic!("the original orphan override must remain authored");
+    };
+    for (actual, original) in orphan.iter().zip(values) {
+        assert_eq!(actual.to_bits(), original.to_bits());
+    }
+    let after = zircon_plugin_material_editor_editor::compile_material_graph(&edited).unwrap();
+    assert_ne!(after.roughness, before.roughness);
+    assert_eq!(after.base_color, before.base_color);
+    for entry in plan["removed_nodes"].as_array().unwrap() {
+        edited.nodes.insert(
+            entry["source_index"].as_u64().unwrap() as usize,
+            serde_json::from_value(entry["node"].clone()).unwrap(),
+        );
+    }
+    for entry in plan["removed_links"].as_array().unwrap() {
+        edited.links.insert(
+            entry["source_index"].as_u64().unwrap() as usize,
+            serde_json::from_value(entry["link"].clone()).unwrap(),
+        );
+    }
+    assert_eq!(edited.to_toml_string().unwrap(), saved);
+    let restored = zircon_plugin_material_editor_editor::compile_material_graph(&edited).unwrap();
+    assert_eq!(restored.roughness, before.roughness);
+    assert_eq!(restored.base_color, before.base_color);
+    let (status, capture) = invoke(
+        1,
+        &request(&edited),
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    let compiled: Value = serde_json::from_slice(&capture.bytes).unwrap();
+    assert_eq!(compiled["ok"], true);
+    assert_eq!(compiled["material"]["roughness"].as_f64(), Some(0.125));
+}
+
+#[test]
+fn material_editor_dist_native_node_deletion_keeps_repair_plan_and_existing_diagnostics_separate() {
+    let mut source = graph(0.25);
+    source.nodes.push(creation_node(
+        "repair",
+        Node::ScalarParameter {
+            name: "Repair".into(),
+            default: 0.125,
+        },
+    ));
+    source.links.extend([
+        MaterialGraphLinkAsset {
+            from_node: "repair".into(),
+            from_pin: "Value".into(),
+            to_node: "output".into(),
+            to_pin: "roughness".into(),
+        },
+        MaterialGraphLinkAsset {
+            from_node: "unrelated missing".into(),
+            from_pin: "value".into(),
+            to_node: "output".into(),
+            to_pin: "unknown".into(),
+        },
+    ]);
+    let result = node_deletion_result(&source, &["repair"]);
+    assert_eq!(result["ok"], false);
+    assert!(result["deletion_error"].is_null());
+    assert!(!result["diagnostics"].as_array().unwrap().is_empty());
+    assert_eq!(result["plan"]["can_delete"], true);
+    assert_eq!(
+        result["plan"]["removed_nodes"],
+        json!([{"source_index":2,"node":source.nodes[2]}])
+    );
+    assert_eq!(
+        result["plan"]["removed_links"],
+        json!([{"source_index":1,"link":source.links[1]}])
+    );
+    let root_only = node_deletion_result(&source, &["output"]);
+    assert_eq!(root_only["plan"]["can_delete"], false);
+    assert_eq!(root_only["diagnostics"], result["diagnostics"]);
+}
+
+#[test]
+fn material_editor_dist_native_node_deletion_rejects_non_named_duplicate_overflow_or_unknown_arguments(
+) {
+    let source = graph(0.25);
+    let valid = json!({"graph":source,"selected_node_ids":["tint"]});
+    let wire = serde_json::to_string(&valid).unwrap();
+    let mut extra = valid.clone();
+    extra["unrelated"] = json!(true);
+    let mut null_selection = valid.clone();
+    null_selection["selected_node_ids"] = Value::Null;
+    let mut numeric_selection = valid.clone();
+    numeric_selection["selected_node_ids"] = json!([1]);
+    let mut overflow = valid.clone();
+    overflow["graph"]["nodes"][0]["kind"]["default"][0] = json!(1.0e100_f64);
+    for bad in [
+        "{}".to_owned(),
+        "null".to_owned(),
+        "[]".to_owned(),
+        format!("[{wire}]"),
+        wire.replacen(
+            "\"selected_node_ids\":",
+            "\"selected_node_ids\":[],\"selected_node_ids\":",
+            1,
+        ),
+        serde_json::to_string(&extra).unwrap(),
+        serde_json::to_string(&null_selection).unwrap(),
+        serde_json::to_string(&numeric_selection).unwrap(),
+        serde_json::to_string(&overflow).unwrap(),
+    ] {
+        let (status, capture) = invoke(
+            9,
+            bad.as_bytes(),
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, "{bad}");
+        assert_eq!(capture.calls, 0);
+        assert!(capture.bytes.is_empty());
+    }
+}
+
+#[test]
+fn material_editor_dist_native_node_deletion_publishes_once_with_exact_budget_and_host_refusal() {
+    let payload =
+        serde_json::to_vec(&json!({"graph":graph(0.25),"selected_node_ids":["tint","output"]}))
+            .unwrap();
+    let (status, full) = invoke(
+        9,
+        &payload,
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    assert_eq!(full.calls, 1);
+    assert!(!full.bytes.is_empty());
+    for limit in [0, full.bytes.len() - 1] {
+        let (status, capture) = invoke(9, &payload, limit, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+        assert_eq!(capture.calls, 0);
+        assert!(capture.bytes.is_empty());
+    }
+    let (status, exact) = invoke(
+        9,
+        &payload,
+        full.bytes.len(),
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    assert_eq!(exact.calls, 1);
+    assert_eq!(exact.bytes, full.bytes);
+    let (status, denied) = invoke(
+        9,
+        &payload,
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED);
+    assert_eq!(denied.calls, 1);
+    assert!(denied.bytes.is_empty());
+}
+
+fn node_deletion_result(graph: &MaterialGraphAsset, selected: &[&str]) -> Value {
+    let payload = serde_json::to_vec(&json!({"graph":graph,"selected_node_ids":selected})).unwrap();
+    let before = payload.clone();
+    let (status, capture) = invoke(
+        9,
+        &payload,
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    assert_eq!(capture.calls, 1);
+    assert_eq!(payload, before);
+    serde_json::from_slice(&capture.bytes).unwrap()
 }
