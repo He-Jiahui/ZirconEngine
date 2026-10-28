@@ -1,8 +1,10 @@
 import { chromium } from 'playwright';
-import { assertCanonicalLibraryPreserved, canonicalPublicationExportEvidence, canonicalPublicationSourcePins,
+import { createHash } from 'node:crypto';
+import { assertCanonicalLibraryPreserved, canonicalPublicationEmbeddedSvgPins, canonicalPublicationExportEvidence, canonicalPublicationSourcePins,
   collectCanonicalOwnerExportEvidence, publishCanonicalLibrary, requestCanonicalPluginResource, withCanonicalPublicationSourcePins,
 } from './penpot-canonical-library-publication';
-import { parseZuiDocument } from '../src/bridge/zui-document';
+import { parseZuiDocument, type ZuiDocument } from '../src/bridge/zui-document';
+import { FIELD_ICON_PATHS } from '../src/bridge/zui-field-projection';
 
 describe('canonical publication checks the manifest and worker response CORS before native Open', () => {
   const origin = 'http://127.0.0.1:19001';
@@ -251,5 +253,95 @@ describe('canonical publication pins current owner and dependency bytes', () => 
     await expect(withCanonicalPublicationSourcePins([owner, theme], async path => current.get(path)!, write))
       .resolves.toEqual({mainInstanceId: 'actual-main'});
     expect(write).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('canonical publication fences the SVG bytes embedded in its actual projection', () => {
+  const owner = {sourcePath: 'zircon_editor/assets/ui/editor/components/workbench/primitives/inputs/field.zui',
+    sha256: 'a'.repeat(64)};
+  const digest = (text: string) => createHash('sha256').update(text).digest('hex');
+  const projection = (): ZuiDocument => ({
+    asset: {kind: 'component', id: 'res://ui/editor/components/workbench/primitives/inputs/field.zui', version: 2},
+    components: {WorkbenchField: {root: 'root'}},
+    nodes: {root: {component: 'InputField', control_id: 'WorkbenchFieldRoot'}},
+  });
+  const search = '<svg viewBox="0 0 16 16">\r\n<path d="M1 1L2 2"/>\r\n</svg>';
+
+  it('pins every loaded Field SVG with exact bytes without changing source metadata or nodes', () => {
+    const document = projection();
+    const icons = {search, clear: '<svg><path d="M1 1L3 3"/></svg>', stepper: '<svg><path d="M2 1L1 2"/></svg>'};
+    document['penpot_field_icons'] = icons;
+    document['penpot_source_fingerprints'] = [owner];
+    const before = structuredClone(document);
+    expect(canonicalPublicationEmbeddedSvgPins(document, [owner.sourcePath, ...Object.values(FIELD_ICON_PATHS)]))
+      .toEqual(Object.entries(icons).map(([key, svg]) => ({
+        sourcePath: FIELD_ICON_PATHS[key as keyof typeof FIELD_ICON_PATHS], sha256: digest(svg),
+      })));
+    expect(digest(search)).not.toBe(digest(search.replaceAll('\r\n', '\n')));
+    expect(document).toEqual(before);
+  });
+
+  it('keeps explicit callee-owned SVG and native tab sources separate from the caller', () => {
+    const document = projection();
+    document.nodes!['icon'] = {component: 'Icon', props: {source: 'res://icons/tools/pin.svg'},
+      penpot_review_source_path: 'zircon_plugins/fixture/assets/ui/primitives/icon.zui', penpot_icon_svg: search};
+    document.nodes!['tab'] = {component: 'Button', props: {icon: 'res://icons/old-authored.svg'},
+      penpot_review_source_path: owner.sourcePath, penpot_review_native_tab_icon: {assetPath: 'ionicons/grid-outline.svg'},
+      penpot_icon_svg: '<svg><path d="M0 0H4"/></svg>'};
+    document['penpot_native_icon_svgs'] = {'ionicons/grid-outline.svg': '<svg><path d="M0 0H4"/></svg>'};
+    expect(canonicalPublicationEmbeddedSvgPins(document, [])).toEqual([
+      {sourcePath: 'zircon_editor/assets/icons/ionicons/grid-outline.svg', sha256: digest('<svg><path d="M0 0H4"/></svg>')},
+      {sourcePath: 'zircon_plugins/fixture/assets/icons/tools/pin.svg', sha256: digest(search)},
+    ]);
+  });
+
+  it.each([false, true])('rejects an actual SVG revision change around SDK work; changed before=%j', async changedBefore => {
+    const document = projection();
+    document['penpot_field_icons'] = {search};
+    const pins = canonicalPublicationSourcePins([{...owner,
+      sourceFingerprints: [owner, ...canonicalPublicationEmbeddedSvgPins(document, [FIELD_ICON_PATHS.search])]}]);
+    const current = new Map(pins.map(pin => [pin.sourcePath, pin.sha256]));
+    const changed = digest('<svg><path d="M9 9L8 8"/></svg>');
+    if (changedBefore) current.set(FIELD_ICON_PATHS.search, changed);
+    const writes: string[] = [];
+    await expect(withCanonicalPublicationSourcePins(pins, async path => current.get(path)!, async () => {
+      writes.push('original-main');
+      await Promise.resolve();
+      current.set(FIELD_ICON_PATHS.search, changed);
+    })).rejects.toThrow('Canonical source bytes changed: ' + FIELD_ICON_PATHS.search);
+    expect(writes).toEqual(changedBefore ? [] : ['original-main']);
+    expect(current.get(FIELD_ICON_PATHS.search)).toBe(changed);
+  });
+
+  it.each(['zircon_editor/assets/icons/not-embedded.svg', 'zircon_editor/assets/icons/not-supported.png'])
+    ('refuses a declared resource without loaded byte provenance: %s', sourcePath => {
+      expect(() => canonicalPublicationEmbeddedSvgPins(projection(), [owner.sourcePath, sourcePath]))
+        .toThrow('no embedded SVG provenance');
+    });
+
+  it('refuses conflicting bytes for the same physical SVG source', () => {
+    const document = projection();
+    document['penpot_field_icons'] = {search};
+    document['penpot_native_icon_svgs'] = {'zircon_editor_shell/controls/search.svg': '<svg/>'};
+    expect(() => canonicalPublicationEmbeddedSvgPins(document, [])).toThrow('Conflicting embedded SVG bytes');
+  });
+
+  it('refuses unknown Field mappings and unowned or escaping per-node SVGs', () => {
+    const unknown = projection();
+    unknown['penpot_field_icons'] = {invented: search};
+    expect(() => canonicalPublicationEmbeddedSvgPins(unknown, [])).toThrow('Unknown embedded field SVG');
+    for (const props of [
+      {source: 'res://icons/../outside.svg', owner: 'zircon_editor/assets/ui/editor/icon.zui'},
+      {source: 'res://icons/pin.svg', owner: undefined},
+      {source: 'res://icons/pin.svg', owner: 'outside/assets/ui/icon.zui'},
+    ]) {
+      const document = projection();
+      document.nodes!['icon'] = {component: 'Icon', props: {source: props.source}, penpot_icon_svg: search};
+      if (props.owner) document.nodes!['icon']['penpot_review_source_path'] = props.owner;
+      expect(() => canonicalPublicationEmbeddedSvgPins(document, [])).toThrow();
+    }
+    const missing = projection();
+    missing.nodes!['icon'] = {component: 'Icon', penpot_icon_svg: search};
+    expect(() => canonicalPublicationEmbeddedSvgPins(missing, [])).toThrow('no authored or native tab source');
   });
 });

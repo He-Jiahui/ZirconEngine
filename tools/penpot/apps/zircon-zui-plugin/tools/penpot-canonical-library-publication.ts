@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { chromium } from 'playwright';
-import { cloneZuiDocument, decodeZuiMetadata, normalizeZuiDocument, parseZuiDocument, serializeZuiDocument } from '../src/bridge/zui-document';
+import { cloneZuiDocument, decodeZuiMetadata, normalizeZuiDocument, parseZuiDocument, serializeZuiDocument, type ZuiDocument } from '../src/bridge/zui-document';
+import { FIELD_ICON_PATHS } from '../src/bridge/zui-field-projection';
 import type { CanonicalComponentRecord } from '../src/penpot-canonical-library';
 import { LayoutDependencies } from './zui-layout-dependencies';
 import { trackedZuiPaths } from './zui-layout-catalog';
@@ -56,6 +57,70 @@ export async function requestCanonicalPluginResource<T extends CanonicalPluginRe
 }
 
 interface CanonicalPublicationSourcePin { sourcePath: string; sha256: string }
+
+/** Pin the bytes already embedded by the source loader, never a later replacement
+ * read. The ordinary source fence compares these pins to the actual files before
+ * SDK writes and owner exports. Font/resource admission remains independent. */
+export function canonicalPublicationEmbeddedSvgPins(
+  projection: ZuiDocument, dependencyPaths: readonly string[],
+): CanonicalPublicationSourcePin[] {
+  const pins = new Map<string, string>();
+  const add = (sourcePath: string, svg: unknown) => {
+    assert.ok((sourcePath.startsWith('zircon_editor/assets/icons/') ||
+      /^zircon_plugins\/[^/]+\/assets\/icons\//.test(sourcePath)) &&
+      sourcePath.endsWith('.svg') && !/[:\\?#\u0000]/.test(sourcePath) &&
+      sourcePath.split('/').every(part => part !== '' && part !== '.' && part !== '..'),
+    'Invalid embedded SVG source path: ' + sourcePath);
+    assert.ok(typeof svg === 'string' && svg.length > 0,
+      'Missing embedded SVG bytes: ' + sourcePath);
+    const digest = sha256(svg);
+    const previous = pins.get(sourcePath);
+    assert.ok(previous === undefined || previous === digest,
+      'Conflicting embedded SVG bytes: ' + sourcePath);
+    pins.set(sourcePath, digest);
+  };
+  const entries = (value: unknown, name: string): [string, unknown][] => {
+    if (value === undefined) return [];
+    assert.ok(value !== null && typeof value === 'object' && !Array.isArray(value),
+      'Invalid embedded SVG table: ' + name);
+    return Object.entries(value);
+  };
+  for (const [key, svg] of entries(projection['penpot_field_icons'], 'field icons')) {
+    const sourcePath = Object.entries(FIELD_ICON_PATHS).find(([name]) => name === key)?.[1];
+    assert.ok(sourcePath, 'Unknown embedded field SVG: ' + key);
+    add(sourcePath, svg);
+  }
+  for (const [asset, svg] of entries(projection['penpot_native_icon_svgs'], 'native icons'))
+    add('zircon_editor/assets/icons/' + asset, svg);
+  for (const node of Object.values(projection.nodes ?? {})) {
+    const svg = node['penpot_icon_svg'];
+    if (svg === undefined) continue;
+    const tab = node['penpot_review_native_tab_icon'];
+    const tabAsset = tab !== null && typeof tab === 'object' && !Array.isArray(tab)
+      ? (tab as Record<string, unknown>)['assetPath'] : undefined;
+    const icon = node.props?.['icon'] ??
+      (node.component.toLowerCase().includes('icon') ? node.props?.['source'] : undefined);
+    // The loader applies the native tab SVG after any authored icon.
+    if (typeof tabAsset === 'string') {
+      add('zircon_editor/assets/icons/' + tabAsset, svg);
+    } else if (typeof icon === 'string' && icon.endsWith('.svg')) {
+      const owner = node['penpot_review_source_path'];
+      assert.ok(typeof owner === 'string' &&
+        /^(zircon_editor|zircon_plugins\/[^/]+)\/assets\/ui\/.+\.zui$/.test(owner),
+      'Embedded authored SVG has no source owner');
+      const assetRoot = owner.slice(0, owner.indexOf('/assets/')) + '/assets';
+      add(assetRoot + '/icons/' + icon.replace(/^res:\/\/(icons\/)?/, ''), svg);
+    } else {
+      assert.fail('Embedded SVG has no authored or native tab source');
+    }
+  }
+  for (const sourcePath of dependencyPaths) {
+    if (sourcePath.endsWith('.zui')) continue;
+    assert.ok(pins.has(sourcePath),
+      'Canonical dependency has no embedded SVG provenance: ' + sourcePath);
+  }
+  return [...pins].map(([sourcePath, sha256]) => ({sourcePath, sha256}));
+}
 
 /** Bind parsed owners to the exact dependency bytes used by their projection. */
 export function canonicalPublicationSourcePins(sources: readonly {
@@ -184,13 +249,14 @@ export async function publishCanonicalLibrary(options: CanonicalLibraryPublicati
     projection['penpot_original_source'] = source;
     projection['penpot_original_source_path'] = sourcePath;
     return {sourcePath, source, original, projection: serializeZuiDocument(projection), sha256: sha256(source),
-      sourceFingerprints};
+      sourceFingerprints: [...sourceFingerprints, ...canonicalPublicationEmbeddedSvgPins(projection, closure)]};
   }));
   receipt['sources'] = prepared.map(({sourcePath, sha256}) => ({sourcePath, sha256}));
   const sourcePins = canonicalPublicationSourcePins(prepared);
   const readSourceSha256 = async (sourcePath: string) => sha256(await readFile(resolve(options.repoRoot, sourcePath)));
   await assertCanonicalPublicationSourcePins(sourcePins, readSourceSha256);
-  receipt['zuiSourcePins'] = sourcePins;
+  receipt['zuiSourcePins'] = sourcePins.filter(pin => pin.sourcePath.endsWith('.zui'));
+  receipt['embeddedSvgSourcePins'] = sourcePins.filter(pin => !pin.sourcePath.endsWith('.zui'));
   const temp = resolve(output, 'browser-temp');
   const downloads = resolve(output, 'downloads');
   await mkdir(temp, {recursive: true}); await mkdir(downloads, {recursive: true});
