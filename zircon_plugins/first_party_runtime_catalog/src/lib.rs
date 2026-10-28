@@ -128,6 +128,10 @@ pub fn first_party_registration_for_runtime_plugin(
         return Some(zircon_plugin_obj_importer_runtime::plugin_registration());
     }
     #[cfg(feature = "base-runtime-plugins")]
+    if _id == RuntimePluginId::AudioImporter {
+        return Some(zircon_plugin_audio_importer_runtime::plugin_registration());
+    }
+    #[cfg(feature = "base-runtime-plugins")]
     if _id == RuntimePluginId::ShaderWgslImporter {
         return Some(zircon_plugin_shader_wgsl_importer_runtime::plugin_registration());
     }

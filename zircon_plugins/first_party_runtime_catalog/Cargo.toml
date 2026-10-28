@@ -10,6 +10,7 @@ default = []
 base-runtime-plugins = [
     "dep:zircon_plugin_ai_runtime",
     "dep:zircon_plugin_animation_runtime",
+    "dep:zircon_plugin_audio_importer_runtime",
     "dep:zircon_plugin_gltf_importer_runtime",
     "dep:zircon_plugin_net_http_runtime",
     "dep:zircon_plugin_net_websocket_runtime",
@@ -42,6 +43,7 @@ backend-zr-vm = [
 [dependencies]
 zircon_plugin_ai_runtime = { path = "../ai/runtime", optional = true }
 zircon_plugin_animation_runtime = { path = "../animation/runtime", optional = true }
+zircon_plugin_audio_importer_runtime = { path = "../audio_importer/runtime", optional = true }
 zircon_plugin_gltf_importer_runtime = { path = "../gltf_importer/runtime", optional = true }
 zircon_plugin_hybrid_gi_runtime = { path = "../hybrid_gi/runtime", optional = true }
 zircon_plugin_navigation_runtime = { path = "../navigation/runtime", optional = true }

@@ -77,6 +77,13 @@ fn feature_enabled_first_party_provider_snapshot_reports_compiled_runtime_plugin
     push_expected_runtime_provider(
         &mut expected,
         &mut selections,
+        RuntimePluginId::AudioImporter,
+        "audio_importer",
+    );
+    #[cfg(feature = "base-runtime-plugins")]
+    push_expected_runtime_provider(
+        &mut expected,
+        &mut selections,
         RuntimePluginId::ShaderWgslImporter,
         "shader_wgsl_importer",
     );

@@ -13,13 +13,6 @@ use generated_manifest::STATIC_PLUGIN_MANIFESTS;
     feature = "zr-vm-language-runtime-plugin"
 ))]
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
-#[cfg(not(any(
-    feature = "base-runtime-plugins",
-    feature = "advanced-render-runtime-plugins",
-    feature = "navigation-runtime-plugin",
-    feature = "ui-document-importer",
-    feature = "zr-vm-language-runtime-plugin"
-)))]
 use zircon_runtime::core::framework::project::{ProjectPluginManifest, ProjectPluginSelection};
 use zircon_runtime::plugin::{PluginMaturity, PluginModuleKind, PluginPackageManifest};
 
@@ -155,6 +148,16 @@ fn catalog_omits_net_feature_providers_when_net_is_not_selected() {
 #[test]
 fn plugins_12_feature_enabled_runtime_descriptor_manifest_parity() {
     assert_runtime_descriptor_manifests_match_generated_static_manifests();
+}
+
+#[cfg(feature = "base-runtime-plugins")]
+#[test]
+fn audio_importer_runtime_descriptor_manifest_parity() {
+    assert_runtime_manifest_matches_descriptor(
+        "audio_importer",
+        include_str!("../../../audio_importer/plugin.toml"),
+        zircon_plugin_audio_importer_runtime::package_manifest(),
+    );
 }
 
 #[test]
@@ -392,6 +395,11 @@ fn assert_runtime_descriptor_manifests_match_generated_static_manifests() {
             "obj_importer",
             include_str!("../../../obj_importer/plugin.toml"),
             zircon_plugin_obj_importer_runtime::package_manifest(),
+        );
+        assert_runtime_manifest_matches_descriptor(
+            "audio_importer",
+            include_str!("../../../audio_importer/plugin.toml"),
+            zircon_plugin_audio_importer_runtime::package_manifest(),
         );
         assert_runtime_manifest_matches_descriptor(
             "net",
