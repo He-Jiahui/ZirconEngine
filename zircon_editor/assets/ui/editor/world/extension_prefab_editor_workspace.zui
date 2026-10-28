@@ -72,8 +72,8 @@ layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 2
 [nodes.prefab_editor_root_row]
 component = "WorkbenchListRow"
 control_id = "WorkbenchExtensionPrefabEditorPrefabRootRow"
-classes = ["workbench-list-row", "workbench-row-selected"]
-props = { text = "PF_Chest", icon = "cube", selected = true }
+classes = ["workbench-list-row"]
+props = { text = "", icon = "cube", selected = false, disabled = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false, visibility = "collapsed" }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PrefabEditorPrefabRootRow", event = "Click", route = "workbench.extension.prefab_editor.hierarchy.root" }]
 
@@ -81,7 +81,7 @@ events = [{ id = "WorkbenchExtension/PrefabEditorPrefabRootRow", event = "Click"
 component = "WorkbenchListRow"
 control_id = "WorkbenchExtensionPrefabEditorMeshComponentRow"
 classes = ["workbench-list-row"]
-props = { text = "Mesh_Chest", icon = "box", selected = false }
+props = { text = "", icon = "box", selected = false, disabled = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false, visibility = "collapsed" }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PrefabEditorMeshComponentRow", event = "Click", route = "workbench.extension.prefab_editor.hierarchy.mesh" }]
 
@@ -89,7 +89,7 @@ events = [{ id = "WorkbenchExtension/PrefabEditorMeshComponentRow", event = "Cli
 component = "WorkbenchListRow"
 control_id = "WorkbenchExtensionPrefabEditorLootSocketRow"
 classes = ["workbench-list-row"]
-props = { text = "LootSocket", icon = "target", selected = false }
+props = { text = "", icon = "target", selected = false, disabled = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false, visibility = "collapsed" }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PrefabEditorLootSocketRow", event = "Click", route = "workbench.extension.prefab_editor.hierarchy.socket" }]
 
@@ -122,7 +122,7 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionPrefabEditorApplyButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { responsive_min_tier = "narrow", text = "Apply", button_variant = "outlined", button_color = "secondary" }
+props = { responsive_min_tier = "narrow", text = "Apply", button_variant = "outlined", button_color = "secondary", disabled = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { min = 86, preferred = 86, max = 96, stretch = "Fixed" }, height = { min = 28, preferred = 28, max = 28, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PrefabEditorApply", event = "Click", route = "workbench.extension.prefab_editor.apply" }]
 
@@ -130,7 +130,7 @@ events = [{ id = "WorkbenchExtension/PrefabEditorApply", event = "Click", route 
 component = "WorkbenchButton"
 control_id = "WorkbenchExtensionPrefabEditorValidateButton"
 classes = ["workbench-control-button", "workbench-module-command"]
-props = { text = "Validate", button_variant = "filled", button_color = "accent" }
+props = { text = "Validate", button_variant = "filled", button_color = "accent", disabled = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { min = 86, preferred = 86, max = 96, stretch = "Fixed" }, height = { min = 28, preferred = 28, max = 28, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PrefabEditorValidate", event = "Click", route = "workbench.extension.prefab_editor.validate" }]
 
@@ -145,8 +145,8 @@ children = [{ node = "prefab_editor_mesh_table_row" }, { node = "prefab_editor_l
 [nodes.prefab_editor_mesh_table_row]
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionPrefabEditorMeshTableRow"
-classes = ["workbench-table-row", "workbench-row-selected"]
-props = { text = "Mesh_Chest", value_text = "Component   Static Mesh   Selected", selected = true, options = ["Mesh_Chest","Component","Static Mesh","Selected"] }
+classes = ["workbench-table-row"]
+props = { text = "", value_text = "", selected = false, options = [], disabled = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false, visibility = "collapsed" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PrefabEditorMeshTableRow", event = "Click", route = "workbench.extension.prefab_editor.component.mesh" }]
 
@@ -154,7 +154,7 @@ events = [{ id = "WorkbenchExtension/PrefabEditorMeshTableRow", event = "Click",
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionPrefabEditorLootSocketTableRow"
 classes = ["workbench-table-row"]
-props = { text = "LootSocket", value_text = "Socket   LootDrop   Ready", options = ["LootSocket","Socket","LootDrop","Ready"] }
+props = { text = "", value_text = "", options = [], disabled = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false, selected = false, visibility = "collapsed" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PrefabEditorLootSocketTableRow", event = "Click", route = "workbench.extension.prefab_editor.component.loot_socket" }]
 
@@ -162,7 +162,7 @@ events = [{ id = "WorkbenchExtension/PrefabEditorLootSocketTableRow", event = "C
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionPrefabEditorLightTableRow"
 classes = ["workbench-table-row"]
-props = { text = "Light_Glow", value_text = "Component   Point Light   Override", options = ["Light_Glow","Component","Point Light","Override"] }
+props = { text = "", value_text = "", options = [], disabled = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false, selected = false, visibility = "collapsed" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PrefabEditorLightTableRow", event = "Click", route = "workbench.extension.prefab_editor.component.light" }]
 
@@ -170,7 +170,7 @@ events = [{ id = "WorkbenchExtension/PrefabEditorLightTableRow", event = "Click"
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionPrefabEditorOverrideTableRow"
 classes = ["workbench-table-row"]
-props = { text = "Override_Open", value_text = "Instance   Chest_04   Warning", options = ["Override_Open","Instance","Chest_04","Warning"] }
+props = { text = "", value_text = "", options = [], disabled = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false, selected = false, visibility = "collapsed" }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 events = [{ id = "WorkbenchExtension/PrefabEditorOverrideTableRow", event = "Click", route = "workbench.extension.prefab_editor.override.open" }]
 
@@ -178,7 +178,7 @@ events = [{ id = "WorkbenchExtension/PrefabEditorOverrideTableRow", event = "Cli
 component = "WorkbenchTableRow"
 control_id = "WorkbenchExtensionPrefabEditorOutputRow"
 classes = ["workbench-table-row"]
-props = { text = "Prefab Log", value_text = "18 children   6 overrides   2 warnings", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false, options = ["Prefab Log","18 children","6 overrides","2 warnings"] }
+props = { text = "Prefab Log", value_text = "", input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false, options = [] }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 
 [nodes.prefab_editor_right]
@@ -205,7 +205,7 @@ layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 2
 [nodes.prefab_editor_prefab_dropdown_property_row]
 component = "WorkbenchPropertyEditorRow"
 control_id = "WorkbenchExtensionPrefabEditorPrefabDropdownPropertyRow"
-props = { text = "Prefab" }
+props = { text = "Prefab", disabled = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 children = [{ node = "prefab_editor_prefab_dropdown", slot = { name = "value" } }]
 
@@ -213,7 +213,7 @@ children = [{ node = "prefab_editor_prefab_dropdown", slot = { name = "value" } 
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionPrefabEditorPrefabDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { value_text = "PF_Chest", value = "PF_Chest", options = ["PF_Chest", "PF_Door", "PF_Torch", "PF_Crate"] }
+props = { value_text = "", value = "", options = [], disabled = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32, preferred = 32, max = 32, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/PrefabEditorPrefabEdit", event = "Change", route = "workbench.extension.prefab_editor.prefab.edit" },
@@ -223,7 +223,7 @@ events = [
 [nodes.prefab_editor_variant_dropdown_property_row]
 component = "WorkbenchPropertyEditorRow"
 control_id = "WorkbenchExtensionPrefabEditorVariantDropdownPropertyRow"
-props = { text = "Variant" }
+props = { text = "Variant", disabled = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 children = [{ node = "prefab_editor_variant_dropdown", slot = { name = "value" } }]
 
@@ -231,7 +231,7 @@ children = [{ node = "prefab_editor_variant_dropdown", slot = { name = "value" }
 component = "WorkbenchDropdown"
 control_id = "WorkbenchExtensionPrefabEditorVariantDropdown"
 classes = ["workbench-dropdown", "workbench-component-dropdown"]
-props = { value_text = "Default", value = "Default", options = ["Default", "Open", "Locked", "Damaged"] }
+props = { value_text = "", value = "", options = [], disabled = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32, preferred = 32, max = 32, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/PrefabEditorVariantEdit", event = "Change", route = "workbench.extension.prefab_editor.variant.edit" },
@@ -241,7 +241,7 @@ events = [
 [nodes.prefab_editor_instance_field_property_row]
 component = "WorkbenchPropertyEditorRow"
 control_id = "WorkbenchExtensionPrefabEditorInstanceFieldPropertyRow"
-props = { text = "Instance" }
+props = { text = "Instance", disabled = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 34.0, stretch = "Fixed" } }
 children = [{ node = "prefab_editor_instance_field", slot = { name = "value" } }]
 
@@ -249,7 +249,7 @@ children = [{ node = "prefab_editor_instance_field", slot = { name = "value" } }
 component = "WorkbenchField"
 control_id = "WorkbenchExtensionPrefabEditorInstanceField"
 classes = ["workbench-field", "workbench-component-field"]
-props = { value = "Chest_04" }
+props = { value = "", disabled = true, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false, editable_text = false }
 layout = { width = { stretch = "Stretch" }, height = { min = 32, preferred = 32, max = 32, stretch = "Fixed" } }
 events = [
   { id = "WorkbenchExtension/PrefabEditorInstanceEdit", event = "Change", route = "workbench.extension.prefab_editor.instance.edit" },
