@@ -1,3 +1,14 @@
+## 接续97：三尺寸编译正文顶部流向与真实 Penpot 重开（2026-10-28）
+
+- 本轮回到原 Material file b4a1e3ce-9e6a-81fe-8008-d69d6092d704 / page ...6092d705，fresh读到rev448/5766objects/5业务main。只在现有Parameters80三板通过原生文本控件将编译正文verticalAlign由center改top，没有新建板/主件、重排节点或改Instance/Hierarchy/fork、Shared/theme/catalog、Rust/原ZUI。
+- 三板仍为1280 f02a46ad-39f2-8081-8008-db7e736c5ba0、900 4ad7bd44-bf74-8024-8008-db81afeb267b、640 3a8f714d-e676-802c-8008-db8265291bb4；仅原文字...5bb1、...268c、...1bc5发生三项语义修改及原生positionData测量更新，原正文/字体/色彩与引用、形状geometry/layout/parent均保留。原生行基线分别上移35.203125、17.203125、7.203125逻辑像素；900/640旧测量宽度191.59375变189.921875，不能据此签中文/字体或≤1DIP验收。
+- 独立关闭旧context并新context API保存重开为rev451/5766：序列化canonical比较确认恰三文字变化、无ID增删、5main hash45580cfe保持。首份save.json误用canonical对象!==使changes虚列全部ID，原错误件保留，正式结论以fresh-reopen.json为准。第一轮新context画布未导航导致截图超时，第二轮显式导航已取得三张实际native workspace重开图；auth均未改，两个browser会话显式close/exit0。
+- 三个真正native viewer按已核实board UUID及可见、非defs的实际1280×800/900×620/640×520边界捕获，没有缩放/重画截图。最初frame-id直达空画布与过早0尺寸拒绝均保留；改用原viewer index756/474/192，仍实际校验原UUID和尺寸。最终只读API rev452/5769显示并行新增3ID与root变化，来源不归责，完整保留；三份本轮目标仍与451逐字相同，所有原ID及5main保持。
+- 已逐图查看12份本轮before/after/重开/native原图及三份并排/差异图。复用91的rev433三份native后图作历史before：5586共同ID除根外均与本轮448相同、无旧ID删除；新增180外域对象不混成旧源通过。1280/900图在正文区域外像素完全一致；640区域外350像素最大仅1/255通道差异，保留渲染差异，绝不当零差异或引擎几何通过。并排图只是Penpot前后比较，不是Penpot/EXE双端验收。
+- 只读UE MaterialEditor.cpp1857–1866真实创建MaterialEditorStats message-log listing；SMessageLogListing.cpp43–88使用有序SListView、原上下文菜单/选择回调、边距6和滚动结构。本次仅令正文从上开始，未复刻完整message log行/selection/context/跳转，不造编译错误、GPU帧或成功状态；原Material has not been compiled.仍是设计文字。
+- 当前900/640页签硬裁切、侧栏roughness0.125与节点0.6/颜色值不一致、预览占位及无效果Apply/Save继续open。本轮没有调用SDK/full import/official codec或写原v2/29节点组件material_workspace.zui，不能声称样式修改→导出→产品截图闭环。原source96三命令、dist24/22筛选、editor245/242静态数均不改，Rust发现/执行未知；文档单路径正常managed deliver不重投旧Cargo操作。
+- LayoutReviewCase/原生捕获协议继续沿原工具和逐图台账，normalEXE/实际150%DPI/EXE资源闭包/同revision paint-hit-focus/正式export/dual1DIP尚未执行，本轮captureReady/passed/accepted=false。完整证据为E根material-compile-feedback-97-visual-review.json、两原browser receipts和final-readback；goal active，未执行清理，报告释放0B，历史失败及保留证据cleanup open。
+
 ## 接续96：原生入口校验真实 ShaderAsset 材质契约（2026-10-28）
 
 - 本轮继续唯一 producer/request，在 w448b90023f-native94 的 commands.rs、原tests/commands.rs与本台账三路径接续95 immutable39728cff。dist Cargo/锁、entry/lib、editor本域库、fork Instance/Hierarchy、公共SDK/host/Graph/Field/catalog/theme、ZUI/Penpot均不写；无新store/clock/history或shader backend。
