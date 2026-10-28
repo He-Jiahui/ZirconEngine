@@ -1,3 +1,15 @@
+## 接续104：Function 原板 SearchInput 流式宽度与单行裁剪（2026-10-28）
+
+- 原 request `ue-material-graph-20261024-01`／唯一 producer，接续103的原 `w448b90023f-native94`。本次仅在原材质 Penpot file `b4a1e3ce-9e6a-81fe-8008-d69d6092d704`／page `b4a1e3ce-9e6a-81fe-8008-d69d6092d705` 编辑三个既有 Function sidebar-closed 板与本台账；不新增板、组件或业务原语，不写 Shared/catalog/theme、原 ZUI、fork Instance/Hierarchy 或 Rust。
+- 先读真实 UE `MaterialExpressions.cpp`：GetCaption 的 Input 16830–16856、Output 17346–17349；794331B／SHA256 `54ae761435c1347f4e53dbe38c77fe887d23b98d65c06db075e78b6c9cf28dd8`。原 `Input In (Vector3)`／`Output Result` 已符合此合同，保持原样；历史报告名 material-function-caption-104 不表示实际修改了 caption。
+- 实际缺口是 SearchInput 固定240宽越过900/640侧栏。只用原生设计面板将三原根的宽度设为 Fill、原 background/text 六子项设为 Left+Right；再设原生文字 Auto width 及根 Clip content。根096e92b2／e6b6f4d8／ecd87446，保留各原完整UUID、共享 SearchInput component `6ddc248b-bd35-80c5-8008-d6c8c3ce892e`、Shared file及shapeRef；不detach、不改主件、不改原Roboto13.3333或Search details文本，也不补签source/callsite/导出metadata。
+- 原三板UUID：1280×800 `b154e2cc-f1d6-4291-99df-6c0fa61fc29d`；900×620 `3bdd85e0-f901-4c4c-864c-b4a99a14f594`；640×520 `7f2846d3-3895-4b07-82d2-13141f628f1a`。467基线→481中间保存→482最终保存，5769原对象／5业务主件保持。9个本次对象保存后与关闭旧context、新认证context读回完整JSON哈希逐一相同；其余Function对象、主组件hash `691ac84f8933d17405fb3f7da06c34251b1607fab3138c95899ccad36725f385` 均保持。并发4个fork保留范围文字对象的不同已记录，实际写者未证明，本次不回写它们。
+- 最终根宽为233.8／157.8／105.8，保持父框两侧8逻辑单位；三个原生viewer按各原frame-id捕获1280×800、900×620、640×520。三原图、三最终图、三并排与三差异图均实际逐图复核；相对原图改变807／873／804像素，原Search区域外均0像素。此为Penpot修改前后比较，不能当双端EXE比较或≤1DIP验收。
+- 失败保留：481的640固定文字框换成两行并越过搜索框，原after-640.png不覆盖；482用原生auto-width+裁剪恢复单行。640末尾文字仍截断，原侧栏页签在窄宽下仍截断；尚无ellipsis、完整提示、实际clear/focus/键盘/运行时证据。三个Function节点和连线可见，但预览仍显示未编译提示，不将它当真实Function渲染能力。
+- 可复核证据在原任务报告根 `E:/cargo-targets/zircon-local/reports/ue-material-family-20261024-01a16d50/` 的 material-function-caption-104-source-before、save、final-save、final-reopen、review 和全部原PNG。34项结构核验通过；31项中间版核验保留为历史。最终PNG原始字节SHA由独立Python重算；原worker误将Buffer序列化后哈希的字段值在新报告中明确纠正，原worker收据保留，图片不改。
+- 4次有界隔离无头worker的实际关闭/失败保持：早期浏览器断开原因未知，不签时限因果；第二次在时限关闭后API访问失败，认证header在自有收据中脱敏，原storage未复制或修改；最终PID19792显式关闭、root exit0、authUnchanged=true。未占桌面、未启停服务或改DPI。仅本台账需doc guard/diff；本轮0 Rust执行，不重放旧r10／61／68，不借103的37项定义作运行结果。
+- 正式codec/source-delta/export、原ZUI写回、canonical作者host／Toolkit、真实compile/apply/save/undo、生产renderer及正常EXE/实际150%DPI/双端逐图验收仍open；passed=false、accepted=false，整族goal继续active。原失败、原操作及PR/main pending分别保持。
+
 ## 接续103：原作者 Material／Instance 的只读 native 检查入口（2026-10-28）
 
 - 原 request `ue-material-graph-20261024-01` 与唯一 producer，原 `w448b90023f-native94` 在102/9c2ba158之后仅改dist的commands.rs、既有tests/commands.rs及本台账。沿同一V4命令manifest追加slot4 `material_editor.material.inspect` / `material_editor.inspect_material.v1`；原slots0–3、SDK注册batch、原en/zh-CN条目、1MiB输入/输出和5秒宿主预算保持，不新增ABI、依赖、store、clock或写命令。
