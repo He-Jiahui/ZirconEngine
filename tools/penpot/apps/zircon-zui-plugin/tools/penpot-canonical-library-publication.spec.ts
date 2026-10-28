@@ -1,7 +1,7 @@
 import { chromium } from 'playwright';
 import { createHash } from 'node:crypto';
 import { assertCanonicalLibraryPreserved, canonicalPublicationEmbeddedSvgPins, canonicalPublicationExportEvidence, canonicalPublicationSourcePins,
-  closeCanonicalPublicationSaveContext,
+  closeCanonicalPublicationSaveContext, verifyCanonicalPublicationExportReadback,
   collectCanonicalOwnerExportEvidence, collectCanonicalPublicationExportEvidence,
   publishCanonicalLibrary, requestCanonicalPluginResource, withCanonicalPublicationSourcePins,
 } from './penpot-canonical-library-publication';
@@ -584,5 +584,103 @@ describe('canonical publication fences the SVG bytes embedded in its actual proj
     const missing = projection();
     missing.nodes!['icon'] = {component: 'Icon', penpot_icon_svg: search};
     expect(() => canonicalPublicationEmbeddedSvgPins(missing, [])).toThrow('no authored or native tab source');
+  });
+});
+
+describe('canonical publication verifies the complete library after the read-only export workspace closes', () => {
+  function fixture() {
+    return {id: 'shared-file', revn: 8, vern: 0, data: {
+      components: {
+        original: {'main-instance-id': 'original-main', name: 'WorkbenchButton'},
+        added: {'main-instance-id': 'added-main', name: 'WorkbenchField'},
+      },
+      colors: {primary: {id: 'original-color', color: '#0070e0'}},
+      typographies: {body: {id: 'original-typography', 'font-size': '14'}},
+      'pages-index': {page: {name: 'Shared', objects: {
+        root: {id: 'root', shapes: ['original-main', 'added-main']},
+        'original-main': {id: 'original-main', 'component-id': 'original', x: 12},
+        'added-main': {id: 'added-main', 'component-id': 'added', x: 240},
+        'added-caption': {id: 'added-caption', 'parent-id': 'added-main', text: 'Value'},
+      }}},
+    }};
+  }
+
+  it('reads an independent snapshot only after close and returns it without changing the baseline', async () => {
+    const before = fixture();
+    const original = structuredClone(before);
+    const after = structuredClone(before);
+    const events: string[] = [];
+    const read = vi.fn(async () => { events.push('read'); return after; });
+    await expect(verifyCanonicalPublicationExportReadback(before, async () => { events.push('closed'); }, read))
+      .resolves.toBe(after);
+    expect(events).toEqual(['closed', 'read']);
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(before).toEqual(original);
+  });
+
+  it.each(['id', 'revn', 'vern'] as const)('rejects a changed %s after final export close', async key => {
+    const before = fixture();
+    const after = structuredClone(before);
+    if (key === 'id') after.id = 'other-file';
+    else after[key] += 1;
+    await expect(verifyCanonicalPublicationExportReadback(before, async () => {}, async () => after)).rejects.toThrow();
+    expect(before).toEqual(fixture());
+  });
+
+  it.each(['original-main', 'added-main', 'added-caption', 'color', 'typography', 'membership', 'root-order'])
+    ('rejects complete data drift in %s even if the readback revision is unchanged', async changed => {
+      const before = fixture();
+      const after = structuredClone(before);
+      const objects = after.data['pages-index'].page.objects;
+      switch (changed) {
+        case 'original-main': objects['original-main'].x += 1; break;
+        case 'added-main': after.data.components.added['main-instance-id'] = 'original-main'; break;
+        case 'added-caption': objects['added-caption'].text = 'Changed'; break;
+        case 'color': after.data.colors.primary.color = '#ffffff'; break;
+        case 'typography': after.data.typographies.body['font-size'] = '13'; break;
+        case 'membership': Reflect.deleteProperty(objects, 'added-caption'); break;
+        case 'root-order': objects.root.shapes.reverse(); break;
+      }
+      await expect(verifyCanonicalPublicationExportReadback(before, async () => {}, async () => after))
+        .rejects.toThrow('Read-only canonical export changed file data');
+      expect(before).toEqual(fixture());
+    });
+
+  it('rejects a saved change that materializes during workspace close after the last export fence', async () => {
+    const before = fixture();
+    const persisted = structuredClone(before);
+    const read = vi.fn(async () => structuredClone(persisted));
+    await expect(verifyCanonicalPublicationExportReadback(before, async () => {
+      persisted.revn += 1;
+      persisted.data['pages-index'].page.objects['added-caption'].text = 'Late native layout';
+    }, read)).rejects.toThrow('Read-only canonical export changed file revision');
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(before).toEqual(fixture());
+  });
+
+  it.each(['close', 'fresh-read'])('preserves the original %s failure and admits no result', async phase => {
+    const failure = new Error(`${phase} failed`);
+    const read = vi.fn(async () => {
+      if (phase === 'fresh-read') throw failure;
+      return fixture();
+    });
+    const close = vi.fn(async () => { if (phase === 'close') throw failure; });
+    await expect(verifyCanonicalPublicationExportReadback(fixture(), close, read)).rejects.toBe(failure);
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(read).toHaveBeenCalledTimes(phase === 'close' ? 0 : 1);
+  });
+
+  it('rejects an export save-observer error during close before starting the independent read', async () => {
+    const pending = new Set<Promise<void>>();
+    const errors: string[] = [];
+    const read = vi.fn(async () => fixture());
+    await expect(verifyCanonicalPublicationExportReadback(fixture(),
+      () => closeCanonicalPublicationSaveContext(pending, errors, async () => {
+        const observed = Promise.resolve().then(() => { errors.push('actual export save body unavailable'); })
+          .finally(() => { pending.delete(observed); });
+        pending.add(observed);
+      }), read)).rejects.toThrow('actual export save body unavailable');
+    expect(read).not.toHaveBeenCalled();
+    expect(pending.size).toBe(0);
   });
 });
