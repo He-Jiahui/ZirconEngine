@@ -2,10 +2,11 @@ use std::collections::BTreeMap;
 
 use super::{
     check_material_document_asset_references, plan_material_document_property_edit,
-    plan_material_document_texture_edit, project_authored_material_document,
-    MaterialDocumentAssetReferenceError as ReferenceError, MaterialDocumentProjectionError,
-    MaterialDocumentPropertyEdit as Edit, MaterialDocumentPropertyEditError as EditError,
-    MaterialDocumentTextureEdit as TextureEdit,
+    plan_material_document_property_reset, plan_material_document_texture_edit,
+    project_authored_material_document, MaterialDocumentAssetReferenceError as ReferenceError,
+    MaterialDocumentProjectionError, MaterialDocumentPropertyEdit as Edit,
+    MaterialDocumentPropertyEditError as EditError,
+    MaterialDocumentPropertyResetError as ResetError, MaterialDocumentTextureEdit as TextureEdit,
     MaterialDocumentTextureEditError as TextureEditError,
 };
 use zircon_editor::ui::material_editor::MaterialEditorProjection;
@@ -965,6 +966,264 @@ fn material_graph_instance_source_reference_match_is_not_a_payload_or_revision_p
     // Retaining references can pass this necessary metadata check even though
     // values were inherited. The host still needs original coherent sources.
     check_material_document_asset_references(&source, &inherited).unwrap();
+    assert_eq!(source, before);
+}
+
+#[test]
+fn material_graph_instance_property_reset_borrows_real_default_and_retains_override_presence() {
+    let source = document("roughness = 0.5", "");
+    let before = source.clone();
+    let schema = shader();
+    for value in [0.5, 0.9] {
+        let resolved = Value::Float { value };
+        let calls = std::cell::Cell::new(0);
+        let plan =
+            plan_material_document_property_reset(&source, Some(&schema), "roughness", |target| {
+                calls.set(calls.get() + 1);
+                assert!(std::ptr::eq(target, &schema.property_schema[1]));
+                Ok::<_, &'static str>(Some(&resolved))
+            })
+            .unwrap();
+        assert_eq!(calls.get(), 1);
+        assert!(std::ptr::eq(plan.source_document(), &source));
+        assert_eq!(plan.name(), "roughness");
+        assert!(std::ptr::eq(plan.resolved_default(), &resolved));
+        assert!(plan.was_overridden());
+        assert!(plan.will_be_overridden());
+        let edit = plan.property_edit().unwrap();
+        assert!(edit.was_overridden());
+        assert!(edit.will_be_overridden());
+        match edit.edit() {
+            Edit::Set(value) => assert!(std::ptr::eq(value, &resolved)),
+            Edit::ClearOverride => panic!("Reset must retain the local override"),
+        }
+        // Equal defaults remain a qualified candidate; the host owns exact no-op comparison.
+        assert_eq!(
+            schema.property_schema[1]
+                .default
+                .as_ref()
+                .unwrap()
+                .as_float(),
+            Some(0.5)
+        );
+        assert_eq!(source, before);
+    }
+}
+
+#[test]
+fn material_graph_instance_property_reset_unchecked_row_returns_value_without_authoring_edit() {
+    let mut source = document("", "");
+    source.parent = Some(reference("builtin://material/base"));
+    source
+        .validation_diagnostics
+        .push("required parent value remains unresolved".into());
+    let before = source.clone();
+    let mut schema = shader();
+    schema.property_schema[1].required = true;
+    let resolved = Value::Float { value: 0.75 };
+    let calls = std::cell::Cell::new(0);
+    let plan = plan_material_document_property_reset(&source, Some(&schema), "roughness", |_| {
+        calls.set(calls.get() + 1);
+        Ok::<_, &'static str>(Some(&resolved))
+    })
+    .unwrap();
+    assert_eq!(calls.get(), 1);
+    assert!(std::ptr::eq(plan.resolved_default(), &resolved));
+    assert!(!plan.was_overridden());
+    assert!(!plan.will_be_overridden());
+    assert!(plan.property_edit().is_none());
+    assert!(source.overrides.is_empty());
+    assert_eq!(source, before);
+}
+
+#[test]
+fn material_graph_instance_property_reset_preflights_schema_target_before_any_lookup() {
+    let source = document("roughness = 0.2", "");
+    let before = source.clone();
+    let schema = shader();
+    let mut wrong = shader();
+    wrong.uri = AssetUri::parse("builtin://shader/unrelated").unwrap();
+    let mut duplicate = shader();
+    duplicate
+        .property_schema
+        .push(duplicate.property_schema[1].clone());
+    let resolved = Value::Float { value: 0.5 };
+    let calls = std::cell::Cell::new(0);
+    for (candidate, name, expected) in [
+        (None, "roughness", EditError::SchemaUnavailable),
+        (Some(&schema), "", EditError::EmptyPropertyName),
+        (
+            Some(&schema),
+            " roughness ",
+            EditError::UndeclaredProperty(" roughness ".into()),
+        ),
+        (
+            Some(&wrong),
+            "roughness",
+            EditError::Source(MaterialDocumentProjectionError::ShaderLocatorMismatch {
+                expected: source.shader.clone(),
+                actual: wrong.uri.clone(),
+            }),
+        ),
+        (
+            Some(&duplicate),
+            "roughness",
+            EditError::Source(MaterialDocumentProjectionError::DuplicatePropertyName(
+                "roughness".into(),
+            )),
+        ),
+    ] {
+        let error = plan_material_document_property_reset(&source, candidate, name, |_| {
+            calls.set(calls.get() + 1);
+            Ok::<_, &'static str>(Some(&resolved))
+        })
+        .unwrap_err();
+        assert_eq!(error, ResetError::Edit(expected));
+    }
+    assert_eq!(calls.get(), 0);
+    assert_eq!(source, before);
+}
+
+#[test]
+fn material_graph_instance_property_reset_missing_default_and_resolver_failure_publish_nothing() {
+    let mut source = document("roughness = 'old invalid author value'", "");
+    source.validation_diagnostics.push("保留原诊断".into());
+    let before = source.clone();
+    let schema = shader();
+    let calls = std::cell::Cell::new(0);
+    let missing =
+        plan_material_document_property_reset(&source, Some(&schema), "roughness", |_| {
+            calls.set(calls.get() + 1);
+            Ok::<_, &'static str>(None)
+        })
+        .unwrap_err();
+    assert_eq!(missing, ResetError::DefaultUnavailable("roughness".into()));
+    assert_eq!(calls.get(), 1);
+    let failed = plan_material_document_property_reset(&source, Some(&schema), "roughness", |_| {
+        calls.set(calls.get() + 1);
+        Err::<Option<&Value>, _>(std::io::Error::other(
+            "current default dependency unavailable",
+        ))
+    })
+    .unwrap_err();
+    assert_eq!(calls.get(), 2);
+    assert_eq!(
+        std::error::Error::source(&failed).unwrap().to_string(),
+        "current default dependency unavailable"
+    );
+    assert!(failed
+        .to_string()
+        .contains("current default dependency unavailable"));
+    assert_eq!(source, before);
+}
+
+#[test]
+fn material_graph_instance_property_reset_rejects_wrong_kind_and_nonfinite_resolved_values() {
+    let source = document("roughness = 'invalid local data kept for repair'", "");
+    let before = source.clone();
+    let schema = shader();
+    for value in [
+        Value::Float { value: f32::NAN },
+        Value::Float {
+            value: f32::INFINITY,
+        },
+        Value::Float {
+            value: f32::NEG_INFINITY,
+        },
+        Value::Vec4 { value: [0.5; 4] },
+        Value::Int { value: 1 },
+    ] {
+        let calls = std::cell::Cell::new(0);
+        let error =
+            plan_material_document_property_reset(&source, Some(&schema), "roughness", |_| {
+                calls.set(calls.get() + 1);
+                Ok::<_, &'static str>(Some(&value))
+            })
+            .unwrap_err();
+        assert_eq!(calls.get(), 1);
+        match value {
+            Value::Float { .. } => assert_eq!(
+                error,
+                ResetError::Edit(EditError::NonFiniteValue("roughness".into()))
+            ),
+            _ => assert!(matches!(
+                error,
+                ResetError::Edit(EditError::TypeMismatch { .. })
+            )),
+        }
+    }
+    assert_eq!(source, before);
+}
+
+#[test]
+fn material_graph_instance_property_reset_preserves_exact_key_and_resolved_signed_zero() {
+    let source = document("' 粗糙度 ' = 0.75", "");
+    let before = source.clone();
+    let mut schema = shader();
+    schema.property_schema[1].name = " 粗糙度 ".into();
+    // Metadata is deliberately not the current resolved default.
+    schema.property_schema[1].default = None;
+    let schema_before = schema.clone();
+    let resolved = Value::Float { value: -0.0 };
+    let plan =
+        plan_material_document_property_reset(&source, Some(&schema), " 粗糙度 ", |target| {
+            assert_eq!(target.name, " 粗糙度 ");
+            Ok::<_, &'static str>(Some(&resolved))
+        })
+        .unwrap();
+    assert_eq!(plan.name(), " 粗糙度 ");
+    let Edit::Set(Value::Float { value }) = plan.property_edit().unwrap().edit() else {
+        panic!("expected a borrowed finite scalar reset");
+    };
+    assert_eq!(value.to_bits(), (-0.0f32).to_bits());
+    assert!(plan.will_be_overridden());
+    assert_eq!(source, before);
+    assert_eq!(schema, schema_before);
+}
+
+#[test]
+fn material_graph_instance_property_reset_roundtrip_retains_parent_metadata_and_full_inverse() {
+    let mut source = document("roughness = 0.2", "");
+    source.parent = Some(reference("builtin://material/base"));
+    let before = source.clone();
+    let parent = MaterialAsset::from_zmaterial_document(document("roughness = 0.9", ""));
+    let schema = shader();
+    let resolved = Value::Float {
+        value: parent.roughness,
+    };
+    let plan = plan_material_document_property_reset(&source, Some(&schema), "roughness", |_| {
+        Ok::<_, &'static str>(Some(&resolved))
+    })
+    .unwrap();
+    let edit = plan.property_edit().unwrap();
+    let Edit::Set(Value::Float { value }) = edit.edit() else {
+        panic!("expected resolved parent scalar");
+    };
+    // Only this test installs a proposal and inverse. Production history is not installed here.
+    let mut changed = source.clone();
+    let previous = changed
+        .overrides
+        .insert(edit.name().into(), f64::from(*value).into());
+    let text = changed
+        .to_project_toml_string(|value| Ok(PersistedAssetReference::builtin(value.locator.clone())))
+        .unwrap();
+    let roundtrip = ZMaterialDocument::from_project_toml_str(&text, |value| {
+        Ok(AssetReference::from_locator(
+            value.builtin_locator().unwrap().clone(),
+        ))
+    })
+    .unwrap();
+    assert_eq!(roundtrip.parent, source.parent);
+    assert_eq!(roundtrip.shader, source.shader);
+    assert_eq!(roundtrip.editor, source.editor);
+    assert!(roundtrip.overrides.contains_key("roughness"));
+    let mut effective = MaterialAsset::from_zmaterial_document(roundtrip);
+    effective.inherit_parent_values_from(&parent);
+    assert_eq!(effective.roughness, parent.roughness);
+    changed
+        .overrides
+        .insert("roughness".into(), previous.unwrap());
+    assert_eq!(changed, source);
     assert_eq!(source, before);
 }
 
