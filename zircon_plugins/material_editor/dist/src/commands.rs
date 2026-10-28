@@ -17,7 +17,10 @@ use zircon_plugin_sdk::native::{
     NativePluginOutputSinkV4, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
     ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
-use zircon_runtime::asset::{AssetReference, MaterialGraphAsset, ShaderAsset, ZMaterialDocument};
+use zircon_runtime::asset::{
+    AssetReference, MaterialGraphAsset, MaterialGraphNodeKindAsset, MaterialGraphParameterAsset,
+    ShaderAsset, ZMaterialDocument,
+};
 
 pub(super) const MAX_INPUT_BYTES: usize = 1024 * 1024;
 pub(super) const MAX_OUTPUT_BYTES: usize = 1024 * 1024;
@@ -204,7 +207,7 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
 const COMPLETED: &[u8] = b"material command completed; inspect the result status and diagnostics\0";
 const UNKNOWN_SLOT: &[u8] = b"material graph command slot is unknown\0";
 const INVALID_REQUEST: &[u8] =
-    b"material command requires one bounded JSON material command argument\0";
+    b"material command requires bounded named JSON arguments; graph numbers must fit finite f32\0";
 const OUTPUT_FAILED: &[u8] = b"material graph command could not encode its bounded result\0";
 const PANICKED: &[u8] = b"material graph command panicked\0";
 
@@ -547,6 +550,7 @@ fn details_value_json<T: serde::Serialize>(value: MaterialGraphDetailsValue<T>) 
 #[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 struct DetailsArguments {
+    #[serde(deserialize_with = "deserialize_graph")]
     graph: MaterialGraphAsset,
     selected_node_ids: Vec<String>,
 }
@@ -562,6 +566,7 @@ struct MaterialArguments {
 #[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ShaderArguments {
+    #[serde(deserialize_with = "deserialize_graph")]
     graph: MaterialGraphAsset,
     shader_reference: AssetReference,
     shader: ShaderAsset,
@@ -570,7 +575,42 @@ struct ShaderArguments {
 #[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Arguments {
+    #[serde(deserialize_with = "deserialize_graph")]
     graph: MaterialGraphAsset,
+}
+
+// JSON cannot carry a non-finite f32 without losing it as null on output.
+// Serde's f64-to-f32 conversion may overflow an otherwise finite JSON number.
+// Reject that wire input before projection/compile; do not clamp author values or
+// change the domain's ability to inspect and repair legacy non-finite documents.
+fn deserialize_graph<'de, D>(deserializer: D) -> Result<MaterialGraphAsset, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let graph = <MaterialGraphAsset as serde::Deserialize<'de>>::deserialize(deserializer)?;
+    let finite_nodes = graph.nodes.iter().all(|node| {
+        node.position.iter().all(|value| value.is_finite())
+            && match &node.kind {
+                MaterialGraphNodeKindAsset::ScalarParameter { default, .. } => default.is_finite(),
+                MaterialGraphNodeKindAsset::VectorParameter { default, .. } => {
+                    default.iter().all(|value| value.is_finite())
+                }
+                MaterialGraphNodeKindAsset::Output
+                | MaterialGraphNodeKindAsset::TextureSample { .. }
+                | MaterialGraphNodeKindAsset::Add
+                | MaterialGraphNodeKindAsset::Multiply => true,
+            }
+    });
+    let finite_overrides = graph.parameters.values().all(|value| match value {
+        MaterialGraphParameterAsset::Scalar(value) => value.is_finite(),
+        MaterialGraphParameterAsset::Vector(values) => values.iter().all(|value| value.is_finite()),
+    });
+    if !finite_nodes || !finite_overrides {
+        return Err(serde::de::Error::custom(
+            "material graph JSON numbers must remain finite after f32 conversion",
+        ));
+    }
+    Ok(graph)
 }
 
 fn decode_graph(bytes: &[u8]) -> Option<MaterialGraphAsset> {

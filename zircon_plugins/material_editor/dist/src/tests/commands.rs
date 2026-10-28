@@ -1893,3 +1893,182 @@ fn material_editor_dist_native_details_uses_original_single_publish_and_output_b
 fn details_request(graph: &MaterialGraphAsset, selected_node_ids: &[&str]) -> Vec<u8> {
     serde_json::to_vec(&json!({"graph":graph,"selected_node_ids":selected_node_ids})).unwrap()
 }
+
+#[test]
+fn material_editor_dist_native_numeric_overflow_in_defaults_never_becomes_null() {
+    for number in [1.0e100_f64, -1.0e100_f64] {
+        let mut scalar = serde_json::to_value(graph(0.25)).unwrap();
+        scalar["nodes"][0]["kind"] =
+            json!({"kind":"scalar_parameter","name":"roughness","default":number});
+        let mut variants = vec![scalar];
+        for channel in 0..4 {
+            let mut vector = serde_json::to_value(graph(0.25)).unwrap();
+            vector["nodes"][0]["kind"]["default"][channel] = json!(number);
+            variants.push(vector);
+        }
+        for graph in variants {
+            for slot in [0, 1, 2, 3, 5] {
+                let payload = numeric_graph_request(slot, graph.clone());
+                let before = payload.clone();
+                let (status, capture) = invoke(
+                    slot,
+                    &payload,
+                    MAX_OUTPUT_BYTES,
+                    ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+                );
+                assert_eq!(
+                    status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+                    "slot {slot}"
+                );
+                assert_eq!(capture.calls, 0);
+                assert!(capture.bytes.is_empty());
+                assert_eq!(payload, before);
+            }
+        }
+    }
+}
+
+#[test]
+fn material_editor_dist_native_numeric_overflow_in_unselected_positions_rejects_all_slots() {
+    for number in [1.0e100_f64, -1.0e100_f64] {
+        for coordinate in 0..2 {
+            let mut graph = serde_json::to_value(graph(0.25)).unwrap();
+            // Details selects tint: a bad unselected Output position is still source input.
+            graph["nodes"][1]["position"][coordinate] = json!(number);
+            for slot in [0, 1, 2, 3, 5] {
+                let (status, capture) = invoke(
+                    slot,
+                    &numeric_graph_request(slot, graph.clone()),
+                    MAX_OUTPUT_BYTES,
+                    ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+                );
+                assert_eq!(
+                    status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+                    "slot {slot}"
+                );
+                assert_eq!(capture.calls, 0);
+                assert!(capture.bytes.is_empty());
+            }
+        }
+    }
+}
+
+#[test]
+fn material_editor_dist_native_numeric_overflow_in_orphan_overrides_publishes_no_prefix() {
+    for number in [1.0e100_f64, -1.0e100_f64] {
+        let mut values = vec![json!({"kind":"scalar","value":number})];
+        for channel in 0..4 {
+            let mut value = json!({"kind":"vector","value":[0.25,0.5,0.75,1.0]});
+            value["value"][channel] = json!(number);
+            values.push(value);
+        }
+        for value in values {
+            let mut graph = serde_json::to_value(graph(0.25)).unwrap();
+            graph["parameters"]["undeclared key"] = value;
+            for slot in [0, 1, 2, 3, 5] {
+                let (status, capture) = invoke(
+                    slot,
+                    &numeric_graph_request(slot, graph.clone()),
+                    MAX_OUTPUT_BYTES,
+                    ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+                );
+                assert_eq!(
+                    status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+                    "slot {slot}"
+                );
+                assert_eq!(capture.calls, 0);
+                assert!(capture.bytes.is_empty());
+            }
+        }
+    }
+}
+
+#[test]
+fn material_editor_dist_native_numeric_finite_hdr_subnormal_and_signed_zero_keep_their_bits() {
+    let values = [f32::MAX, f32::MIN, f32::from_bits(1), -0.0];
+    let mut graph = graph(0.25);
+    graph.name = "1e100 is a name, not a numeric token".into();
+    graph.nodes[0].position = [f32::MAX, f32::MIN];
+    graph.nodes[0].kind = Node::VectorParameter {
+        name: "tint".into(),
+        default: values,
+    };
+    graph
+        .parameters
+        .insert("tint".into(), Parameter::Vector(values));
+    for slot in [3, 5] {
+        let payload = numeric_graph_request(slot, serde_json::to_value(&graph).unwrap());
+        let before = payload.clone();
+        let (status, capture) = invoke(
+            slot,
+            &payload,
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        assert_eq!(capture.calls, 1);
+        let result: Value = serde_json::from_slice(&capture.bytes).unwrap();
+        for (channel, expected) in values.iter().enumerate() {
+            let actual = if slot == 3 {
+                &result["parameters"][0]["default"]["value"][channel]
+            } else {
+                &result["projection"]["expression_values"]["channels"][channel]["value"]
+            };
+            assert_eq!(
+                (actual.as_f64().unwrap() as f32).to_bits(),
+                expected.to_bits()
+            );
+            if slot == 3 {
+                let local = &result["parameters"][0]["override_value"]["value"][channel];
+                assert_eq!(
+                    (local.as_f64().unwrap() as f32).to_bits(),
+                    expected.to_bits()
+                );
+            }
+        }
+        assert_eq!(payload, before);
+    }
+}
+
+#[test]
+fn material_editor_dist_native_numeric_graph_guard_keeps_f64_author_document_values() {
+    // ZMaterialDocument uses TOML f64 values: this is not an f32 graph field.
+    let mut value: Value =
+        serde_json::from_slice(&inspect_request(&inspect_document(), None)).unwrap();
+    value["document"]["overrides"]["finite f64"] = json!(1.0e100_f64);
+    let payload = serde_json::to_vec(&value).unwrap();
+    let (status, capture) = invoke(
+        4,
+        &payload,
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    assert_eq!(capture.calls, 1);
+    let result: Value = serde_json::from_slice(&capture.bytes).unwrap();
+    let row = result["projection"]["properties"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|row| row["name"] == "finite f64")
+        .unwrap();
+    assert_eq!(row["override_value"].as_f64(), Some(1.0e100_f64));
+    assert_eq!(serde_json::from_slice::<Value>(&payload).unwrap(), value);
+}
+
+fn numeric_graph_request(slot: u32, graph_value: Value) -> Vec<u8> {
+    let source = graph(0.25);
+    let mut value: Value = match slot {
+        2 => serde_json::from_slice(&shader_request(
+            &source,
+            source.shader.as_ref().unwrap(),
+            &shader(&source),
+        ))
+        .unwrap(),
+        5 => json!({"selected_node_ids":["tint"]}),
+        0 | 1 | 3 => json!({}),
+        _ => panic!("unexpected numeric graph test slot"),
+    };
+    value["graph"] = graph_value;
+    serde_json::to_vec(&value).unwrap()
+}

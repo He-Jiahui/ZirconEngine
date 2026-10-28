@@ -1,3 +1,13 @@
+## 材质接续106：原生材质图拒绝数值溢出变成 null（2026-10-28）
+
+- 原唯一producer、request `ue-material-graph-20261024-01`与ready worktree `w448b90023f-native94`接续105/3ca02222；只改原dist commands、原tests及本台账。原105详情命令/六槽、manifest/ABI/locale/预算、所有旧测试body、整份前文原字节后缀保持；不写Runtime/domain/host/共享组件、fork、锁或原ZUI/Penpot。
+- 源码审阅确认serde_json 1.0.150默认数字路径向visitor提供f64，serde 1.0.228的f32 visitor直接窄化，超出f32的有限JSON数可能成为±Infinity；serde_json随后把非有限浮点写成null。来源为[serde_json反序列化](https://raw.githubusercontent.com/serde-rs/json/v1.0.150/src/de.rs)、[serde浮点转换](https://raw.githubusercontent.com/serde-rs/serde/v1.0.228/serde_core/src/de/impls.rs)与[serde_json序列化](https://raw.githubusercontent.com/serde-rs/json/v1.0.150/src/ser.rs)。这是依赖源码推导，未运行Rust复现，不以Python模拟冒充harness。
+- 在原MaterialGraphAsset反序列化后、projection/compile前检查原节点position、Scalar/Vector默认和全部原parameters值（含孤立覆盖），只要求窄化后finite。原Arguments/ShaderArguments/DetailsArguments的graph均复用此一个typed helper；仍直接typed Deserialize，保留重复字段/unknown-field拒绝，不先转Value、不另造模型/词法扫描/快照。超范围输入返回原native ERROR且sink零发布；不截断为f32极值、不改成null或发布部分行。遍历O(nodes+override values)、额外空间O(1)，输入原1MiB预算保持。
+- 有限HDR、负值、次正规数与负零不clamp。ZMaterialDocument的原TOML f64 author值仍沿原slot4，有限1e100不因Graph规则被全局误拒；domain内legacy非有限作者值及raw Option undo/Reset修复能力未改，本JSON接口仍不宣称NaN/raw history无损。
+- 新增五项真实native callback回归定义：正负溢出的Scalar/四Vector默认、未选中节点双position、孤立Scalar/四Vector覆盖在原五个graph槽全部ERROR/零输出；有限f32两极/最小次正规/负零保bits；独立作者文档finite f64保留。原46定义全部body精确保留，当前dist共51静态定义，Rust类型检查/发现/执行0；这不是运行结果，也不签shader其他数值字段或renderer。
+- 当前341a997d正式入口的dist有限recipe在105已实际parse返回build_scope_policy；本轮复用原拒绝和安装身份，不重复提交已知无效recipe，不借editor-only/根workspace/本地Cargo或重投旧终结operation。新源只走正常deliver-task与原PR/main链；canonical精确dist package、默认关闭/空features、locked/lib/test/jobs1、material_editor_dist_native_及单线程后续受管执行仍pending。
+- 源、格式、plugin ABI元数据和guard与交付证据沿同根`material-native-numbers-106-*`。真实同代宿主调用、一次permit/CAS/history、正式export/原ZUI加载、真实renderer/应用保存、正常EXE/实际150%DPI/双端1DIP仍open；goal active，passed/accepted=false，释放0B，必要原证据保留且cleanup open。
+
 ## 接续105：原图 Details 选择与混合值的 native 读取（2026-10-28）
 
 - 原 request `ue-material-graph-20261024-01`／唯一 producer，沿原 `w448b90023f-native94` 与104提交 `2f10376d`，仅改dist的commands.rs、既有tests/commands.rs及本台账。复用现有借用 `project_material_graph_details_selection` / `expression_values`，不改editor领域实现、Runtime、Shared、Graph公共源、原ZUI或fork的Instance/Hierarchy；不加依赖、ABI、selection store、clock、renderer或另一套history。
