@@ -6,14 +6,17 @@ use std::io::{self, Write};
 use serde_json::{json, Value};
 use zircon_plugin_material_editor_editor::{
     can_connect_material_graph, compile_material_graph_with_diagnostics,
-    compile_material_graph_with_shader_contract, plan_material_graph_node_deletion,
+    compile_material_graph_with_shader_contract, plan_material_document_property_edit,
+    plan_material_document_property_reset, plan_material_graph_node_deletion,
     plan_material_graph_node_search_creation, plan_material_graph_parameter_edit,
     plan_material_graph_parameter_vector_edit, project_authored_material_document,
     project_material_graph_details_selection, validate_material_graph_with_diagnostics,
-    MaterialDocumentProjectionError, MaterialGraphConnectionAction, MaterialGraphDetailsTarget,
-    MaterialGraphDetailsValue, MaterialGraphDiagnostic, MaterialGraphDiagnosticTarget,
-    MaterialGraphExpressionDetailsValues, MaterialGraphNodeSearch, MaterialGraphParameterEdit,
-    MaterialGraphPresentation, MaterialGraphShaderCompileError, MaterialGraphValueType,
+    MaterialDocumentProjectionError, MaterialDocumentPropertyEdit,
+    MaterialDocumentPropertyEditError, MaterialDocumentPropertyResetError,
+    MaterialGraphConnectionAction, MaterialGraphDetailsTarget, MaterialGraphDetailsValue,
+    MaterialGraphDiagnostic, MaterialGraphDiagnosticTarget, MaterialGraphExpressionDetailsValues,
+    MaterialGraphNodeSearch, MaterialGraphParameterEdit, MaterialGraphPresentation,
+    MaterialGraphShaderCompileError, MaterialGraphValueType,
 };
 use zircon_plugin_sdk::native::{
     self, callback_status, NativePluginByteSliceV3, NativePluginCallbackStatusV3,
@@ -24,6 +27,7 @@ use zircon_runtime::asset::{
     AssetKind, AssetReference, MaterialGraphAsset, MaterialGraphLinkAsset, MaterialGraphNodeAsset,
     MaterialGraphNodeKindAsset, MaterialGraphParameterAsset, ShaderAsset, ZMaterialDocument,
 };
+use zircon_runtime::core::framework::render::RenderMaterialPropertyValue;
 
 pub(super) const MAX_INPUT_BYTES: usize = 1024 * 1024;
 pub(super) const MAX_OUTPUT_BYTES: usize = 1024 * 1024;
@@ -83,6 +87,16 @@ max_output_bytes = 1048576
 name = "material_editor.graph.plan_connection"
 slot = 10
 payload_schema = "material_editor.plan_graph_connection.v1"
+max_output_bytes = 1048576
+[[commands]]
+name = "material_editor.material.plan_property_edit"
+slot = 11
+payload_schema = "material_editor.plan_material_property_edit.v1"
+max_output_bytes = 1048576
+[[commands]]
+name = "material_editor.material.plan_property_reset"
+slot = 12
+payload_schema = "material_editor.plan_material_property_reset.v1"
 max_output_bytes = 1048576
 "#,
     "\0"
@@ -273,6 +287,38 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
       }
     },
     {
+      "kind": "command",
+      "id": "material_editor.material.plan_property_edit",
+      "schema": "zircon.editor.command/3",
+      "localization_bundle_id": "material_editor",
+      "label_key": "command.material_editor.material.plan_property_edit.label",
+      "description_key": "command.material_editor.material.plan_property_edit.description",
+      "execution_contract": {
+        "result_codec": "zircon.editor.command-result.v1",
+        "resource_budget": {
+          "max_input_bytes": 1048576,
+          "max_output_bytes": 1048576,
+          "max_execution_time_ms": 5000
+        }
+      }
+    },
+    {
+      "kind": "command",
+      "id": "material_editor.material.plan_property_reset",
+      "schema": "zircon.editor.command/3",
+      "localization_bundle_id": "material_editor",
+      "label_key": "command.material_editor.material.plan_property_reset.label",
+      "description_key": "command.material_editor.material.plan_property_reset.description",
+      "execution_contract": {
+        "result_codec": "zircon.editor.command-result.v1",
+        "resource_budget": {
+          "max_input_bytes": 1048576,
+          "max_output_bytes": 1048576,
+          "max_execution_time_ms": 5000
+        }
+      }
+    },
+    {
       "kind": "localization_bundle",
       "id": "material_editor",
       "schema": "zircon.editor.localization-bundle/1",
@@ -299,7 +345,11 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
           "command.material_editor.graph.plan_node_deletion.label": "Plan Material Node Deletion",
           "command.material_editor.graph.plan_node_deletion.description": "Preflight original nodes and incident link occurrences without applying a deletion",
           "command.material_editor.graph.plan_connection.label": "Plan Material Connection",
-          "command.material_editor.graph.plan_connection.description": "Preflight exact pin keys and one input replacement without changing the authoring graph"
+          "command.material_editor.graph.plan_connection.description": "Preflight exact pin keys and one input replacement without changing the authoring graph",
+          "command.material_editor.material.plan_property_edit.label": "Plan Authored Material Property Edit",
+          "command.material_editor.material.plan_property_edit.description": "Preflight one exact local property Set or ClearOverride without applying it",
+          "command.material_editor.material.plan_property_reset.label": "Plan Authored Material Property Reset",
+          "command.material_editor.material.plan_property_reset.description": "Plan a reset from the host's observed default while preserving override presence"
         },
         "zh-CN": {
           "command.material_editor.graph.validate.label": "校验材质图",
@@ -323,7 +373,11 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
           "command.material_editor.graph.plan_node_deletion.label": "规划材质节点删除",
           "command.material_editor.graph.plan_node_deletion.description": "预检原始节点及关联连线，不提交删除事务",
           "command.material_editor.graph.plan_connection.label": "规划材质连线",
-          "command.material_editor.graph.plan_connection.description": "预检精确端口键及一个输入替换，不提交作者材质图"
+          "command.material_editor.graph.plan_connection.description": "预检精确端口键及一个输入替换，不提交作者材质图",
+          "command.material_editor.material.plan_property_edit.label": "规划作者材质属性编辑",
+          "command.material_editor.material.plan_property_edit.description": "预检精确局部属性的设置或清除覆盖，不提交作者事务",
+          "command.material_editor.material.plan_property_reset.label": "规划作者材质属性重置",
+          "command.material_editor.material.plan_property_reset.description": "使用宿主实际观测的默认值规划重置，保留覆盖存在性"
         }
       }
     }
@@ -347,7 +401,7 @@ pub(super) unsafe extern "C" fn invoke_command(
     output: NativePluginOutputSinkV4,
 ) -> NativePluginCallbackStatusV3 {
     native::catch_native_callback_panic(PANICKED, || {
-        if slot > 10 {
+        if slot > 12 {
             return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, UNKNOWN_SLOT);
         }
         if payload.len == 0 || payload.len > MAX_INPUT_BYTES || payload.data.is_null() {
@@ -369,7 +423,23 @@ pub(super) unsafe extern "C" fn invoke_command(
         {
             return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
         }
-        let result = if slot == 10 {
+        let result = if slot == 12 {
+            let Ok(arguments) = serde_json::from_slice::<PropertyResetArguments>(bytes) else {
+                return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
+            };
+            if arguments.shader.is_some() != arguments.shader_reference.is_some() {
+                return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
+            }
+            material_property_reset_result(&arguments)
+        } else if slot == 11 {
+            let Ok(arguments) = serde_json::from_slice::<PropertyEditArguments>(bytes) else {
+                return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
+            };
+            if arguments.shader.is_some() != arguments.shader_reference.is_some() {
+                return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
+            }
+            material_property_edit_result(&arguments)
+        } else if slot == 10 {
             let Ok(arguments) = serde_json::from_slice::<ConnectionArguments>(bytes) else {
                 return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
             };
@@ -628,6 +698,163 @@ fn authored_material_result(arguments: &MaterialArguments) -> Value {
         "validation_diagnostics": document.validation_diagnostics,
         "ok": ok, "schema_available": schema_available,
         "projection_error": error, "projection": projection,
+    })
+}
+
+// These commands adapt the original borrow-only property planners. The host
+// retains the source document, raw prior entry and coherent revision/handles;
+// a serialized candidate supplies neither an inverse nor a write permit.
+fn material_property_edit_result(arguments: &PropertyEditArguments) -> Value {
+    let document = &arguments.document;
+    let edit = match &arguments.edit {
+        PropertyEditRequest::Set { value } => MaterialDocumentPropertyEdit::Set(value),
+        PropertyEditRequest::ClearOverride {} => MaterialDocumentPropertyEdit::ClearOverride,
+    };
+    let candidate =
+        match material_property_source_error(document, arguments.shader_reference.as_ref()) {
+            Some(error) => Err(error),
+            None => plan_material_document_property_edit(
+                document,
+                arguments.shader.as_ref(),
+                &arguments.name,
+                edit,
+            )
+            .map_err(|error| material_property_edit_error(&error)),
+        };
+    let (plan, error) = match candidate {
+        Ok(plan) => (
+            Some(json!({
+                "name": plan.name(),
+                "was_overridden": plan.was_overridden(),
+                "will_be_overridden": plan.will_be_overridden(),
+                "edit": material_property_edit_json(plan.edit()),
+            })),
+            Value::Null,
+        ),
+        Err(error) => (None, error),
+    };
+    material_property_response(document, arguments.shader.as_ref(), plan, error)
+}
+
+fn material_property_reset_result(arguments: &PropertyResetArguments) -> Value {
+    let document = &arguments.document;
+    let expected_lookup = document.parent.as_ref().unwrap_or(&document.shader);
+    let candidate = match material_property_source_error(document, arguments.shader_reference.as_ref()) {
+        Some(error) => Err(error),
+        None => plan_material_document_property_reset(
+            document,
+            arguments.shader.as_ref(),
+            &arguments.name,
+            |declaration| {
+                let Some(observation) = &arguments.default_observation else {
+                    return Ok(None);
+                };
+                if observation.name != declaration.name
+                    || &observation.lookup_reference != expected_lookup
+                {
+                    return Err("default observation does not match the exact property and full parent/shader lookup reference".to_owned());
+                }
+                Ok(Some(&observation.value))
+            },
+        )
+        .map_err(|error| match error {
+            MaterialDocumentPropertyResetError::Edit(error) => material_property_edit_error(&error),
+            MaterialDocumentPropertyResetError::Resolve(message) => {
+                json!({"kind": "default_observation_mismatch", "message": message})
+            }
+            MaterialDocumentPropertyResetError::DefaultUnavailable(name) => {
+                json!({"kind": "default_unavailable", "name": name})
+            }
+        }),
+    };
+    let (plan, error) = match candidate {
+        Ok(plan) => (
+            Some(json!({
+                "name": plan.name(),
+                "was_overridden": plan.was_overridden(),
+                "will_be_overridden": plan.will_be_overridden(),
+                "resolved_default": plan.resolved_default(),
+                "edit": plan.property_edit().map(|edit| material_property_edit_json(edit.edit())),
+            })),
+            Value::Null,
+        ),
+        Err(error) => (None, error),
+    };
+    material_property_response(document, arguments.shader.as_ref(), plan, error)
+}
+
+fn material_property_source_error(
+    document: &ZMaterialDocument,
+    shader_reference: Option<&AssetReference>,
+) -> Option<Value> {
+    if document.version != 2 {
+        Some(
+            json!({"kind": "unsupported_document_version", "expected": 2, "actual": document.version}),
+        )
+    } else if shader_reference.is_some_and(|reference| reference != &document.shader) {
+        Some(
+            json!({"kind": "reference_mismatch", "expected": document.shader, "actual": shader_reference}),
+        )
+    } else {
+        None
+    }
+}
+
+fn material_property_edit_error(error: &MaterialDocumentPropertyEditError) -> Value {
+    match error {
+        MaterialDocumentPropertyEditError::Source(error) => {
+            json!({"kind": "source", "message": error.to_string()})
+        }
+        MaterialDocumentPropertyEditError::SchemaUnavailable => {
+            json!({"kind": "schema_unavailable"})
+        }
+        MaterialDocumentPropertyEditError::EmptyPropertyName => {
+            json!({"kind": "empty_property_name"})
+        }
+        MaterialDocumentPropertyEditError::UndeclaredProperty(name) => {
+            json!({"kind": "undeclared_property", "name": name})
+        }
+        MaterialDocumentPropertyEditError::TypeMismatch {
+            name,
+            expected,
+            actual,
+        } => {
+            json!({"kind": "type_mismatch", "name": name, "expected": expected, "actual": actual})
+        }
+        MaterialDocumentPropertyEditError::NonFiniteValue(name) => {
+            json!({"kind": "non_finite_value", "name": name})
+        }
+    }
+}
+
+fn material_property_edit_json(edit: MaterialDocumentPropertyEdit<'_>) -> Value {
+    match edit {
+        MaterialDocumentPropertyEdit::Set(value) => json!({"kind": "set", "value": value}),
+        MaterialDocumentPropertyEdit::ClearOverride => json!({"kind": "clear_override"}),
+    }
+}
+
+fn material_property_response(
+    document: &ZMaterialDocument,
+    shader: Option<&ShaderAsset>,
+    plan: Option<Value>,
+    error: Value,
+) -> Value {
+    // A repair candidate may coexist with the original author/shader diagnostics.
+    // Do not erase them or advertise a candidate as an applied/compiled material.
+    let shader_diagnostics = shader
+        .map(|shader| shader.validation_diagnostics.as_slice())
+        .unwrap_or(&[]);
+    json!({
+        "document_version": document.version,
+        "material_name": document.name,
+        "shader_reference": document.shader,
+        "parent_reference": document.parent,
+        "validation_diagnostics": document.validation_diagnostics,
+        "shader_validation_diagnostics": shader_diagnostics,
+        "ok": plan.is_some() && document.validation_diagnostics.is_empty() && shader_diagnostics.is_empty(),
+        "property_error": error,
+        "plan": plan,
     })
 }
 
@@ -1027,6 +1254,81 @@ struct MaterialArguments {
     document: ZMaterialDocument,
     shader_reference: Option<AssetReference>,
     shader: Option<ShaderAsset>,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PropertyEditArguments {
+    document: ZMaterialDocument,
+    shader_reference: Option<AssetReference>,
+    shader: Option<ShaderAsset>,
+    name: String,
+    edit: PropertyEditRequest,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+enum PropertyEditRequest {
+    Set {
+        #[serde(deserialize_with = "deserialize_property_value")]
+        value: RenderMaterialPropertyValue,
+    },
+    ClearOverride {},
+}
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PropertyResetArguments {
+    document: ZMaterialDocument,
+    shader_reference: Option<AssetReference>,
+    shader: Option<ShaderAsset>,
+    name: String,
+    default_observation: Option<PropertyDefaultObservation>,
+}
+
+/// The original host must supply its actual coherent parent/default lookup.
+/// Equality here checks the wire identity, not registry readiness or a lease.
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PropertyDefaultObservation {
+    name: String,
+    lookup_reference: AssetReference,
+    #[serde(deserialize_with = "deserialize_property_value")]
+    value: RenderMaterialPropertyValue,
+}
+
+// Keep the existing Runtime value enum; this command-only decoder additionally
+// rejects unknown and duplicate members instead of dropping them through Value.
+fn deserialize_property_value<'de, D>(
+    deserializer: D,
+) -> Result<RenderMaterialPropertyValue, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    #[derive(serde::Deserialize)]
+    #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+    enum WireValue {
+        Bool { value: bool },
+        Float { value: f32 },
+        Int { value: i32 },
+        UInt { value: u32 },
+        String { value: String },
+        Vec2 { value: [f32; 2] },
+        Vec3 { value: [f32; 3] },
+        Vec4 { value: [f32; 4] },
+    }
+    Ok(
+        match <WireValue as serde::Deserialize<'de>>::deserialize(deserializer)? {
+            WireValue::Bool { value } => RenderMaterialPropertyValue::Bool { value },
+            WireValue::Float { value } => RenderMaterialPropertyValue::Float { value },
+            WireValue::Int { value } => RenderMaterialPropertyValue::Int { value },
+            WireValue::UInt { value } => RenderMaterialPropertyValue::UInt { value },
+            WireValue::String { value } => RenderMaterialPropertyValue::String { value },
+            WireValue::Vec2 { value } => RenderMaterialPropertyValue::Vec2 { value },
+            WireValue::Vec3 { value } => RenderMaterialPropertyValue::Vec3 { value },
+            WireValue::Vec4 { value } => RenderMaterialPropertyValue::Vec4 { value },
+        },
+    )
 }
 
 #[derive(serde::Deserialize)]

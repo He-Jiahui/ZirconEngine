@@ -1,3 +1,15 @@
+## 材质接续116：作者属性 native Set/ClearOverride/Reset 适配（2026-10-28）
+
+- 原唯一 producer 在既有 `w448b90023f-native94`、base `5fda5a5945731366464246dc14c06e85f1f4a11d` 仅改原授权 commands/tests 与本台账；fork Instance/Hierarchy、editor 领域实现、公共 Host/Runtime/Shared 和所有 Penpot 对象未写。
+- 原11个 native command slot/descriptor/registration/locales 保留；追加11 `material_editor.material.plan_property_edit` / `material_editor.plan_material_property_edit.v1` 与12 `material_editor.material.plan_property_reset` / `material_editor.plan_material_property_reset.v1`，沿原 ABI3 / command manifest4 / contribution-batch1、1MiB 输入输出和一次完整 sink 发布。
+- 实际委托既有 `plan_material_document_property_edit/reset`，保留原 ZMaterialDocument 和 Runtime typed value。Set 要求精确唯一 schema key、同完整 shader UUID+locator 和 finite/type；不 trim、coerce 或 clamp HDR。ClearOverride 只移除原 key 的局部 presence，可无 schema 修复空/未知/旧错误值；提供的 schema 仍检查来源/歧义。
+- Reset 仅消费原宿主实际观测 `{name,lookup_reference,value}`：lookup 起点为原 parent（无 parent 为 shader）的完整引用。缺失默认值显式失败；不代入 shader metadata/模板值。既有覆盖返回 Set(resolved default) 保留勾选，未勾选返回 edit=null，不等同清除覆盖。UE `MaterialPropertyHelpers.cpp:1285–1302` 的实际 GetParameterDefaultValue/SetValue/FScopedTransaction 为参考；这段 native 适配没有安装事务、UI 或 renderer。
+- 严格 named/tagged DTO 拒绝 unknown/duplicate 字段，保留 integer、signed zero、原 raw author presence；f32 overflow 无候选。原 source/shader diagnostics 分开原序保留，修复候选可与旧诊断并存；不把 plan 当编译完成。
+- 新增8项有意义回归定义：8类 schema kind、HDR/signed zero、精确 key/absence/旧诊断、schema/完整引用/version 拒绝、root/instance 及勾选/未勾选 Reset、缺失/失配默认值、严格 wire、数值溢出、bounded single publish/host refusal；原83定义变91（仅源码静态计数，非 harness 发现/执行）。原81个行为 body 精确，另2 metadata test 扩充原断言。
+- 格式/单 material dist plugin 元数据检查与3路径 guard 单列。当前 pinned entry 仍 SHA `829b326e5f43c7d260d6e639e2990e40fba275c8362816aad12e865e71411158`，与105/113拒绝 dist 包有限 recipe 的原证据相同；复用该拒绝，不重投已知无效配方、不退回 editor/root、无本地 Cargo。Rust type/harness/result 仍 not_run/null；正常源提交不当产品验收。
+- 完整 wire/宿主消费合同见 reports 原根 `material-property-commands-116-wire-contract.json`：同 incarnation/revision/selection/request/lease 保留原 raw Option before，预算完整 inverse，一次原 prepare/permit/CAS/history/dirty/compile/renderer/save/focus。native 引用相等不是资源就绪证明，不新建 store/clock/backend，不重建作者文档。
+- 原115可编辑设计与18次真实 hover/leave检查保留，未借此签116 UI/official export/normal EXE/实际150%DPI/双端1DIP；原 request `ue-material-graph-20261024-01` 与所有旧失败保留，goal active、passed=false、accepted=false、释放0B。
+
 ## 材质接续115：原参数板完整标题原生悬停提示（2026-10-28）
 
 - 接续112/114，实读原 file `b4a1e3ce-9e6a-81fe-8008-d69d6092d704` / page `b4a1e3ce-9e6a-81fe-8008-d69d6092d705`，原 Parameters80 三板 `f02a46ad-39f2-8081-8008-db7e736c5ba0`、`4ad7bd44-bf74-8024-8008-db81afeb267b`、`3a8f714d-e676-802c-8008-db8265291bb4`：rev499/5775 → saved503/5781 → fresh504/5781。只在九个既有 tab allocation 加原生 mouse-over/open-overlay 和透明命中 fill；旧文字、均分尺寸、裁切、节点、连线、控件身份与事件不改。原5775 ID全部保留；除根children追加外，旧对象仅这九个 fills/interactions 两字段变化。
