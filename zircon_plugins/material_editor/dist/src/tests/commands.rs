@@ -22,7 +22,7 @@ fn material_editor_dist_native_manifest_declares_real_slots_and_contribution_sch
     let command_manifest = unsafe { CStr::from_ptr(behavior.command_manifest) };
     let manifest =
         native::command_manifest_v4_from_toml(command_manifest.to_str().unwrap()).unwrap();
-    assert_eq!(manifest.commands.len(), 7);
+    assert_eq!(manifest.commands.len(), 9);
     for (slot, name, schema) in [
         (
             0,
@@ -58,6 +58,16 @@ fn material_editor_dist_native_manifest_declares_real_slots_and_contribution_sch
             6,
             "material_editor.graph.plan_parameter_edit",
             "material_editor.plan_graph_parameter_edit.v1",
+        ),
+        (
+            7,
+            "material_editor.graph.search_nodes",
+            "material_editor.search_graph_nodes.v1",
+        ),
+        (
+            8,
+            "material_editor.graph.plan_node_creation",
+            "material_editor.plan_graph_node_creation.v1",
         ),
     ] {
         let command = &manifest.commands[slot as usize];
@@ -343,6 +353,18 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
             "command.material_editor.graph.plan_parameter_edit.description",
             contract(),
         )
+        .command_with_execution_contract(
+            "material_editor.graph.search_nodes",
+            "command.material_editor.graph.search_nodes.label",
+            "command.material_editor.graph.search_nodes.description",
+            contract(),
+        )
+        .command_with_execution_contract(
+            "material_editor.graph.plan_node_creation",
+            "command.material_editor.graph.plan_node_creation.label",
+            "command.material_editor.graph.plan_node_creation.description",
+            contract(),
+        )
         .localization_bundle(
             [
                 (
@@ -404,6 +426,22 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
                             "command.material_editor.graph.plan_parameter_edit.description",
                             "Plan one presence-sensitive parameter override edit without applying it",
                         ),
+                        (
+                            "command.material_editor.graph.search_nodes.label",
+                            "Search Material Nodes",
+                        ),
+                        (
+                            "command.material_editor.graph.search_nodes.description",
+                            "Read exact registered material actions and pin keys for the submitted query",
+                        ),
+                        (
+                            "command.material_editor.graph.plan_node_creation.label",
+                            "Plan Material Node Creation",
+                        ),
+                        (
+                            "command.material_editor.graph.plan_node_creation.description",
+                            "Preflight one typed node and optional autowire without changing the authoring graph",
+                        ),
                     ],
                 ),
                 (
@@ -459,6 +497,22 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
                             "command.material_editor.graph.plan_parameter_edit.description",
                             "规划一个保留覆盖存在性的参数编辑候选，不提交作者事务",
                         ),
+                        (
+                            "command.material_editor.graph.search_nodes.label",
+                            "搜索材质节点",
+                        ),
+                        (
+                            "command.material_editor.graph.search_nodes.description",
+                            "按原始查询读取已注册材质动作与精确端口键",
+                        ),
+                        (
+                            "command.material_editor.graph.plan_node_creation.label",
+                            "规划材质节点创建",
+                        ),
+                        (
+                            "command.material_editor.graph.plan_node_creation.description",
+                            "预检一个类型化节点及可选自动连线，不提交作者材质图",
+                        ),
                     ],
                 ),
             ]
@@ -479,7 +533,7 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
     let actual = deserialize_like(registration_json(), &expected);
     assert_eq!(actual, expected);
     assert_eq!(actual.package_id(), "material_editor");
-    assert_eq!(actual.contributions().len(), 8);
+    assert_eq!(actual.contributions().len(), 10);
 }
 
 #[test]
@@ -2452,6 +2506,563 @@ fn parameter_edit_result(graph: &MaterialGraphAsset, node_id: &str, edit: Value)
     let before = payload.clone();
     let (status, capture) = invoke(
         6,
+        &payload,
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    assert_eq!(capture.calls, 1);
+    assert_eq!(payload, before);
+    serde_json::from_slice(&capture.bytes).unwrap()
+}
+
+#[test]
+fn material_editor_dist_native_node_search_keeps_raw_query_registered_keys_and_pin_types() {
+    for (query, ids) in [
+        (
+            "",
+            vec![
+                "output",
+                "texture_sample",
+                "scalar_parameter",
+                "vector_parameter",
+                "add",
+                "multiply",
+            ],
+        ),
+        (
+            " \t\u{3000}",
+            vec![
+                "output",
+                "texture_sample",
+                "scalar_parameter",
+                "vector_parameter",
+                "add",
+                "multiply",
+            ],
+        ),
+        (" math ", vec!["add", "multiply"]),
+        ("MATH multiply", vec!["multiply"]),
+        ("parameter scalar", vec!["scalar_parameter"]),
+        ("不存在的材质节点", vec![]),
+    ] {
+        let payload = serde_json::to_vec(&json!({"query":query})).unwrap();
+        let before = payload.clone();
+        let (status, capture) = invoke(
+            7,
+            &payload,
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        assert_eq!(capture.calls, 1);
+        assert_eq!(payload, before);
+        let result: Value = serde_json::from_slice(&capture.bytes).unwrap();
+        assert_eq!(result["query"], query);
+        assert_eq!(
+            result["actions"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|a| a["id"].as_str().unwrap())
+                .collect::<Vec<_>>(),
+            ids
+        );
+        assert_eq!(
+            result["initial_action_id"],
+            serde_json::to_value(ids.first()).unwrap()
+        );
+        for action in result["actions"].as_array().unwrap() {
+            match action["id"].as_str().unwrap() {
+                "output" => assert!(action["inputs"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|pin| pin["name"] == "base_color" && pin["required"] == true)),
+                "add" | "multiply" => {
+                    assert_eq!(action["category"], "Math");
+                    assert_eq!(
+                        action["inputs"][0],
+                        json!({"name":"a","value_type":"float","required":true})
+                    );
+                    assert_eq!(action["outputs"][0]["name"], "value");
+                }
+                "texture_sample" => assert_eq!(action["outputs"][0]["value_type"], "vec4"),
+                _ => {}
+            }
+        }
+    }
+}
+
+#[test]
+fn material_editor_dist_native_node_commands_reject_non_named_duplicate_or_unknown_arguments() {
+    let node = creation_node("new product", Node::Multiply);
+    let creation = creation_payload(&graph(0.25), "math", "multiply", &node, None, None);
+    for (slot, value) in [(7, json!({"query":"math"})), (8, creation)] {
+        let valid = serde_json::to_string(&value).unwrap();
+        let mut extra = value.clone();
+        extra["unrelated"] = json!(true);
+        let mut wrong_query = value.clone();
+        wrong_query["query"] = json!(7);
+        let duplicate = valid.replacen("\"query\":", "\"query\":\"stale\",\"query\":", 1);
+        for bad in [
+            "{}".to_owned(),
+            "null".to_owned(),
+            "[]".to_owned(),
+            format!("[{valid}]"),
+            duplicate,
+            serde_json::to_string(&extra).unwrap(),
+            serde_json::to_string(&wrong_query).unwrap(),
+        ] {
+            let (status, capture) = invoke(
+                slot,
+                bad.as_bytes(),
+                MAX_OUTPUT_BYTES,
+                ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+            );
+            assert_eq!(
+                status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+                "slot {slot}: {bad}"
+            );
+            assert_eq!(capture.calls, 0);
+            assert!(capture.bytes.is_empty());
+        }
+    }
+}
+
+#[test]
+fn material_editor_dist_native_node_creation_uses_clicked_key_and_graph_local_source_position() {
+    let source = graph(0.25);
+    let node = creation_node(" product / 原始 ", Node::Multiply);
+    let result = node_creation_result(&creation_payload(
+        &source, "math", "multiply", &node, None, None,
+    ));
+    assert_eq!(result["ok"], true);
+    assert!(result["creation_error"].is_null());
+    assert_eq!(result["plan"]["action_id"], "multiply");
+    assert_eq!(result["plan"]["node"], serde_json::to_value(&node).unwrap());
+    assert_eq!(
+        (result["plan"]["node"]["position"][0].as_f64().unwrap() as f32).to_bits(),
+        (-0.0_f32).to_bits()
+    );
+    assert!(result["plan"]["autowire"].is_null());
+    assert!(result["plan"]["connection"].is_null());
+
+    // A valid incomplete new node is authorable, not a compiled material result.
+    // The source diagnostics stay separate from this request's candidate errors.
+    let mut broken = source;
+    broken.links.clear();
+    let repair = node_creation_result(&creation_payload(
+        &broken, "math", "multiply", &node, None, None,
+    ));
+    assert_eq!(repair["ok"], false);
+    assert!(repair["plan"].is_object());
+    assert!(repair["creation_error"].is_null());
+    assert!(
+        repair["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|d| d["target"]
+                == json!({"kind":"input","node_id":"output","pin_name":"base_color"}))
+    );
+}
+
+#[test]
+fn material_editor_dist_native_node_creation_replaces_one_edge_and_compiles_test_local_inverse() {
+    let mut source = parameter_edit_graph();
+    let previous = MaterialGraphLinkAsset {
+        from_node: "gain".into(),
+        from_pin: "value".into(),
+        to_node: "output".into(),
+        to_pin: "roughness".into(),
+    };
+    source.links.push(previous.clone());
+    let original = serde_json::to_value(&source).unwrap();
+    let node = creation_node(
+        "粗糙度参数 / new",
+        Node::ScalarParameter {
+            name: "粗糙度 key ".into(),
+            default: 0.875,
+        },
+    );
+    let wire = MaterialGraphLinkAsset {
+        from_node: node.id.clone(),
+        from_pin: "value".into(),
+        to_node: "output".into(),
+        to_pin: "roughness".into(),
+    };
+    let result = node_creation_result(&creation_payload(
+        &source,
+        "scalar parameter",
+        "scalar_parameter",
+        &node,
+        Some(&wire),
+        None,
+    ));
+    let plan = &result["plan"];
+    assert_eq!(result["ok"], true);
+    assert_eq!(
+        plan["connection"]["action"],
+        json!({"kind":"replace","previous_link":previous})
+    );
+    assert_eq!(plan["connection"]["source_value_type"], "scalar");
+    assert_eq!(plan["connection"]["has_undetermined_types"], false);
+    assert_eq!(plan["autowire"], serde_json::to_value(&wire).unwrap());
+
+    // Only this unit test applies the plan. Production application belongs to
+    // the original host document's one accounted delta/inverse/permit/history.
+    let mut edited = source.clone();
+    edited
+        .nodes
+        .push(serde_json::from_value(plan["node"].clone()).unwrap());
+    edited.links[1] = serde_json::from_value(plan["autowire"].clone()).unwrap();
+    let encoded = edited.to_toml_string().unwrap();
+    let reopened = MaterialGraphAsset::from_toml_str(&encoded).unwrap();
+    let (status, capture) = invoke(
+        1,
+        &request(&reopened),
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    let compiled: Value = serde_json::from_slice(&capture.bytes).unwrap();
+    assert_eq!(compiled["ok"], true);
+    assert_eq!(compiled["material"]["roughness"].as_f64(), Some(0.875));
+    edited.nodes.pop();
+    edited.links[1] =
+        serde_json::from_value(plan["connection"]["action"]["previous_link"].clone()).unwrap();
+    assert_eq!(serde_json::to_value(&edited).unwrap(), original);
+    let (status, capture) = invoke(
+        1,
+        &request(&edited),
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    let restored: Value = serde_json::from_slice(&capture.bytes).unwrap();
+    assert_eq!(restored["material"]["roughness"].as_f64(), Some(0.25));
+    assert_eq!(serde_json::to_value(&source).unwrap(), original);
+}
+
+#[test]
+fn material_editor_dist_native_node_creation_rejects_stale_keys_ids_and_invalid_wires_without_prefix(
+) {
+    let source = graph(0.25);
+    let node = creation_node("new", Node::Multiply);
+    let valid = creation_payload(&source, "math", "multiply", &node, None, None);
+    let mut invalid = Vec::new();
+    for key in ["add", "Multiply", "unknown"] {
+        let mut value = valid.clone();
+        value["action_id"] = json!(key);
+        invalid.push(value);
+    }
+    for id in ["tint", "  "] {
+        let mut value = valid.clone();
+        value["node"]["id"] = json!(id);
+        invalid.push(value);
+    }
+    let mut hidden = valid.clone();
+    hidden["query"] = json!("scalar parameter");
+    invalid.push(hidden);
+    let mut ambiguous = valid.clone();
+    ambiguous["graph"]["nodes"]
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::to_value(&source.nodes[0]).unwrap());
+    invalid.push(ambiguous);
+    let mut reserved = valid.clone();
+    reserved["graph"]["links"].as_array_mut().unwrap().push(
+        json!({"from_node":"new","from_pin":"value","to_node":"output","to_pin":"roughness"}),
+    );
+    invalid.push(reserved);
+    for wire in [
+        json!({"from_node":"tint","from_pin":"value","to_node":"output","to_pin":"roughness"}),
+        json!({"from_node":"new","from_pin":"value","to_node":"new","to_pin":"a"}),
+        json!({"from_node":"new","from_pin":"Value","to_node":"output","to_pin":"roughness"}),
+    ] {
+        let mut value = valid.clone();
+        value["autowire"] = wire;
+        invalid.push(value);
+    }
+    let duplicate_output = creation_node("another output", Node::Output);
+    invalid.push(creation_payload(
+        &source,
+        "output",
+        "output",
+        &duplicate_output,
+        None,
+        None,
+    ));
+    for payload in invalid {
+        let result = node_creation_result(&payload);
+        assert_eq!(result["ok"], false);
+        assert!(result["plan"].is_null());
+        assert!(!result["creation_error"]["diagnostics"]
+            .as_array()
+            .unwrap()
+            .is_empty());
+    }
+}
+
+#[test]
+fn material_editor_dist_native_node_texture_creation_requires_full_host_reference_and_actual_kind()
+{
+    let source = graph(0.25);
+    let texture = reference("res://textures/原始材质引用.no-extension-assumption");
+    let node = creation_node(
+        "纹理节点",
+        Node::TextureSample {
+            texture: texture.clone(),
+        },
+    );
+    let wire = MaterialGraphLinkAsset {
+        from_node: node.id.clone(),
+        from_pin: "color".into(),
+        to_node: "output".into(),
+        to_pin: "base_color".into(),
+    };
+    let mut wrong_uuid = texture.clone();
+    wrong_uuid.uuid = reference("res://textures/another-identity.ztex").uuid;
+    let mut wrong_locator = texture.clone();
+    wrong_locator.locator = AssetUri::parse("res://textures/renamed.ztex").unwrap();
+    for observation in [
+        None,
+        Some(json!({"reference":wrong_uuid,"kind":AssetKind::Texture})),
+        Some(json!({"reference":wrong_locator,"kind":AssetKind::Texture})),
+        Some(json!({"reference":texture,"kind":AssetKind::Material})),
+    ] {
+        let result = node_creation_result(&creation_payload(
+            &source,
+            "texture",
+            "texture_sample",
+            &node,
+            Some(&wire),
+            observation,
+        ));
+        assert_eq!(result["ok"], false);
+        assert!(result["plan"].is_null());
+        assert!(
+            result["creation_error"]["diagnostics"][0]["message"]
+                .as_str()
+                .unwrap()
+                .contains("could not resolve")
+                || result["creation_error"]["diagnostics"][0]["message"]
+                    .as_str()
+                    .unwrap()
+                    .contains("expected Texture")
+        );
+    }
+    let result = node_creation_result(&creation_payload(
+        &source,
+        "texture",
+        "texture_sample",
+        &node,
+        Some(&wire),
+        Some(json!({"reference":texture,"kind":AssetKind::Texture})),
+    ));
+    assert_eq!(result["ok"], true);
+    assert_eq!(
+        result["plan"]["node"]["kind"]["texture"],
+        serde_json::to_value(&texture).unwrap()
+    );
+    assert_eq!(result["plan"]["connection"]["source_value_type"], "texture");
+    assert_eq!(
+        result["plan"]["connection"]["action"]["previous_link"],
+        serde_json::to_value(&source.links[0]).unwrap()
+    );
+}
+
+#[test]
+fn material_editor_dist_native_node_creation_rejects_overflow_and_unrelated_resource_observation() {
+    let source = graph(0.25);
+    let scalar = creation_node(
+        "scalar",
+        Node::ScalarParameter {
+            name: "scalar".into(),
+            default: 0.25,
+        },
+    );
+    let vector = creation_node(
+        "vector",
+        Node::VectorParameter {
+            name: "vector".into(),
+            default: [0.25, 0.5, 0.75, 1.0],
+        },
+    );
+    let mut invalid = Vec::new();
+    for (action, node) in [("scalar_parameter", scalar), ("vector_parameter", vector)] {
+        let original = creation_payload(&source, "parameter", action, &node, None, None);
+        for channel in 0..2 {
+            let mut value = original.clone();
+            value["node"]["position"][channel] = json!(1.0e100_f64);
+            invalid.push(value);
+        }
+        if action == "scalar_parameter" {
+            let mut value = original.clone();
+            value["node"]["kind"]["default"] = json!(-1.0e100_f64);
+            invalid.push(value);
+        } else {
+            for channel in 0..4 {
+                let mut value = original.clone();
+                value["node"]["kind"]["default"][channel] = json!(1.0e100_f64);
+                invalid.push(value);
+            }
+        }
+        let mut source_overflow = original.clone();
+        source_overflow["graph"]["nodes"][0]["kind"]["default"][0] = json!(1.0e100_f64);
+        invalid.push(source_overflow);
+        let mut unrelated = original;
+        unrelated["resource_observation"] =
+            json!({"reference":reference("res://textures/unused.ztex"),"kind":AssetKind::Texture});
+        invalid.push(unrelated);
+    }
+    for value in invalid {
+        let payload = serde_json::to_vec(&value).unwrap();
+        let (status, capture) = invoke(
+            8,
+            &payload,
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+        assert_eq!(capture.calls, 0);
+        assert!(capture.bytes.is_empty());
+    }
+}
+
+#[test]
+fn material_editor_dist_native_node_commands_publish_once_only_with_full_output_budget() {
+    let node = creation_node("new", Node::Multiply);
+    for (slot, value) in [
+        (7, json!({"query":""})),
+        (
+            8,
+            creation_payload(&graph(0.25), "math", "multiply", &node, None, None),
+        ),
+    ] {
+        let payload = serde_json::to_vec(&value).unwrap();
+        let (status, full) = invoke(
+            slot,
+            &payload,
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        assert_eq!(full.calls, 1);
+        assert!(!full.bytes.is_empty());
+        for budget in [0, full.bytes.len() - 1] {
+            let (status, capture) = invoke(slot, &payload, budget, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+            assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+            assert_eq!(capture.calls, 0);
+            assert!(capture.bytes.is_empty());
+        }
+        let (status, rejected) = invoke(
+            slot,
+            &payload,
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED);
+        assert_eq!(rejected.calls, 1);
+        assert!(rejected.bytes.is_empty());
+    }
+}
+
+fn creation_node(id: &str, kind: Node) -> MaterialGraphNodeAsset {
+    MaterialGraphNodeAsset {
+        id: id.into(),
+        position: [-0.0, 128.5],
+        kind,
+    }
+}
+
+#[test]
+fn material_editor_dist_native_node_creation_keeps_hdr_vector_bits_and_exact_parameter_type() {
+    let source = parameter_edit_graph();
+    let channels = [0.0_f32, 256.0, f32::from_bits(1), -0.0];
+    let node = creation_node(
+        "向量 / 新声明",
+        Node::VectorParameter {
+            name: "tint".into(),
+            default: channels,
+        },
+    );
+    let result = node_creation_result(&creation_payload(
+        &source,
+        "vector parameter",
+        "vector_parameter",
+        &node,
+        None,
+        None,
+    ));
+    assert_eq!(result["ok"], true);
+    for (channel, expected) in channels.iter().enumerate() {
+        assert_eq!(
+            (result["plan"]["node"]["kind"]["default"][channel]
+                .as_f64()
+                .unwrap() as f32)
+                .to_bits(),
+            expected.to_bits()
+        );
+    }
+    let wrong_kind = creation_node(
+        "wrong type",
+        Node::VectorParameter {
+            name: " Gain 原始 ".into(),
+            default: channels,
+        },
+    );
+    let result = node_creation_result(&creation_payload(
+        &source,
+        "vector parameter",
+        "vector_parameter",
+        &wrong_kind,
+        None,
+        None,
+    ));
+    assert!(result["plan"].is_null());
+    assert!(result["creation_error"]["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|d| d["target"] == json!({"kind":"node","node_id":"gain"})));
+    let mut wrong_override = source;
+    wrong_override
+        .parameters
+        .insert("tint".into(), Parameter::Scalar(0.25));
+    let result = node_creation_result(&creation_payload(
+        &wrong_override,
+        "vector parameter",
+        "vector_parameter",
+        &node,
+        None,
+        None,
+    ));
+    assert!(result["plan"].is_null());
+    assert!(result["creation_error"]["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|d| d["target"] == json!({"kind":"parameter","name":"tint"})));
+}
+
+fn creation_payload(
+    graph: &MaterialGraphAsset,
+    query: &str,
+    action_id: &str,
+    node: &MaterialGraphNodeAsset,
+    autowire: Option<&MaterialGraphLinkAsset>,
+    resource_observation: Option<Value>,
+) -> Value {
+    json!({"graph":graph,"query":query,"action_id":action_id,"node":node,"autowire":autowire,"resource_observation":resource_observation})
+}
+
+fn node_creation_result(value: &Value) -> Value {
+    let payload = serde_json::to_vec(value).unwrap();
+    let before = payload.clone();
+    let (status, capture) = invoke(
+        8,
         &payload,
         MAX_OUTPUT_BYTES,
         ZIRCON_NATIVE_PLUGIN_STATUS_OK,

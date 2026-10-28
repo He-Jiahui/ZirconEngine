@@ -6,12 +6,13 @@ use std::io::{self, Write};
 use serde_json::{json, Value};
 use zircon_plugin_material_editor_editor::{
     compile_material_graph_with_diagnostics, compile_material_graph_with_shader_contract,
-    plan_material_graph_parameter_edit, plan_material_graph_parameter_vector_edit,
-    project_authored_material_document, project_material_graph_details_selection,
-    validate_material_graph_with_diagnostics, MaterialDocumentProjectionError,
-    MaterialGraphDetailsTarget, MaterialGraphDetailsValue, MaterialGraphDiagnostic,
-    MaterialGraphDiagnosticTarget, MaterialGraphExpressionDetailsValues,
-    MaterialGraphParameterEdit, MaterialGraphPresentation, MaterialGraphShaderCompileError,
+    plan_material_graph_node_search_creation, plan_material_graph_parameter_edit,
+    plan_material_graph_parameter_vector_edit, project_authored_material_document,
+    project_material_graph_details_selection, validate_material_graph_with_diagnostics,
+    MaterialDocumentProjectionError, MaterialGraphConnectionAction, MaterialGraphDetailsTarget,
+    MaterialGraphDetailsValue, MaterialGraphDiagnostic, MaterialGraphDiagnosticTarget,
+    MaterialGraphExpressionDetailsValues, MaterialGraphNodeSearch, MaterialGraphParameterEdit,
+    MaterialGraphPresentation, MaterialGraphShaderCompileError, MaterialGraphValueType,
 };
 use zircon_plugin_sdk::native::{
     self, callback_status, NativePluginByteSliceV3, NativePluginCallbackStatusV3,
@@ -19,8 +20,8 @@ use zircon_plugin_sdk::native::{
     ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
 };
 use zircon_runtime::asset::{
-    AssetReference, MaterialGraphAsset, MaterialGraphNodeKindAsset, MaterialGraphParameterAsset,
-    ShaderAsset, ZMaterialDocument,
+    AssetKind, AssetReference, MaterialGraphAsset, MaterialGraphLinkAsset, MaterialGraphNodeAsset,
+    MaterialGraphNodeKindAsset, MaterialGraphParameterAsset, ShaderAsset, ZMaterialDocument,
 };
 
 pub(super) const MAX_INPUT_BYTES: usize = 1024 * 1024;
@@ -61,6 +62,16 @@ max_output_bytes = 1048576
 name = "material_editor.graph.plan_parameter_edit"
 slot = 6
 payload_schema = "material_editor.plan_graph_parameter_edit.v1"
+max_output_bytes = 1048576
+[[commands]]
+name = "material_editor.graph.search_nodes"
+slot = 7
+payload_schema = "material_editor.search_graph_nodes.v1"
+max_output_bytes = 1048576
+[[commands]]
+name = "material_editor.graph.plan_node_creation"
+slot = 8
+payload_schema = "material_editor.plan_graph_node_creation.v1"
 max_output_bytes = 1048576
 "#,
     "\0"
@@ -187,6 +198,38 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
       }
     },
     {
+      "kind": "command",
+      "id": "material_editor.graph.search_nodes",
+      "schema": "zircon.editor.command/3",
+      "localization_bundle_id": "material_editor",
+      "label_key": "command.material_editor.graph.search_nodes.label",
+      "description_key": "command.material_editor.graph.search_nodes.description",
+      "execution_contract": {
+        "result_codec": "zircon.editor.command-result.v1",
+        "resource_budget": {
+          "max_input_bytes": 1048576,
+          "max_output_bytes": 1048576,
+          "max_execution_time_ms": 5000
+        }
+      }
+    },
+    {
+      "kind": "command",
+      "id": "material_editor.graph.plan_node_creation",
+      "schema": "zircon.editor.command/3",
+      "localization_bundle_id": "material_editor",
+      "label_key": "command.material_editor.graph.plan_node_creation.label",
+      "description_key": "command.material_editor.graph.plan_node_creation.description",
+      "execution_contract": {
+        "result_codec": "zircon.editor.command-result.v1",
+        "resource_budget": {
+          "max_input_bytes": 1048576,
+          "max_output_bytes": 1048576,
+          "max_execution_time_ms": 5000
+        }
+      }
+    },
+    {
       "kind": "localization_bundle",
       "id": "material_editor",
       "schema": "zircon.editor.localization-bundle/1",
@@ -205,7 +248,11 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
           "command.material_editor.graph.details.label": "Inspect Material Graph Selection",
           "command.material_editor.graph.details.description": "Read original Details targets and common or mixed values for the submitted selection",
           "command.material_editor.graph.plan_parameter_edit.label": "Plan Material Graph Parameter Edit",
-          "command.material_editor.graph.plan_parameter_edit.description": "Plan one presence-sensitive parameter override edit without applying it"
+          "command.material_editor.graph.plan_parameter_edit.description": "Plan one presence-sensitive parameter override edit without applying it",
+          "command.material_editor.graph.search_nodes.label": "Search Material Nodes",
+          "command.material_editor.graph.search_nodes.description": "Read exact registered material actions and pin keys for the submitted query",
+          "command.material_editor.graph.plan_node_creation.label": "Plan Material Node Creation",
+          "command.material_editor.graph.plan_node_creation.description": "Preflight one typed node and optional autowire without changing the authoring graph"
         },
         "zh-CN": {
           "command.material_editor.graph.validate.label": "校验材质图",
@@ -221,7 +268,11 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
           "command.material_editor.graph.details.label": "查看材质图选择详情",
           "command.material_editor.graph.details.description": "读取本次选择的原始详情对象及共同值或混合值",
           "command.material_editor.graph.plan_parameter_edit.label": "规划材质图参数编辑",
-          "command.material_editor.graph.plan_parameter_edit.description": "规划一个保留覆盖存在性的参数编辑候选，不提交作者事务"
+          "command.material_editor.graph.plan_parameter_edit.description": "规划一个保留覆盖存在性的参数编辑候选，不提交作者事务",
+          "command.material_editor.graph.search_nodes.label": "搜索材质节点",
+          "command.material_editor.graph.search_nodes.description": "按原始查询读取已注册材质动作与精确端口键",
+          "command.material_editor.graph.plan_node_creation.label": "规划材质节点创建",
+          "command.material_editor.graph.plan_node_creation.description": "预检一个类型化节点及可选自动连线，不提交作者材质图"
         }
       }
     }
@@ -245,7 +296,7 @@ pub(super) unsafe extern "C" fn invoke_command(
     output: NativePluginOutputSinkV4,
 ) -> NativePluginCallbackStatusV3 {
     native::catch_native_callback_panic(PANICKED, || {
-        if slot > 6 {
+        if slot > 8 {
             return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, UNKNOWN_SLOT);
         }
         if payload.len == 0 || payload.len > MAX_INPUT_BYTES || payload.data.is_null() {
@@ -267,7 +318,25 @@ pub(super) unsafe extern "C" fn invoke_command(
         {
             return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
         }
-        let result = if slot == 6 {
+        let result = if slot == 8 {
+            let Ok(arguments) = serde_json::from_slice::<NodeCreationArguments>(bytes) else {
+                return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
+            };
+            if arguments.resource_observation.is_some()
+                && !matches!(
+                    &arguments.node.kind,
+                    MaterialGraphNodeKindAsset::TextureSample { .. }
+                )
+            {
+                return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
+            }
+            graph_node_creation_result(&arguments)
+        } else if slot == 7 {
+            let Ok(arguments) = serde_json::from_slice::<NodeSearchArguments>(bytes) else {
+                return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
+            };
+            graph_node_search_result(&arguments)
+        } else if slot == 6 {
             let Ok(arguments) = serde_json::from_slice::<ParameterEditArguments>(bytes) else {
                 return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
             };
@@ -630,6 +699,118 @@ fn graph_parameter_edit_result(arguments: &ParameterEditArguments) -> Value {
     })
 }
 
+/// Reads the actual domain palette. `initial_action_id` is its new-menu default,
+/// not the current host keyboard selection or permission to open a popup.
+fn graph_node_search_result(arguments: &NodeSearchArguments) -> Value {
+    let search = MaterialGraphNodeSearch::new(arguments.query.clone());
+    json!({
+        "query": search.query(),
+        "actions": search.matches(),
+        "initial_action_id": search.selected().map(|action| action.id()),
+    })
+}
+
+/// The request transports one host-qualified action and resource-kind observation.
+/// It does not query ResourceManager, create IDs, transform coordinates, activate
+/// or close the real popup, mutate a graph, or issue a history permit. The host
+/// must qualify the original popup/document/catalog/native generations and use
+/// one prepared delta/inverse for the node, removed edge and optional new edge.
+fn graph_node_creation_result(arguments: &NodeCreationArguments) -> Value {
+    let graph = &arguments.graph;
+    let search = MaterialGraphNodeSearch::new(arguments.query.clone());
+    let diagnostics = validate_material_graph_with_diagnostics(graph);
+    let candidate = plan_material_graph_node_search_creation(
+        &search,
+        graph,
+        &arguments.action_id,
+        &arguments.node,
+        arguments.autowire.as_ref(),
+        |reference| match &arguments.resource_observation {
+            Some(observed) if &observed.reference == reference => Ok(observed.kind),
+            Some(_) => {
+                Err("host resource observation does not match the full UUID and locator".to_owned())
+            }
+            None => Err(
+                "texture creation requires the host's actual resource-kind observation".to_owned(),
+            ),
+        },
+    );
+    let (creation_error, plan) = match candidate {
+        Err(errors) => (
+            json!({"diagnostics": errors.iter().map(diagnostic_json).collect::<Vec<_>>()}),
+            None,
+        ),
+        Ok(plan) => {
+            let connection = plan.connection().map(|connection| {
+                let action = match connection.action {
+                    MaterialGraphConnectionAction::Connect => json!({"kind": "connect"}),
+                    MaterialGraphConnectionAction::Replace(previous) => {
+                        json!({"kind": "replace", "previous_link": previous})
+                    }
+                    MaterialGraphConnectionAction::Unchanged => json!({"kind": "unchanged"}),
+                };
+                let value_type = match connection.source_type {
+                    MaterialGraphValueType::Scalar => "scalar",
+                    MaterialGraphValueType::Vector => "vector",
+                    MaterialGraphValueType::Texture => "texture",
+                    MaterialGraphValueType::Undetermined => "undetermined",
+                };
+                json!({
+                    "action": action,
+                    "source_value_type": value_type,
+                    "has_undetermined_types": connection.has_undetermined_types,
+                })
+            });
+            (
+                Value::Null,
+                Some(json!({
+                    "action_id": arguments.action_id,
+                    "node": plan.node(),
+                    "autowire": plan.link(),
+                    "connection": connection,
+                })),
+            )
+        }
+    };
+    // Incomplete new nodes are legal authoring candidates, not compiled material.
+    // Existing source diagnostics stay visible even when a repair plan exists.
+    json!({
+        "graph_uri": graph.uri,
+        "ok": plan.is_some() && diagnostics.is_empty(),
+        "diagnostics": diagnostics.iter().map(diagnostic_json).collect::<Vec<_>>(),
+        "creation_error": creation_error,
+        "plan": plan,
+    })
+}
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct NodeSearchArguments {
+    query: String,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct NodeCreationArguments {
+    #[serde(deserialize_with = "deserialize_graph")]
+    graph: MaterialGraphAsset,
+    query: String,
+    action_id: String,
+    #[serde(deserialize_with = "deserialize_node")]
+    node: MaterialGraphNodeAsset,
+    autowire: Option<MaterialGraphLinkAsset>,
+    resource_observation: Option<ResourceKindObservation>,
+}
+
+/// A DTO for the original host's observation, not a resource resolver or proof
+/// that a matching registry entry is still current. That admission stays at host.
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ResourceKindObservation {
+    reference: AssetReference,
+    kind: AssetKind,
+}
+
 #[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ParameterEditArguments {
@@ -698,19 +879,7 @@ where
     D: serde::Deserializer<'de>,
 {
     let graph = <MaterialGraphAsset as serde::Deserialize<'de>>::deserialize(deserializer)?;
-    let finite_nodes = graph.nodes.iter().all(|node| {
-        node.position.iter().all(|value| value.is_finite())
-            && match &node.kind {
-                MaterialGraphNodeKindAsset::ScalarParameter { default, .. } => default.is_finite(),
-                MaterialGraphNodeKindAsset::VectorParameter { default, .. } => {
-                    default.iter().all(|value| value.is_finite())
-                }
-                MaterialGraphNodeKindAsset::Output
-                | MaterialGraphNodeKindAsset::TextureSample { .. }
-                | MaterialGraphNodeKindAsset::Add
-                | MaterialGraphNodeKindAsset::Multiply => true,
-            }
-    });
+    let finite_nodes = graph.nodes.iter().all(node_numbers_finite);
     let finite_overrides = graph.parameters.values().all(|value| match value {
         MaterialGraphParameterAsset::Scalar(value) => value.is_finite(),
         MaterialGraphParameterAsset::Vector(values) => values.iter().all(|value| value.is_finite()),
@@ -721,6 +890,33 @@ where
         ));
     }
     Ok(graph)
+}
+
+fn deserialize_node<'de, D>(deserializer: D) -> Result<MaterialGraphNodeAsset, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let node = <MaterialGraphNodeAsset as serde::Deserialize<'de>>::deserialize(deserializer)?;
+    if !node_numbers_finite(&node) {
+        return Err(serde::de::Error::custom(
+            "material graph node JSON numbers must remain finite after f32 conversion",
+        ));
+    }
+    Ok(node)
+}
+
+fn node_numbers_finite(node: &MaterialGraphNodeAsset) -> bool {
+    node.position.iter().all(|value| value.is_finite())
+        && match &node.kind {
+            MaterialGraphNodeKindAsset::ScalarParameter { default, .. } => default.is_finite(),
+            MaterialGraphNodeKindAsset::VectorParameter { default, .. } => {
+                default.iter().all(|value| value.is_finite())
+            }
+            MaterialGraphNodeKindAsset::Output
+            | MaterialGraphNodeKindAsset::TextureSample { .. }
+            | MaterialGraphNodeKindAsset::Add
+            | MaterialGraphNodeKindAsset::Multiply => true,
+        }
 }
 
 fn decode_graph(bytes: &[u8]) -> Option<MaterialGraphAsset> {
