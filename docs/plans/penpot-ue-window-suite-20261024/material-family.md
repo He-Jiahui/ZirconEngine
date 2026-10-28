@@ -1,3 +1,27 @@
+## 材质接续83：三尺寸图导航实测与 UE 缩放消费合同（2026-10-28 UTC）
+
+原 request `ue-material-graph-20261024-01`、唯一 producer 和 `w47ec1661d3/par79` 保持。82 已由 queue29197／management#634 SUCCESS 提交 `e7d7755a0b07f721f81c0e9f77136e2f1744f261`（parent5bb1a017），四路径 working raw／Git blob 精确一致，integration pending／mainAdvanced=false／validationPerformed=false；本节不重写82原输入或用交付成功代验209静态定义。83只改本计划，不改三Rust、公共Graph／host／Shared／原ZUI，不提交Cargo。
+
+本轮在原 Material file `b4a1e3ce-9e6a-81fe-8008-d69d6092d704`／page `b4a1e3ce-9e6a-81fe-8008-d69d6092d705` fresh 实读422／5585对象，检查80原三板，原作者节点局部坐标完全保持：颜色(48,72,220×110)、粗糙度(48,224,220×110)、Output(360,72,230×192)，范围(48,72)至(590,334)。这是80明确标记的作者测试夹具设计，绝非生产资产或引擎 retained 测量。
+
+| 当前 Parameters80 板 | graph 逻辑视口 | 当前三节点 body | UE 默认 Frame All 的设计推导 |
+| --- | --- | --- | --- |
+| 1280／f02a46ad…5ba0 | 999.2×505.6 | 完整容纳 | zoom1，pan(180.6,49.8) |
+| 900／4ad7bd44…267b | 695.2×361.6 | 完整容纳；本板无节点裁切 | zoom1，pan(28.6,-22.2) |
+| 640／3a8f714d…1bb4 | 487.2×281.6 | Output右侧102.8、粗糙度下部52.4被clip | zoom0.75，pan(4.35,-11.45) |
+
+三张新native viewer图逐图复核。此处纠正将早期Common Details75／76的900下部裁切泛化到Parameters80的说法；旧板／旧图的真实失败仍保留，页签caption裁切和未编译preview也保持open。640首次DOM查询误选background-only incarnation，原inspection中的null不当缺节点；新r02按有实际子节点的content ancestry测量，原件不覆盖。真实background为640×520，content paint bounds宽715.8且被clip；重复shape UUID不能代替当前render incarnation／instancePath和clip关联。
+
+只用隔离无头浏览器的真实鼠标／键盘输入，640图内(-360)滚轮、右键拖动(-70,+30)均落到原graph fill，节点／视口变换没有改变；Home只到BODY，尚无已核实的UE Frame All键映射，不把它冒充对应命令测试。七张PNG均实际打开：三默认、三输入后、fresh-context重开。三输入后各有350像素变化，仅在分隔行y131／x151..500，原因尚未证实；几何未变不等于整图像素不变。fresh640与输入前RGB相同。观察listener全部passive，没有添加假handler／相机／动作。初次workspace标题过早检查false保留，后继明确等待实际“01 Material Editor - Penpot”标题后验证ready；关闭旧context、新context重开工作区与640 viewer，全部5585对象hash、五业务main及fork30范围精确不变。本轮没有Penpot写入，故不另称新save／export通过。
+
+只读UE `Engine/Source/Editor/GraphEditor/Private/SNodePanel.cpp:225/1821/1953`：DefaultZoomPadding=25，GetBoundsForNodes先将Position＋当前DesiredSize范围在**图坐标**中膨胀25，再按固定20档缩放表和默认1:1上限选择能容纳的档位；ZoomToLocation／ChangeZoomLevel、cursor anchor、Ctrl越过1:1的条件继续以原源码为准。上表只按该几何／默认档位推导，不是执行UE或Zircon的结果。生产必须使用同一document／layout／transform generation的真实完整DesiredSize及viewport，不能把上述夹具尺寸注入真实host。
+
+`MAT-GRAPH-NAV-83`已给出精确consumer合同：现有GraphCanvasState的fit padding是**pane-local逻辑屏幕单位**，连续fit及默认min0.2／max4／wheel step0.1仍原样；它不等于UE的图坐标25、离散表和0.1最低档。原公共API没有直接设置所选绝对zoom＋pan的原子入口；不得用伪造bounds／viewport强迫fit或另建camera。提案仅请求Parent按既有公共owner审阅canvas.rs／必要mod导出／tests-cases的最小兼容入口：在既有CanvasState上验证有限transform并原子应用、保留默认／旧API／selection／drag，显式消费域缩放合同。材料域负责UE档位策略；0.1／0.125／0.15／0.175在当前0.2 floor下明确unsupported，未经公共授权不降低全局默认。图坐标padding先膨胀真实范围，不能直接传25作为逻辑屏幕padding。此为未apply的ABI／host需求，不改model／commands／retention／一次permit，不让中立Graph依赖MaterialAsset／compiler。
+
+UE `SDockingTabWell.cpp:305`确为均分可用宽度、上限约束和独立clip；本轮不据窄图臆造通用overflow菜单、wrap或改短source caption。宿主真实输入owner、源／revision／request、retained node／pin／text／paint／hit／clip同代际、一次DPI、相机动作不改模型history，以及实际正常EXE三尺寸／150%DPI仍需原owner接线。原Source78 run-inventory／immutable-component修复与既有PR／main链保持，不新增第二producer或重放旧终态。
+
+证据在原报告根 `material-graph-viewport-83-{before,inspection,inspection-r02,input,reopen,reopen-r02,consumer-contract,review}.json`与七PNG；consumer合同SHA `dae66ede6f4621cdb8dc89f6da85a1d7157c0caf39819d618c1031de028e07e7`。浏览器DPR1不代系统150%DPI，Penpot输入／图像不代真实Engine renderer、正式codec/export、Apply／Save／undo。正常EXE双端并排／差异和≤1DIP仍无证据，passed=false／accepted=false／goal active。本节单md按结构／链接／diff／guard后正常deliver-task，validation[]；真实queue／commit另由原回执登记。未清共享、foreign、历史或未知产物，手工释放0B。
+
 ## 材质接续82：参数向量分量作者适配（原唯一 producer，2026-10-28 UTC）
 
 - 接续81受管文档提交 `5bb1a0173440b90dc0c2f045fb2d915c5990a820`（queue29087/#627 SUCCESS），在原就绪session `w47ec1661d3` 的同四路径实现；保留81及全部早期正文、本域源后继、fork30和原终态。Penpot仍为81真实rev422，本轮无新浏览器/Shared/原ZUI/主题/公共Graph或host写入。
