@@ -1,3 +1,19 @@
+## 接续90：原父链交接与作者／渲染引用边界（2026-10-28 UTC）
+
+已按原件消费 fork60 `baddf44f1e927d76f801a6381bf7b458c76e51b8`，原 request `ue-material-instance-hierarchy-20261026`／operation `deliver-material-instance-hierarchy-fork60-20261028`／queue29895／management#687 SUCCESS；2185B原receipt SHA `6e188af64f662240e40efe04522c2e4d595cb3f2e31e515e98c1bb0c2a3f766f`。其 `project_material_instance_parent_chain` 从实际 MaterialAsset.parent 借用完整引用和原Material，由真实resolver提供canonical UUID；完整成功才root-first返回，missing ancestor／cycle／budget均显式错误且不发布prefix。11定义与fork原167定义仅属该树，不并入本树计数。原branch integration pending／Rust未运行；fork当前Hierarchy activation等后继单列，未把当前dirty四路径归为badd原像、未改写或重贴其源码。
+
+本域真实读取 Runtime `load_effective_material.rs`：渲染resolve沿最多4层来源，缺祖先／循环／shader不符等可留下真实diagnostics并使用已取得的lineage；最终 `effective.parent=None`。这是渲染fallback契约，不能拿来判定作者Hierarchy“无parent”或冒充完整父链。`inherit_parent_values_from` 本身保留child.parent，最后清parent发生在private loader尾部；两者区分记录，不声称调用了private loader。
+
+仅在原受管 `w16726e4ff5-inst85` 的既有四owned paths增加 `check_material_document_asset_references(&ZMaterialDocument,&MaterialAsset)` 和借用式 `MaterialDocumentAssetReferenceError`。先核parent的Option完整引用，再核shader UUID＋locator；错误借用原authored／actual引用，保留缺失和多余parent、同UUID异locator及同locator异UUID的真实差异，不自动修复或规范化。Shader错误显示两份UUID及locator；引用检查不clone或修改document／material、不加载资源、不另造父链／store／history／clock／permit。
+
+此API仅为必要的引用元数据检查。若effective仍保留原parent／shader却已继承values，检查可成功，**不证明原始payload、同view/document/request/revision、当前资源generation、registry正确、完整祖先、ready或写权限**。宿主必须在原ResourceManager read scope取得原始作者Document与raw MaterialAsset，先保留这些真实guard，再交fork父链resolver；每个祖先也须来自同一真实来源范围。原prepared／一次permit／CAS／history／Toolkit激活及焦点流程不因Ok(())放宽，不能以flatten后的to_zmaterial_document重建作者元数据或presence。
+
+六项回归定义覆盖原codec转换root／instance与metadata不变、真实inherit后明确模拟loader尾部清parent的拒绝、root多余parent且shader亦漂移时parent诊断优先、parent和shader各两类完整身份漂移／错误借用地址，以及“引用相同仍非payload／revision证明”的边界。旧20个instance测试和既有property／texture提案语义保留；本树目标235个material_graph_定义（234普通＋1原ignored），Rust实际发现／执行仍null，不能加fork11或用历史canonical161作本轮结果。
+
+正常交付沿原request `ue-material-graph-20261024-01`、唯一managed producer及后继 operation `deliver-material-instance-source-01a16d50-20261028-90`，依赖89；仅三Rust格式／四路径guard及结构核验，validation[]，实际queue／commit另记原回执。未向不支持的nested plugin worktree提交Cargo，未重放84/#651、r10/#370或fork687；原Jenkins/Git owner须沿既有PR/main整合本域与fork的真实commits，再在当时canonical source／有限单包配方准入后执行material_graph_。原先失败及未知native／reader／resource仍独立保留。
+
+本轮没有Penpot／Shared／公共Graph／Runtime／catalog／tokens／主题／原ZUI／桌面／服务或管理gate修改。89原三尺寸native内容投影及保存关闭重开证据复用，未把本轮metadata源码当新的画面／父链UI通过。官方codec／原资产绑定、真实host祖先／registry／Toolkit／focus、真实renderer／Apply／Save／undo、正常EXE／实际150%DPI／双端≤1DIP仍open；goal active，passed=false／accepted=false，必要原件与失败保留，手工释放0B。具体来源／patch／静态检查／交付均在原E报告根 `material-instance-source-90-*`。
+
 ## 接续89：640图节点内容的原生等比投影与保存重开（2026-10-28 UTC）
 
 88已由原 `deliver-material-instance-texture-01a16d50-20261028-88`／queue29879／management#684 SUCCESS提交 `852a0f31059bec1260ee63f00e6d5da7054cbc97`（parent903e3bf4），四路径raw／Git blob精确一致；integration pending／mainAdvanced=false／validationPerformed=false。本轮只在原受管 `w16726e4ff5-inst85` 增量写本计划，不改三Rust、fork30 Hierarchy源码／四Instance搜索copy、公共组件／主题或原ZUI；保留原417436B文档完整suffix。Canonical84原#651已于08:48Z认证读为FAILURE，544B原归档仍waiting／checkout_source_busy／r19 reader，compile／tests／server native与资源释放未知，不重投该终态。

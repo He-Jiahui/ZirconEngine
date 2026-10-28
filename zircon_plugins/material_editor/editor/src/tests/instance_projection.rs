@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
 use super::{
-    plan_material_document_property_edit, plan_material_document_texture_edit,
-    project_authored_material_document, MaterialDocumentProjectionError,
+    check_material_document_asset_references, plan_material_document_property_edit,
+    plan_material_document_texture_edit, project_authored_material_document,
+    MaterialDocumentAssetReferenceError as ReferenceError, MaterialDocumentProjectionError,
     MaterialDocumentPropertyEdit as Edit, MaterialDocumentPropertyEditError as EditError,
     MaterialDocumentTextureEdit as TextureEdit,
     MaterialDocumentTextureEditError as TextureEditError,
@@ -810,6 +811,160 @@ fn material_graph_instance_texture_keys_keep_spaces_unicode_aliases_and_property
     assert!(!alias_clear.was_overridden());
     assert_eq!(alias_clear.name(), "base_color_texture");
     assert!(source.textures.contains_key("base_color"));
+    assert_eq!(source, before);
+}
+
+#[test]
+fn material_graph_instance_source_references_preserve_original_root_and_instance_payloads() {
+    for parent in [None, Some(reference("builtin://material/base"))] {
+        let mut source = document("roughness = 0.5", "base_color = {}");
+        source.parent = parent;
+        let source_before = source.clone();
+        let material = MaterialAsset::from_zmaterial_document(source.clone());
+        let material_before = material.clone();
+
+        check_material_document_asset_references(&source, &material).unwrap();
+        assert_eq!(source, source_before);
+        assert_eq!(material, material_before);
+        assert_eq!(material.parent, source.parent);
+        assert_eq!(material.shader, source.shader);
+        assert!(!source.editor.is_empty());
+    }
+}
+
+#[test]
+fn material_graph_instance_source_references_reject_parent_cleared_after_real_inheritance() {
+    let mut source = document("", "");
+    source.parent = Some(reference("builtin://material/base"));
+    let source_before = source.clone();
+    let parent = MaterialAsset::from_zmaterial_document(document("roughness = 0.9", ""));
+    let mut effective = MaterialAsset::from_zmaterial_document(source.clone());
+    effective.inherit_parent_values_from(&parent);
+    assert_eq!(effective.roughness, 0.9);
+    // Mirrors the final parent-clear in load_effective_material.rs; this test
+    // does not call its private loader or claim registry/renderer execution.
+    effective.parent = None;
+    let effective_before = effective.clone();
+
+    let ReferenceError::ParentReferenceMismatch { authored, actual } =
+        check_material_document_asset_references(&source, &effective).unwrap_err()
+    else {
+        panic!("flattened material must not report an authored empty parent chain");
+    };
+    assert!(std::ptr::eq(
+        authored.unwrap(),
+        source.parent.as_ref().unwrap()
+    ));
+    assert!(actual.is_none());
+    assert_eq!(source, source_before);
+    assert_eq!(effective, effective_before);
+}
+
+#[test]
+fn material_graph_instance_source_references_reject_unexpected_parent_before_shader_drift() {
+    let root = document("", "");
+    let mut unexpected = MaterialAsset::from_zmaterial_document(root.clone());
+    unexpected.parent = Some(reference("builtin://material/unexpected"));
+    unexpected.shader = reference("builtin://shader/other");
+    let before = unexpected.clone();
+
+    let ReferenceError::ParentReferenceMismatch { authored, actual } =
+        check_material_document_asset_references(&root, &unexpected).unwrap_err()
+    else {
+        panic!("parent mismatch must remain actionable when shader also differs");
+    };
+    assert!(authored.is_none());
+    assert!(std::ptr::eq(
+        actual.unwrap(),
+        unexpected.parent.as_ref().unwrap()
+    ));
+    assert_eq!(unexpected, before);
+}
+
+#[test]
+fn material_graph_instance_source_references_keep_both_declared_parent_identity_fields() {
+    let mut source = document("", "");
+    source.parent = Some(reference("builtin://material/base"));
+    let expected = source.parent.as_ref().unwrap();
+    let alternatives = [
+        AssetReference::new(
+            reference("builtin://material/other").uuid,
+            expected.locator.clone(),
+        ),
+        AssetReference::new(
+            expected.uuid,
+            AssetUri::parse("builtin://material/moved").unwrap(),
+        ),
+    ];
+    let source_before = source.clone();
+    for alternative in alternatives {
+        let mut material = MaterialAsset::from_zmaterial_document(source.clone());
+        material.parent = Some(alternative);
+        let before = material.clone();
+        let ReferenceError::ParentReferenceMismatch { authored, actual } =
+            check_material_document_asset_references(&source, &material).unwrap_err()
+        else {
+            panic!("matching only the parent UUID or locator is insufficient");
+        };
+        assert!(std::ptr::eq(authored.unwrap(), expected));
+        assert!(std::ptr::eq(
+            actual.unwrap(),
+            material.parent.as_ref().unwrap()
+        ));
+        assert_eq!(material, before);
+    }
+    assert_eq!(source, source_before);
+}
+
+#[test]
+fn material_graph_instance_source_references_keep_both_declared_shader_identity_fields() {
+    let mut source = document("", "");
+    source.parent = Some(reference("builtin://material/base"));
+    let alternatives = [
+        AssetReference::new(
+            reference("builtin://shader/other").uuid,
+            source.shader.locator.clone(),
+        ),
+        AssetReference::new(
+            source.shader.uuid,
+            AssetUri::parse("builtin://shader/moved").unwrap(),
+        ),
+    ];
+    let source_before = source.clone();
+    for alternative in alternatives {
+        let mut material = MaterialAsset::from_zmaterial_document(source.clone());
+        material.shader = alternative;
+        let before = material.clone();
+        let ReferenceError::ShaderReferenceMismatch { authored, actual } =
+            check_material_document_asset_references(&source, &material).unwrap_err()
+        else {
+            panic!("matching only the shader UUID or locator is insufficient");
+        };
+        assert!(std::ptr::eq(authored, &source.shader));
+        assert!(std::ptr::eq(actual, &material.shader));
+        let diagnostic = ReferenceError::ShaderReferenceMismatch { authored, actual }.to_string();
+        assert!(diagnostic.contains(&authored.uuid.to_string()));
+        assert!(diagnostic.contains(&actual.uuid.to_string()));
+        assert_eq!(material, before);
+    }
+    assert_eq!(source, source_before);
+}
+
+#[test]
+fn material_graph_instance_source_reference_match_is_not_a_payload_or_revision_proof() {
+    let mut source = document("", "");
+    source.parent = Some(reference("builtin://material/base"));
+    let before = source.clone();
+    let parent = MaterialAsset::from_zmaterial_document(document("roughness = 0.9", ""));
+    let mut inherited = MaterialAsset::from_zmaterial_document(source.clone());
+    inherited.inherit_parent_values_from(&parent);
+    assert_eq!(inherited.roughness, 0.9);
+    assert!(source.overrides.is_empty());
+    assert!(!inherited.property_values.is_empty());
+
+    // Retaining references can pass this necessary metadata check even though
+    // values were inherited. The host still needs original coherent sources.
+    check_material_document_asset_references(&source, &inherited).unwrap();
     assert_eq!(source, before);
 }
 

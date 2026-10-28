@@ -139,8 +139,9 @@ pub use graph_presentation::{
     MaterialGraphEdgeProjection, MaterialGraphEdgeSplineProjection, MaterialGraphPresentation,
 };
 pub use instance_projection::{
-    plan_material_document_property_edit, plan_material_document_texture_edit,
-    project_authored_material_document, MaterialDocumentProjectionError,
+    check_material_document_asset_references, plan_material_document_property_edit,
+    plan_material_document_texture_edit, project_authored_material_document,
+    MaterialDocumentAssetReferenceError, MaterialDocumentProjectionError,
     MaterialDocumentPropertyEdit, MaterialDocumentPropertyEditError,
     MaterialDocumentPropertyEditPlan, MaterialDocumentTextureEdit,
     MaterialDocumentTextureEditError, MaterialDocumentTextureEditPlan,
