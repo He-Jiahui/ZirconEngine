@@ -5,12 +5,15 @@ use std::thread;
 use std::time::Duration;
 
 use crate::core::editing::engine::{
-    CommandExecutionError, EditCommand, EditCommandError, EditContext, EditWorldRoute,
-    EditorTransactionEngine, HistoryContextId, HistoryDirtyBatch, HistoryDirtyCursor,
-    SelectionSnapshot,
+    CommandExecutionError, CommandRetentionLimitsV1, CommandRetentionPlanV1, EditCommand,
+    EditCommandError, EditContext, EditWorldRoute, EditorTransactionEngine, HistoryContextId,
+    HistoryDirtyBatch, HistoryDirtyCursor, RetentionPhaseV1, SelectionSnapshot,
 };
 use crate::core::editor_message::DocumentId;
 use crate::core::play::WorldDomain;
+use zircon_runtime_interface::retained_memory::{
+    RetainedAccountingModelV1, RetainedBoundBuilderV1, RetainedBytesV1,
+};
 
 use super::registry::DirtyTransactionStateSource;
 use super::{DirtyExternalEffectId, DirtyRegistry, DirtyRegistryError};
@@ -84,6 +87,29 @@ impl EditCommand for AppliedCommand {
             self, context, phase, model, limit,
         )
     }
+
+    fn retention_plan_with_limits_v1(
+        &self,
+        context: &dyn EditContext,
+        phase: RetentionPhaseV1,
+        model: RetainedAccountingModelV1,
+        limits: CommandRetentionLimitsV1,
+    ) -> Result<CommandRetentionPlanV1, EditCommandError> {
+        // Replay re-quotes this static-label command at its 16-byte payload bound;
+        // the selection snapshot has its own independently admitted allowance.
+        let mut retained =
+            RetainedBoundBuilderV1::with_limit(model, RetainedBytesV1::new(limits.retained_bytes));
+        retained.owned(self)?;
+        let selection = context.selection_retention_bound_v1(model, limits.selection_bytes)?;
+        CommandRetentionPlanV1::for_owner(
+            self,
+            context,
+            phase,
+            model,
+            retained.bytes().get().max(selection),
+        )
+    }
+
     fn prepare_retention_v1(
         &mut self,
         _: &mut dyn crate::core::editing::engine::EditContext,

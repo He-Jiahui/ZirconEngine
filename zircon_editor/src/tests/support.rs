@@ -529,12 +529,20 @@ impl OwnedSourceWriteFixture {
 
     fn require_authorized_physical_path(path: &std::path::Path) -> std::io::Result<()> {
         let display = zircon_runtime::asset::project::ProjectPaths::display_path(path);
+        #[cfg(windows)]
         let allowed = [
             std::path::Path::new(r"D:\cargo-targets\zircon-local"),
             std::path::Path::new(r"E:\cargo-targets\zircon-local"),
             std::path::Path::new(r"F:\cargo-targets\zircon-local"),
         ];
-        if !allowed.iter().any(|root| display.starts_with(root)) {
+        #[cfg(windows)]
+        let authorized = allowed.iter().any(|root| display.starts_with(root));
+        // The Linux validation exception owns evidence leaves under this physical root.
+        #[cfg(target_os = "linux")]
+        let authorized = path.starts_with("/workspace/ZirconEngine-review/evidence");
+        #[cfg(not(any(windows, target_os = "linux")))]
+        let authorized = false;
+        if !authorized {
             return Err(std::io::Error::other(format!(
                 "fixture TEMP is outside authorized physical output: {}",
                 display.display()
