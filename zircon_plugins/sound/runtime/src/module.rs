@@ -23,6 +23,7 @@ pub struct SoundModule;
 
 pub fn module_descriptor() -> ModuleDescriptor {
     ModuleDescriptor::new(SOUND_MODULE_NAME, "Audio mixing, buses, and playback")
+        .with_lifecycle(Arc::new(crate::scene_system::SoundSceneLifecycle))
         .with_module_dependency(ModuleDependencySpec::named(ASSET_MODULE_NAME))
         .with_driver(DriverDescriptor::new(
             qualified_name(SOUND_MODULE_NAME, ServiceKind::Driver, "SoundDriver"),

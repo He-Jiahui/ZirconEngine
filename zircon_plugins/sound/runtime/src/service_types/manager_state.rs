@@ -1,6 +1,8 @@
 //! 经理对象通过模块注册表提供中立 SoundManager 接口；弱引用只用于按需取资产与运行时钟，避免与 Core 的服务注册表形成引用环。
+use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 
+use zircon_runtime::core::framework::sound::SoundSourceId;
 use zircon_runtime::core::{CoreHandle, CoreWeak};
 
 use crate::engine::SoundEngineState;
@@ -17,6 +19,7 @@ pub struct DefaultSoundManager {
     pub(super) core: Option<CoreWeak>,
     pub(super) config: Arc<Mutex<SoundConfig>>,
     pub(super) state: Arc<Mutex<SoundEngineState>>,
+    pub(super) scene_sources: Arc<Mutex<HashSet<SoundSourceId>>>,
 }
 
 impl Default for DefaultSoundManager {
@@ -44,6 +47,7 @@ impl DefaultSoundManager {
             core,
             config: Arc::new(Mutex::new(config.clone())),
             state: Arc::new(Mutex::new(SoundEngineState::new(&config))),
+            scene_sources: Arc::default(),
         }
     }
 

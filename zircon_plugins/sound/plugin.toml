@@ -189,6 +189,13 @@ target_modes = ["editor_host"]
 capabilities = ["editor.extension.sound_authoring"]
 
 [[modules]]
+name = "sound.playback.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_sound_runtime"
+target_modes = ["client_runtime"]
+capabilities = ["runtime.plugin.sound"]
+
+[[modules]]
 name = "sound.dist"
 kind = "native"
 crate_name = "zircon_plugin_sound_dist"

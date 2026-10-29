@@ -6,11 +6,15 @@ license.workspace = true
 description = "Sound runtime plugin package for Zircon."
 
 [dependencies]
+# Scene AudioSource fields deserialize into the existing sound DTOs.
+serde = { workspace = true }
 zircon_plugin_sdk = { workspace = true, features = ["runtime"] }
 zircon_runtime = { workspace = true, features = ["sound-contracts"] }
 zircon_runtime_interface = { workspace = true }
 kira = "0.12.2"
 
 [dev-dependencies]
+# Authored scene-component fixtures for device-free lifecycle regressions.
+serde_json = "1.0.150"
 zircon_plugin_sound_ray_traced_convolution_runtime = { path = "../features/ray_reverb/runtime" }
 zircon_plugin_sound_timeline_animation_runtime = { path = "../features/timeline/runtime" }

@@ -10067,6 +10067,8 @@ name = "zircon_plugin_sound_runtime"
 version = "0.1.0"
 dependencies = [
  "kira",
+ "serde",
+ "serde_json",
  "zircon_plugin_sdk",
  "zircon_plugin_sound_ray_traced_convolution_runtime",
  "zircon_plugin_sound_timeline_animation_runtime",

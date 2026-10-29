@@ -35,6 +35,8 @@ mod presets;
 mod ray_tracing;
 #[path = "runtime_plugin/mod.rs"]
 mod runtime_plugin;
+#[path = "scene_system.rs"]
+mod scene_system;
 #[path = "service_types/mod.rs"]
 mod service_types;
 #[path = "timeline/mod.rs"]

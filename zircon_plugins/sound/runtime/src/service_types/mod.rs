@@ -40,6 +40,8 @@ mod playback_validation;
 mod ray_tracing_convolution;
 #[path = "runtime_settings.rs"]
 mod runtime_settings;
+#[path = "scene.rs"]
+mod scene;
 #[path = "source_controls.rs"]
 mod source_controls;
 #[path = "source_seek.rs"]
@@ -52,6 +54,7 @@ mod sources;
 mod timeline_sequences;
 
 pub use manager_state::{DefaultSoundManager, SoundDriver};
+pub(crate) use scene::SceneSource;
 
 #[cfg(test)]
 pub(crate) use mixer_graph::sync::{

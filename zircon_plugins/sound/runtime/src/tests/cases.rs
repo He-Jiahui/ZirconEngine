@@ -62,6 +62,10 @@ mod presets;
 mod ray_tracing;
 #[path = "runtime_core.rs"]
 mod runtime_core;
+#[path = "scene_support.rs"]
+mod scene_support;
+#[path = "scene_system.rs"]
+mod scene_system;
 #[path = "source_inputs.rs"]
 mod source_inputs;
 #[path = "spatial.rs"]

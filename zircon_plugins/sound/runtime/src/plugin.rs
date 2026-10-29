@@ -5,6 +5,7 @@ use crate::package::attach::attach_sound_manifest_contributions;
 use crate::package::events::sound_event_catalogs;
 use crate::package::options::sound_options;
 use crate::runtime_plugin::descriptor::runtime_plugin_descriptor;
+use crate::scene_system::{register_scene_system, PLAYBACK_MODULE};
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::plugin::{
@@ -39,6 +40,11 @@ impl zircon_runtime::plugin::RuntimePlugin for SoundRuntimePlugin {
 
     fn package_manifest(&self) -> PluginPackageManifest {
         let mut manifest = attach_sound_manifest_contributions(self.descriptor.package_manifest());
+        manifest.modules.push(
+            PluginModuleManifest::runtime(PLAYBACK_MODULE, crate::capability::RUNTIME_CRATE_NAME)
+                .with_target_modes([RuntimeTargetMode::ClientRuntime])
+                .with_capabilities(RUNTIME_CAPABILITIES.iter().copied()),
+        );
         manifest = manifest.with_native_module(sound_dist_module_manifest());
         manifest.with_distribution(PluginDistributionManifest {
             forms: vec!["dist".to_string()],
@@ -56,6 +62,7 @@ impl zircon_runtime::plugin::RuntimePlugin for SoundRuntimePlugin {
         &self,
         registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
     ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
+        register_scene_system(registry)?;
         for component in sound_component_descriptors() {
             registry.register_component(component)?;
         }
