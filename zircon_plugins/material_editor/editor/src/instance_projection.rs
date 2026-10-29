@@ -7,8 +7,8 @@ use zircon_editor::ui::material_editor::{
     MaterialEditorTextureSlotRow,
 };
 use zircon_runtime::asset::{
-    AssetReference, AssetUri, MaterialTextureSlotValue, ShaderAsset, ShaderMaterialPropertyAsset,
-    ShaderTextureSlotAsset, ZMaterialDocument,
+    AssetReference, AssetUri, MaterialAsset, MaterialTextureSlotValue, ShaderAsset,
+    ShaderMaterialPropertyAsset, ShaderTextureSlotAsset, ZMaterialDocument,
 };
 use zircon_runtime::core::framework::render::{
     MaterialPropertyKind, RenderMaterialDiagnosticSource, RenderMaterialPropertyValue,
@@ -45,6 +45,70 @@ impl fmt::Display for MaterialDocumentProjectionError {
 }
 
 impl Error for MaterialDocumentProjectionError {}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum MaterialDocumentAssetReferenceError<'a> {
+    ParentReferenceMismatch {
+        authored: Option<&'a AssetReference>,
+        actual: Option<&'a AssetReference>,
+    },
+    ShaderReferenceMismatch {
+        authored: &'a AssetReference,
+        actual: &'a AssetReference,
+    },
+}
+
+impl fmt::Display for MaterialDocumentAssetReferenceError<'_> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ParentReferenceMismatch { authored, actual } => write!(
+                formatter,
+                "material authoring parent reference {authored:?} does not match supplied material parent {actual:?}"
+            ),
+            Self::ShaderReferenceMismatch { authored, actual } => write!(
+                formatter,
+                "material authoring shader {} ({}) does not match supplied material shader {} ({})",
+                authored.locator, authored.uuid, actual.locator, actual.uuid
+            ),
+        }
+    }
+}
+
+impl Error for MaterialDocumentAssetReferenceError<'_> {}
+
+/// Check the complete declared parent and shader references before pairing an
+/// author document with a supplied material for Instance UI projection.
+///
+/// Rendering can flatten inheritance and clear `MaterialAsset::parent`. Such a
+/// value must not turn an authored instance's Hierarchy into an empty success.
+/// References are compared without rewriting either UUID or locator; mismatch
+/// diagnostics borrow the original inputs, with the parent checked first.
+///
+/// This is only a metadata check. Matching references do not prove an original
+/// unflattened payload, current registry resolution, document/resource revision,
+/// complete ancestry, readiness, or permission to write. The host must supply
+/// coherent raw sources and enforce those existing guards separately.
+pub fn check_material_document_asset_references<'a>(
+    document: &'a ZMaterialDocument,
+    material: &'a MaterialAsset,
+) -> Result<(), MaterialDocumentAssetReferenceError<'a>> {
+    let authored = document.parent.as_ref();
+    let actual = material.parent.as_ref();
+    if authored != actual {
+        return Err(
+            MaterialDocumentAssetReferenceError::ParentReferenceMismatch { authored, actual },
+        );
+    }
+    if document.shader != material.shader {
+        return Err(
+            MaterialDocumentAssetReferenceError::ShaderReferenceMismatch {
+                authored: &document.shader,
+                actual: &material.shader,
+            },
+        );
+    }
+    Ok(())
+}
 
 /// One proposed change to an exact local property key, before a document write.
 #[derive(Clone, Copy, Debug, PartialEq)]
