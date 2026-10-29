@@ -1,4 +1,7 @@
-use std::collections::{BTreeMap, VecDeque};
+#[path = "service/scene.rs"]
+mod scene;
+
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::{Arc, Mutex};
 
 use zircon_runtime::core::framework::render::{ParticleExtract, RenderParticleGpuReadbackOutputs};
@@ -90,6 +93,7 @@ pub struct ParticleGpuRuntimeInstance {
 #[derive(Clone, Debug, Default)]
 pub struct ParticlesManager {
     state: Arc<Mutex<ParticlesManagerState>>,
+    scene_handles: Arc<Mutex<BTreeSet<ParticleEmitterHandle>>>,
 }
 
 #[derive(Clone, Debug)]
@@ -169,6 +173,7 @@ impl ParticlesManager {
         }
         Self {
             state: Arc::new(Mutex::new(state)),
+            scene_handles: Arc::default(),
         }
     }
 
@@ -218,11 +223,18 @@ impl ParticlesManager {
 
     pub fn remove(&self, handle: ParticleEmitterHandle) -> Result<(), ParticleSimulationError> {
         let mut state = self.lock_state();
-        if state.instances.remove(&handle).is_none() {
-            return Err(ParticleSimulationError::UnknownHandle(handle.raw()));
-        }
+        let removed = state.instances.remove(&handle).is_some();
         state.invalidate_snapshot();
-        Ok(())
+        drop(state);
+        self.scene_handles
+            .lock()
+            .expect("particle scene handles mutex poisoned")
+            .remove(&handle);
+        if removed {
+            Ok(())
+        } else {
+            Err(ParticleSimulationError::UnknownHandle(handle.raw()))
+        }
     }
 
     pub fn play(&self, handle: ParticleEmitterHandle) -> Result<(), ParticleSimulationError> {

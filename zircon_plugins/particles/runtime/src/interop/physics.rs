@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use zircon_runtime::core::math::{Real, Vec3};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -25,7 +26,8 @@ impl ParticleOptionalFeatureStatus {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct ParticlePhysicsOptions {
     pub external_force: Vec3,
     pub collision_enabled: bool,

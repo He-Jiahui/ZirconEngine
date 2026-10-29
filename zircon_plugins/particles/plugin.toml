@@ -96,6 +96,13 @@ target_modes = ["client_runtime", "editor_host"]
 capabilities = ["runtime.plugin.particles"]
 
 [[modules]]
+name = "particles.simulation.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_particles_runtime"
+target_modes = ["client_runtime"]
+capabilities = ["runtime.plugin.particles"]
+
+[[modules]]
 name = "particles.dist"
 kind = "native"
 crate_name = "zircon_plugin_particles_dist"

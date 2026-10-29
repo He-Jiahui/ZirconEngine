@@ -14,6 +14,8 @@ mod package;
 mod plugin;
 #[path = "render/mod.rs"]
 mod render;
+#[path = "scene_system.rs"]
+mod scene_system;
 #[path = "service.rs"]
 mod service;
 #[path = "simulation/mod.rs"]

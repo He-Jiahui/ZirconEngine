@@ -12,6 +12,7 @@ use crate::render::{
     particle_runtime_prepare_collector_registration_with_manager_and_owner,
     render_feature_descriptor, ParticleGpuRuntimeOwnerHandle,
 };
+use crate::scene_system::{register_scene_system, SIMULATION_MODULE};
 use crate::service::ParticlesManager;
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
@@ -65,6 +66,11 @@ impl RuntimePlugin for ParticlesRuntimePlugin {
         let mut manifest =
             attach_particles_manifest_contributions(self.descriptor.package_manifest());
         manifest.modules.push(
+            PluginModuleManifest::runtime(SIMULATION_MODULE, RUNTIME_CRATE_NAME)
+                .with_target_modes([RuntimeTargetMode::ClientRuntime])
+                .with_capabilities(RUNTIME_CAPABILITIES.iter().copied()),
+        );
+        manifest.modules.push(
             PluginModuleManifest::native("particles.dist", PARTICLES_DIST_CRATE_NAME)
                 .with_target_modes([
                     RuntimeTargetMode::ClientRuntime,
@@ -88,6 +94,7 @@ impl RuntimePlugin for ParticlesRuntimePlugin {
         &self,
         registry: &mut RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
+        register_scene_system(registry)?;
         let runtime_owner = ParticleGpuRuntimeOwnerHandle::default();
         registry.register_render_feature(render_feature_descriptor())?;
         for registration in

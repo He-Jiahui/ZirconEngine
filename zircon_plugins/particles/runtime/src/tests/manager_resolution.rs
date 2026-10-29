@@ -1,5 +1,5 @@
 use zircon_runtime::core::CoreRuntime;
-use zircon_runtime::plugin::RuntimePlugin;
+use zircon_runtime::plugin::RuntimePluginRegistrationReport;
 
 use crate::{
     module_descriptor, runtime_plugin, ParticleSimulationBackend, ParticleSystemComponent,
@@ -35,10 +35,9 @@ fn particles_runtime_plugin_module_and_runtime_prepare_share_manager() {
     let plugin = runtime_plugin();
     let manager = plugin.manager();
     let runtime = CoreRuntime::new();
-    let mut registry = zircon_runtime::plugin::RuntimeExtensionRegistry::default();
-
-    plugin.register(&mut registry).unwrap();
-    for module in registry.modules() {
+    let report = RuntimePluginRegistrationReport::from_plugin(&plugin);
+    assert!(report.is_success(), "{:?}", report.diagnostics);
+    for module in report.extensions.modules() {
         runtime.register_module(module.clone()).unwrap();
     }
     runtime.activate_module(PARTICLES_MODULE_NAME).unwrap();

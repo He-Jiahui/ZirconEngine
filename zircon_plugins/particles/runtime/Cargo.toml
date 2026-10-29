@@ -6,9 +6,12 @@ license.workspace = true
 description = "Particles runtime plugin package for Zircon."
 
 [dependencies]
+# Inline scene assets use the existing particle DTO defaults and validation.
+serde = { workspace = true }
 wgpu = "29.0.1"
 zircon_plugin_sdk = { workspace = true, features = ["runtime"] }
 zircon_runtime = { workspace = true, features = ["graphics"] }
 
 [dev-dependencies]
 naga = { version = "29.0.1", features = ["wgsl-in"] }
+serde_json = "1.0.150"

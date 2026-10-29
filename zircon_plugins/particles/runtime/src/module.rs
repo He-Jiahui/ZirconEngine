@@ -4,6 +4,7 @@ use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode};
 use zircon_runtime::engine_module::{factory, qualified_name, EngineModule};
 
+use crate::scene_system::ParticlesSceneLifecycle;
 use crate::ParticlesManager;
 
 pub const PARTICLES_MODULE_NAME: &str = "particles.runtime";
@@ -17,8 +18,9 @@ pub fn module_descriptor() -> ModuleDescriptor {
 }
 
 pub fn module_descriptor_with_manager(manager: ParticlesManager) -> ModuleDescriptor {
-    ModuleDescriptor::new(PARTICLES_MODULE_NAME, "CPU/GPU sprite particle simulation").with_manager(
-        ManagerDescriptor::new(
+    ModuleDescriptor::new(PARTICLES_MODULE_NAME, "CPU/GPU sprite particle simulation")
+        .with_lifecycle(Arc::new(ParticlesSceneLifecycle))
+        .with_manager(ManagerDescriptor::new(
             qualified_name(
                 PARTICLES_MODULE_NAME,
                 ServiceKind::Manager,
@@ -26,9 +28,8 @@ pub fn module_descriptor_with_manager(manager: ParticlesManager) -> ModuleDescri
             ),
             StartupMode::Lazy,
             Vec::new(),
-            factory(move |_| Ok(Arc::new(manager.clone()) as ServiceObject)),
-        ),
-    )
+            factory(move |_| Ok(Arc::new(manager.for_session()) as ServiceObject)),
+        ))
 }
 
 impl EngineModule for ParticlesModule {

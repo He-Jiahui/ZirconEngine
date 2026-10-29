@@ -1,9 +1,10 @@
+use serde::{Deserialize, Serialize};
 use zircon_runtime::core::framework::scene::EntityId;
 use zircon_runtime::core::math::Real;
 
 use crate::ParticleEmitterHandle;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ParticleAnimationBinding {
     pub parameter: String,
     pub curve_path: String,

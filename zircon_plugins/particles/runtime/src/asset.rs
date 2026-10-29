@@ -1,24 +1,29 @@
+use serde::{Deserialize, Serialize};
 use zircon_runtime::core::math::{Real, Vec3, Vec4};
 use zircon_runtime::core::resource::{MaterialMarker, ResourceHandle, TextureMarker};
 
 use crate::interop::{ParticleAnimationBinding, ParticlePhysicsOptions};
 use crate::simulation::ParticleRng;
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ParticleSimulationBackend {
     #[default]
+    #[serde(alias = "cpu")]
     Cpu,
+    #[serde(alias = "gpu")]
     Gpu,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ParticleCoordinateSpace {
     #[default]
+    #[serde(alias = "local")]
     Local,
+    #[serde(alias = "world")]
     World,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ParticleScalarRange {
     pub min: Real,
     pub max: Real,
@@ -58,7 +63,7 @@ impl Default for ParticleScalarRange {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ParticleVec3Range {
     pub min: Vec3,
     pub max: Vec3,
@@ -91,7 +96,7 @@ impl Default for ParticleVec3Range {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ParticleScalarKey {
     pub t: Real,
     pub value: Real,
@@ -103,7 +108,7 @@ impl ParticleScalarKey {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ParticleColorKey {
     pub t: Real,
     pub value: Vec4,
@@ -115,7 +120,7 @@ impl ParticleColorKey {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ParticleBurst {
     pub time_seconds: Real,
     pub count: u32,
@@ -130,7 +135,8 @@ impl ParticleBurst {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind")]
 pub enum ParticleShape {
     Point,
     Sphere { radius: Real },
@@ -173,7 +179,8 @@ impl Default for ParticleShape {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct ParticleEmitterAsset {
     pub id: String,
     pub max_particles: u32,
@@ -324,7 +331,8 @@ impl Default for ParticleEmitterAsset {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct ParticleSystemAsset {
     pub id: String,
     pub backend: ParticleSimulationBackend,

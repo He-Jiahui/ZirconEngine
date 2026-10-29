@@ -14,6 +14,8 @@ mod optional_features;
 mod package_manifest;
 #[path = "registration.rs"]
 mod registration;
+#[path = "scene_system.rs"]
+mod scene_system;
 #[path = "snapshot.rs"]
 mod snapshot;
 #[path = "support.rs"]
