@@ -701,6 +701,74 @@ fn material_editor_dist_native_shader_contract_budget_failure_never_publishes_a_
     }
 }
 
+#[test]
+fn material_editor_dist_native_rejects_complete_positional_arrays_without_output() {
+    let graph = graph(0.25);
+    let shader = shader(&graph);
+    let graph_array = serde_json::to_vec(&json!([&graph])).unwrap();
+    let shader_array =
+        serde_json::to_vec(&json!([&graph, graph.shader.as_ref().unwrap(), &shader])).unwrap();
+    for (slot, array) in [
+        (0, graph_array.as_slice()),
+        (1, graph_array.as_slice()),
+        (2, shader_array.as_slice()),
+    ] {
+        for whitespace in ["", " \t\r\n"] {
+            let mut payload = whitespace.as_bytes().to_vec();
+            payload.extend_from_slice(array);
+            payload.extend_from_slice(whitespace.as_bytes());
+            let (status, capture) = invoke(
+                slot,
+                &payload,
+                MAX_OUTPUT_BYTES,
+                ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+            );
+            assert_eq!(
+                status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+                "slot {slot}"
+            );
+            assert_eq!(capture.calls, 0, "slot {slot}");
+            assert!(capture.bytes.is_empty(), "slot {slot}");
+        }
+    }
+}
+
+#[test]
+fn material_editor_dist_native_keeps_json_whitespace_and_nested_arrays_in_named_requests() {
+    let graph = graph(0.25);
+    let shader = shader(&graph);
+    let requests = [
+        request(&graph),
+        request(&graph),
+        shader_request(&graph, graph.shader.as_ref().unwrap(), &shader),
+    ];
+    for (slot, request) in requests.iter().enumerate() {
+        let slot = slot as u32;
+        let (status, expected) = invoke(
+            slot,
+            request,
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK, "slot {slot}");
+        assert_eq!(expected.calls, 1, "slot {slot}");
+        for whitespace in [" ", "\t", "\r", "\n", " \t\r\n"] {
+            let mut payload = whitespace.as_bytes().to_vec();
+            payload.extend_from_slice(request);
+            payload.extend_from_slice(whitespace.as_bytes());
+            let (status, capture) = invoke(
+                slot,
+                &payload,
+                MAX_OUTPUT_BYTES,
+                ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+            );
+            assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK, "slot {slot}");
+            assert_eq!(capture.calls, 1, "slot {slot}");
+            assert_eq!(capture.bytes, expected.bytes, "slot {slot}");
+        }
+    }
+}
+
 // Same Runtime ShaderAsset DTO and schema defaults as the source47 contract tests.
 // This descriptor fixture does not establish WGSL/GPU readiness or a preview producer.
 fn shader(graph: &MaterialGraphAsset) -> ShaderAsset {

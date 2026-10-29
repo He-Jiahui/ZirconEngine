@@ -1,3 +1,12 @@
+## 接续98：材质原生命令拒绝位置数组并保留对象协议（2026-10-28）
+
+- 本轮在原w448b90023f-native94、request ue-material-graph-20261024-01接续97 immutable3a02a6a1，仅改dist/src/commands.rs、原tests/commands.rs和本台账。初始三路径干净、index.lock不存在；原Doc全字节后缀、旧callback各slot/manifest/DTO/预算、原22项native测试均保留，不写fork/SDK/host/renderer/公共Graph/theme/catalog、Cargo/锁或原ZUI/Penpot。
+- 源码确认原serde_json1.0.150的deserialize_struct将根数组交visit_seq，serde_derive1.0.228为无flatten的named struct生成visit_seq；deny_unknown_fields仍不令根只接受map。故原Arguments/ShaderArguments可接受[graph]或[graph,shader_reference,shader]，与命名JSON对象协议不符。该结论来自两个原版本源码，不伪称已执行Rust复现；来源见[serde_json](https://docs.rs/serde_json/1.0.150/src/serde_json/de.rs.html#1820-1867)与[serde_derive](https://raw.githubusercontent.com/serde-rs/serde/v1.0.228/serde_derive/src/de/struct_.rs)。
+- 在原有1MiB/非空/非null和writer检查后，对同一借用slice跳过JSON四种空白，要求首token为左花括号，再走原typed Deserialize；不转Value后取字段，不丢重复键诊断、不另造parser/DTO/store/history，也不改内层graph节点/links/颜色数组。非法根直接ERROR且sink零发布；原unknown slot仍在读payload之前DENIED。
+- 新增两项真实SDK behavior回调回归定义：slot0/1完整单元素数组及slot2完整三元素数组（裸根与JSON空白包围）均拒绝/零写；三个原命名对象各以空格、tab、CR、LF及混合空白包围后与原请求输出逐字相同，真实graph内层数组仍可用。原测试完整字节保留；dist总26定义、material_editor_dist_native_筛选24，editor仍245总/242 material_graph_。这些是静态定义数，Rust发现/类型检查/执行均未知。
+- 本轮执行精确三路径结构/格式/guard与原plugin ABI检查，按97正常后继提交；正式dist recipe准入与原三条依赖锁边仍在原Jenkins/generation链，未用editor-only配方冒充dist覆盖、未本地Cargo/改锁或重投旧terminal操作。分支commit仍须原PR/main链集成后再按实际canonical源有限验证。
+- 此修复只保护实际已注册的validate/compile/compile_shader_contract输入形状；ResourceManager完整引用与generation、view/document/subdocument/revision/request、一次permit/CAS/history、Apply/renderer/save/focus仍由原host承担。97原生三尺寸画面不据新Rust补签；official export、正常EXE/实际150%DPI/双端1DIP/passed/accepted仍false，goal active。证据前缀material-native-arguments-98；释放0B，必要失败/回执保留且cleanup open。
+
 ## 接续97：三尺寸编译正文顶部流向与真实 Penpot 重开（2026-10-28）
 
 - 本轮回到原 Material file b4a1e3ce-9e6a-81fe-8008-d69d6092d704 / page ...6092d705，fresh读到rev448/5766objects/5业务main。只在现有Parameters80三板通过原生文本控件将编译正文verticalAlign由center改top，没有新建板/主件、重排节点或改Instance/Hierarchy/fork、Shared/theme/catalog、Rust/原ZUI。
