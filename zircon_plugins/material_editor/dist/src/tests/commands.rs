@@ -7,7 +7,7 @@ use zircon_plugin_sdk::native::{
 };
 use zircon_runtime::asset::{
     AssetReference, AssetUri, MaterialGraphLinkAsset, MaterialGraphNodeAsset,
-    MaterialGraphNodeKindAsset as Node,
+    MaterialGraphNodeKindAsset as Node, MaterialGraphParameterAsset as Parameter,
 };
 
 #[test]
@@ -21,7 +21,7 @@ fn material_editor_dist_native_manifest_declares_real_slots_and_contribution_sch
     let command_manifest = unsafe { CStr::from_ptr(behavior.command_manifest) };
     let manifest =
         native::command_manifest_v4_from_toml(command_manifest.to_str().unwrap()).unwrap();
-    assert_eq!(manifest.commands.len(), 3);
+    assert_eq!(manifest.commands.len(), 4);
     for (slot, name, schema) in [
         (
             0,
@@ -37,6 +37,11 @@ fn material_editor_dist_native_manifest_declares_real_slots_and_contribution_sch
             2,
             "material_editor.graph.compile_shader_contract",
             "material_editor.compile_graph_shader.v1",
+        ),
+        (
+            3,
+            "material_editor.graph.parameters",
+            "material_editor.graph_parameters.v1",
         ),
     ] {
         let command = &manifest.commands[slot as usize];
@@ -181,7 +186,7 @@ fn material_editor_dist_native_rejects_malformed_or_ambiguous_arguments_without_
 #[test]
 fn material_editor_dist_native_unknown_slot_is_denied_before_reading_payload() {
     let (status, capture) = invoke_slice(
-        3,
+        u32::MAX,
         NativePluginByteSliceV3 {
             data: std::ptr::null(),
             len: usize::MAX,
@@ -298,6 +303,12 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
             "command.material_editor.graph.compile_shader_contract.description",
             contract(),
         )
+        .command_with_execution_contract(
+            "material_editor.graph.parameters",
+            "command.material_editor.graph.parameters.label",
+            "command.material_editor.graph.parameters.description",
+            contract(),
+        )
         .localization_bundle(
             [
                 (
@@ -327,6 +338,14 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
                             "command.material_editor.graph.compile_shader_contract.description",
                             "Compile the submitted graph and check the supplied shader contract",
                         ),
+                        (
+                            "command.material_editor.graph.parameters.label",
+                            "Inspect Material Graph Parameters",
+                        ),
+                        (
+                            "command.material_editor.graph.parameters.description",
+                            "Read exact declarations and overrides from the submitted authoring graph",
+                        ),
                     ],
                 ),
                 (
@@ -350,6 +369,14 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
                             "command.material_editor.graph.compile_shader_contract.description",
                             "编译本次材质图并校验传入的着色器契约",
                         ),
+                        (
+                            "command.material_editor.graph.parameters.label",
+                            "查看材质图参数",
+                        ),
+                        (
+                            "command.material_editor.graph.parameters.description",
+                            "读取本次作者材质图的精确参数声明与覆盖值",
+                        ),
                     ],
                 ),
             ]
@@ -370,7 +397,7 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
     let actual = deserialize_like(registration_json(), &expected);
     assert_eq!(actual, expected);
     assert_eq!(actual.package_id(), "material_editor");
-    assert_eq!(actual.contributions().len(), 4);
+    assert_eq!(actual.contributions().len(), 5);
 }
 
 #[test]
@@ -712,6 +739,7 @@ fn material_editor_dist_native_rejects_complete_positional_arrays_without_output
         (0, graph_array.as_slice()),
         (1, graph_array.as_slice()),
         (2, shader_array.as_slice()),
+        (3, graph_array.as_slice()),
     ] {
         for whitespace in ["", " \t\r\n"] {
             let mut payload = whitespace.as_bytes().to_vec();
@@ -741,6 +769,7 @@ fn material_editor_dist_native_keeps_json_whitespace_and_nested_arrays_in_named_
         request(&graph),
         request(&graph),
         shader_request(&graph, graph.shader.as_ref().unwrap(), &shader),
+        request(&graph),
     ];
     for (slot, request) in requests.iter().enumerate() {
         let slot = slot as u32;
@@ -767,6 +796,239 @@ fn material_editor_dist_native_keeps_json_whitespace_and_nested_arrays_in_named_
             assert_eq!(capture.bytes, expected.bytes, "slot {slot}");
         }
     }
+}
+
+#[test]
+fn material_editor_dist_native_parameters_keep_source_order_exact_keys_and_distinct_declarations() {
+    let mut graph = graph(0.25);
+    if let Node::VectorParameter { name, .. } = &mut graph.nodes[0].kind {
+        *name = " 颜色 / Tint ".into();
+    }
+    graph.nodes.insert(
+        0,
+        MaterialGraphNodeAsset {
+            id: "z / scalar".into(),
+            position: [0.0, 0.0],
+            kind: Node::ScalarParameter {
+                name: "Roughness".into(),
+                default: 2.0,
+            },
+        },
+    );
+    graph.nodes.push(MaterialGraphNodeAsset {
+        id: "a / 同名声明".into(),
+        position: [0.0, 0.0],
+        kind: Node::VectorParameter {
+            name: " 颜色 / Tint ".into(),
+            default: [0.9; 4],
+        },
+    });
+    let value = Parameter::Vector([1.5, -0.25, 0.0, 1.0]);
+    graph
+        .parameters
+        .insert(" 颜色 / Tint ".into(), value.clone());
+    graph
+        .parameters
+        .insert("orphan".into(), Parameter::Scalar(7.0));
+    let payload = request(&graph);
+    let original = payload.clone();
+    let (status, capture) = invoke(
+        3,
+        &payload,
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    assert_eq!(capture.calls, 1);
+    let result: Value = serde_json::from_slice(&capture.bytes).unwrap();
+    assert_eq!(
+        result["graph_uri"],
+        serde_json::to_value(&graph.uri).unwrap()
+    );
+    assert_eq!(
+        result["parameters"],
+        json!([
+            {"node_id":"z / scalar", "key":"Roughness", "default":Parameter::Scalar(2.0),
+             "override_present":false, "override_value":null, "effective_value":Parameter::Scalar(2.0)},
+            {"node_id":"tint", "key":" 颜色 / Tint ", "default":Parameter::Vector([0.25,0.5,0.75,1.0]),
+             "override_present":true, "override_value":value, "effective_value":value},
+            {"node_id":"a / 同名声明", "key":" 颜色 / Tint ", "default":Parameter::Vector([0.9;4]),
+             "override_present":true, "override_value":value, "effective_value":value}
+        ])
+    );
+    assert_eq!(payload, original);
+    assert!(result.get("material").is_none());
+}
+
+#[test]
+fn material_editor_dist_native_parameters_distinguish_absent_default_and_signed_zero_overrides() {
+    let default = Parameter::Vector([0.0, 0.5, 0.75, 1.0]);
+    for value in [
+        None,
+        Some(default.clone()),
+        Some(Parameter::Vector([-0.0, 0.5, 0.75, 1.0])),
+    ] {
+        let mut graph = graph(0.0);
+        if let Some(value) = &value {
+            graph.parameters.insert("tint".into(), value.clone());
+        }
+        let (status, capture) = invoke(
+            3,
+            &request(&graph),
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        let result: Value = serde_json::from_slice(&capture.bytes).unwrap();
+        let row = &result["parameters"][0];
+        assert_eq!(row["override_present"], value.is_some());
+        assert_eq!(row["override_value"], serde_json::to_value(&value).unwrap());
+        assert_eq!(row["default"], serde_json::to_value(&default).unwrap());
+        let effective = value.as_ref().unwrap_or(&default);
+        assert_eq!(
+            row["effective_value"],
+            serde_json::to_value(effective).unwrap()
+        );
+        let Parameter::Vector(expected) = effective else {
+            unreachable!()
+        };
+        assert_eq!(
+            row["effective_value"]["value"][0]
+                .as_f64()
+                .unwrap()
+                .is_sign_negative(),
+            expected[0].is_sign_negative()
+        );
+    }
+}
+
+#[test]
+fn material_editor_dist_native_parameters_preserve_wrong_type_override_and_its_diagnostic() {
+    let mut graph = graph(0.25);
+    graph
+        .parameters
+        .insert("tint".into(), Parameter::Scalar(2.0));
+    let (status, capture) = invoke(
+        3,
+        &request(&graph),
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    let result: Value = serde_json::from_slice(&capture.bytes).unwrap();
+    let row = &result["parameters"][0];
+    assert_eq!(result["ok"], false);
+    assert_eq!(row["override_present"], true);
+    assert_eq!(
+        row["override_value"],
+        serde_json::to_value(Parameter::Scalar(2.0)).unwrap()
+    );
+    assert!(row["effective_value"].is_null());
+    assert_eq!(
+        row["default"],
+        serde_json::to_value(Parameter::Vector([0.25, 0.5, 0.75, 1.0])).unwrap()
+    );
+    assert!(result["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(
+            |d| d["target"] == json!({"kind":"parameter", "name":"tint"})
+                && d["message"]
+                    .as_str()
+                    .unwrap()
+                    .contains("incompatible override type")
+        ));
+}
+
+#[test]
+fn material_editor_dist_native_parameters_reject_ambiguous_node_identity_as_one_batch() {
+    for id in ["tint", "", " \t"] {
+        let mut graph = graph(0.25);
+        let mut other = graph.nodes[0].clone();
+        other.id = id.into();
+        graph.nodes.push(other);
+        let (status, capture) = invoke(
+            3,
+            &request(&graph),
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        assert_eq!(capture.calls, 1);
+        let result: Value = serde_json::from_slice(&capture.bytes).unwrap();
+        assert_eq!(result["ok"], false);
+        assert_eq!(result["parameters"], json!([]));
+        assert_eq!(result["diagnostics"].as_array().unwrap().len(), 1);
+        assert_eq!(result["diagnostics"][0]["target"], json!({"kind":"graph"}));
+        assert!(result["diagnostics"][0]["message"]
+            .as_str()
+            .unwrap()
+            .contains("unambiguous"));
+    }
+}
+
+#[test]
+fn material_editor_dist_native_parameters_keep_empty_source_and_required_diagnostics() {
+    let mut graph = graph(0.25);
+    graph.nodes.clear();
+    graph.links.clear();
+    graph
+        .parameters
+        .insert("orphan".into(), Parameter::Scalar(1.0));
+    let (status, capture) = invoke(
+        3,
+        &request(&graph),
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    let result: Value = serde_json::from_slice(&capture.bytes).unwrap();
+    assert_eq!(result["ok"], false);
+    assert_eq!(result["parameters"], json!([]));
+    assert!(!result["diagnostics"].as_array().unwrap().is_empty());
+    assert!(graph.nodes.is_empty());
+    assert_eq!(graph.parameters.len(), 1);
+}
+
+#[test]
+fn material_editor_dist_native_parameters_use_existing_strict_transport_and_single_publish() {
+    let graph = graph(0.25);
+    let graph_json = serde_json::to_value(&graph).unwrap();
+    for payload in [
+        request(&graph)
+            .into_iter()
+            .chain(b" true".iter().copied())
+            .collect(),
+        serde_json::to_vec(&json!({"graph":graph_json,"node_id":"tint"})).unwrap(),
+        format!(r#"{{"graph":{graph_json},"graph":{graph_json}}}"#).into_bytes(),
+    ] {
+        let (status, capture) = invoke(
+            3,
+            &payload,
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+        assert_eq!(capture.calls, 0);
+        assert!(capture.bytes.is_empty());
+    }
+    let payload = request(&graph);
+    for budget in [0, 1, 24] {
+        let (status, capture) = invoke(3, &payload, budget, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+        assert_eq!(capture.calls, 0);
+        assert!(capture.bytes.is_empty());
+    }
+    let (status, capture) = invoke(
+        3,
+        &payload,
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED);
+    assert_eq!(capture.calls, 1);
+    assert!(capture.bytes.is_empty());
 }
 
 // Same Runtime ShaderAsset DTO and schema defaults as the source47 contract tests.

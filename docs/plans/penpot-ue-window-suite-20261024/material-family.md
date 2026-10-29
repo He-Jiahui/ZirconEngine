@@ -1,3 +1,16 @@
+## 接续101：真实作者图参数的原生命令入口（2026-10-28）
+
+- 原 request `ue-material-graph-20261024-01`、唯一 producer 与 `w448b90023f-native94` 继续；沿99/b01ed676 的当前三路径增加只读 `material_editor.graph.parameters`（原 ABI 回调 slot3、`material_editor.graph_parameters.v1`）。原 slots0/1/2 的校验、编译和着色器契约行为保留；同一注册 batch、en/zh-CN、1MiB 输入/输出和5秒宿主预算，不新增 capability/store/clock/模型或写命令。
+- 复用原 `MaterialGraphPresentation::new/parameter_declarations`。返回原 `graph_uri` 与按源序的 `parameters[{node_id,key,default,override_present,override_value,effective_value}]`，保留精确键的空白/大小写/CJK、同名不同源节点/默认值、孤立但真实的声明、覆盖 presence 与 ±0；orphan map key 不制造行。错误类型覆盖保留 raw 值且 effective=null，原图诊断仍返回，不能默默回退默认；空图返回空列表且 required 诊断保持。ID 空/歧义时整批 rows=[]，不发布可选中 prefix。
+- native OK 只表示查询完成；`result.ok` 仍由该源诊断是否为空决定，有诊断的真实声明可供修复，不能充当 compiled-visible 参数组、MaterialAsset Instance ABI 或 renderer readiness。JSON 入口只支持原 serde 的有限数字；域内 NaN/raw history 不能经此 JSON 接口伪称无损。调用者必须保留同一 view/document/subdocument incarnation、revision/lease、源请求及 native generation，再用当前节点身份消费；本入口不授予选择、Set/Reset、permit、CAS、撤销、保存或渲染权限。
+- 六项有意义 native 回调回归覆盖原始源序/同名多声明、absence/显式默认/负零、wrong-type raw/诊断、整批身份拒绝、空图 required 诊断，以及严格参数/预算不发 prefix/宿主拒绝。既有 SDK batch 对照、槽位/locale/预算、数组拒绝和空白兼容矩阵增加 slot3。当前 dist 32静态定义（30个 `material_editor_dist_native_`），editor 245/242未变；此为定义数，未类型检查/发现/执行 Rust。未借 old94 或 editor-only receipt 签 dist；原有限 dist recipe/嵌套锁三依赖仍由既有 Jenkins/generation owner 准入。
+- 源/格式/ABI/guard/受管交付与未完成清单见原报告根 `material-native-parameters-101-*`；原历史 operation、失败及 fork Instance/Hierarchy/四 Search copies 保留。host安装、原始 ZUI 官方导出、真实renderer、正常EXE、实际150%DPI、双端1DIP、passed/accepted仍false。
+
+## 接续100：窄侧栏的实际复核与不修改结论（2026-10-28）
+
+- 实读原 Material file/page `b4a1e3ce-9e6a-81fe-8008-d69d6092d704` / `b4a1e3ce-9e6a-81fe-8008-d69d6092d705` rev456/5769 objects/5业务main。三个 Parameters80 原板及全部原ID保持；页签已经是 Fill/min0均分及 clip caption，不能再把文字裁切归因为固定宽度，未缩字体/删标题/重排原页。
+- 本地 UE `SDockingTabWell.cpp` SHA56a73407… OnArrangeChildren100–187/ComputeChildSize305–340 的均分/角色最大宽度仅作对应依据；tab overlap/拖曳/tooltip/ellipsis/焦点未验证。三个 source declarations 面板的6行均处在高度范围内，没有据此新增假滚动。原生1280 viewer实图已打开，保留两次索引/边界捕获失败；没有签900/640新ROI或像素验收。最终 API 全5769对象哈希无变化、组件hash45580cfe…不变；两次浏览器真实exit0，第二次显式关闭/auth未改，0设计写入。详见 `material-sidebar-tabs-100-review.json`；不把复核冒充设计/产品完成。
+
 ## 接续99：Material79 静态计数与参数原始 inverse 勘误（2026-10-28）
 
 - 依Parent r293具体审阅，在原w448b90023f-native94/HEAD35d84385之后只追加本台账；原79/后继Rust、旧mat64的四dirty候选、新par79的fff20d31后继及fork源均不回写。本轮原文457651B/SHA7d26dde3完整保留为后缀；不能以文档更正重签任何旧源码或测试结果。
