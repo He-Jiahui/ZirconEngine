@@ -21,7 +21,7 @@ fn material_editor_dist_native_manifest_declares_real_slots_and_contribution_sch
     let command_manifest = unsafe { CStr::from_ptr(behavior.command_manifest) };
     let manifest =
         native::command_manifest_v4_from_toml(command_manifest.to_str().unwrap()).unwrap();
-    assert_eq!(manifest.commands.len(), 2);
+    assert_eq!(manifest.commands.len(), 3);
     for (slot, name, schema) in [
         (
             0,
@@ -32,6 +32,11 @@ fn material_editor_dist_native_manifest_declares_real_slots_and_contribution_sch
             1,
             "material_editor.graph.compile",
             "material_editor.compile_graph.v1",
+        ),
+        (
+            2,
+            "material_editor.graph.compile_shader_contract",
+            "material_editor.compile_graph_shader.v1",
         ),
     ] {
         let command = &manifest.commands[slot as usize];
@@ -176,7 +181,7 @@ fn material_editor_dist_native_rejects_malformed_or_ambiguous_arguments_without_
 #[test]
 fn material_editor_dist_native_unknown_slot_is_denied_before_reading_payload() {
     let (status, capture) = invoke_slice(
-        2,
+        3,
         NativePluginByteSliceV3 {
             data: std::ptr::null(),
             len: usize::MAX,
@@ -287,6 +292,12 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
             "command.material_editor.graph.compile.description",
             contract(),
         )
+        .command_with_execution_contract(
+            "material_editor.graph.compile_shader_contract",
+            "command.material_editor.graph.compile_shader_contract.label",
+            "command.material_editor.graph.compile_shader_contract.description",
+            contract(),
+        )
         .localization_bundle(
             [
                 (
@@ -308,6 +319,14 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
                             "command.material_editor.graph.compile.description",
                             "Compile the submitted material graph into a MaterialAsset",
                         ),
+                        (
+                            "command.material_editor.graph.compile_shader_contract.label",
+                            "Check Compiled Material Shader Contract",
+                        ),
+                        (
+                            "command.material_editor.graph.compile_shader_contract.description",
+                            "Compile the submitted graph and check the supplied shader contract",
+                        ),
                     ],
                 ),
                 (
@@ -322,6 +341,14 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
                         (
                             "command.material_editor.graph.compile.description",
                             "将本次请求中的材质图编译为 MaterialAsset",
+                        ),
+                        (
+                            "command.material_editor.graph.compile_shader_contract.label",
+                            "校验编译材质的着色器契约",
+                        ),
+                        (
+                            "command.material_editor.graph.compile_shader_contract.description",
+                            "编译本次材质图并校验传入的着色器契约",
                         ),
                     ],
                 ),
@@ -343,7 +370,7 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
     let actual = deserialize_like(registration_json(), &expected);
     assert_eq!(actual, expected);
     assert_eq!(actual.package_id(), "material_editor");
-    assert_eq!(actual.contributions().len(), 3);
+    assert_eq!(actual.contributions().len(), 4);
 }
 
 #[test]
@@ -419,6 +446,282 @@ fn registration_json() -> &'static str {
 
 fn deserialize_like<T: serde::de::DeserializeOwned>(json: &str, _expected: &T) -> T {
     serde_json::from_str(json).unwrap()
+}
+
+#[test]
+fn material_editor_dist_native_shader_contract_returns_actual_material_without_mutating_sources() {
+    for value in [0.125, 0.875] {
+        let graph = graph(value);
+        let shader = shader(&graph);
+        let reference = graph.shader.as_ref().unwrap();
+        let expected = compile_material_graph_with_shader_contract(&graph, &shader).unwrap();
+        let payload = shader_request(&graph, reference, &shader);
+        let original = payload.clone();
+        let (status, capture) = invoke(
+            2,
+            &payload,
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        assert_eq!(capture.calls, 1);
+        let result: Value = serde_json::from_slice(&capture.bytes).unwrap();
+        assert_eq!(result["ok"], true);
+        assert_eq!(
+            result["graph_uri"],
+            serde_json::to_value(&graph.uri).unwrap()
+        );
+        assert_eq!(
+            result["shader_reference"],
+            serde_json::to_value(reference).unwrap()
+        );
+        assert_eq!(result["diagnostics"], json!([]));
+        assert!(result["shader_error"].is_null());
+        assert_eq!(result["material"], serde_json::to_value(expected).unwrap());
+        assert_eq!(result["material"]["base_color"][0], json!(value));
+        assert_eq!(payload, original);
+    }
+}
+
+#[test]
+fn material_editor_dist_native_shader_contract_rejects_both_reference_mismatches_before_compile() {
+    let mut graph = graph(0.25);
+    let expected = graph.shader.clone().unwrap();
+    let mut wrong_uuid = reference("builtin://shader/another-identity");
+    wrong_uuid.locator = expected.locator.clone();
+    let mut wrong_locator = expected.clone();
+    wrong_locator.locator = AssetUri::parse("builtin://shader/renamed").unwrap();
+    // Graph and shader would also fail. Full source identity must reject first.
+    graph.links.clear();
+    let mut shader = shader(&graph);
+    shader
+        .validation_diagnostics
+        .push("真实着色器导入失败".into());
+    for actual in [wrong_uuid, wrong_locator] {
+        let payload = shader_request(&graph, &actual, &shader);
+        let (status, capture) = invoke(
+            2,
+            &payload,
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        let result: Value = serde_json::from_slice(&capture.bytes).unwrap();
+        assert_eq!(result["ok"], false);
+        assert!(result["material"].is_null());
+        assert_eq!(result["diagnostics"], json!([]));
+        assert_eq!(
+            result["shader_error"],
+            json!({
+                "kind":"reference_mismatch", "expected":expected, "actual":actual
+            })
+        );
+    }
+}
+
+#[test]
+fn material_editor_dist_native_shader_contract_preserves_wrong_shader_uri_without_node_target() {
+    let graph = graph(0.25);
+    let reference = graph.shader.as_ref().unwrap();
+    let mut shader = shader(&graph);
+    shader.uri = AssetUri::parse("res://shaders/另一份很长的着色器.zshader").unwrap();
+    let expected_error =
+        json!({"kind":"locator_mismatch", "expected":reference, "actual":shader.uri});
+    let (status, capture) = invoke(
+        2,
+        &shader_request(&graph, reference, &shader),
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    let result: Value = serde_json::from_slice(&capture.bytes).unwrap();
+    assert_eq!(result["ok"], false);
+    assert_eq!(result["diagnostics"], json!([]));
+    assert_eq!(result["shader_error"], expected_error);
+    assert!(result["material"].is_null());
+}
+
+#[test]
+fn material_editor_dist_native_shader_contract_keeps_import_diagnostics_in_original_order() {
+    let graph = graph(0.25);
+    let reference = graph.shader.as_ref().unwrap();
+    let mut shader = shader(&graph);
+    shader.validation_diagnostics = vec![
+        "properties.颜色 的真实导入失败".into(),
+        "texture detail_mask: incompatible capture".into(),
+    ];
+    let expected_error =
+        json!({"kind":"import_diagnostics", "diagnostics":shader.validation_diagnostics});
+    let (status, capture) = invoke(
+        2,
+        &shader_request(&graph, reference, &shader),
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    let result: Value = serde_json::from_slice(&capture.bytes).unwrap();
+    assert_eq!(result["ok"], false);
+    assert_eq!(result["diagnostics"], json!([]));
+    assert_eq!(result["shader_error"], expected_error);
+    assert!(result["material"].is_null());
+}
+
+#[test]
+fn material_editor_dist_native_shader_contract_retains_runtime_error_variants_sources_and_paths() {
+    use zircon_runtime::asset::{ShaderMaterialPropertyAsset, ShaderTextureSlotAsset};
+    use zircon_runtime::core::framework::render::MaterialPropertyKind;
+    let graph = graph(0.25);
+    let reference = graph.shader.as_ref().unwrap();
+    let mut shader = shader(&graph);
+    shader.property_schema.push(ShaderMaterialPropertyAsset {
+        name: "detail_strength".into(),
+        kind: MaterialPropertyKind::Float,
+        required: true,
+        default: None,
+        editor: BTreeMap::new(),
+    });
+    shader.texture_slots.push(ShaderTextureSlotAsset {
+        name: "detail_mask".into(),
+        kind: "texture2d".into(),
+        required: true,
+        default: None,
+        sampler: None,
+        group: None,
+        label: None,
+        option: None,
+        st: false,
+        editor: BTreeMap::new(),
+    });
+    shader.regenerate_material_artifact();
+    let Err(MaterialGraphShaderCompileError::ShaderContract(errors)) =
+        compile_material_graph_with_shader_contract(&graph, &shader)
+    else {
+        panic!("required fields must fail the actual Runtime contract");
+    };
+    assert_eq!(errors.len(), 2);
+    let expected = serde_json::to_value(&errors).unwrap();
+    let (status, capture) = invoke(
+        2,
+        &shader_request(&graph, reference, &shader),
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    let result: Value = serde_json::from_slice(&capture.bytes).unwrap();
+    assert_eq!(result["ok"], false);
+    assert_eq!(result["diagnostics"], json!([]));
+    assert_eq!(result["shader_error"]["kind"], "contract");
+    assert_eq!(result["shader_error"]["diagnostics"], expected);
+    assert!(expected
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|d| d["source"] == "shader_schema" && d["path"] == "overrides.detail_strength"));
+    assert!(expected
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|d| d["source"] == "shader_schema" && d["path"] == "textures.detail_mask"));
+    assert!(result["material"].is_null());
+}
+
+#[test]
+fn material_editor_dist_native_shader_contract_keeps_graph_errors_in_graph_coordinates() {
+    let mut graph = graph(0.25);
+    graph.links[0].from_pin = "missing / 输入".into();
+    let reference = graph.shader.as_ref().unwrap();
+    let mut shader = shader(&graph);
+    shader
+        .validation_diagnostics
+        .push("must not replace graph error".into());
+    let expected: Vec<_> = compile_material_graph_with_diagnostics(&graph)
+        .unwrap_err()
+        .iter()
+        .map(diagnostic_json)
+        .collect();
+    let (status, capture) = invoke(
+        2,
+        &shader_request(&graph, reference, &shader),
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    let result: Value = serde_json::from_slice(&capture.bytes).unwrap();
+    assert_eq!(result["ok"], false);
+    assert_eq!(result["diagnostics"], json!(expected));
+    assert!(result["shader_error"].is_null());
+    assert!(result["material"].is_null());
+}
+
+#[test]
+fn material_editor_dist_native_shader_contract_rejects_missing_extra_and_duplicate_arguments() {
+    let graph = graph(0.25);
+    let reference = graph.shader.as_ref().unwrap();
+    let shader = shader(&graph);
+    let valid = json!({"graph":graph, "shader_reference":reference, "shader":shader});
+    let mut extra = valid.clone();
+    extra["unrecognized"] = json!(true);
+    let mut missing = valid.clone();
+    missing.as_object_mut().unwrap().remove("shader_reference");
+    let mut invalid = valid.clone();
+    invalid["shader"] = Value::Null;
+    let mut invalid_requests = vec![
+        request(&graph),
+        serde_json::to_vec(&extra).unwrap(),
+        serde_json::to_vec(&missing).unwrap(),
+        serde_json::to_vec(&invalid).unwrap(),
+    ];
+    for key in ["graph", "shader_reference", "shader"] {
+        invalid_requests.push(
+            format!(
+                r#"{{"graph":{},"shader_reference":{},"shader":{},"{key}":{}}}"#,
+                valid["graph"], valid["shader_reference"], valid["shader"], valid[key]
+            )
+            .into_bytes(),
+        );
+    }
+    for bytes in invalid_requests {
+        let (status, capture) = invoke(2, &bytes, MAX_OUTPUT_BYTES, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+        assert_eq!(capture.calls, 0);
+        assert!(capture.bytes.is_empty());
+    }
+}
+
+#[test]
+fn material_editor_dist_native_shader_contract_budget_failure_never_publishes_a_prefix() {
+    let graph = graph(0.25);
+    let shader = shader(&graph);
+    let payload = shader_request(&graph, graph.shader.as_ref().unwrap(), &shader);
+    for budget in [0, 1, 24] {
+        let (status, capture) = invoke(2, &payload, budget, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+        assert_eq!(capture.calls, 0);
+        assert!(capture.bytes.is_empty());
+    }
+}
+
+// Same Runtime ShaderAsset DTO and schema defaults as the source47 contract tests.
+// This descriptor fixture does not establish WGSL/GPU readiness or a preview producer.
+fn shader(graph: &MaterialGraphAsset) -> ShaderAsset {
+    use zircon_runtime::asset::ShaderSourceLanguage;
+    use zircon_runtime::core::framework::render::ShaderAssetKind;
+    serde_json::from_value(json!({
+        "uri":graph.shader.as_ref().unwrap().locator,
+        "kind":ShaderAssetKind::Surface,
+        "source_language":ShaderSourceLanguage::Wgsl,
+        "source":"",
+    }))
+    .unwrap()
+}
+
+fn shader_request(
+    graph: &MaterialGraphAsset,
+    reference: &AssetReference,
+    shader: &ShaderAsset,
+) -> Vec<u8> {
+    serde_json::to_vec(&json!({"graph":graph,"shader_reference":reference,"shader":shader}))
+        .unwrap()
 }
 
 struct Capture {

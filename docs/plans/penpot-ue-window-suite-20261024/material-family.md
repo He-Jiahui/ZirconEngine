@@ -1,3 +1,14 @@
+## 接续96：原生入口校验真实 ShaderAsset 材质契约（2026-10-28）
+
+- 本轮继续唯一 producer/request，在 w448b90023f-native94 的 commands.rs、原tests/commands.rs与本台账三路径接续95 immutable39728cff。dist Cargo/锁、entry/lib、editor本域库、fork Instance/Hierarchy、公共SDK/host/Graph/Field/catalog/theme、ZUI/Penpot均不写；无新store/clock/history或shader backend。
+- 新增真实 material_editor.graph.compile_shader_contract 命令，V4 slot2 / payload material_editor.compile_graph_shader.v1；沿95既有contribution-batch/1声明同ID的Command/3与en/zh-CN key。原slot0/1、ID/payload schema及图编译结果语义保持，不能把新增shader检查当旧graph-only已经具备Shader/renderer准入。
+- 请求只收既有 typed MaterialGraphAsset、完整AssetReference shader_reference及既有typed ShaderAsset。根DTO deny_unknown_fields，重复graph/reference/shader根字段拒绝；不是Value先取最后值。首先比较graph.shader与传入reference的UUID+locator整对，再调用既有 compile_material_graph_with_shader_contract；该函数继续核ShaderAsset.uri、原导入诊断、真实Runtime材质契约，不造替代校验器或把locator相等当load generation证明。
+- 返回原graph_uri、完整shader_reference、ok、diagnostics、shader_error与可选material。图错误仍是原Graph/Node/Input/Output/Parameter坐标；shader_error分别保reference_mismatch整对expected/actual、locator_mismatch的原URI、import_diagnostics原顺序字符串，或contract的原RenderMaterialValidationError序列化（error/source/path/其余字段均保留）。不把ShaderSchema/WgslCapture等错误伪造成节点或pin，失败不发布MaterialAsset。Native OK仅表示请求完成，仍须读ok=false及两个错误通道。
+- 仍沿既有1MiB输入/输出、5000ms host contract与一次完整sink发布，预算不足不写前缀；新slot不提供Apply/Save/preview或资源加载权限。实际ShaderAsset虽完整可序列化，其来源/UUID解析/当前版本仍须由真实ResourceManager与原host上下文证明，不从回调内重读源、造fixture producer或重建作者文档。
+- 新增8项定义涵盖实际MaterialAsset结果、同locator错UUID/同UUID错locator优先拒绝、错payload URI、中文导入诊断顺序、Runtime两类required字段原路径/来源、图坐标优先保留、缺失/多余/三类重复根参数、预算0/1/24不发布。原manifest与SDK typed-builder测试更新为3commands+1bundle；原unknown-slot测试改slot3以保持真正越界断言，其余旧测试保持。dist总24定义、material_editor_dist_native_筛选22；editor仍245总/242 material_graph_，均不是Rust发现或执行。
+- 本轮运行格式、plugin ABI、精确三路径guard及源码/原字节保留检查，正常managed deliver接95后继；不借editor-only配方跑dist、不投known-invalid nested WT验证、不复用r10/#651等旧终态。source94的正式dist recipe与三新增依赖锁边仍交原管理/generation owner，未执行本地Cargo、改锁或重装gate。
+- UE MaterialEditor.cpp2932附近先强制UpdatePreviewMaterial/RegenerateCodeView，再把修改应用回原材质及世界；本命令只接现有CPU图编译+材质契约检查，未生成WGSL、完成Shader/GPU/texture readiness或world Apply。实际宿主仍须同incarnation/view/document/subdocument/revision/request/catalog取真实source，再对结果资格检查，进入原完整delta/inverse/prepare/一次permit/CAS/history/dirty/renderer/save/focus。正常DLL/EXE、official export、150%DPI、双端1DIP、passed/accepted均open，goal active；95及所有历史计数/失败/逐图证据完整保留。
+
 ## 接续95：材质原生命令使用既有 Editor 贡献批次（2026-10-28）
 
 - 继续原唯一 producer/request，在已ready的 w448b90023f-native94 四路径接续94 immutable db931fdc；dist Cargo/锁、原editor包/245定义、Instance/Hierarchy/fork、公共SDK/host/catalog/theme、ZUI/Penpot均不改。
