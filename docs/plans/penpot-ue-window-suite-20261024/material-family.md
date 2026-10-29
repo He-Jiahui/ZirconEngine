@@ -2,6 +2,20 @@
 
 本会话：`01a16d50-6c7f-7370-853d-4581184b66a1`。Parent：`01a16d4e-0491-7353-84fa-038bd7706546`。套件日期：2026-10-24；实际运行回执使用 UTC。
 
+## Shared 合同71：选择提示与键盘焦点分开（2026-10-27）
+
+已消费 Parent r125 的共享合同提交 `23dc04952ad52b501522119d84d3596efd60ee43`（queue26936／management#502 SUCCESS，仅 [component-reuse.md](component-reuse.md)，main integration pending）。其原回执 SHAab1a9ec686a8c07e0aca03af42562ff909a128c3d7d6cc59e5b246d5a5ec6233 与提交正文 SHAa5292635801b76ad64af5259300a6cc96711d7019e0b04f2d6fd20b99d4f5fdb 已实际核对。原58三图、source61、67三图和旧失败继续按各自时间保留，不重套设计或公共源。
+
+**调用勘误：** UE `MaterialEditor.cpp:8748` 在 SetObjects 后调用 `FocusDetailsPanel()`；其 `9175–9181` 实现只对有效且非前台的 Details tab 调用 `DrawAttention()`。下文58／67的这个函数名不表示键盘焦点转移，也不证明关闭弹层后返焦。选择回调应发布已校验的 Details 目标并按既有页签规则提示关注；键盘焦点仍由真实 retained input owner 处理，不能为匹配函数名抢焦点。
+
+本域当前 source69 的选择投影段与 source61 按 LF 规范化后逐字相同（SHA97442d19377ab06416abce1af9a1590d1c18af9c44229e91626bff2becea6876）。继续从同一 Document 借用原 Graph／Expression，保留 source 顺序、Output 原 ID 和作者 shader presence；非空 stale／重复／缺失／歧义选择整组拒绝。读取与发布前均须核同一 view incarnation、asset／document／subdocument、revision、request 及 selection lease，不能在 paint 中重建、重捕获 expected 或从 effective MaterialAsset 还原作者源。69新增 Name／Shader 候选没有安装这个生产 caller。
+
+选择阴影由原 retained painter 在原 shadow layer 使用已资格化 brush 和膨胀 paint geometry；原 body allocation、pin／hit bounds、viewport clip 和同一次 Canvas／DPI 变换保持。UE 的 12×12 shadow size 与 18/64 九宫格边距不是节点命中框；原2px设计描边不因此变为正式阴影。公共 host／painter、真实 PropertyEditorRow source slot、官方 codec／export、原ZUI加载及引擎焦点仍待接入；本轮不改公共实现、Penpot 或 fork 的 Instance／Hierarchy／四 SearchInput。
+
+验证时序更新：r125 的23:29Z building是历史观察；同一68 queue26827／#496已于2026-10-27T00:04:16Z认证读回 FAILURE，原550B归档 SHA0583993fcd4fe830fa586459e9e16bfbaae5fd0b25f668a802ec6e1096093010 仍是 checkout_source_busy／原r19 reader。编译、实际发现／执行和 native／资源终态仍unknown；不重投68、#420、#448或r10。source69的169静态定义不倒签68的161项输入；当前实际提交为69的c9b87309和文档70的cf053d1b，均不等于Rust通过。原终态hand-off以material-details-current-68-terminal-handoff.json为准。
+
+本轮仅增量更新本md，复用同源Rust／插件静态证据，运行文档结构／diff／guard检查和正常deliver-task；无新Cargo身份。goal active，真实renderer／Apply／Save、正常EXE／实际150%DPI／双端≤1DIP与整族passed／accepted保持open，释放0B。
+
 ## Details edit69：Name／Shader 的真实作者候选（2026-10-26）
 
 接续66／67已保存、关闭、新context重开的两组Details设计，在原ready工作树w1167fba90b-mat64的四条授权路径内补齐图级字段候选。原 [MaterialGraphAsset](../../../zircon_runtime/src/asset/assets/authoring.rs) 的name是String，shader是Option<AssetReference>；未把Name伪装成可缺省属性，也不将作者shader=None替换成编译器fallback。UE MaterialEditor.cpp:7689起的NotifyPostChange要求既有ScopedTransaction并安排预览／图刷新；本域 [details_selection.rs](../../../zircon_plugins/material_editor/editor/src/details_selection.rs) 的新plan_material_graph_details_edit仅产生借用原source／request的候选，实际Document、primary history、retention／prepare／一次permit／CAS、dirty／焦点／编译失效和保存仍由真实宿主承担。Name／Shader是Zircon当前作者schema的适配，不宣称完整UMaterial属性复刻。
