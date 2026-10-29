@@ -1,5 +1,31 @@
 # 材质窗口族：源码盘点、实现与证据
 
+## Common Details75／native review76：源码已提交，三尺寸设计已重开（2026-10-28）
+
+本次接续原request ue-material-graph-20261024-01与唯一producer，在原ready工作树正式交付source75：deliver-material-details-common-01a16d50-20261027-75／queue28487／management#566 SUCCESS，commit 6db5c0c83e37629ccd7b27ab4c6dbc96ea3ec710、parent bb88532ea260ec0c9da73b1beb512287574f44e2，四路径+341/-3。原input 799B／SHA5a51a059275365f6e60c38014a7ff58bfaf8a3253a374fb55e50ee3039c2b11e不变，2163B的实际回执SHA872106d70f3bc999f935aa030df6780865c9cd343f069088e1a5f303b9635e1a与两份归档逐字一致。四源与提交blob原字节完全相同，工作树随后clean；这只是branch commit，main integration pending、validationPerformed=false。旧74的pre-POST offline拒绝、64／61及r10所有旧失败保持，不重投终结operation。
+
+source75的expression_values借用原Graph／Expression，投影同类多选Scalar的位精确common或mixed、Vector逐通道common或mixed以及Texture完整UUID＋locator的common或mixed；不从effective MaterialAsset覆盖重建作者文档，不新增store／clock／transaction。六项新增回归连同原定义共187项（186普通＋1原ignored）只是静态定义，Rust发现／编译／执行数仍未知。Name的Multiple Values仅为下述设计，表达式重命名、多写delta和真实Document／retention／一次permit／CAS／history并未因此实现。
+
+在原Material file b4a1e3ce-9e6a-81fe-8008-d69d6092d704／page b4a1e3ce-9e6a-81fe-8008-d69d6092d705继续75的可编辑设计：
+
+| 逻辑尺寸 | 原生board UUID | 最终真实读回 |
+| --- | --- | --- |
+| 1280×800 | 56d97234-a2fa-808f-8008-da248d84bd62 | 独立context关闭重开，RoughnessA／0.4、RoughnessB／0.8及两个Multiple Values字段 |
+| 900×620 | 484710c5-e751-8083-8008-db692bfa0d37 | 原生复制＋Fill布局，原生保存、关闭及新context重开 |
+| 640×520 | 484710c5-e751-8083-8008-db6941b5ccd9 | 同上，真实viewport为640×520、DPR1 |
+
+最终get-file rev400／5020对象；两张新增窄窗共404对象。以原rev392为基准，全部4616既有ID保留，唯一变化的既有对象是Root children新增这两个board；五项业务component main及fork30的Instance／Hierarchy／四SearchInput未写。六个业务node仍引用原Parameter／Output组件，graph-local A(48,72,220×110)、B(48,224,220×110)、Output(360,72,230×192)逐项相同，未为截图平移／缩放作者坐标。
+
+第一轮只缩小根板，1280×676固定子布局使窄窗编译反馈／状态栏／640字段被裁；R8与R10四张失败PNG已逐图打开并保留。后继仅在新增窄窗内通过真实inspector将每板五个chrome frame设Horizontal Fill、七个dock／stack／preview frame设Vertical Fill。900的Dock高496、640高396，compiler 134.4与footer 24保持；最终两张R12图中反馈、状态和Details均在窗口内。R11的2.6秒保存断言失败另留，后续独立GET rev399证实第一板12项已保存；R12复用这12项、仅补第二板12项，等待实际get-file全部24项匹配才记录rev400。原context显式关闭后新context重开workspace和两张native viewer，保存shape逐项一致。
+
+本轮11张实际存在PNG均已逐图打开：四张1280 R7、两张R8、两张R10、两张R12及R5错误入口诊断。逐图结论在稳定报告根material-details-common-75-review-r12.json，SHA5e6d34730aee4df7370afca2f46785a4191586794eea9afcf0c90334cf676df1；完整保存／重开／PID／geometry证据在native-reopen-r7、narrow-native-r8、narrow-reopen-r10和narrow-final-r12回执。尚未生成的计划PNG不计为捕获。900的B下沿仍被graph clip裁切；640的Output和B仍在clip外，须真实host pan／Frame All，不能拿静态缩放图或任意移节点关闭此项。左列256宽与UE splitter比例／最小尺寸、选择阴影、页签／焦点／快捷键也未由Fill修正验收。
+
+认证失败按真实原因保留：旧P21 storage路径ENOENT；R4／R5误用team UUID的81fe导致无访问入口。实际get-file／get-project／get-team确认team为822661f1-7ba3-81f7-8008-c6dcb4ae6a8f后改正URL，以现有Widget认证storage只读复用，未复制／改写认证、未点击申请访问或修改账户。全部新browser正常close／client exit，auth哈希不变，原owned browser-tmp为空；未重启Penpot／Jenkins，未操作桌面或系统DPI，手工清理0B。
+
+Parent r162选择现有PR／main集成链后再做canonical nested材质单包准入，不向明确拒绝nested worktree的runner提交Cargo。原64仍以1bd1894979eea09400e50e2ccc7387a7496d5987／#457 committed作为原件；LF／CRLF差异不重写原input或source。已定位原merge-queue#794对历史jenkins-one-worktree-flow-20261015/artifacts.json缺失的reconciliation-required，交原Git／Jenkins owner收口，不造空manifest／新repair identity或直接Git集成。当前可独立设计／域逻辑继续，goal active。
+
+本节仅记录真实新增证据，三Rust未改，单md走结构／diff／reverse／change guard及正常deliver-task。实际材质renderer／编译／Apply／Save、官方codec→原material_workspace.zui导出／加载、正常EXE原生捕获、真实150%DPI、并排／差异与≤1DIP尚无回执。未编译文字不是preview能力，Penpot DPR1不是系统DPI。LayoutReviewCase与整族passed=false／accepted=false；全阶段报告复用E:/cargo-targets/zircon-local/reports/ue-material-family-20261024-01a16d50/，本轮释放0B。
+
 ## Scalar Details74：真实样式与三尺寸重开复核（2026-10-27）
 
 接续source73，在原Material file b4a1e3ce-9e6a-81fe-8008-d69d6092d704／page b4a1e3ce-9e6a-81fe-8008-d69d6092d705 完成三张可编辑表达式Details设计板。状态为未连线ScalarParameter RoughnessParam／Default Value 0.4；这是作者语义的设计夹具，尚非EXE资产、输入事务或材质预览。UE Public/Materials/MaterialExpressionScalarParameter.h:32 与Zircon原ScalarParameter.default提供字段依据；重命名、Group及完整UE属性不在本切片完成项内。原五业务main、所有旧板及fork30 Instance／Hierarchy／四SearchInput保持。
