@@ -1,3 +1,15 @@
+## 材质接续111：原生删除候选与精确原序逆数据（2026-10-28）
+
+- 沿原唯一producer/request及ready `w448b90023f-native94`，接续110/99465582，只改原dist commands、tests和本台账三路径；原110整份498329 raw字节作为精确后缀保留。原manifest/lib、domain、Runtime、shared Graph/host/catalog/theme、fork与Penpot/ZUI不改，不新增store、clock、history或persistent edge ID。
+- 原slots0–8/schema/注册与两语言旧文案保持；新增slot9 `material_editor.graph.plan_node_deletion` / `material_editor.plan_graph_node_deletion.v1`。10命令+1原bundle，沿原ABI3/V4 callback、result codec、1MiB输入/输出和5秒预算。复用原DetailsArguments的原图及精确selected_node_ids，直接调用既有 `plan_material_graph_node_deletion`，不另写删除算法。
+- 成功plan返回can_delete、原序removed_nodes(source_index+完整node)、removed_links(source_index+完整link)，以及protected_nodes。source_index只属于该源revision的occurrence，不是持久ID；相同link的多次出现不去重。空/Output-only为可见no-op，混选保留Output；stale/重复/空selection或非空选择遇歧义source ID时整批拒绝，不发布prefix。Graph.parameters原共享/孤立override保持，由原宿主保存同一作者文档。
+- 原source诊断与deletion_error分列；坏连线/编译错误可有repair plan，原诊断不抹。plan/ok不是compile成功、retention proof、权限或提交；no-op不进history。宿主须在同真实view/asset/document/subdocument/source incarnation、revision/lease、selection request和native generation下确认并一次prepare/permit/CAS，原delta/inverse同时保留全部node/link occurrence及顺序；确认、选择焦点、被删expression preview重置、dirty/SaveCtx/真实renderer仍在原host消费，未安装。
+- 沿原JSON finite guard拒绝f64→f32溢出，保持原transport边界：NaN/Inf legacy source不能通过此JSON调用，raw历史逆数据仍需原文档直接捕获，不能假称native能编码NaN或用validated Set(previous)作undo。无参数Set/Reset语义改动，Graph Reset仍删map key而非写default/Instance bOverride。
+- UE只读实源：`MaterialEditor.cpp`6464–6550的DeleteSelectedNodes/DeleteNodes/CanDeleteNodes与6595起DeleteNodesInternal，确认后一个FScopedTransaction、按CanUserDeleteNode过滤，随后清selection/NotifyGraphChanged、被删expression preview重置与dirty/preview刷新；`Public/MaterialGraph/MaterialGraphNode_Root.h`的root禁止用户删除。域内既有Output保护/一次完整事务合同沿用；这些UE side effects并未由新增native preflight执行。
+- 7新增普通回归定义覆盖空/root/mixed、逆选择与CJK精确键、完整source序与重复/坏incident links、stale/重复/歧义整组拒绝、保留共享/孤立override及HDR/subnormal/signed-zero、test-local TOML/CPU compile/完整原序inverse、原诊断保留、严格named JSON/duplicate/overflow与一次输出budget/host refusal。原69定义中仅两metadata计数/注册表测试扩展，另67行为正文保持；本轮目标76普通定义，不是harness发现/运行。格式与原plugin metadata ABI3检查已exit0；最终结构/guard/交付见111原报告，Rust/type/harness仍未跑。
+- 实际消费Parent r317：不可变79为204=203普通+1原ignored、80为c8b140ca单doc+13；原201/565投影与全字段证明差异保留，不补签Parent独立565 full hashes。原8图失败及tab/Palette/640 Output/Roughness裁切、RGBA值设计/Field/Reset/source ports/Not compiled继续open。原r317两JSON原hash fdb7d202…/05ec6e10…已实读；不重apply或重投64/448/r10/595/601/616，不以历史blob覆盖后继。
+- 当前原selected entry829b326e仍与105实际dist recipe拒绝同字节；仅保留canonical单 `zircon_plugin_material_editor_dist` / defaults-off/features[] / lib/test / material_editor_dist_native_ / jobs1/threads1/locked/E物理根的有限请求，不投nested WT/root/editor替代。PR/main、source/writer/resource/pool/native准入和实际Rust结果独立open；前轮110 Parent及Jenkins owner消息因100cap失败原样保留，不视为已收件。goal active，official export/正常EXE/真实render/actual150%DPI/双端1DIP/passed/accepted仍false。
+
 ## 材质接续110：原生节点搜索与创建候选接既有域逻辑（2026-10-28）
 
 - 原唯一producer/request与ready `w448b90023f-native94`接续109/0ea02dc5；只改原dist commands、tests与本台账三路径。原manifest/lib/ABI3/无状态/能力、domain、Runtime、共享Graph/host/catalog/theme、fork及Penpot/ZUI不改；109整份493920 raw字节作为精确后缀保持。原Source79的204历史计数与本轮native计数分开。

@@ -6,13 +6,14 @@ use std::io::{self, Write};
 use serde_json::{json, Value};
 use zircon_plugin_material_editor_editor::{
     compile_material_graph_with_diagnostics, compile_material_graph_with_shader_contract,
-    plan_material_graph_node_search_creation, plan_material_graph_parameter_edit,
-    plan_material_graph_parameter_vector_edit, project_authored_material_document,
-    project_material_graph_details_selection, validate_material_graph_with_diagnostics,
-    MaterialDocumentProjectionError, MaterialGraphConnectionAction, MaterialGraphDetailsTarget,
-    MaterialGraphDetailsValue, MaterialGraphDiagnostic, MaterialGraphDiagnosticTarget,
-    MaterialGraphExpressionDetailsValues, MaterialGraphNodeSearch, MaterialGraphParameterEdit,
-    MaterialGraphPresentation, MaterialGraphShaderCompileError, MaterialGraphValueType,
+    plan_material_graph_node_deletion, plan_material_graph_node_search_creation,
+    plan_material_graph_parameter_edit, plan_material_graph_parameter_vector_edit,
+    project_authored_material_document, project_material_graph_details_selection,
+    validate_material_graph_with_diagnostics, MaterialDocumentProjectionError,
+    MaterialGraphConnectionAction, MaterialGraphDetailsTarget, MaterialGraphDetailsValue,
+    MaterialGraphDiagnostic, MaterialGraphDiagnosticTarget, MaterialGraphExpressionDetailsValues,
+    MaterialGraphNodeSearch, MaterialGraphParameterEdit, MaterialGraphPresentation,
+    MaterialGraphShaderCompileError, MaterialGraphValueType,
 };
 use zircon_plugin_sdk::native::{
     self, callback_status, NativePluginByteSliceV3, NativePluginCallbackStatusV3,
@@ -72,6 +73,11 @@ max_output_bytes = 1048576
 name = "material_editor.graph.plan_node_creation"
 slot = 8
 payload_schema = "material_editor.plan_graph_node_creation.v1"
+max_output_bytes = 1048576
+[[commands]]
+name = "material_editor.graph.plan_node_deletion"
+slot = 9
+payload_schema = "material_editor.plan_graph_node_deletion.v1"
 max_output_bytes = 1048576
 "#,
     "\0"
@@ -230,6 +236,22 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
       }
     },
     {
+      "kind": "command",
+      "id": "material_editor.graph.plan_node_deletion",
+      "schema": "zircon.editor.command/3",
+      "localization_bundle_id": "material_editor",
+      "label_key": "command.material_editor.graph.plan_node_deletion.label",
+      "description_key": "command.material_editor.graph.plan_node_deletion.description",
+      "execution_contract": {
+        "result_codec": "zircon.editor.command-result.v1",
+        "resource_budget": {
+          "max_input_bytes": 1048576,
+          "max_output_bytes": 1048576,
+          "max_execution_time_ms": 5000
+        }
+      }
+    },
+    {
       "kind": "localization_bundle",
       "id": "material_editor",
       "schema": "zircon.editor.localization-bundle/1",
@@ -252,7 +274,9 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
           "command.material_editor.graph.search_nodes.label": "Search Material Nodes",
           "command.material_editor.graph.search_nodes.description": "Read exact registered material actions and pin keys for the submitted query",
           "command.material_editor.graph.plan_node_creation.label": "Plan Material Node Creation",
-          "command.material_editor.graph.plan_node_creation.description": "Preflight one typed node and optional autowire without changing the authoring graph"
+          "command.material_editor.graph.plan_node_creation.description": "Preflight one typed node and optional autowire without changing the authoring graph",
+          "command.material_editor.graph.plan_node_deletion.label": "Plan Material Node Deletion",
+          "command.material_editor.graph.plan_node_deletion.description": "Preflight original nodes and incident link occurrences without applying a deletion"
         },
         "zh-CN": {
           "command.material_editor.graph.validate.label": "校验材质图",
@@ -272,7 +296,9 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
           "command.material_editor.graph.search_nodes.label": "搜索材质节点",
           "command.material_editor.graph.search_nodes.description": "按原始查询读取已注册材质动作与精确端口键",
           "command.material_editor.graph.plan_node_creation.label": "规划材质节点创建",
-          "command.material_editor.graph.plan_node_creation.description": "预检一个类型化节点及可选自动连线，不提交作者材质图"
+          "command.material_editor.graph.plan_node_creation.description": "预检一个类型化节点及可选自动连线，不提交作者材质图",
+          "command.material_editor.graph.plan_node_deletion.label": "规划材质节点删除",
+          "command.material_editor.graph.plan_node_deletion.description": "预检原始节点及关联连线，不提交删除事务"
         }
       }
     }
@@ -296,7 +322,7 @@ pub(super) unsafe extern "C" fn invoke_command(
     output: NativePluginOutputSinkV4,
 ) -> NativePluginCallbackStatusV3 {
     native::catch_native_callback_panic(PANICKED, || {
-        if slot > 8 {
+        if slot > 9 {
             return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, UNKNOWN_SLOT);
         }
         if payload.len == 0 || payload.len > MAX_INPUT_BYTES || payload.data.is_null() {
@@ -318,7 +344,12 @@ pub(super) unsafe extern "C" fn invoke_command(
         {
             return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
         }
-        let result = if slot == 8 {
+        let result = if slot == 9 {
+            let Ok(arguments) = serde_json::from_slice::<DetailsArguments>(bytes) else {
+                return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
+            };
+            graph_node_deletion_result(&arguments)
+        } else if slot == 8 {
             let Ok(arguments) = serde_json::from_slice::<NodeCreationArguments>(bytes) else {
                 return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
             };
@@ -695,6 +726,49 @@ fn graph_parameter_edit_result(arguments: &ParameterEditArguments) -> Value {
         "ok": plan.is_some() && diagnostics.is_empty(),
         "diagnostics": diagnostics.iter().map(diagnostic_json).collect::<Vec<_>>(),
         "edit_error": edit_error,
+        "plan": plan,
+    })
+}
+
+/// Indices describe occurrences in this submitted source revision, not persistent
+/// IDs or an undo permit. Parameters and protected Output nodes remain authored.
+/// The host qualifies the entire retained selection and prepares one delta/inverse
+/// before confirmation, mutation, preview reset, focus and rendering side effects.
+fn graph_node_deletion_result(arguments: &DetailsArguments) -> Value {
+    let graph = &arguments.graph;
+    let selected: Vec<&str> = arguments
+        .selected_node_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let diagnostics = validate_material_graph_with_diagnostics(graph);
+    let (deletion_error, plan) = match plan_material_graph_node_deletion(graph, &selected) {
+        Err(errors) => (
+            json!({"diagnostics": errors.iter().map(diagnostic_json).collect::<Vec<_>>()}),
+            None,
+        ),
+        Ok(plan) => (
+            Value::Null,
+            Some(json!({
+                "can_delete": plan.can_delete(),
+                "removed_nodes": plan.removed_nodes().iter().map(|(source_index, node)| {
+                    json!({"source_index": source_index, "node": node})
+                }).collect::<Vec<_>>(),
+                "removed_links": plan.removed_links().iter().map(|(source_index, link)| {
+                    json!({"source_index": source_index, "link": link})
+                }).collect::<Vec<_>>(),
+                "protected_nodes": plan.protected_nodes(),
+            })),
+        ),
+    };
+    // Deletion may repair a broken graph. Existing diagnostics do not disappear,
+    // and an empty/root-only no-op must not enter the original document history.
+    json!({
+        "graph_uri": graph.uri,
+        "selected_node_ids": arguments.selected_node_ids,
+        "ok": plan.is_some() && diagnostics.is_empty(),
+        "diagnostics": diagnostics.iter().map(diagnostic_json).collect::<Vec<_>>(),
+        "deletion_error": deletion_error,
         "plan": plan,
     })
 }
