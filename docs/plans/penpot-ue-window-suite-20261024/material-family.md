@@ -1,3 +1,15 @@
+## 材质接续118：表达式 Details 多选 native 候选（2026-10-28）
+
+- 在原唯一 producer/ready `w448b90023f-native94`、base `68254975195d668eb3a9a4e140493713d1dc838b` 仅改原授权 commands/tests 与本台账。保留原14 slots/贡献/locale，追加14 `material_editor.graph.plan_expression_details_edit` / `material_editor.plan_expression_details_edit.v1`；原ABI3、manifest4、contribution-batch1与1MiB输入输出/完整一次sink发布不变。
+- 实际委托现有 `plan_material_graph_expression_details_batch_edit`。完整选择的稳定ID/源kind/编辑值先整批预检，保留源节点顺序及每项no-op；ScalarDefault、VectorChannels、Texture只编辑原声明默认值/引用，不写 `Graph.parameters`。Vector的None通道保留各节点原位值，Some通道须finite，HDR/负数/signed-zero不clamp或混成UI的多值文本。
+- 候选逐项返回原node_id、typed before/after与changes_source，同时返回整批changes_source。不是逐节点独立提交；宿主须绑定原view/asset/document/subdocument/source incarnation/revision/selection request/native generation，在回调前保留原before，完整计费一次delta/inverse并走原prepare/permit/CAS/history/dirty/compile/renderer/save/focus。空/歧义/stale/错kind选择整批拒绝，不发布prefix；no-op不进入history。
+- changed Texture只消费一次宿主提供的完整AssetReference/Texture kind observation；全no-op/非纹理/预检拒绝消费0次，附带未使用观察显式拒绝。新纹理引用用原uuid/url字段并拒绝partial/null/unknown/duplicate；kind DTO不是registry/handle/lease/generation/尺寸/sampler就绪证明，固定binding_ready=null/authoring_candidate_only。不制造resolver/store/clock或author模型。
+- 保留原源diagnostics，不以修复候选清空它们。native沿已有finite graph输入边界，坏link/override可见并可规划相应字段编辑；既有non-finite source的无损修复/持久化仍须原typed host，未拿JSON null伪装before。新增9回归定义，99→108静态；旧97行为body精确保留，只扩2 metadata test。Rust type/harness/执行仍not_run/null；format、插件metadata、guard与正常源码提交单列。
+- 本轮实际核对Function边界：Runtime `authoring.rs` 的MaterialGraphNodeKindAsset仅Output/TextureSample/ScalarParameter/VectorParameter/Add/Multiply；shader source_contract的MaterialFunction不等同作者Function输入/输出/调用模型。既有Function设计及MAT-FUNCTION缺口保持，不把材质Output或新的Details transport冒充Material Function后端。
+- UE只读依据 `MaterialEditor.cpp:7682–7798`：NotifyPreChange建立真实FScopedTransaction，NotifyPostChange使用当前选择的Expression并触发实际更新。这里没有安装该宿主生命周期。当前canonical material_workspace_state仍三份canned profiles/Not implemented(preview)，原114公共发布提案尚未apply；继续交真实caller，不改公共源或把领域候选当预览完成。
+- 原117/#899/68254975归档及全部历史失败保留，不回放旧r10/448/627或终结操作。当前正式dist叶子recipe仍待原受管入口与canonical source/resource准入；不投已知无效配方、不用editor-only/root/nested-worktree Cargo替代。原PR/main链按真实不可变后继正常集成。
+- 本轮Penpot/Shared/Runtime/公共host/manifest/lock/service/desktop写0；正式export/原ZUI产品加载/正常EXE/实际150%DPI/双端≤1DIP仍open，goalactive、passed=false、accepted=false、释放0B。证据沿原根 `material-expression-details-118-{source,wire-contract,validation,guard,route,handoff}.json`。
+
 ## 材质接续117：纹理槽 native 编辑候选与空覆盖边界（2026-10-28）
 
 - 仅在原 `w448b90023f-native94`、base `0a8a52c58ee331e60ede813de40cdbcf67fb9d35` 改原授权 commands/tests/本台账；原13个 native slots/贡献/locales 保留，追加13 `material_editor.material.plan_texture_edit` / `material_editor.plan_material_texture_edit.v1`。原 ABI3、manifest4、contribution-batch1、1MiB 输入输出与一次完整 sink 发布不变。

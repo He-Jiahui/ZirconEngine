@@ -8,16 +8,18 @@ use zircon_plugin_material_editor_editor::{
     can_connect_material_graph, compile_material_graph_with_diagnostics,
     compile_material_graph_with_shader_contract, plan_material_document_property_edit,
     plan_material_document_property_reset, plan_material_document_texture_edit,
-    plan_material_graph_node_deletion, plan_material_graph_node_search_creation,
-    plan_material_graph_parameter_edit, plan_material_graph_parameter_vector_edit,
-    project_authored_material_document, project_material_graph_details_selection,
-    validate_material_graph_with_diagnostics, MaterialDocumentProjectionError,
-    MaterialDocumentPropertyEdit, MaterialDocumentPropertyEditError,
-    MaterialDocumentPropertyResetError, MaterialDocumentTextureEdit,
-    MaterialDocumentTextureEditError, MaterialGraphConnectionAction, MaterialGraphDetailsTarget,
-    MaterialGraphDetailsValue, MaterialGraphDiagnostic, MaterialGraphDiagnosticTarget,
-    MaterialGraphExpressionDetailsValues, MaterialGraphNodeSearch, MaterialGraphParameterEdit,
-    MaterialGraphPresentation, MaterialGraphShaderCompileError, MaterialGraphValueType,
+    plan_material_graph_expression_details_batch_edit, plan_material_graph_node_deletion,
+    plan_material_graph_node_search_creation, plan_material_graph_parameter_edit,
+    plan_material_graph_parameter_vector_edit, project_authored_material_document,
+    project_material_graph_details_selection, validate_material_graph_with_diagnostics,
+    MaterialDocumentProjectionError, MaterialDocumentPropertyEdit,
+    MaterialDocumentPropertyEditError, MaterialDocumentPropertyResetError,
+    MaterialDocumentTextureEdit, MaterialDocumentTextureEditError, MaterialGraphConnectionAction,
+    MaterialGraphDetailsTarget, MaterialGraphDetailsValue, MaterialGraphDiagnostic,
+    MaterialGraphDiagnosticTarget, MaterialGraphExpressionDetailsBatchEdit,
+    MaterialGraphExpressionDetailsEdit, MaterialGraphExpressionDetailsValues,
+    MaterialGraphNodeSearch, MaterialGraphParameterEdit, MaterialGraphPresentation,
+    MaterialGraphShaderCompileError, MaterialGraphValueType,
 };
 use zircon_plugin_sdk::native::{
     self, callback_status, NativePluginByteSliceV3, NativePluginCallbackStatusV3,
@@ -106,6 +108,11 @@ max_output_bytes = 1048576
 name = "material_editor.material.plan_texture_edit"
 slot = 13
 payload_schema = "material_editor.plan_material_texture_edit.v1"
+max_output_bytes = 1048576
+[[commands]]
+name = "material_editor.graph.plan_expression_details_edit"
+slot = 14
+payload_schema = "material_editor.plan_expression_details_edit.v1"
 max_output_bytes = 1048576
 "#,
     "\0"
@@ -344,6 +351,22 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
       }
     },
     {
+      "kind": "command",
+      "id": "material_editor.graph.plan_expression_details_edit",
+      "schema": "zircon.editor.command/3",
+      "localization_bundle_id": "material_editor",
+      "label_key": "command.material_editor.graph.plan_expression_details_edit.label",
+      "description_key": "command.material_editor.graph.plan_expression_details_edit.description",
+      "execution_contract": {
+        "result_codec": "zircon.editor.command-result.v1",
+        "resource_budget": {
+          "max_input_bytes": 1048576,
+          "max_output_bytes": 1048576,
+          "max_execution_time_ms": 5000
+        }
+      }
+    },
+    {
       "kind": "localization_bundle",
       "id": "material_editor",
       "schema": "zircon.editor.localization-bundle/1",
@@ -376,7 +399,9 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
           "command.material_editor.material.plan_property_reset.label": "Plan Authored Material Property Reset",
           "command.material_editor.material.plan_property_reset.description": "Plan a reset from the host's observed default while preserving override presence",
           "command.material_editor.material.plan_texture_edit.label": "Plan Authored Material Texture Edit",
-          "command.material_editor.material.plan_texture_edit.description": "Preflight an exact local texture Set or ClearOverride, preserving empty presence and UV values"
+          "command.material_editor.material.plan_texture_edit.description": "Preflight an exact local texture Set or ClearOverride, preserving empty presence and UV values",
+          "command.material_editor.graph.plan_expression_details_edit.label": "Plan Material Expression Details Edit",
+          "command.material_editor.graph.plan_expression_details_edit.description": "Preflight one complete selected-expression Details candidate without changing parameter overrides or authoring state"
         },
         "zh-CN": {
           "command.material_editor.graph.validate.label": "校验材质图",
@@ -406,7 +431,9 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
           "command.material_editor.material.plan_property_reset.label": "规划作者材质属性重置",
           "command.material_editor.material.plan_property_reset.description": "使用宿主实际观测的默认值规划重置，保留覆盖存在性",
           "command.material_editor.material.plan_texture_edit.label": "规划作者材质纹理编辑",
-          "command.material_editor.material.plan_texture_edit.description": "预检精确局部纹理设置或清除覆盖，保留显式空值与UV数据"
+          "command.material_editor.material.plan_texture_edit.description": "预检精确局部纹理设置或清除覆盖，保留显式空值与UV数据",
+          "command.material_editor.graph.plan_expression_details_edit.label": "规划材质表达式详情编辑",
+          "command.material_editor.graph.plan_expression_details_edit.description": "预检完整选择的表达式详情候选，保留原参数覆盖与作者状态"
         }
       }
     }
@@ -430,7 +457,7 @@ pub(super) unsafe extern "C" fn invoke_command(
     output: NativePluginOutputSinkV4,
 ) -> NativePluginCallbackStatusV3 {
     native::catch_native_callback_panic(PANICKED, || {
-        if slot > 13 {
+        if slot > 14 {
             return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, UNKNOWN_SLOT);
         }
         if payload.len == 0 || payload.len > MAX_INPUT_BYTES || payload.data.is_null() {
@@ -452,7 +479,13 @@ pub(super) unsafe extern "C" fn invoke_command(
         {
             return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
         }
-        let result = if slot == 13 {
+        let result = if slot == 14 {
+            let Ok(arguments) = serde_json::from_slice::<ExpressionDetailsEditArguments>(bytes)
+            else {
+                return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
+            };
+            graph_expression_details_edit_result(&arguments)
+        } else if slot == 13 {
             let Ok(arguments) = serde_json::from_slice::<TextureEditArguments>(bytes) else {
                 return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
             };
@@ -1015,6 +1048,94 @@ fn material_property_response(
 /// Graph fields and selected nodes are inspection values, never a save document.
 /// The host retains source/selection revision, view incarnation, focus and history;
 /// no returned target is authority to apply an edit or admit a stale native result.
+/// Transports the existing complete selection candidate, never per-node commits.
+/// The original host must retain this request's source/revision/selection/native
+/// generation, account for all raw before/after fields and inverse values, then
+/// prepare one permit/CAS/history operation. This performs no authoring mutation.
+fn graph_expression_details_edit_result(arguments: &ExpressionDetailsEditArguments) -> Value {
+    let graph = &arguments.graph;
+    let diagnostics = validate_material_graph_with_diagnostics(graph);
+    let selected: Vec<_> = arguments
+        .selected_node_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let edit = match &arguments.edit {
+        ExpressionDetailsEditRequest::ScalarDefault { value } => {
+            MaterialGraphExpressionDetailsBatchEdit::ScalarDefault(*value)
+        }
+        ExpressionDetailsEditRequest::VectorChannels { channels } => {
+            MaterialGraphExpressionDetailsBatchEdit::VectorChannels(*channels)
+        }
+        ExpressionDetailsEditRequest::Texture { reference } => {
+            MaterialGraphExpressionDetailsBatchEdit::Texture(reference)
+        }
+    };
+    // Counts consumption of the supplied host observation, not live registry
+    // reads. The domain planner calls this once for a changed texture batch and
+    // zero times for no-ops, non-texture edits, or failed selection/kind preflight.
+    let mut observations_consumed = 0;
+    let candidate =
+        plan_material_graph_expression_details_batch_edit(graph, &selected, edit, |reference| {
+            observations_consumed += 1;
+            match arguments.resource_observation.as_ref() {
+                Some(observed) if &observed.reference == reference => Ok(observed.kind),
+                Some(_) => Err(
+                    "host resource observation does not match the full UUID and locator".to_owned(),
+                ),
+                None => Err(
+                    "expression texture edit requires the host's actual resource-kind observation"
+                        .to_owned(),
+                ),
+            }
+        });
+    let (details_error, plan) = match candidate {
+        Err(errors) => (
+            json!({"kind": "domain", "diagnostics": errors.iter().map(diagnostic_json).collect::<Vec<_>>()}),
+            None,
+        ),
+        Ok(_) if observations_consumed == 0 && arguments.resource_observation.is_some() => {
+            (json!({"kind": "unexpected_resource_observation"}), None)
+        }
+        Ok(plan) => (
+            Value::Null,
+            Some(json!({
+                "changes_source": plan.changes_source(),
+                "entries": plan.edits().iter().map(|entry| json!({
+                    "node_id": entry.node().id,
+                    "before": expression_details_edit_json(entry.previous_value()),
+                    "after": expression_details_edit_json(entry.edit()),
+                    "changes_source": entry.changes_source(),
+                })).collect::<Vec<_>>(),
+            })),
+        ),
+    };
+    json!({
+        "graph_uri": graph.uri,
+        "validation_scope": "authoring_candidate_only",
+        "binding_ready": Value::Null,
+        "resource_observations_consumed": observations_consumed,
+        "diagnostics": diagnostics.iter().map(diagnostic_json).collect::<Vec<_>>(),
+        "ok": plan.is_some() && diagnostics.is_empty(),
+        "details_error": details_error,
+        "plan": plan,
+    })
+}
+
+fn expression_details_edit_json(edit: MaterialGraphExpressionDetailsEdit<'_>) -> Value {
+    match edit {
+        MaterialGraphExpressionDetailsEdit::ScalarDefault(value) => {
+            json!({"kind": "scalar_default", "value": value})
+        }
+        MaterialGraphExpressionDetailsEdit::VectorDefault(value) => {
+            json!({"kind": "vector_default", "value": value})
+        }
+        MaterialGraphExpressionDetailsEdit::Texture(reference) => {
+            json!({"kind": "texture", "reference": reference})
+        }
+    }
+}
+
 fn graph_details_result(arguments: &DetailsArguments) -> Value {
     let graph = &arguments.graph;
     let diagnostics = validate_material_graph_with_diagnostics(graph);
@@ -1391,6 +1512,50 @@ fn details_value_json<T: serde::Serialize>(value: MaterialGraphDetailsValue<T>) 
         MaterialGraphDetailsValue::Common(value) => json!({"kind": "common", "value": value}),
         MaterialGraphDetailsValue::Mixed => json!({"kind": "mixed"}),
     }
+}
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ExpressionDetailsEditArguments {
+    #[serde(deserialize_with = "deserialize_graph")]
+    graph: MaterialGraphAsset,
+    selected_node_ids: Vec<String>,
+    edit: ExpressionDetailsEditRequest,
+    resource_observation: Option<ResourceKindObservation>,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+enum ExpressionDetailsEditRequest {
+    ScalarDefault {
+        value: f32,
+    },
+    VectorChannels {
+        channels: [Option<f32>; 4],
+    },
+    Texture {
+        #[serde(deserialize_with = "deserialize_expression_texture_reference")]
+        reference: AssetReference,
+    },
+}
+
+fn deserialize_expression_texture_reference<'de, D>(
+    deserializer: D,
+) -> Result<AssetReference, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    #[derive(serde::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct WireReference {
+        uuid: String,
+        url: AssetUri,
+    }
+    let reference = <WireReference as serde::Deserialize<'de>>::deserialize(deserializer)?;
+    Ok(AssetReference::new(
+        reference.uuid.parse().map_err(serde::de::Error::custom)?,
+        reference.url,
+    ))
 }
 
 #[derive(serde::Deserialize)]
