@@ -2,6 +2,18 @@
 
 本会话：`01a16d50-6c7f-7370-853d-4581184b66a1`。Parent：`01a16d4e-0491-7353-84fa-038bd7706546`。套件日期：2026-10-24；实际运行回执使用 UTC。
 
+## Expression Details73：节点默认值与真实纹理引用（2026-10-27）
+
+继续在原ready工作树w1167fba90b的四条路径内实现。实际 [MaterialGraphNodeKindAsset](../../../zircon_runtime/src/asset/assets/authoring.rs) 支持ScalarParameter／VectorParameter的default和TextureSample的必需AssetReference；图级parameters是另一张显式override map。UE的MaterialExpressionScalarParameter.h／MaterialExpressionVectorParameter.h的DefaultValue和MaterialExpressionTextureBase.h的Texture均为可编辑源属性；本域不推导UE Group／SortPriority／slider／SamplerType等当前schema没有的字段。已有真实Penpot Parameter proposal主件904a343b／main a4544d75含8对象和20个原生copy，本轮只读289／3906并保留原件，未把它称为通用Graph库或已经接通的默认值属性面板。
+
+[details_selection.rs](../../../zircon_plugins/material_editor/editor/src/details_selection.rs)新增plan_material_graph_expression_details_edit及私有构造的候选。它复用Details整组source身份检查，以精确node ID定位原借用节点；陈旧／空白／重复源键拒绝，Output仍走原Graph Details，Add／Multiply没有伪造可编辑默认值。候选只保存有限的标量／四通道前后值或原纹理引用，不克隆全图、不改节点ID／位置／kind／参数名／连线／override；相等默认、零值和wrong-type override均保留presence。私有类型化前后值对避免错误kind组合，公开路径没有unchecked索引或不可达分支panic。名字迁移和override reset不混入默认值编辑。
+
+新的数值必须finite，允许finite负值与HDR，不依据某个PBR槽把源节点统一夹到0..1。比较保留实际Real位模式，+0→-0是作者值变化，codec重开仍需保留符号；当前原zr_math::Real=f32，只复用原公开别名而不改变数学精度。Texture没有可伪造的None／fallback reset：实际变化的UUID＋locator完整对通过调用方当前catalog解析一次且必须ResourceKind::Texture；同对no-op不重新查询，不以文件后缀当类型证据。真实host仍须在同view／asset／document／subdocument／source revision／selection request和resource上下文重新校验，再以原预算准备一次field delta／inverse／permit／CAS／primary history，并承担dirty、Details发布、编译失效、renderer及保存；候选本身不执行这些动作。
+
+新增12个material_graph_expression_details_回归定义，覆盖源借用、同名参数的不同节点、override presence、finite／HDR／四通道与signed-zero、旧非法值修复、精确长中文ID／stale／歧义、字段kind、完整纹理对／resolver次数／错误，以及真实MaterialGraphAsset codec→既有CPU material compiler的roughness／base_color／base_color_texture。测试里的小图复制和字段安装只用于codec／compiler夹具，不是生产作者事务、renderer或live producer。总静态定义169→181（180普通＋1原ignored）；实际Rust发现／执行仍未知，不能借旧13／19或68输入背书。
+
+本轮运行三Rust格式、四路径diff／reverse／reachability guard及单材质plugin静态检查后正常deliver-task。当前实际pinned31652db8 runner仍要求nested plugin使用canonical checkout，原main只含source61，不能把当前worktree73塞进旧68／r10，也不回写共享main或用根workspace／本地Cargo代替。受管Rust需合法当前source路由或集成后新准入；原68／#496 FAILURE、r19 reader／native／resource未闭合继续独立保留。具体输入／patch／guard与下一项host消费边界见稳定报告根的material-expression-details-73-*；原ZUI导出、专用Field与表达式Details设计消费、正常EXE／实际150%DPI／双端1DIP和整族passed／accepted继续open，goal active，释放0B。
+
 ## Details tabs72：六板原生流式宽度修正（2026-10-27）
 
 在本域原Material文件 `b4a1e3ce-9e6a-81fe-8008-d69d6092d704`／page `b4a1e3ce-9e6a-81fe-8008-d69d6092d705` 的既有默认／root选中六板，修正 Details、Parameters、Nodes Overview 页签。原84宽等分allocation令96逻辑像素的Overview文字落入70宽clip。通过真实workspace inspector的Horizontal Fit content依次操作18个caption clip和18个tab allocation，不按截图坐标写几何；原生保存253→289，3906对象保持，48原对象变化、0新增／删除、页签以外0变化，文字／样式／组件引用／原prototype均保持。新宽为56／83／110，clip为42／69／96，原256宽row和2间距保持。六个原board UUID见本轮review，不重排fork的Instance／Hierarchy／四SearchInput。

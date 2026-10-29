@@ -2,8 +2,10 @@ use std::collections::BTreeMap;
 
 use super::{
     compile_material_graph, plan_material_graph_details_edit,
-    project_material_graph_details_selection, validate_material_graph_with_diagnostics,
-    MaterialGraphDetailsEdit, MaterialGraphDetailsTarget, MaterialGraphDiagnosticTarget,
+    plan_material_graph_expression_details_edit, project_material_graph_details_selection,
+    validate_material_graph_with_diagnostics, MaterialGraphDetailsEdit, MaterialGraphDetailsTarget,
+    MaterialGraphDiagnosticTarget, MaterialGraphExpressionDetailsEdit as ExpressionEdit,
+    MaterialGraphPresentation,
 };
 use zircon_runtime::asset::{
     AssetReference, AssetUri, MaterialGraphAsset, MaterialGraphLinkAsset, MaterialGraphNodeAsset,
@@ -436,6 +438,509 @@ fn material_graph_details_name_and_shader_candidates_survive_real_codec_with_sou
     assert_eq!(reopened.parameters, source.parameters);
     assert_eq!(compile_material_graph(&reopened).unwrap().roughness, 0.72);
     assert_eq!(source.to_toml_string().unwrap(), before);
+}
+
+#[test]
+fn material_graph_expression_details_scalar_default_keeps_borrowed_node_and_map_presence() {
+    let mut graph = graph();
+    graph.nodes = vec![
+        scalar("first", "Shared", 0.1),
+        scalar("second", "Shared", 0.9),
+    ];
+    graph.nodes[1].position = [-64.0, 512.0];
+    graph.parameters.insert("Shared".into(), Value::Scalar(0.9));
+    graph
+        .parameters
+        .insert("Orphan".into(), Value::Vector([0.0; 4]));
+    let before = graph.to_toml_string().unwrap();
+    let plan = plan_material_graph_expression_details_edit(
+        &graph,
+        "second",
+        ExpressionEdit::ScalarDefault(0.4),
+        |_| panic!("numeric fields do not resolve resources"),
+    )
+    .unwrap();
+    assert!(std::ptr::eq(plan.source(), &graph));
+    assert!(std::ptr::eq(plan.node(), &graph.nodes[1]));
+    assert_eq!(plan.previous_value(), ExpressionEdit::ScalarDefault(0.9));
+    assert_eq!(plan.edit(), ExpressionEdit::ScalarDefault(0.4));
+    assert!(plan.changes_source());
+    assert_eq!(plan.node().id, "second");
+    assert_eq!(plan.node().position, [-64.0, 512.0]);
+    assert_eq!(
+        plan.source().parameters.get("Shared"),
+        Some(&Value::Scalar(0.9))
+    );
+    assert_eq!(graph.to_toml_string().unwrap(), before);
+}
+
+#[test]
+fn material_graph_expression_details_vector_default_keeps_all_channels_and_hdr_values() {
+    let mut graph = graph();
+    graph.nodes = vec![node(
+        "color",
+        Node::VectorParameter {
+            name: "颜色".into(),
+            default: [0.1, 0.2, 0.3, 1.0],
+        },
+    )];
+    let requested = [-2.0, 4.0, 0.25, -0.0];
+    let before = graph.to_toml_string().unwrap();
+    let plan = plan_material_graph_expression_details_edit(
+        &graph,
+        "color",
+        ExpressionEdit::VectorDefault(requested),
+        |_| panic!("numeric fields do not resolve resources"),
+    )
+    .unwrap();
+    assert_eq!(
+        plan.previous_value(),
+        ExpressionEdit::VectorDefault([0.1, 0.2, 0.3, 1.0])
+    );
+    let ExpressionEdit::VectorDefault(after) = plan.edit() else {
+        unreachable!()
+    };
+    assert_eq!(after, requested);
+    assert!(after[3].is_sign_negative());
+    assert!(plan.changes_source());
+    assert_eq!(graph.to_toml_string().unwrap(), before);
+}
+
+#[test]
+fn material_graph_expression_details_defaults_reject_nonfinite_without_mutating_source() {
+    let mut graph = graph();
+    graph.nodes = vec![
+        scalar("scalar", "Scalar", 0.5),
+        node(
+            "vector",
+            Node::VectorParameter {
+                name: "Vector".into(),
+                default: [0.0; 4],
+            },
+        ),
+    ];
+    let before = graph.to_toml_string().unwrap();
+    for invalid in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+        for (id, edit) in [
+            ("scalar", ExpressionEdit::ScalarDefault(invalid)),
+            (
+                "vector",
+                ExpressionEdit::VectorDefault([0.0, 0.0, invalid, 1.0]),
+            ),
+        ] {
+            let errors = plan_material_graph_expression_details_edit(&graph, id, edit, |_| {
+                panic!("no lookup")
+            })
+            .unwrap_err();
+            assert_eq!(errors.len(), 1);
+            assert_eq!(
+                errors[0].target,
+                MaterialGraphDiagnosticTarget::Node { node_id: id.into() }
+            );
+        }
+    }
+    assert_eq!(graph.to_toml_string().unwrap(), before);
+}
+
+#[test]
+fn material_graph_expression_details_numeric_noops_keep_bit_identity_and_signed_zero() {
+    let mut graph = graph();
+    graph.nodes = vec![
+        scalar("scalar", "Scalar", 0.0),
+        node(
+            "vector",
+            Node::VectorParameter {
+                name: "Vector".into(),
+                default: [0.0; 4],
+            },
+        ),
+    ];
+    for (id, unchanged, signed_zero) in [
+        (
+            "scalar",
+            ExpressionEdit::ScalarDefault(0.0),
+            ExpressionEdit::ScalarDefault(-0.0),
+        ),
+        (
+            "vector",
+            ExpressionEdit::VectorDefault([0.0; 4]),
+            ExpressionEdit::VectorDefault([0.0, -0.0, 0.0, 0.0]),
+        ),
+    ] {
+        let noop = plan_material_graph_expression_details_edit(&graph, id, unchanged, |_| {
+            panic!("no lookup")
+        })
+        .unwrap();
+        assert!(!noop.changes_source());
+        let changed = plan_material_graph_expression_details_edit(&graph, id, signed_zero, |_| {
+            panic!("no lookup")
+        })
+        .unwrap();
+        assert!(
+            changed.changes_source(),
+            "signed zero is an authored value change"
+        );
+    }
+    let mut authored = graph.clone();
+    let Node::ScalarParameter { default, .. } = &mut authored.nodes[0].kind else {
+        unreachable!()
+    };
+    *default = -0.0;
+    let Node::VectorParameter { default, .. } = &mut authored.nodes[1].kind else {
+        unreachable!()
+    };
+    default[1] = -0.0;
+    let reopened = MaterialGraphAsset::from_toml_str(&authored.to_toml_string().unwrap()).unwrap();
+    let scalar = plan_material_graph_expression_details_edit(
+        &reopened,
+        "scalar",
+        ExpressionEdit::ScalarDefault(-0.0),
+        |_| panic!("no lookup"),
+    )
+    .unwrap();
+    let vector = plan_material_graph_expression_details_edit(
+        &reopened,
+        "vector",
+        ExpressionEdit::VectorDefault([0.0, -0.0, 0.0, 0.0]),
+        |_| panic!("no lookup"),
+    )
+    .unwrap();
+    assert!(
+        !scalar.changes_source(),
+        "codec must retain the authored scalar sign bit"
+    );
+    assert!(
+        !vector.changes_source(),
+        "codec must retain the authored channel sign bit"
+    );
+}
+
+#[test]
+fn material_graph_expression_details_repairs_invalid_default_without_resetting_override() {
+    let mut graph = graph();
+    graph.nodes = vec![scalar("roughness", "粗糙度", f32::NAN)];
+    graph
+        .parameters
+        .insert("粗糙度".into(), Value::Vector([f32::INFINITY; 4]));
+    let before = graph.to_toml_string().unwrap();
+    let diagnostics = validate_material_graph_with_diagnostics(&graph);
+    let plan = plan_material_graph_expression_details_edit(
+        &graph,
+        "roughness",
+        ExpressionEdit::ScalarDefault(0.72),
+        |_| panic!("no lookup"),
+    )
+    .unwrap();
+    let ExpressionEdit::ScalarDefault(previous) = plan.previous_value() else {
+        unreachable!()
+    };
+    assert!(previous.is_nan());
+    assert!(plan.changes_source());
+    assert!(
+        matches!(plan.source().parameters.get("粗糙度"), Some(Value::Vector(values)) if values[0].is_infinite())
+    );
+    assert_eq!(
+        validate_material_graph_with_diagnostics(&graph),
+        diagnostics
+    );
+    assert_eq!(graph.to_toml_string().unwrap(), before);
+}
+
+#[test]
+fn material_graph_expression_details_rejects_stale_or_ambiguous_keys_and_keeps_exact_id() {
+    let mut graph = graph();
+    let long_id = "参数_源节点_".repeat(24);
+    graph.nodes = vec![scalar(" node ", "Gain", 0.1), scalar(&long_id, "Gain", 0.2)];
+    for id in ["", "   ", "node", "Node", "missing"] {
+        assert!(plan_material_graph_expression_details_edit(
+            &graph,
+            id,
+            ExpressionEdit::ScalarDefault(0.4),
+            |_| panic!("no lookup")
+        )
+        .is_err());
+    }
+    let plan = plan_material_graph_expression_details_edit(
+        &graph,
+        &long_id,
+        ExpressionEdit::ScalarDefault(0.4),
+        |_| panic!("no lookup"),
+    )
+    .unwrap();
+    assert!(std::ptr::eq(plan.node(), &graph.nodes[1]));
+    graph.nodes.push(node("duplicate", Node::Add));
+    graph.nodes.push(node("duplicate", Node::Multiply));
+    assert!(plan_material_graph_expression_details_edit(
+        &graph,
+        " node ",
+        ExpressionEdit::ScalarDefault(0.4),
+        |_| panic!("no lookup")
+    )
+    .is_err());
+}
+
+#[test]
+fn material_graph_expression_details_texture_requires_current_full_pair_kind_once() {
+    let mut graph = graph();
+    let original =
+        AssetReference::from_locator(AssetUri::parse("res://textures/albedo.png").unwrap());
+    graph.nodes = vec![node(
+        "albedo",
+        Node::TextureSample {
+            texture: original.clone(),
+        },
+    )];
+    let mut moved = original.clone();
+    moved.locator = AssetUri::parse("res://textures/moved.not_an_image_extension").unwrap();
+    let mut replaced = original.clone();
+    replaced.uuid = AssetUuid::from_stable_label("expression details replacement texture test");
+    let before = graph.to_toml_string().unwrap();
+    for proposed in [&moved, &replaced] {
+        let mut calls = 0;
+        let plan = plan_material_graph_expression_details_edit(
+            &graph,
+            "albedo",
+            ExpressionEdit::Texture(proposed),
+            |reference| {
+                calls += 1;
+                assert!(std::ptr::eq(reference, proposed));
+                Ok(ResourceKind::Texture)
+            },
+        )
+        .unwrap();
+        assert_eq!(calls, 1);
+        assert!(plan.changes_source());
+        assert!(std::ptr::eq(plan.node(), &graph.nodes[0]));
+        let ExpressionEdit::Texture(old) = plan.previous_value() else {
+            unreachable!()
+        };
+        assert_eq!(old, &original);
+    }
+    assert_eq!(graph.to_toml_string().unwrap(), before);
+}
+
+#[test]
+fn material_graph_expression_details_texture_noop_preserves_unavailable_authored_pair() {
+    let mut graph = graph();
+    let texture =
+        AssetReference::from_locator(AssetUri::parse("res://textures/unavailable.png").unwrap());
+    graph.nodes = vec![node(
+        "texture",
+        Node::TextureSample {
+            texture: texture.clone(),
+        },
+    )];
+    let plan = plan_material_graph_expression_details_edit(
+        &graph,
+        "texture",
+        ExpressionEdit::Texture(&texture),
+        |_| panic!("an unchanged full pair needs no lookup"),
+    )
+    .unwrap();
+    assert!(!plan.changes_source());
+    assert!(std::ptr::eq(plan.source(), &graph));
+    let ExpressionEdit::Texture(request) = plan.edit() else {
+        unreachable!()
+    };
+    assert!(std::ptr::eq(request, &texture));
+}
+
+#[test]
+fn material_graph_expression_details_texture_rejects_wrong_kind_or_resolver_error() {
+    let mut graph = graph();
+    let original = AssetReference::from_locator(AssetUri::parse("res://textures/old.png").unwrap());
+    let proposed =
+        AssetReference::from_locator(AssetUri::parse("res://textures/looks_valid.png").unwrap());
+    graph.nodes = vec![node("texture", Node::TextureSample { texture: original })];
+    let before = graph.to_toml_string().unwrap();
+    for result in [
+        Ok(ResourceKind::Shader),
+        Ok(ResourceKind::Material),
+        Err("UUID/locator is not in this catalog".to_owned()),
+    ] {
+        let mut calls = 0;
+        let errors = plan_material_graph_expression_details_edit(
+            &graph,
+            "texture",
+            ExpressionEdit::Texture(&proposed),
+            |_| {
+                calls += 1;
+                result.clone()
+            },
+        )
+        .unwrap_err();
+        assert_eq!(calls, 1);
+        assert_eq!(
+            errors[0].target,
+            MaterialGraphDiagnosticTarget::Node {
+                node_id: "texture".into()
+            }
+        );
+    }
+    assert_eq!(graph.to_toml_string().unwrap(), before);
+}
+
+#[test]
+fn material_graph_expression_details_default_and_texture_field_kinds_are_not_interchangeable() {
+    let mut graph = graph();
+    let texture =
+        AssetReference::from_locator(AssetUri::parse("res://textures/albedo.png").unwrap());
+    graph.nodes = vec![
+        scalar("scalar", "Scalar", 0.5),
+        node(
+            "vector",
+            Node::VectorParameter {
+                name: "Vector".into(),
+                default: [0.0; 4],
+            },
+        ),
+        node(
+            "texture",
+            Node::TextureSample {
+                texture: texture.clone(),
+            },
+        ),
+        node("output", Node::Output),
+        node("add", Node::Add),
+        node("multiply", Node::Multiply),
+    ];
+    for (id, edit) in [
+        ("scalar", ExpressionEdit::VectorDefault([0.0; 4])),
+        ("scalar", ExpressionEdit::Texture(&texture)),
+        ("vector", ExpressionEdit::ScalarDefault(0.0)),
+        ("texture", ExpressionEdit::ScalarDefault(0.0)),
+        ("output", ExpressionEdit::ScalarDefault(0.0)),
+        ("add", ExpressionEdit::ScalarDefault(0.0)),
+        ("multiply", ExpressionEdit::ScalarDefault(0.0)),
+    ] {
+        let errors = plan_material_graph_expression_details_edit(&graph, id, edit, |_| {
+            panic!("wrong fields never resolve a reference")
+        })
+        .unwrap_err();
+        assert_eq!(
+            errors[0].target,
+            MaterialGraphDiagnosticTarget::Node { node_id: id.into() }
+        );
+    }
+}
+
+#[test]
+fn material_graph_expression_details_defaults_roundtrip_through_codec_and_real_compile() {
+    let mut graph = graph();
+    graph.nodes = vec![
+        node("output", Node::Output),
+        scalar("roughness", "粗糙度", 0.4),
+        node(
+            "color",
+            Node::VectorParameter {
+                name: "颜色".into(),
+                default: [0.1, 0.2, 0.3, 1.0],
+            },
+        ),
+    ];
+    graph.links = vec![link("roughness", "roughness"), link("color", "base_color")];
+    graph.parameters.insert("粗糙度".into(), Value::Scalar(0.4));
+    graph.parameters.insert("孤立".into(), Value::Scalar(-0.0));
+    let before = graph.to_toml_string().unwrap();
+    let scalar_plan = plan_material_graph_expression_details_edit(
+        &graph,
+        "roughness",
+        ExpressionEdit::ScalarDefault(0.72),
+        |_| panic!("no lookup"),
+    )
+    .unwrap();
+    let vector_plan = plan_material_graph_expression_details_edit(
+        &graph,
+        "color",
+        ExpressionEdit::VectorDefault([0.2, 0.4, 0.6, 1.0]),
+        |_| panic!("no lookup"),
+    )
+    .unwrap();
+    let mut authored = graph.clone();
+    // Test-only fixture installation; production still requires the real host permit/CAS.
+    let ExpressionEdit::ScalarDefault(value) = scalar_plan.edit() else {
+        unreachable!()
+    };
+    let Node::ScalarParameter { default, .. } = &mut authored.nodes[1].kind else {
+        unreachable!()
+    };
+    *default = value;
+    let ExpressionEdit::VectorDefault(value) = vector_plan.edit() else {
+        unreachable!()
+    };
+    let Node::VectorParameter { default, .. } = &mut authored.nodes[2].kind else {
+        unreachable!()
+    };
+    *default = value;
+    let saved = authored.to_toml_string().unwrap();
+    let mut reopened = MaterialGraphAsset::from_toml_str(&saved).unwrap();
+    assert_eq!(reopened.parameters, graph.parameters);
+    assert_eq!(reopened.links, graph.links);
+    assert_eq!(reopened.uri, graph.uri);
+    let material = compile_material_graph(&reopened).unwrap();
+    assert_eq!(
+        material.roughness, 0.4,
+        "an equal old override is still present"
+    );
+    assert_eq!(material.base_color, [0.2, 0.4, 0.6, 1.0]);
+    {
+        let presentation = MaterialGraphPresentation::new(&reopened).unwrap();
+        let rows: Vec<_> = presentation.parameter_declarations().collect();
+        assert_eq!(rows[0].default_value(), &Value::Scalar(0.72));
+        assert_eq!(rows[0].override_value(), Some(&Value::Scalar(0.4)));
+    }
+    // An explicit fixture reset exposes the new default; planning never does this reset.
+    reopened.parameters.remove("粗糙度");
+    let reset = MaterialGraphAsset::from_toml_str(&reopened.to_toml_string().unwrap()).unwrap();
+    assert_eq!(compile_material_graph(&reset).unwrap().roughness, 0.72);
+    assert_eq!(graph.to_toml_string().unwrap(), before);
+}
+
+#[test]
+fn material_graph_expression_details_texture_edit_roundtrips_to_real_material_binding() {
+    let mut graph = graph();
+    let old = AssetReference::from_locator(AssetUri::parse("res://textures/old.png").unwrap());
+    let proposed = AssetReference::new(
+        AssetUuid::from_stable_label("expression details new binding test"),
+        AssetUri::parse("res://textures/new.png").unwrap(),
+    );
+    graph.nodes = vec![
+        node("albedo", Node::TextureSample { texture: old }),
+        node("output", Node::Output),
+    ];
+    graph.links = vec![MaterialGraphLinkAsset {
+        from_node: "albedo".into(),
+        from_pin: "color".into(),
+        to_node: "output".into(),
+        to_pin: "base_color".into(),
+    }];
+    let before = graph.to_toml_string().unwrap();
+    let plan = plan_material_graph_expression_details_edit(
+        &graph,
+        "albedo",
+        ExpressionEdit::Texture(&proposed),
+        |_| Ok(ResourceKind::Texture),
+    )
+    .unwrap();
+    let ExpressionEdit::Texture(reference) = plan.edit() else {
+        unreachable!()
+    };
+    let mut authored = graph.clone();
+    let Node::TextureSample { texture } = &mut authored.nodes[0].kind else {
+        unreachable!()
+    };
+    *texture = reference.clone();
+    let reopened = MaterialGraphAsset::from_toml_str(&authored.to_toml_string().unwrap()).unwrap();
+    assert_eq!(reopened.nodes[0].id, graph.nodes[0].id);
+    assert_eq!(reopened.nodes[0].position, graph.nodes[0].position);
+    assert_eq!(reopened.links, graph.links);
+    assert_eq!(
+        compile_material_graph(&reopened)
+            .unwrap()
+            .base_color_texture,
+        Some(proposed)
+    );
+    assert_eq!(graph.to_toml_string().unwrap(), before);
 }
 
 fn graph() -> MaterialGraphAsset {
