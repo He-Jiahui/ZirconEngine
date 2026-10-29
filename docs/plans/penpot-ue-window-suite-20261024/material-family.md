@@ -1,5 +1,19 @@
 # 材质窗口族：源码盘点、实现与证据
 
+## Expression batch77：多选默认值与分通道候选（2026-10-28）
+
+接续已提交source75的Common／Mixed投影，在同一ready工作树及原三Rust增加plan_material_graph_expression_details_batch_edit、MaterialGraphExpressionDetailsBatchEdit与私有构造的BatchPlan；没有改旧single-edit enum／调用签名、原GraphModel／Document／history或runtime。UE MaterialEditor.cpp:8748用原SelectedObjects发布Details，7682–7686的NotifyPreChange开一次MaterialEditorEditProperties事务；本域因此交付整组选中候选，不能让宿主逐entry独立提交冒充一次多对象编辑。
+
+批量候选要求非空选择，先复用原Details全源身份核对，拒绝stale／空白／重复／歧义源ID；entries包含no-op并保持原source顺序、原node指针／位置／kind／参数名，不按名字合并同名节点。ScalarDefault统一所选Scalar默认值；VectorChannels的Some仅改指定通道，None保留每个节点各自的原位模式，含mixed／签名零／待修复NaN。新写入数值必须finite，有限负值／HDR不夹到0..1；all-None仍校验真实selection和Vector类型，随后是no-op，不伪造“缺值”或清空override。所有graph.parameters及显式presence保持。
+
+Texture仍用完整UUID＋locator引用，没有虚构None／reset；整组kind预检结束后，仅在至少一项实际变化时对同一请求引用解析一次ResourceKind::Texture，wrong kind／resolver错误整批拒绝、诊断定位首个source顺序的实际变化节点。所有项均无变化则不查询不可用资源。single-edit与batch复用同一个真实纹理校验helper，原错误文案和node定位保持。只复制有限字段前后值，不复制整图；借用候选不产生mutation permit、源revision、dirty／compile／renderer／save或history。
+
+新增7个material_graph_expression_batch_回归定义，覆盖source顺序／no-op／override presence、逐通道未编辑位保留／HDR／签名零／NaN与all-None、stale／歧义／混类全批拒绝且0lookup、非finite请求、完整纹理对的一次解析／错误，以及真实MaterialGraphAsset codec往返＋既有CPU compiler。最后一项以A=0.2和B=0.5的Multiply roughness为基线，测试夹具安装统一0.8候选后应成为0.8×0.8，再用各entry原值恢复同一编译结果／作者源；该测试内clone／安装只是夹具，不是生产undo或renderer。总静态定义187→194（193普通＋1原ignored），未由Rust harness发现／编译／执行，不以格式／plugin validate或source75／76的branch SUCCESS补签。
+
+当前生产入口也已真实核对：原material_workspace_state.rs仍是三个MaterialSelectionProfile和Not implemented (preview)，plugin.rs有open／validate／compile／preview声明，但本次范围内未见把作者MaterialGraph接到该retained宿主的执行caller。共用GraphDeltaCommand具备retention／prepared／一次permit路径，本域不另建store／clock或绕过它；宿主须保留同一view incarnation、asset／document／subdocument、source revision及selection request，核完整batch、计费所有changed字段和inverse后，作为一次原domain delta／CAS／primary history提交。发布Details、编译失效、诊断定位、renderer替换及保存仍由真实owner接入，不能拿本候选关闭这些缺口。
+
+设计继续沿原75三板rev400／5020，未复制新板、写Shared／catalog／theme、fork Instance／Hierarchy／四SearchInput或原ZUI；Multiple Values仍是设计状态。沿Parent r162现有PR／main链等待真实canonical单材质包准入，不提交明确不支持的nested worktree Cargo，不重投旧64／r10／68终态。source77的检查／patch／交付回执复用material-expression-batch-77-*；只做三Rust格式、单plugin静态检查与四路径guard／diff／reverse，受管Rust与正常EXE／真实150%DPI／官方导出／双端≤1DIP仍open。goal active，整族passed=false／accepted=false，释放0B。
+
 ## Common Details75／native review76：源码已提交，三尺寸设计已重开（2026-10-28）
 
 本次接续原request ue-material-graph-20261024-01与唯一producer，在原ready工作树正式交付source75：deliver-material-details-common-01a16d50-20261027-75／queue28487／management#566 SUCCESS，commit 6db5c0c83e37629ccd7b27ab4c6dbc96ea3ec710、parent bb88532ea260ec0c9da73b1beb512287574f44e2，四路径+341/-3。原input 799B／SHA5a51a059275365f6e60c38014a7ff58bfaf8a3253a374fb55e50ee3039c2b11e不变，2163B的实际回执SHA872106d70f3bc999f935aa030df6780865c9cd343f069088e1a5f303b9635e1a与两份归档逐字一致。四源与提交blob原字节完全相同，工作树随后clean；这只是branch commit，main integration pending、validationPerformed=false。旧74的pre-POST offline拒绝、64／61及r10所有旧失败保持，不重投终结operation。
