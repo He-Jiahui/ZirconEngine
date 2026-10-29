@@ -7,7 +7,8 @@ use zircon_editor::ui::material_editor::{
     MaterialEditorTextureSlotRow,
 };
 use zircon_runtime::asset::{
-    AssetReference, AssetUri, ShaderAsset, ShaderMaterialPropertyAsset, ZMaterialDocument,
+    AssetReference, AssetUri, MaterialTextureSlotValue, ShaderAsset, ShaderMaterialPropertyAsset,
+    ShaderTextureSlotAsset, ZMaterialDocument,
 };
 use zircon_runtime::core::framework::render::{
     MaterialPropertyKind, RenderMaterialDiagnosticSource, RenderMaterialPropertyValue,
@@ -231,6 +232,161 @@ fn typed_property_kind(value: &RenderMaterialPropertyValue) -> Option<MaterialPr
         RenderMaterialPropertyValue::Vec3 { .. } => MaterialPropertyKind::Vec3,
         RenderMaterialPropertyValue::Vec4 { .. } => MaterialPropertyKind::Vec4,
         RenderMaterialPropertyValue::String { .. } => return None,
+    })
+}
+
+/// Set keeps local presence even when both reference and fallback are empty.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum MaterialDocumentTextureEdit<'a> {
+    Set(&'a MaterialTextureSlotValue),
+    ClearOverride,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum MaterialDocumentTextureEditError {
+    Source(MaterialDocumentProjectionError),
+    SchemaUnavailable,
+    EmptySlotName,
+    UndeclaredSlot(String),
+    NonFiniteTransform(String),
+}
+
+impl fmt::Display for MaterialDocumentTextureEditError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Source(error) => fmt::Display::fmt(error, formatter),
+            Self::SchemaUnavailable => {
+                formatter.write_str("material texture Set requires the current shader schema")
+            }
+            Self::EmptySlotName => formatter.write_str("cannot set an empty material texture key"),
+            Self::UndeclaredSlot(name) => {
+                write!(
+                    formatter,
+                    "material shader does not declare texture slot `{name}`"
+                )
+            }
+            Self::NonFiniteTransform(name) => {
+                write!(
+                    formatter,
+                    "new texture transform for `{name}` must be finite"
+                )
+            }
+        }
+    }
+}
+
+impl Error for MaterialDocumentTextureEditError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Source(error) => Some(error),
+            _ => None,
+        }
+    }
+}
+
+/// A borrow-only proposal for the original Document transaction owner.
+///
+/// Set borrows the complete authored slot, including its reference identity,
+/// fallback, optional transform and UV channel. An explicitly empty slot stays a
+/// local override; ClearOverride removes local presence instead. Neither action
+/// resolves a parent, chooses a default texture or grants a document write.
+/// The host must validate real texture handles/dimensions, sampler/UV readiness
+/// and the shader contract, then charge the exact old/new payload and apply its
+/// original one-permit inverse delta/history/CAS flow. URI equality alone does
+/// not prove payload identity or ResourceManager generation. Required-binding
+/// diagnostics cannot be cleared by a successful local authoring preflight.
+#[derive(Debug)]
+pub struct MaterialDocumentTextureEditPlan<'a> {
+    document: &'a ZMaterialDocument,
+    name: &'a str,
+    slot: Option<&'a ShaderTextureSlotAsset>,
+    edit: MaterialDocumentTextureEdit<'a>,
+}
+
+impl<'a> MaterialDocumentTextureEditPlan<'a> {
+    pub fn source_document(&self) -> &'a ZMaterialDocument {
+        self.document
+    }
+
+    pub fn name(&self) -> &'a str {
+        self.name
+    }
+
+    pub fn slot_definition(&self) -> Option<&'a ShaderTextureSlotAsset> {
+        self.slot
+    }
+
+    pub fn edit(&self) -> MaterialDocumentTextureEdit<'a> {
+        self.edit
+    }
+
+    pub fn was_overridden(&self) -> bool {
+        self.document.textures.contains_key(self.name)
+    }
+
+    pub fn will_be_overridden(&self) -> bool {
+        matches!(self.edit, MaterialDocumentTextureEdit::Set(_))
+    }
+}
+
+/// Checks one exact local texture key without cloning or modifying the source.
+///
+/// Set requires a unique declaration and finite new UV components. No fallback,
+/// alias, URI, UV channel or finite transform component is normalized or clamped.
+/// ClearOverride can repair unknown/empty keys and invalid existing transforms
+/// without a schema. A supplied shader must match and its target cannot be
+/// ambiguous. Unrelated schema entries are not validated by this single-key plan.
+pub fn plan_material_document_texture_edit<'a>(
+    document: &'a ZMaterialDocument,
+    shader: Option<&'a ShaderAsset>,
+    name: &'a str,
+    edit: MaterialDocumentTextureEdit<'a>,
+) -> Result<MaterialDocumentTextureEditPlan<'a>, MaterialDocumentTextureEditError> {
+    let mut slot = None;
+    if let Some(shader) = shader {
+        check_shader_locator(document, shader).map_err(MaterialDocumentTextureEditError::Source)?;
+        for candidate in &shader.texture_slots {
+            if candidate.name == name {
+                if slot.is_some() {
+                    return Err(MaterialDocumentTextureEditError::Source(
+                        MaterialDocumentProjectionError::DuplicateTextureSlotName(name.into()),
+                    ));
+                }
+                slot = Some(candidate);
+            }
+        }
+    }
+    if let MaterialDocumentTextureEdit::Set(value) = edit {
+        if name.is_empty() {
+            return Err(MaterialDocumentTextureEditError::EmptySlotName);
+        }
+        if shader.is_none() {
+            return Err(MaterialDocumentTextureEditError::SchemaUnavailable);
+        }
+        if slot.is_none() {
+            return Err(MaterialDocumentTextureEditError::UndeclaredSlot(
+                name.into(),
+            ));
+        }
+        if let Some(transform) = value.transform {
+            if !transform
+                .scale
+                .iter()
+                .chain(transform.offset.iter())
+                .all(|v| v.is_finite())
+                || !transform.rotation.is_finite()
+            {
+                return Err(MaterialDocumentTextureEditError::NonFiniteTransform(
+                    name.into(),
+                ));
+            }
+        }
+    }
+    Ok(MaterialDocumentTextureEditPlan {
+        document,
+        name,
+        slot,
+        edit,
     })
 }
 

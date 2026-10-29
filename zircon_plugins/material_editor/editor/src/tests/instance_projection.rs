@@ -1,18 +1,20 @@
 use std::collections::BTreeMap;
 
 use super::{
-    plan_material_document_property_edit, project_authored_material_document,
-    MaterialDocumentProjectionError, MaterialDocumentPropertyEdit as Edit,
-    MaterialDocumentPropertyEditError as EditError,
+    plan_material_document_property_edit, plan_material_document_texture_edit,
+    project_authored_material_document, MaterialDocumentProjectionError,
+    MaterialDocumentPropertyEdit as Edit, MaterialDocumentPropertyEditError as EditError,
+    MaterialDocumentTextureEdit as TextureEdit,
+    MaterialDocumentTextureEditError as TextureEditError,
 };
 use zircon_editor::ui::material_editor::MaterialEditorProjection;
 use zircon_runtime::asset::{
-    AssetReference, AssetUri, MaterialAsset, ShaderAsset, ShaderMaterialPropertyAsset,
-    ShaderSourceLanguage, ShaderTextureSlotAsset, ZMaterialDocument,
+    AssetReference, AssetUri, MaterialAsset, MaterialTextureSlotValue, ShaderAsset,
+    ShaderMaterialPropertyAsset, ShaderSourceLanguage, ShaderTextureSlotAsset, ZMaterialDocument,
 };
 use zircon_runtime::core::framework::render::{
     MaterialPropertyKind, RenderMaterialDiagnosticSource, RenderMaterialPropertyValue as Value,
-    ShaderAssetKind,
+    RenderMaterialTextureTransform, ShaderAssetKind,
 };
 use zircon_runtime_interface::project::PersistedAssetReference;
 
@@ -547,6 +549,270 @@ fn material_graph_instance_property_edit_preserves_exact_names_and_separates_cle
 
 // Unit inputs for the real authoring codec/projection, never a preview producer,
 // published ResourceManager handle or substitute for an Engine-rendered asset.
+#[test]
+fn material_graph_instance_texture_empty_set_keeps_local_presence_and_required_diagnostics() {
+    let mut source = document("roughness = 0.5", "");
+    source.parent = Some(reference("builtin://material/base"));
+    source.validation_diagnostics = vec!["required texture is unresolved".into()];
+    let before = source.clone();
+    let mut schema = shader();
+    schema.texture_slots[0].required = true;
+    let empty = MaterialTextureSlotValue {
+        reference: None,
+        fallback: None,
+        transform: None,
+        uv_channel: 0,
+    };
+    let plan = plan_material_document_texture_edit(
+        &source,
+        Some(&schema),
+        "base_color",
+        TextureEdit::Set(&empty),
+    )
+    .unwrap();
+    assert!(std::ptr::eq(plan.source_document(), &source));
+    assert!(std::ptr::eq(
+        plan.slot_definition().unwrap(),
+        &schema.texture_slots[0]
+    ));
+    assert!(!plan.was_overridden());
+    assert!(plan.will_be_overridden());
+    let TextureEdit::Set(value) = plan.edit() else {
+        panic!("Set must remain Set")
+    };
+    assert!(std::ptr::eq(value, &empty));
+    assert!(value.reference.is_none() && value.fallback.is_none());
+    assert_eq!(schema.texture_slots[0].default.as_deref(), Some("white"));
+    assert_eq!(source, before);
+}
+
+#[test]
+fn material_graph_instance_texture_set_borrows_full_reference_fallback_and_unclamped_uv_payload() {
+    let source = document(
+        "roughness = 0.25",
+        "normal = { fallback = 'normal', uv_channel = 1 }",
+    );
+    let before = source.clone();
+    let schema = shader();
+    let schema_before = schema.clone();
+    let mut value = MaterialTextureSlotValue::new(reference("builtin://texture/white"));
+    value.fallback = Some(" raw fallback value ".into());
+    value.uv_channel = u32::MAX;
+    value.transform = Some(RenderMaterialTextureTransform {
+        scale: [-2.0, 0.0],
+        offset: [10.0, -100.0],
+        rotation: f32::MAX,
+    });
+    let plan = plan_material_document_texture_edit(
+        &source,
+        Some(&schema),
+        "normal",
+        TextureEdit::Set(&value),
+    )
+    .unwrap();
+    assert_eq!(plan.name(), "normal");
+    assert!(plan.was_overridden() && plan.will_be_overridden());
+    assert_eq!(plan.edit(), TextureEdit::Set(&value));
+    let TextureEdit::Set(borrowed) = plan.edit() else {
+        panic!("Set must remain Set")
+    };
+    assert!(std::ptr::eq(borrowed, &value));
+    assert_eq!(borrowed.uv_channel, u32::MAX);
+    assert_eq!(borrowed.transform.unwrap().scale, [-2.0, 0.0]);
+    assert_eq!(borrowed.fallback.as_deref(), Some(" raw fallback value "));
+    assert_eq!(source, before);
+    assert_eq!(schema, schema_before);
+}
+
+#[test]
+fn material_graph_instance_texture_set_rejects_missing_stale_or_ambiguous_target_schema() {
+    let source = document("roughness = 0.5", "base_color = {}");
+    let before = source.clone();
+    let value = source.textures.get("base_color").unwrap();
+    let schema = shader();
+    assert_eq!(
+        plan_material_document_texture_edit(&source, None, "base_color", TextureEdit::Set(value))
+            .unwrap_err(),
+        TextureEditError::SchemaUnavailable
+    );
+    assert_eq!(
+        plan_material_document_texture_edit(&source, Some(&schema), "", TextureEdit::Set(value))
+            .unwrap_err(),
+        TextureEditError::EmptySlotName
+    );
+    assert_eq!(
+        plan_material_document_texture_edit(
+            &source,
+            Some(&schema),
+            "unknown",
+            TextureEdit::Set(value)
+        )
+        .unwrap_err(),
+        TextureEditError::UndeclaredSlot("unknown".into())
+    );
+    let mut wrong = shader();
+    wrong.uri = AssetUri::parse("builtin://shader/unrelated").unwrap();
+    assert!(matches!(
+        plan_material_document_texture_edit(
+            &source,
+            Some(&wrong),
+            "base_color",
+            TextureEdit::ClearOverride
+        ),
+        Err(TextureEditError::Source(
+            MaterialDocumentProjectionError::ShaderLocatorMismatch { .. }
+        ))
+    ));
+    let mut ambiguous = shader();
+    ambiguous
+        .texture_slots
+        .push(ambiguous.texture_slots[0].clone());
+    for edit in [TextureEdit::Set(value), TextureEdit::ClearOverride] {
+        assert_eq!(
+            plan_material_document_texture_edit(&source, Some(&ambiguous), "base_color", edit)
+                .unwrap_err(),
+            TextureEditError::Source(MaterialDocumentProjectionError::DuplicateTextureSlotName(
+                "base_color".into()
+            ))
+        );
+    }
+    // A single-target proposal is not whole-schema validation.
+    let mut unrelated = shader();
+    unrelated
+        .texture_slots
+        .push(unrelated.texture_slots[1].clone());
+    unrelated
+        .property_schema
+        .push(unrelated.property_schema[0].clone());
+    assert!(plan_material_document_texture_edit(
+        &source,
+        Some(&unrelated),
+        "base_color",
+        TextureEdit::Set(value)
+    )
+    .is_ok());
+    assert_eq!(source, before);
+}
+
+#[test]
+fn material_graph_instance_texture_clear_can_repair_exact_unknown_empty_and_nonfinite_entries() {
+    let mut source = document("roughness = 0.5", "");
+    for key in ["", "未知 纹理", "base_color"] {
+        source.textures.insert(
+            key.into(),
+            MaterialTextureSlotValue {
+                reference: None,
+                fallback: Some("unknown fallback".into()),
+                transform: Some(RenderMaterialTextureTransform {
+                    rotation: f32::NAN,
+                    ..Default::default()
+                }),
+                uv_channel: u32::MAX,
+            },
+        );
+    }
+    let editor_before = source.editor.clone();
+    for key in ["", "未知 纹理", "base_color", "absent"] {
+        let plan =
+            plan_material_document_texture_edit(&source, None, key, TextureEdit::ClearOverride)
+                .unwrap();
+        assert_eq!(plan.name(), key);
+        assert_eq!(plan.was_overridden(), key != "absent");
+        assert!(!plan.will_be_overridden());
+        assert!(plan.slot_definition().is_none());
+        assert_eq!(plan.edit(), TextureEdit::ClearOverride);
+        assert!(std::ptr::eq(plan.source_document(), &source));
+    }
+    assert_eq!(source.textures.len(), 3);
+    assert!(source.textures["base_color"]
+        .transform
+        .unwrap()
+        .rotation
+        .is_nan());
+    assert_eq!(source.editor, editor_before);
+}
+
+#[test]
+fn material_graph_instance_texture_set_rejects_each_nonfinite_uv_component_without_sanitizing() {
+    let source = document("roughness = 0.5", "base_color = {}");
+    let before = source.clone();
+    let schema = shader();
+    for bad in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+        for component in 0..5 {
+            let mut transform = RenderMaterialTextureTransform::IDENTITY;
+            match component {
+                0..=1 => transform.scale[component] = bad,
+                2..=3 => transform.offset[component - 2] = bad,
+                _ => transform.rotation = bad,
+            }
+            let mut value = source.textures["base_color"].clone();
+            value.transform = Some(transform);
+            assert_eq!(
+                plan_material_document_texture_edit(
+                    &source,
+                    Some(&schema),
+                    "base_color",
+                    TextureEdit::Set(&value)
+                )
+                .unwrap_err(),
+                TextureEditError::NonFiniteTransform("base_color".into())
+            );
+            let preserved = value.transform.unwrap();
+            let actual = match component {
+                0..=1 => preserved.scale[component],
+                2..=3 => preserved.offset[component - 2],
+                _ => preserved.rotation,
+            };
+            assert!(actual.is_nan() && bad.is_nan() || actual == bad);
+        }
+    }
+    assert_eq!(source, before);
+}
+
+#[test]
+fn material_graph_instance_texture_keys_keep_spaces_unicode_aliases_and_property_namespaces() {
+    let source = document("roughness = 0.5", "base_color = {}");
+    let before = source.clone();
+    let mut schema = shader();
+    schema.texture_slots[0].name = " 法线 参数 ".into();
+    schema.texture_slots[1].name = "roughness".into();
+    let value = &source.textures["base_color"];
+    for name in [" 法线 参数 ", "roughness"] {
+        let plan = plan_material_document_texture_edit(
+            &source,
+            Some(&schema),
+            name,
+            TextureEdit::Set(value),
+        )
+        .unwrap();
+        assert_eq!(plan.name(), name);
+        assert!(!plan.was_overridden());
+    }
+    for name in ["法线 参数", "base_color_texture", "normal"] {
+        assert_eq!(
+            plan_material_document_texture_edit(
+                &source,
+                Some(&schema),
+                name,
+                TextureEdit::Set(value)
+            )
+            .unwrap_err(),
+            TextureEditError::UndeclaredSlot(name.into())
+        );
+    }
+    let alias_clear = plan_material_document_texture_edit(
+        &source,
+        None,
+        "base_color_texture",
+        TextureEdit::ClearOverride,
+    )
+    .unwrap();
+    assert!(!alias_clear.was_overridden());
+    assert_eq!(alias_clear.name(), "base_color_texture");
+    assert!(source.textures.contains_key("base_color"));
+    assert_eq!(source, before);
+}
+
 fn document(overrides: &str, textures: &str) -> ZMaterialDocument {
     let text = format!(
         r#"version = 2
