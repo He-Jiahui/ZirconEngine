@@ -1,3 +1,17 @@
+## 接续94：原生分发 Validate/Compile 实际回调候选（2026-10-28）
+
+- 唯一 producer 仍为材质原聊天 01a16d50；基于接续93 immutable 87f804c2 的新受管 native94 范围，仅 dist/Cargo.toml、dist/src/lib.rs、新 commands.rs/其测试和本记录。Instance/Hierarchy/fork、公共 SDK/host、原 ZUI/Penpot 均不改。
+- 保留原 V3 registration manifest/能力/模块、editor entry、stateless 和两个旧 dist 测试；V4 command manifest 给原 material_editor.graph.validate/compile 稳定 ID 分配槽位0/1，沿原 payload schema v1。命令严格消费 JSON object 的唯一 graph 字段（真实 MaterialGraphAsset），不从固定资料或磁盘再取图。
+- Validate 调用既有 validate_material_graph_with_diagnostics；Compile 调用既有 compile_material_graph_with_diagnostics。返回 graph_uri、ok、原消息/完整 Graph/Node/Input/Output/Parameter 目标和可选 MaterialAsset，保留 shader/texture UUID+locator，不构造新编译器/store/clock/history 或持久化写入。Native OK 仅为请求执行完成；ok=false+diagnostics 是图校验/编译失败，material=null，不能当产品成功。
+- 入口先拒未知槽/空、null、超过1MiB的输入及缺 writer；JSON decode 后才执行真实域函数。有界 JSON writer 使用 min(Host sink,1MiB)，完整编码后才一次 sink.write，编码/预算失败不发布 prefix，Host writer 的非 OK 原码上抛，SDK panic 边界保留。
+- 11项新增 dist 回归仅定义：从实际导出 entry 的 behavior 获取 callback；验证输入变化改变 MaterialAsset、中文真实 input target、compile error 无 material、完整纹理引用、manifest+原注册、坏输入/未知槽/长度/预算/no-writer/Host拒绝。dist 总13静态定义（旧2+新11），不混入 editor 的245总/242 material_graph_；0 Rust harness/类型检查/执行。
+- 原生回调可供既有 native plugin 的 bind_editor_command 使用；原 registration schema 保持V3，尚无 SerializedContributionBatch 的 NativeEndpoint binding，因此既有菜单/retained Material workspace 不因这段源码而可用。宿主必须沿原 incarnation/view/document/subdocument/revision/request/catalog context 提交该图，保留同请求来源，准入/撤销后拒旧 generation，再把有效结果接既有一次 delta/inverse/prepare/permit/CAS/history 与 dirty/compile/renderer/save/focus；不能把返回 MaterialAsset 写回作者文档或覆盖 editor metadata。
+- 仍真实开放：plugins://material_editor/editor/graph.zui 与默认创建模板未在包内找到；当前 material_workspace_state 仍三组 canned profiles 与 Not implemented(preview)。不指向 component 冒充 document，不新增占位图。正式 native contribution/实际 source adapter/生产 renderer、Function backend、官方 export、正常 EXE、真实150%DPI、双端1DIP、passed/accepted 均未通过。
+- 新 direct deps 仅 dist 的既有 serde 1.0.228/derive、serde_json 1.0.150 和 workspace zircon_runtime；不手改 nested Cargo.lock。正式锁闭包/生成/原生 dist 单包准入及验证归 Jenkins/Git 原链，原 editor-only material_graph_ recipe 不覆盖 dist，不回放 r10/#370、#651 或旧 worktree 请求。UE MaterialEditor.cpp 2827 UpdateOriginalMaterial 与3682 OnApply/SceneMaterialsModified 继续是实际写回/渲染更新参考，本次仅接 compiler transport，不签 Apply/render。
+- 本轮实际 create94-r2 已由 queue30107/#734 SUCCESS 创建 w448b90023f-native94，原 #732 失败保留。最终 guard 为0 error/0 warning/0 suppression；首轮三处测试 CStr 安全性说明遗漏已修，原失败单列。输入经现有 Serde deny_unknown_fields 直接解析，并覆盖重复 graph 键，避免 Value map 的 last-wins 误用。
+- 2026-10-28T12:17:49Z 仅对 prospective dist lib/test/defaults-off/features[]/locked/jobs1/material_editor_dist_native_/threads1 做正式 pinned client 纯配方解析，实际拒绝 build_scope_policy：当前 nested manifest 有限列表不含 dist。没有 submit/source capture/Cargo/新验证 identity。当前 nested lock 的 dist dependency 节点仅 editor+SDK，新增 serde/serde_json/runtime 三条既有依赖边需要原 Jenkins/Git 的受管生成/CAS/发布；不手改或借旧 lock 身份，不用 editor material_graph_ 回归假称覆盖 dist。
+- 原 create #732/queue30101 失败因 Windows owned path 规范将 Cargo.toml casefold 为 cargo.toml，未改源码/门；修正 input 的合法后继 create94-r2/queue30107/#734 单独保留，不改原失败。交付/受管静态回执与当前 raw pins 以本轮 handoff 为准；branch commit 不等 PR/main/产品验证。
+
 ## Instance 默认值重置93：保留 override 状态的真实解析候选（2026-10-28）
 
 本轮继续原唯一 producer／request `ue-material-graph-20261024-01`，在既有 `w16726e4ff5-inst85` 的三个已授权 Rust 与本账本接续；不改 fork 的 Hierarchy、Instance 四板／Search copies、公共组件／主题／Runtime／原ZUI，也不创建第二 store／clock／history。source92勘误与全部前文原字节作为后缀保留。
