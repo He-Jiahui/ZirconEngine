@@ -31,8 +31,14 @@ fn duplicate_menu_action_delegates_undo_to_the_transaction_engine() {
 #[test]
 fn play_start_notice_requires_a_new_committed_live_runtime() {
     use crate::core::editor_event::EditorEventEffect;
-    for mode in [PlayModeKind::Edit, PlayModeKind::Building, PlayModeKind::CleanupFailed] {
-        assert!(!super::play_start_effects(true, mode).contains(&EditorEventEffect::PlaySessionStarted));
+    for mode in [
+        PlayModeKind::Edit,
+        PlayModeKind::Building,
+        PlayModeKind::CleanupFailed,
+    ] {
+        assert!(
+            !super::play_start_effects(true, mode).contains(&EditorEventEffect::PlaySessionStarted)
+        );
     }
     assert!(!super::play_start_effects(false, PlayModeKind::Playing)
         .contains(&EditorEventEffect::PlaySessionStarted));

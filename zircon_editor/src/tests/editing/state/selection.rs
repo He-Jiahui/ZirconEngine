@@ -195,7 +195,7 @@ fn deleting_from_multi_selection_preserves_surviving_entities() {
 fn duplicate_selected_captures_multi_selection_and_undo_redo_as_one_command() {
     let mut state = test_state();
     let (cube, camera) = cube_and_camera(&state);
-    let original_count = state.world.expect_with_world(|scene| scene.nodes().len());
+    let original_count = state.world.expect_with_world(|scene| scene.entity_count());
     state.viewport_controller.selection_mut().replace(
         WorldDomain::Edit,
         [camera, cube],
@@ -204,7 +204,7 @@ fn duplicate_selected_captures_multi_selection_and_undo_redo_as_one_command() {
 
     assert!(state.apply_intent(EditorIntent::DuplicateSelected).unwrap());
     assert_eq!(
-        state.world.expect_with_world(|scene| scene.nodes().len()),
+        state.world.expect_with_world(|scene| scene.entity_count()),
         original_count + 2
     );
     let copies = state
@@ -229,7 +229,7 @@ fn duplicate_selected_captures_multi_selection_and_undo_redo_as_one_command() {
 
     assert!(state.apply_intent(EditorIntent::Undo).unwrap());
     assert_eq!(
-        state.world.expect_with_world(|scene| scene.nodes().len()),
+        state.world.expect_with_world(|scene| scene.entity_count()),
         original_count
     );
     assert_eq!(
@@ -256,7 +256,7 @@ fn duplicate_selected_captures_multi_selection_and_undo_redo_as_one_command() {
 
     assert!(state.apply_intent(EditorIntent::Redo).unwrap());
     assert_eq!(
-        state.world.expect_with_world(|scene| scene.nodes().len()),
+        state.world.expect_with_world(|scene| scene.entity_count()),
         original_count + 2
     );
     assert_eq!(

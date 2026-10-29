@@ -435,7 +435,7 @@ fn duplicate_dispatch_gateway_diagnostic(error: &EditCommandError) -> &GatewayEr
 #[test]
 fn ordinary_create_keeps_existing_protocol_priority_after_duplicate_callback_and_dispatch_error() {
     let level = DefaultLevelManager::default().create_default_level();
-    let initial_node_count = level.with_world(|scene| scene.nodes().len());
+    let initial_node_count = level.with_world(|scene| scene.entity_count());
     let dispatch_calls = Arc::new(AtomicUsize::new(0));
     let callback_attempts = Arc::new(AtomicUsize::new(0));
     let gateway = EditorRuntimeGatewayHandle::detached();
@@ -464,7 +464,7 @@ fn ordinary_create_keeps_existing_protocol_priority_after_duplicate_callback_and
         }
     );
     assert_eq!(
-        level.with_world(|scene| scene.nodes().len()),
+        level.with_world(|scene| scene.entity_count()),
         initial_node_count + 1
     );
     assert_eq!(dispatch_calls.load(Ordering::SeqCst), 1);
@@ -474,7 +474,7 @@ fn ordinary_create_keeps_existing_protocol_priority_after_duplicate_callback_and
         .revert(&mut context)
         .expect("the one-shot fixture must allow the ordinary compensation write");
     assert_eq!(
-        level.with_world(|scene| scene.nodes().len()),
+        level.with_world(|scene| scene.entity_count()),
         initial_node_count
     );
     assert_eq!(dispatch_calls.load(Ordering::SeqCst), 2);

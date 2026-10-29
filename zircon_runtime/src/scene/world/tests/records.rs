@@ -173,7 +173,7 @@ fn duplicate_node_record_batch_leaves_world_unchanged() {
 
 #[test]
 fn prepare_node_record_copies_remaps_selected_references_without_reserving_live_ids() {
-    use crate::core::framework::scene::PhysicsSkeletonJointBinding;
+    use crate::core::framework::scene::physics::PhysicsSkeletonJointBinding;
     use crate::scene::components::JointComponent;
 
     let mut world = World::empty();
@@ -323,6 +323,124 @@ fn duplicate_dynamic_values_borrow_all_rows_without_descriptor_or_json_copies() 
 }
 
 #[test]
+fn node_record_insertion_quote_refuses_limits_without_mutating_world_or_records() {
+    use zircon_runtime_interface::retained_memory::{
+        verified_std_model_v1, RetainedBoundBuilderV1, RetainedBytesV1, RetentionContractError,
+        MAX_RETAINED_VISITS_V1,
+    };
+
+    let world = World::empty();
+    let records = vec![node_record_with_id(41)];
+    let before = records.clone();
+    let generation = world.world_generation();
+    let next_id = world.entity_id_allocator.next_id();
+    let registry_generation = world.component_registry_generation();
+    let model = verified_std_model_v1().unwrap();
+    let mut quote = RetainedBoundBuilderV1::new(model);
+    world
+        .node_record_insertion_peak_v1(&records, &mut quote)
+        .unwrap();
+    assert!(quote.bytes().get() > 0);
+
+    let mut limited =
+        RetainedBoundBuilderV1::with_limit(model, RetainedBytesV1::new(quote.bytes().get() - 1));
+    assert!(matches!(
+        world.node_record_insertion_peak_v1(&records, &mut limited),
+        Err(RetentionContractError::Budget { .. })
+    ));
+    let mut exhausted = RetainedBoundBuilderV1::new(model);
+    exhausted.items(MAX_RETAINED_VISITS_V1).unwrap();
+    assert!(matches!(
+        world.node_record_insertion_peak_v1(&records, &mut exhausted),
+        Err(RetentionContractError::WorkLimit { .. })
+    ));
+    assert_eq!(records, before);
+    assert_eq!(world.world_generation(), generation);
+    assert_eq!(world.entity_id_allocator.next_id(), next_id);
+    assert_eq!(world.component_registry_generation(), registry_generation);
+    assert_eq!(world.entity_count(), 0);
+}
+
+#[test]
+fn node_record_insertion_quote_covers_static_scene_growth_and_partial_compensation() {
+    use zircon_runtime_interface::retained_memory::{
+        verified_std_model_v1, RetainedBoundBuilderV1, RetainedBytesV1, RetentionContractError,
+    };
+
+    let mut world = World::empty();
+    let mut parent = node_record_with_id(1000);
+    parent.mobility = Mobility::Static;
+    let mut child = node_record_with_id(1001);
+    child.mobility = Mobility::Static;
+    child.parent = Some(parent.id);
+    let records = vec![parent, child];
+    let model = verified_std_model_v1().unwrap();
+    let quote = |world: &World| {
+        let mut meter = RetainedBoundBuilderV1::new(model);
+        world
+            .node_record_insertion_peak_v1(&records, &mut meter)
+            .unwrap();
+        meter.bytes().get()
+    };
+    let empty_scene_quote = quote(&world);
+    for _ in 0..96 {
+        let parent = world.spawn_node(NodeKind::Empty).unwrap();
+        let child = world.spawn_node(NodeKind::Empty).unwrap();
+        world.set_parent_checked(child, Some(parent)).unwrap();
+        world.set_mobility(parent, Mobility::Static).unwrap();
+        world.set_mobility(child, Mobility::Static).unwrap();
+    }
+    let full_scene_quote = quote(&world);
+    assert!(full_scene_quote > empty_scene_quote);
+    let mut selection_only_budget =
+        RetainedBoundBuilderV1::with_limit(model, RetainedBytesV1::new(empty_scene_quote));
+    assert!(matches!(
+        world.node_record_insertion_peak_v1(&records, &mut selection_only_budget),
+        Err(RetentionContractError::Budget { .. })
+    ));
+
+    world.insert_owned_node_records(records.clone()).unwrap();
+    assert_eq!(quote(&world), full_scene_quote);
+    world.remove_entity(records[1].id).unwrap();
+    assert_eq!(quote(&world), full_scene_quote);
+    world.remove_entity(records[0].id).unwrap();
+    assert_eq!(quote(&world), full_scene_quote);
+    assert_eq!(world.entity_count(), 192);
+}
+
+#[test]
+fn node_record_insertion_quote_includes_optional_native_rows_and_pending_lifecycle_events() {
+    use crate::scene::components::{CameraComponent, ColliderComponent, JointComponent};
+    use zircon_runtime_interface::retained_memory::{
+        verified_std_model_v1, RetainedBoundBuilderV1,
+    };
+
+    let mut world = World::empty();
+    let mut records = vec![node_record_with_id(41)];
+    let model = verified_std_model_v1().unwrap();
+    let quote = |world: &World, records: &[_]| {
+        let mut meter = RetainedBoundBuilderV1::new(model);
+        world
+            .node_record_insertion_peak_v1(records, &mut meter)
+            .unwrap();
+        meter.bytes().get()
+    };
+    let base = quote(&world, &records);
+    records[0].camera = Some(CameraComponent::default());
+    records[0].collider = Some(ColliderComponent::default());
+    records[0].joint = Some(JointComponent::default());
+    let with_native_rows = quote(&world, &records);
+    assert!(with_native_rows > base);
+
+    world.record_staged_lifecycle_events = true;
+    world.spawn_node(NodeKind::Empty).unwrap();
+    assert!(!world.staged_lifecycle_events.is_empty());
+    let with_pending_events = quote(&world, &records);
+    world.staged_lifecycle_events.clear();
+    assert!(with_pending_events > quote(&world, &records));
+}
+
+#[test]
 fn stale_registry_identity_rejects_the_entire_node_record_batch_before_commit() {
     let mut world = World::empty();
     world
@@ -351,6 +469,7 @@ fn dynamic_parent_with_static_incoming_child_rejects_the_whole_batch() {
     parent.mobility = Mobility::Dynamic;
     let mut child = node_record_with_id(42);
     child.parent = Some(parent.id);
+    child.mobility = Mobility::Static;
     let generation_before = world.world_generation();
 
     let error = world

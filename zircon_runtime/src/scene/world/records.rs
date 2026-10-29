@@ -133,7 +133,9 @@ impl World {
         records: &[NodeRecord],
         meter: &mut zircon_runtime_interface::retained_memory::RetainedBoundBuilderV1,
     ) -> Result<(), zircon_runtime_interface::retained_memory::RetentionContractError> {
-        use crate::scene::ecs::{ComponentId, ComponentLifecycleEvent, ComponentTicks, StoredComponent};
+        use crate::scene::ecs::{
+            ComponentId, ComponentLifecycleEvent, ComponentTicks, StoredComponent,
+        };
         use zircon_runtime_interface::retained_memory::{
             FreshHashStorageV1, RetainedBoundBuilderV1, RetentionContractError,
         };
@@ -247,7 +249,8 @@ impl World {
             meter.btree_construction::<ComponentId, Option<(StoredComponent, ComponentTicks)>>(
                 components,
             )?;
-            meter.btree_construction::<ComponentId, (StoredComponent, ComponentTicks)>(components)?;
+            meter
+                .btree_construction::<ComponentId, (StoredComponent, ComponentTicks)>(components)?;
             // Signature insertion, its growth, publication clones and table
             // membership validation coexist; match the staged-row allowance.
             let signature_entries = components

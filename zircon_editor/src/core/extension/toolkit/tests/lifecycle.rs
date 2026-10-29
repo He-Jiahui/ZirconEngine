@@ -141,14 +141,14 @@ fn document_toolkit_snapshot_retains_menu_contributions_and_supports_instance_lo
 
 #[test]
 fn document_toolkit_rejects_duplicate_typed_menu_paths_before_publication() {
-    let first_operation = EditorOperationPath::parse("asset.validate").unwrap();
+    let first_operation = EditorOperationPath::parse("asset.document.validate").unwrap();
     let menu_path =
         crate::core::commands::EditorCommandMenuPath::builtin(&first_operation, "asset", &[]);
     let menu_items = vec![
         EditorMenuItemDescriptor::new(menu_path.clone(), first_operation),
         EditorMenuItemDescriptor::new(
             menu_path,
-            EditorOperationPath::parse("asset.validate_again").unwrap(),
+            EditorOperationPath::parse("asset.document.validate_again").unwrap(),
         ),
     ];
     let registry = DocumentToolkitRegistry::<()>::default();

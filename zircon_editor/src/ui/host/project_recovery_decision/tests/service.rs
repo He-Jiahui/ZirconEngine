@@ -152,24 +152,42 @@ fn residual_lock(root: &Path) -> SessionLockInspection {
 }
 
 fn temporary_root(label: &str) -> PathBuf {
-    // The native validation owner must preregister this physical scratch tree and bind TEMP/TMP.
-    // Read-only canonicalization rejects unprepared roots before any fixture is created.
-    let approved = std::fs::canonicalize("E:/cargo-targets/zircon-local")
-        .expect("native owner must prepare the approved physical artifact root");
-    let physical = approved
-        .to_str()
-        .expect("approved physical fixture root must be Unicode")
-        .replace('\\', "/");
-    let physical = physical.strip_prefix("//?/").unwrap_or(&physical);
-    assert!(
-        physical.eq_ignore_ascii_case("E:/cargo-targets/zircon-local"),
-        "approved fixture root must physically resolve below the E drive cargo-targets root"
-    );
+    // The validation owner prepares a physical root and binds the process temp directory.
+    #[cfg(windows)]
+    let approved = {
+        let approved = std::fs::canonicalize("E:/cargo-targets/zircon-local")
+            .expect("native owner must prepare the approved physical artifact root");
+        let physical = approved
+            .to_str()
+            .expect("approved physical fixture root must be Unicode")
+            .replace('\\', "/");
+        let physical = physical.strip_prefix("//?/").unwrap_or(&physical);
+        assert!(
+            physical.eq_ignore_ascii_case("E:/cargo-targets/zircon-local"),
+            "approved fixture root must physically resolve below the E drive cargo-targets root"
+        );
+        approved
+    };
+    #[cfg(not(windows))]
+    let approved = {
+        let requested = PathBuf::from(
+            std::env::var_os("ZIRCON_EDITOR_TEST_ARTIFACT_ROOT")
+                .expect("Linux validation owner must explicitly select its evidence root"),
+        );
+        assert!(requested.is_absolute());
+        let physical = std::fs::canonicalize(&requested)
+            .expect("validation owner must prepare the physical evidence root");
+        assert_eq!(
+            physical, requested,
+            "evidence root must not be a path alias"
+        );
+        physical
+    };
     let scratch = std::fs::canonicalize(std::env::temp_dir())
         .expect("native owner must prepare its registered TEMP/TMP directory");
     assert!(
         scratch.starts_with(&approved),
-        "recovery fixtures require registered TEMP/TMP below E:/cargo-targets/zircon-local"
+        "recovery fixtures require the process temp directory below the approved physical root"
     );
     scratch.join(format!(
         "zircon-editor-{label}-{}-{}",

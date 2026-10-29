@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::core::project::{NewProjectDraft, ProjectAuthority, ProjectTemplateId};
 use crate::ui::host::editor_asset_manager::{
@@ -238,6 +238,27 @@ impl EventRuntimeHarness {
 
 impl Drop for EventRuntimeHarness {
     fn drop(&mut self) {
+        // Match product ownership: stop watchers before Core closes IO admission
+        // and project cleanup removes the watched roots.
+        {
+            let deadline = Instant::now() + Duration::from_secs(10);
+            let core = self.core.handle();
+            if let Ok(handle) = zircon_runtime::asset::project_asset_manager_handle(&core) {
+                if let Ok(manager) =
+                    zircon_runtime::core::manager::resolve_manager_service(&core, handle)
+                {
+                    while !manager.shutdown_project_watchers_until(deadline) {
+                        if Instant::now() >= deadline {
+                            eprintln!(
+                                "EventRuntimeHarness: project watchers did not join before teardown"
+                            );
+                            break;
+                        }
+                        std::thread::sleep(Duration::from_millis(5));
+                    }
+                }
+            }
+        }
         if self.cleanup_config_path {
             let _ = fs::remove_file(&self.config_path);
         }
@@ -247,6 +268,7 @@ impl Drop for EventRuntimeHarness {
 #[cfg(test)]
 mod environment_variable_restore_tests {
     use super::{env_lock, EnvironmentVariableRestoreGuard, EventRuntimeHarness};
+    use std::time::Duration;
 
     const TEST_ENVIRONMENT_KEY: &str = "ZIRCON_EDITOR_EVENT_ENVIRONMENT_RESTORE_TEST";
 
@@ -306,5 +328,45 @@ mod environment_variable_restore_tests {
             Some(previous_path.as_os_str().to_owned())
         );
         drop(harness);
+    }
+
+    #[test]
+    fn event_runtime_harness_stops_project_watchers_before_core_drop() {
+        let _lock = env_lock().lock().unwrap();
+        let mut harness = EventRuntimeHarness::new("editor-event-watcher-drop");
+        harness.open_project_with_assets("editor_event_watcher_project_drop", |assets| {
+            std::fs::write(
+                assets.source_path("res://watcher_probe.txt"),
+                "watcher probe",
+            )
+            .unwrap();
+        });
+
+        drop(harness);
+        // Survive both the debounce and maximum batch latency after root removal.
+        std::thread::sleep(Duration::from_secs(1));
+    }
+
+    #[test]
+    fn event_runtime_harness_stops_project_watchers_during_unwind() {
+        let _lock = env_lock().lock().unwrap();
+        let unwind = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let mut harness = EventRuntimeHarness::new("editor-event-watcher-unwind");
+            harness.open_project_with_assets("editor_event_watcher_project_unwind", |assets| {
+                std::fs::write(
+                    assets.source_path("res://watcher_probe.txt"),
+                    "watcher probe",
+                )
+                .unwrap();
+            });
+            panic!("exercise harness teardown during unwinding");
+        }));
+
+        std::thread::sleep(Duration::from_secs(1));
+        let panic = unwind.expect_err("the opened project fixture should unwind");
+        assert_eq!(
+            panic.downcast_ref::<&str>(),
+            Some(&"exercise harness teardown during unwinding")
+        );
     }
 }

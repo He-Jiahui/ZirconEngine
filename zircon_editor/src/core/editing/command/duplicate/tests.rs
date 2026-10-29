@@ -543,9 +543,9 @@ fn duplicate_small_selection_in_static_scene_round_trips_with_scene_sized_insert
     for _ in 0..96 {
         let parent = scene.spawn_node(NodeKind::Empty).unwrap();
         let child = scene.spawn_node(NodeKind::Empty).unwrap();
+        scene.set_parent_checked(child, Some(parent)).unwrap();
         scene.set_mobility(parent, Mobility::Static).unwrap();
         scene.set_mobility(child, Mobility::Static).unwrap();
-        scene.set_parent_checked(child, Some(parent)).unwrap();
     }
     let engine = fixture(
         scene,

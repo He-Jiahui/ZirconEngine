@@ -64,13 +64,17 @@ fn viewport_commands_resolve_focus_at_execution_and_drawer_uses_a_host_intent() 
         .with_project_open(true)
         .with_focused_document_kind(DocumentKind::scene());
     assert_eq!(
-        registry.event_for_command("viewport.selection.frame", &context).unwrap(),
+        registry
+            .event_for_command("viewport.selection.frame", &context)
+            .unwrap(),
         EditorEvent::Viewport(EditorViewportEvent::ForFocusedScene {
             event: Box::new(EditorViewportEvent::FrameSelection),
         })
     );
     assert_eq!(
-        registry.event_for_command("viewport.tool.translate", &context).unwrap(),
+        registry
+            .event_for_command("viewport.tool.translate", &context)
+            .unwrap(),
         EditorEvent::Viewport(EditorViewportEvent::ForFocusedScene {
             event: Box::new(EditorViewportEvent::ActivateSceneMode {
                 mode: SceneModeActivation::Transform(TransformHandleKind::Move),
@@ -78,7 +82,9 @@ fn viewport_commands_resolve_focus_at_execution_and_drawer_uses_a_host_intent() 
         })
     );
     assert_eq!(
-        registry.event_for_command("view.content_drawer.toggle", &context).unwrap(),
+        registry
+            .event_for_command("view.content_drawer.toggle", &context)
+            .unwrap(),
         EditorEvent::Transient(EditorEventTransient::ToggleContentDrawer)
     );
 }

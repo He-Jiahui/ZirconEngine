@@ -27,12 +27,17 @@ fn shipped_keymap_matches_every_descriptor_default_and_has_no_conflicts() {
     let keymap = EditorKeymap::default_workbench();
     for command in registry.commands() {
         if let Some(default) = command.default_chord() {
-            assert_eq!(keymap.chord_for_command(command.id().as_str()), Some(default),
-                "default shortcut drift for {}", command.id());
+            assert_eq!(
+                keymap.chord_for_command(command.id().as_str()),
+                Some(default),
+                "default shortcut drift for {}",
+                command.id()
+            );
         }
     }
-    assert!(keymap.conflicts_with_when(|id| registry.command(id)
-        .map(|command| command.effective_when())).is_empty());
+    assert!(keymap
+        .conflicts_with_when(|id| registry.command(id).map(|command| command.effective_when()))
+        .is_empty());
 }
 
 #[test]
@@ -130,34 +135,53 @@ fn scene_shortcuts_and_drawer_honor_focus_overrides_and_unbinding() {
         ("r", 82, "viewport.tool.scale"),
     ] {
         let input = keyboard_event(key, code, false, false, false, false);
-        assert_eq!(keymap.resolve_keyboard_input_when(&input, |candidate| {
-            registry.command(candidate).unwrap().is_enabled(&scene)
-        }), Some(id));
+        assert_eq!(
+            keymap.resolve_keyboard_input_when(&input, |candidate| {
+                registry.command(candidate).unwrap().is_enabled(&scene)
+            }),
+            Some(id)
+        );
         for context in [
             CommandEvalCtx::interactive().with_project_open(true),
             CommandEvalCtx::interactive().with_focused_document_kind(DocumentKind::scene()),
-            CommandEvalCtx::interactive().with_project_open(true)
+            CommandEvalCtx::interactive()
+                .with_project_open(true)
                 .with_focused_document_kind(DocumentKind::material()),
             CommandEvalCtx::headless(std::iter::empty::<String>()),
         ] {
-            assert_eq!(keymap.resolve_keyboard_input_when(&input, |candidate| {
-                registry.command(candidate).unwrap().is_enabled(&context)
-            }), None);
+            assert_eq!(
+                keymap.resolve_keyboard_input_when(&input, |candidate| {
+                    registry.command(candidate).unwrap().is_enabled(&context)
+                }),
+                None
+            );
         }
     }
     let changed = keymap.with_overrides(&overrides([
         ("viewport.selection.frame", Some("Alt+F")),
         ("view.content_drawer.toggle", None),
     ]));
-    assert_eq!(changed.resolve_keyboard_input_when(
-        &keyboard_event("f", 70, false, false, false, false), |_| true), None);
-    assert_eq!(changed.resolve_keyboard_input_when(
-        &keyboard_event("f", 70, false, false, true, false), |_| true),
-        Some("viewport.selection.frame"));
+    assert_eq!(
+        changed.resolve_keyboard_input_when(
+            &keyboard_event("f", 70, false, false, false, false),
+            |_| true
+        ),
+        None
+    );
+    assert_eq!(
+        changed.resolve_keyboard_input_when(
+            &keyboard_event("f", 70, false, false, true, false),
+            |_| true
+        ),
+        Some("viewport.selection.frame")
+    );
     let drawer = keyboard_event("space", 32, true, false, false, false);
-    assert_eq!(keymap.resolve_keyboard_input_when(&drawer, |candidate| {
-        registry.command(candidate).unwrap().is_enabled(&scene)
-    }), Some("view.content_drawer.toggle"));
+    assert_eq!(
+        keymap.resolve_keyboard_input_when(&drawer, |candidate| {
+            registry.command(candidate).unwrap().is_enabled(&scene)
+        }),
+        Some("view.content_drawer.toggle")
+    );
     assert_eq!(changed.resolve_keyboard_input_when(&drawer, |_| true), None);
 }
 

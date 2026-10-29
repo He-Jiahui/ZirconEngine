@@ -3,14 +3,17 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use zircon_runtime::asset::project::ProjectManager;
-use zircon_runtime::core::CoreRuntime;
-use zircon_runtime::foundation::{
-    module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
+use zircon_runtime::asset::{
+    AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor, AssetKind,
+    FunctionAssetImporter, ImportedAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset,
 };
+use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::scene::DefaultLevelManager;
+use zircon_runtime::ui::v2::UiZuiAssetLoader;
+use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
 use crate::core::project::{NewProjectDraft, ProjectAuthority, ProjectTemplateId};
-use crate::ui::host::module::{self, module_descriptor};
+use crate::tests::editor_event::support::EventRuntimeHarness;
 use crate::ui::workbench::project::EditorProjectDocument;
 
 pub(crate) const DUPLICATE_THEME_UI_LAYOUT_ASSET: &str = r##"
@@ -132,32 +135,69 @@ pub(crate) fn write_ui_asset(path: impl AsRef<Path>, source: &str) {
     crate::tests::support::write_test_ui_asset(path, source).unwrap();
 }
 
-pub(crate) fn editor_runtime_with_config_path(path: &Path) -> CoreRuntime {
-    std::env::set_var("ZIRCON_CONFIG_PATH", path);
-    let runtime = CoreRuntime::new();
-    runtime.store_config_value(
-        crate::ui::host::EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,
-        serde_json::json!([
+// Reuse the complete module bootstrap and watcher-before-Core teardown contract.
+pub(crate) struct ThemeRuntimeHarness(EventRuntimeHarness);
+
+impl std::ops::Deref for ThemeRuntimeHarness {
+    type Target = CoreRuntime;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0.core
+    }
+}
+
+pub(crate) fn editor_runtime_with_config_path(path: &Path) -> ThemeRuntimeHarness {
+    let harness = EventRuntimeHarness::with_enabled_subsystems_at_config_path(
+        path.to_path_buf(),
+        &[
             crate::ui::host::EDITOR_SUBSYSTEM_ANIMATION_AUTHORING,
             crate::ui::host::EDITOR_SUBSYSTEM_UI_ASSET_AUTHORING,
             crate::ui::host::EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS,
             crate::ui::host::EDITOR_SUBSYSTEM_NATIVE_WINDOW_HOSTING,
-        ]),
+        ],
     );
-    runtime
-        .register_module(foundation_module_descriptor())
+    // This unit fixture has no App plugin assembly. Supply its real ZUI parser
+    // and typed import products before the editor opens or saves project assets.
+    let core = harness.core.handle();
+    let manager = zircon_runtime::core::manager::resolve_manager_service(
+        &core,
+        zircon_runtime::asset::project_asset_manager_handle(&core).unwrap(),
+    )
+    .unwrap();
+    manager
+        .register_asset_importer(FunctionAssetImporter::new(
+            AssetImporterDescriptor::new(
+                "test.editor.theme.zui_document",
+                "test.editor.theme",
+                AssetKind::UiWidget,
+                2,
+            )
+            .with_full_suffixes([".zui"])
+            .with_additional_output_kinds([AssetKind::UiLayout, AssetKind::UiStyle]),
+            import_theme_ui_asset,
+        ))
         .unwrap();
-    runtime
-        .register_module(zircon_runtime::asset::module_descriptor())
-        .unwrap();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
-    runtime
-        .activate_module(zircon_runtime::asset::ASSET_MODULE_NAME)
-        .unwrap();
-    runtime.activate_module(module::EDITOR_MODULE_NAME).unwrap();
-    crate::tests::support::configure_editor_test_runtime_build_set(&runtime);
-    runtime
+    ThemeRuntimeHarness(harness)
+}
+
+fn import_theme_ui_asset(
+    context: &AssetImportContext,
+) -> Result<AssetImportOutcome, AssetImportError> {
+    let document = UiZuiAssetLoader::load_zui_str(context.source_str()?).map_err(|source| {
+        let source = zircon_runtime::asset::assets::UiV2AssetDocumentError::from(source);
+        AssetImportError::UiV2Document {
+            context: "parse theme test .zui asset",
+            source: source.into(),
+        }
+    })?;
+    let imported = match document.asset.kind {
+        UiV2AssetKind::View => ImportedAsset::UiV2View(UiV2ViewAsset { document }),
+        UiV2AssetKind::Style | UiV2AssetKind::ThemeTokens => {
+            ImportedAsset::UiV2Style(UiV2StyleAsset { document })
+        }
+        UiV2AssetKind::Component => ImportedAsset::UiV2Component(UiV2ComponentAsset { document }),
+    };
+    Ok(AssetImportOutcome::new(context.uri.clone(), imported))
 }
 
 pub(crate) fn setup_theme_project(
@@ -165,7 +205,7 @@ pub(crate) fn setup_theme_project(
     project_prefix: &str,
     layout_source: &str,
     imported_source: &str,
-) -> (PathBuf, PathBuf, CoreRuntime) {
+) -> (PathBuf, PathBuf, ThemeRuntimeHarness) {
     let config_path = unique_temp_path(config_prefix);
     let project_root = unique_temp_dir(project_prefix);
     let runtime = editor_runtime_with_config_path(&config_path);

@@ -293,6 +293,145 @@ fn editor_command_binding_invokes_the_shared_command_registry() {
 }
 
 #[test]
+fn duplicate_registered_command_round_trips_selection_through_one_history_record() {
+    use crate::core::commands::DocumentKind;
+    use crate::core::editor_event::EditorEventUndoPolicy;
+    use crate::ui::host::module::EDITOR_MANAGER_NAME;
+    use crate::ui::host::EditorManager;
+
+    let _guard = env_lock().lock().unwrap();
+    let harness = EventRuntimeHarness::new("zircon_editor_event_duplicate_command");
+    {
+        let manager = harness
+            .core
+            .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+            .unwrap();
+        let scene = manager
+            .open_view(ViewDescriptorId::new("editor.scene"), None)
+            .unwrap();
+        manager.focus_view(&scene).unwrap();
+    }
+    harness.runtime.refresh_reflection();
+    assert_eq!(
+        harness
+            .runtime
+            .context()
+            .command_eval()
+            .snapshot()
+            .focused_document_kind(),
+        Some(&DocumentKind::scene())
+    );
+    let selection = || {
+        let shell = harness.runtime.shell().lock();
+        let selection = shell.state.viewport_controller.selection();
+        (
+            selection.active_items().iter().copied().collect::<Vec<_>>(),
+            selection.active_primary(),
+        )
+    };
+    let original = selection();
+    assert!(!original.0.is_empty());
+    let before = harness
+        .runtime
+        .editor_snapshot()
+        .unwrap()
+        .scene_entries
+        .len();
+    let binding = EditorUiBinding::new(
+        "CommandPalette",
+        "DuplicateSelected",
+        EditorUiEventKind::Submit,
+        EditorUiBindingPayload::editor_command("scene.node.duplicate_selected"),
+    );
+    let record = harness
+        .runtime
+        .dispatch_binding(binding, EditorEventSource::RetainedHost)
+        .unwrap();
+    assert_eq!(
+        record.event,
+        EditorEvent::WorkbenchMenu(MenuAction::DuplicateSelected)
+    );
+    assert_eq!(
+        record.operation_id.as_deref(),
+        Some("scene.node.duplicate_selected")
+    );
+    assert_eq!(
+        record.undo_policy,
+        EditorEventUndoPolicy::DelegatedToTransactionEngine
+    );
+    let copies = selection();
+    assert_eq!(copies.0.len(), original.0.len());
+    assert!(copies.0.iter().all(|id| !original.0.contains(id)));
+    assert_eq!(
+        harness
+            .runtime
+            .editor_snapshot()
+            .unwrap()
+            .scene_entries
+            .len(),
+        before + original.0.len()
+    );
+    {
+        let shell = harness.runtime.shell().lock();
+        let context = shell.state.scene_history_context().unwrap();
+        assert_eq!(
+            shell
+                .state
+                .transactions()
+                .history_status(context)
+                .unwrap()
+                .len,
+            1
+        );
+        assert_eq!(
+            shell
+                .state
+                .transactions()
+                .history_details(context, None, 1)
+                .unwrap()
+                .records()[0]
+                .command_count,
+            1
+        );
+    }
+
+    harness
+        .runtime
+        .dispatch_binding(
+            menu_action_binding(&MenuAction::Undo),
+            EditorEventSource::RetainedHost,
+        )
+        .unwrap();
+    assert_eq!(selection(), original);
+    assert_eq!(
+        harness
+            .runtime
+            .editor_snapshot()
+            .unwrap()
+            .scene_entries
+            .len(),
+        before
+    );
+    harness
+        .runtime
+        .dispatch_binding(
+            menu_action_binding(&MenuAction::Redo),
+            EditorEventSource::RetainedHost,
+        )
+        .unwrap();
+    assert_eq!(selection(), copies);
+    assert_eq!(
+        harness
+            .runtime
+            .editor_snapshot()
+            .unwrap()
+            .scene_entries
+            .len(),
+        before + original.0.len()
+    );
+}
+
+#[test]
 fn binding_dispatch_retains_operation_path_and_command_errors_until_the_trait_boundary() {
     use crate::core::commands::EditorCommandDispatchError;
     use crate::core::editor_operation::EditorOperationPathError;
