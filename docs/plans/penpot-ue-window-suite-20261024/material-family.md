@@ -1,3 +1,13 @@
+## 接续103：原作者 Material／Instance 的只读 native 检查入口（2026-10-28）
+
+- 原 request `ue-material-graph-20261024-01` 与唯一 producer，原 `w448b90023f-native94` 在102/9c2ba158之后仅改dist的commands.rs、既有tests/commands.rs及本台账。沿同一V4命令manifest追加slot4 `material_editor.material.inspect` / `material_editor.inspect_material.v1`；原slots0–3、SDK注册batch、原en/zh-CN条目、1MiB输入/输出和5秒宿主预算保持，不新增ABI、依赖、store、clock或写命令。
+- 直接消费原v2 `ZMaterialDocument` 与原 `project_authored_material_document`，不从effective MaterialAsset反建作者文档。schema顺序、group/label、精确局部key、default与override及presence分别返回；Some(default)不等于absence，显式空纹理槽local_value={}不等于未覆盖null，原full texture reference/UV与parent UUID+locator保持。options/queue与原validation_diagnostics保留；结果只供显示和诊断，editor metadata仍在原文档，严禁以此投影重建保存。
+- shader payload与完整resolved reference必须成对提交；先核full UUID+locator，再由原projection核payload locator及schema重复键。版本不是2、reference/locator不匹配、property或texture slot重名时整组projection=null，不发布歧义prefix，原作者diagnostics仍保留。缺schema可返回真实局部行及原dependency-resolution诊断；schema_available仅表示该匹配schema可供本次投影，ok仅表示原投影无diagnostics，均不表示父链已解析、有效继承、WGSL/GPU、preview或保存就绪。
+- 严格named JSON对象、unknown/duplicate字段、shader配对、输入/输出预算、单次sink发布与宿主拒绝沿原运输合同。七项新增真实callback回归覆盖源序/分组/显式默认及清空、缺schema与大i64/full texture identity、UUID/locator拒绝、两类重复schema、版本与原diagnostics、诊断顺序、严格bounded transport。现有30个native定义保留，两个manifest期望增补；当前37个material_editor_dist_native_定义，另两个原SDK宏定义保持。均未Rust类型检查、harness发现或执行，不以静态库存签测试通过。
+- 实读canonical原Command3 loader/registry与native result decoder：JSON Value本已受支持，无需另造结果envelope。实际material_workspace_state仍为三个展示profiles及Not implemented(preview)，本轮没有安装caller；host必须从同一原view/document/subdocument incarnation、revision/lease及generation捕获作者文档和resolved shader，发布前重验。选择/焦点、Set/Reset、prepare/一次permit/CAS/history、dirty/编译/renderer/save仍走原宿主，不由只读结果授予。
+- UE只读MaterialEditorInstanceDetailCustomization的ParameterGroups与bOverride路径作分组/覆盖语义依据；设计沿102真实file/page rev465的三尺寸标题图，不重开或重签新图，也不触碰fork四Search/Instance/Hierarchy或公共Shared/catalog/theme/原ZUI。46项结构及实际单插件ABI3检查通过；格式/guard/正常managed交付另记。dist有限recipe在102的真实安装预检仍被build_scope_policy拒绝，原PR/main与锁三依赖生成/精确dist测试准入继续open，未借editor配方、本地Cargo或重投旧终结op。
+- 原始证据沿同一报告根`material-native-inspect-103-*`，完整前文原字节后缀保留；真实host、正式source codec/export、renderer、正常EXE、实际150%DPI及双端1DIP仍未通过。goal active，passed/accepted=false，释放0B，必要失败与源码证据保留，cleanup open。
+
 ## 材质接续102：UE 参数标题原生编辑、保存及新上下文重开（2026-10-28）
 
 - 同一真实 Material file `b4a1e3ce-9e6a-81fe-8008-d69d6092d704` / page `b4a1e3ce-9e6a-81fe-8008-d69d6092d705`，只用原生文本编辑修改原 Parameters80 的1280/900/640三板中六个既有标题；rev459→465、5769对象、5业务主件，关闭旧context后新context重开六个完整对象一致。全部原ID、其他5763对象及组件定义哈希保持；不涉及fork的Instance/Hierarchy板。
