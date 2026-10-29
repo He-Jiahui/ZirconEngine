@@ -1,13 +1,18 @@
 use std::collections::BTreeMap;
 
-use super::{project_authored_material_document, MaterialDocumentProjectionError};
+use super::{
+    plan_material_document_property_edit, project_authored_material_document,
+    MaterialDocumentProjectionError, MaterialDocumentPropertyEdit as Edit,
+    MaterialDocumentPropertyEditError as EditError,
+};
 use zircon_editor::ui::material_editor::MaterialEditorProjection;
 use zircon_runtime::asset::{
     AssetReference, AssetUri, MaterialAsset, ShaderAsset, ShaderMaterialPropertyAsset,
     ShaderSourceLanguage, ShaderTextureSlotAsset, ZMaterialDocument,
 };
 use zircon_runtime::core::framework::render::{
-    MaterialPropertyKind, RenderMaterialDiagnosticSource, ShaderAssetKind,
+    MaterialPropertyKind, RenderMaterialDiagnosticSource, RenderMaterialPropertyValue as Value,
+    ShaderAssetKind,
 };
 use zircon_runtime_interface::project::PersistedAssetReference;
 
@@ -226,6 +231,317 @@ fn material_graph_instance_projection_preserves_author_codec_metadata_and_repair
     assert_eq!(
         project_authored_material_document(&reopened, Some(&schema)).unwrap(),
         projected
+    );
+}
+
+#[test]
+fn material_graph_instance_property_set_keeps_explicit_default_and_borrows_original_sources() {
+    let source = document("", "base_color = { uv_channel = 2 }");
+    let before = source.clone();
+    let schema = shader();
+    let value = Value::Float { value: 0.5 };
+    let plan = plan_material_document_property_edit(
+        &source,
+        Some(&schema),
+        "roughness",
+        Edit::Set(&value),
+    )
+    .unwrap();
+    assert!(std::ptr::eq(plan.source_document(), &source));
+    assert!(std::ptr::eq(
+        plan.property_definition().unwrap(),
+        &schema.property_schema[1]
+    ));
+    assert_eq!(plan.name(), "roughness");
+    assert!(!plan.was_overridden());
+    assert!(plan.will_be_overridden());
+    let Edit::Set(proposed) = plan.edit() else {
+        panic!("an explicit default remains a Set proposal");
+    };
+    assert!(std::ptr::eq(proposed, &value));
+    assert_eq!(source, before);
+}
+
+#[test]
+fn material_graph_instance_property_clear_preserves_raw_repair_values_and_required_diagnostics() {
+    let mut source = document("roughness = nan\nunknown = 'repair me'", "");
+    source.parent = Some(reference("builtin://material/unresolved-parent"));
+    source.validation_diagnostics = vec!["missing required parent value".into()];
+    let mut schema = shader();
+    schema.property_schema[1].required = true;
+    schema.property_schema[1].default = None;
+    let plan = plan_material_document_property_edit(
+        &source,
+        Some(&schema),
+        "roughness",
+        Edit::ClearOverride,
+    )
+    .unwrap();
+    assert!(plan.was_overridden());
+    assert!(!plan.will_be_overridden());
+    assert_eq!(plan.edit(), Edit::ClearOverride);
+    assert!(plan.source_document().overrides["roughness"]
+        .as_float()
+        .unwrap()
+        .is_nan());
+    assert_eq!(
+        plan.source_document().validation_diagnostics,
+        source.validation_diagnostics
+    );
+    assert_eq!(
+        source.parent.as_ref().unwrap().locator.to_string(),
+        "builtin://material/unresolved-parent"
+    );
+    let repair =
+        plan_material_document_property_edit(&source, None, "unknown", Edit::ClearOverride)
+            .unwrap();
+    assert!(repair.was_overridden());
+    assert!(repair.property_definition().is_none());
+    assert_eq!(source.overrides["unknown"].as_str(), Some("repair me"));
+    let absent =
+        plan_material_document_property_edit(&source, None, "absent", Edit::ClearOverride).unwrap();
+    assert!(!absent.was_overridden());
+    assert!(!absent.will_be_overridden());
+    // The host skips an unchanged clear; this preflight creates no undo record.
+}
+
+#[test]
+fn material_graph_instance_property_set_accepts_the_shader_abi_without_clamping_hdr_or_integers() {
+    let cases = [
+        (
+            MaterialPropertyKind::Float,
+            Value::Float { value: f32::MAX },
+        ),
+        (MaterialPropertyKind::Int, Value::Int { value: i32::MIN }),
+        (MaterialPropertyKind::UInt, Value::UInt { value: u32::MAX }),
+        (MaterialPropertyKind::Bool, Value::Bool { value: true }),
+        (
+            MaterialPropertyKind::Vec2,
+            Value::Vec2 { value: [-2.0, 4.0] },
+        ),
+        (
+            MaterialPropertyKind::Vec3,
+            Value::Vec3 {
+                value: [4.0, -2.0, 1.0],
+            },
+        ),
+        (
+            MaterialPropertyKind::Vec4,
+            Value::Vec4 {
+                value: [-2.0, 4.0, f32::MAX, -0.0],
+            },
+        ),
+        (
+            MaterialPropertyKind::Color,
+            Value::Vec4 {
+                value: [4.0, -2.0, 1.0, 0.5],
+            },
+        ),
+    ];
+    for (kind, value) in cases {
+        let source = document("", "");
+        let mut schema = shader();
+        schema.property_schema[1].kind = kind;
+        let plan = plan_material_document_property_edit(
+            &source,
+            Some(&schema),
+            "roughness",
+            Edit::Set(&value),
+        )
+        .unwrap();
+        let Edit::Set(proposed) = plan.edit() else {
+            panic!("Set must be retained")
+        };
+        assert!(std::ptr::eq(proposed, &value));
+        assert_eq!(proposed, &value);
+        if let Value::Vec4 { value } = proposed {
+            assert_eq!(
+                value[3].to_bits(),
+                if kind == MaterialPropertyKind::Vec4 {
+                    (-0.0_f32).to_bits()
+                } else {
+                    0.5_f32.to_bits()
+                }
+            );
+        }
+    }
+}
+
+#[test]
+fn material_graph_instance_property_set_rejects_type_coercion_and_preserves_invalid_local_data() {
+    let source = document("roughness = 'old invalid value'", "");
+    let before = source.clone();
+    let cases = [
+        (MaterialPropertyKind::Float, Value::Int { value: 1 }),
+        (MaterialPropertyKind::Int, Value::Float { value: 1.0 }),
+        (MaterialPropertyKind::UInt, Value::Int { value: -1 }),
+        (MaterialPropertyKind::Bool, Value::UInt { value: 1 }),
+        (
+            MaterialPropertyKind::Float,
+            Value::String {
+                value: "0.5".into(),
+            },
+        ),
+        (
+            MaterialPropertyKind::Vec3,
+            Value::Vec2 { value: [1.0, 2.0] },
+        ),
+    ];
+    for (kind, value) in cases {
+        let mut schema = shader();
+        schema.property_schema[1].kind = kind;
+        let error = plan_material_document_property_edit(
+            &source,
+            Some(&schema),
+            "roughness",
+            Edit::Set(&value),
+        )
+        .unwrap_err();
+        assert!(
+            matches!(error, EditError::TypeMismatch { name, expected, .. } if name == "roughness" && expected == kind)
+        );
+        assert_eq!(source, before);
+    }
+}
+
+#[test]
+fn material_graph_instance_property_set_rejects_nonfinite_scalar_and_vector_components() {
+    let cases = [
+        (
+            MaterialPropertyKind::Float,
+            Value::Float { value: f32::NAN },
+        ),
+        (
+            MaterialPropertyKind::Float,
+            Value::Float {
+                value: f32::INFINITY,
+            },
+        ),
+        (
+            MaterialPropertyKind::Float,
+            Value::Float {
+                value: f32::NEG_INFINITY,
+            },
+        ),
+        (
+            MaterialPropertyKind::Vec2,
+            Value::Vec2 {
+                value: [0.0, f32::NAN],
+            },
+        ),
+        (
+            MaterialPropertyKind::Vec3,
+            Value::Vec3 {
+                value: [f32::INFINITY, 0.0, 0.0],
+            },
+        ),
+        (
+            MaterialPropertyKind::Color,
+            Value::Vec4 {
+                value: [0.0, 0.0, f32::NEG_INFINITY, 1.0],
+            },
+        ),
+    ];
+    let source = document("roughness = 0.25", "");
+    for (kind, value) in cases {
+        let mut schema = shader();
+        schema.property_schema[1].kind = kind;
+        assert_eq!(
+            plan_material_document_property_edit(
+                &source,
+                Some(&schema),
+                "roughness",
+                Edit::Set(&value),
+            )
+            .unwrap_err(),
+            EditError::NonFiniteValue("roughness".into())
+        );
+    }
+    assert_eq!(source.overrides["roughness"].as_float(), Some(0.25));
+}
+
+#[test]
+fn material_graph_instance_property_edit_requires_the_real_shader_and_an_unambiguous_target() {
+    let source = document("", "");
+    let value = Value::Float { value: 0.5 };
+    assert_eq!(
+        plan_material_document_property_edit(&source, None, "roughness", Edit::Set(&value))
+            .unwrap_err(),
+        EditError::SchemaUnavailable
+    );
+    let mut wrong = shader();
+    wrong.uri = AssetUri::parse("builtin://shader/unrelated").unwrap();
+    for edit in [Edit::Set(&value), Edit::ClearOverride] {
+        assert!(matches!(
+            plan_material_document_property_edit(&source, Some(&wrong), "roughness", edit)
+                .unwrap_err(),
+            EditError::Source(MaterialDocumentProjectionError::ShaderLocatorMismatch { .. })
+        ));
+    }
+    let mut duplicate = shader();
+    duplicate
+        .property_schema
+        .push(duplicate.property_schema[1].clone());
+    for edit in [Edit::Set(&value), Edit::ClearOverride] {
+        assert_eq!(
+            plan_material_document_property_edit(&source, Some(&duplicate), "roughness", edit)
+                .unwrap_err(),
+            EditError::Source(MaterialDocumentProjectionError::DuplicatePropertyName(
+                "roughness".into()
+            ))
+        );
+    }
+    let mut unrelated_duplicate = shader();
+    unrelated_duplicate
+        .property_schema
+        .push(unrelated_duplicate.property_schema[0].clone());
+    assert!(plan_material_document_property_edit(
+        &source,
+        Some(&unrelated_duplicate),
+        "roughness",
+        Edit::Set(&value),
+    )
+    .is_ok());
+    // A single-key proposal is not a full shader validation or a ready UI projection.
+    assert!(project_authored_material_document(&source, Some(&unrelated_duplicate)).is_err());
+}
+
+#[test]
+fn material_graph_instance_property_edit_preserves_exact_names_and_separates_clear_from_set_default(
+) {
+    let source = document(
+        "' 粗糙度 ' = 'repair'\n'' = nan",
+        "base_color = { uv_channel = 2 }",
+    );
+    let mut schema = shader();
+    schema.property_schema[1].name = " 粗糙度 ".into();
+    let value = Value::Float { value: 0.5 };
+    let plan =
+        plan_material_document_property_edit(&source, Some(&schema), " 粗糙度 ", Edit::Set(&value))
+            .unwrap();
+    assert_eq!(plan.name(), " 粗糙度 ");
+    assert!(plan.was_overridden());
+    assert!(plan.will_be_overridden());
+    assert_eq!(
+        plan_material_document_property_edit(&source, Some(&schema), "粗糙度", Edit::Set(&value),)
+            .unwrap_err(),
+        EditError::UndeclaredProperty("粗糙度".into())
+    );
+    assert_eq!(
+        plan_material_document_property_edit(&source, Some(&schema), "", Edit::Set(&value))
+            .unwrap_err(),
+        EditError::EmptyPropertyName
+    );
+    let clear =
+        plan_material_document_property_edit(&source, None, "", Edit::ClearOverride).unwrap();
+    assert!(clear.was_overridden());
+    assert!(!clear.will_be_overridden());
+    assert!(source.overrides[""].as_float().unwrap().is_nan());
+    assert_eq!(source.overrides[" 粗糙度 "].as_str(), Some("repair"));
+    assert_eq!(source.textures["base_color"].uv_channel, 2);
+    assert_eq!(
+        source.editor["note"].as_str(),
+        Some("保留中文和长作者元数据")
     );
 }
 
