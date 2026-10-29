@@ -164,6 +164,65 @@ pub fn plan_material_graph_parameter_edit<'a>(
     node_id: &str,
     edit: MaterialGraphParameterEdit,
 ) -> Result<MaterialGraphParameterEditPlan<'a>, Vec<MaterialGraphDiagnostic>> {
+    let (node, key) = parameter_edit_target(graph, node_id)?;
+    plan_parameter_edit_for_target(graph, node, key, edit)
+}
+
+/// Plans one full vector override from edits of its R/G/B/A components.
+///
+/// Untouched components come from this exact key's typed local override, or the
+/// selected declaration's default when absent. Same-key declarations can have
+/// different defaults; no aggregate value or flattened material is substituted.
+/// A wrong-type override requires explicit repair/Reset instead of fallback.
+/// At least one component must be supplied; an empty edit must not create an
+/// override. Explicit edits equal to a default still preserve override presence.
+/// The returned candidate uses the existing full Vector Set and its one-entry
+/// delta/inverse contract. This function grants no mutation or history permit.
+pub fn plan_material_graph_parameter_vector_edit<'a>(
+    graph: &'a MaterialGraphAsset,
+    node_id: &str,
+    components: [Option<f32>; 4],
+) -> Result<MaterialGraphParameterEditPlan<'a>, Vec<MaterialGraphDiagnostic>> {
+    let (node, key) = parameter_edit_target(graph, node_id)?;
+    let MaterialGraphNodeKindAsset::VectorParameter { default, .. } = &node.kind else {
+        return Err(vec![MaterialGraphDiagnostic::node(
+            &node.id,
+            "material graph vector component edit requires a vector parameter declaration",
+        )]);
+    };
+    if components.iter().all(Option::is_none) {
+        return Err(vec![MaterialGraphDiagnostic::node(
+            &node.id,
+            "material graph vector component edit requires at least one component",
+        )]);
+    }
+    let mut value = match graph.parameters.get(key) {
+        None => *default,
+        Some(MaterialGraphParameterAsset::Vector(value)) => *value,
+        Some(_) => {
+            return Err(vec![MaterialGraphDiagnostic::parameter(
+                key,
+                "material graph vector component edit cannot use an incompatible override; repair or reset it first",
+            )]);
+        }
+    };
+    for (value, component) in value.iter_mut().zip(components) {
+        if let Some(component) = component {
+            *value = component;
+        }
+    }
+    plan_parameter_edit_for_target(
+        graph,
+        node,
+        key,
+        MaterialGraphParameterEdit::Set(MaterialGraphParameterAsset::Vector(value)),
+    )
+}
+
+fn parameter_edit_target<'a>(
+    graph: &'a MaterialGraphAsset,
+    node_id: &str,
+) -> Result<(&'a MaterialGraphNodeAsset, &'a str), Vec<MaterialGraphDiagnostic>> {
     let selection = project_material_graph_details_selection(graph, &[node_id])?;
     let node = selection.selected_nodes().first().copied().ok_or_else(|| {
         vec![MaterialGraphDiagnostic::graph(
@@ -176,6 +235,15 @@ pub fn plan_material_graph_parameter_edit<'a>(
             "material graph parameter edit requires a parameter declaration",
         )]
     })?;
+    Ok((node, key))
+}
+
+fn plan_parameter_edit_for_target<'a>(
+    graph: &'a MaterialGraphAsset,
+    node: &'a MaterialGraphNodeAsset,
+    key: &'a str,
+    edit: MaterialGraphParameterEdit,
+) -> Result<MaterialGraphParameterEditPlan<'a>, Vec<MaterialGraphDiagnostic>> {
     if let MaterialGraphParameterEdit::Set(value) = &edit {
         if key.trim().is_empty() {
             return Err(vec![MaterialGraphDiagnostic::node(

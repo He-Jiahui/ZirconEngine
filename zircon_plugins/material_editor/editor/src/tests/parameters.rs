@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 
 use super::{
     compile_material_graph, plan_material_graph_parameter_edit,
-    validate_material_graph_with_diagnostics, MaterialGraphDiagnosticTarget,
-    MaterialGraphParameterEdit as Edit, MaterialGraphPresentation,
+    plan_material_graph_parameter_vector_edit, validate_material_graph_with_diagnostics,
+    MaterialGraphDiagnosticTarget, MaterialGraphParameterEdit as Edit, MaterialGraphPresentation,
 };
 use zircon_runtime::asset::{
     AssetReference, AssetUri, MaterialGraphAsset, MaterialGraphLinkAsset, MaterialGraphNodeAsset,
@@ -622,4 +622,281 @@ fn link(from_node: &str, to_pin: &str) -> MaterialGraphLinkAsset {
         to_node: "output".into(),
         to_pin: to_pin.into(),
     }
+}
+
+#[test]
+fn material_graph_parameter_vector_edit_uses_selected_default_and_exact_channel_bits() {
+    let mut graph = graph();
+    let default = [0.25, -0.0, 2.0, -1.0];
+    graph.nodes.push(vector("color", " 颜色 ", default));
+    let before = graph.to_toml_string().unwrap();
+    for channel in 0..4 {
+        let mut components = [None; 4];
+        components[channel] = Some(-2.5);
+        let plan = plan_material_graph_parameter_vector_edit(&graph, "color", components).unwrap();
+        assert!(std::ptr::eq(plan.source(), &graph));
+        assert!(std::ptr::eq(plan.node(), &graph.nodes[0]));
+        assert_eq!(plan.key(), " 颜色 ");
+        assert!(plan.previous_value().is_none());
+        assert!(plan.changes_source());
+        let Some(Value::Vector(value)) = plan.proposed_value() else {
+            panic!("component edit must return the existing full Vector Set");
+        };
+        for index in 0..4 {
+            let expected = if index == channel {
+                -2.5
+            } else {
+                default[index]
+            };
+            assert_eq!(value[index].to_bits(), expected.to_bits());
+        }
+    }
+    assert_eq!(graph.to_toml_string().unwrap(), before);
+}
+
+#[test]
+fn material_graph_parameter_vector_edit_preserves_unedited_local_override_components() {
+    let mut graph = graph();
+    graph.nodes.push(vector("color", "Tint", [9.0; 4]));
+    let local = [0.25, -0.0, f32::MIN_POSITIVE, 0.5];
+    graph.parameters.insert("Tint".into(), Value::Vector(local));
+    graph
+        .parameters
+        .insert("Orphan".into(), Value::Scalar(0.75));
+    let before = graph.to_toml_string().unwrap();
+    let plan = plan_material_graph_parameter_vector_edit(
+        &graph,
+        "color",
+        [Some(4.0), None, None, Some(-1.5)],
+    )
+    .unwrap();
+    assert_eq!(plan.previous_value(), Some(&Value::Vector(local)));
+    let Some(Value::Vector(value)) = plan.proposed_value() else {
+        unreachable!()
+    };
+    for (actual, expected) in value.iter().zip([4.0, -0.0, f32::MIN_POSITIVE, -1.5]) {
+        assert_eq!(actual.to_bits(), expected.to_bits());
+    }
+    assert_eq!(graph.to_toml_string().unwrap(), before);
+}
+
+#[test]
+fn material_graph_parameter_vector_edit_distinguishes_presence_noop_and_empty_input() {
+    let mut graph = graph();
+    graph.nodes.push(vector("color", "Tint", [0.0; 4]));
+    let edit = [Some(0.0), None, None, None];
+    let absent = plan_material_graph_parameter_vector_edit(&graph, "color", edit).unwrap();
+    assert!(absent.changes_source());
+    assert!(absent.previous_value().is_none());
+    graph
+        .parameters
+        .insert("Tint".into(), Value::Vector([0.0; 4]));
+    let present = plan_material_graph_parameter_vector_edit(&graph, "color", edit).unwrap();
+    assert!(!present.changes_source());
+    let negative_zero =
+        plan_material_graph_parameter_vector_edit(&graph, "color", [Some(-0.0), None, None, None])
+            .unwrap();
+    assert!(negative_zero.changes_source());
+    assert!(plan_material_graph_parameter_vector_edit(&graph, "color", [None; 4]).is_err());
+    assert_eq!(graph.parameters.get("Tint"), Some(&Value::Vector([0.0; 4])));
+    graph.parameters.clear();
+    assert!(plan_material_graph_parameter_vector_edit(&graph, "color", [None; 4]).is_err());
+    assert!(graph.parameters.is_empty());
+}
+
+#[test]
+fn material_graph_parameter_vector_edit_preflights_aliases_without_merging_defaults() {
+    let mut graph = graph();
+    graph.nodes = vec![
+        vector("other", "Shared", [0.9; 4]),
+        vector("selected", "Shared", [0.1, 0.2, 0.3, 1.0]),
+    ];
+    let components = [None, Some(0.7), None, None];
+    let plan = plan_material_graph_parameter_vector_edit(&graph, "selected", components).unwrap();
+    assert_eq!(
+        plan.proposed_value(),
+        Some(&Value::Vector([0.1, 0.7, 0.3, 1.0]))
+    );
+    assert_eq!(
+        plan.affected_nodes()
+            .map(|node| node.id.as_str())
+            .collect::<Vec<_>>(),
+        ["other", "selected"]
+    );
+    graph
+        .parameters
+        .insert("Shared".into(), Value::Vector([0.4; 4]));
+    let plan = plan_material_graph_parameter_vector_edit(&graph, "other", components).unwrap();
+    assert_eq!(
+        plan.proposed_value(),
+        Some(&Value::Vector([0.4, 0.7, 0.4, 0.4]))
+    );
+    graph.nodes.push(scalar("incompatible", "Shared", 0.5));
+    let before = graph.to_toml_string().unwrap();
+    let errors =
+        plan_material_graph_parameter_vector_edit(&graph, "selected", components).unwrap_err();
+    assert!(matches!(
+        &errors[0].target,
+        MaterialGraphDiagnosticTarget::Node { node_id } if node_id == "incompatible"
+    ));
+    assert_eq!(graph.to_toml_string().unwrap(), before);
+}
+
+#[test]
+fn material_graph_parameter_vector_edit_reuses_whole_source_identity_preflight() {
+    let mut graph = graph();
+    graph.nodes = vec![
+        vector("color", "Tint", [0.1; 4]),
+        scalar("scalar", "Gain", 0.5),
+        node("output", Node::Output),
+        node("math", Node::Add),
+    ];
+    let components = [Some(0.4), None, None, None];
+    let before = graph.clone();
+    for id in ["missing", "Tint", "scalar", "output", "math", "", " color "] {
+        assert!(plan_material_graph_parameter_vector_edit(&graph, id, components).is_err());
+    }
+    assert_eq!(graph, before);
+    graph.nodes.push(node("math", Node::Multiply));
+    assert!(plan_material_graph_parameter_vector_edit(&graph, "color", components).is_err());
+    graph.nodes.pop();
+    graph.nodes.push(node(" ", Node::Multiply));
+    assert!(plan_material_graph_parameter_vector_edit(&graph, "color", components).is_err());
+    graph.nodes.pop();
+    assert_eq!(graph, before);
+    graph.nodes[0] = vector("color", " \t", [0.1; 4]);
+    graph
+        .parameters
+        .insert(" \t".into(), Value::Vector([0.2; 4]));
+    let invalid_key_before = graph.clone();
+    assert!(plan_material_graph_parameter_vector_edit(&graph, "color", components).is_err());
+    assert!(plan_material_graph_parameter_edit(&graph, "color", Edit::Reset).is_ok());
+    assert_eq!(graph, invalid_key_before);
+}
+
+#[test]
+fn material_graph_parameter_vector_edit_requires_explicit_wrong_type_override_repair() {
+    let mut graph = graph();
+    graph.nodes.push(vector("color", "Tint", [0.1; 4]));
+    graph.parameters.insert("Tint".into(), Value::Scalar(0.8));
+    let before = graph.clone();
+    for components in [[Some(0.2), None, None, None], [Some(0.2); 4]] {
+        let errors =
+            plan_material_graph_parameter_vector_edit(&graph, "color", components).unwrap_err();
+        assert!(matches!(
+            &errors[0].target,
+            MaterialGraphDiagnosticTarget::Parameter { name } if name == "Tint"
+        ));
+    }
+    assert_eq!(graph, before);
+    let reset = plan_material_graph_parameter_edit(&graph, "color", Edit::Reset).unwrap();
+    assert_eq!(reset.previous_value(), Some(&Value::Scalar(0.8)));
+    assert!(reset.proposed_value().is_none());
+    assert!(plan_material_graph_parameter_edit(
+        &graph,
+        "color",
+        Edit::Set(Value::Vector([0.2; 4]))
+    )
+    .is_ok());
+}
+
+#[test]
+fn material_graph_parameter_vector_edit_repairs_only_supplied_nonfinite_components() {
+    let mut graph = graph();
+    graph.nodes.push(vector("color", "Tint", [0.1; 4]));
+    let payload = f32::from_bits(0x7fc0_002a);
+    graph
+        .parameters
+        .insert("Tint".into(), Value::Vector([0.1, payload, -0.0, 2.0]));
+    assert!(plan_material_graph_parameter_vector_edit(
+        &graph,
+        "color",
+        [Some(0.4), None, None, None]
+    )
+    .is_err());
+    for invalid in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+        assert!(plan_material_graph_parameter_vector_edit(
+            &graph,
+            "color",
+            [None, Some(invalid), None, None]
+        )
+        .is_err());
+    }
+    let plan =
+        plan_material_graph_parameter_vector_edit(&graph, "color", [None, Some(0.4), None, None])
+            .unwrap();
+    let Some(Value::Vector(previous)) = plan.previous_value() else {
+        unreachable!()
+    };
+    assert_eq!(previous[1].to_bits(), payload.to_bits());
+    let Some(Value::Vector(value)) = plan.proposed_value() else {
+        unreachable!()
+    };
+    assert_eq!(value[2].to_bits(), (-0.0f32).to_bits());
+    assert_eq!(value, &[0.1, 0.4, -0.0, 2.0]);
+    assert!(plan.changes_source());
+    graph.nodes[0] = vector("color", "Tint", [f32::NAN, 0.1, 0.1, 1.0]);
+    assert!(plan_material_graph_parameter_vector_edit(
+        &graph,
+        "color",
+        [Some(0.2), Some(0.4), None, None]
+    )
+    .is_ok());
+    assert!(validate_material_graph_with_diagnostics(&graph)
+        .iter()
+        .any(|entry| entry.message.contains("non-finite default")));
+}
+
+#[test]
+fn material_graph_parameter_vector_edit_codec_compile_and_inverse_preserve_presence() {
+    let mut graph = graph();
+    graph.nodes = vec![
+        node("output", Node::Output),
+        vector("color", "颜色", [0.1, 0.2, 0.3, 1.0]),
+    ];
+    graph.links.push(link("color", "base_color"));
+    graph.parameters.insert("Orphan".into(), Value::Scalar(0.4));
+    let before = graph.to_toml_string().unwrap();
+    let plan = plan_material_graph_parameter_vector_edit(
+        &graph,
+        "color",
+        [None, Some(0.8), None, Some(0.6)],
+    )
+    .unwrap();
+    let edit = plan.edit().clone();
+    assert!(plan.previous_value().is_none());
+    // Test-only installation; no production apply/history/permit is provided.
+    assert!(install_parameter_candidate_for_test(&mut graph, "color", edit).is_none());
+    let reopened = MaterialGraphAsset::from_toml_str(&graph.to_toml_string().unwrap()).unwrap();
+    assert_eq!(
+        compile_material_graph(&reopened).unwrap().base_color,
+        [0.1, 0.8, 0.3, 0.6]
+    );
+    assert_eq!(reopened.parameters.get("Orphan"), Some(&Value::Scalar(0.4)));
+    install_parameter_candidate_for_test(&mut graph, "color", Edit::Reset);
+    assert_eq!(graph.to_toml_string().unwrap(), before);
+    install_parameter_candidate_for_test(&mut graph, "color", Edit::Set(Value::Vector([0.2; 4])));
+    let present_before = graph.to_toml_string().unwrap();
+    let plan =
+        plan_material_graph_parameter_vector_edit(&graph, "color", [Some(0.7), None, None, None])
+            .unwrap();
+    let inverse = plan.previous_value().unwrap().clone();
+    let edit = plan.edit().clone();
+    install_parameter_candidate_for_test(&mut graph, "color", edit);
+    assert_eq!(
+        compile_material_graph(&graph).unwrap().base_color,
+        [0.7, 0.2, 0.2, 0.2]
+    );
+    install_parameter_candidate_for_test(&mut graph, "color", Edit::Set(inverse));
+    assert_eq!(graph.to_toml_string().unwrap(), present_before);
+}
+
+fn vector(id: &str, name: &str, default: [f32; 4]) -> MaterialGraphNodeAsset {
+    node(
+        id,
+        Node::VectorParameter {
+            name: name.into(),
+            default,
+        },
+    )
 }

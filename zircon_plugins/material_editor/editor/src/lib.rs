@@ -145,8 +145,8 @@ pub use palette_search::{
     search_material_graph_node_palette, MaterialGraphNodeSearch, MaterialGraphNodeSearchNavigation,
 };
 pub use parameters::{
-    plan_material_graph_parameter_edit, MaterialGraphParameterEdit, MaterialGraphParameterEditPlan,
-    MaterialGraphParameterView,
+    plan_material_graph_parameter_edit, plan_material_graph_parameter_vector_edit,
+    MaterialGraphParameterEdit, MaterialGraphParameterEditPlan, MaterialGraphParameterView,
 };
 pub use plugin::{
     editor_capabilities, editor_plugin, editor_plugin_descriptor,
