@@ -1,3 +1,21 @@
+## 接续91：网格与节点的原生绘制顺序、三尺寸重开（2026-10-28 UTC）
+
+90已由唯一后继 `deliver-material-instance-source-01a16d50-20261028-90`／queue29979／management#707 SUCCESS提交 `1d76585b6ec098b62f1d903a96a678aa1c837067`（parent515e39b）；exact四路径raw／Git blob一致、25静态＋19提交后核验通过，branch clean／index.lock absent，integration pending／mainAdvanced=false／validationPerformed=false。新6定义及本树235仅静态，不把fork60的11／167计数相加；本轮三Rust逐项raw未变。fork已queued `01a18229-4041-7d31-8c17-9e1ff1b26554`，Parent因queue100cap拒绝，原stderr保留；queued不作已读，未为消息投递重试旧产品operation。
+
+本轮修复89逐图记录的1280／900参数标题被网格盖住。只读UE `SGraphPanel.cpp:184-226` 明确先 `PaintBackgroundAsLines` 再安排node及wire layers；Penpot原生Bring-to-front为 `shortcuts.cljs:240-244` 的mod+shift+up。仅在原Material file/page `b4a1e3ce-9e6a-81fe-8008-d69d6092d704`／`...d705` 的两张Parameters80板，通过原生Layers展开、选择原三node＋两wire五根，再执行Control+Shift+ArrowUp；没有按截图移动节点、改fill／字体／token或创建group／master。第一次row中心选择碰到不正确选区，assert在置顶动作前停止；改为原生row名称体点击并逐次等待selection，精确五ID才执行。重复SVG defs造成首轮viewer selector strict失败亦保留，没有放宽真实board／尺寸检查。
+
+| 原board／graph | 保存关闭新context重开 | 前后实际像素差 |
+| --- | --- | --- |
+| 1280 `f02a46ad…5ba0`／`…5bb4` | 原1280×800完整board；两参数标题／body不再有网格 | 11352像素，bbox(301,204)-(522,466) |
+| 900 `4ad7bd44…267b`／`…268f` | 原900×620完整board；同一问题修正 | 11352像素，bbox(225,204)-(446,466) |
+| 640 `3a8f714d…1bb4`／`…1bc8` | 原Source89内容fit保留，作为未操作对照 | 0像素，逐字节相同 |
+
+fresh before rev431／5586对象／5 business mains，原生保存rev433；关闭旧context再新建context，全部5586保存shape哈希一致，3张after／reopen PNG各自逐字节相同。仅两graph的 `shapes` 数组顺序变化，5584其他对象与5业务component定义hash均完全相同；原node／pin／wire／text的几何、paint、componentId／componentFile／shapeRef及style refs逐项保留，0新增／0删除。640参数／节点／原生group一字未改；fork的Instance／Hierarchy／四搜索copy及所有后继保留。原诊断ancestry提取把self-parent的全零root重复到上限，另记派生字段勘误，真实native链只用六个非零原ID，未改Penpot去迁就错误报告。
+
+本轮3 before＋3 after＋3 reopen＋3并排＋3差异＋1workspace共16张PNG已实际逐图打开。差异为原RGB绝对差×4显示，仅两参数box内的旧网格遮挡变化；chrome／Output／640对照没有变化。新workspace能原生选中1280原board，显示W1280／H800与既有Layers／linked text style。所有并排仅为Penpot设计前后，不是Penpot与EXE双端证据。完整结果、逐图发现和原UI失败见原报告根 `material-graph-order-91-{before,save,reopen,review}.json`、相同前缀PNG与bounded browser receipt；服务只读ready，未启停／接管／续期，helper显式close且exit0／auth不变／tmp空，手工释放0B。
+
+此切片只修设计图层顺序。网格尚未与真实camera同变换，wire-body／arrow／shadow painter的完整UE层次未由此实现；三板sidebar／node的0.125与0.6仍是未连接的设计fixture，窄栏页签裁切、preview文字／not-compiled和实际Apply／Save仍open。无正式codec／sourceGuard重新签名、原ZUI回写或引擎renderer改变；正常EXE、实际150%DPI、正常捕获nonce／generation、LayoutReviewCase双端≤1DIP尚未取得，passed=false／accepted=false。doc-only后继 `deliver-material-graph-order-01a16d50-20261028-91` 依赖90，validation[]，实际queue／commit另见原交付回执；不重投canonical84／r10，不投nested worktree Cargo，完整goal active。
+
 ## 接续90：原父链交接与作者／渲染引用边界（2026-10-28 UTC）
 
 已按原件消费 fork60 `baddf44f1e927d76f801a6381bf7b458c76e51b8`，原 request `ue-material-instance-hierarchy-20261026`／operation `deliver-material-instance-hierarchy-fork60-20261028`／queue29895／management#687 SUCCESS；2185B原receipt SHA `6e188af64f662240e40efe04522c2e4d595cb3f2e31e515e98c1bb0c2a3f766f`。其 `project_material_instance_parent_chain` 从实际 MaterialAsset.parent 借用完整引用和原Material，由真实resolver提供canonical UUID；完整成功才root-first返回，missing ancestor／cycle／budget均显式错误且不发布prefix。11定义与fork原167定义仅属该树，不并入本树计数。原branch integration pending／Rust未运行；fork当前Hierarchy activation等后继单列，未把当前dirty四路径归为badd原像、未改写或重贴其源码。
