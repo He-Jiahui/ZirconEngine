@@ -2,6 +2,18 @@
 
 本会话：`01a16d50-6c7f-7370-853d-4581184b66a1`。Parent：`01a16d4e-0491-7353-84fa-038bd7706546`。套件日期：2026-10-24；实际运行回执使用 UTC。
 
+## Details edit69：Name／Shader 的真实作者候选（2026-10-26）
+
+接续66／67已保存、关闭、新context重开的两组Details设计，在原ready工作树w1167fba90b-mat64的四条授权路径内补齐图级字段候选。原 [MaterialGraphAsset](../../../zircon_runtime/src/asset/assets/authoring.rs) 的name是String，shader是Option<AssetReference>；未把Name伪装成可缺省属性，也不将作者shader=None替换成编译器fallback。UE MaterialEditor.cpp:7689起的NotifyPostChange要求既有ScopedTransaction并安排预览／图刷新；本域 [details_selection.rs](../../../zircon_plugins/material_editor/editor/src/details_selection.rs) 的新plan_material_graph_details_edit仅产生借用原source／request的候选，实际Document、primary history、retention／prepare／一次permit／CAS、dirty／焦点／编译失效和保存仍由真实宿主承担。Name／Shader是Zircon当前作者schema的适配，不宣称完整UMaterial属性复刻。
+
+候选保留前值与后值的精确文本、UUID和locator，不克隆全图，不创建store／clock／revision／ID，不安装变化，也不从effective MaterialAsset反推作者文档。Name的空串、空白、中文和长文本保持原样；Shader清除显式产生None。实际发生变化的Some引用调用当前project catalog resolver一次，必须返回ResourceKind::Shader；扩展名不作为类型证据，同locator不同UUID及同UUID迁移locator均需重新解析。内容相同或None→None为可见no-op，不为旧不可用引用额外查询；source本身的诊断仍由既有validator处理。无效／重复节点等图错误不阻止修复图级字段，节点、连线、参数override与孤立作者值不被重置。
+
+在既有tests/details_selection.rs增加8项有意义回归定义：精确中文长名借用、空名与等值no-op、完整Shader身份单次解析、等值／缺席Shader no-op、UUID／locator各自变化、错误资源种类／解析失败无部分写、清除后的真实codec／compiler、Name＋Shader候选经真实TOML重开且参数／身份／PBR保留。它们仍未由Rust harness发现／执行；旧161定义与新169定义（168普通＋1旧ignored）分时记录，不用格式／guard或测试源码冒充执行。
+
+67文档已由原queue26736／Jenkins#487 SUCCESS提交为018b93c5c1120e29450d844eee2af392f7e807eb，仅本md；2180B终回执SHA8dbc0966a8d9ad793cbb28dfa442f2c602380a044168a83e66cf9d1e210e3e50的HTTP／Home相同，集成另行pending。唯一后继validate68：原request ue-material-graph-20261024-01／operation matgraph-details-current-01a16d50-20261026-68，实际queue26827→#496；身份b6bf53c892eda8a8088bd0013499938643e2ba0ca8c13996bd932136ee221317固定提交时canonical29源／27依赖。23:22Z原550B回执为checkout_source_busy／原r19 reader；23:38Z Home后继499B回执为management_git_busy，原件各保留。同期新capability只读查询因owner PID27460的OpenProcess错误5返回process_identity_inconclusive；不据此推断服务／root退出或释放资源。compile／发现执行数／native／resource仍unknown，未重投；新69只在工作树，未混入68的旧输入或把169塞入161历史结果。
+
+本轮未修改Penpot／Shared／fork30 Instance、Hierarchy、四SearchInput及其Overlay、公共graph／Field／主题或原ZUI。沿67真实rev253／3906的三尺寸设计及66／67原PNG，不将新候选描述成实际按钮／Field接线。正式source slot／codec导出／原v2加载、宿主事务和GPU材质修改、正常EXE／真实150%DPI／双端≤1DIP均open；原r10/#370等失败不变。guard／格式／单插件静态检查和实际deliver以material-details-edit-69原回执为准；本轮不新建Cargo身份。goal active，passed=false，accepted=false，释放0B。
+
 ## Default Details67：空选择仍检查原材质（2026-10-26）
 
 本轮接续66当时保留的默认板差异：UE `MaterialEditor.cpp:8708-8750` 的 `OnSelectedNodesChanged` 在空选择时把原 Material／MaterialFunction 的 EditObject 交给 SetObjects，随后调用 FocusDetailsPanel。本域 [details_selection.rs](../../../zircon_plugins/material_editor/editor/src/details_selection.rs) 的空选择分支已返回 `Graph(&原作者图)`；这不等于空 Details，也不从展平 MaterialAsset 重建作者文档。现将原默认三板的错误“选择表达式”提示替换为与66一致的 Name／Shader；数据仍为61既有 graph() 声明，selectedIds=[]，明确是设计／回归数据，未描述为当前 EXE 打开的资产或完整 UE 属性 schema。
