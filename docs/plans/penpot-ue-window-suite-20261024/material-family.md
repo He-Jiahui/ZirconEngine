@@ -2,6 +2,68 @@
 
 本会话：`01a16d50-6c7f-7370-853d-4581184b66a1`。Parent：`01a16d4e-0491-7353-84fa-038bd7706546`。套件日期：2026-10-24；实际运行回执使用 UTC。
 
+## Managed delivery64：Details 源切片转入受管工作树
+
+2026-10-26 本轮按用户“managed worktree + deliver-task”指令接续。正式 create-worktree 使用原 request `ue-material-graph-20261024-01`、operation `material-worktree-01a16d50-20261026-64`，真实 queue26181 / Jenkins #454 已 SUCCESS。server 实际分配 writer `w1167fba90b`、worktree `w1167fba90b-mat64`、branch `codex/jenkins/w1167fba90b/mat64`；基线为 main 不可变提交 `0569fb6a00049526a1aace835780acaa530dc2e3`。归属精确限定 lib.rs、details_selection.rs、tests/details_selection.rs 及本文四路径。原 canonical 当前为 codex/review/remaining-local-dirty-20261025，未切分支、清理外来内容或手工执行 Git 生命周期；后续本切片源码写入使用实际 ready 工作树。
+
+3 个 Rust 文件沿61已审语义：Details 只借用原作者图/原表达式，保留精确稳定 ID、来源顺序和覆盖 presence；空选/根返回原图目标，stale/歧义非空选拒绝整批，修复中的无效图仍可查看。原161静态定义（160普通+1旧 ignored）不是 harness 发现或运行结果。原 #448 / queue25902 / matgraph-details-01a16d50-20261026-61 在20:55:51Z认证 API 为 FAILURE；491B 原归档 SHA `7d907c538ea013f9dac30df13afb0d117aa9bdddf3ca5335d5c49ad31c318d83` 仍 waiting / management_git_busy，先前保留同一 r19 reader 等待。compile、发现/执行数、native、writer/resource 终结均未知，不写成 false/0，不重投该 operation 或 r10。
+
+本轮仅重基本域3源及58/61/63新增文档段；原基线中全部其它会话、fork Instance/Hierarchy/四 SearchInput、原ZUI、Shared/catalog/theme/runtime 内容保留。组合补丁 `dc73ec24c941f3dd5cc7257af3bd7933aa39f6e9ee8efbf9a41471223e5fe6ab` 的四路径 guard 为0error/0warning/0suppressed，反向检查及 diff-check exit0；Git换行提示原样保留。原61相同Rust的格式/单插件静态检查复用，不扩成全仓构建。工作树创建归档16053188B/SHA `7448852ec7935d41f3724cd9caece8aaccf2be98e4a19b84adeb7dec922aa11b` 在原Home保留；正式HTTP客户端8MiB边界拒绝整份读取的诊断保留，未放宽边界或复制全源归档。新工作树的成功不关闭 retained r19 reader，也不证明旧请求 EOF。
+
+正式交付使用 `deliver-material-details-01a16d50-20261026-64`，仅四原路径、advisory validation=[]；真实 queue/commit/integration 以原 reports/material-worktree-delivery-64 后继回执为准，本文不预签提交或合并成功。Penpot沿63实际 rev222/3906及真实11 source refs；query metadata、source allocation/reset、交互状态 paint、真实宿主/导出/renderer、正常EXE/实际150%DPI/双端1DIP仍open。完整goal active，passed=false、accepted=false。原失败及未知生命周期保留，释放0B。
+
+## Node Search63：消费原Source32公共审阅
+
+收到原public owner的review.json（SHAabec8fb27543055aa282eba10431d1c194b139186287a9898892b653a0c01d0e）及consumer-instance-contract.json（SHA768b241c7f2d91e39c274587eb3df75f8c56fe75f5fb20851c8a988efb0f8515）。这是2026-10-25T17:02Z对归档rev156的审阅，不覆盖后继源或把NodeSearch重新派给fork。73项correction均为原196新ID、3Search/8Tree原Shared身份与三PNG逐图审阅继续保留；原#386 FAILURE不QueryOnly或重投。
+
+2026-10-26T20:38Z隔离无头context实际只读原file/page，当前rev222/3906对象，11目标sourceRef全部有效，Shared rev5/4原main/34colors/3typographies。三个Search仍是Fill384、文字x28/w348、leftright；45的6对象约束修正是已保存设计后继，但原native-layout-allocation依然写240/master-parent，初始化guard不因此取得新资格。math与“不存在的材质节点”两项实际可见内容对应的text-property仍为placeholder，正式源应从真实MaterialGraphNodeSearch::query()产生query投影，原placeholder保持Search。空查询仍用原placeholder，不手改metadata、baseline、callsite或instancePath。
+
+| 差异 | 当前实际与最小接续 |
+| --- | --- |
+| Query | host从实际保留的search.query()/matches()/selected()读源，经既有SearchField query属性与原projectEditorField投影；不把显示文字反写placeholder、生成第二查询store或由Penpot UUID造调用身份。 |
+| 分配/guard | 原240与204文字初始化证据保持；384→窄宽→原默认/reset、实际source/font/main/allocation准入、重开/正式导出仍未执行。45只修原生消费约束，不等于source/reset验收。 |
+| Flat rows | 八行当前x8/w368、各隐藏6辅助部分；现有content变体仍保box、x52，在384宽只得320，不能把它当已支持的同配置。公共TS/native同一真实平面动作行profile或现有原语组合交Parent，不造public prop、空icon hack、全局折叠或新master。 |
+| Selected paint | 原Multiply的editor.text.selected/body配对保存为真实设计证据；当前sourceColorProperties仍明确拒绝互动状态的normal-token绑定。须保原node/control/instancePath、真实状态、token/library/revision/alpha闭包，不用同白色literal/normal token、剥ref或重签通过。 |
+| Host | 原primitive根各0 authored events；真实输入/clear/IME/焦点/创建/一次prepare-permit-CAS/inverse-history及codec仍须原host接线。create_graph不是create_node，不新增event UUID。 |
+
+另记录真实源与画面选择态的差异：MaterialGraphNodeSearch::new在有结果时选首项Output，归档全量六行却都标selected=false；new(math)首选Add，Multiply需要真实select_id/navigation或保留原selection的过滤过程。投影必须消费真实当前selection与独立focus，而非为复刻图片改动领域行为或推断操作已经发生。原set_query、稳定action key和46的plan_material_graph_node_search_creation继续复用，不添加重复getter/API或第二model/history/clock，不引入Editor→leaf依赖倒置。
+
+当前17公共参考有4项字节完全一致、17项规范LF后全部匹配原review，不能用旧字节hash签新CRLF，也没有发现这17项的语义后继。本轮只读Penpot/API，浏览器真实exit0/已关闭、auth不变，未写Rust/原ZUI/Shared/catalog/theme/runtime或fork的Instance/Hierarchy/四Search。只更新本域记录与消费合同，不因这些公共资格open停止独立工作，不新派Cargo/producer。原61 queue25902/#448另链继续，161静态定义不计Rust结果。交付material-node-search-public-review-63-consumer-handoff.json SHA808010b50d0eb426124bc69a50e0b22ff63d8f60f31fb67304f111d952b43231，live-readback保留当前11实例数据。goal active，official export/reset/native host/正常EXE/150%DPI/双端1DIP未通过，整族passed=false、accepted=false，释放0B。
+
+## Material Details61：真实选择源到属性目标的领域投影
+
+2026-10-26T20:29:35Z 实际受管后继已替代下文初始“将登记”的时点：原request ue-material-graph-20261024-01 / 新operation matgraph-details-01a16d50-20261026-61，identity SHA126b0888715ebc450295f8c387d8faaeb920ec1b8c3da1c5df636b502bd1abc5，29owned+27deps。正式客户端exit0，queue25902→management#448；input d2638ae2fe29a33d7d8f1f7c6e31c90e054a779b172b2a47bde5cee5a171298d。认证API为building=true/result=null，542B归档SHA48ea4e122160eaaf01b9cb9784385b70e42c9e236f9110489383729da1801353仍waiting/checkout_source_busy，blockingReadOwner仍原r19 management-0e3e11c3d922cbeccad3eb823d0e2c15172b188027aa2ff3113d7dff6cdc1dea。编译、实际发现/执行、原native/资源继续unknown，不把161静态定义或client exit0算通过，也不把该门前source-busy称budget/fair_queue拒绝。严格nested单包、features[]/defaultsoff、locked/lib/profiletest/jobs1/material_graph_/threads1/E物理根配方保持。source57+61完整后继已透明提交；本段为其后已知本域文档增量，原identity/payload不改。原56/#420及r10/#370不重放，#448沿本次唯一producer原键跟进。具体回执material-details-managed-61-client-handoff.json及build-observation-02.json。
+
+UE阴影补充62已精确核对：SNodePanel.h:647–650选择原Brush，SGraphNode.cpp:1821–1836绘制同一节点的阴影；Geometry.h:407–414为size+2×delta及offset=-delta，child scale不变。Starship默认delta=(12,12)，即每侧12 Slate单位/总宽高+24；18/64是纹理切片比例，不是18DIP膨胀。当前蓝色2px描边近似保持并继续open，实际纹理alpha/颜色未取得，不用它声称九切片一致。精确五源hash、同代际paint/clip/一次DPI与独立hit合同在material-selection-shadow-62-source-contract.json（SHA33729b6a7b72fa442ae6c14ee15c4108c6593324baddab3ac4684ed5ed332350）；只向Parent/public owner交付提案，未写公共主题/painter或本族设计。
+
+沿设计58确认的UE差异，仅在本域lib.rs的模块/重导出结构接线，新增details_selection.rs与tests/details_selection.rs。project_material_graph_details_selection返回私有构造的MaterialGraphDetailsSelection，targets只借用原MaterialGraphAsset或原表达式node，selected_nodes另保留每个原根/表达式的源身份。未复制作者图、从编译后MaterialAsset反建作者文档、创建Function模型或第二selection store/history/clock。
+
+按MaterialEditor.cpp:8708–8754，空选择或Output根投影到Graph属性目标，普通表达式投影到实际node；混合选择保留两种目标，has_expression对应UE普通节点标志。Graph在此明确是原作者图，不是声称完整UE Material属性对象；实际Toolkit必须用同一真实document上下文解析它。多个坏图Output保留每个原root身份但同一Graph目标只列一次，普通合法图仍只有一个根。目标以源顺序稳定呈现，不以输入selection顺序、显示名或重复参数名替换原node key。
+
+非空选择的空/重复/stale key、任何歧义/空source ID整体拒绝，不能先发布部分Details再回落到别的材质。空选择仍允许在ID有错时检查原文档。required-input、错误连线、循环、非有限或错型参数不成为查看修复属性的编译门；值与原诊断均保留，不生成成功默认。中文、长ID、大小写、带空白的精确合法key完整保留。API不包含focus权限、运行状态、revision计数或可编辑快照；原host发布前仍须比对view incarnation/document/subdocument/source revision/selection request，编辑继续一次prepare/permit/CAS与原primary inverse-history。
+
+新增8项回归候选覆盖坏ID文档的空选择、不可编译根仍检查Graph、同名参数按真实node与源顺序、混合/多根不丢身份、stale/重复/空选择的原子拒绝、未选中source的歧义、中文长key及NaN/错型值保留，以及真实TOML重开后shader/显式默认/orphan -0.0存在性与现CPU PBR结果不变。当前material_graph_过滤器有161静态定义＝160普通+1旧ignored，仍未Rust类型检查、发现或执行。初次把rustfmt --emit stdout的文件名标题误写入两份新文件，语法检查拦截；只删除标题/空行后重跑，原错误源码补丁与失败记录保留，不算Cargo失败/通过，不改断言或绕required-input。
+
+当前三路径rustfmt、scoped diff-check、补丁反向检查均exit0；最终增量patch SHA461035cb7afe65ae760008ec0755af776a92caad49501b91650fb4d8bb72bc94，guard 0errors/0warnings/0suppressed。官方单材质plugin validate exit0、diagnostics=[]；46项只读参考与1项UE source在本轮检查时全部保持，本文是其后已知文档增量。最终以material-details-selection-61-source-r2.json/validation-r2.json为当前，原source.json/validation.json保存首轮formatter transport失败。公共Graph/host/Runtime/manifest/锁、原ZUI、Shared/catalog/theme与fork的Instance/Hierarchy均未写。
+
+本轮复用设计58已关闭/新context重开的三板九次pointer与三PNG，不以helper修复源码冒充已经更新Details画面。原56/#420真实FAILURE与r19 source-busy/native资源未知独立保留。后继验证将由原Node/Graph唯一producer在原request ue-material-graph-20261024-01下，透明登记当前完整source57+61及有限recipe；不复用终结56/r10操作，不要求全局停写，不把历史未知变成独立准备的普遍门。正常Material/Instance/Function Toolkit、真实Details/focus、作者事务/renderer、官方导出→原资产、正常EXE/150%DPI/双端≤1DIP仍open。goal active，整族passed=false、accepted=false，释放0B。
+
+## Material selection design58：根节点选中原型与托管56真实终态
+
+2026-10-26在原 Material file b4a1e3ce-9e6a-81fe-8008-d69d6092d704 / page ...d705，从实际rev212/3449对象追加三张独立业务板，最终rev222/3906对象/原5业务main。1280×800板f147d768-b2cf-8022-8008-d9ae323dae26，900×620板c6260bd3-1397-80a5-8008-d9ae58f54a67，640×520板cb46e97a-7efe-8085-8008-d9ae7bafd8c3。原生Duplicate和X Inspector创建/排布，457个新增对象；原对象仅页面顺序与3个本域默认Output的navigate发生预期变化，删除0、非目标变化0。fork30/32/59的Instance、Hierarchy和四SearchInput子树保持；未整页重排或写Shared。
+
+每板保留本域Output实例component d7173cd6-1da7-4897-be89-08583d32f598 / main shape926a240d-18dd-4741-9cdc-8ce08292e721，以及原3 Button+1 SearchInput的Shared身份。每板33处既有流式布局、所有sourceRef有效，没有detach或复制main。通过原生描边Inspector产生stroke-group覆盖，再以真实Transit UUID/枚举协议引用已发布editor.surface.selected：5d5e9ce2-753a-5a57-a1fc-91829199dbcd / Shared ...aac12 / #0070e0。Shared当前实际rev5/4main/34colors/3typographies；本轮仅消费颜色，不据此声称完整样式继承或跨文件A/B通过。
+
+保存context实际关闭后，新context读回12个目标hash与28个保护子对象一致。另一次新context按尺寸重新加载实际Viewer，真实指针逐一完成默认Output→选中板、点选中节点保留选择、点画布空白→默认板，共9次已验证导航；三张PNG尺寸准确且已逐图打开。首轮普通JSON请求HTTP500、首轮重复/隐藏SVG定位失败均保留；修正只涉及真实类型编码和可见Viewer定位，没有放宽源保护。reopen-r2的renderedStrokes只查到交互overlay的显式stroke属性，不能据它认定视觉描边宽度；2为服务器实际原生stroke值，蓝色轮廓另有PNG复核。
+
+这只完成可编辑的选择原型。UE SGraphNode.cpp:1821–1836实际使用Graph.Node.ShadowSelected与膨胀paint geometry，StarshipStyle.cpp:4062为RegularNode_shadow_selected纹理/18/64边距；当前平面2px全局选中色不能认定该阴影或≤1DIP复刻完成。UE MaterialEditor.cpp:8708–8754明确空选择与根选择显示Material（Function上下文则Function）并FocusDetailsPanel；当前三板仍留空Details提示，这是已证差异，不冒充正确业务Details。三个尺寸页签均有硬裁切，900/640预览提示换行；根节点与五个输入完整可见。预览/Compiler Results仍未连接真实引擎，未添加根Delete、编译成功、焦点或Undo的假交互。
+
+原唯一producer的matgraph-parameters-01a16d50-20261025-56 / queue20964 / management#420已是实际FAILURE，2026-10-25T18:37:21.573Z结束；2026-10-26T19:12认证GET及终态日志取代先前building观察。545B原归档SHA245dc21f24692767822d27a7ce6568f4bab43dffd49033946ee1eff04cf7878b仍waiting/checkout_source_busy，blocking owner为原r19 management-0e3e11c3d922cbeccad3eb823d0e2c15172b188027aa2ff3113d7dff6cdc1dea。实际保留的208条回复为206 source_busy+2 mutex_busy，首块日志仅保部分文本，不能称已统计全240条。input e80093df…、identity697d646f…及全部旧失败保持，停止例行终态轮询；compileStarted、Rust发现/执行、原native/资源收口仍unknown，不借r19自身Cargo EOF释放reader/pool/reservation，也不重投已终结56或r10。
+
+source57三个Rust当前字节为CRLF，但规范化LF后逐一等于原57声明；来源UNKNOWN，未回写/回滚源码，也不以旧LF guard签当前字节。153静态定义仍是152普通+1旧ignored，尚无实际Rust结果。具体读回见material-selection-design-58-source-line-ending-readback.json；fork的独立Hierarchy后继#432另链保留，不合并其输入。官方导出→原material_workspace.zui仍未执行，原v2/29nodes/27controls/13events/8widget imports与SHA5856c886…保持。真实Toolkit/Document/一次prepare-permit-CAS/history、选择→Details/focus、材质修改进入renderer、正常EXE/实际150% DPI/双端≤1DIP继续open。
+
+当前证据：[设计闭包与逐图记录](E:/cargo-targets/zircon-local/reports/ue-material-family-20261024-01a16d50/material-selection-design-58-final.json)、[新context九次指针验证](E:/cargo-targets/zircon-local/reports/ue-material-family-20261024-01a16d50/material-selection-design-58-reopen-r2.json)、[56真实终态](E:/cargo-targets/zircon-local/reports/ue-material-family-20261024-01a16d50/material-parameters-managed-56-terminal-summary-04.json)。本轮无Cargo/重投/桌面/服务/State/锁写；自有浏览器已关闭、auth哈希不变、登记tmp为空，释放0B。goal active，passed=false、accepted=false；公共缺件不阻止后续域逻辑。
+
 ## 材质作者语义57：根节点保护与精确删除候选
 
 按 UE MaterialEditor.cpp:6464–6658 / MaterialGraphNode_Root.h:27–28 接续删除行为。UE 的 CanDeleteNodes 要求选择中至少一个可删节点；DeleteNodesInternal 跳过不可删根节点，先断开待删节点全部连线；一次 FScopedTransaction 后清理选择、恢复被删除表达式的预览并刷新材质。本轮只改本域 lib.rs 的结构声明/重导出，新增 node_deletion.rs 与 tests/node_deletion.rs，不写公共 Graph/commands/model/retention、Runtime、原 ZUI、Shared/catalog/theme 或 fork30 的 Instance/Hierarchy/四 SearchInput。

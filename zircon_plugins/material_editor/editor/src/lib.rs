@@ -2,6 +2,7 @@
 mod capability;
 mod compilation;
 mod connections;
+mod details_selection;
 mod diagnostics;
 mod evaluation;
 #[path = "extension_ids.rs"]
@@ -38,6 +39,10 @@ mod connection_tests;
 #[cfg(test)]
 #[path = "tests/evaluation.rs"]
 mod evaluation_tests;
+
+#[cfg(test)]
+#[path = "tests/details_selection.rs"]
+mod details_selection_tests;
 
 #[cfg(test)]
 #[path = "tests/diagnostics.rs"]
@@ -107,6 +112,10 @@ pub use compilation::{
 pub use connections::{
     can_connect_material_graph, MaterialGraphConnectionAction, MaterialGraphConnectionPlan,
     MaterialGraphValueType,
+};
+pub use details_selection::{
+    project_material_graph_details_selection, MaterialGraphDetailsSelection,
+    MaterialGraphDetailsTarget,
 };
 pub use diagnostics::{
     validate_material_graph, validate_material_graph_with_diagnostics, MaterialGraphDiagnostic,
