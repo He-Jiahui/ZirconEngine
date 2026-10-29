@@ -1,3 +1,14 @@
+## 材质接续115：原参数板完整标题原生悬停提示（2026-10-28）
+
+- 接续112/114，实读原 file `b4a1e3ce-9e6a-81fe-8008-d69d6092d704` / page `b4a1e3ce-9e6a-81fe-8008-d69d6092d705`，原 Parameters80 三板 `f02a46ad-39f2-8081-8008-db7e736c5ba0`、`4ad7bd44-bf74-8024-8008-db81afeb267b`、`3a8f714d-e676-802c-8008-db8265291bb4`：rev499/5775 → saved503/5781 → fresh504/5781。只在九个既有 tab allocation 加原生 mouse-over/open-overlay 和透明命中 fill；旧文字、均分尺寸、裁切、节点、连线、控件身份与事件不改。原5775 ID全部保留；除根children追加外，旧对象仅这九个 fills/interactions 两字段变化。
+- UE `SDockingTabWell.cpp:100–114/305–340` 明确均分，不把其均分布局当缺陷；`SDockTab.h:113` 默认 Ellipsis、`SDockTab.cpp:681–684/723–726` 提供完整标题 tooltip。保留这些手工板尚无正式源资格的省略号差异，不手填短标题、不缩字号、不补签旧 source/geometry guard。信息架构继续复用本计划既有 app-shell/app-sidebar 参照，以 UE 本地源码为实际目标。
+- 三个真实新业务浮层 frame/text：Details `67e1889c-4da1-4401-83c8-6f965341e417` / `6a03816d-b545-4027-8a6f-cbde0c16b635`；Parameters `ce6be8a9-94a1-446a-aa9b-1622f75a62e0` / `c462b6a9-3244-478b-9a99-87efc788d1de`；Nodes Overview `72aa5351-fd37-4eda-bc99-4f730d50cb21` / `ca16fb91-7651-4af4-848e-3a4c7a956265`。六对象均真实持久化，属于本板原型而非新公共组件/库 UUID；不复制主件或 detach。Shared 当前rev5的 surface.2 / text.primary / typography.body 真实 refs贯穿，旧33 native copies/24 Shared copies与5业务main完整不变。
+- 新提示使用原生 flex/hug 内容与8逻辑padding，宽度来自实际就绪Roboto测量（完整标题40.7905/68.6807/95.9134，提示57/85/112×32）。浮层锚定当前原 tab body，偏移由其height25与原bottom inset4推导；没有按截图移动节点或普通布局。透明命中fill以既有surface.1的本地opacity0覆盖实现，源ref保留，不冒充公共默认值或全局主题传播通过。
+- 保留首次空白浮层实图、SVG组边界包含裁切文字导致的hover失败、同hash路由未重聚焦与两次有界browser终止。文字cache由真实原生编辑器刷新/正常保存生成，不伪写positionData。900初次不稳定源自 Penpot `viewer.cljs:142–168`：close-click-outside=true即使背景不可见仍创建全屏拦截层。最终两个背景flag均false，复用原生mouse-over在pointer leave的自动关闭，无JS派发事件或假按钮。
+- 保存前九项和关闭旧browser后全新browser九项，真实1280×800/900×620/640×520各Details/Parameters/Nodes Overview均完整出现且离开关闭。572个本域对象full raw shape哈希重开完全一致，组件定义不变；另原Hierarchy `0e6a6a6d-2d5a-8037-8008-d8b5262edf4b` 在503→504有并发后继，单列前后hash保留，不归责/回滚fork。三张saved/fresh native PNG逐字节一致并已逐图打开，另交三张Penpot前后并排与差异图；不是UE/Engine双端图。640差异图还有极弱栅格线变化，未从它推断源码位置变化或签1DIP。
+- 具体证据在原报告根 `material-parameter-tabs-115-{before,save,reopen,review}.json`、`material-parameter-tabs-115-{1280,900,640}-{pair,diff}.png`。当前提示为既有Shared暗色自定义content/8padding，UE文本专用BrightBackground/11及延迟/键盘tooltip仍待真实公共tooltip/source owner；默认页签Ellipsis仍open。源ZUI、Field/reset/source ports、Toolkit/Document一次permit/CAS/history、正式codec/export/正常EXE/生产preview/实际150%DPI/双端1DIP均未通过。preview仍Not compiled。
+- 本轮产品Rust/SDK源码未改，83项native静态定义仍无受管Rust发现/执行结果；只对本域managed树一份台账增量作结构/guard检查并交原Jenkins deliver-task链。原113/114及全部历史失败不重投，公共文件/服务/桌面/State/锁0写；goal active，passed/accepted=false。
+
 ## 材质接续114：真实宿主到渲染资源发布的最小公共补丁提案（2026-10-28）
 
 - 原唯一producer/request及ready `w448b90023f-native94` 接113/93194326；本轮实际源码只增本台账，113完整509308 raw字节保留为精确后缀，83个native普通定义不变且未运行。Root当前5436b180未含113，110–113原branch records均committed/integration pending；不重投旧native/Cargo操作或把支路commit当main/产品已加载。
