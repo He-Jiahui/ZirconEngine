@@ -6,9 +6,11 @@ use std::io::{self, Write};
 use serde_json::{json, Value};
 use zircon_plugin_material_editor_editor::{
     compile_material_graph_with_diagnostics, compile_material_graph_with_shader_contract,
-    project_authored_material_document, validate_material_graph_with_diagnostics,
-    MaterialDocumentProjectionError, MaterialGraphDiagnostic, MaterialGraphDiagnosticTarget,
-    MaterialGraphPresentation, MaterialGraphShaderCompileError,
+    project_authored_material_document, project_material_graph_details_selection,
+    validate_material_graph_with_diagnostics, MaterialDocumentProjectionError,
+    MaterialGraphDetailsTarget, MaterialGraphDetailsValue, MaterialGraphDiagnostic,
+    MaterialGraphDiagnosticTarget, MaterialGraphExpressionDetailsValues, MaterialGraphPresentation,
+    MaterialGraphShaderCompileError,
 };
 use zircon_plugin_sdk::native::{
     self, callback_status, NativePluginByteSliceV3, NativePluginCallbackStatusV3,
@@ -45,6 +47,11 @@ max_output_bytes = 1048576
 name = "material_editor.material.inspect"
 slot = 4
 payload_schema = "material_editor.inspect_material.v1"
+max_output_bytes = 1048576
+[[commands]]
+name = "material_editor.graph.details"
+slot = 5
+payload_schema = "material_editor.graph_details.v1"
 max_output_bytes = 1048576
 "#,
     "\0"
@@ -139,6 +146,22 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
       }
     },
     {
+      "kind": "command",
+      "id": "material_editor.graph.details",
+      "schema": "zircon.editor.command/3",
+      "localization_bundle_id": "material_editor",
+      "label_key": "command.material_editor.graph.details.label",
+      "description_key": "command.material_editor.graph.details.description",
+      "execution_contract": {
+        "result_codec": "zircon.editor.command-result.v1",
+        "resource_budget": {
+          "max_input_bytes": 1048576,
+          "max_output_bytes": 1048576,
+          "max_execution_time_ms": 5000
+        }
+      }
+    },
+    {
       "kind": "localization_bundle",
       "id": "material_editor",
       "schema": "zircon.editor.localization-bundle/1",
@@ -153,7 +176,9 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
           "command.material_editor.graph.parameters.label": "Inspect Material Graph Parameters",
           "command.material_editor.graph.parameters.description": "Read exact declarations and overrides from the submitted authoring graph",
           "command.material_editor.material.inspect.label": "Inspect Authored Material",
-          "command.material_editor.material.inspect.description": "Read local material overrides and optional shader schema without flattening inheritance"
+          "command.material_editor.material.inspect.description": "Read local material overrides and optional shader schema without flattening inheritance",
+          "command.material_editor.graph.details.label": "Inspect Material Graph Selection",
+          "command.material_editor.graph.details.description": "Read original Details targets and common or mixed values for the submitted selection"
         },
         "zh-CN": {
           "command.material_editor.graph.validate.label": "校验材质图",
@@ -165,7 +190,9 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
           "command.material_editor.graph.parameters.label": "查看材质图参数",
           "command.material_editor.graph.parameters.description": "读取本次作者材质图的精确参数声明与覆盖值",
           "command.material_editor.material.inspect.label": "查看作者材质",
-          "command.material_editor.material.inspect.description": "读取材质局部覆盖与可选着色器结构，保留原继承关系"
+          "command.material_editor.material.inspect.description": "读取材质局部覆盖与可选着色器结构，保留原继承关系",
+          "command.material_editor.graph.details.label": "查看材质图选择详情",
+          "command.material_editor.graph.details.description": "读取本次选择的原始详情对象及共同值或混合值"
         }
       }
     }
@@ -189,7 +216,7 @@ pub(super) unsafe extern "C" fn invoke_command(
     output: NativePluginOutputSinkV4,
 ) -> NativePluginCallbackStatusV3 {
     native::catch_native_callback_panic(PANICKED, || {
-        if slot > 4 {
+        if slot > 5 {
             return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, UNKNOWN_SLOT);
         }
         if payload.len == 0 || payload.len > MAX_INPUT_BYTES || payload.data.is_null() {
@@ -211,7 +238,12 @@ pub(super) unsafe extern "C" fn invoke_command(
         {
             return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
         }
-        let result = if slot == 4 {
+        let result = if slot == 5 {
+            let Ok(arguments) = serde_json::from_slice::<DetailsArguments>(bytes) else {
+                return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
+            };
+            graph_details_result(&arguments)
+        } else if slot == 4 {
             let Ok(arguments) = serde_json::from_slice::<MaterialArguments>(bytes) else {
                 return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
             };
@@ -433,6 +465,90 @@ fn authored_material_result(arguments: &MaterialArguments) -> Value {
         "ok": ok, "schema_available": schema_available,
         "projection_error": error, "projection": projection,
     })
+}
+
+/// Adapts the existing source-borrowed Details projection to the native reader.
+/// Graph fields and selected nodes are inspection values, never a save document.
+/// The host retains source/selection revision, view incarnation, focus and history;
+/// no returned target is authority to apply an edit or admit a stale native result.
+fn graph_details_result(arguments: &DetailsArguments) -> Value {
+    let graph = &arguments.graph;
+    let diagnostics = validate_material_graph_with_diagnostics(graph);
+    let selected: Vec<_> = arguments
+        .selected_node_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let (selection_error, projection) = match project_material_graph_details_selection(
+        graph, &selected,
+    ) {
+        Err(errors) => (
+            json!({"diagnostics": errors.iter().map(diagnostic_json).collect::<Vec<_>>()}),
+            None,
+        ),
+        Ok(selection) => {
+            let targets: Vec<_> = selection
+                .targets()
+                .iter()
+                .map(|target| match target {
+                    MaterialGraphDetailsTarget::Graph(source) => json!({
+                        "kind": "graph",
+                        "fields": {
+                            "name": source.name, "shader_reference": source.shader,
+                            "parameters": source.parameters,
+                        },
+                    }),
+                    MaterialGraphDetailsTarget::Expression(node) => {
+                        json!({"kind": "expression", "node": node})
+                    }
+                })
+                .collect();
+            let expression_values = match selection.expression_values() {
+                Some(MaterialGraphExpressionDetailsValues::ScalarDefault(value)) => {
+                    json!({"kind": "scalar_default", "value": details_value_json(value)})
+                }
+                Some(MaterialGraphExpressionDetailsValues::VectorDefault(values)) => {
+                    json!({"kind": "vector_default", "channels": values.map(details_value_json)})
+                }
+                Some(MaterialGraphExpressionDetailsValues::Texture(value)) => {
+                    json!({"kind": "texture", "value": details_value_json(value)})
+                }
+                None => Value::Null,
+            };
+            (
+                Value::Null,
+                Some(json!({
+                    "selected_node_ids": selection.selected_nodes().iter()
+                        .map(|node| node.id.as_str()).collect::<Vec<_>>(),
+                    "targets": targets,
+                    "expression_values": expression_values,
+                })),
+            )
+        }
+    };
+    // Broken graphs remain inspectable for repair; their original diagnostics
+    // are never cleared by a valid selection. A rejected selection publishes no prefix.
+    json!({
+        "graph_uri": graph.uri,
+        "ok": projection.is_some() && diagnostics.is_empty(),
+        "diagnostics": diagnostics.iter().map(diagnostic_json).collect::<Vec<_>>(),
+        "selection_error": selection_error,
+        "projection": projection,
+    })
+}
+
+fn details_value_json<T: serde::Serialize>(value: MaterialGraphDetailsValue<T>) -> Value {
+    match value {
+        MaterialGraphDetailsValue::Common(value) => json!({"kind": "common", "value": value}),
+        MaterialGraphDetailsValue::Mixed => json!({"kind": "mixed"}),
+    }
+}
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DetailsArguments {
+    graph: MaterialGraphAsset,
+    selected_node_ids: Vec<String>,
 }
 
 #[derive(serde::Deserialize)]

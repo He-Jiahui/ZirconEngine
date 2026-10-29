@@ -1,3 +1,18 @@
+## 接续105：原图 Details 选择与混合值的 native 读取（2026-10-28）
+
+- 原 request `ue-material-graph-20261024-01`／唯一 producer，沿原 `w448b90023f-native94` 与104提交 `2f10376d`，仅改dist的commands.rs、既有tests/commands.rs及本台账。复用现有借用 `project_material_graph_details_selection` / `expression_values`，不改editor领域实现、Runtime、Shared、Graph公共源、原ZUI或fork的Instance/Hierarchy；不加依赖、ABI、selection store、clock、renderer或另一套history。
+- 原V4 manifest追加slot5 `material_editor.graph.details` / payload `material_editor.graph_details.v1`；slots0–4的各命令及预算逐项保持。Command3注册沿原batch、原capability、`zircon.editor.command-result.v1`，1MiB输入／输出、5秒host执行预算及en/zh-CN真实文案保持一致；没有静态菜单或无效果按钮来冒接入。
+- 输入必须是单个JSON对象，含真实 `graph` 与显式 `selected_node_ids` 数组；顶层未知或重复字段、缺selection、错类型和数组式payload拒绝且不写output。原领域投影按原source顺序解析完整精确node key，支持中文／前后空格而不改key。空选与Output根投影Graph一次，根的真实selected IDs仍分别保留；普通选择投影完整原Expression node，不换成编译产物、展示profile或由Penpot坐标补节点。
+- 输出projection只供Details读取：Graph fields为原name／shader_reference／parameters（包括presence与精确key），Expression为原node／position／kind。原selected_node_ids按source顺序；共同标量、逐channel共同vector及完整UUID+locator的texture有明确common标签，Mixed仅有mixed标签，绝不以0、null、首项或默认值代替。None表示当前选择没有共同expression字段schema。正负零的共同性仍由原领域bit比较决定；图parameter override不替代expression default。
+- 陈旧、重复、空白或歧义node identity使整个projection=null，返回原selection diagnostics，不发布有效prefix或切换其他文档。合法selection中的残缺图仍可查看原对象，但原graph diagnostics不抹除；result.ok仅在selection成功且graph diagnostics为空时为true，不能解释为编译、renderer或保存ready。projection不是作者save DTO，不能从局部显示字段重建图。
+- 宿主下一接点必须持有同一view/document/subdocument incarnation、source revision／selection request与native generation，提交实际原作者graph后再按同一上下文准入结果；SetObjects／属性行／焦点／诊断跳转由原retained host完成。编辑仍须原完整before/after逆变更、一次prepare/permit/CAS/history、dirty/compile/apply/save和renderer生命周期，本read命令不授权或执行它们。
+- UE原只读 `MaterialEditor.cpp` 336104B／SHA256 `1785e160c01f78fea1b0d95372440df3d7a8c36d206b63d034bec8019222347b`，3873–3891保留原Expression对象并SetObjects；9171–9177的FocusDetailsPanel仅DrawAttention，不签键盘focus transfer。本轮不修改或再次签共享painter/主题/Field。
+- 9项新增native测试仅定义：空选/双Output去重及原graph fields、反向selection与CJK精确source顺序、scalar common/mixed/正负零、逐channelvector且不读override、texture UUID或locator单独变化、stale/重复/歧义整批拒绝、破图可修复且原diagnostics保留、严格显式payload、输出预算及原single-publish/sink失败。当前原37→46个native过滤定义；原35测试body精确、仅原manifest/registration两测试按第六命令更新，另2 SDK宏测试保持原字节；以上不是harness发现或执行数。
+- 36项结构核验／实际plugin validate ABI3无diagnostics／rustfmt --check通过。首轮检查器只因rustfmt换行与trailing comma没有匹配单行函数字符串，原36项结果与确切勘误保留；源未为此改写，未将检查器成功当Rust运行。
+- 真实route观察为2026-10-28T16:56:57Z。现选中341a997d6d4b…／entry829b326e…的纯parse仍以 `build_scope_policy` 拒绝仅 `zircon_plugin_material_editor_dist` 的nested manifest、defaults-off/features=[]／locked／lib／test profile／jobs1／`material_editor_dist_native_`／threads1。该纯parse没有源码capture、intake、queue、Cargo或新validation identity；不重放旧r10/61/68，不用editor包或本地Cargo替代。物理产物只准E:/cargo-targets；正式准入与native94 PR/main、锁／writer／resource门保持open。
+- 本轮没有浏览器、设计或桌面操作；设计证据沿原104 rev482三尺寸原生PNG，不重签其裁切、Source/export或EXE资格。当前canonical workspace仍只有三展示profile与Not implemented(preview)，此native源码尚无真实host调用／产品加载证明；正式codec/export、原ZUI写回、renderer／正常EXE／实际150%DPI／双端≤1DIP仍open，passed=false、accepted=false，goal active。
+- 证据沿同一报告根的 `material-native-details-105-{before,route,source,checks,guard,format,abi,handoff}.json`；后继deliver-task只提交本三路径，原104全部raw作为本文件完整suffix保留。旧失败／终态与native/resource未知独立留存；文档／源码commit不替代Rust或整族验收。
+
 ## 接续104：Function 原板 SearchInput 流式宽度与单行裁剪（2026-10-28）
 
 - 原 request `ue-material-graph-20261024-01`／唯一 producer，接续103的原 `w448b90023f-native94`。本次仅在原材质 Penpot file `b4a1e3ce-9e6a-81fe-8008-d69d6092d704`／page `b4a1e3ce-9e6a-81fe-8008-d69d6092d705` 编辑三个既有 Function sidebar-closed 板与本台账；不新增板、组件或业务原语，不写 Shared/catalog/theme、原 ZUI、fork Instance/Hierarchy 或 Rust。
