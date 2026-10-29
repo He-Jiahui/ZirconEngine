@@ -22,7 +22,7 @@ fn material_editor_dist_native_manifest_declares_real_slots_and_contribution_sch
     let command_manifest = unsafe { CStr::from_ptr(behavior.command_manifest) };
     let manifest =
         native::command_manifest_v4_from_toml(command_manifest.to_str().unwrap()).unwrap();
-    assert_eq!(manifest.commands.len(), 11);
+    assert_eq!(manifest.commands.len(), 13);
     for (slot, name, schema) in [
         (
             0,
@@ -78,6 +78,16 @@ fn material_editor_dist_native_manifest_declares_real_slots_and_contribution_sch
             10,
             "material_editor.graph.plan_connection",
             "material_editor.plan_graph_connection.v1",
+        ),
+        (
+            11,
+            "material_editor.material.plan_property_edit",
+            "material_editor.plan_material_property_edit.v1",
+        ),
+        (
+            12,
+            "material_editor.material.plan_property_reset",
+            "material_editor.plan_material_property_reset.v1",
         ),
     ] {
         let command = &manifest.commands[slot as usize];
@@ -387,6 +397,18 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
             "command.material_editor.graph.plan_connection.description",
             contract(),
         )
+        .command_with_execution_contract(
+            "material_editor.material.plan_property_edit",
+            "command.material_editor.material.plan_property_edit.label",
+            "command.material_editor.material.plan_property_edit.description",
+            contract(),
+        )
+        .command_with_execution_contract(
+            "material_editor.material.plan_property_reset",
+            "command.material_editor.material.plan_property_reset.label",
+            "command.material_editor.material.plan_property_reset.description",
+            contract(),
+        )
         .localization_bundle(
             [
                 (
@@ -480,6 +502,22 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
                             "command.material_editor.graph.plan_connection.description",
                             "Preflight exact pin keys and one input replacement without changing the authoring graph",
                         ),
+                        (
+                            "command.material_editor.material.plan_property_edit.label",
+                            "Plan Authored Material Property Edit",
+                        ),
+                        (
+                            "command.material_editor.material.plan_property_edit.description",
+                            "Preflight one exact local property Set or ClearOverride without applying it",
+                        ),
+                        (
+                            "command.material_editor.material.plan_property_reset.label",
+                            "Plan Authored Material Property Reset",
+                        ),
+                        (
+                            "command.material_editor.material.plan_property_reset.description",
+                            "Plan a reset from the host's observed default while preserving override presence",
+                        ),
                     ],
                 ),
                 (
@@ -567,6 +605,22 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
                             "command.material_editor.graph.plan_connection.description",
                             "预检精确端口键及一个输入替换，不提交作者材质图",
                         ),
+                        (
+                            "command.material_editor.material.plan_property_edit.label",
+                            "规划作者材质属性编辑",
+                        ),
+                        (
+                            "command.material_editor.material.plan_property_edit.description",
+                            "预检精确局部属性的设置或清除覆盖，不提交作者事务",
+                        ),
+                        (
+                            "command.material_editor.material.plan_property_reset.label",
+                            "规划作者材质属性重置",
+                        ),
+                        (
+                            "command.material_editor.material.plan_property_reset.description",
+                            "使用宿主实际观测的默认值规划重置，保留覆盖存在性",
+                        ),
                     ],
                 ),
             ]
@@ -587,7 +641,7 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
     let actual = deserialize_like(registration_json(), &expected);
     assert_eq!(actual, expected);
     assert_eq!(actual.package_id(), "material_editor");
-    assert_eq!(actual.contributions().len(), 12);
+    assert_eq!(actual.contributions().len(), 14);
 }
 
 #[test]
@@ -1520,6 +1574,468 @@ fn material_editor_dist_native_material_inspect_uses_strict_bounded_single_publi
     assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED);
     assert_eq!(capture.calls, 1);
     assert!(capture.bytes.is_empty());
+}
+
+#[test]
+fn material_editor_dist_native_property_set_preserves_exact_types_hdr_and_signed_zero() {
+    use zircon_runtime::core::framework::render::MaterialPropertyKind as Kind;
+
+    for (kind, value) in [
+        (Kind::Bool, json!({"kind":"bool","value":false})),
+        (Kind::Float, json!({"kind":"float","value":-0.0})),
+        (Kind::Int, json!({"kind":"int","value":i32::MIN})),
+        (Kind::UInt, json!({"kind":"u_int","value":u32::MAX})),
+        (Kind::Vec2, json!({"kind":"vec2","value":[-0.0,8.0]})),
+        (Kind::Vec3, json!({"kind":"vec3","value":[-2.0,0.125,8.0]})),
+        (
+            Kind::Vec4,
+            json!({"kind":"vec4","value":[-0.0,0.125,8.0,1.0]}),
+        ),
+        (
+            Kind::Color,
+            json!({"kind":"vec4","value":[-0.0,0.125,8.0,1.0]}),
+        ),
+    ] {
+        let document = inspect_document();
+        let mut schema = inspect_shader(&document);
+        schema.property_schema[1].kind = kind;
+        let payload = property_edit_request(
+            &document,
+            Some(&schema),
+            "roughness",
+            json!({"kind":"set","value":value}),
+        );
+        let before = payload.clone();
+        let result = property_command_result(11, &payload);
+        assert_eq!(result["ok"], true, "{kind:?}");
+        assert_eq!(result["plan"]["was_overridden"], true);
+        assert_eq!(result["plan"]["will_be_overridden"], true);
+        assert_eq!(result["plan"]["name"], "roughness");
+        let actual: RenderMaterialPropertyValue =
+            serde_json::from_value(result["plan"]["edit"]["value"].clone()).unwrap();
+        let expected: RenderMaterialPropertyValue = serde_json::from_value(value).unwrap();
+        assert_eq!(actual, expected);
+        match actual {
+            RenderMaterialPropertyValue::Float { value } => {
+                assert_eq!(value.to_bits(), (-0.0_f32).to_bits())
+            }
+            RenderMaterialPropertyValue::Vec2 { value } => {
+                assert_eq!(value[0].to_bits(), (-0.0_f32).to_bits())
+            }
+            RenderMaterialPropertyValue::Vec4 { value } => {
+                assert_eq!(value[0].to_bits(), (-0.0_f32).to_bits())
+            }
+            _ => {}
+        }
+        assert_eq!(payload, before);
+    }
+}
+
+#[test]
+fn material_editor_dist_native_property_clear_keeps_exact_key_presence_and_original_diagnostics() {
+    let mut document = inspect_document();
+    document.overrides.insert(
+        "".into(),
+        serde_json::from_value(json!("legacy invalid value")).unwrap(),
+    );
+    document.validation_diagnostics = vec!["原作者诊断".into()];
+    for (name, present) in [
+        ("roughness", true),
+        (" roughness ", true),
+        ("", true),
+        ("Roughness", false),
+    ] {
+        let payload =
+            property_edit_request(&document, None, name, json!({"kind":"clear_override"}));
+        let before = payload.clone();
+        let result = property_command_result(11, &payload);
+        assert_eq!(result["ok"], false);
+        assert_eq!(result["validation_diagnostics"], json!(["原作者诊断"]));
+        assert!(result["property_error"].is_null());
+        assert_eq!(result["plan"]["name"], name);
+        assert_eq!(result["plan"]["was_overridden"], present);
+        assert_eq!(result["plan"]["will_be_overridden"], false);
+        assert_eq!(result["plan"]["edit"], json!({"kind":"clear_override"}));
+        assert_eq!(payload, before);
+    }
+    let schema = inspect_shader(&document);
+    let result = property_command_result(
+        11,
+        &property_edit_request(
+            &document,
+            Some(&schema),
+            "z",
+            json!({"kind":"set","value":{"kind":"float","value":0.25}}),
+        ),
+    );
+    assert_eq!(result["plan"]["was_overridden"], false);
+    assert_eq!(result["plan"]["will_be_overridden"], true);
+}
+
+#[test]
+fn material_editor_dist_native_property_edit_rejects_stale_schema_kind_and_document_version() {
+    let document = inspect_document();
+    let schema = inspect_shader(&document);
+    let edit = json!({"kind":"set","value":{"kind":"float","value":0.25}});
+    for (name, supplied, expected) in [
+        ("roughness", false, "schema_unavailable"),
+        ("Roughness", true, "undeclared_property"),
+        (" roughness ", true, "undeclared_property"),
+        ("", true, "empty_property_name"),
+    ] {
+        let result = property_command_result(
+            11,
+            &property_edit_request(&document, supplied.then_some(&schema), name, edit.clone()),
+        );
+        assert_eq!(result["property_error"]["kind"], expected);
+        assert!(result["plan"].is_null());
+    }
+    let wrong_kind = property_command_result(
+        11,
+        &property_edit_request(
+            &document,
+            Some(&schema),
+            "roughness",
+            json!({"kind":"set","value":{"kind":"int","value":1}}),
+        ),
+    );
+    assert_eq!(wrong_kind["property_error"]["kind"], "type_mismatch");
+    assert!(wrong_kind["plan"].is_null());
+    for duplicate in [false, true] {
+        let mut ambiguous = schema.clone();
+        if duplicate {
+            ambiguous
+                .property_schema
+                .push(ambiguous.property_schema[1].clone());
+        } else {
+            ambiguous.uri = reference("builtin://shader/stale").locator;
+        }
+        let result = property_command_result(
+            11,
+            &property_edit_request(&document, Some(&ambiguous), "roughness", edit.clone()),
+        );
+        assert_eq!(result["property_error"]["kind"], "source");
+        assert!(result["plan"].is_null());
+    }
+    for version in [0, 1, 3] {
+        let mut document = document.clone();
+        document.version = version;
+        for slot in [11, 12] {
+            let payload = if slot == 11 {
+                property_edit_request(&document, Some(&schema), "roughness", edit.clone())
+            } else {
+                property_reset_request(&document, Some(&schema), "roughness", None)
+            };
+            let result = property_command_result(slot, &payload);
+            assert_eq!(
+                result["property_error"],
+                json!({"kind":"unsupported_document_version","expected":2,"actual":version})
+            );
+            assert!(result["plan"].is_null());
+        }
+    }
+    let mut wrong_uuid = document.shader.clone();
+    wrong_uuid.uuid = reference("builtin://shader/another-id").uuid;
+    for slot in [11, 12] {
+        let payload = if slot == 11 {
+            property_edit_request(&document, Some(&schema), "roughness", edit.clone())
+        } else {
+            property_reset_request(&document, Some(&schema), "roughness", None)
+        };
+        let mut value: Value = serde_json::from_slice(&payload).unwrap();
+        value["shader_reference"] = serde_json::to_value(&wrong_uuid).unwrap();
+        let result = property_command_result(slot, &serde_json::to_vec(&value).unwrap());
+        assert_eq!(result["property_error"]["kind"], "reference_mismatch");
+        assert!(result["plan"].is_null());
+    }
+}
+
+#[test]
+fn material_editor_dist_native_property_reset_uses_observed_default_and_retains_override_checkbox()
+{
+    for inherited in [false, true] {
+        for overridden in [false, true] {
+            let mut document = inspect_document();
+            if !inherited {
+                document.parent = None;
+            }
+            if !overridden {
+                document.overrides.remove("roughness");
+            }
+            let schema = inspect_shader(&document);
+            let observation = json!({"name":"roughness","lookup_reference":document.parent.as_ref().unwrap_or(&document.shader),"value":{"kind":"float","value":-0.0}});
+            let payload =
+                property_reset_request(&document, Some(&schema), "roughness", Some(observation));
+            let before = payload.clone();
+            let result = property_command_result(12, &payload);
+            assert_eq!(result["ok"], true);
+            assert_eq!(result["plan"]["was_overridden"], overridden);
+            assert_eq!(result["plan"]["will_be_overridden"], overridden);
+            let resolved: RenderMaterialPropertyValue =
+                serde_json::from_value(result["plan"]["resolved_default"].clone()).unwrap();
+            let RenderMaterialPropertyValue::Float { value } = resolved else {
+                panic!("expected an observed float");
+            };
+            assert_eq!(value.to_bits(), (-0.0_f32).to_bits());
+            // The schema metadata default is0.5; only the real observed value is used.
+            if overridden {
+                assert_eq!(result["plan"]["edit"]["kind"], "set");
+                assert_eq!(
+                    result["plan"]["edit"]["value"],
+                    result["plan"]["resolved_default"]
+                );
+            } else {
+                assert!(result["plan"]["edit"].is_null());
+            }
+            assert_eq!(payload, before);
+        }
+    }
+}
+
+#[test]
+fn material_editor_dist_native_property_reset_rejects_unresolved_or_mismatched_default_observations(
+) {
+    let document = inspect_document();
+    let schema = inspect_shader(&document);
+    let valid = json!({"name":"roughness","lookup_reference":document.parent,"value":{"kind":"float","value":0.125}});
+    let mut wrong_name = valid.clone();
+    wrong_name["name"] = json!("Roughness");
+    let mut wrong_uuid = valid.clone();
+    wrong_uuid["lookup_reference"]["uuid"] =
+        serde_json::to_value(reference("res://materials/other").uuid).unwrap();
+    let mut wrong_locator = valid.clone();
+    wrong_locator["lookup_reference"]["locator"] =
+        serde_json::to_value(&document.shader.locator).unwrap();
+    let mut wrong_kind = valid.clone();
+    wrong_kind["value"] = json!({"kind":"bool","value":false});
+    for (observation, expected) in [
+        (None, "default_unavailable"),
+        (Some(wrong_name), "default_observation_mismatch"),
+        (Some(wrong_uuid), "default_observation_mismatch"),
+        (Some(wrong_locator), "default_observation_mismatch"),
+        (Some(wrong_kind), "type_mismatch"),
+    ] {
+        let result = property_command_result(
+            12,
+            &property_reset_request(&document, Some(&schema), "roughness", observation),
+        );
+        assert_eq!(result["property_error"]["kind"], expected);
+        assert!(result["plan"].is_null());
+        assert_eq!(result["ok"], false);
+    }
+    let result = property_command_result(
+        12,
+        &property_reset_request(&document, None, "roughness", Some(valid)),
+    );
+    assert_eq!(result["property_error"]["kind"], "schema_unavailable");
+    assert!(result["plan"].is_null());
+}
+
+#[test]
+fn material_editor_dist_native_property_commands_reject_non_named_duplicate_and_unknown_wire_members(
+) {
+    let document = inspect_document();
+    let schema = inspect_shader(&document);
+    let edit = property_edit_request(
+        &document,
+        Some(&schema),
+        "roughness",
+        json!({"kind":"set","value":{"kind":"float","value":0.25}}),
+    );
+    let reset = property_reset_request(
+        &document,
+        Some(&schema),
+        "roughness",
+        Some(
+            json!({"name":"roughness","lookup_reference":document.parent,"value":{"kind":"float","value":0.25}}),
+        ),
+    );
+    for (slot, payload) in [(11, edit), (12, reset)] {
+        let good: Value = serde_json::from_slice(&payload).unwrap();
+        let mut extra = good.clone();
+        extra["unknown"] = json!(true);
+        let mut only_shader = good.clone();
+        only_shader
+            .as_object_mut()
+            .unwrap()
+            .remove("shader_reference");
+        let mut only_reference = good.clone();
+        only_reference.as_object_mut().unwrap().remove("shader");
+        let encoded = String::from_utf8(payload.clone()).unwrap();
+        let mut bad = vec![
+            serde_json::to_vec(&json!([good])).unwrap(),
+            serde_json::to_vec(&extra).unwrap(),
+            serde_json::to_vec(&only_shader).unwrap(),
+            serde_json::to_vec(&only_reference).unwrap(),
+            encoded
+                .replacen(
+                    "\"name\":\"roughness\"",
+                    "\"name\":\"roughness\",\"name\":\"roughness\"",
+                    1,
+                )
+                .into_bytes(),
+            encoded
+                .replacen("\"kind\":\"float\"", "\"kind\":\"float\",\"extra\":true", 1)
+                .into_bytes(),
+            encoded
+                .replacen("\"value\":0.25", "\"value\":0.25,\"value\":0.5", 1)
+                .into_bytes(),
+        ];
+        if slot == 11 {
+            let mut missing = good.clone();
+            missing["edit"] = json!({"kind":"set"});
+            bad.push(serde_json::to_vec(&missing).unwrap());
+            let mut clear_extra = good.clone();
+            clear_extra["edit"] = json!({"kind":"clear_override","value":false});
+            bad.push(serde_json::to_vec(&clear_extra).unwrap());
+        } else {
+            let mut extra_observation = good.clone();
+            extra_observation["default_observation"]["unknown"] = json!(true);
+            bad.push(serde_json::to_vec(&extra_observation).unwrap());
+        }
+        for payload in bad {
+            let (status, capture) = invoke(
+                slot,
+                &payload,
+                MAX_OUTPUT_BYTES,
+                ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+            );
+            assert_eq!(
+                status.code,
+                ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+                "slot{slot}: {}",
+                String::from_utf8_lossy(&payload)
+            );
+            assert_eq!(capture.calls, 0);
+            assert!(capture.bytes.is_empty());
+        }
+    }
+}
+
+#[test]
+fn material_editor_dist_native_property_commands_reject_f32_overflow_without_a_candidate() {
+    let document = inspect_document();
+    let schema = inspect_shader(&document);
+    for slot in [11, 12] {
+        let payload = if slot == 11 {
+            property_edit_request(
+                &document,
+                Some(&schema),
+                "roughness",
+                json!({"kind":"set","value":{"kind":"float","value":1e100}}),
+            )
+        } else {
+            property_reset_request(
+                &document,
+                Some(&schema),
+                "roughness",
+                Some(
+                    json!({"name":"roughness","lookup_reference":document.parent,"value":{"kind":"float","value":-1e100}}),
+                ),
+            )
+        };
+        let result = property_command_result(slot, &payload);
+        assert_eq!(result["property_error"]["kind"], "non_finite_value");
+        assert!(result["plan"].is_null());
+        assert_eq!(result["ok"], false);
+    }
+}
+
+#[test]
+fn material_editor_dist_native_property_commands_bound_one_publish_and_propagate_host_refusal() {
+    let document = inspect_document();
+    let schema = inspect_shader(&document);
+    for (slot, payload) in [
+        (
+            11,
+            property_edit_request(
+                &document,
+                Some(&schema),
+                "roughness",
+                json!({"kind":"clear_override"}),
+            ),
+        ),
+        (
+            12,
+            property_reset_request(
+                &document,
+                Some(&schema),
+                "roughness",
+                Some(
+                    json!({"name":"roughness","lookup_reference":document.parent,"value":{"kind":"float","value":0.125}}),
+                ),
+            ),
+        ),
+    ] {
+        let (status, expected) = invoke(
+            slot,
+            &payload,
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        assert_eq!(expected.calls, 1);
+        for budget in [0, 1, expected.bytes.len() - 1] {
+            let (status, capture) = invoke(slot, &payload, budget, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+            assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+            assert_eq!(capture.calls, 0);
+            assert!(capture.bytes.is_empty());
+        }
+        let (status, exact) = invoke(
+            slot,
+            &payload,
+            expected.bytes.len(),
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        assert_eq!(exact.calls, 1);
+        assert_eq!(exact.bytes, expected.bytes);
+        let (status, denied) = invoke(
+            slot,
+            &payload,
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED);
+        assert_eq!(denied.calls, 1);
+        assert!(denied.bytes.is_empty());
+    }
+}
+
+fn property_edit_request(
+    document: &ZMaterialDocument,
+    shader: Option<&ShaderAsset>,
+    name: &str,
+    edit: Value,
+) -> Vec<u8> {
+    let mut value: Value = serde_json::from_slice(&inspect_request(document, shader)).unwrap();
+    value["name"] = json!(name);
+    value["edit"] = edit;
+    serde_json::to_vec(&value).unwrap()
+}
+
+fn property_reset_request(
+    document: &ZMaterialDocument,
+    shader: Option<&ShaderAsset>,
+    name: &str,
+    observation: Option<Value>,
+) -> Vec<u8> {
+    let mut value: Value = serde_json::from_slice(&inspect_request(document, shader)).unwrap();
+    value["name"] = json!(name);
+    value["default_observation"] = json!(observation);
+    serde_json::to_vec(&value).unwrap()
+}
+
+fn property_command_result(slot: u32, payload: &[u8]) -> Value {
+    let (status, capture) = invoke(
+        slot,
+        payload,
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    assert_eq!(capture.calls, 1);
+    serde_json::from_slice(&capture.bytes).unwrap()
 }
 
 fn inspect_document() -> ZMaterialDocument {
