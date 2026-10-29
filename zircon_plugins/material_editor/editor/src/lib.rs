@@ -140,11 +140,12 @@ pub use graph_presentation::{
 };
 pub use instance_projection::{
     check_material_document_asset_references, plan_material_document_property_edit,
-    plan_material_document_texture_edit, project_authored_material_document,
-    MaterialDocumentAssetReferenceError, MaterialDocumentProjectionError,
-    MaterialDocumentPropertyEdit, MaterialDocumentPropertyEditError,
-    MaterialDocumentPropertyEditPlan, MaterialDocumentTextureEdit,
-    MaterialDocumentTextureEditError, MaterialDocumentTextureEditPlan,
+    plan_material_document_property_reset, plan_material_document_texture_edit,
+    project_authored_material_document, MaterialDocumentAssetReferenceError,
+    MaterialDocumentProjectionError, MaterialDocumentPropertyEdit,
+    MaterialDocumentPropertyEditError, MaterialDocumentPropertyEditPlan,
+    MaterialDocumentPropertyResetError, MaterialDocumentPropertyResetPlan,
+    MaterialDocumentTextureEdit, MaterialDocumentTextureEditError, MaterialDocumentTextureEditPlan,
 };
 pub use node_creation::validate_material_graph_node_creation;
 pub use node_creation_autowire::{

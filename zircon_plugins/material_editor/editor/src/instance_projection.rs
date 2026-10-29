@@ -254,35 +254,175 @@ pub fn plan_material_document_property_edit<'a>(
         }
         let declaration = property
             .ok_or_else(|| MaterialDocumentPropertyEditError::UndeclaredProperty(name.into()))?;
-        let actual = typed_property_kind(value);
-        if actual != Some(declaration.kind)
-            && !(declaration.kind == MaterialPropertyKind::Color
-                && actual == Some(MaterialPropertyKind::Vec4))
-        {
-            return Err(MaterialDocumentPropertyEditError::TypeMismatch {
-                name: name.into(),
-                expected: declaration.kind,
-                actual: actual.map_or("string", MaterialPropertyKind::token),
-            });
-        }
-        let finite = match value {
-            RenderMaterialPropertyValue::Float { value } => value.is_finite(),
-            RenderMaterialPropertyValue::Vec2 { value } => value.iter().all(|v| v.is_finite()),
-            RenderMaterialPropertyValue::Vec3 { value } => value.iter().all(|v| v.is_finite()),
-            RenderMaterialPropertyValue::Vec4 { value } => value.iter().all(|v| v.is_finite()),
-            _ => true,
-        };
-        if !finite {
-            return Err(MaterialDocumentPropertyEditError::NonFiniteValue(
-                name.into(),
-            ));
-        }
+        validate_new_property_value(name, declaration, value)?;
     }
     Ok(MaterialDocumentPropertyEditPlan {
         document,
         name,
         property,
         edit,
+    })
+}
+
+fn validate_new_property_value(
+    name: &str,
+    declaration: &ShaderMaterialPropertyAsset,
+    value: &RenderMaterialPropertyValue,
+) -> Result<(), MaterialDocumentPropertyEditError> {
+    let actual = typed_property_kind(value);
+    if actual != Some(declaration.kind)
+        && !(declaration.kind == MaterialPropertyKind::Color
+            && actual == Some(MaterialPropertyKind::Vec4))
+    {
+        return Err(MaterialDocumentPropertyEditError::TypeMismatch {
+            name: name.into(),
+            expected: declaration.kind,
+            actual: actual.map_or("string", MaterialPropertyKind::token),
+        });
+    }
+    let finite = match value {
+        RenderMaterialPropertyValue::Float { value } => value.is_finite(),
+        RenderMaterialPropertyValue::Vec2 { value } => value.iter().all(|v| v.is_finite()),
+        RenderMaterialPropertyValue::Vec3 { value } => value.iter().all(|v| v.is_finite()),
+        RenderMaterialPropertyValue::Vec4 { value } => value.iter().all(|v| v.is_finite()),
+        _ => true,
+    };
+    if !finite {
+        return Err(MaterialDocumentPropertyEditError::NonFiniteValue(
+            name.into(),
+        ));
+    }
+    Ok(())
+}
+
+/// A reset keeps the existing override checkbox, including an unchecked row.
+/// Resolver failures and unavailable defaults never produce a document edit.
+#[derive(Debug, PartialEq)]
+pub enum MaterialDocumentPropertyResetError<E> {
+    Edit(MaterialDocumentPropertyEditError),
+    Resolve(E),
+    DefaultUnavailable(String),
+}
+
+impl<E: fmt::Display> fmt::Display for MaterialDocumentPropertyResetError<E> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Edit(error) => fmt::Display::fmt(error, formatter),
+            Self::Resolve(error) => {
+                write!(formatter, "material default resolution failed: {error}")
+            }
+            Self::DefaultUnavailable(name) => {
+                write!(
+                    formatter,
+                    "no resolved material default is available for `{name}`"
+                )
+            }
+        }
+    }
+}
+
+impl<E: Error + 'static> Error for MaterialDocumentPropertyResetError<E> {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            Self::Edit(error) => Some(error),
+            Self::Resolve(error) => Some(error),
+            Self::DefaultUnavailable(_) => None,
+        }
+    }
+}
+
+/// A resolved display value and an optional authoring proposal for one reset.
+///
+/// An unchecked row stays unchecked and yields no authoring edit. An existing
+/// override yields Set of the resolved default, retaining its local presence;
+/// this is distinct from ClearOverride. Equal values remain candidates so the
+/// original Document owner can qualify exact no-ops without losing presence.
+#[derive(Debug)]
+pub struct MaterialDocumentPropertyResetPlan<'a> {
+    property_edit: MaterialDocumentPropertyEditPlan<'a>,
+    resolved_default: &'a RenderMaterialPropertyValue,
+    was_overridden: bool,
+}
+
+impl<'a> MaterialDocumentPropertyResetPlan<'a> {
+    pub fn source_document(&self) -> &'a ZMaterialDocument {
+        self.property_edit.source_document()
+    }
+
+    pub fn name(&self) -> &'a str {
+        self.property_edit.name()
+    }
+
+    pub fn resolved_default(&self) -> &'a RenderMaterialPropertyValue {
+        self.resolved_default
+    }
+
+    pub fn was_overridden(&self) -> bool {
+        self.was_overridden
+    }
+
+    pub fn will_be_overridden(&self) -> bool {
+        self.was_overridden
+    }
+
+    pub fn property_edit(&self) -> Option<&MaterialDocumentPropertyEditPlan<'a>> {
+        self.was_overridden.then_some(&self.property_edit)
+    }
+}
+
+/// Resolve a real default after checking the exact target, without changing it.
+///
+/// The callback runs once for a valid declared target, including an unchecked
+/// row, and never for a stale/missing/ambiguous schema target. Its borrowed value
+/// is validated with the same kind/finite rules as Set. This does not substitute
+/// the shader's metadata default for a current parent/default lookup.
+///
+/// The expected source and checkbox state are retained before the callback; no
+/// source or target is recaptured afterward. The host must retain the original
+/// coherent view/document/revision, shader/default handle and resource guards,
+/// then charge and prepare the optional edit under its one-permit CAS/history
+/// protocol. This resolver adapter creates no store, history, load or write.
+pub fn plan_material_document_property_reset<'a, E>(
+    document: &'a ZMaterialDocument,
+    shader: Option<&'a ShaderAsset>,
+    name: &'a str,
+    resolve_default: impl FnOnce(
+        &'a ShaderMaterialPropertyAsset,
+    ) -> Result<Option<&'a RenderMaterialPropertyValue>, E>,
+) -> Result<MaterialDocumentPropertyResetPlan<'a>, MaterialDocumentPropertyResetError<E>> {
+    let mut property_edit = plan_material_document_property_edit(
+        document,
+        shader,
+        name,
+        MaterialDocumentPropertyEdit::ClearOverride,
+    )
+    .map_err(MaterialDocumentPropertyResetError::Edit)?;
+    if name.is_empty() {
+        return Err(MaterialDocumentPropertyResetError::Edit(
+            MaterialDocumentPropertyEditError::EmptyPropertyName,
+        ));
+    }
+    if shader.is_none() {
+        return Err(MaterialDocumentPropertyResetError::Edit(
+            MaterialDocumentPropertyEditError::SchemaUnavailable,
+        ));
+    }
+    let declaration = property_edit.property_definition().ok_or_else(|| {
+        MaterialDocumentPropertyResetError::Edit(
+            MaterialDocumentPropertyEditError::UndeclaredProperty(name.into()),
+        )
+    })?;
+    let was_overridden = property_edit.was_overridden();
+    let resolved_default = resolve_default(declaration)
+        .map_err(MaterialDocumentPropertyResetError::Resolve)?
+        .ok_or_else(|| MaterialDocumentPropertyResetError::DefaultUnavailable(name.into()))?;
+    validate_new_property_value(name, declaration, resolved_default)
+        .map_err(MaterialDocumentPropertyResetError::Edit)?;
+    property_edit.edit = MaterialDocumentPropertyEdit::Set(resolved_default);
+    Ok(MaterialDocumentPropertyResetPlan {
+        property_edit,
+        resolved_default,
+        was_overridden,
     })
 }
 

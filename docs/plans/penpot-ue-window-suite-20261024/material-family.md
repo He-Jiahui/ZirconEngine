@@ -1,3 +1,19 @@
+## Instance 默认值重置93：保留 override 状态的真实解析候选（2026-10-28）
+
+本轮继续原唯一 producer／request `ue-material-graph-20261024-01`，在既有 `w16726e4ff5-inst85` 的三个已授权 Rust 与本账本接续；不改 fork 的 Hierarchy、Instance 四板／Search copies、公共组件／主题／Runtime／原ZUI，也不创建第二 store／clock／history。source92勘误与全部前文原字节作为后缀保留。
+
+只读 UE `MaterialPropertyHelpers.cpp:1199–1215` 的 Override checkbox事务，与 `1285–1301` 的 ResetToDefault 是两条操作：Reset先由 SourceInstance取得真实default，再 SetValue／CopyToSourceInstance，没有将 bOverride 设为false；`1407–1422` 的显示判断同样读取真实default比较。故不能把 ClearOverride 或 shader metadata default 当成已实现的默认值重置，也不能因 Reset 自动勾选原本未覆盖的参数。
+
+新增 `plan_material_document_property_reset`、`MaterialDocumentPropertyResetPlan` 与泛型 `MaterialDocumentPropertyResetError<E>`，复用原 `MaterialDocumentPropertyEditPlan`。先用既有来源／目标预检核同shader locator、精确非空key、存在的唯一schema目标；无schema／错shader／未知或歧义目标均在default解析前拒绝，callback调用0次。有效目标以 FnOnce 调用真实default解析器一次，None与原始解析错误明确返回，无候选、无静默fallback。解析成功后仅用原Set同一kind／finite规则核值，不重新捕获source或目标，不coerce／trim／clamp，不以schema metadata的0.5替换真实解析的0.9。原Set／Clear公开enum、签名和语义保持，仅把相同值校验提为私有函数复用。
+
+Reset结果借用原Document与解析值，保留callback之前的 override presence。checked行的 `property_edit()` 返回原Set候选，包括相同默认值需要host判定no-op的情形；unchecked行返回解析显示值但 `property_edit()=None`、will_be_overridden=false，不创建本地覆盖。ClearOverride仍是单独操作。本接口只为现有 ShaderMaterialPropertyAsset 类型域提供preflight，不声称具备UE static permutation／layer／function私有业务。
+
+七项新回归定义覆盖：原来源／目标／真实default借用、相同值及不同于schema metadata的default；unchecked不写作者值且诊断保持；五类错误目标0lookup；缺default与带source的解析失败；错类型及NaN／±Inf拒绝且旧无效作者值原样保留；带空格中文精确key／signed-zero位保留；真实ZMaterialDocument codec往返、MaterialAsset继承消费与完整旧raw值恢复。最后一项仅在测试夹具中安装候选／逆值，不是生产history／renderer证据。原26项Instance测试块原样保留；当前20个lib明示模块包内245定义（244普通＋原1ignored），其中242匹配material_graph_（241普通＋1ignored），Instance模块26→33。均为静态定义，Rust发现／类型检查／执行仍未知，不能把plugin ABI／格式／guard或branch SUCCESS计为通过。
+
+真实caller仍须以原作者Document及同一incarnation／view／asset／document／subdocument／revision／request守卫绑定当前shader和default依赖handle／资源generation，先取得expected source，再解析，发布前重验现有守卫；不得从effective MaterialAsset还原作者文档或在callback后重捕expected。checked可写候选须按完整旧raw值／新payload计费，生成完整inverse，通过原prepare／一次permit／CAS／history接入dirty／compile／renderer／Save／focus；unchecked的临时显示更新不得伪装成作者写事务。这里未安装default resolver／host／持久提交／renderer，所列真实接线继续open。
+
+本轮进行三个Rust的格式解析与read-only检查、单material_editor插件静态契约、四路径guard／diff／reverse；不投明确不支持的nested-worktree Cargo，也不重放84／r10／68等终态。正常交付后仅沿既有PR／main链集成，在实际canonical单包当前源准入后才运行有限material_graph_ recipe。91历史Penpot rev433／5586与三尺寸关闭重开画面仍保留，未重抓或补签current设计，更不作为93按钮实际执行证据。正式codec／export、真实EXE／实际150%DPI／双端≤1DIP、全族passed／accepted均false，goal active，释放0B，cleanup open。
+
 ## Material77 静态计数口径勘误92（2026-10-28）
 
 已消费 Parent r276 的不可变 source／consumer 审阅；原 `queue28701 / #586 SUCCESS`、commit `1e4a483137d68121e19b2471bacebbabee0d97d3` 与 parent `9c0aebafa3882962dd6c2dcfa885390b9e417f29`、四路径补丁和全部旧报告保持。此处仅追加计数口径勘误，未重签旧 receipt，也不以当前 dirty 后继替代77原始字节。
