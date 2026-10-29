@@ -204,7 +204,7 @@ impl EditorUiHost {
             self.refresh_ui_asset_workspace_for_changes(vec![normalized])?;
         }
         self.hydrate_ui_asset_editor_imports(instance_id)?;
-        self.sync_ui_asset_editor_instance(instance_id)?;
+        // Dirty completion and tab projection belong to the save-completion owner.
         Ok(())
     }
 
