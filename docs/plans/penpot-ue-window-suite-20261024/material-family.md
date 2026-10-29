@@ -2,6 +2,36 @@
 
 本会话：`01a16d50-6c7f-7370-853d-4581184b66a1`。Parent：`01a16d4e-0491-7353-84fa-038bd7706546`。套件日期：2026-10-24；实际运行回执使用 UTC。
 
+## Details66：根选择的作者字段与窄窗布局（2026-10-26）
+
+本轮仅接续本会话的三张既有 root-selected 板，未进入 fork30 的 Instance 四板、Hierarchy、四 SearchInput 或其 Overlay 续作；未写 Shared/catalog/tokens/Starship/runtime/原 ZUI。专属 file/page 保持 b4a1e3ce-9e6a-81fe-8008-d69d6092d704 / b4a1e3ce-9e6a-81fe-8008-d69d6092d705，真实保存并在新认证 context 重开至 rev242 / 3906 objects。349 个变化全部位于这三张自有板的 457 个原对象内，无增删、无范围外对象变化。15 个原 native copy roots（含12个 Shared）及其 componentFile/componentId/shapeRef 均保留并读回有效。
+
+Details 数据采用61既有回归 graph() 和 Output 选择用例的作者字段声明：Name 为“Material Details / 材质属性”，Shader 为 res://shaders/pbr.wgsl。它们是明确标注的设计/回归数据，未被描述为正常 EXE 当前打开的资产。根选择依据 [details_selection.rs](../../../zircon_plugins/material_editor/editor/src/details_selection.rs) 的 Graph(&原作者图)，不从编译/展平的 MaterialAsset 重建作者文档；这次替换根选择板上错误的“选择表达式”提示，仅呈现 name 和 shader 引用，并没有实现属性编辑、资产跳转或 UE 完整 UMaterial schema。
+
+| 逻辑尺寸 | 原板身份 | 真实重开复核 |
+| --- | --- | --- |
+| 1280×800 | f147d768-b2cf-8022-8008-d9ae323dae26 | 原字体/共享 style refs，4行文字完整；Output 在993宽图视口内。 |
+| 900×620 | c6260bd3-1397-80a5-8008-d9ae58f54a67 | 名称中文与完整 Shader URI 无裁切；Output 在613宽图视口内。 |
+| 640×520 | cb46e97a-7efe-8085-8008-d9ae7bafd8c3 | 名称中文与完整 Shader URI 无裁切；Output 在353宽图视口内。 |
+
+三张板复用现有240宽 native SearchInput 与既有 Details 左右8内边距，采用本域固定 preferred sidebar=256 的设计方案；它不是 Shared 源组件的 intrinsic minimum，也不是已核准的 UE 数字常量。原左侧6个容器、hint Text 与 Search copy 改为真正 Fill；预览提示保持原左右约束。最终尺寸和文字 position-data 均由真实 Penpot 工作区原生布局/文本编辑保存，未按截图手写 glyph 行框或覆盖源签名。Shared 实读仍 rev5 / shared=true / 4原main / 34colors / 3typographies；文字引用原 body、strong 和 editor.text.primary，未修改或发布新主题。
+
+首次 rich-text 编码把字符串 root 写成 keyword 导致HTTP500，原失败回执保留；按 Penpot types/text.cljc 的原生字符串合同修正后真实HTTP200。首轮640 URI裁切、重排后初始取景的节点边缘裁切及两组原PNG也保留；后继只用原生流式布局和既有 Output copy 的原生水平对齐修正设计取景。这个 Penpot 对齐不等于引擎 frame-all：宿主仍须复用既有 GraphCanvasState::fit_graph_bounds 和同代际 viewport/transform，在原 source/history 边界内处理真实输入，不移动作者节点来适配截图。
+
+最终三PNG均已逐图打开，源文字与真实渲染一致、行框在分配范围内、原根节点完整可见。新 context 的9条 pointer 路径（每尺寸：已选根、空白返回、再次选根）按实际可见目标对象验证并全部通过；首轮仅按 frame-id URL 注记断言的超时保留，Penpot viewer.cljs:613-663 的原生导航实际更新 index。该原型结果不证明引擎 selection/focus/undo，也不证明外点/Esc；空白返回的原 default 板仍有早期空提示，作为独立差异保留。
+
+当前源资产的真实路径为 [material_workspace.zui](../../../zircon_editor/assets/ui/editor/modules/core/rendering/material_workspace.zui)，逻辑URI为 res://ui/editor/modules/core/rendering/material_workspace.zui；canonical 与受管工作树均为13809B、SHA5856c88655aafcae3b8f8af2d4ed7786ed89e61551610324faa51ce767af0c12，沿用29nodes/27controls/13events/8imports，同源证据复用。原三行表格和静态编译反馈仍在该源中；本轮没有通过官方 codec 导出修改，不能把本轮 Penpot 设计算作原 ZUI 或产品接入完成。
+
+| 未完成项 | 具体边界与接续 |
+| --- | --- |
+| Default / expression Details | 根选板已显示作者字段；空选原板与表达式字段、真正 PropertyEditorRow/value slot、编辑/重置及源引用跳转仍需当前 document/revision/request 的真实宿主适配。 |
+| Dock chrome / 长文本 | Nodes Overview caption 仍有早期裁切；更长无断点路径的省略/tooltip/滚动未实现，不能用当前两项字段通过关闭整套长文本和 Dock 验收。 |
+| 图与选择 | 固定侧栏和初始取景只是设计状态。真实 paint/hit、同一 transform/DPI、焦点返回、共享 selected shadow 的 UE 差异及 GraphDelta prepare/一次permit/undo 保持 open。 |
+| 官方往返 / 渲染 | 正式 asset-document、slot/source-delta、导出回原 v2、引擎加载以及真实 GPU material/Apply/Save 尚未完成；静态“Compile material to preview”仍明确是缺能力提示。 |
+| 原生验收 | EXE/资源闭包与捕获 nonce/generation 尚无本切片有效证据；正常 EXE、实际150%DPI、双端并排/差异图和≤1DIP均未通过。 |
+
+来源与逐图记录位于既有 reports/ue-material-family-20261024-01a16d50 的 material-details-design-66-source/reopen-r3/review/pointer-r2.json 及3个最终PNG，所有初轮失败和中间PNG保留。Source64 已由真实 Jenkins #457 / queue26228 提交为 1bd1894979eea09400e50e2ccc7387a7496d5987；主干集成以原交付记录为准。3个Rust未改，复用64同源单插件静态验证；161静态定义不是执行数。原61 #448 已 FAILURE、归档 waiting/management_git_busy，compile/native/资源仍未知，不重投。65已把“plugin测试仅允许canonical，ready工作树在提交后baseHead旧值”的具体入口缺项交原owner；本轮文档正常deliver-task，不新增Cargo身份或绕回root workspace。完整goal active，passed=false、accepted=false，释放0B。
+
 ## Managed delivery64：Details 源切片转入受管工作树
 
 2026-10-26 本轮按用户“managed worktree + deliver-task”指令接续。正式 create-worktree 使用原 request `ue-material-graph-20261024-01`、operation `material-worktree-01a16d50-20261026-64`，真实 queue26181 / Jenkins #454 已 SUCCESS。server 实际分配 writer `w1167fba90b`、worktree `w1167fba90b-mat64`、branch `codex/jenkins/w1167fba90b/mat64`；基线为 main 不可变提交 `0569fb6a00049526a1aace835780acaa530dc2e3`。归属精确限定 lib.rs、details_selection.rs、tests/details_selection.rs 及本文四路径。原 canonical 当前为 codex/review/remaining-local-dirty-20261025，未切分支、清理外来内容或手工执行 Git 生命周期；后续本切片源码写入使用实际 ready 工作树。
