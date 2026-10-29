@@ -5,15 +5,15 @@ use std::io::{self, Write};
 
 use serde_json::{json, Value};
 use zircon_plugin_material_editor_editor::{
-    compile_material_graph_with_diagnostics, compile_material_graph_with_shader_contract,
-    plan_material_graph_node_deletion, plan_material_graph_node_search_creation,
-    plan_material_graph_parameter_edit, plan_material_graph_parameter_vector_edit,
-    project_authored_material_document, project_material_graph_details_selection,
-    validate_material_graph_with_diagnostics, MaterialDocumentProjectionError,
-    MaterialGraphConnectionAction, MaterialGraphDetailsTarget, MaterialGraphDetailsValue,
-    MaterialGraphDiagnostic, MaterialGraphDiagnosticTarget, MaterialGraphExpressionDetailsValues,
-    MaterialGraphNodeSearch, MaterialGraphParameterEdit, MaterialGraphPresentation,
-    MaterialGraphShaderCompileError, MaterialGraphValueType,
+    can_connect_material_graph, compile_material_graph_with_diagnostics,
+    compile_material_graph_with_shader_contract, plan_material_graph_node_deletion,
+    plan_material_graph_node_search_creation, plan_material_graph_parameter_edit,
+    plan_material_graph_parameter_vector_edit, project_authored_material_document,
+    project_material_graph_details_selection, validate_material_graph_with_diagnostics,
+    MaterialDocumentProjectionError, MaterialGraphConnectionAction, MaterialGraphDetailsTarget,
+    MaterialGraphDetailsValue, MaterialGraphDiagnostic, MaterialGraphDiagnosticTarget,
+    MaterialGraphExpressionDetailsValues, MaterialGraphNodeSearch, MaterialGraphParameterEdit,
+    MaterialGraphPresentation, MaterialGraphShaderCompileError, MaterialGraphValueType,
 };
 use zircon_plugin_sdk::native::{
     self, callback_status, NativePluginByteSliceV3, NativePluginCallbackStatusV3,
@@ -78,6 +78,11 @@ max_output_bytes = 1048576
 name = "material_editor.graph.plan_node_deletion"
 slot = 9
 payload_schema = "material_editor.plan_graph_node_deletion.v1"
+max_output_bytes = 1048576
+[[commands]]
+name = "material_editor.graph.plan_connection"
+slot = 10
+payload_schema = "material_editor.plan_graph_connection.v1"
 max_output_bytes = 1048576
 "#,
     "\0"
@@ -252,6 +257,22 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
       }
     },
     {
+      "kind": "command",
+      "id": "material_editor.graph.plan_connection",
+      "schema": "zircon.editor.command/3",
+      "localization_bundle_id": "material_editor",
+      "label_key": "command.material_editor.graph.plan_connection.label",
+      "description_key": "command.material_editor.graph.plan_connection.description",
+      "execution_contract": {
+        "result_codec": "zircon.editor.command-result.v1",
+        "resource_budget": {
+          "max_input_bytes": 1048576,
+          "max_output_bytes": 1048576,
+          "max_execution_time_ms": 5000
+        }
+      }
+    },
+    {
       "kind": "localization_bundle",
       "id": "material_editor",
       "schema": "zircon.editor.localization-bundle/1",
@@ -276,7 +297,9 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
           "command.material_editor.graph.plan_node_creation.label": "Plan Material Node Creation",
           "command.material_editor.graph.plan_node_creation.description": "Preflight one typed node and optional autowire without changing the authoring graph",
           "command.material_editor.graph.plan_node_deletion.label": "Plan Material Node Deletion",
-          "command.material_editor.graph.plan_node_deletion.description": "Preflight original nodes and incident link occurrences without applying a deletion"
+          "command.material_editor.graph.plan_node_deletion.description": "Preflight original nodes and incident link occurrences without applying a deletion",
+          "command.material_editor.graph.plan_connection.label": "Plan Material Connection",
+          "command.material_editor.graph.plan_connection.description": "Preflight exact pin keys and one input replacement without changing the authoring graph"
         },
         "zh-CN": {
           "command.material_editor.graph.validate.label": "校验材质图",
@@ -298,7 +321,9 @@ pub(super) const REGISTRATION_MANIFEST: &[u8] = concat!(
           "command.material_editor.graph.plan_node_creation.label": "规划材质节点创建",
           "command.material_editor.graph.plan_node_creation.description": "预检一个类型化节点及可选自动连线，不提交作者材质图",
           "command.material_editor.graph.plan_node_deletion.label": "规划材质节点删除",
-          "command.material_editor.graph.plan_node_deletion.description": "预检原始节点及关联连线，不提交删除事务"
+          "command.material_editor.graph.plan_node_deletion.description": "预检原始节点及关联连线，不提交删除事务",
+          "command.material_editor.graph.plan_connection.label": "规划材质连线",
+          "command.material_editor.graph.plan_connection.description": "预检精确端口键及一个输入替换，不提交作者材质图"
         }
       }
     }
@@ -322,7 +347,7 @@ pub(super) unsafe extern "C" fn invoke_command(
     output: NativePluginOutputSinkV4,
 ) -> NativePluginCallbackStatusV3 {
     native::catch_native_callback_panic(PANICKED, || {
-        if slot > 9 {
+        if slot > 10 {
             return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, UNKNOWN_SLOT);
         }
         if payload.len == 0 || payload.len > MAX_INPUT_BYTES || payload.data.is_null() {
@@ -344,7 +369,12 @@ pub(super) unsafe extern "C" fn invoke_command(
         {
             return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
         }
-        let result = if slot == 9 {
+        let result = if slot == 10 {
+            let Ok(arguments) = serde_json::from_slice::<ConnectionArguments>(bytes) else {
+                return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
+            };
+            graph_connection_result(&arguments)
+        } else if slot == 9 {
             let Ok(arguments) = serde_json::from_slice::<DetailsArguments>(bytes) else {
                 return callback_status(ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, INVALID_REQUEST);
             };
@@ -730,6 +760,66 @@ fn graph_parameter_edit_result(arguments: &ParameterEditArguments) -> Value {
     })
 }
 
+/// Delegates type, direction, replacement and cycle checks to the original domain.
+/// The borrowed old edge's source index qualifies one occurrence in this submitted
+/// revision; it is not a persistent edge ID, history record or authority to apply.
+fn graph_connection_result(arguments: &ConnectionArguments) -> Value {
+    let graph = &arguments.graph;
+    let link = MaterialGraphLinkAsset {
+        from_node: arguments.from_node.clone(),
+        from_pin: arguments.from_pin.clone(),
+        to_node: arguments.to_node.clone(),
+        to_pin: arguments.to_pin.clone(),
+    };
+    let diagnostics = validate_material_graph_with_diagnostics(graph);
+    let candidate = can_connect_material_graph(graph, &link).and_then(|plan| {
+        let action = match plan.action {
+            MaterialGraphConnectionAction::Connect => json!({"kind": "connect"}),
+            MaterialGraphConnectionAction::Unchanged => json!({"kind": "unchanged"}),
+            MaterialGraphConnectionAction::Replace(previous) => {
+                let source_index = graph
+                    .links
+                    .iter()
+                    .position(|source| std::ptr::eq(source, previous))
+                    .ok_or_else(|| {
+                        "domain replacement is not an original source link".to_owned()
+                    })?;
+                json!({
+                    "kind": "replace",
+                    "previous_source_index": source_index,
+                    "previous_link": previous,
+                })
+            }
+        };
+        let source_value_type = match plan.source_type {
+            MaterialGraphValueType::Scalar => "scalar",
+            MaterialGraphValueType::Vector => "vector",
+            MaterialGraphValueType::Texture => "texture",
+            MaterialGraphValueType::Undetermined => "undetermined",
+        };
+        Ok(json!({
+            "link": link,
+            "action": action,
+            "source_value_type": source_value_type,
+            "has_undetermined_types": plan.has_undetermined_types,
+            "changes_source": !matches!(plan.action, MaterialGraphConnectionAction::Unchanged),
+        }))
+    });
+    let (connection_error, plan) = match candidate {
+        Ok(plan) => (Value::Null, Some(plan)),
+        Err(message) => (json!(message), None),
+    };
+    // Missing inputs are legal while authoring. Keep original diagnostics even
+    // for a repair candidate; native completion does not mean compile or commit.
+    json!({
+        "graph_uri": graph.uri,
+        "ok": plan.is_some() && diagnostics.is_empty(),
+        "diagnostics": diagnostics.iter().map(diagnostic_json).collect::<Vec<_>>(),
+        "connection_error": connection_error,
+        "plan": plan,
+    })
+}
+
 /// Indices describe occurrences in this submitted source revision, not persistent
 /// IDs or an undo permit. Parameters and protected Output nodes remain authored.
 /// The host qualifies the entire retained selection and prepares one delta/inverse
@@ -855,6 +945,17 @@ fn graph_node_creation_result(arguments: &NodeCreationArguments) -> Value {
         "creation_error": creation_error,
         "plan": plan,
     })
+}
+
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ConnectionArguments {
+    #[serde(deserialize_with = "deserialize_graph")]
+    graph: MaterialGraphAsset,
+    from_node: String,
+    from_pin: String,
+    to_node: String,
+    to_pin: String,
 }
 
 #[derive(serde::Deserialize)]

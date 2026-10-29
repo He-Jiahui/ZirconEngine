@@ -22,7 +22,7 @@ fn material_editor_dist_native_manifest_declares_real_slots_and_contribution_sch
     let command_manifest = unsafe { CStr::from_ptr(behavior.command_manifest) };
     let manifest =
         native::command_manifest_v4_from_toml(command_manifest.to_str().unwrap()).unwrap();
-    assert_eq!(manifest.commands.len(), 10);
+    assert_eq!(manifest.commands.len(), 11);
     for (slot, name, schema) in [
         (
             0,
@@ -73,6 +73,11 @@ fn material_editor_dist_native_manifest_declares_real_slots_and_contribution_sch
             9,
             "material_editor.graph.plan_node_deletion",
             "material_editor.plan_graph_node_deletion.v1",
+        ),
+        (
+            10,
+            "material_editor.graph.plan_connection",
+            "material_editor.plan_graph_connection.v1",
         ),
     ] {
         let command = &manifest.commands[slot as usize];
@@ -376,6 +381,12 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
             "command.material_editor.graph.plan_node_deletion.description",
             contract(),
         )
+        .command_with_execution_contract(
+            "material_editor.graph.plan_connection",
+            "command.material_editor.graph.plan_connection.label",
+            "command.material_editor.graph.plan_connection.description",
+            contract(),
+        )
         .localization_bundle(
             [
                 (
@@ -461,6 +472,14 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
                             "command.material_editor.graph.plan_node_deletion.description",
                             "Preflight original nodes and incident link occurrences without applying a deletion",
                         ),
+                        (
+                            "command.material_editor.graph.plan_connection.label",
+                            "Plan Material Connection",
+                        ),
+                        (
+                            "command.material_editor.graph.plan_connection.description",
+                            "Preflight exact pin keys and one input replacement without changing the authoring graph",
+                        ),
                     ],
                 ),
                 (
@@ -540,6 +559,14 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
                             "command.material_editor.graph.plan_node_deletion.description",
                             "预检原始节点及关联连线，不提交删除事务",
                         ),
+                        (
+                            "command.material_editor.graph.plan_connection.label",
+                            "规划材质连线",
+                        ),
+                        (
+                            "command.material_editor.graph.plan_connection.description",
+                            "预检精确端口键及一个输入替换，不提交作者材质图",
+                        ),
                     ],
                 ),
             ]
@@ -560,7 +587,7 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
     let actual = deserialize_like(registration_json(), &expected);
     assert_eq!(actual, expected);
     assert_eq!(actual.package_id(), "material_editor");
-    assert_eq!(actual.contributions().len(), 11);
+    assert_eq!(actual.contributions().len(), 12);
 }
 
 #[test]
@@ -3501,6 +3528,361 @@ fn node_deletion_result(graph: &MaterialGraphAsset, selected: &[&str]) -> Value 
     let before = payload.clone();
     let (status, capture) = invoke(
         9,
+        &payload,
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    assert_eq!(capture.calls, 1);
+    assert_eq!(payload, before);
+    serde_json::from_slice(&capture.bytes).unwrap()
+}
+
+#[test]
+fn material_editor_dist_native_connection_connect_keeps_source_and_changes_codec_compile() {
+    let mut source = parameter_edit_graph();
+    source
+        .parameters
+        .insert(" Gain 原始 ".into(), Parameter::Scalar(0.875));
+    source.nodes[2].id = " 增益 / 原始 ".into();
+    let link = wire_link(" 增益 / 原始 ", "value", "output", "roughness");
+    let before = source.to_toml_string().unwrap();
+    let result = connection_result(&source, &link);
+    assert_eq!(source.to_toml_string().unwrap(), before);
+    assert_eq!(result["ok"], true);
+    assert!(result["connection_error"].is_null());
+    assert_eq!(result["plan"]["action"], json!({"kind":"connect"}));
+    assert_eq!(result["plan"]["source_value_type"], "scalar");
+    assert_eq!(result["plan"]["has_undetermined_types"], false);
+    assert_eq!(result["plan"]["changes_source"], true);
+    assert_eq!(result["plan"]["link"], serde_json::to_value(&link).unwrap());
+
+    // Test-local application exercises the real codec/compiler, not a product
+    // history, native renderer or authority to apply an unqualified response.
+    let mut local = source.clone();
+    local
+        .links
+        .push(serde_json::from_value(result["plan"]["link"].clone()).unwrap());
+    let local = MaterialGraphAsset::from_toml_str(&local.to_toml_string().unwrap()).unwrap();
+    let original = zircon_plugin_material_editor_editor::compile_material_graph(&source).unwrap();
+    let compiled = zircon_plugin_material_editor_editor::compile_material_graph(&local).unwrap();
+    assert_ne!(compiled.roughness, original.roughness);
+    assert_eq!(compiled.roughness, 0.875);
+    assert_eq!(compiled.base_color, original.base_color);
+    assert_eq!(local.parameters, source.parameters);
+    assert_eq!(&local.links[..source.links.len()], source.links.as_slice());
+}
+
+#[test]
+fn material_editor_dist_native_connection_replace_returns_original_occurrence_and_raw_inverse() {
+    let mut source = parameter_edit_graph();
+    source.nodes.push(creation_node(
+        "新增益",
+        Node::ScalarParameter {
+            name: "new gain".into(),
+            default: 0.875,
+        },
+    ));
+    source
+        .links
+        .push(wire_link("gain", "value", "output", "roughness"));
+    source
+        .links
+        .push(wire_link("gain", "value", "output", "metallic"));
+    let bits = [-0.0_f32, 256.0, f32::from_bits(1), -0.0];
+    source
+        .parameters
+        .insert("Orphan / 原始 ".into(), Parameter::Vector(bits));
+    let saved = source.to_toml_string().unwrap();
+    let before = zircon_plugin_material_editor_editor::compile_material_graph(&source).unwrap();
+    let result = connection_result(
+        &source,
+        &wire_link("新增益", "value", "output", "roughness"),
+    );
+    let plan = &result["plan"];
+    assert_eq!(result["ok"], true);
+    assert_eq!(plan["action"]["kind"], "replace");
+    assert_eq!(plan["action"]["previous_source_index"], 1);
+    assert_eq!(
+        plan["action"]["previous_link"],
+        serde_json::to_value(&source.links[1]).unwrap()
+    );
+    assert_eq!(source.to_toml_string().unwrap(), saved);
+
+    let mut local = source.clone();
+    let index = plan["action"]["previous_source_index"].as_u64().unwrap() as usize;
+    local.links[index] = serde_json::from_value(plan["link"].clone()).unwrap();
+    let mut local = MaterialGraphAsset::from_toml_str(&local.to_toml_string().unwrap()).unwrap();
+    let compiled = zircon_plugin_material_editor_editor::compile_material_graph(&local).unwrap();
+    assert_eq!(compiled.roughness, 0.875);
+    assert_eq!(compiled.metallic, before.metallic);
+    assert_eq!(local.links[0], source.links[0]);
+    assert_eq!(local.links[2], source.links[2]);
+    let Some(Parameter::Vector(actual)) = local.parameters.get("Orphan / 原始 ") else {
+        panic!("wire edits retain authored orphan overrides");
+    };
+    for (actual, expected) in actual.iter().zip(bits) {
+        assert_eq!(actual.to_bits(), expected.to_bits());
+    }
+    // Restore the full original edge at its exact occurrence, not a newly
+    // inferred valid connection, and retain unrelated link order and raw values.
+    local.links[index] = serde_json::from_value(plan["action"]["previous_link"].clone()).unwrap();
+    assert_eq!(local.to_toml_string().unwrap(), saved);
+    assert_eq!(
+        zircon_plugin_material_editor_editor::compile_material_graph(&local)
+            .unwrap()
+            .roughness,
+        before.roughness
+    );
+}
+
+#[test]
+fn material_editor_dist_native_connection_exact_existing_link_is_an_unchanged_candidate() {
+    let source = graph(0.25);
+    let before = source.to_toml_string().unwrap();
+    let result = connection_result(&source, &source.links[0]);
+    assert_eq!(result["ok"], true);
+    assert_eq!(result["diagnostics"], json!([]));
+    assert_eq!(result["plan"]["action"], json!({"kind":"unchanged"}));
+    assert_eq!(result["plan"]["changes_source"], false);
+    assert_eq!(result["plan"]["source_value_type"], "vector");
+    assert!(result["plan"]["action"].get("previous_link").is_none());
+    assert_eq!(
+        result["graph_uri"],
+        serde_json::to_value(&source.uri).unwrap()
+    );
+    assert_eq!(source.to_toml_string().unwrap(), before);
+}
+
+#[test]
+fn material_editor_dist_native_connection_rejects_stale_direction_type_cycle_and_duplicate_input() {
+    let source = parameter_edit_graph();
+    let mut cases = vec![
+        (
+            source.clone(),
+            wire_link("missing", "value", "output", "roughness"),
+            "missing source node",
+        ),
+        (
+            source.clone(),
+            wire_link("gain", "value", "missing", "roughness"),
+            "missing target node",
+        ),
+        (
+            source.clone(),
+            wire_link("gain", "Value", "output", "roughness"),
+            "no output pin",
+        ),
+        (
+            source.clone(),
+            wire_link("output", "value", "gain", "value"),
+            "no output pin",
+        ),
+        (
+            source.clone(),
+            wire_link("tint", "value", "output", "roughness"),
+            "does not produce a scalar",
+        ),
+        (
+            source.clone(),
+            wire_link("gain", "value", "output", "normal"),
+            "requires a texture sample",
+        ),
+    ];
+    let mut duplicate = source.clone();
+    duplicate
+        .links
+        .push(wire_link("gain", "value", "output", "roughness"));
+    duplicate.links.push(duplicate.links[1].clone());
+    cases.push((
+        duplicate,
+        wire_link("gain", "value", "output", "roughness"),
+        "multiple links target",
+    ));
+    let mut ambiguous = source.clone();
+    ambiguous.nodes.push(ambiguous.nodes[2].clone());
+    cases.push((
+        ambiguous,
+        wire_link("gain", "value", "output", "roughness"),
+        "duplicate node",
+    ));
+    let mut cycle = source;
+    cycle.nodes.push(creation_node("a", Node::Add));
+    cycle.nodes.push(creation_node("b", Node::Multiply));
+    cycle.links.push(wire_link("b", "value", "a", "a"));
+    cases.push((cycle, wire_link("a", "value", "b", "a"), "contains a cycle"));
+    for (source, link, reason) in cases {
+        let original = serde_json::to_value(&source).unwrap();
+        let result = connection_result(&source, &link);
+        assert_eq!(result["ok"], false, "{link:?}");
+        assert!(result["plan"].is_null(), "{link:?}");
+        assert!(
+            result["connection_error"]
+                .as_str()
+                .unwrap()
+                .contains(reason),
+            "{result}"
+        );
+        assert_eq!(serde_json::to_value(&source).unwrap(), original);
+    }
+}
+
+#[test]
+fn material_editor_dist_native_connection_preserves_repair_diagnostics_and_incomplete_types() {
+    let mut source = parameter_edit_graph();
+    source.links.push(wire_link(
+        "missing / 原坏边",
+        "value",
+        "output",
+        "roughness",
+    ));
+    let old = source.links[1].clone();
+    let result = connection_result(&source, &wire_link("gain", "value", "output", "roughness"));
+    assert_eq!(result["ok"], false);
+    assert!(!result["diagnostics"].as_array().unwrap().is_empty());
+    assert!(result["connection_error"].is_null());
+    assert_eq!(result["plan"]["action"]["kind"], "replace");
+    assert_eq!(result["plan"]["action"]["previous_source_index"], 1);
+    assert_eq!(
+        result["plan"]["action"]["previous_link"],
+        serde_json::to_value(&old).unwrap()
+    );
+    assert_eq!(source.links[1], old);
+
+    let mut incomplete = graph(0.25);
+    incomplete.links.clear();
+    incomplete.nodes.push(creation_node("math", Node::Add));
+    let result = connection_result(
+        &incomplete,
+        &wire_link("math", "value", "output", "base_color"),
+    );
+    assert_eq!(result["ok"], false);
+    assert!(!result["diagnostics"].as_array().unwrap().is_empty());
+    assert!(result["connection_error"].is_null());
+    assert_eq!(result["plan"]["source_value_type"], "undetermined");
+    assert_eq!(result["plan"]["has_undetermined_types"], true);
+
+    // A different broken source edge cannot be hidden by a valid local pin pair.
+    source
+        .links
+        .push(wire_link("another missing", "value", "output", "metallic"));
+    let rejected = connection_result(&source, &wire_link("gain", "value", "output", "roughness"));
+    assert!(rejected["plan"].is_null());
+    assert!(!rejected["diagnostics"].as_array().unwrap().is_empty());
+}
+
+#[test]
+fn material_editor_dist_native_connection_rejects_non_named_duplicate_unknown_and_overflow_arguments(
+) {
+    let source = parameter_edit_graph();
+    let link = wire_link("gain", "value", "output", "roughness");
+    let valid: Value = serde_json::from_slice(&connection_request(&source, &link)).unwrap();
+    let wire = serde_json::to_string(&valid).unwrap();
+    let mut extra = valid.clone();
+    extra["revision_permit"] = json!(true);
+    let mut null_pin = valid.clone();
+    null_pin["to_pin"] = Value::Null;
+    let mut overflow = valid.clone();
+    overflow["graph"]["nodes"][0]["kind"]["default"][0] = json!(1.0e100_f64);
+    let mut missing = valid.clone();
+    missing.as_object_mut().unwrap().remove("from_node");
+    for bad in [
+        "{}".to_owned(),
+        "null".to_owned(),
+        "[]".to_owned(),
+        format!("[{wire}]"),
+        wire.replacen("\"from_pin\":", "\"from_pin\":\"value\",\"from_pin\":", 1),
+        wire.replacen(
+            "\"graph\":",
+            &format!(
+                "\"graph\":{},\"graph\":",
+                serde_json::to_string(&source).unwrap()
+            ),
+            1,
+        ),
+        serde_json::to_string(&extra).unwrap(),
+        serde_json::to_string(&null_pin).unwrap(),
+        serde_json::to_string(&overflow).unwrap(),
+        serde_json::to_string(&missing).unwrap(),
+    ] {
+        let (status, capture) = invoke(
+            10,
+            bad.as_bytes(),
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, "{bad}");
+        assert_eq!(capture.calls, 0);
+        assert!(capture.bytes.is_empty());
+    }
+}
+
+#[test]
+fn material_editor_dist_native_connection_publishes_once_at_exact_budget_and_preserves_host_refusal(
+) {
+    let source = parameter_edit_graph();
+    let payload = connection_request(&source, &wire_link("gain", "value", "output", "roughness"));
+    let (status, full) = invoke(
+        10,
+        &payload,
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    assert_eq!(full.calls, 1);
+    for limit in [0, full.bytes.len() - 1] {
+        let (status, capture) = invoke(10, &payload, limit, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+        assert_eq!(capture.calls, 0);
+        assert!(capture.bytes.is_empty());
+    }
+    let (status, exact) = invoke(
+        10,
+        &payload,
+        full.bytes.len(),
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    assert_eq!(exact.calls, 1);
+    assert_eq!(exact.bytes, full.bytes);
+    let (status, refused) = invoke(
+        10,
+        &payload,
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED);
+    assert_eq!(refused.calls, 1);
+    assert!(refused.bytes.is_empty());
+}
+
+fn wire_link(
+    from_node: &str,
+    from_pin: &str,
+    to_node: &str,
+    to_pin: &str,
+) -> MaterialGraphLinkAsset {
+    MaterialGraphLinkAsset {
+        from_node: from_node.into(),
+        from_pin: from_pin.into(),
+        to_node: to_node.into(),
+        to_pin: to_pin.into(),
+    }
+}
+
+fn connection_request(graph: &MaterialGraphAsset, link: &MaterialGraphLinkAsset) -> Vec<u8> {
+    serde_json::to_vec(&json!({
+        "graph":graph, "from_node":link.from_node, "from_pin":link.from_pin,
+        "to_node":link.to_node, "to_pin":link.to_pin,
+    }))
+    .unwrap()
+}
+
+fn connection_result(graph: &MaterialGraphAsset, link: &MaterialGraphLinkAsset) -> Value {
+    let payload = connection_request(graph, link);
+    let before = payload.clone();
+    let (status, capture) = invoke(
+        10,
         &payload,
         MAX_OUTPUT_BYTES,
         ZIRCON_NATIVE_PLUGIN_STATUS_OK,
