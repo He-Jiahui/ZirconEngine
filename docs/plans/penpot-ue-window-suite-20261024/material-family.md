@@ -1,3 +1,15 @@
+## 材质接续117：纹理槽 native 编辑候选与空覆盖边界（2026-10-28）
+
+- 仅在原 `w448b90023f-native94`、base `0a8a52c58ee331e60ede813de40cdbcf67fb9d35` 改原授权 commands/tests/本台账；原13个 native slots/贡献/locales 保留，追加13 `material_editor.material.plan_texture_edit` / `material_editor.plan_material_texture_edit.v1`。原 ABI3、manifest4、contribution-batch1、1MiB 输入输出与一次完整 sink 发布不变。
+- 实际委托既有 `plan_material_document_texture_edit`，不写 fork Instance/Hierarchy 或 editor 领域实现。Set({}) 保留局部存在性，与 ClearOverride 删除 key 不同；不写 schema default、不展开 parent、不改 alias/显示名。引用、raw fallback、UV channel 和有限 transform 不 normalize/clamp。
+- 新命令严格解码 uuid/url（原 AssetReference 定位符字段）完整对，拒绝 partial/invalid/null 引用及未知/重复字段，避免 flatten Option 在这个命令中把坏引用变空。真实 Runtime 原类型/文件格式未改；无另一个纹理模型或 resolver。遗漏的 UV 项沿原 Runtime IDENTITY 默认，显式数值仍须 finite。
+- 有引用 Set 在原 target/schema 预检后要求宿主实际 resource-kind observation：完整 UUID+locator 相等且为 Texture；无引用 Set/Clear 拒绝无用途 observation。这只检查传入身份，未证明资源 handle/generation/lease、尺寸、sampler、UV、shader 或 GPU ready；结果固定 binding_ready=null/authoring_candidate_only，原作者与 shader diagnostics 原序保留，required slot 不当已就绪。
+- 一般 Runtime transform serializer 会省略 rotation==0（含 -0.0）。本 native 候选显式输出 scale/offset/rotation，保住新值的符号位；不冒称公共序列化/save codec 已修复或已执行。宿主仍须使用原 raw Option before 和一次预算/prepare/permit/CAS/history/dirty/compile/renderer/save/focus，不从结果重建文档或造 store/clock/backend。
+- 新增8项有意义回归定义：root/instance 与有无覆盖的 empty Set/Clear、完整纹理身份/raw fallback/极值 UV 和 signed zero、宿主 kind/ref 拒绝、精确 schema/key/version、无 schema 修复旧非有限/空/alias key、严格部分/null/重复 wire、5个 UV 位置 overflow、bounded single publish/host denial。原91→99静态定义，89旧行为 body 精确，仅2 metadata test扩充；Rust type/harness/results 仍 not_run/null。
+- 参考 UE `MaterialPropertyHelpers.cpp:968–1010` 的真实 UTexture 资产过滤与 virtual sampler 分支，不能用一个 Texture kind 冒充全部兼容性。当前原正式 entry 仍与105/116同 SHA，dist 单包有限配方原拒绝沿用，不重投、不借 editor/root/全仓或 nested WT fallback。格式/本插件元数据/3路径 guard 单列，正常源码交付不当 Rust 或产品验证。
+- Parent r329 的81/queue29087/#627审阅与summary两原件 SHA已实际核同；旧 waiting 通知和最终5bb1a017 committed分时保留，只消费历史不可变证据，不恢复旧后像/重放627/64/448/r10/旧验证身份。它不签117源码或当前 live Penpot。原115设计、fork后继与全部既有身份保持。
+- 真实宿主/正式 codec 导出/原 ZUI加载/renderer/normal EXE/实际150%DPI/双端1DIP仍 open；本轮 Penpot/Shared/public/Runtime/manifest/lock/service/desktop 写0，goal active、passed=false、accepted=false、释放0B。完整消费合同与证据位于原报告根 `material-texture-command-117-{source,wire-contract,validation,guard,route,handoff}.json`。
+
 ## 材质接续116：作者属性 native Set/ClearOverride/Reset 适配（2026-10-28）
 
 - 原唯一 producer 在既有 `w448b90023f-native94`、base `5fda5a5945731366464246dc14c06e85f1f4a11d` 仅改原授权 commands/tests 与本台账；fork Instance/Hierarchy、editor 领域实现、公共 Host/Runtime/Shared 和所有 Penpot 对象未写。

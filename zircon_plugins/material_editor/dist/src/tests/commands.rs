@@ -22,7 +22,7 @@ fn material_editor_dist_native_manifest_declares_real_slots_and_contribution_sch
     let command_manifest = unsafe { CStr::from_ptr(behavior.command_manifest) };
     let manifest =
         native::command_manifest_v4_from_toml(command_manifest.to_str().unwrap()).unwrap();
-    assert_eq!(manifest.commands.len(), 13);
+    assert_eq!(manifest.commands.len(), 14);
     for (slot, name, schema) in [
         (
             0,
@@ -88,6 +88,11 @@ fn material_editor_dist_native_manifest_declares_real_slots_and_contribution_sch
             12,
             "material_editor.material.plan_property_reset",
             "material_editor.plan_material_property_reset.v1",
+        ),
+        (
+            13,
+            "material_editor.material.plan_texture_edit",
+            "material_editor.plan_material_texture_edit.v1",
         ),
     ] {
         let command = &manifest.commands[slot as usize];
@@ -409,6 +414,12 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
             "command.material_editor.material.plan_property_reset.description",
             contract(),
         )
+        .command_with_execution_contract(
+            "material_editor.material.plan_texture_edit",
+            "command.material_editor.material.plan_texture_edit.label",
+            "command.material_editor.material.plan_texture_edit.description",
+            contract(),
+        )
         .localization_bundle(
             [
                 (
@@ -518,6 +529,14 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
                             "command.material_editor.material.plan_property_reset.description",
                             "Plan a reset from the host's observed default while preserving override presence",
                         ),
+                        (
+                            "command.material_editor.material.plan_texture_edit.label",
+                            "Plan Authored Material Texture Edit",
+                        ),
+                        (
+                            "command.material_editor.material.plan_texture_edit.description",
+                            "Preflight an exact local texture Set or ClearOverride, preserving empty presence and UV values",
+                        ),
                     ],
                 ),
                 (
@@ -621,6 +640,14 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
                             "command.material_editor.material.plan_property_reset.description",
                             "使用宿主实际观测的默认值规划重置，保留覆盖存在性",
                         ),
+                        (
+                            "command.material_editor.material.plan_texture_edit.label",
+                            "规划作者材质纹理编辑",
+                        ),
+                        (
+                            "command.material_editor.material.plan_texture_edit.description",
+                            "预检精确局部纹理设置或清除覆盖，保留显式空值与UV数据",
+                        ),
                     ],
                 ),
             ]
@@ -641,7 +668,7 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
     let actual = deserialize_like(registration_json(), &expected);
     assert_eq!(actual, expected);
     assert_eq!(actual.package_id(), "material_editor");
-    assert_eq!(actual.contributions().len(), 14);
+    assert_eq!(actual.contributions().len(), 15);
 }
 
 #[test]
@@ -2000,6 +2027,448 @@ fn material_editor_dist_native_property_commands_bound_one_publish_and_propagate
         assert_eq!(denied.calls, 1);
         assert!(denied.bytes.is_empty());
     }
+}
+
+#[test]
+fn material_editor_dist_native_texture_empty_set_is_distinct_from_clearing_local_presence() {
+    for inherited in [false, true] {
+        for present in [false, true] {
+            let mut document = inspect_document();
+            if !inherited {
+                document.parent = None;
+            }
+            if !present {
+                document.textures.remove("base_color");
+            }
+            document.validation_diagnostics = vec!["原required绑定未就绪".into()];
+            let mut schema = inspect_shader(&document);
+            schema.texture_slots[0].required = true;
+            schema.validation_diagnostics = vec!["原shader诊断".into()];
+            for clear in [false, true] {
+                let edit = if clear {
+                    json!({"kind":"clear_override"})
+                } else {
+                    json!({"kind":"set","value":{}})
+                };
+                let payload =
+                    texture_edit_request(&document, Some(&schema), "base_color", edit, None);
+                let before = payload.clone();
+                let result = property_command_result(13, &payload);
+                assert_eq!(result["validation_scope"], "authoring_candidate_only");
+                assert!(result["binding_ready"].is_null());
+                assert_eq!(result["ok"], false);
+                assert_eq!(
+                    result["validation_diagnostics"],
+                    json!(["原required绑定未就绪"])
+                );
+                assert_eq!(
+                    result["shader_validation_diagnostics"],
+                    json!(["原shader诊断"])
+                );
+                assert!(result["texture_error"].is_null());
+                assert_eq!(result["plan"]["name"], "base_color");
+                assert_eq!(result["plan"]["was_overridden"], present);
+                assert_eq!(result["plan"]["will_be_overridden"], !clear);
+                assert_eq!(result["plan"]["declared_required"], true);
+                if clear {
+                    assert_eq!(result["plan"]["edit"], json!({"kind":"clear_override"}));
+                } else {
+                    assert_eq!(result["plan"]["edit"]["kind"], "set");
+                    let value: MaterialTextureSlotValue =
+                        serde_json::from_value(result["plan"]["edit"]["value"].clone()).unwrap();
+                    assert!(
+                        value.reference.is_none()
+                            && value.fallback.is_none()
+                            && value.transform.is_none()
+                    );
+                    assert_eq!(value.uv_channel, 0);
+                }
+                assert_eq!(payload, before);
+            }
+        }
+    }
+}
+
+#[test]
+fn material_editor_dist_native_texture_set_preserves_full_reference_raw_fallback_and_uv_bits() {
+    let document = inspect_document();
+    let schema = inspect_shader(&document);
+    let texture = reference("res://textures/中文长名称.ztex#color");
+    for rotation in [-0.0_f32, 0.125, f32::MAX] {
+        let mut value =
+            serde_json::to_value(MaterialTextureSlotValue::new(texture.clone())).unwrap();
+        value["fallback"] = json!(" raw fallback value ");
+        value["uv_channel"] = json!(u32::MAX);
+        value["transform"] =
+            json!({"scale":[-0.0,-2.0],"offset":[10.0,-100.0],"rotation":rotation});
+        let payload = texture_edit_request(
+            &document,
+            Some(&schema),
+            "normal",
+            json!({"kind":"set","value":value}),
+            Some(json!({"reference":texture,"kind":AssetKind::Texture})),
+        );
+        let before = payload.clone();
+        let result = property_command_result(13, &payload);
+        assert_eq!(result["ok"], true);
+        assert_eq!(result["plan"]["was_overridden"], false);
+        assert_eq!(result["plan"]["will_be_overridden"], true);
+        assert!(result["binding_ready"].is_null());
+        let encoded = &result["plan"]["edit"]["value"];
+        assert!(encoded["transform"].get("rotation").is_some());
+        let actual: MaterialTextureSlotValue = serde_json::from_value(encoded.clone()).unwrap();
+        assert_eq!(actual.reference.as_ref(), Some(&texture));
+        assert_eq!(encoded["uuid"], json!(texture.uuid));
+        assert_eq!(encoded["url"], json!(texture.locator));
+        assert!(encoded.get("locator").is_none());
+        assert_eq!(actual.fallback.as_deref(), Some(" raw fallback value "));
+        assert_eq!(actual.uv_channel, u32::MAX);
+        let transform = actual.transform.unwrap();
+        assert_eq!(transform.scale[0].to_bits(), (-0.0_f32).to_bits());
+        assert_eq!(transform.scale[1], -2.0);
+        assert_eq!(transform.offset, [10.0, -100.0]);
+        assert_eq!(transform.rotation.to_bits(), rotation.to_bits());
+        assert_eq!(payload, before);
+    }
+}
+
+#[test]
+fn material_editor_dist_native_texture_set_requires_exact_host_resource_identity_and_texture_kind()
+{
+    let document = inspect_document();
+    let schema = inspect_shader(&document);
+    let texture = reference("res://textures/真实纹理.ztex");
+    let value = serde_json::to_value(MaterialTextureSlotValue::new(texture.clone())).unwrap();
+    let mut wrong_uuid = texture.clone();
+    wrong_uuid.uuid = reference("res://textures/other-id.ztex").uuid;
+    let mut wrong_locator = texture.clone();
+    wrong_locator.locator = reference("res://textures/other-uri.ztex").locator;
+    for (observation, expected) in [
+        (None, "resource_observation_required"),
+        (
+            Some(json!({"reference":wrong_uuid,"kind":AssetKind::Texture})),
+            "resource_reference_mismatch",
+        ),
+        (
+            Some(json!({"reference":wrong_locator,"kind":AssetKind::Texture})),
+            "resource_reference_mismatch",
+        ),
+        (
+            Some(json!({"reference":texture,"kind":AssetKind::Material})),
+            "resource_kind_mismatch",
+        ),
+    ] {
+        let payload = texture_edit_request(
+            &document,
+            Some(&schema),
+            "base_color",
+            json!({"kind":"set","value":value}),
+            observation,
+        );
+        let result = property_command_result(13, &payload);
+        assert_eq!(result["texture_error"]["kind"], expected);
+        assert!(result["plan"].is_null());
+    }
+    for edit in [
+        json!({"kind":"set","value":{}}),
+        json!({"kind":"clear_override"}),
+    ] {
+        let payload = texture_edit_request(
+            &document,
+            Some(&schema),
+            "base_color",
+            edit,
+            Some(json!({"reference":texture,"kind":AssetKind::Texture})),
+        );
+        let result = property_command_result(13, &payload);
+        assert_eq!(
+            result["texture_error"]["kind"],
+            "unexpected_resource_observation"
+        );
+        assert!(result["plan"].is_null());
+    }
+}
+
+#[test]
+fn material_editor_dist_native_texture_edit_preflights_exact_schema_key_reference_and_version() {
+    let document = inspect_document();
+    let schema = inspect_shader(&document);
+    for (name, supplied, expected) in [
+        ("base_color", false, "schema_unavailable"),
+        ("Base_color", true, "undeclared_slot"),
+        (" base_color ", true, "undeclared_slot"),
+        ("base_color_texture", true, "undeclared_slot"),
+        ("", true, "empty_slot_name"),
+    ] {
+        let payload = texture_edit_request(
+            &document,
+            supplied.then_some(&schema),
+            name,
+            json!({"kind":"set","value":{}}),
+            None,
+        );
+        let result = property_command_result(13, &payload);
+        assert_eq!(result["texture_error"]["kind"], expected);
+        assert!(result["plan"].is_null());
+    }
+    for duplicate in [false, true] {
+        let mut bad = schema.clone();
+        if duplicate {
+            bad.texture_slots.push(bad.texture_slots[0].clone());
+        } else {
+            bad.uri = reference("builtin://shader/stale").locator;
+        }
+        let result = property_command_result(
+            13,
+            &texture_edit_request(
+                &document,
+                Some(&bad),
+                "base_color",
+                json!({"kind":"clear_override"}),
+                None,
+            ),
+        );
+        assert_eq!(result["texture_error"]["kind"], "source");
+        assert!(result["plan"].is_null());
+    }
+    let payload = texture_edit_request(
+        &document,
+        Some(&schema),
+        "base_color",
+        json!({"kind":"set","value":{}}),
+        None,
+    );
+    let original: Value = serde_json::from_slice(&payload).unwrap();
+    let mut wrong_ref = original.clone();
+    wrong_ref["shader_reference"]["uuid"] =
+        serde_json::to_value(reference("builtin://shader/other-id").uuid).unwrap();
+    let result = property_command_result(13, &serde_json::to_vec(&wrong_ref).unwrap());
+    assert_eq!(result["texture_error"]["kind"], "reference_mismatch");
+    assert!(result["plan"].is_null());
+    for version in [0, 1, 3] {
+        let mut value = original.clone();
+        value["document"]["version"] = json!(version);
+        let result = property_command_result(13, &serde_json::to_vec(&value).unwrap());
+        assert_eq!(
+            result["texture_error"],
+            json!({"kind":"unsupported_document_version","expected":2,"actual":version})
+        );
+        assert!(result["plan"].is_null());
+    }
+}
+
+#[test]
+fn material_editor_dist_native_texture_clear_repairs_legacy_empty_alias_and_nonfinite_entries() {
+    let document = inspect_document();
+    for name in ["", "base_color_texture", " base_color "] {
+        let payload = texture_edit_request(
+            &document,
+            None,
+            name,
+            json!({"kind":"clear_override"}),
+            None,
+        );
+        let mut value: Value = serde_json::from_slice(&payload).unwrap();
+        value["document"]["textures"][name] = json!({"fallback":"legacy raw fallback","uv_channel":u32::MAX,"transform":{"scale":[1e100,1.0],"offset":[0.0,0.0],"rotation":-1e100}});
+        let payload = serde_json::to_vec(&value).unwrap();
+        let before = payload.clone();
+        let result = property_command_result(13, &payload);
+        assert_eq!(result["ok"], true);
+        assert_eq!(result["plan"]["name"], name);
+        assert_eq!(result["plan"]["was_overridden"], true);
+        assert_eq!(result["plan"]["will_be_overridden"], false);
+        assert_eq!(result["plan"]["edit"], json!({"kind":"clear_override"}));
+        assert!(result["plan"]["declared_required"].is_null());
+        assert_eq!(payload, before);
+    }
+}
+
+#[test]
+fn material_editor_dist_native_texture_wire_rejects_partial_null_unknown_and_duplicate_reference_members(
+) {
+    let document = inspect_document();
+    let schema = inspect_shader(&document);
+    let base = texture_edit_request(
+        &document,
+        Some(&schema),
+        "base_color",
+        json!({"kind":"set","value":{}}),
+        None,
+    );
+    let source: Value = serde_json::from_slice(&base).unwrap();
+    let reference = serde_json::to_value(reference("res://textures/valid.ztex")).unwrap();
+    let mut only_uuid = reference.clone();
+    only_uuid.as_object_mut().unwrap().remove("url");
+    let mut only_locator = reference.clone();
+    only_locator.as_object_mut().unwrap().remove("uuid");
+    let mut bad_uuid = reference.clone();
+    bad_uuid["uuid"] = json!("invalid UUID");
+    let mut null_uuid = reference.clone();
+    null_uuid["uuid"] = Value::Null;
+    let mut null_locator = reference.clone();
+    null_locator["url"] = Value::Null;
+    let mut invalid = vec![serde_json::to_vec(&json!([source])).unwrap()];
+    for value in [
+        only_uuid,
+        only_locator,
+        bad_uuid,
+        null_uuid,
+        null_locator,
+        json!({"unknown":true}),
+        json!({"uuid":reference["uuid"],"locator":reference["url"]}),
+        json!({"reference":reference}),
+        json!({"transform":{"unknown":1}}),
+        json!({"transform":{"scale":[1.0]}}),
+        json!({"uv_channel":-1}),
+        json!({"uv_channel":u64::from(u32::MAX)+1}),
+    ] {
+        let mut request = source.clone();
+        request["edit"]["value"] = value;
+        invalid.push(serde_json::to_vec(&request).unwrap());
+    }
+    let mut extra = source.clone();
+    extra["extra"] = json!(true);
+    invalid.push(serde_json::to_vec(&extra).unwrap());
+    let mut incomplete_schema = source.clone();
+    incomplete_schema
+        .as_object_mut()
+        .unwrap()
+        .remove("shader_reference");
+    invalid.push(serde_json::to_vec(&incomplete_schema).unwrap());
+    let mut extra_clear = source.clone();
+    extra_clear["edit"] = json!({"kind":"clear_override","value":{}});
+    invalid.push(serde_json::to_vec(&extra_clear).unwrap());
+    let encoded = String::from_utf8(base).unwrap();
+    invalid.push(
+        encoded
+            .replacen(
+                "\"name\":\"base_color\"",
+                "\"name\":\"base_color\",\"name\":\"base_color\"",
+                1,
+            )
+            .into_bytes(),
+    );
+    invalid.push(
+        encoded
+            .replacen(
+                "\"value\":{}",
+                "\"value\":{\"uv_channel\":0,\"uv_channel\":1}",
+                1,
+            )
+            .into_bytes(),
+    );
+    let encoded_reference = serde_json::to_string(&reference).unwrap();
+    for key in ["uuid", "url"] {
+        let member = format!(
+            "\"{key}\":{}",
+            serde_json::to_string(&reference[key]).unwrap()
+        );
+        let duplicated = encoded_reference.replacen(&member, &format!("{member},{member}"), 1);
+        invalid.push(
+            encoded
+                .replacen("\"value\":{}", &format!("\"value\":{duplicated}"), 1)
+                .into_bytes(),
+        );
+    }
+    for payload in invalid {
+        let (status, capture) = invoke(
+            13,
+            &payload,
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(
+            status.code,
+            ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+            "{}",
+            String::from_utf8_lossy(&payload)
+        );
+        assert_eq!(capture.calls, 0);
+        assert!(capture.bytes.is_empty());
+    }
+}
+
+#[test]
+fn material_editor_dist_native_texture_uv_overflow_rejects_every_component_without_sanitizing() {
+    let document = inspect_document();
+    let schema = inspect_shader(&document);
+    for component in 0..5 {
+        let mut transform = json!({"scale":[1.0,1.0],"offset":[0.0,0.0],"rotation":0.0});
+        match component {
+            0 | 1 => transform["scale"][component] = json!(1e100),
+            2 | 3 => transform["offset"][component - 2] = json!(-1e100),
+            _ => transform["rotation"] = json!(1e100),
+        }
+        let payload = texture_edit_request(
+            &document,
+            Some(&schema),
+            "base_color",
+            json!({"kind":"set","value":{"transform":transform}}),
+            None,
+        );
+        let result = property_command_result(13, &payload);
+        assert_eq!(result["texture_error"]["kind"], "non_finite_transform");
+        assert!(result["plan"].is_null());
+        assert_eq!(result["ok"], false);
+    }
+}
+
+#[test]
+fn material_editor_dist_native_texture_edit_publishes_once_at_exact_budget_and_keeps_host_denial() {
+    let document = inspect_document();
+    let schema = inspect_shader(&document);
+    for edit in [
+        json!({"kind":"set","value":{}}),
+        json!({"kind":"clear_override"}),
+    ] {
+        let payload = texture_edit_request(&document, Some(&schema), "base_color", edit, None);
+        let (status, expected) = invoke(
+            13,
+            &payload,
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        assert_eq!(expected.calls, 1);
+        for budget in [0, 1, expected.bytes.len() - 1] {
+            let (status, capture) = invoke(13, &payload, budget, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+            assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+            assert_eq!(capture.calls, 0);
+            assert!(capture.bytes.is_empty());
+        }
+        let (status, exact) = invoke(
+            13,
+            &payload,
+            expected.bytes.len(),
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        assert_eq!(exact.calls, 1);
+        assert_eq!(exact.bytes, expected.bytes);
+        let (status, denied) = invoke(
+            13,
+            &payload,
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED);
+        assert_eq!(denied.calls, 1);
+        assert!(denied.bytes.is_empty());
+    }
+}
+
+fn texture_edit_request(
+    document: &ZMaterialDocument,
+    shader: Option<&ShaderAsset>,
+    name: &str,
+    edit: Value,
+    observation: Option<Value>,
+) -> Vec<u8> {
+    let mut value: Value = serde_json::from_slice(&inspect_request(document, shader)).unwrap();
+    value["name"] = json!(name);
+    value["edit"] = edit;
+    value["resource_observation"] = json!(observation);
+    serde_json::to_vec(&value).unwrap()
 }
 
 fn property_edit_request(
