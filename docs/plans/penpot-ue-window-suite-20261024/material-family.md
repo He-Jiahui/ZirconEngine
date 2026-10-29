@@ -1,3 +1,17 @@
+## 材质接续84：canonical 单包托管验证与参数宿主精确接点（2026-10-28 UTC）
+
+本轮沿原 request `ue-material-graph-20261024-01`、原唯一producer，透明新增 operation `matgraph-canonical-01a16d50-20261028-84`。验证的是实际 canonical checkout `5436b180047256ed17fb296a3cebad75c230c64b`，42份材质Rust和13份依赖的当前hash已重新登记；不是重放r10／任何旧终态，也不是对尚未集成分支冒签。原参数分支82的 `e7d7755a` 和83文档 `38b2aea8` 仍 integration pending，本轮不将 canonical 的161静态 `material_graph_` 定义混为82的209定义或其Set／Reset／vector覆盖。
+
+实际选中正式 capsule `341a997d6d4bbd6a8cb94ba1cf7588884d3f3f09d249b60b2a232010eca95fe6`，pinned entry `829b326e5f43c7d260d6e639e2990e40fba275c8362816aad12e865e71411158`；纯真实argv parse与public transport核验通过后，仅调用一次 `python -m tools.dev.local_cargo --build-root E:/cargo-targets --jenkins-identity-file .../material-canonical-84.identity.json -- test --manifest-path E:/Git/ZirconEngine/zircon_plugins/Cargo.toml -p zircon_plugin_material_editor_editor --no-default-features --locked --lib --profile test --jobs 1 material_graph_ -- --test-threads 1`。单包features[]、传递Runtime/native-host与Editor/target-editor-host，实际物理输出由原资源／pool／cache准入决定。没有直接本地Cargo、nested worktree验证、完整workspace、改锁／门禁／服务或source freeze。首次只读capability报告JSON未处理WindowsPath而失败，重复只读探测后按字符串序列化落档；未由此重复提交。
+
+`MAT-HOST-PARAMETER-84`给Parent原宿主边界的13份实际源码pin：`AssetToolkitOpenRoute`只携真实locator／operation；`OperationCommandFactoryRegistration → OperationCommand → EditorTransactionEngine`及`HistoryContextId::Document`、GraphDeltaCommand的retention／prepare／一次permit可复用；但当前CoreEditContext仅有动画文档与scene gateways，没有材质图文档访问器，插件不能downcast私有context或凭候选自建影子store。材质workspace仍是固定profile和`Not implemented (preview)`。因此下一接点是原Document／session在同view incarnation、source revision、request下提供唯一当前MaterialGraphAsset，走一条delta／inverse／history／CAS、取消与焦点返回；编译再连原ResourceManager的shader／textures与同版本render publication，不能由编译成功宣称GPU就绪。Material／Instance仍保留原ZMaterialDocument的parent、editor、options与presence，不能从effective MaterialAsset或MaterialEditorProjection重建作者文档。本轮没有写公共host／graph／theme／catalog或注册新UUID／payload schema。
+
+原Penpot83的rev422、5585对象与三板真实结果按原回执复用，没有新增浏览器／设计保存／正式export／EXE捕获。640节点裁切和不工作的滚轮／拖动、焦点BODY、原ZUI codec／renderer／实际150%DPI／双端1DIP均独立open，整族passed／accepted=false，goal active。实际entry、queue／build／资源／native和测试终态只按本轮原件补记，不从旧r19 reader、旧容量或API状态补造释放证明。
+
+<!-- MAT-CANONICAL-84-RESULT -->
+本轮正式entry 07:35:18.504583Z→07:42:23.171738Z正常exit0，helper20876／entry28804均已退出。一次实际POST取得queue29399→management#651，原inputDigest `bad47632d28c8c4be2b6b32ca36b627dd8948cc9b84b2da3388115c11f3fe2be`，identity SHA `d100a28e0c988bbeac481951046b33f6390a2350821cd6ee2b40fbabaf7a6755`。初次认证API仍building；493B原archive SHA `497b41fef941dd217a9e602945a43d10d720a011d00ffb34d4053bcb9e6307c9` 为waiting／management_git_busy／“Another process owns this operation”，operationKey `9cf8a9cf803b8c3d46fd4c7e92f2b3bb9f2ce2e0dc8201913b7e80d7c4e0b1be`。不将它写成Rust失败、reader／budget拒绝或原生释放；compileStarted／发现／执行数及server native终态仍未知，只沿原#651跟进、不重复提交。两次完整checkout捕获各52351文件、988559223B，216.030s／35.103s；这不是编译或测试通过。精确原件在原报告根 `material-canonical-84-{submission,observation,server-receipt,handoff}.json`，后继只追加实际变化，保留首次waiting原件。
+<!-- /MAT-CANONICAL-84-RESULT -->
+
 ## 材质接续83：三尺寸图导航实测与 UE 缩放消费合同（2026-10-28 UTC）
 
 原 request `ue-material-graph-20261024-01`、唯一 producer 和 `w47ec1661d3/par79` 保持。82 已由 queue29197／management#634 SUCCESS 提交 `e7d7755a0b07f721f81c0e9f77136e2f1744f261`（parent5bb1a017），四路径 working raw／Git blob 精确一致，integration pending／mainAdvanced=false／validationPerformed=false；本节不重写82原输入或用交付成功代验209静态定义。83只改本计划，不改三Rust、公共Graph／host／Shared／原ZUI，不提交Cargo。
