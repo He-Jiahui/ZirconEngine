@@ -22,7 +22,7 @@ fn material_editor_dist_native_manifest_declares_real_slots_and_contribution_sch
     let command_manifest = unsafe { CStr::from_ptr(behavior.command_manifest) };
     let manifest =
         native::command_manifest_v4_from_toml(command_manifest.to_str().unwrap()).unwrap();
-    assert_eq!(manifest.commands.len(), 6);
+    assert_eq!(manifest.commands.len(), 7);
     for (slot, name, schema) in [
         (
             0,
@@ -53,6 +53,11 @@ fn material_editor_dist_native_manifest_declares_real_slots_and_contribution_sch
             5,
             "material_editor.graph.details",
             "material_editor.graph_details.v1",
+        ),
+        (
+            6,
+            "material_editor.graph.plan_parameter_edit",
+            "material_editor.plan_graph_parameter_edit.v1",
         ),
     ] {
         let command = &manifest.commands[slot as usize];
@@ -332,6 +337,12 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
             "command.material_editor.graph.details.description",
             contract(),
         )
+        .command_with_execution_contract(
+            "material_editor.graph.plan_parameter_edit",
+            "command.material_editor.graph.plan_parameter_edit.label",
+            "command.material_editor.graph.plan_parameter_edit.description",
+            contract(),
+        )
         .localization_bundle(
             [
                 (
@@ -385,6 +396,14 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
                             "command.material_editor.graph.details.description",
                             "Read original Details targets and common or mixed values for the submitted selection",
                         ),
+                        (
+                            "command.material_editor.graph.plan_parameter_edit.label",
+                            "Plan Material Graph Parameter Edit",
+                        ),
+                        (
+                            "command.material_editor.graph.plan_parameter_edit.description",
+                            "Plan one presence-sensitive parameter override edit without applying it",
+                        ),
                     ],
                 ),
                 (
@@ -432,6 +451,14 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
                             "command.material_editor.graph.details.description",
                             "读取本次选择的原始详情对象及共同值或混合值",
                         ),
+                        (
+                            "command.material_editor.graph.plan_parameter_edit.label",
+                            "规划材质图参数编辑",
+                        ),
+                        (
+                            "command.material_editor.graph.plan_parameter_edit.description",
+                            "规划一个保留覆盖存在性的参数编辑候选，不提交作者事务",
+                        ),
                     ],
                 ),
             ]
@@ -452,7 +479,7 @@ fn material_editor_dist_native_contribution_batch_matches_existing_sdk_contract(
     let actual = deserialize_like(registration_json(), &expected);
     assert_eq!(actual, expected);
     assert_eq!(actual.package_id(), "material_editor");
-    assert_eq!(actual.contributions().len(), 7);
+    assert_eq!(actual.contributions().len(), 8);
 }
 
 #[test]
@@ -2071,4 +2098,404 @@ fn numeric_graph_request(slot: u32, graph_value: Value) -> Vec<u8> {
     };
     value["graph"] = graph_value;
     serde_json::to_vec(&value).unwrap()
+}
+
+#[test]
+fn material_editor_dist_native_parameter_edit_preserves_presence_and_signed_zero() {
+    for previous in [
+        None,
+        Some(Parameter::Scalar(0.0)),
+        Some(Parameter::Scalar(-0.0)),
+        Some(Parameter::Scalar(0.25)),
+        Some(Parameter::Vector([0.0, 0.5, 0.75, 1.0])),
+    ] {
+        let mut source = parameter_edit_graph();
+        if let Some(value) = &previous {
+            source
+                .parameters
+                .insert(" Gain 原始 ".into(), value.clone());
+        }
+        for next in [0.0_f32, -0.0, 0.25] {
+            let result =
+                parameter_edit_result(&source, "gain", json!({"kind":"set_scalar","value":next}));
+            let plan = &result["plan"];
+            assert_eq!(plan["key"], " Gain 原始 ");
+            assert_eq!(plan["node_id"], "gain");
+            assert_eq!(plan["affected_node_ids"], json!(["gain"]));
+            assert_eq!(plan["previous_present"], previous.is_some());
+            assert_eq!(
+                plan["previous_value"],
+                serde_json::to_value(&previous).unwrap()
+            );
+            if let Some(Parameter::Scalar(before)) = &previous {
+                assert_eq!(
+                    (plan["previous_value"]["value"].as_f64().unwrap() as f32).to_bits(),
+                    before.to_bits(),
+                );
+            }
+            assert_eq!(plan["proposed_present"], true);
+            assert_eq!(
+                (plan["proposed_value"]["value"].as_f64().unwrap() as f32).to_bits(),
+                next.to_bits(),
+            );
+            let changed = match &previous {
+                Some(Parameter::Scalar(before)) => before.to_bits() != next.to_bits(),
+                _ => true,
+            };
+            assert_eq!(plan["changes_source"], changed);
+        }
+        let reset = parameter_edit_result(&source, "gain", json!({"kind":"reset"}));
+        assert_eq!(reset["plan"]["previous_present"], previous.is_some());
+        assert_eq!(reset["plan"]["proposed_present"], false);
+        assert!(reset["plan"]["proposed_value"].is_null());
+        assert_eq!(reset["plan"]["changes_source"], previous.is_some());
+    }
+}
+
+#[test]
+fn material_editor_dist_native_parameter_edit_qualifies_all_declarations_in_source_order() {
+    let mut source = parameter_edit_graph();
+    let mut second = source
+        .nodes
+        .iter()
+        .find(|node| node.id == "gain")
+        .unwrap()
+        .clone();
+    second.id = "same-key-first".into();
+    source.nodes.insert(0, second);
+    let result = parameter_edit_result(&source, "gain", json!({"kind":"set_scalar","value":0.75}));
+    assert_eq!(
+        result["plan"]["affected_node_ids"],
+        json!(["same-key-first", "gain"])
+    );
+    assert_eq!(result["plan"]["key"], " Gain 原始 ");
+    source.nodes[0].kind = Node::VectorParameter {
+        name: " Gain 原始 ".into(),
+        default: [1.0; 4],
+    };
+    let rejected =
+        parameter_edit_result(&source, "gain", json!({"kind":"set_scalar","value":0.75}));
+    assert!(rejected["plan"].is_null());
+    assert_eq!(
+        rejected["edit_error"]["diagnostics"][0]["target"]["node_id"],
+        "same-key-first"
+    );
+    for target in ["missing", "output"] {
+        let rejected = parameter_edit_result(&source, target, json!({"kind":"reset"}));
+        assert!(rejected["plan"].is_null());
+        assert!(!rejected["edit_error"]["diagnostics"]
+            .as_array()
+            .unwrap()
+            .is_empty());
+    }
+    source.nodes[0].id = "gain".into();
+    let duplicate = parameter_edit_result(&source, "gain", json!({"kind":"reset"}));
+    assert!(duplicate["plan"].is_null());
+}
+
+#[test]
+fn material_editor_dist_native_parameter_vector_components_keep_untouched_source_bits() {
+    for local in [None, Some([-0.0_f32, -5.0, f32::MAX, 0.5])] {
+        let mut source = parameter_edit_graph();
+        if let Some(values) = local {
+            source
+                .parameters
+                .insert("tint".into(), Parameter::Vector(values));
+        }
+        let result = parameter_edit_result(
+            &source,
+            "tint",
+            json!({"kind":"set_vector_components","components":[null,0.875,null,null]}),
+        );
+        let values = local.unwrap_or([0.25, 0.5, 0.75, 1.0]);
+        let plan = &result["plan"];
+        assert_eq!(plan["previous_present"], local.is_some());
+        assert_eq!(plan["proposed_present"], true);
+        for (channel, before) in values.iter().enumerate() {
+            let expected = if channel == 1 { 0.875 } else { *before };
+            assert_eq!(
+                (plan["proposed_value"]["value"][channel].as_f64().unwrap() as f32).to_bits(),
+                expected.to_bits(),
+            );
+        }
+    }
+    for (target, components) in [
+        ("tint", json!([null, null, null, null])),
+        ("gain", json!([1.0, null, null, null])),
+    ] {
+        let result = parameter_edit_result(
+            &parameter_edit_graph(),
+            target,
+            json!({"kind":"set_vector_components","components":components}),
+        );
+        assert!(result["plan"].is_null());
+    }
+}
+
+#[test]
+fn material_editor_dist_native_parameter_reset_keeps_wrong_type_and_empty_key_for_repair() {
+    for key in [" Gain 原始 ", ""] {
+        let mut source = parameter_edit_graph();
+        source
+            .nodes
+            .iter_mut()
+            .find(|node| node.id == "gain")
+            .unwrap()
+            .kind = Node::ScalarParameter {
+            name: key.into(),
+            default: 0.25,
+        };
+        let previous = Parameter::Vector([-0.0, 0.5, 0.75, 1.0]);
+        source.parameters.insert(key.into(), previous.clone());
+        let result = parameter_edit_result(&source, "gain", json!({"kind":"reset"}));
+        assert_eq!(result["plan"]["key"], key);
+        assert_eq!(
+            result["plan"]["previous_value"],
+            serde_json::to_value(previous).unwrap()
+        );
+        assert_eq!(result["plan"]["proposed_present"], false);
+        assert_eq!(result["plan"]["changes_source"], true);
+        assert!(result["edit_error"].is_null());
+        let expected: Vec<_> = validate_material_graph_with_diagnostics(&source)
+            .iter()
+            .map(diagnostic_json)
+            .collect();
+        assert_eq!(result["diagnostics"], json!(expected));
+        assert!(!result["diagnostics"].as_array().unwrap().is_empty());
+        assert_eq!(result["ok"], false);
+        if key.is_empty() {
+            let rejected =
+                parameter_edit_result(&source, "gain", json!({"kind":"set_scalar","value":0.25}));
+            assert!(rejected["plan"].is_null());
+        }
+    }
+}
+
+#[test]
+fn material_editor_dist_native_parameter_edit_rejects_overflow_before_any_candidate() {
+    let source = parameter_edit_graph();
+    for edit in [
+        json!({"kind":"set_scalar","value":1.0e100_f64}),
+        json!({"kind":"set_vector","value":[0.0,1.0e100_f64,0.0,1.0]}),
+        json!({"kind":"set_vector_components","components":[null,-1.0e100_f64,null,null]}),
+    ] {
+        let target = if edit["kind"] == "set_scalar" {
+            "gain"
+        } else {
+            "tint"
+        };
+        let result = parameter_edit_result(&source, target, edit);
+        assert!(result["plan"].is_null());
+        assert!(!result["edit_error"]["diagnostics"]
+            .as_array()
+            .unwrap()
+            .is_empty());
+    }
+    for location in 0..3 {
+        let mut graph_value = serde_json::to_value(&source).unwrap();
+        match location {
+            0 => graph_value["nodes"][0]["position"][1] = json!(1.0e100_f64),
+            1 => graph_value["nodes"][0]["kind"]["default"][2] = json!(-1.0e100_f64),
+            _ => graph_value["parameters"]["orphan"] = json!({"kind":"scalar","value":1.0e100_f64}),
+        }
+        let payload = serde_json::to_vec(&json!({
+            "graph":graph_value, "node_id":"gain", "edit":{"kind":"reset"},
+        }))
+        .unwrap();
+        let (status, capture) = invoke(
+            6,
+            &payload,
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+        assert_eq!(capture.calls, 0);
+        assert!(capture.bytes.is_empty());
+    }
+    let hdr = parameter_edit_result(
+        &source,
+        "gain",
+        json!({"kind":"set_scalar","value":f32::MAX}),
+    );
+    assert_eq!(
+        (hdr["plan"]["proposed_value"]["value"].as_f64().unwrap() as f32).to_bits(),
+        f32::MAX.to_bits()
+    );
+}
+
+#[test]
+fn material_editor_dist_native_parameter_edit_requires_strict_tagged_named_arguments() {
+    let source = parameter_edit_graph();
+    let graph_json = serde_json::to_string(&source).unwrap();
+    let mut invalid = vec![
+        b"[]".to_vec(), b"{}".to_vec(),
+        serde_json::to_vec(&json!({"graph":source,"edit":{"kind":"reset"}})).unwrap(),
+        serde_json::to_vec(&json!({"graph":source,"node_id":"gain","edit":{"kind":"reset"},"extra":true})).unwrap(),
+        format!(r#"{{"graph":{graph_json},"graph":{graph_json},"node_id":"gain","edit":{{"kind":"reset"}}}}"#).into_bytes(),
+        format!(r#"{{"graph":{graph_json},"node_id":"gain","node_id":"tint","edit":{{"kind":"reset"}}}}"#).into_bytes(),
+        format!(r#"{{"graph":{graph_json},"node_id":"gain","edit":{{"kind":"reset","kind":"reset"}}}}"#).into_bytes(),
+        format!(r#"{{"graph":{graph_json},"node_id":"gain","edit":{{"kind":"set_scalar","value":1.0,"value":2.0}}}}"#).into_bytes(),
+    ];
+    for edit in [
+        json!(null),
+        json!([]),
+        json!({}),
+        json!({"kind":"unknown"}),
+        json!({"kind":"reset","value":0.0}),
+        json!({"kind":"set_scalar","value":null}),
+        json!({"kind":"set_scalar","value":0.0,"components":[null,null,null,null]}),
+        json!({"kind":"set_vector","value":[0.0,1.0,2.0]}),
+        json!({"kind":"set_vector_components","components":[null,null,null]}),
+    ] {
+        invalid.push(parameter_edit_request(&source, "gain", edit));
+    }
+    for payload in invalid {
+        let (status, capture) = invoke(
+            6,
+            &payload,
+            MAX_OUTPUT_BYTES,
+            ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        );
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+        assert_eq!(capture.calls, 0);
+        assert!(capture.bytes.is_empty());
+    }
+}
+
+#[test]
+fn material_editor_dist_native_parameter_edit_keeps_bounded_single_publish_and_host_rejection() {
+    let payload = parameter_edit_request(&parameter_edit_graph(), "gain", json!({"kind":"reset"}));
+    for budget in [0, 1, 24] {
+        let (status, capture) = invoke(6, &payload, budget, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+        assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR);
+        assert_eq!(capture.calls, 0);
+        assert!(capture.bytes.is_empty());
+    }
+    let (status, capture) = invoke(
+        6,
+        &payload,
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED);
+    assert_eq!(capture.calls, 1);
+}
+
+#[test]
+fn material_editor_dist_native_parameter_candidate_recompiles_and_raw_inverse_restores_source() {
+    let source = graph(0.25);
+    let original = serde_json::to_value(&source).unwrap();
+    let result = parameter_edit_result(
+        &source,
+        "tint",
+        json!({"kind":"set_vector_components","components":[0.875,null,null,null]}),
+    );
+    let plan = &result["plan"];
+    assert_eq!(plan["changes_source"], true);
+    let key = plan["key"].as_str().unwrap().to_owned();
+    let previous: Option<Parameter> =
+        serde_json::from_value(plan["previous_value"].clone()).unwrap();
+    let proposed: Parameter = serde_json::from_value(plan["proposed_value"].clone()).unwrap();
+    // This test applies a candidate to its local fixture only; the production callback
+    // never mutates an author document or creates a host history/CAS permit.
+    let mut edited = source.clone();
+    edited.parameters.insert(key.clone(), proposed);
+    let (status, capture) = invoke(
+        1,
+        &request(&edited),
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    let compiled: Value = serde_json::from_slice(&capture.bytes).unwrap();
+    assert_eq!(compiled["ok"], true);
+    assert_eq!(compiled["material"]["base_color"][0].as_f64(), Some(0.875));
+    match previous {
+        Some(value) => {
+            edited.parameters.insert(key, value);
+        }
+        None => {
+            edited.parameters.remove(&key);
+        }
+    }
+    assert_eq!(serde_json::to_value(&edited).unwrap(), original);
+    let (status, capture) = invoke(
+        1,
+        &request(&edited),
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    let compiled: Value = serde_json::from_slice(&capture.bytes).unwrap();
+    assert_eq!(compiled["material"]["base_color"][0].as_f64(), Some(0.25));
+}
+
+fn parameter_edit_graph() -> MaterialGraphAsset {
+    let mut source = graph(0.25);
+    source.nodes.push(MaterialGraphNodeAsset {
+        id: "gain".into(),
+        position: [0.0, 120.0],
+        kind: Node::ScalarParameter {
+            name: " Gain 原始 ".into(),
+            default: 0.25,
+        },
+    });
+    source
+}
+
+fn parameter_edit_request(graph: &MaterialGraphAsset, node_id: &str, edit: Value) -> Vec<u8> {
+    serde_json::to_vec(&json!({"graph":graph,"node_id":node_id,"edit":edit})).unwrap()
+}
+
+fn parameter_edit_result(graph: &MaterialGraphAsset, node_id: &str, edit: Value) -> Value {
+    let payload = parameter_edit_request(graph, node_id, edit);
+    let before = payload.clone();
+    let (status, capture) = invoke(
+        6,
+        &payload,
+        MAX_OUTPUT_BYTES,
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+    );
+    assert_eq!(status.code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
+    assert_eq!(capture.calls, 1);
+    assert_eq!(payload, before);
+    serde_json::from_slice(&capture.bytes).unwrap()
+}
+
+#[test]
+fn material_editor_dist_native_parameter_full_vector_set_keeps_hdr_bits_and_type_repair() {
+    let values = [f32::MAX, f32::MIN, f32::from_bits(1), -0.0];
+    for previous in [
+        None,
+        Some(Parameter::Vector(values)),
+        Some(Parameter::Scalar(-0.0)),
+    ] {
+        let mut source = parameter_edit_graph();
+        if let Some(value) = &previous {
+            source.parameters.insert("tint".into(), value.clone());
+        }
+        let result =
+            parameter_edit_result(&source, "tint", json!({"kind":"set_vector","value":values}));
+        let plan = &result["plan"];
+        assert_eq!(plan["previous_present"], previous.is_some());
+        assert_eq!(plan["proposed_present"], true);
+        assert_eq!(plan["proposed_value"]["kind"], "vector");
+        assert_eq!(
+            plan["changes_source"],
+            !matches!(&previous, Some(Parameter::Vector(_)))
+        );
+        for (channel, expected) in values.iter().enumerate() {
+            assert_eq!(
+                (plan["proposed_value"]["value"][channel].as_f64().unwrap() as f32).to_bits(),
+                expected.to_bits(),
+            );
+        }
+        if let Some(Parameter::Scalar(before)) = previous {
+            assert_eq!(plan["previous_value"]["kind"], "scalar");
+            assert_eq!(
+                (plan["previous_value"]["value"].as_f64().unwrap() as f32).to_bits(),
+                before.to_bits(),
+            );
+        }
+    }
 }
