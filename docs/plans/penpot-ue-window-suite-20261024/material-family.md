@@ -1,3 +1,14 @@
+## 材质接续79：Graph 参数覆盖 Set/Reset 作者候选（原唯一 producer，2026-10-28 UTC）
+
+- 交付范围勘误：原 `deliver-material-parameter-edit-01a16d50-20261028-79` 已实际 queue28817/#595 FAILURE，原因是 mat64 的原 ownedPaths 仅含 Details 四文件，未含 parameters 两路径；原 1872B 双归档 SHA87a80b984ab4483542d2b58f2e21aee6f2e9e1c8d296796b973ef5c61c989fff 保留，不重放或改 owner scope。正式新建 `material-parameters-worktree-01a16d50-20261028-79`→queue28825/#597 SUCCESS，服务器返回 `w47ec1661d3-par79` / session `w47ec1661d3` / 原基线1e4a4831与准确四路径，实际四前像均与79原before相同。仅把79新补丁编辑到该已就绪工作树，原mat64 dirty候选保留；正常后继 `deliver-material-parameter-edit-01a16d50-20261028-79-r2` 单独登记当前 sourceRoot/文档勘误，原请求/唯一 producer/旧失败不变。
+- 接续原 Parameters54 可编辑三板与55/56真实声明投影，在原 managed worktree `w1167fba90b-mat64`、base `1e4a483137d68121e19b2471bacebbabee0d97d3` 完成 Graph.parameters 单键作者候选。`plan_material_graph_parameter_edit` 以当前 node ID 定位真实声明；原始键精确保留大小写/空格/中文，同键全部声明按源序提供 affected_nodes。Set 要求所有同键声明类型兼容、新值有限，保留有限 HDR/负值；Reset 删除该键而不把默认值写回 map。空键、旧错类型或非有限覆盖可 Reset 修复；节点默认/links/其它覆盖与孤立键保留，已有诊断继续有效。
+- `MaterialGraphParameterEditPlan` 借用原 Graph/Node/key/原覆盖，保存固定数值类型候选；previous_value 的 None/Some、数值 bits（含 -0/NaN 原 before）和类型区分真实 no-op 与显式覆盖。一次 map 编辑可影响多个声明，不能拆成每节点命令。宿主仍须校验同 view incarnation/document/subdocument/revision/request，预收 key/before/after/inverse 预算，再走原一次 delta/prepare/permit/CAS/history；本候选无新 store/clock/history/preview 或可执行 host 权限。此为 Graph 参数，不关闭 MaterialAsset Instance ABI、继承/作者 metadata 或 Function 模型缺口。
+- 七项有意义回归定义覆盖显式默认/零/符号零、精确键与同键源序、多类型别名整次拒绝与 Reset 修复、stale/歧义 node IDs、非有限新值拒绝/旧 before bits、空键与坏默认诊断，以及真实 MaterialGraphAsset codec→CPU PBR compile→Reset/逆值恢复。最后一项仅测试内安装候选，非正式 host undo/renderer 证明。原194定义保留，本次累计201定义（200普通+原1ignored）；Rust发现/执行数未知，未编译。
+- 正式交付沿原 `ue-material-graph-20261024-01`、session `w1167fba90b`，仅 lib.rs/parameters.rs/tests/parameters.rs/本 md 四路径，operation `deliver-material-parameter-edit-01a16d50-20261028-79`；未复用64/旧#448/r10终结 operation。托管结果在原报告根 `material-parameter-edit-79-*` 追加，committed 与 PR/main/产品验证分别记账。
+- Parent r245 已真实关闭原 r141 阴影合同文档交付：queue28565/#578→0610a3ab，IME queue28592/#579→482bc7dc，均 committed/integration pending/validation[]。UE 阴影每侧12/整体24、18/64为texture slice的事实保留；本域 graph_bounds 继续是正文边界，真实 painter/alpha/clip/hit/export 未获证。本次没有复制公共阴影实现。
+- 接续78实读 #794 原封装 worker-r9/c3b118五成员全匹配，定位 branch_integration.py:418→342/344 的历史产物清单打开点；已有7dc17359补丁仅修胶囊 inventory，不修此登记入口。精确新证据 `material-integration-78-source-trace.json` SHA7e1481ea732c05f88df8f0ed1355a330bad45ca84f91b3c4144029399f29ed3b 已交原管理/集成 owner。原 #794 只存 str(error)，不推定具体 checkout/merge 子阶段，不造历史清单或改 sealed/State/锁，不重投已提交64/75/77。
+- Penpot 保留原75实际 rev400/5020对象/5业务main、三尺寸 native Fill 与保存/关闭/新context重开证据；79未写设计或 fork30 Instance/Hierarchy/四Search。54三 Parameters 板仍是原 Output-only 空状态，Graph 参数编辑的真实 Field/event/checkbox/reset 消费尚未绑定，不能把原空设计当作本次新命令已可操作。正式 codec/export/renderer/正常EXE/150%DPI/双端1DIP与全族 passed/accepted 均 open。
+
 # 材质窗口族：源码盘点、实现与证据
 
 ## Expression batch77：多选默认值与分通道候选（2026-10-28）
