@@ -67,6 +67,7 @@ pub(super) const FIXED_HOST_FUNCTIONS: &[(&str, &str)] = &[
     ("zr.zircon.gameplay", "damage_entity_report"),
     ("zr.zircon.gameplay", "spawn_empty"),
     ("zr.zircon.gameplay", "spawn_model"),
+    ("zr.zircon.gameplay", "play_sound"),
     ("zr.zircon.gameplay", "set_hud_text"),
     ("zr.zircon.gameplay", "set_particle_sprites"),
     ("zr.zircon.gameplay", "set_world_hud_bar"),

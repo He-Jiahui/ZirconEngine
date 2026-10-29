@@ -1,10 +1,12 @@
 #[path = "scene_system/component.rs"]
 mod component;
+#[path = "scene_system/requests.rs"]
+mod requests;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use zircon_runtime::core::framework::scene::EntityId;
-use zircon_runtime::core::framework::sound::SoundError;
+use zircon_runtime::core::framework::sound::{SoundError, SoundSourceId};
 use zircon_runtime::core::{CoreError, ModuleCleanupContext, ModuleLifecycle};
 use zircon_runtime::plugin::{RuntimeExtensionRegistry, RuntimeExtensionRegistryError};
 use zircon_runtime::scene::ecs::{RuntimeSceneSystemContext, SystemRef};
@@ -36,6 +38,7 @@ pub(crate) fn register_scene_system(
 struct SoundSceneSystem {
     manager: Option<DefaultSoundManager>,
     sources: BTreeMap<EntityId, SceneSource>,
+    transients: HashMap<SoundSourceId, EntityId>,
 }
 
 impl SoundSceneSystem {
@@ -51,7 +54,9 @@ impl SoundSceneSystem {
             self.release();
         }
         self.manager = Some((*manager).clone());
-        context.level.with_world(|world| {
+        context.level.with_world_mut(|world| {
+            self.release_finished_transients(&manager, world)?;
+            let retriggered = self.consume_requests(&manager, world)?;
             let removed = self
                 .sources
                 .keys()
@@ -71,6 +76,14 @@ impl SoundSceneSystem {
                     continue;
                 }
                 let result = component::read(world, entity).and_then(|descriptor| {
+                    // An explicit host call also retriggers the same clip after
+                    // natural completion; normal scene ticks keep tombstones.
+                    if retriggered.contains(&entity) {
+                        if let Some(previous) = self.sources.get(&entity) {
+                            manager.release_scene_source(previous.id)?;
+                        }
+                        self.sources.remove(&entity);
+                    }
                     manager.sync_scene_source(self.sources.get(&entity), descriptor)
                 });
                 match result {
@@ -98,6 +111,9 @@ impl SoundSceneSystem {
         if let Some(manager) = self.manager.take() {
             for source in std::mem::take(&mut self.sources).into_values() {
                 let _ = manager.release_scene_source(source.id);
+            }
+            for source in std::mem::take(&mut self.transients).into_keys() {
+                let _ = manager.release_scene_source(source);
             }
         }
     }

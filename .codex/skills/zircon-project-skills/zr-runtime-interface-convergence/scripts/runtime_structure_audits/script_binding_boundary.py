@@ -4,10 +4,10 @@ from pathlib import Path
 
 
 EXPECTED_FIXED_HOST_MODULES = 6
-EXPECTED_FIXED_HOST_FUNCTIONS = 74
+EXPECTED_FIXED_HOST_FUNCTIONS = 75
 EXPECTED_TYPE_DESCRIPTORS = 2
 EXPECTED_BUILTIN_CALLBACKS = 21
-EXPECTED_GAMEPLAY_CALLBACKS = 51
+EXPECTED_GAMEPLAY_CALLBACKS = 52
 EXPECTED_MACRO_HOST_FUNCTIONS = 2
 EXPECTED_HOST_CAPABILITIES = 14
 SCRIPT_LEDGER_TEST_MAX_LINES = 700
@@ -22,6 +22,7 @@ RUNTIME_13_SOURCE_FILES = (
     "zircon_runtime/src/script/vm/gameplay_host/error.rs",
     "zircon_runtime/src/script/vm/gameplay_host/input.rs",
     "zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs",
+    "zircon_runtime/src/script/vm/gameplay_host/lifecycle/sound.rs",
     "zircon_runtime/src/script/vm/gameplay_host/navigation.rs",
     "zircon_runtime/src/script/vm/gameplay_host/random.rs",
     "zircon_runtime/src/script/vm/gameplay_host/rotation.rs",
@@ -86,7 +87,7 @@ HOST_CAPABILITIES = (
     "bridge.call",
 )
 LEDGER_DOC_ANCHORS = (
-    "6 host modules, 74 fixed host functions, and 2 fixed script type descriptors",
+    "6 host modules, 75 fixed host functions, and 2 fixed script type descriptors",
     "`zr.zircon.bridge`",
     "dynamic module shape contract",
     "Value descriptors",
@@ -99,6 +100,7 @@ LEDGER_DOC_ANCHORS = (
     "host_function_without_required_capability_is_rejected_with_explicit_error",
     "request_scene_transition",
     "gameplay.scene_transition",
+    "| `play_sound` |",
 )
 RUNTIME_13_GUARDS = (
     "host_function_registry_matches_documented_ledger",

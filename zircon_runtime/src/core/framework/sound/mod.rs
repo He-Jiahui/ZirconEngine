@@ -30,6 +30,8 @@ mod output;
 mod playback;
 #[path = "preset.rs"]
 mod preset;
+#[path = "scene_playback.rs"]
+mod scene_playback;
 #[path = "status.rs"]
 mod status;
 
@@ -93,6 +95,7 @@ pub use playback::{
     SoundSourceStatus,
 };
 pub use preset::SoundMixerPresetDescriptor;
+pub use scene_playback::{SoundPlayRequest, SoundPlayRequests};
 pub use status::{SoundBackendState, SoundBackendStatus};
 
 #[cfg(test)]

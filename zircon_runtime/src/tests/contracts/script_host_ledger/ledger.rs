@@ -17,9 +17,9 @@ fn host_function_registry_matches_documented_ledger() {
         .find(|line| line.starts_with("Runtime13 current source contract inventory:"))
         .expect("the canonical ledger must have a current source inventory");
     for required in [
-        "fixed_host_function_count = 74",
+        "fixed_host_function_count = 75",
         "builtin_callback_count = 21",
-        "gameplay_callback_count = 51",
+        "gameplay_callback_count = 52",
         "host_capability_count = 14",
     ] {
         assert!(current_inventory.contains(required), "inventory {required}");
@@ -32,7 +32,7 @@ fn host_function_registry_matches_documented_ledger() {
     );
     assert_eq!(
         count_occurrences(gameplay_source, "HostExportFunction::new("),
-        51,
+        52,
         "gameplay host callback count changed; update function_ledger.md and Runtime 13 status"
     );
     assert_eq!(
@@ -78,7 +78,7 @@ fn host_function_registry_matches_documented_ledger() {
     }
 
     for required_ledger_anchor in [
-        "6 host modules, 74 fixed host functions, and 2 fixed script type descriptors",
+        "6 host modules, 75 fixed host functions, and 2 fixed script type descriptors",
         "Version 0.3.0 deterministic value and scalar math ABI.",
         "`zr.zircon.bridge`",
         "dynamic module shape contract",

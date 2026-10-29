@@ -384,6 +384,7 @@ pub fn register_gameplay_host_module(
             HostExportFunction::new("spawn_empty", spawn_empty),
             HostExportFunction::new("spawn_model", spawn_model),
             HostExportFunction::new("set_hud_text", set_hud_text),
+            HostExportFunction::new("play_sound", lifecycle::play_sound),
             HostExportFunction::new("set_particle_sprites", set_particle_sprites),
             HostExportFunction::new("set_world_hud_bar", set_world_hud_bar),
             HostExportFunction::new("despawn", despawn),

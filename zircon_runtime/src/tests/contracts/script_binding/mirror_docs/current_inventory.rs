@@ -32,9 +32,9 @@ pub(super) fn assert_current_inventory(mirror_anchors: &[&str]) {
             doc_name,
             inventories[0],
             &[
-                "fixed_host_function_count = 74",
+                "fixed_host_function_count = 75",
                 "builtin_callback_count = 21",
-                "gameplay_callback_count = 51",
+                "gameplay_callback_count = 52",
                 "host_capability_count = 14",
             ],
         );

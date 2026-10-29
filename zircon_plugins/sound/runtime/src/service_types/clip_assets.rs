@@ -37,6 +37,16 @@ impl DefaultSoundManager {
         clip_id
     }
 
+    #[cfg(test)]
+    pub(crate) fn cache_clip_for_test(&self, asset: SoundAsset) -> SoundClipId {
+        let uri = asset.uri.to_string();
+        let clip = self.insert_clip_for_test(asset);
+        crate::poison_recovery::lock_recover(&self.state)
+            .clip_ids_by_locator
+            .insert(uri, clip);
+        clip
+    }
+
     pub(super) fn load_clip_impl(&self, locator: &str) -> Result<SoundClipId, SoundError> {
         let uri = AssetUri::parse(locator).map_err(|_| SoundError::InvalidLocator {
             locator: locator.to_string(),

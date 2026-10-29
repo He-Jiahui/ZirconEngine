@@ -4,6 +4,19 @@ use zircon_runtime::core::framework::sound::{
 
 use super::*;
 
+impl DefaultSoundManager {
+    pub(crate) fn owned_scene_source_count_for_test(&self) -> usize {
+        lock_recover(&self.scene_sources).len()
+    }
+
+    pub(crate) fn complete_source_for_test(&self, source: SoundSourceId) {
+        let mut state = lock_recover(&self.state);
+        let playback = SoundPlaybackId::new(999_999);
+        state.sources.get_mut(&source).unwrap().kira_playback = Some(playback);
+        state.reconcile_kira_completions(vec![playback]);
+    }
+}
+
 fn clip() -> SoundAsset {
     SoundAsset {
         uri: AssetUri::parse("res://sound/scene-fixture.wav").unwrap(),

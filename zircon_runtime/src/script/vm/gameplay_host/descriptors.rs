@@ -19,6 +19,13 @@ pub(super) fn with_essentials(
 ) -> ScriptHostModuleDescriptor {
     descriptor
         .with_function(
+            function("play_sound", 2, 2, ScriptHostValueKind::Bool)
+                .with_parameter(int_parameter("entity"))
+                .with_parameter(string_parameter("uri"))
+                .with_required_capability("gameplay.entity")
+                .with_documentation("Load a sound URI and queue entity playback for the next sound scene sync. Requires an explicitly installed sound plugin."),
+        )
+        .with_function(
             function("key_pressed", 1, 1, ScriptHostValueKind::Bool)
                 .with_parameter(string_parameter("key"))
                 .with_required_capability("gameplay.input"),

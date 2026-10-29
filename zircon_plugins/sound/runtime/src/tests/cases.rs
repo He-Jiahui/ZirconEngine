@@ -40,6 +40,8 @@ mod convolution;
 mod dynamic_events;
 #[path = "graph_config.rs"]
 mod graph_config;
+#[path = "host_play_sound.rs"]
+mod host_play_sound;
 #[path = "kira_bridge.rs"]
 mod kira_bridge;
 #[path = "kira_graph_sync.rs"]
