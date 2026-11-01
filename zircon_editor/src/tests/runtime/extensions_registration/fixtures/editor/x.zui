@@ -1,0 +1,12 @@
+[asset]
+kind = "view"
+id = "plugins://fixture/editor/x.zui"
+version = 2
+display_name = "Linked Fixture"
+
+[root]
+node = "fixture_root"
+
+[nodes.fixture_root]
+component = "Container"
+control_id = "FixtureTemplateRoot"

@@ -1,6 +1,7 @@
 //! Registration report construction and lifecycle diagnostics.
 
 use std::collections::BTreeMap;
+use std::path::Path;
 
 use zircon_runtime::plugin::native::NativePluginEditorCommandBinding;
 use zircon_runtime::plugin::PluginPackageManifest;
@@ -82,6 +83,12 @@ impl EditorPluginRegistrationReport {
             native_command_bindings: BTreeMap::new(),
             diagnostics,
         }
+    }
+
+    /// Binds the root used to resolve this plugin's `plugins://` UI templates.
+    pub fn with_ui_template_root(mut self, root: impl AsRef<Path>) -> Self {
+        self.extensions.bind_ui_template_root(root);
+        self
     }
 
     pub(super) fn record_lifecycle_event(

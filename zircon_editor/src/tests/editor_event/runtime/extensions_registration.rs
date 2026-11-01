@@ -5,5 +5,7 @@ mod operation_and_view_registration;
 mod overlay_lifecycle;
 #[path = "../../runtime/extensions_registration/plugin_contributions.rs"]
 mod plugin_contributions;
+#[path = "../../runtime/extensions_registration/plugin_template_root.rs"]
+mod plugin_template_root;
 #[path = "../../extensions_registration/ticketed_command_revoke.rs"]
 mod ticketed_command_revoke;
