@@ -24,6 +24,7 @@ use zircon_runtime_interface::{
 
 pub(super) const PLAYER: u64 = 4;
 pub(super) const FIRST_ORB: u64 = 10;
+pub(super) const DRONE: u64 = 18;
 pub(super) const CLOCK: u64 = 19;
 pub(super) const SCORE: u64 = 20;
 const VIEWPORT: ZrRuntimeViewportHandle = ZrRuntimeViewportHandle::new(1);

@@ -1,7 +1,7 @@
-//! 场景系统把启用的脚本绑定投影为按阶段调用的活动列表；更新阶段首次先发启动回调，缓存句柄在派发时刷新插件代际，世界绑定变化会使投影失效。
+//! 场景系统把启用的脚本绑定投影为按阶段调用的活动列表；世界绑定变化会使投影失效，Level 独立持有绑定生命周期，更新阶段首次先发启动回调，缓存句柄在派发时刷新插件代际。
 use std::{
-    cell::{Cell, RefCell},
-    collections::{BTreeMap, HashMap},
+    cell::RefCell,
+    collections::{BTreeMap, BTreeSet, HashMap},
     rc::Rc,
     sync::OnceLock,
 };
@@ -70,7 +70,6 @@ struct ActiveScriptBinding {
     package: String,
     module: String,
     binding_key: String,
-    started: Cell<bool>,
     callbacks: RefCell<ScriptBindingCallbackHandles>,
 }
 
@@ -208,13 +207,12 @@ impl RuntimeSceneScriptBinding {
             package: self.package,
             module: self.module,
             binding_key,
-            started: Cell::new(false),
             callbacks: RefCell::new(ScriptBindingCallbackHandles::default()),
         }
     }
 }
 
-// 每个启用绑定单独记住启动状态；只有 Update 触发首次启动，固定步回调不会替它消费该状态。
+// Level 按绑定身份持有启动状态；只有 Update 触发首次启动，固定步回调不会替它消费该状态。
 fn call_script_binding(
     core: &CoreHandle,
     level: &LevelSystem,
@@ -223,9 +221,11 @@ fn call_script_binding(
     phase: ScriptSceneLifecyclePhase,
     binding: &ActiveScriptBinding,
 ) -> ScriptSceneSystemResult<()> {
-    if phase == ScriptSceneLifecyclePhase::Update && !binding.started.get() {
+    if phase == ScriptSceneLifecyclePhase::Update
+        && !level.script_binding_started(binding.entity, &binding.binding_key)
+    {
         call_export_for_binding(core, level, manager, delta_seconds, binding, "onStart")?;
-        binding.started.set(true);
+        level.mark_script_binding_started(binding.entity, binding.binding_key.clone());
     }
 
     let export_name = match phase {
@@ -330,14 +330,14 @@ fn trace_script_bindings_enabled() -> bool {
 fn active_script_binding_projection(
     level: &LevelSystem,
 ) -> ScriptSceneSystemResult<Rc<ActiveScriptBindingProjection>> {
-    let world_handle = level.world_handle().get();
-    level.with_world(|world| active_script_binding_projection_for_world(world_handle, world))
+    level.with_world(|world| active_script_binding_projection_for_world(level, world))
 }
 
 fn active_script_binding_projection_for_world(
-    world_handle: u64,
+    level: &LevelSystem,
     world: &World,
 ) -> ScriptSceneSystemResult<Rc<ActiveScriptBindingProjection>> {
+    let world_handle = level.world_handle().get();
     let binding_generation = world.dynamic_component_generation(SCRIPT_BINDINGS_COMPONENT);
     if let Some(projection) = ACTIVE_SCRIPT_BINDING_PROJECTION.with(|cache| {
         let cache = cache.borrow();
@@ -352,7 +352,7 @@ fn active_script_binding_projection_for_world(
         return Ok(projection);
     }
 
-    let projection = Rc::new(collect_active_script_binding_projection(world)?);
+    let projection = Rc::new(collect_active_script_binding_projection(level, world)?);
     ACTIVE_SCRIPT_BINDING_PROJECTION.with(|cache| {
         *cache.borrow_mut() = Some(ScriptBindingProjectionCache {
             world_handle,
@@ -368,9 +368,8 @@ pub(super) fn with_script_binding_property_matches<R>(
     expected_value: &str,
     operation: impl FnOnce(&[EntityId], &World) -> R,
 ) -> ScriptSceneSystemResult<R> {
-    let world_handle = level.world_handle().get();
     level.with_world(|world| {
-        let projection = active_script_binding_projection_for_world(world_handle, world)?;
+        let projection = active_script_binding_projection_for_world(level, world)?;
         Ok(operation(
             projection.property_matches(property, expected_value),
             world,
@@ -393,9 +392,8 @@ pub(super) fn with_script_binding_number_and_world_mut<R>(
     property: &str,
     operation: impl FnOnce(Option<f64>, &mut World) -> R,
 ) -> ScriptSceneSystemResult<R> {
-    let world_handle = level.world_handle().get();
     level.with_world_mut(|world| {
-        let projection = active_script_binding_projection_for_world(world_handle, world)?;
+        let projection = active_script_binding_projection_for_world(level, world)?;
         Ok(operation(
             projection.number_for_entity(entity, property),
             world,
@@ -404,6 +402,7 @@ pub(super) fn with_script_binding_number_and_world_mut<R>(
 }
 
 fn collect_active_script_binding_projection(
+    level: &LevelSystem,
     world: &World,
 ) -> ScriptSceneSystemResult<ActiveScriptBindingProjection> {
     let mut rows = Vec::new();
@@ -412,6 +411,7 @@ fn collect_active_script_binding_projection(
     let mut update_bindings = Vec::with_capacity(rows.len());
     let mut property_matches = HashMap::<String, HashMap<String, Vec<EntityId>>>::new();
     let mut numeric_properties = HashMap::<EntityId, HashMap<String, f64>>::new();
+    let mut live_bindings = BTreeMap::<EntityId, BTreeSet<Box<str>>>::new();
     for (entity, value) in rows {
         let bindings = serde_json::from_value::<Vec<RuntimeSceneScriptBinding>>(value.clone())
             .map_err(|source| ScriptSceneSystemError::invalid_binding_component(entity, source))?;
@@ -428,6 +428,11 @@ fn collect_active_script_binding_projection(
             let fixed_update = binding.fixed_update;
             let update = binding.update;
             let binding = Rc::new(binding.into_active(entity, binding_index));
+            // Enabled identities survive even when neither phase is selected.
+            live_bindings
+                .entry(entity)
+                .or_default()
+                .insert(binding.binding_key.clone().into_boxed_str());
             if fixed_update {
                 fixed_update_bindings.push(Rc::clone(&binding));
             }
@@ -442,6 +447,7 @@ fn collect_active_script_binding_projection(
             entities.dedup();
         }
     }
+    level.retain_script_binding_lifecycle(&live_bindings);
     Ok(ActiveScriptBindingProjection {
         binding_generation: world.dynamic_component_generation(SCRIPT_BINDINGS_COMPONENT),
         fixed_update_bindings,

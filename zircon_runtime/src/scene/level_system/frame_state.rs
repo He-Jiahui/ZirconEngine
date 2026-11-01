@@ -282,6 +282,20 @@ impl ScriptRuntimeState {
         }
     }
 
+    pub(super) fn retain(&mut self, live_set: &BTreeMap<EntityId, BTreeSet<Box<str>>>) {
+        let mut removed = false;
+        self.started_bindings.retain(|entity, bindings| {
+            let live_bindings = live_set.get(entity);
+            let previous_len = bindings.len();
+            bindings.retain(|key| live_bindings.is_some_and(|live| live.contains(key)));
+            removed |= bindings.len() != previous_len;
+            !bindings.is_empty()
+        });
+        if removed {
+            self.generation = self.generation.saturating_add(1);
+        }
+    }
+
     pub(super) fn reset_after_world_replacement(&mut self) {
         self.generation = self.generation.saturating_add(1);
         self.started_bindings.clear();

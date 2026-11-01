@@ -2,12 +2,12 @@
 
 mod support;
 
-use serde_json::{json, Value};
-use support::{Play, CLOCK, FIRST_ORB, PLAYER, SCORE};
+use serde_json::Value;
+use support::{Play, CLOCK, DRONE, FIRST_ORB, PLAYER, SCORE};
 use zircon_runtime::core::math::Vec3;
 
 #[test]
-fn start_w_release_and_hp_write_characterize_menu_bounce() {
+fn start_w_release_and_clock_hp_write_keep_playing() {
     let play = Play::example("start-w-hp");
     play.start();
     assert_eq!(play.hp(CLOCK), 61.0);
@@ -27,17 +27,10 @@ fn start_w_release_and_hp_write_characterize_menu_bounce() {
     play.key(b'W', false);
     play.tick();
     assert_eq!(play.position(PLAYER), moved);
-    assert_eq!(
-        play.state(),
-        "start_menu",
-        "characterization: hp invalidation reruns onStart"
-    );
-    assert_eq!(
-        play.component(PLAYER, "gameplay.menu_state")["title"],
-        "Orb Run"
-    );
+    assert_eq!(play.state(), "playing");
+    assert_eq!(play.component(PLAYER, "gameplay.menu_state"), Value::Null);
     println!(
-        "P0_5_MENU_BOUNCE root={} hp={} z={}",
+        "P0_5_PLAYING_AFTER_HP_WRITE root={} hp={} z={}",
         play.root.display(),
         play.hp(CLOCK),
         moved.z
@@ -99,7 +92,7 @@ fn p_key_edge_pauses_movement_and_clock_then_resumes() {
 }
 
 #[test]
-fn pickup_and_three_seeded_retry_clicks_reset_score_hp_and_all_orbs() {
+fn pickup_and_three_natural_game_overs_retry_and_keep_playing() {
     let play = Play::example("pickup-retry");
     play.start();
     for retry in 1..=3 {
@@ -109,16 +102,39 @@ fn pickup_and_three_seeded_retry_clicks_reset_score_hp_and_all_orbs() {
         assert_eq!(play.component(FIRST_ORB, "orb_run.collected"), "1");
         assert_eq!(play.position(FIRST_ORB), Vec3::new(0.0, -50.0, 0.0));
         assert_eq!(play.hp(SCORE), 2.0);
-        play.tick();
-        assert_eq!(play.state(), "start_menu");
-        // The restart defect prevents a natural completed run. Seed only the
-        // game-over menu to test the native Retry writer and immediate reset.
-        play.set_component(
-            PLAYER,
-            "gameplay.menu_state",
-            json!({"state":"game_over","button":"Play again"}),
+        let title = match retry {
+            1 => {
+                play.set_hp(CLOCK, 1.0);
+                play.tick();
+                "Time's up"
+            }
+            2 => {
+                play.set_position(PLAYER, play.position(DRONE));
+                play.tick();
+                "Caught!"
+            }
+            3 => {
+                for orb in FIRST_ORB + 1..=17 {
+                    play.set_position(PLAYER, play.position(orb));
+                    play.tick();
+                    assert_eq!(play.component(orb, "orb_run.collected"), "1");
+                }
+                assert_eq!(play.hp(SCORE), 9.0);
+                // Player checks the winning score before the orbs update.
+                play.tick();
+                "You win!"
+            }
+            _ => unreachable!(),
+        };
+        assert_eq!(play.state(), "ended");
+        assert_eq!(
+            play.component(PLAYER, "gameplay.menu_state")["title"],
+            title
         );
-        play.set_component(PLAYER, "orb_run.run_state", json!("ended"));
+        assert_eq!(
+            play.component(PLAYER, "gameplay.menu_state")["state"],
+            "game_over"
+        );
         play.click();
         assert_eq!(
             play.component(PLAYER, "gameplay.control_state"),
@@ -142,19 +158,13 @@ fn pickup_and_three_seeded_retry_clicks_reset_score_hp_and_all_orbs() {
             );
         }
         play.tick();
-        assert_eq!(
-            play.state(),
-            "start_menu",
-            "score reset also invalidates lifecycle"
-        );
-        // Characterize retry above, then use a real Start to enter the next round.
-        play.click();
-        play.tick();
-        assert_eq!(play.state(), "reset");
+        assert_eq!(play.state(), "playing");
+        assert_eq!(play.component(PLAYER, "gameplay.menu_state"), Value::Null);
         play.tick();
         assert_eq!(play.state(), "playing");
+        assert_eq!(play.component(PLAYER, "gameplay.menu_state"), Value::Null);
         println!(
-            "P0_5_SEEDED_RETRY round={retry} score_hp={} clock_hp={}",
+            "P0_5_NATURAL_RETRY round={retry} ending={title} score_hp={} clock_hp={}",
             play.hp(SCORE),
             play.hp(CLOCK)
         );
@@ -162,13 +172,10 @@ fn pickup_and_three_seeded_retry_clicks_reset_score_hp_and_all_orbs() {
 }
 
 #[test]
-fn seeded_timeout_ends_without_destroying_the_clock() {
+fn natural_start_clock_seed_times_out_without_destroying_the_clock() {
     let play = Play::example("timeout");
-    play.tick();
+    play.start();
     play.set_hp(CLOCK, 1.0);
-    play.tick(); // Consume the binding invalidation before seeding the playing state.
-    play.set_component(PLAYER, "orb_run.run_state", json!("playing"));
-    play.set_component(PLAYER, "gameplay.menu_state", Value::Null);
     play.tick();
     assert_eq!(play.state(), "ended");
     assert_eq!(
@@ -177,6 +184,28 @@ fn seeded_timeout_ends_without_destroying_the_clock() {
     );
     assert_eq!(play.hp(CLOCK), 1.0);
     assert!(play.read(|world| world.local_transform(CLOCK).is_some()));
+    play.tick();
+    assert_eq!(play.state(), "ended");
+}
+
+#[test]
+fn sustained_w_hold_keeps_playing_and_drains_clock() {
+    let play = Play::example("sustained-w");
+    play.start();
+    play.key(b'W', true);
+    let mut previous_hp = play.hp(CLOCK);
+    let mut previous_z = play.position(PLAYER).z;
+    for tick in 1..=30 {
+        play.tick();
+        assert_eq!(play.state(), "playing", "held W tick {tick}");
+        assert_eq!(play.component(PLAYER, "gameplay.menu_state"), Value::Null);
+        let hp = play.hp(CLOCK);
+        let z = play.position(PLAYER).z;
+        assert!(hp < previous_hp, "clock must drain on tick {tick}");
+        assert!(z <= previous_z && z >= -11.0, "Player z={z} on tick {tick}");
+        previous_hp = hp;
+        previous_z = z;
+    }
 }
 
 #[test]

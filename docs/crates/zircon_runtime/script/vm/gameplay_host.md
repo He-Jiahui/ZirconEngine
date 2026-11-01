@@ -69,6 +69,8 @@ The vampire example deliberately uses these generic host functions from `example
 
 `script_bindings.rs` owns the shared helpers that read and mutate JSON script-binding properties such as `role`, `archetype`, `hp`, `move_speed`, and `contact_damage`. These helpers keep the host API generic while still letting project scripts express gameplay roles as asset data.
 
+Combat HP writes rewrite `script.bindings` and invalidate its projection, but property-only edits preserve the Level-owned binding lifecycle. Identity is the entity plus `package::module#index`: changing that identity, removing the entity, or disabling and re-enabling a binding starts it fresh after projection rebuild. World replacement clears lifecycle state even when the entity id and binding key are unchanged.
+
 Per-frame gameplay state for the current vampire slice remains intentionally small and data-oriented: health lives in script bindings, run/menu command state lives in dynamic string/JSON components, action feedback lives in dynamic components or animation parameters, and transient effects live in render dynamic components. The scene keeps only the player and three enemy bindings enabled in the real VM hot path; duplicate visible enemies can carry the same metadata with `enabled = false` so host queries, damage, and navigation skip them. Longer-lived systems such as level-up choices or timed spawners should move into explicit project data or a script-visible state component before being expanded.
 
 ## Validation Notes

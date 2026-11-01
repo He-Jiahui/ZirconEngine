@@ -1,5 +1,6 @@
 //! Runtime level instance wrapping one ECS world plus lifecycle metadata.
 
+use std::collections::{BTreeMap, BTreeSet};
 use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -841,6 +842,15 @@ impl LevelSystem {
 
     pub fn mark_script_binding_started(&self, entity: EntityId, binding_key: impl Into<String>) {
         self.lock_script_state().insert(entity, binding_key.into());
+    }
+
+    /// Prunes lifecycle state while the projection caller holds the World lock.
+    /// Lock order is World → script_state; never acquire World while holding script_state.
+    pub(crate) fn retain_script_binding_lifecycle(
+        &self,
+        live_set: &BTreeMap<EntityId, BTreeSet<Box<str>>>,
+    ) {
+        self.lock_script_state().retain(live_set);
     }
 
     pub fn metadata(&self) -> LevelMetadata {
