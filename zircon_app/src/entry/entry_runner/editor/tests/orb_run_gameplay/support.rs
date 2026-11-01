@@ -12,7 +12,7 @@ use zircon_runtime::builtin::manifest_with_mode_baseline;
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::core::math::Vec3;
 use zircon_runtime::dynamic_api::{create_linked_runtime_play_session, zircon_runtime_get_api_v8};
-use zircon_runtime::scene::{LevelSystem, SystemStage, World};
+use zircon_runtime::scene::{LevelSystem, ScriptBindingFault, SystemStage, World};
 use zircon_runtime_interface::project::RelPath;
 use zircon_runtime_interface::{
     ZrByteSlice, ZrRuntimeApiV8, ZrRuntimeEventV1, ZrRuntimeFrameDemandV1, ZrRuntimeSessionHandle,
@@ -188,6 +188,34 @@ impl Play {
             .world_time()
             .fixed_time()
             .elapsed()
+    }
+
+    pub fn script_faults(&self) -> Vec<ScriptBindingFault> {
+        self.observed
+            .lock()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .script_binding_faults()
+    }
+
+    pub fn script_fault_total(&self) -> u64 {
+        self.observed
+            .lock()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .script_binding_fault_total()
+    }
+
+    pub fn assert_no_script_faults(&self) {
+        assert_eq!(
+            self.script_fault_total(),
+            0,
+            "Orb Run faults: {:?}",
+            self.script_faults()
+        );
+        println!("U03_ORBRUN_FAULTS total=0 root={}", self.root.display());
     }
 
     pub fn tick_result(&self) -> Result<(), String> {

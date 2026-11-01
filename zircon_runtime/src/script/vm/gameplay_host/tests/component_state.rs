@@ -34,6 +34,7 @@ fn gameplay_host_current_hp_and_particle_sprites_use_dynamic_components() {
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -57,6 +58,7 @@ fn gameplay_host_current_hp_and_particle_sprites_use_dynamic_components() {
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -128,6 +130,7 @@ fn gameplay_host_component_string_reads_string_dynamic_state() {
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -152,6 +155,7 @@ fn gameplay_host_component_string_reads_string_dynamic_state() {
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {

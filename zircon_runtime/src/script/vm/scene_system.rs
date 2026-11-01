@@ -10,20 +10,24 @@ use serde::Deserialize;
 
 #[path = "scene_system/error.rs"]
 mod error;
+#[path = "scene_system/fault.rs"]
+mod fault;
 
 // Sibling VM hosts consume scene-system helper results without reaching into
 // the private error implementation module.
 pub(super) use self::error::{ScriptSceneSystemError, ScriptSceneSystemResult};
 
+use super::runtime_context::with_observed_script_runtime_call_context;
 use crate::core::framework::script::{ScriptHostHotPathMetrics, ScriptHostValue};
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle};
 use crate::diagnostic_log::write_log_lazy;
 use crate::scene::ecs::RuntimeSceneSystemContext;
-use crate::scene::{EntityId, LevelSystem, SystemStage, World};
+use crate::scene::{
+    EntityId, LevelSystem, ScriptBindingFault, ScriptBindingFaultKind, SystemStage, World,
+};
 use crate::script::{
-    with_script_runtime_call_context, ScriptRuntimeCallContext, VmCallbackHandle, VmPluginManager,
-    VM_PLUGIN_MANAGER_NAME,
+    ScriptRuntimeCallContext, VmCallbackHandle, VmPluginManager, VM_PLUGIN_MANAGER_NAME,
 };
 
 const SCRIPT_BINDINGS_COMPONENT: &str = "script.bindings";
@@ -193,7 +197,14 @@ fn tick_script_bindings(
         .map_err(ScriptSceneSystemError::from)?;
 
     for binding in bindings {
-        call_script_binding(core, level, &*manager, delta_seconds, phase, binding)?;
+        if level.script_binding_faulted(binding.entity, &binding.binding_key) {
+            continue;
+        }
+        if let Err(failure) =
+            call_script_binding(core, level, &*manager, delta_seconds, phase, binding)
+        {
+            fault::record(level, failure);
+        }
     }
 
     Ok(())
@@ -220,7 +231,7 @@ fn call_script_binding(
     delta_seconds: Real,
     phase: ScriptSceneLifecyclePhase,
     binding: &ActiveScriptBinding,
-) -> ScriptSceneSystemResult<()> {
+) -> Result<(), ScriptBindingFault> {
     if phase == ScriptSceneLifecyclePhase::Update
         && !level.script_binding_started(binding.entity, &binding.binding_key)
     {
@@ -242,7 +253,7 @@ fn call_export_for_binding(
     delta_seconds: Real,
     binding: &ActiveScriptBinding,
     export_name: &'static str,
-) -> ScriptSceneSystemResult<()> {
+) -> Result<(), ScriptBindingFault> {
     let arguments = [
         ScriptHostValue::Int(binding.entity as i64),
         ScriptHostValue::Float(f64::from(delta_seconds)),
@@ -260,35 +271,33 @@ fn call_export_for_binding(
         level: level_handle,
         entity: binding.entity,
         delta_seconds,
+        host_faults: Default::default(),
     };
     let mut callback = match binding.callbacks.borrow_mut().take(export_name) {
         Some(callback) => callback,
         None => manager
             .resolve_package_callback(&binding.package, &binding.module, export_name)
             .map_err(|source| {
-                ScriptSceneSystemError::export_call(
-                    binding.binding_key.clone(),
+                fault::export_fault(
+                    level,
+                    binding,
                     export_name,
-                    crate::script::VmError::Operation(source.to_string()),
+                    ScriptBindingFaultKind::Resolution,
+                    source,
                 )
             })?,
     };
     trace_script_binding_export(binding, export_name, "start", None);
-    let result = with_script_runtime_call_context(call_context, || {
+    let (result, host_faults) = with_observed_script_runtime_call_context(call_context, || {
         manager.invoke_callback(&mut callback, &arguments)
     });
     binding
         .callbacks
         .borrow_mut()
         .replace(export_name, callback);
+    let result = fault::callback_outcome(level, binding, export_name, result, host_faults);
     trace_script_binding_export(binding, export_name, "done", Some(result.is_ok()));
-    result.map(|_| ()).map_err(|source| {
-        ScriptSceneSystemError::export_call(
-            binding.binding_key.clone(),
-            export_name,
-            crate::script::VmError::Operation(source.to_string()),
-        )
-    })
+    result
 }
 
 fn trace_script_binding_export(
@@ -412,10 +421,33 @@ fn collect_active_script_binding_projection(
     let mut property_matches = HashMap::<String, HashMap<String, Vec<EntityId>>>::new();
     let mut numeric_properties = HashMap::<EntityId, HashMap<String, f64>>::new();
     let mut live_bindings = BTreeMap::<EntityId, BTreeSet<Box<str>>>::new();
+    let binding_generation = world.dynamic_component_generation(SCRIPT_BINDINGS_COMPONENT);
     for (entity, value) in rows {
-        let bindings = serde_json::from_value::<Vec<RuntimeSceneScriptBinding>>(value.clone())
-            .map_err(|source| ScriptSceneSystemError::invalid_binding_component(entity, source))?;
-        for (binding_index, binding) in bindings.into_iter().enumerate() {
+        let Some(bindings) = value.as_array() else {
+            fault::record_invalid_row(level, entity, binding_generation, value);
+            continue;
+        };
+        for (binding_index, value) in bindings.iter().enumerate() {
+            let binding = match serde_json::from_value::<RuntimeSceneScriptBinding>(value.clone()) {
+                Ok(binding) => binding,
+                Err(source) => {
+                    if let Some(key) = fault::record_invalid_binding(
+                        level,
+                        entity,
+                        binding_generation,
+                        Some(binding_index),
+                        value,
+                        source,
+                    ) {
+                        // A known malformed identity remains fail-stopped after property repair.
+                        live_bindings
+                            .entry(entity)
+                            .or_default()
+                            .insert(key.into_boxed_str());
+                    }
+                    continue;
+                }
+            };
             if !binding.enabled {
                 continue;
             }

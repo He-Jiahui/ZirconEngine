@@ -4,7 +4,8 @@ use zircon_runtime::core::framework::script::{
     ScriptHostArguments, ScriptHostFunctionDescriptor, ScriptHostPrototypeKind,
 };
 use zircon_runtime::script::{
-    CapabilitySet, HostExportRegistry, ScriptCallSite, VmError, VmPluginHostContext,
+    record_script_host_call_fault, CapabilitySet, HostExportRegistry, ScriptCallSite, VmError,
+    VmPluginHostContext,
 };
 use zr_vm_rust_binding as zrvm;
 
@@ -157,7 +158,14 @@ fn build_native_function(
     let (min, max) = validate_native_function_arity(module_name, function)?;
     let callback_label = native_function_label(module_name, &function.name);
     let mut builder = zrvm::FunctionBuilder::new(&function.name, min, max, move |context| {
-        let argument_source = ZrVmScriptHostArgumentSource::new(context, &callback_label)?;
+        let argument_source = ZrVmScriptHostArgumentSource::new(context, &callback_label)
+            .inspect_err(|error| {
+                record_script_host_call_fault(
+                    call_site.module_name(),
+                    call_site.function_name(),
+                    error.to_string(),
+                );
+            })?;
         let value = call_site
             .call(
                 ScriptHostArguments::new(&argument_source),
@@ -168,7 +176,13 @@ fn build_native_function(
                     "zr_vm host callback {callback_label} failed: {error}"
                 ))
             })?;
-        to_zr_value_for_function(value, &callback_label)
+        to_zr_value_for_function(value, &callback_label).inspect_err(|error| {
+            record_script_host_call_fault(
+                call_site.module_name(),
+                call_site.function_name(),
+                error.to_string(),
+            );
+        })
     })
     .return_type(&function.return_type.type_name);
     if let Some(documentation) = &function.documentation {

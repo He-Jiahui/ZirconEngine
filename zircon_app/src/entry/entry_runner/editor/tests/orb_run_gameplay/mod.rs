@@ -1,10 +1,11 @@
-//! P0-5 characterization. Production scripts and U-03 policy stay unchanged.
+//! Native Orb Run continuity and U-03 per-binding failure isolation.
 
 mod support;
 
 use serde_json::Value;
 use support::{Play, CLOCK, DRONE, FIRST_ORB, PLAYER, SCORE};
 use zircon_runtime::core::math::Vec3;
+use zircon_runtime::scene::{ScriptBindingFault, ScriptBindingFaultKind};
 
 #[test]
 fn start_w_release_and_clock_hp_write_keep_playing() {
@@ -35,6 +36,7 @@ fn start_w_release_and_clock_hp_write_keep_playing() {
         play.hp(CLOCK),
         moved.z
     );
+    play.assert_no_script_faults();
 }
 
 #[test]
@@ -55,6 +57,7 @@ fn red_playing_must_survive_the_clock_hp_write() {
         "P0-5: clock hp writes must not restart Player onStart"
     );
     assert_eq!(play.component(PLAYER, "gameplay.menu_state"), Value::Null);
+    play.assert_no_script_faults();
 }
 
 #[test]
@@ -89,6 +92,7 @@ fn p_key_edge_pauses_movement_and_clock_then_resumes() {
         "W up must stop movement while playing"
     );
     assert!(play.hp(CLOCK) < 61.0, "resumed play must advance the timer");
+    play.assert_no_script_faults();
 }
 
 #[test]
@@ -169,6 +173,7 @@ fn pickup_and_three_natural_game_overs_retry_and_keep_playing() {
             play.hp(CLOCK)
         );
     }
+    play.assert_no_script_faults();
 }
 
 #[test]
@@ -186,6 +191,7 @@ fn natural_start_clock_seed_times_out_without_destroying_the_clock() {
     assert!(play.read(|world| world.local_transform(CLOCK).is_some()));
     play.tick();
     assert_eq!(play.state(), "ended");
+    play.assert_no_script_faults();
 }
 
 #[test]
@@ -206,93 +212,139 @@ fn sustained_w_hold_keeps_playing_and_drains_clock() {
         previous_hp = hp;
         previous_z = z;
     }
+    play.assert_no_script_faults();
+}
+
+fn isolated_fault(play: &Play, package: &str, export: &str) -> ScriptBindingFault {
+    assert_eq!(play.script_fault_total(), 1);
+    let faults = play.script_faults();
+    assert_eq!(faults.len(), 1);
+    let fault = faults.into_iter().next().unwrap();
+    assert_eq!(fault.entity, 31);
+    assert_eq!(
+        fault.binding_key.as_deref(),
+        Some(format!("{package}::main#0").as_str())
+    );
+    assert_eq!(fault.package, package);
+    assert_eq!(fault.module, "main");
+    assert_eq!(fault.export, export);
+    assert!(fault.outer_frame_index > 0);
+    assert!(
+        zircon_runtime::diagnostic_log::flush_process_log(std::time::Duration::from_secs(2)),
+        "retain the asynchronous binding diagnostic before the test process exits"
+    );
+    fault
+}
+
+fn assert_json_host_fault(play: &Play, export: &str) {
+    let fault = isolated_fault(play, "b3_probe", export);
+    assert_eq!(
+        fault.kind,
+        ScriptBindingFaultKind::HostCall {
+            module: "zr.zircon.gameplay".into(),
+            function: "set_component_json".into(),
+        }
+    );
+    assert_eq!(fault.host_fault_count, 1);
+    assert!(
+        fault.message.contains("EOF while parsing an object"),
+        "{}",
+        fault.message
+    );
+    assert_eq!(play.component(31, "b3_probe.marker"), Value::Null);
 }
 
 #[test]
-fn u03_native_host_start_error_is_swallowed_and_later_bindings_run() {
+fn u03_host_call_error_in_start_kills_only_that_binding() {
     let play = Play::failing_binding("start");
     for attempt in 1..=3 {
         play.tick();
-        for entity in 30..=32 {
+        for entity in [30, 32] {
             assert_eq!(play.position(entity), Vec3::new(1.0, attempt as f32, 0.0));
         }
-        assert_eq!(play.component(31, "b3_probe.marker"), Value::Null);
-        println!("P0_5_U03_HOST_START attempt={attempt} tick=Ok later_binding_ran=true");
+        assert_eq!(play.position(31), Vec3::new(1.0, 0.0, 0.0));
+        assert_json_host_fault(&play, "onStart");
     }
 }
 
 #[test]
-fn u03_native_host_update_error_is_swallowed_and_later_bindings_run() {
+fn u03_host_call_error_in_update_kills_only_that_binding() {
     let play = Play::failing_binding("update");
     for attempt in 1..=3 {
         play.tick();
-        for entity in 30..=32 {
+        for entity in [30, 32] {
             assert_eq!(play.position(entity), Vec3::new(1.0, attempt as f32, 0.0));
         }
-        assert_eq!(play.component(31, "b3_probe.marker"), Value::Null);
-        println!("P0_5_U03_HOST_UPDATE attempt={attempt} tick=Ok later_binding_ran=true");
+        assert_eq!(play.position(31), Vec3::new(1.0, 1.0, 0.0));
+        assert_json_host_fault(&play, "onUpdate");
     }
 }
 
 #[test]
-fn u03_native_host_fixed_error_hits_generation_guard_and_keeps_world_writes() {
+fn u03_host_call_error_in_fixed_kills_only_that_binding_guard_pending() {
     let play = Play::failing_binding("fixed");
     for attempt in 1..=3 {
         std::thread::sleep(std::time::Duration::from_millis(20));
         let error = play
             .tick_result()
-            .expect_err("fixed-stage world writes trip the generation guard");
+            .expect_err("Unit 3 still owns the fixed-stage generation guard");
         assert!(
             error.contains("World generation changed during FixedUpdate"),
             "{error}"
         );
-        for entity in 30..=32 {
+        for entity in [30, 32] {
             assert_eq!(play.position(entity), Vec3::new(0.0, 0.0, attempt as f32));
         }
+        assert_eq!(play.position(31), Vec3::new(0.0, 0.0, 1.0));
         assert_eq!(play.fixed_elapsed(), std::time::Duration::ZERO);
-        println!("P0_5_U03_HOST_FIXED attempt={attempt} error={error}");
+        assert_json_host_fault(&play, "onFixedUpdate");
     }
 }
 
 #[test]
-fn u03_missing_start_binding_aborts_later_bindings_and_retries_each_frame() {
+fn u03_missing_start_binding_is_isolated_and_not_retried() {
     let play = Play::missing_binding(false);
     for attempt in 1..=3 {
-        let error = play
-            .tick_result()
-            .expect_err("binding-resolution errors fail the native tick");
-        assert!(
-            error.contains("onStart")
-                && error.contains("b3_missing")
-                && error.contains("not loaded"),
-            "{error}"
-        );
-        assert_eq!(play.position(30), Vec3::new(1.0, attempt as f32, 0.0));
+        play.tick();
+        for entity in [30, 32] {
+            assert_eq!(play.position(entity), Vec3::new(1.0, attempt as f32, 0.0));
+        }
         assert_eq!(play.position(31), Vec3::ZERO);
-        assert_eq!(play.position(32), Vec3::ZERO, "later binding never starts");
-        println!("P0_5_U03_BINDING_START attempt={attempt} error={error}");
+        let fault = isolated_fault(&play, "b3_missing", "onStart");
+        assert_eq!(fault.kind, ScriptBindingFaultKind::Resolution);
+        assert_eq!(fault.host_fault_count, 0);
+        assert!(
+            fault.message.contains("b3_missing") && fault.message.contains("not loaded"),
+            "{}",
+            fault.message
+        );
     }
 }
 
 #[test]
-fn u03_missing_fixed_binding_aborts_phase_but_keeps_prior_world_writes() {
+fn u03_missing_fixed_binding_is_isolated_guard_pending() {
     let play = Play::missing_binding(true);
     for attempt in 1..=3 {
         std::thread::sleep(std::time::Duration::from_millis(20));
         let error = play
             .tick_result()
-            .expect_err("binding-resolution errors fail the fixed step");
+            .expect_err("Unit 3 still owns the fixed-stage generation guard");
         assert!(
-            error.contains("onFixedUpdate")
-                && error.contains("b3_missing")
-                && error.contains("not loaded"),
+            error.contains("World generation changed during FixedUpdate"),
             "{error}"
         );
-        assert_eq!(play.position(30), Vec3::new(0.0, 0.0, attempt as f32));
+        for entity in [30, 32] {
+            assert_eq!(play.position(entity), Vec3::new(0.0, 0.0, attempt as f32));
+        }
         assert_eq!(play.position(31), Vec3::ZERO);
-        assert_eq!(play.position(32), Vec3::ZERO);
-        // The aborted transaction settles fixed time, not the World mutations.
         assert_eq!(play.fixed_elapsed(), std::time::Duration::ZERO);
-        println!("P0_5_U03_BINDING_FIXED attempt={attempt} error={error}");
+        let fault = isolated_fault(&play, "b3_missing", "onFixedUpdate");
+        assert_eq!(fault.kind, ScriptBindingFaultKind::Resolution);
+        assert_eq!(fault.host_fault_count, 0);
+        assert!(
+            fault.message.contains("b3_missing") && fault.message.contains("not loaded"),
+            "{}",
+            fault.message
+        );
     }
 }

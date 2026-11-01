@@ -24,6 +24,7 @@ fn runtime13_current_context_is_borrowed_by_the_host_call_frame() {
             core: core.weak(),
             level,
             entity: 17,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -67,6 +68,7 @@ fn runtime13_reflection_world_ticket_is_limited_to_the_active_runtime_scope() {
             core: core.weak(),
             level,
             entity: 18,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || access.with_reflection_operation(|ticket| ticket.with_world(|_| true)),

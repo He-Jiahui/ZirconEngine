@@ -40,6 +40,7 @@ fn gameplay_host_damage_report_preserves_death_position() {
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -111,6 +112,7 @@ fn script_held_entity_handle_reports_invalid_after_despawn() {
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -139,6 +141,7 @@ fn script_held_entity_handle_reports_invalid_after_despawn() {
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -160,6 +163,7 @@ fn script_held_entity_handle_reports_invalid_after_despawn() {
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -180,6 +184,7 @@ fn script_held_entity_handle_reports_invalid_after_despawn() {
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -241,6 +246,7 @@ fn gameplay_host_damage_entity_reports_hit_before_death() {
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {

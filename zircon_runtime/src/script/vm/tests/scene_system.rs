@@ -459,3 +459,239 @@ fn runtime13_world_replacement_with_same_entity_and_key_starts_unstarted() {
     assert_eq!(&after.update_bindings[0].binding_key, key);
     assert!(!level.script_binding_started(entity, key));
 }
+
+#[test]
+fn runtime13_invalid_binding_element_is_isolated() {
+    use crate::scene::ScriptBindingFaultKind;
+    let (level, entity_a) = level_with_bindings(
+        130_022,
+        serde_json::json!([
+            { "package": 17, "module": "bad" },
+            { "package": "runtime13_projection", "module": "valid_a", "properties": { "role": "player", "hp": 7 } }
+        ]),
+    );
+    let entity_b = level.with_world_mut(|world| {
+        let entity = world.spawn_node(NodeKind::Empty).unwrap();
+        world
+            .set_dynamic_component(
+                entity,
+                SCRIPT_BINDINGS_COMPONENT,
+                serde_json::json!([{ "package": "runtime13_projection", "module": "valid_b" }]),
+            )
+            .unwrap();
+        entity
+    });
+    let before = level.with_world(|world| {
+        (
+            world.world_generation(),
+            world.dynamic_component_generation(SCRIPT_BINDINGS_COMPONENT),
+        )
+    });
+    let projection = active_script_binding_projection(&level).unwrap();
+    assert_eq!(projection.update_bindings.len(), 2);
+    assert_eq!(projection.update_bindings[0].entity, entity_a);
+    assert_eq!(
+        projection.update_bindings[0].binding_key,
+        "runtime13_projection::valid_a#1"
+    );
+    assert_eq!(projection.update_bindings[1].entity, entity_b);
+    assert_eq!(projection.number_for_entity(entity_a, "hp"), Some(7.0));
+    assert_eq!(projection.property_matches("role", "player"), &[entity_a]);
+    assert_eq!(level.script_binding_fault_total(), 1);
+    assert_eq!(
+        level.script_binding_faults()[0].kind,
+        ScriptBindingFaultKind::InvalidBinding
+    );
+    assert_eq!(level.script_binding_faults()[0].entity, entity_a);
+    // Evict the thread-local cache: deduplication must still be Level-owned.
+    let (other, _) = level_with_bindings(130_023, serde_json::json!([]));
+    active_script_binding_projection(&other).unwrap();
+    active_script_binding_projection(&level).unwrap();
+    assert_eq!(level.script_binding_fault_total(), 1);
+    assert_eq!(
+        level.with_world(|world| (
+            world.world_generation(),
+            world.dynamic_component_generation(SCRIPT_BINDINGS_COMPONENT)
+        )),
+        before
+    );
+    level.with_world_mut(|world| {
+        world.set_dynamic_component(entity_b, SCRIPT_BINDINGS_COMPONENT,
+            serde_json::json!([{ "package": "runtime13_projection", "module": "valid_b", "properties": { "hp": 8 } }])).unwrap();
+    });
+    active_script_binding_projection(&level).unwrap();
+    assert_eq!(
+        level.script_binding_fault_total(),
+        2,
+        "one invalid-element fault per generation"
+    );
+}
+
+#[test]
+fn runtime13_invalid_binding_row_is_isolated_per_entity_and_generation() {
+    let (level, entity_a) =
+        level_with_bindings(130_024, serde_json::json!({ "package": "not_an_array" }));
+    level.with_world_mut(|world| {
+        let entity = world.spawn_node(NodeKind::Empty).unwrap();
+        world
+            .set_dynamic_component(
+                entity,
+                SCRIPT_BINDINGS_COMPONENT,
+                serde_json::json!([{ "package": "runtime13_projection", "module": "valid" }]),
+            )
+            .unwrap();
+    });
+    assert_eq!(
+        active_script_binding_projection(&level)
+            .unwrap()
+            .update_bindings
+            .len(),
+        1
+    );
+    assert_eq!(level.script_binding_fault_total(), 1);
+    let fault = level.script_binding_faults().remove(0);
+    assert_eq!(fault.entity, entity_a);
+    assert_eq!(fault.binding_key, None);
+    active_script_binding_projection(&level).unwrap();
+    assert_eq!(level.script_binding_fault_total(), 1);
+}
+
+#[test]
+fn script_binding_fault_disabling_and_reenabling_is_fresh_but_property_edits_keep_faulted() {
+    use crate::scene::{ScriptBindingFault, ScriptBindingFaultKind};
+    let (level, entity) = level_with_bindings(
+        130_025,
+        serde_json::json!([{ "package": "probe", "module": "main" }]),
+    );
+    let projection = active_script_binding_projection(&level).unwrap();
+    let key = &projection.update_bindings[0].binding_key;
+    level.record_script_binding_fault(ScriptBindingFault {
+        entity,
+        binding_key: Some(key.clone()),
+        package: "probe".into(),
+        module: "main".into(),
+        export: "onStart".into(),
+        kind: ScriptBindingFaultKind::Guest,
+        message: "guest failed".into(),
+        host_fault_count: 0,
+        outer_frame_index: 1,
+    });
+    level.with_world_mut(|world| world.set_dynamic_component(entity, SCRIPT_BINDINGS_COMPONENT,
+        serde_json::json!([{ "package": "probe", "module": "main", "properties": { "hp": 3 } }])).unwrap());
+    active_script_binding_projection(&level).unwrap();
+    assert!(level.script_binding_faulted(entity, key));
+    level.with_world_mut(|world| {
+        world
+            .set_dynamic_component(
+                entity,
+                SCRIPT_BINDINGS_COMPONENT,
+                serde_json::json!([{ "package": "probe", "module": "main", "enabled": false }]),
+            )
+            .unwrap()
+    });
+    assert!(active_script_binding_projection(&level)
+        .unwrap()
+        .update_bindings
+        .is_empty());
+    assert!(!level.script_binding_faulted(entity, key));
+    level.with_world_mut(|world| {
+        world
+            .set_dynamic_component(
+                entity,
+                SCRIPT_BINDINGS_COMPONENT,
+                serde_json::json!([{ "package": "probe", "module": "main" }]),
+            )
+            .unwrap()
+    });
+    assert_eq!(
+        active_script_binding_projection(&level)
+            .unwrap()
+            .update_bindings
+            .len(),
+        1
+    );
+    assert!(!level.script_binding_faulted(entity, key));
+    assert_eq!(level.script_binding_fault_total(), 1);
+}
+
+#[test]
+fn script_binding_fault_host_cause_wins_over_guest_error_and_keeps_secondary_text() {
+    use crate::scene::ScriptBindingFaultKind;
+    use crate::script::vm::runtime_context::{ScriptHostFault, ScriptHostFaultSummary};
+    use crate::script::{VmError, VmHostInterfaceError};
+    let (level, _) = level_with_bindings(
+        130_026,
+        serde_json::json!([{ "package": "probe", "module": "main" }]),
+    );
+    let projection = active_script_binding_projection(&level).unwrap();
+    let binding = &projection.update_bindings[0];
+    let summary = ScriptHostFaultSummary {
+        first: Some(ScriptHostFault {
+            module: "host".into(),
+            function: "fail".into(),
+            message: "界".repeat(341),
+        }),
+        count: 2,
+    };
+    let failure = super::fault::callback_outcome(
+        &level,
+        binding,
+        "onUpdate",
+        Err(VmHostInterfaceError::CallbackFailed(VmError::Operation(
+            "secondary guest error".into(),
+        ))),
+        summary,
+    )
+    .unwrap_err();
+    assert_eq!(
+        failure.kind,
+        ScriptBindingFaultKind::HostCall {
+            module: "host".into(),
+            function: "fail".into()
+        }
+    );
+    assert_eq!(failure.host_fault_count, 2);
+    assert!(failure.message.contains("secondary guest error"));
+    assert!(failure.message.len() <= 1024);
+    let guest = super::fault::callback_outcome(
+        &level,
+        binding,
+        "onUpdate",
+        Err(VmHostInterfaceError::CallbackFailed(VmError::Operation(
+            "guest only".into(),
+        ))),
+        ScriptHostFaultSummary::default(),
+    )
+    .unwrap_err();
+    assert_eq!(guest.kind, ScriptBindingFaultKind::Guest);
+    assert!(guest.message.contains("guest only"));
+}
+
+#[test]
+fn script_binding_fault_malformed_known_identity_does_not_revive_on_property_repair() {
+    let (level, entity) = level_with_bindings(
+        130_027,
+        serde_json::json!([{ "package": "probe", "module": "main", "properties": 17 }]),
+    );
+    let key = "probe::main#0";
+    assert!(active_script_binding_projection(&level)
+        .unwrap()
+        .update_bindings
+        .is_empty());
+    assert!(level.script_binding_faulted(entity, key));
+    assert_eq!(level.script_binding_fault_total(), 1);
+    level.with_world_mut(|world| world.set_dynamic_component(entity, SCRIPT_BINDINGS_COMPONENT,
+        serde_json::json!([{ "package": "probe", "module": "main", "properties": { "hp": 3 } }])).unwrap());
+    assert_eq!(
+        active_script_binding_projection(&level)
+            .unwrap()
+            .update_bindings
+            .len(),
+        1
+    );
+    assert!(
+        level.script_binding_faulted(entity, key),
+        "property repair cannot revive a known faulted identity"
+    );
+    assert_eq!(level.script_binding_fault_total(), 1);
+}

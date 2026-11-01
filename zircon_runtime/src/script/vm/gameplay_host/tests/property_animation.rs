@@ -33,6 +33,7 @@ fn gameplay_host_script_property_match_and_heal_update_bindings() {
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -56,6 +57,7 @@ fn gameplay_host_script_property_match_and_heal_update_bindings() {
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -79,6 +81,7 @@ fn gameplay_host_script_property_match_and_heal_update_bindings() {
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -103,6 +106,7 @@ fn gameplay_host_script_property_match_and_heal_update_bindings() {
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -122,6 +126,7 @@ fn gameplay_host_script_property_match_and_heal_update_bindings() {
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -142,6 +147,7 @@ fn gameplay_host_script_property_match_and_heal_update_bindings() {
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -226,6 +232,7 @@ fn gameplay_host_sets_animation_bool_and_world_hud_bar_for_scripted_gameplay() {
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {

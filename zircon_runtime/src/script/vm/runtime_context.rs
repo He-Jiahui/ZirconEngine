@@ -1,11 +1,24 @@
 //! 同步宿主调用把 Core/Level/实体上下文动态限定在当前线程和调用栈；回调退出即撤销借用，反射世界访问令牌不能外逃。
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 
 use crate::core::framework::script::{
     ScriptHostCallFrame, ScriptHostError, ScriptHostHotPathMetrics, ScriptHostValue,
 };
 use crate::core::{CoreHandle, CoreWeak};
-use crate::scene::{EntityId, LevelSystem, World};
+use crate::scene::{bounded_script_fault_message, EntityId, LevelSystem, World};
+
+#[derive(Debug)]
+pub(crate) struct ScriptHostFault {
+    pub(crate) module: String,
+    pub(crate) function: String,
+    pub(crate) message: String,
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct ScriptHostFaultSummary {
+    pub(crate) first: Option<ScriptHostFault>,
+    pub(crate) count: u64,
+}
 
 #[derive(Debug)]
 pub(crate) struct ScriptRuntimeCallContext {
@@ -13,6 +26,7 @@ pub(crate) struct ScriptRuntimeCallContext {
     pub(crate) level: LevelSystem,
     pub(crate) entity: EntityId,
     pub(crate) delta_seconds: f32,
+    pub(crate) host_faults: RefCell<ScriptHostFaultSummary>,
 }
 
 /// Runtime-issued authority that can create a short-lived reflection operation ticket.
@@ -78,6 +92,13 @@ pub(crate) fn with_script_runtime_call_context<R>(
     context: ScriptRuntimeCallContext,
     call: impl FnOnce() -> R,
 ) -> R {
+    with_observed_script_runtime_call_context(context, call).0
+}
+
+pub(crate) fn with_observed_script_runtime_call_context<R>(
+    context: ScriptRuntimeCallContext,
+    call: impl FnOnce() -> R,
+) -> (R, ScriptHostFaultSummary) {
     struct ContextResetGuard(Option<*const ScriptRuntimeCallContext>);
 
     impl Drop for ContextResetGuard {
@@ -89,8 +110,28 @@ pub(crate) fn with_script_runtime_call_context<R>(
 
     let context = context;
     let previous = SCRIPT_RUNTIME_CALL_CONTEXT.with(|slot| slot.replace(Some(&context)));
-    let _guard = ContextResetGuard(previous);
-    call()
+    let guard = ContextResetGuard(previous);
+    let result = call();
+    drop(guard);
+    (result, context.host_faults.into_inner())
+}
+
+/// Records the first synchronous host-call failure and counts subsequent failures.
+/// Calls outside a script callback have no active fault slot and are ignored.
+pub fn record_script_host_call_fault(module: &str, function: &str, message: impl Into<String>) {
+    with_active_script_runtime_call_context(|context| {
+        if let Some(context) = context {
+            let mut faults = context.host_faults.borrow_mut();
+            faults.count = faults.count.saturating_add(1);
+            if faults.first.is_none() {
+                faults.first = Some(ScriptHostFault {
+                    module: module.into(),
+                    function: function.into(),
+                    message: bounded_script_fault_message(message.into()),
+                });
+            }
+        }
+    });
 }
 
 /// Borrows the runtime context into one synchronous host-call operation.
@@ -145,6 +186,7 @@ impl ScriptRuntimeTestContext {
                 core,
                 level,
                 entity,
+                host_faults: Default::default(),
                 delta_seconds,
             },
         }

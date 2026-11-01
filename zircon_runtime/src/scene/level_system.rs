@@ -45,10 +45,14 @@ mod physics_runtime;
 #[cfg(not(feature = "physics-contracts"))]
 #[path = "level_system/physics_runtime_disabled.rs"]
 mod physics_runtime;
+#[path = "level_system/script_faults.rs"]
+mod script_faults;
 
 #[cfg(feature = "animation")]
 pub(crate) use frame_state::AnimationPlaybackStateSnapshot;
 pub(crate) use frame_state::LevelFrameStateSnapshot;
+pub(crate) use script_faults::bounded_script_fault_message;
+pub use script_faults::{ScriptBindingFault, ScriptBindingFaultKind};
 
 #[cfg(feature = "animation")]
 use frame_state::AnimationRuntimeState;
@@ -844,6 +848,34 @@ impl LevelSystem {
         self.lock_script_state().insert(entity, binding_key.into());
     }
 
+    pub(crate) fn script_binding_faulted(&self, entity: EntityId, binding_key: &str) -> bool {
+        self.lock_script_state().is_faulted(entity, binding_key)
+    }
+
+    pub(crate) fn record_script_binding_fault(&self, fault: ScriptBindingFault) -> bool {
+        self.lock_script_state().record_fault(fault)
+    }
+
+    pub(crate) fn record_invalid_script_binding_fault(
+        &self,
+        generation: u64,
+        index: Option<usize>,
+        fault: ScriptBindingFault,
+    ) -> bool {
+        self.lock_script_state()
+            .record_invalid_fault(generation, index, fault)
+    }
+
+    /// Oldest to newest retained diagnostics; history survives World replacement.
+    pub fn script_binding_faults(&self) -> Vec<ScriptBindingFault> {
+        self.lock_script_state().faults()
+    }
+
+    /// Total diagnostics recorded during this Level's lifetime, including evicted entries.
+    pub fn script_binding_fault_total(&self) -> u64 {
+        self.lock_script_state().fault_total()
+    }
+
     /// Prunes lifecycle state while the projection caller holds the World lock.
     /// Lock order is World → script_state; never acquire World while holding script_state.
     pub(crate) fn retain_script_binding_lifecycle(
@@ -911,3 +943,7 @@ mod subsystem_snapshot_tests;
 #[cfg(test)]
 #[path = "level_system/tests/world_time_replacement.rs"]
 mod world_time_replacement_tests;
+
+#[cfg(test)]
+#[path = "level_system/tests/script_faults.rs"]
+mod script_fault_tests;

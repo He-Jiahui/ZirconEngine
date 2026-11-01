@@ -8,7 +8,9 @@ use crate::core::framework::script::{
     ScriptHostHotPathMetrics, ScriptHostValue,
 };
 
-use super::super::runtime_context::with_active_script_runtime_call_context;
+use super::super::runtime_context::{
+    record_script_host_call_fault, with_active_script_runtime_call_context,
+};
 use super::super::{CapabilitySet, VmError};
 use super::host_export_registry::HostExportCallback;
 
@@ -69,8 +71,20 @@ impl ScriptCallSite {
         arguments: ScriptHostArguments<'call>,
         granted_capabilities: &CapabilitySet,
     ) -> Result<ScriptHostValue, VmError> {
-        validate_call_arity(self, arguments.len())?;
-        validate_call_capabilities(self, granted_capabilities)?;
+        validate_call_arity(self, arguments.len()).inspect_err(|error| {
+            record_script_host_call_fault(
+                self.module_name(),
+                self.function_name(),
+                format!("{error}"),
+            );
+        })?;
+        validate_call_capabilities(self, granted_capabilities).inspect_err(|error| {
+            record_script_host_call_fault(
+                self.module_name(),
+                self.function_name(),
+                format!("{error}"),
+            );
+        })?;
 
         ScriptHostHotPathMetrics::record_host_call();
         let result = with_active_script_runtime_call_context(|runtime_context| {
@@ -84,6 +98,11 @@ impl ScriptCallSite {
             (self.callback)(&frame)
         });
         result.map_err(|error| {
+            record_script_host_call_fault(
+                self.module_name(),
+                self.function_name(),
+                error.message.clone(),
+            );
             VmError::Operation(format!(
                 "host export call failed: {}.{}: {}",
                 self.module_name(),
@@ -174,10 +193,10 @@ impl ScriptCallTable {
         granted_capabilities: &CapabilitySet,
     ) -> Result<ScriptHostValue, VmError> {
         let Some(site) = self.get(id) else {
-            return Err(VmError::Operation(format!(
-                "script call site {} is not registered",
-                id.raw()
-            )));
+            let error =
+                VmError::Operation(format!("script call site {} is not registered", id.raw()));
+            record_script_host_call_fault("<unknown>", "<unknown>", format!("{error}"));
+            return Err(error);
         };
         site.call(arguments, granted_capabilities)
     }

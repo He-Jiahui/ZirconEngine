@@ -76,7 +76,10 @@ pub use reflection::{
 };
 pub use runtime::{HotReloadCoordinator, VmPluginManager, VmPluginSlotRecord, VmPluginSlotState};
 pub(crate) use runtime_context::runtime_context_for_frame;
-pub use runtime_context::{script_float, VmReflectionWorldAccess, VmReflectionWorldOperation};
+pub use runtime_context::{
+    record_script_host_call_fault, script_float, VmReflectionWorldAccess,
+    VmReflectionWorldOperation,
+};
 pub(crate) use runtime_context::{with_script_runtime_call_context, ScriptRuntimeCallContext};
 #[cfg(feature = "test-support")]
 pub use runtime_context::{with_script_runtime_test_context, ScriptRuntimeTestContext};

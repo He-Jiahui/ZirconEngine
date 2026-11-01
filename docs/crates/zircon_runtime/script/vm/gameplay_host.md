@@ -106,3 +106,29 @@ Runtime 15 R4.1/M3 的当前结构切片只调整 gameplay host 测试 owner，�
 Runtime 15 M3 script VM gameplay host guard child-owner split status: `runtime_15_script_vm_gameplay_host_guard_child_owner_split_static_passed_cargo_deferred`.
 
 The structure guard owner for the gameplay host test split now lives at `tests/runtime_absorption/structure_convention/test_file_budget/script_vm_tests/gameplay_host.rs`, with `runtime_15_script_vm_gameplay_host_guard_is_child_owner` preventing the gameplay host checks from returning to the parent script VM test-budget guard.
+
+## Script failure isolation (U-03)
+
+Failures belong to one `(entity, package::module#index)` binding (R1). Resolution,
+guest callback errors, host-call errors (including errors swallowed by a VM),
+and malformed binding elements/rows are isolated; a host fault is primary when
+both host and guest fail, with the guest error retained as secondary text (R2).
+A binding's first fault stops all its callbacks, including Update after a failed
+Start; later bindings still run in the same phase (R3). Runtime call contexts
+capture the first host fault and count, and host calls return their original
+errors; backend argument/return conversion failures use the same entry (R4).
+Binding faults do not fail the frame. Missing VM managers, stage panics, and the
+existing fixed-step generation guard remain engine failures (R5).
+
+Each new fault emits one `write_error("script", …)` diagnostic and enters the
+Level-owned ledger, outside World generations: the newest 256 entries, a total
+counter, and messages limited to 1 KiB at UTF-8 boundaries. Malformed elements
+(or a non-array row per entity) report once per binding generation (R6).
+`LevelSystem::script_binding_faults()` and `script_binding_fault_total()` expose
+the history. Stop/Play creates fresh lifecycle state; World replacement clears
+started/faulted identities while retaining that Level's ledger. Identity changes
+or disabling and re-enabling a binding after projection pruning also start it
+fresh; property edits and hot reload do not revive a faulted binding (R7).
+World writes made before a fault remain applied (R8). Missing lifecycle exports,
+including optional Update/FixedUpdate exports, remain Resolution faults (R9).
+Editor Console transport and the fixed-step guard repair are separate units.

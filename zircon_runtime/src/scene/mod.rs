@@ -32,8 +32,10 @@ pub(crate) use event_mirror::{
     RUNTIME_EVENT_MIRROR_PAGE_MAX_PAYLOAD_BYTES, RUNTIME_EVENT_MIRROR_QUEUE_MAX_EVENTS,
 };
 pub use fixed_step_failure::{FixedStepFailurePhase, FixedStepFailureReceipt, LevelTickError};
+pub(crate) use level_system::bounded_script_fault_message;
 pub use level_system::{
     AnimationStateTransitionRuntime, LevelLifecycleState, LevelMetadata, LevelSystem,
+    ScriptBindingFault, ScriptBindingFaultKind,
 };
 #[cfg(feature = "native-host")]
 pub use module::load_level_asset;

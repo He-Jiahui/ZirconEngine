@@ -8,6 +8,7 @@ use crate::core::framework::script::{
     ScriptHostOwnedArgumentSource, ScriptHostResult, ScriptHostTypeRef, ScriptHostValue,
 };
 
+use super::super::runtime_context::record_script_host_call_fault;
 use super::super::{CapabilitySet, HostHandle, VmError};
 use super::script_call_table::{ScriptCallTable, ScriptCallTableBuilder};
 use super::HostRegistry;
@@ -180,18 +181,21 @@ impl HostExportRegistry {
         let call_table = {
             let mut state = self.lock_state();
             if !state.modules.contains_key(module_name) {
-                return Err(VmError::Operation(format!(
-                    "host export module not registered: {module_name}"
-                )));
+                let error =
+                    VmError::Operation(format!("host export module not registered: {module_name}"));
+                record_script_host_call_fault(module_name, function_name, error.to_string());
+                return Err(error);
             }
             current_script_call_table(&mut state)
         };
         let call_site = call_table
             .resolve(module_name, function_name)
             .ok_or_else(|| {
-                VmError::Operation(format!(
+                let error = VmError::Operation(format!(
                     "host export function not registered: {module_name}.{function_name}"
-                ))
+                ));
+                record_script_host_call_fault(module_name, function_name, error.to_string());
+                error
             })?;
         let source = ScriptHostOwnedArgumentSource::new(&arguments);
         call_site.call(

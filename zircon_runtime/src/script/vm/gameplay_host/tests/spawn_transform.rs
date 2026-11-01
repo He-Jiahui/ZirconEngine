@@ -19,6 +19,7 @@ fn gameplay_scene_transition_is_capability_gated_and_replaces_the_pending_reques
             core: core.weak(),
             level: level.clone(),
             entity: 0,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -41,6 +42,7 @@ fn gameplay_scene_transition_is_capability_gated_and_replaces_the_pending_reques
             core: core.weak(),
             level: level.clone(),
             entity: 0,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -78,6 +80,7 @@ fn gameplay_scene_transition_is_capability_gated_and_replaces_the_pending_reques
             core: core.weak(),
             level: level.clone(),
             entity: 0,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -110,6 +113,7 @@ fn gameplay_scene_transition_is_capability_gated_and_replaces_the_pending_reques
             core: core.weak(),
             level: level.clone(),
             entity: 0,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -169,6 +173,7 @@ fn gameplay_pose_exports_update_entity_transform() {
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -268,6 +273,7 @@ fn gameplay_pose_exports_convert_world_trs_through_non_uniform_parent() {
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -308,6 +314,7 @@ fn gameplay_pose_exports_convert_world_trs_through_non_uniform_parent() {
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -397,6 +404,7 @@ fn gameplay_pose_export_rejects_world_rotation_that_requires_local_shear() {
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -467,6 +475,7 @@ fn gameplay_position_exports_preserve_existing_world_shear_under_parent_scale() 
             core: core.weak(),
             level: level.clone(),
             entity,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -538,6 +547,7 @@ fn gameplay_host_spawn_model_sets_bindings_and_hud_text() {
             core: core.weak(),
             level: level.clone(),
             entity: 0,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -572,6 +582,7 @@ fn gameplay_host_spawn_model_sets_bindings_and_hud_text() {
             core: core.weak(),
             level: level.clone(),
             entity: spawned,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -652,6 +663,7 @@ fn gameplay_camera_follow_converts_world_look_at_through_uniform_parent() {
             core: core.weak(),
             level: level.clone(),
             entity: camera,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {
@@ -752,6 +764,7 @@ fn gameplay_camera_follow_rejects_local_shear_without_partial_mutation() {
             core: core.weak(),
             level: level.clone(),
             entity: camera,
+            host_faults: Default::default(),
             delta_seconds: 0.016,
         },
         || {

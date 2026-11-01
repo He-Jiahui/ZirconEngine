@@ -1,8 +1,9 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
 
-#[cfg(feature = "animation")]
-use std::collections::VecDeque;
+use super::script_faults::{
+    bounded_script_fault_message, ScriptBindingFault, SCRIPT_BINDING_FAULT_CAPACITY,
+};
 
 use crate::core::framework::animation::AnimationPoseSnapshot;
 #[cfg(feature = "animation")]
@@ -262,6 +263,11 @@ impl AnimationPlaybackStateSnapshot {
 pub(super) struct ScriptRuntimeState {
     generation: u64,
     started_bindings: BTreeMap<EntityId, BTreeSet<Box<str>>>,
+    faulted_bindings: BTreeMap<EntityId, BTreeSet<Box<str>>>,
+    faults: VecDeque<ScriptBindingFault>,
+    fault_total: u64,
+    invalid_binding_generation: Option<u64>,
+    invalid_bindings: BTreeSet<(EntityId, Option<usize>)>,
 }
 
 impl ScriptRuntimeState {
@@ -284,13 +290,15 @@ impl ScriptRuntimeState {
 
     pub(super) fn retain(&mut self, live_set: &BTreeMap<EntityId, BTreeSet<Box<str>>>) {
         let mut removed = false;
-        self.started_bindings.retain(|entity, bindings| {
-            let live_bindings = live_set.get(entity);
-            let previous_len = bindings.len();
-            bindings.retain(|key| live_bindings.is_some_and(|live| live.contains(key)));
-            removed |= bindings.len() != previous_len;
-            !bindings.is_empty()
-        });
+        for state in [&mut self.started_bindings, &mut self.faulted_bindings] {
+            state.retain(|entity, bindings| {
+                let live_bindings = live_set.get(entity);
+                let previous_len = bindings.len();
+                bindings.retain(|key| live_bindings.is_some_and(|live| live.contains(key)));
+                removed |= bindings.len() != previous_len;
+                !bindings.is_empty()
+            });
+        }
         if removed {
             self.generation = self.generation.saturating_add(1);
         }
@@ -299,6 +307,76 @@ impl ScriptRuntimeState {
     pub(super) fn reset_after_world_replacement(&mut self) {
         self.generation = self.generation.saturating_add(1);
         self.started_bindings.clear();
+        self.faulted_bindings.clear();
+        self.invalid_binding_generation = None;
+        self.invalid_bindings.clear();
+    }
+
+    pub(super) fn is_faulted(&self, entity: EntityId, binding_key: &str) -> bool {
+        self.faulted_bindings
+            .get(&entity)
+            .is_some_and(|bindings| bindings.contains(binding_key))
+    }
+
+    pub(super) fn record_fault(&mut self, fault: ScriptBindingFault) -> bool {
+        let Some(key) = fault.binding_key.as_deref() else {
+            return false;
+        };
+        if !self
+            .faulted_bindings
+            .entry(fault.entity)
+            .or_default()
+            .insert(key.into())
+        {
+            return false;
+        }
+        self.generation = self.generation.saturating_add(1);
+        self.append_fault(fault);
+        true
+    }
+
+    pub(super) fn record_invalid_fault(
+        &mut self,
+        generation: u64,
+        index: Option<usize>,
+        fault: ScriptBindingFault,
+    ) -> bool {
+        if self.invalid_binding_generation != Some(generation) {
+            self.invalid_binding_generation = Some(generation);
+            self.invalid_bindings.clear();
+        }
+        if !self.invalid_bindings.insert((fault.entity, index)) {
+            return false;
+        }
+        if let Some(key) = fault.binding_key.as_deref() {
+            if self
+                .faulted_bindings
+                .entry(fault.entity)
+                .or_default()
+                .insert(key.into())
+            {
+                self.generation = self.generation.saturating_add(1);
+            }
+        }
+        self.append_fault(fault);
+        true
+    }
+
+    fn append_fault(&mut self, mut fault: ScriptBindingFault) {
+        fault.message = bounded_script_fault_message(fault.message);
+        if self.faults.len() == SCRIPT_BINDING_FAULT_CAPACITY {
+            self.faults.pop_front();
+        }
+        self.faults.push_back(fault);
+        self.fault_total = self.fault_total.saturating_add(1);
+    }
+
+    pub(super) fn faults(&self) -> Vec<ScriptBindingFault> {
+        self.faults.iter().cloned().collect()
+    }
+
+    pub(super) fn fault_total(&self) -> u64 {
+        self.fault_total
     }
 
     #[cfg(test)]
