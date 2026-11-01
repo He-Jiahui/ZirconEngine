@@ -332,7 +332,16 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     let driver_source = include_str!("../module/world_driver.rs");
     assert!(!driver_source.contains("SceneRuntimeHook"));
     assert!(!driver_source.contains("scene_runtime_hook"));
-    assert!(driver_source.contains("world.begin_schedule_execution()"));
+    let frame_owner = include_str!("../level_system.rs");
+    let frame_begin = frame_owner
+        .split("pub(crate) fn begin_world_frame(")
+        .nth(1)
+        .unwrap()
+        .split("pub(crate) fn begin_fixed_step(")
+        .next()
+        .unwrap();
+    assert!(frame_begin.contains("world.begin_schedule_execution()"));
+    assert!(driver_source.contains("level.begin_world_frame(snapshot)?"));
     assert!(driver_source.contains("let schedule = execution.plan();"));
     assert!(driver_source.contains("with_world_mut_if_schedule_execution(&execution"));
     assert!(!driver_source.contains("world.schedule().systems().to_vec()"));

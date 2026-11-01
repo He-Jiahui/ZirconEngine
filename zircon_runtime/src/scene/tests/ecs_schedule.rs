@@ -22,6 +22,22 @@ use crate::scene::ecs::{
 };
 use crate::scene::{create_default_level, module_descriptor, NodeKind, World};
 
+fn runtime_with_scene_dependencies() -> CoreRuntime {
+    use crate::core::runtime::modules::{TasksModule, TimeModule};
+    use crate::engine_module::EngineModule;
+
+    let runtime = CoreRuntime::new();
+    // SceneModule's declared dependencies must exist before graph activation.
+    for descriptor in [
+        TasksModule.descriptor(),
+        TimeModule.descriptor(),
+        crate::asset::module_descriptor(),
+    ] {
+        runtime.register_module(descriptor).unwrap();
+    }
+    runtime
+}
+
 #[path = "ecs_schedule/conflict_graph.rs"]
 mod conflict_graph;
 #[path = "ecs_schedule/fixed_update.rs"]

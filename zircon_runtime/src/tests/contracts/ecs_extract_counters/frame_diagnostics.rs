@@ -15,7 +15,7 @@ pub(super) fn assert_ecs_frame_diagnostic_aggregation(sources: &HotspotInventory
         "let mut world = self.lock_world();",
         "let execution = world.begin_schedule_execution();",
         "world.reset_ecs_frame_performance_diagnostics();",
-        "Ok((time, generation, execution))",
+        "Ok((time, generation, replacement_epoch, execution))",
     ] {
         remaining = remaining
             .split_once(anchor)
@@ -23,7 +23,7 @@ pub(super) fn assert_ecs_frame_diagnostic_aggregation(sources: &HotspotInventory
             .1;
     }
     assert!(sources.world_driver.contains(
-        "let (world_time, world_generation, execution) = level.begin_world_frame(snapshot)?;"
+        "let (world_time, world_generation, replacement_epoch, execution) =\n            level.begin_world_frame(snapshot)?;"
     ));
     for required_schedule_span_anchor in [
         "profile_scope!",
@@ -51,7 +51,7 @@ pub(super) fn assert_ecs_frame_diagnostic_aggregation(sources: &HotspotInventory
     let mut publication = sources
         .world_driver
         .split_once(
-            "let (world_time, world_generation, execution) = level.begin_world_frame(snapshot)?;",
+            "let (world_time, world_generation, replacement_epoch, execution) =\n            level.begin_world_frame(snapshot)?;",
         )
         .expect("capture the World frame before schedule execution")
         .1;

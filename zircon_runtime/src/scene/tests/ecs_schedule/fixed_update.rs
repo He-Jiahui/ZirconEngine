@@ -3,15 +3,179 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::time::Instant;
 
-use crate::core::framework::scene::SCENE_MODULE_NAME;
+use crate::core::framework::scene::{WorldHandle, SCENE_MODULE_NAME};
 use crate::core::framework::time::ClockDomainId;
-use crate::core::math::Real;
+use crate::core::math::{Real, Transform, Vec3};
 use crate::core::{CoreError, CoreRuntime, TimePolicy, TimePolicyTransaction};
 use crate::plugin::RuntimeExtensionRegistry;
+use crate::scene::components::Mobility;
+use crate::scene::ecs::{FunctionRuntimeSceneSystem, SceneSystemMetadata};
 use crate::scene::{
-    create_default_level, module_descriptor, FixedStepFailurePhase, SystemStage, SystemTickContext,
-    World,
+    create_default_level, module_descriptor, FixedStepFailurePhase, LevelMetadata, LevelSystem,
+    NodeKind, SystemStage, SystemTickContext, World, WorldDriver,
 };
+
+#[test]
+fn world_driver_fixed_update_commits_dynamic_transform_writes_once_per_step() {
+    let runtime = CoreRuntime::new();
+    let level = LevelSystem::new(
+        WorldHandle(1),
+        Arc::new(Mutex::new(World::empty())),
+        LevelMetadata::default(),
+    );
+    let driver = WorldDriver::default();
+    let timestep = Duration::from_millis(10);
+    apply_fixed_timestep(&level, timestep);
+    let observed_ticks = Arc::new(Mutex::new(Vec::new()));
+    let ticks_for_system = Arc::clone(&observed_ticks);
+    let entity = level.with_world_mut(|world| {
+        let entity = world.spawn_node(NodeKind::Empty).unwrap();
+        world.set_mobility(entity, Mobility::Dynamic).unwrap();
+        world
+            .register_boxed_runtime_scene_system(Box::new(FunctionRuntimeSceneSystem::new(
+                SceneSystemMetadata::new(
+                    "world_driver.fixed-dynamic-transform",
+                    SystemStage::FixedUpdate,
+                    0,
+                ),
+                move |context| {
+                    context.level.with_world_mut(|world| {
+                        let position = world.local_transform(entity).unwrap().translation;
+                        world
+                            .update_transform(
+                                entity,
+                                Transform::from_translation(position + Vec3::new(0.0, 0.0, 1.0)),
+                            )
+                            .unwrap();
+                    });
+                    ticks_for_system
+                        .lock()
+                        .unwrap()
+                        .push(context.tick().simulation_tick().unwrap());
+                    Ok(())
+                },
+            )))
+            .unwrap();
+        entity
+    });
+    let original_generation = level.world_generation();
+    let replacement_epoch = level.capture_world_replacement_epoch();
+
+    for (delta_ms, budget, committed_steps, debt_ms) in
+        [(35, 2, 2, 15), (0, 8, 3, 5), (15, 8, 5, 0)]
+    {
+        let frame = runtime.advance_time_by(Duration::from_millis(delta_ms), budget);
+        driver
+            .tick_level(&runtime.handle(), &level, frame)
+            .expect("Dynamic transform writes during FixedUpdate must commit");
+        let fixed = level.world_time().fixed_time();
+        assert_eq!(fixed.elapsed(), timestep * committed_steps);
+        assert_eq!(fixed.frame_index(), u64::from(committed_steps));
+        assert_eq!(fixed.overstep(), Duration::from_millis(debt_ms));
+        assert_eq!(
+            level.with_world(|world| world.local_transform(entity).unwrap().translation),
+            Vec3::new(0.0, 0.0, committed_steps as f32)
+        );
+        assert_eq!(level.capture_world_replacement_epoch(), replacement_epoch);
+        let ticks = observed_ticks.lock().unwrap();
+        assert_eq!(ticks.len(), committed_steps as usize);
+        for (index, tick) in ticks.iter().enumerate() {
+            assert_eq!(tick.tick_index(), index as u64 + 1);
+        }
+        assert!(ticks.windows(2).all(|pair| pair[0] != pair[1]));
+        assert_eq!(
+            level
+                .fixed_interpolation_context()
+                .current()
+                .simulation_tick(),
+            ticks.last().copied()
+        );
+    }
+    assert!(level.world_generation() > original_generation);
+}
+
+#[test]
+fn world_driver_engine_stage_failure_keeps_world_writes_and_retries_clock_debt() {
+    let runtime = CoreRuntime::new();
+    let level = LevelSystem::new(
+        WorldHandle(2),
+        Arc::new(Mutex::new(World::empty())),
+        LevelMetadata::default(),
+    );
+    let driver = WorldDriver::default();
+    apply_fixed_timestep(&level, Duration::from_millis(10));
+    let calls = Arc::new(AtomicU64::new(0));
+    let calls_for_system = Arc::clone(&calls);
+    let entity = level.with_world_mut(|world| {
+        let entity = world.spawn_node(NodeKind::Empty).unwrap();
+        world.set_mobility(entity, Mobility::Dynamic).unwrap();
+        world
+            .register_boxed_runtime_scene_system(Box::new(FunctionRuntimeSceneSystem::new(
+                SceneSystemMetadata::new(
+                    "world_driver.engine-fault-after-write",
+                    SystemStage::FixedUpdate,
+                    0,
+                ),
+                move |context| {
+                    context.level.with_world_mut(|world| {
+                        let mut transform = world.local_transform(entity).unwrap();
+                        transform.translation.z += 1.0;
+                        world.update_transform(entity, transform).unwrap();
+                    });
+                    if calls_for_system.fetch_add(1, Ordering::SeqCst) == 0 {
+                        return Err(CoreError::Initialization(
+                            "fixed-step-test".to_string(),
+                            "engine fault after World write".to_string(),
+                        ));
+                    }
+                    Ok(())
+                },
+            )))
+            .unwrap();
+        entity
+    });
+    let frame = runtime.advance_time_by(Duration::from_millis(25), 8);
+    let error = driver
+        .tick_level(&runtime.handle(), &level, frame)
+        .unwrap_err();
+    assert!(error.to_string().contains("engine fault after World write"));
+    let receipt = error.fixed_step_receipt().unwrap();
+    assert_eq!(
+        receipt.phase(),
+        FixedStepFailurePhase::Stage(SystemStage::FixedUpdate)
+    );
+    assert_eq!(
+        receipt.system_id(),
+        Some("world_driver.engine-fault-after-write")
+    );
+    assert_eq!(receipt.committed_steps(), 0);
+    assert_eq!(level.world_time().fixed_time().elapsed(), Duration::ZERO);
+    assert_eq!(
+        level.world_time().fixed_time().overstep(),
+        Duration::from_millis(25)
+    );
+    assert_eq!(
+        level.with_world(|world| world.local_transform(entity).unwrap().translation.z),
+        1.0
+    );
+    assert!(level
+        .fixed_interpolation_context()
+        .current()
+        .simulation_tick()
+        .is_none());
+
+    let retry = runtime.advance_time_by(Duration::ZERO, 8);
+    driver.tick_level(&runtime.handle(), &level, retry).unwrap();
+    let fixed = level.world_time().fixed_time();
+    assert_eq!(fixed.elapsed(), Duration::from_millis(20));
+    assert_eq!(fixed.frame_index(), 2);
+    assert_eq!(fixed.overstep(), Duration::from_millis(5));
+    assert_eq!(calls.load(Ordering::SeqCst), 3);
+    assert_eq!(
+        level.with_world(|world| world.local_transform(entity).unwrap().translation.z),
+        3.0
+    );
+}
 
 #[test]
 fn level_tick_repeats_fixed_loop_stages_for_drained_fixed_steps() {
@@ -417,7 +581,12 @@ fn world_replacement_during_a_fixed_step_aborts_the_uncommitted_transaction() {
     let error = level
         .tick(&runtime.handle(), advance)
         .expect_err("replacement must prevent the old World fixed step from committing");
-    assert!(error.to_string().contains("World generation changed"));
+    assert!(
+        error
+            .to_string()
+            .contains("World schedule was replaced during the active tick"),
+        "{error}"
+    );
     assert!(level.world_generation() > original_generation);
 
     let receipt = error
@@ -427,7 +596,10 @@ fn world_replacement_during_a_fixed_step_aborts_the_uncommitted_transaction() {
         receipt.phase(),
         FixedStepFailurePhase::Stage(SystemStage::FixedUpdate)
     );
-    assert_eq!(receipt.system_id(), None);
+    assert_eq!(
+        receipt.system_id(),
+        Some("runtime03.fixed.replacement.injected")
+    );
     assert_eq!(receipt.tick().world_generation(), original_generation);
     assert_eq!(
         receipt.observed_world_generation(),
@@ -596,7 +768,7 @@ fn fixed_update_fixture() -> (
     crate::scene::LevelSystem,
     Arc<Mutex<Vec<Real>>>,
 ) {
-    let runtime = CoreRuntime::new();
+    let runtime = super::runtime_with_scene_dependencies();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(SCENE_MODULE_NAME).unwrap();
     let level = create_default_level(&runtime.handle()).unwrap();

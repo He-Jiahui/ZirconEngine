@@ -215,23 +215,32 @@ impl LevelSystem {
         lock_poison_recovered(&self.world_time).advance(outer)
     }
 
-    /// Derives time and captures the execution owner under the same World lane.
+    /// Derives time and captures generation, replacement epoch and execution owner
+    /// under the same World lane.
     /// The time guard ends before schedule preparation can reclaim resources.
     pub(crate) fn begin_world_frame(
         &self,
         outer: FrameTimeSnapshot,
-    ) -> Result<(WorldTimeSnapshot, u64, crate::scene::ecs::ScheduleExecution), WorldTimeAdvanceError>
-    {
+    ) -> Result<
+        (
+            WorldTimeSnapshot,
+            u64,
+            u64,
+            crate::scene::ecs::ScheduleExecution,
+        ),
+        WorldTimeAdvanceError,
+    > {
         let mut world = self.lock_world();
         let time = {
             let mut controller = lock_poison_recovered(&self.world_time);
             controller.advance(outer)?
         };
         let generation = world.world_generation();
+        let replacement_epoch = self.world_replacement_epoch.load(Ordering::Acquire);
         let execution = world.begin_schedule_execution();
         world.reclaim_dropped_runtime_event_mirrors();
         world.reset_ecs_frame_performance_diagnostics();
-        Ok((time, generation, execution))
+        Ok((time, generation, replacement_epoch, execution))
     }
 
     pub(crate) fn begin_fixed_step(
@@ -243,15 +252,17 @@ impl LevelSystem {
 
     pub(crate) fn commit_fixed_step(
         &self,
-        expected_world_generation: u64,
+        expected_replacement_epoch: u64,
         step: &WorldFixedStep,
     ) -> Result<(), WorldFixedStepError> {
-        let world = self.lock_world();
-        let actual_world_generation = world.world_generation();
-        if actual_world_generation != expected_world_generation {
-            return Err(WorldFixedStepError::WorldGenerationChanged {
-                expected: expected_world_generation,
-                actual: actual_world_generation,
+        // Hold the World lane through clock commit so replacement cannot race it.
+        // Ordinary World writes are legal and do not invalidate this transaction.
+        let _world = self.lock_world();
+        let actual_replacement_epoch = self.world_replacement_epoch.load(Ordering::Acquire);
+        if actual_replacement_epoch != expected_replacement_epoch {
+            return Err(WorldFixedStepError::WorldReplacedDuringFixedStep {
+                expected: expected_replacement_epoch,
+                actual: actual_replacement_epoch,
             });
         }
         lock_poison_recovered(&self.world_time).commit_fixed_step(step)

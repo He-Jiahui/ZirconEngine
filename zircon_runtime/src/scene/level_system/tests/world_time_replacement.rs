@@ -69,6 +69,7 @@ fn legacy_preserve_retains_time_debt_and_the_old_active_step_settlement_path() {
         .advance_world_time(outer.advance_time_by(Duration::from_millis(25), 2))
         .unwrap();
     let old_generation = level.world_generation();
+    let old_replacement_epoch = level.capture_world_replacement_epoch();
     let old_step = level.begin_fixed_step(old_generation).unwrap();
     level.pause_virtual_time();
     let before = level.world_time();
@@ -81,20 +82,24 @@ fn legacy_preserve_retains_time_debt_and_the_old_active_step_settlement_path() {
     assert_eq!(level.world_time(), before);
     assert!(level.world_generation() > old_generation);
     assert!(matches!(
-        level.commit_fixed_step(old_generation, &old_step),
-        Err(WorldFixedStepError::WorldGenerationChanged { .. })
+        level.commit_fixed_step(old_replacement_epoch, &old_step),
+        Err(WorldFixedStepError::WorldReplacedDuringFixedStep { expected, actual })
+            if expected == old_replacement_epoch
+                && actual == level.capture_world_replacement_epoch()
     ));
     level.abort_fixed_step(old_step).unwrap();
 
     let generation = level.world_generation();
+    let replacement_epoch = level.capture_world_replacement_epoch();
     let step = level.begin_fixed_step(generation).unwrap();
-    level.commit_fixed_step(generation, &step).unwrap();
+    level.commit_fixed_step(replacement_epoch, &step).unwrap();
     let before_second = level.world_time();
     level.replace_world_and_reset_runtime_state(replacement_world(3));
     assert_eq!(level.world_time(), before_second);
     let generation = level.world_generation();
+    let replacement_epoch = level.capture_world_replacement_epoch();
     let step = level.begin_fixed_step(generation).unwrap();
-    level.commit_fixed_step(generation, &step).unwrap();
+    level.commit_fixed_step(replacement_epoch, &step).unwrap();
 }
 
 #[test]
@@ -148,8 +153,9 @@ fn reset_and_restore_rebase_domains_without_rewinding_the_live_outer_frame() {
         .unwrap();
     for _ in 0..2 {
         let generation = level.world_generation();
+        let replacement_epoch = level.capture_world_replacement_epoch();
         let step = level.begin_fixed_step(generation).unwrap();
-        level.commit_fixed_step(generation, &step).unwrap();
+        level.commit_fixed_step(replacement_epoch, &step).unwrap();
     }
     level.pause_virtual_time();
     let saved_time = level.world_time();
@@ -465,6 +471,7 @@ fn quiet_rejections_preserve_the_request_and_original_fixed_step_transactions() 
         .advance_world_time(outer.advance_time_by(Duration::from_millis(25), 2))
         .unwrap();
     let generation = level.world_generation();
+    let replacement_epoch = level.capture_world_replacement_epoch();
     let first = level.begin_fixed_step(generation).unwrap();
     let incoming = replacement_world(2);
     let incoming_ids = replacement_node_ids(&incoming);
@@ -481,7 +488,7 @@ fn quiet_rejections_preserve_the_request_and_original_fixed_step_transactions() 
     ));
     assert_eq!(replacement_observed(&level), before);
     let (_, request) = rejected.into_parts();
-    level.commit_fixed_step(generation, &first).unwrap();
+    level.commit_fixed_step(replacement_epoch, &first).unwrap();
 
     let expected = level.capture_world_replacement_expectation();
     let before = replacement_observed(&level);
@@ -497,7 +504,7 @@ fn quiet_rejections_preserve_the_request_and_original_fixed_step_transactions() 
     assert_eq!(replacement_observed(&level), before);
     let (_, request) = rejected.into_parts();
     let second = level.begin_fixed_step(generation).unwrap();
-    level.commit_fixed_step(generation, &second).unwrap();
+    level.commit_fixed_step(replacement_epoch, &second).unwrap();
     let expected = level.capture_world_replacement_expectation();
     replacement_committed(level.replace_world_with_time_policy(
         &expected,
@@ -579,7 +586,7 @@ fn epoch_and_incoming_generation_overflow_return_the_original_request() {
 fn frame_begin_keeps_time_and_schedule_owner_paired_across_a_real_reset() {
     let outer = CoreRuntime::new();
     let sequential = replacement_level(8, replacement_world(1), replacement_policy());
-    let (snapshot, generation, execution) = sequential
+    let (snapshot, generation, replacement_epoch, execution) = sequential
         .begin_world_frame(outer.advance_time_by(Duration::from_millis(5), 0))
         .unwrap();
     assert!(sequential.with_world(|world| execution.is_bound_to(world)));
@@ -591,6 +598,7 @@ fn frame_begin_keeps_time_and_schedule_owner_paired_across_a_real_reset() {
     ));
     let receipt = commit.receipt();
     assert_eq!(generation, receipt.previous().world_generation());
+    assert_eq!(replacement_epoch, receipt.previous().replacement_epoch());
     assert_eq!(
         snapshot.virtual_elapsed(),
         receipt.before().virtual_time().elapsed()
@@ -642,7 +650,7 @@ fn frame_begin_keeps_time_and_schedule_owner_paired_across_a_real_reset() {
         )
     });
     barrier.wait();
-    let (snapshot, generation, execution) = reader.join().expect("frame thread");
+    let (snapshot, generation, replacement_epoch, execution) = reader.join().expect("frame thread");
     let commit = replacement_committed(writer.join().expect("replacement thread"));
     let receipt = commit.receipt();
     let live = level.world_time();
@@ -656,7 +664,8 @@ fn frame_begin_keeps_time_and_schedule_owner_paired_across_a_real_reset() {
         receipt.before().fixed_time().clock_domain_stamp().epoch() + 1,
     );
     if generation == receipt.previous().world_generation() {
-        // Frame first: time, generation and execution retire together.
+        // Frame first: time, generation, epoch and execution retire together.
+        assert_eq!(replacement_epoch, receipt.previous().replacement_epoch());
         assert_eq!(
             snapshot.virtual_elapsed(),
             receipt.before().virtual_time().elapsed()
@@ -672,7 +681,8 @@ fn frame_begin_keeps_time_and_schedule_owner_paired_across_a_real_reset() {
         assert_eq!(live, receipt.after());
         assert!(!level.with_world(|world| execution.is_bound_to(world)));
     } else {
-        // Reset first: all three results belong to the new World.
+        // Reset first: all four results belong to the new World.
+        assert_eq!(replacement_epoch, receipt.current().replacement_epoch());
         assert_eq!(generation, receipt.current().world_generation());
         assert_eq!(snapshot.virtual_elapsed(), live.virtual_time().elapsed());
         assert_eq!(snapshot.virtual_delta(), live.virtual_time().delta());

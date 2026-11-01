@@ -15,7 +15,7 @@ use crate::scene::{
 
 #[test]
 fn worlds_derive_virtual_and_fixed_time_independently_from_one_outer_frame() {
-    let runtime = CoreRuntime::new();
+    let runtime = super::runtime_with_scene_dependencies();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(SCENE_MODULE_NAME).unwrap();
     runtime
@@ -54,7 +54,7 @@ fn worlds_derive_virtual_and_fixed_time_independently_from_one_outer_frame() {
 
 #[test]
 fn paused_world_single_step_advances_one_fixed_tick_then_stays_paused() {
-    let runtime = CoreRuntime::new();
+    let runtime = super::runtime_with_scene_dependencies();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(SCENE_MODULE_NAME).unwrap();
     let level = create_default_level(&runtime.handle()).unwrap();
@@ -149,7 +149,7 @@ fn paused_world_single_step_advances_one_fixed_tick_then_stays_paused() {
 
 #[test]
 fn paused_single_step_consumes_only_one_preexisting_debt_step() {
-    let runtime = CoreRuntime::new();
+    let runtime = super::runtime_with_scene_dependencies();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(SCENE_MODULE_NAME).unwrap();
     let level = create_default_level(&runtime.handle()).unwrap();
@@ -199,7 +199,7 @@ fn paused_single_step_consumes_only_one_preexisting_debt_step() {
 
 #[test]
 fn single_step_rejects_unpaused_and_duplicate_requests() {
-    let runtime = CoreRuntime::new();
+    let runtime = super::runtime_with_scene_dependencies();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(SCENE_MODULE_NAME).unwrap();
     let level = create_default_level(&runtime.handle()).unwrap();
@@ -226,7 +226,7 @@ fn single_step_rejects_unpaused_and_duplicate_requests() {
 
 #[test]
 fn world_replacement_cancels_unconsumed_single_step() {
-    let runtime = CoreRuntime::new();
+    let runtime = super::runtime_with_scene_dependencies();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(SCENE_MODULE_NAME).unwrap();
     let level = create_default_level(&runtime.handle()).unwrap();
@@ -246,7 +246,7 @@ fn world_replacement_cancels_unconsumed_single_step() {
 
 #[test]
 fn failed_single_step_retries_without_duplicating_fixed_debt() {
-    let runtime = CoreRuntime::new();
+    let runtime = super::runtime_with_scene_dependencies();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(SCENE_MODULE_NAME).unwrap();
     let level = create_default_level(&runtime.handle()).unwrap();
@@ -322,7 +322,7 @@ fn failed_single_step_retries_without_duplicating_fixed_debt() {
 
 #[test]
 fn rejected_outer_frame_does_not_consume_pending_single_step() {
-    let runtime = CoreRuntime::new();
+    let runtime = super::runtime_with_scene_dependencies();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(SCENE_MODULE_NAME).unwrap();
     let level = create_default_level(&runtime.handle()).unwrap();
@@ -349,7 +349,7 @@ fn rejected_outer_frame_does_not_consume_pending_single_step() {
 
 #[test]
 fn world_fixed_debt_uses_the_outer_budget_not_another_clock_step_count() {
-    let runtime = CoreRuntime::new();
+    let runtime = super::runtime_with_scene_dependencies();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(SCENE_MODULE_NAME).unwrap();
     let level = create_default_level(&runtime.handle()).unwrap();
@@ -374,7 +374,7 @@ fn world_fixed_debt_uses_the_outer_budget_not_another_clock_step_count() {
 
 #[test]
 fn world_rejects_duplicate_outer_frame_before_mutating_time() {
-    let runtime = CoreRuntime::new();
+    let runtime = super::runtime_with_scene_dependencies();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(SCENE_MODULE_NAME).unwrap();
     let level = create_default_level(&runtime.handle()).unwrap();
@@ -396,7 +396,7 @@ fn world_rejects_duplicate_outer_frame_before_mutating_time() {
 
 #[test]
 fn world_rejects_decreasing_outer_frame_before_mutating_time() {
-    let runtime = CoreRuntime::new();
+    let runtime = super::runtime_with_scene_dependencies();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(SCENE_MODULE_NAME).unwrap();
     let level = create_default_level(&runtime.handle()).unwrap();
@@ -422,7 +422,7 @@ fn world_rejects_decreasing_outer_frame_before_mutating_time() {
 
 #[test]
 fn world_rejects_skipped_outer_frame_without_discontinuity() {
-    let runtime = CoreRuntime::new();
+    let runtime = super::runtime_with_scene_dependencies();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(SCENE_MODULE_NAME).unwrap();
     let level = create_default_level(&runtime.handle()).unwrap();
@@ -448,7 +448,7 @@ fn world_rejects_skipped_outer_frame_without_discontinuity() {
 
 #[test]
 fn world_accepts_skipped_outer_frames_with_explicit_discontinuity() {
-    let runtime = CoreRuntime::new();
+    let runtime = super::runtime_with_scene_dependencies();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(SCENE_MODULE_NAME).unwrap();
     let level = create_default_level(&runtime.handle()).unwrap();
@@ -477,7 +477,7 @@ fn runtime22_performance_outer_frame_snapshot_projection_profile() {
         !cfg!(debug_assertions),
         "outer-frame projection performance evidence must run in release mode"
     );
-    let runtime = CoreRuntime::new();
+    let runtime = super::runtime_with_scene_dependencies();
     let snapshot = runtime.advance_time_by(Duration::from_millis(16), 8);
     const WARMUPS: usize = 10;
     const SAMPLES: usize = 31;

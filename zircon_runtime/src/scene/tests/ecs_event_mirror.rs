@@ -499,15 +499,26 @@ fn runtime_event_mirror_shutdown_commits_late_success_without_replay() {
 
 #[test]
 fn world_driver_reclaims_dropped_event_mirrors_before_the_first_schedule_stage() {
-    let source = include_str!("../module/world_driver.rs");
-    let reclaim = source
+    let frame_owner = include_str!("../level_system.rs");
+    let frame_begin = frame_owner
+        .split("pub(crate) fn begin_world_frame(")
+        .nth(1)
+        .unwrap()
+        .split("pub(crate) fn begin_fixed_step(")
+        .next()
+        .unwrap();
+    let reclaim = frame_begin
         .find("reclaim_dropped_runtime_event_mirrors")
-        .expect("WorldDriver must process runtime mirror reclaim intents");
+        .expect("the captured World must process runtime mirror reclaim intents");
+    assert!(reclaim < frame_begin.find("Ok((time,").unwrap());
+
+    let source = include_str!("../module/world_driver.rs");
+    let capture = source.find("level.begin_world_frame(snapshot)?").unwrap();
     let schedule = source
         .find("for stage in schedule.stages()")
         .expect("WorldDriver schedule loop");
 
-    assert!(reclaim < schedule);
+    assert!(capture < schedule);
 }
 
 #[test]

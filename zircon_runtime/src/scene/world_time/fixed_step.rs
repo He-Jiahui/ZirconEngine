@@ -99,7 +99,9 @@ pub(crate) enum WorldFixedStepError {
     /// `submitted` 没有对应的活动步，亦包括重复结算。
     #[error("fixed step {submitted:?} has no active transaction")]
     NoActiveStep { submitted: SimulationTickId },
-    /// Level 提交时捕获的 `expected` 与当前 World 的 `actual` 不同。
-    #[error("World generation changed during fixed step: expected {expected}, found {actual}")]
-    WorldGenerationChanged { expected: u64, actual: u64 },
+    /// Level 捕获的替换 epoch 与当前替换 epoch 不同；普通 World 写入不触发此错误。
+    #[error(
+        "World replaced during fixed step: expected replacement epoch {expected}, found {actual}"
+    )]
+    WorldReplacedDuringFixedStep { expected: u64, actual: u64 },
 }

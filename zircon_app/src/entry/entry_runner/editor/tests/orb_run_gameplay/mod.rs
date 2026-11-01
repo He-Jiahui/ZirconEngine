@@ -281,22 +281,24 @@ fn u03_host_call_error_in_update_kills_only_that_binding() {
 }
 
 #[test]
-fn u03_host_call_error_in_fixed_kills_only_that_binding_guard_pending() {
+fn u03_host_call_error_in_fixed_kills_only_that_binding() {
     let play = Play::failing_binding("fixed");
-    for attempt in 1..=3 {
+    for _ in 1..=3 {
         std::thread::sleep(std::time::Duration::from_millis(20));
-        let error = play
-            .tick_result()
-            .expect_err("Unit 3 still owns the fixed-stage generation guard");
-        assert!(
-            error.contains("World generation changed during FixedUpdate"),
-            "{error}"
-        );
+        play.tick_result()
+            .expect("fixed World writes and isolated script faults must allow clock commit");
+        let elapsed = play.fixed_elapsed();
+        let timestep = play.fixed_timestep();
+        assert!(elapsed > std::time::Duration::ZERO);
+        assert_eq!(elapsed.as_nanos() % timestep.as_nanos(), 0);
+        let committed_steps = elapsed.as_nanos() / timestep.as_nanos();
         for entity in [30, 32] {
-            assert_eq!(play.position(entity), Vec3::new(0.0, 0.0, attempt as f32));
+            assert_eq!(
+                play.position(entity),
+                Vec3::new(0.0, 0.0, committed_steps as f32)
+            );
         }
         assert_eq!(play.position(31), Vec3::new(0.0, 0.0, 1.0));
-        assert_eq!(play.fixed_elapsed(), std::time::Duration::ZERO);
         assert_json_host_fault(&play, "onFixedUpdate");
     }
 }
@@ -322,22 +324,24 @@ fn u03_missing_start_binding_is_isolated_and_not_retried() {
 }
 
 #[test]
-fn u03_missing_fixed_binding_is_isolated_guard_pending() {
+fn u03_missing_fixed_binding_is_isolated() {
     let play = Play::missing_binding(true);
-    for attempt in 1..=3 {
+    for _ in 1..=3 {
         std::thread::sleep(std::time::Duration::from_millis(20));
-        let error = play
-            .tick_result()
-            .expect_err("Unit 3 still owns the fixed-stage generation guard");
-        assert!(
-            error.contains("World generation changed during FixedUpdate"),
-            "{error}"
-        );
+        play.tick_result()
+            .expect("fixed World writes and isolated script faults must allow clock commit");
+        let elapsed = play.fixed_elapsed();
+        let timestep = play.fixed_timestep();
+        assert!(elapsed > std::time::Duration::ZERO);
+        assert_eq!(elapsed.as_nanos() % timestep.as_nanos(), 0);
+        let committed_steps = elapsed.as_nanos() / timestep.as_nanos();
         for entity in [30, 32] {
-            assert_eq!(play.position(entity), Vec3::new(0.0, 0.0, attempt as f32));
+            assert_eq!(
+                play.position(entity),
+                Vec3::new(0.0, 0.0, committed_steps as f32)
+            );
         }
         assert_eq!(play.position(31), Vec3::ZERO);
-        assert_eq!(play.fixed_elapsed(), std::time::Duration::ZERO);
         let fault = isolated_fault(&play, "b3_missing", "onFixedUpdate");
         assert_eq!(fault.kind, ScriptBindingFaultKind::Resolution);
         assert_eq!(fault.host_fault_count, 0);

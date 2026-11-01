@@ -190,6 +190,17 @@ impl Play {
             .elapsed()
     }
 
+    pub fn fixed_timestep(&self) -> Duration {
+        self.observed
+            .lock()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .world_time()
+            .fixed_time()
+            .timestep()
+    }
+
     pub fn script_faults(&self) -> Vec<ScriptBindingFault> {
         self.observed
             .lock()

@@ -4,7 +4,7 @@ use crate::core::{CoreError, CoreHandle, FrameTimeSnapshot};
 use crate::scene::ecs::{
     SceneScheduleRunner, SceneStageRunError, SceneStageTickContexts, SystemStage, SystemTickContext,
 };
-use crate::scene::world_time::{WorldFixedStep, WorldTimeSnapshot};
+use crate::scene::world_time::{WorldFixedStep, WorldFixedStepError, WorldTimeSnapshot};
 use crate::scene::{
     FixedStepFailurePhase, FixedStepFailureReceipt, LevelSystem, LevelTickError, SimulationTickId,
     World, WorldRuntimeExtensionPlan,
@@ -45,7 +45,8 @@ impl WorldDriver {
         level: &LevelSystem,
         snapshot: FrameTimeSnapshot,
     ) -> Result<(), LevelTickError> {
-        let (world_time, world_generation, execution) = level.begin_world_frame(snapshot)?;
+        let (world_time, world_generation, replacement_epoch, execution) =
+            level.begin_world_frame(snapshot)?;
         let fixed_step_plan = world_time.fixed_step_plan();
         let schedule = execution.plan();
         for stage in schedule.stages() {
@@ -55,9 +56,9 @@ impl WorldDriver {
                     let tick = active_step.step()?.id();
                     let fixed_execution_result = (|| -> Result<(), FixedStageExecutionError> {
                         for fixed_stage in SystemStage::FIXED_LOOP {
-                            ensure_fixed_step_world_generation(
+                            ensure_fixed_step_world_replacement_epoch(
                                 level,
-                                world_generation,
+                                replacement_epoch,
                                 fixed_stage,
                             )
                             .map_err(|source| {
@@ -80,9 +81,9 @@ impl WorldDriver {
                                 .map_err(|error| {
                                 FixedStageExecutionError::from_stage(fixed_stage, error)
                             })?;
-                            ensure_fixed_step_world_generation(
+                            ensure_fixed_step_world_replacement_epoch(
                                 level,
-                                world_generation,
+                                replacement_epoch,
                                 fixed_stage,
                             )
                             .map_err(|source| {
@@ -111,7 +112,7 @@ impl WorldDriver {
                             error.source,
                         ));
                     }
-                    match active_step.commit(world_generation) {
+                    match active_step.commit(replacement_epoch) {
                         Ok(()) => {}
                         Err(FixedStepCommitError::Rejected(source)) => {
                             return Err(fixed_step_failure(
@@ -188,7 +189,7 @@ impl<'a> ActiveFixedStep<'a> {
         })
     }
 
-    fn commit(&mut self, expected_world_generation: u64) -> Result<(), FixedStepCommitError> {
+    fn commit(&mut self, expected_replacement_epoch: u64) -> Result<(), FixedStepCommitError> {
         let step = self.step.as_ref().ok_or_else(|| {
             FixedStepCommitError::Rollback(fixed_step_invariant_error(
                 "active transaction was already settled before commit",
@@ -196,7 +197,7 @@ impl<'a> ActiveFixedStep<'a> {
         })?;
         if let Err(error) = self
             .level
-            .commit_fixed_step(expected_world_generation, step)
+            .commit_fixed_step(expected_replacement_epoch, step)
         {
             let commit_error = fixed_step_error("commit", error);
             return match self.abort() {
@@ -294,18 +295,18 @@ fn fixed_step_failure(
     )
 }
 
-fn ensure_fixed_step_world_generation(
+fn ensure_fixed_step_world_replacement_epoch(
     level: &LevelSystem,
     expected: u64,
     stage: SystemStage,
 ) -> Result<(), CoreError> {
-    let actual = level.world_generation();
+    let actual = level.capture_world_replacement_epoch();
     if actual == expected {
         return Ok(());
     }
     Err(CoreError::Initialization(
-        "WorldDriver fixed-step world generation".to_string(),
-        format!("World generation changed during {stage:?}: expected {expected}, found {actual}"),
+        format!("WorldDriver fixed-step {stage:?}"),
+        WorldFixedStepError::WorldReplacedDuringFixedStep { expected, actual }.to_string(),
     ))
 }
 
