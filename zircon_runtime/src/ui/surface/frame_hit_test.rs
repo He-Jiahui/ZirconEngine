@@ -315,6 +315,9 @@ impl UiProjectedHitTestIndex {
         self.entry_cells.clear();
         self.entry_indices.clear();
         for (entry_index, entry) in self.grid.entries.iter().enumerate() {
+            // Zero-area entries occupy no cells but still need a warm reverse-map key.
+            // Otherwise patch's cold-map repair would recursively re-enter forever.
+            self.entry_cells.insert(entry.node_id, Vec::new());
             self.entry_indices.insert(entry.node_id, entry_index);
         }
         for (cell_index, cell) in self.grid.cells.iter().enumerate() {
