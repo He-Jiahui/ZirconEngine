@@ -74,6 +74,29 @@ fn app_composition_projects_selected_neural_editor_provider() {
     assert_provider_resolution_performance(RuntimePluginId::new("neural"), "neural");
 }
 
+#[cfg(feature = "first-party-sound-editor-plugin")]
+#[test]
+fn app_composition_projects_selected_sound_editor_provider() {
+    let manifest = editor_manifest(RuntimePluginId::Sound);
+    let registrations = first_party_editor_plugin_registrations_for_manifest(
+        RuntimeTargetMode::EditorHost,
+        &manifest,
+    );
+
+    assert_eq!(registrations.len(), 1);
+    assert_eq!(registrations[0].package_manifest.id, "sound");
+    assert!(
+        registrations[0].is_success(),
+        "{:?}",
+        registrations[0].diagnostics
+    );
+    assert!(registrations[0]
+        .capabilities
+        .iter()
+        .any(|capability| capability == "editor.extension.sound_authoring"));
+    assert_provider_resolution_performance(RuntimePluginId::Sound, "sound");
+}
+
 fn assert_provider_resolution_performance(plugin_id: RuntimePluginId, provider: &str) {
     const SAMPLE_COUNT: usize = 21;
     const ITERATIONS: usize = 1_024;

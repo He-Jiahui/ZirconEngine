@@ -96,6 +96,10 @@ first-party-neural-editor-plugin = [
     "first-party-editor-catalog",
     "zircon_first_party_editor_catalog/neural-editor-plugin",
 ]
+first-party-sound-editor-plugin = [
+    "first-party-editor-catalog",
+    "zircon_first_party_editor_catalog/sound-editor-plugin",
+]
 first-party-zr-vm-language-runtime-plugin = [
     "dep:zircon_first_party_runtime_catalog",
     "zircon_first_party_runtime_catalog/zr-vm-language-runtime-plugin",
@@ -191,6 +195,7 @@ target-editor-host = [
     "first-party-navigation-runtime-plugin",
     "first-party-navigation-editor-plugin",
     "first-party-neural-editor-plugin",
+    "first-party-sound-editor-plugin",
     "ai-contracts",
     "net-contracts",
     "physics-contracts",

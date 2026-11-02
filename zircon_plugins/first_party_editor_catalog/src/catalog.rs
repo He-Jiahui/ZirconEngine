@@ -37,6 +37,32 @@ fn first_party_editor_registration_provider(
     if _plugin_id.key() == "neural" {
         return Some(zircon_plugin_neural_editor::plugin_registration);
     }
+    #[cfg(feature = "sound-editor-plugin")]
+    if *_plugin_id == RuntimePluginId::Sound {
+        return Some(sound_registration_with_root);
+    }
     // @cargo-zircon:editor-registration-end
     None
+}
+
+#[cfg(feature = "sound-editor-plugin")]
+fn sound_registration_with_root() -> EditorPluginRegistrationReport {
+    static REGISTRATION: std::sync::OnceLock<EditorPluginRegistrationReport> =
+        std::sync::OnceLock::new();
+
+    // Sound discovery uses only linked descriptors and a compile-time root. Build
+    // it once; each caller owns a clone, including its later lifecycle state.
+    REGISTRATION
+        .get_or_init(|| {
+            zircon_plugin_sound_editor::plugin_registration()
+                .with_ui_template_root(sound_ui_template_root())
+        })
+        .clone()
+}
+
+#[cfg(feature = "sound-editor-plugin")]
+pub(super) fn sound_ui_template_root() -> std::path::PathBuf {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("sound")
 }

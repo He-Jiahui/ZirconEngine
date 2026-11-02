@@ -6490,6 +6490,7 @@ dependencies = [
  "zircon_editor",
  "zircon_plugin_navigation_editor",
  "zircon_plugin_neural_editor",
+ "zircon_plugin_sound_editor",
  "zircon_runtime",
 ]
 

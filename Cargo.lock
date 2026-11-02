@@ -9736,6 +9736,7 @@ dependencies = [
  "zircon_editor",
  "zircon_plugin_navigation_editor",
  "zircon_plugin_neural_editor",
+ "zircon_plugin_sound_editor",
  "zircon_runtime",
 ]
 
@@ -10048,6 +10049,17 @@ name = "zircon_plugin_solari_runtime"
 version = "0.1.0"
 dependencies = [
  "zircon_plugin_sdk",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_sound_editor"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "zircon_editor",
+ "zircon_plugin_editor_support",
+ "zircon_plugin_sound_runtime",
  "zircon_runtime",
 ]
 
