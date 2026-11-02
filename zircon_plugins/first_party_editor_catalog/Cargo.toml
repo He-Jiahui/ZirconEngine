@@ -9,11 +9,13 @@ description = "Linked first-party editor provider catalog for Zircon."
 default = []
 navigation-editor-plugin = ["dep:zircon_plugin_navigation_editor"]
 neural-editor-plugin = ["dep:zircon_plugin_neural_editor"]
+particles-editor-plugin = ["dep:zircon_plugin_particles_editor"]
 sound-editor-plugin = ["dep:zircon_plugin_sound_editor"]
 
 [dependencies]
 zircon_editor.workspace = true
 zircon_plugin_navigation_editor = { path = "../navigation/editor", optional = true }
 zircon_plugin_neural_editor = { path = "../neural/editor", optional = true }
+zircon_plugin_particles_editor = { path = "../particles/editor", optional = true }
 zircon_plugin_sound_editor = { path = "../sound/editor", optional = true }
 zircon_runtime.workspace = true

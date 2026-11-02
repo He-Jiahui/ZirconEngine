@@ -97,6 +97,29 @@ fn app_composition_projects_selected_sound_editor_provider() {
     assert_provider_resolution_performance(RuntimePluginId::Sound, "sound");
 }
 
+#[cfg(feature = "first-party-particles-editor-plugin")]
+#[test]
+fn app_composition_projects_selected_particles_editor_provider() {
+    let manifest = editor_manifest(RuntimePluginId::Particles);
+    let registrations = first_party_editor_plugin_registrations_for_manifest(
+        RuntimeTargetMode::EditorHost,
+        &manifest,
+    );
+
+    assert_eq!(registrations.len(), 1);
+    assert_eq!(registrations[0].package_manifest.id, "particles");
+    assert!(
+        registrations[0].is_success(),
+        "{:?}",
+        registrations[0].diagnostics
+    );
+    assert!(registrations[0]
+        .capabilities
+        .iter()
+        .any(|capability| capability == "editor.extension.particles_authoring"));
+    assert_provider_resolution_performance(RuntimePluginId::Particles, "particles");
+}
+
 fn assert_provider_resolution_performance(plugin_id: RuntimePluginId, provider: &str) {
     const SAMPLE_COUNT: usize = 21;
     const ITERATIONS: usize = 1_024;

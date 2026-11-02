@@ -254,6 +254,160 @@ fn selected_sound_provider_makes_audio_source_customization_available() {
     assert_eq!(fresh[0].capabilities, registration.capabilities);
 }
 
+#[cfg(feature = "particles-editor-plugin")]
+#[test]
+fn selected_particles_provider_makes_particle_system_customization_available() {
+    use std::sync::Arc;
+
+    use zircon_editor::core::asset::AssetTypeId;
+    use zircon_editor::core::extension::{
+        InspectTarget, InspectTargetType, InspectorCustomizationChain,
+    };
+    use zircon_editor::core::plugin::{
+        EditorPluginHandle, EditorPluginLoadingPhase, EditorPluginManager,
+    };
+    use zircon_plugin_particles_editor::PARTICLES_AUTHORING_CAPABILITY;
+    use zircon_runtime::plugin::PluginModuleKind;
+    use zircon_runtime::scene::{NodeKind, World};
+
+    // Match the runtime descriptor's public type id without another direct dependency.
+    const PARTICLE_SYSTEM_COMPONENT_TYPE: &str = "particles.Component.ParticleSystem";
+
+    let manifest = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Particles,
+            true,
+            false,
+        )
+        .with_target_modes([RuntimeTargetMode::EditorHost])],
+    };
+    let registrations = first_party_editor_plugin_registrations_for_manifest(
+        RuntimeTargetMode::EditorHost,
+        &manifest,
+    );
+    assert_eq!(registrations.len(), 1);
+    let registration = &registrations[0];
+    assert_eq!(registration.package_manifest.id, "particles");
+    assert!(registration.is_success(), "{:?}", registration.diagnostics);
+    assert!(registration
+        .capabilities
+        .iter()
+        .any(|capability| capability == PARTICLES_AUTHORING_CAPABILITY));
+    assert_eq!(registration.package_manifest.components.len(), 1);
+    assert_eq!(
+        registration.package_manifest.components[0].type_id,
+        PARTICLE_SYSTEM_COMPONENT_TYPE
+    );
+
+    let mut world = World::empty();
+    for descriptor in &registration.package_manifest.components {
+        world
+            .register_component_type(descriptor.clone())
+            .expect("particles component descriptor should register");
+    }
+    let entity = world.spawn_node(NodeKind::Empty).unwrap();
+    let payload = r#"{
+        "asset": "cpu_sprite_system", "playing": true, "backend": "Cpu",
+        "time_scale": 1.0, "seed": 0
+    }"#
+    .parse()
+    .expect("particle system payload should be valid JSON");
+    world
+        .set_dynamic_component(entity, PARTICLE_SYSTEM_COMPONENT_TYPE, payload)
+        .expect("particle system should attach");
+    let schema = world
+        .reflect_schema(PARTICLE_SYSTEM_COMPONENT_TYPE)
+        .expect("ParticleSystem must have a reflection schema");
+    assert!(schema
+        .type_info
+        .fields
+        .iter()
+        .any(|field| field.name == "time_scale" && field.editable));
+
+    // Read private registration extensions through the public active manager snapshot,
+    // as in the settled sound test, rebuilding only the attached editor module.
+    let mut runtime_manifest = registration.package_manifest.clone();
+    runtime_manifest
+        .modules
+        .retain(|module| module.kind != PluginModuleKind::Editor);
+    let plugin: EditorPluginHandle = Arc::new(zircon_plugin_particles_editor::editor_plugin());
+    let manager = EditorPluginManager::from_plugins([(plugin, runtime_manifest)]).unwrap();
+    manager
+        .advance_loading_phase(EditorPluginLoadingPhase::Default)
+        .unwrap();
+    let snapshot = manager.apply_project_manifest(&manifest).unwrap();
+    let extensions = snapshot.active_extensions();
+    assert!(extensions.is_success(), "{:?}", extensions.diagnostics);
+    let customizations = extensions.registry.inspector_customizations();
+    assert_eq!(customizations.len(), 1);
+    let mut chain = InspectorCustomizationChain::default();
+    for descriptor in &customizations {
+        chain.register(Arc::new((*descriptor).clone())).unwrap();
+    }
+    let target = InspectTarget::new(
+        InspectTargetType::new(PARTICLE_SYSTEM_COMPONENT_TYPE).unwrap(),
+        "component:particles.Component.ParticleSystem",
+    )
+    .unwrap();
+    // Schema/customization gate parity; G5 capability filtering remains covered by
+    // editor plugin_contributions tests. This is not a GUI receipt.
+    assert!(chain.matching(&target).is_some());
+
+    let root = crate::catalog::particles_ui_template_root()
+        .canonicalize()
+        .unwrap();
+    let templates = extensions.registry.ui_templates();
+    assert_eq!(templates.len(), 2);
+    // The manager materializes asset contributions into its separate type registry.
+    let particle_asset_type = extensions
+        .asset_types
+        .get(
+            &AssetTypeId::parse(zircon_plugin_particles_editor::PARTICLES_SYSTEM_ASSET_KIND)
+                .unwrap(),
+        )
+        .expect("particle system asset type should materialize");
+    let asset_documents = particle_asset_type
+        .creation_templates()
+        .iter()
+        .filter_map(|template| template.default_document())
+        .collect::<Vec<_>>();
+    assert_eq!(asset_documents.len(), 1);
+    let documents = templates
+        .iter()
+        .map(|template| template.ui_document())
+        .chain(
+            customizations
+                .iter()
+                .map(|descriptor| descriptor.surface().ui_document()),
+        )
+        .chain(asset_documents)
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(documents.len(), 4);
+    for uri in documents {
+        let relative = uri.strip_prefix("plugins://particles/").unwrap();
+        let document = root.join(relative).canonicalize().unwrap();
+        assert!(document.starts_with(&root) && document.is_file(), "{uri}");
+    }
+
+    // Cache immutable discovery metadata without sharing caller-local report mutations.
+    let mut caller_report =
+        crate::first_party_registration_for_editor_plugin(RuntimePluginId::Particles)
+            .expect("particles provider should be linked");
+    caller_report.package_manifest.components.clear();
+    caller_report.capabilities.clear();
+    caller_report
+        .diagnostics
+        .push("caller-local diagnostic".to_owned());
+    let fresh = first_party_editor_plugin_registrations_for_manifest(
+        RuntimeTargetMode::EditorHost,
+        &manifest,
+    );
+    assert_eq!(fresh.len(), 1);
+    assert!(fresh[0].is_success());
+    assert_eq!(fresh[0].package_manifest, registration.package_manifest);
+    assert_eq!(fresh[0].capabilities, registration.capabilities);
+}
+
 #[cfg(feature = "navigation-editor-plugin")]
 #[test]
 fn duplicate_project_selections_produce_one_editor_registration() {

@@ -37,12 +37,38 @@ fn first_party_editor_registration_provider(
     if _plugin_id.key() == "neural" {
         return Some(zircon_plugin_neural_editor::plugin_registration);
     }
+    #[cfg(feature = "particles-editor-plugin")]
+    if *_plugin_id == RuntimePluginId::Particles {
+        return Some(particles_registration_with_root);
+    }
     #[cfg(feature = "sound-editor-plugin")]
     if *_plugin_id == RuntimePluginId::Sound {
         return Some(sound_registration_with_root);
     }
     // @cargo-zircon:editor-registration-end
     None
+}
+
+#[cfg(feature = "particles-editor-plugin")]
+fn particles_registration_with_root() -> EditorPluginRegistrationReport {
+    static REGISTRATION: std::sync::OnceLock<EditorPluginRegistrationReport> =
+        std::sync::OnceLock::new();
+
+    // Particles discovery uses only linked descriptors and a compile-time root.
+    // Keep selection resolution live and return an owned report to each caller.
+    REGISTRATION
+        .get_or_init(|| {
+            zircon_plugin_particles_editor::plugin_registration()
+                .with_ui_template_root(particles_ui_template_root())
+        })
+        .clone()
+}
+
+#[cfg(feature = "particles-editor-plugin")]
+pub(super) fn particles_ui_template_root() -> std::path::PathBuf {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("particles")
 }
 
 #[cfg(feature = "sound-editor-plugin")]
