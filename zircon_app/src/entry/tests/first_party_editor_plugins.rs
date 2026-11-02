@@ -120,6 +120,31 @@ fn app_composition_projects_selected_particles_editor_provider() {
     assert_provider_resolution_performance(RuntimePluginId::Particles, "particles");
 }
 
+#[cfg(feature = "first-party-ai-editor-plugin")]
+#[test]
+fn app_composition_projects_selected_ai_editor_provider() {
+    let manifest = editor_manifest(RuntimePluginId::Ai);
+    let registrations = first_party_editor_plugin_registrations_for_manifest(
+        RuntimeTargetMode::EditorHost,
+        &manifest,
+    );
+
+    assert_eq!(registrations.len(), 1);
+    assert_eq!(registrations[0].package_manifest.id, "ai");
+    assert!(
+        registrations[0].is_success(),
+        "{:?}",
+        registrations[0].diagnostics
+    );
+    for capability in ["editor.extension.ai_authoring", "editor.extension.ai_debug"] {
+        assert!(registrations[0]
+            .capabilities
+            .iter()
+            .any(|registered| registered == capability));
+    }
+    assert_provider_resolution_performance(RuntimePluginId::Ai, "ai");
+}
+
 fn assert_provider_resolution_performance(plugin_id: RuntimePluginId, provider: &str) {
     const SAMPLE_COUNT: usize = 21;
     const ITERATIONS: usize = 1_024;

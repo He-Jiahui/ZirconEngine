@@ -1,4 +1,5 @@
 use zircon_editor::core::asset::AssetTypeId;
+use zircon_editor::core::editor_event::{EditorEvent, EditorViewportEvent};
 use zircon_editor::core::editor_extension::EditorExtensionRegistry;
 use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_editor::EditorPlugin;
@@ -14,13 +15,15 @@ use zircon_runtime::core::framework::render::{
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::math::Vec3;
 
+#[path = "viewport_overlay_provider.rs"]
+mod viewport_overlay_provider;
+
 const AI_AUTHORING_CAPABILITY: &str = "editor.extension.ai_authoring";
 const AI_BEHAVIOR_TREE_ASSET_TYPE: &str = "ai.behavior_tree";
 const AI_BEHAVIOR_TREE_VIEW_ID: &str = "ai.behavior_tree";
 const AI_BEHAVIOR_TREE_PALETTE_ID: &str = "ai.behavior_tree.palette";
 const AI_DEBUG_CAPABILITY: &str = "editor.extension.ai_debug";
 const AI_PERCEPTION_DEBUG_VIEW_ID: &str = "ai.perception.debug";
-const AI_PERCEPTION_OVERLAY_MODE_ID: &str = "ai.perception.viewport.overlay";
 const AI_PERCEPTION_OVERLAY_PROVIDER_ID: &str = "ai.perception.viewport.overlay.provider";
 
 #[derive(Default)]
@@ -107,31 +110,42 @@ fn behavior_tree_editor_registers_catalog_derived_palette_and_asset_toolkit() {
     ] {
         let operation = EditorOperationPath::parse(operation).expect("operation path");
         assert!(
-            registry.commands().command(&operation).is_some(),
+            registry.pending_command(&operation).is_some(),
             "missing behavior-tree command {operation}"
         );
     }
 
-    let overlay_mode = registry
-        .viewport_tool_modes()
-        .into_iter()
-        .find(|mode| mode.id() == AI_PERCEPTION_OVERLAY_MODE_ID)
-        .expect("AI perception viewport overlay mode");
-    assert_eq!(overlay_mode.view_id(), AI_PERCEPTION_DEBUG_VIEW_ID);
-    assert_eq!(
-        overlay_mode.overlay_provider_id(),
-        Some(AI_PERCEPTION_OVERLAY_PROVIDER_ID)
-    );
-    assert_eq!(
-        overlay_mode.required_capabilities(),
-        &[AI_DEBUG_CAPABILITY.to_owned()]
-    );
+    assert!(registry.scene_mode_descriptors().is_empty());
+    assert!(registry
+        .views()
+        .iter()
+        .any(|view| view.id() == AI_PERCEPTION_DEBUG_VIEW_ID));
     let operation = EditorOperationPath::parse("ai.perception.toggle_overlay")
         .expect("perception overlay operation path");
-    assert!(
-        registry.commands().command(&operation).is_some(),
-        "missing perception overlay command"
+    let command = registry.pending_command(&operation).unwrap();
+    assert_eq!(
+        command.required_capabilities(),
+        &[AI_DEBUG_CAPABILITY.to_owned()]
     );
+    assert!(!command.callable_from_remote());
+    assert!(matches!(
+        command.event(),
+        Some(EditorEvent::Viewport(EditorViewportEvent::ToggleOverlayProvider { provider_id }))
+            if provider_id == AI_PERCEPTION_OVERLAY_PROVIDER_ID
+    ));
+    let provider = crate::viewport_overlay_provider::ai_viewport_overlay_provider_registration(
+        plugin.pie_mirror(),
+    );
+    assert_eq!(provider.provider_id(), AI_PERCEPTION_OVERLAY_PROVIDER_ID);
+    assert_eq!(
+        provider.required_capabilities(),
+        &[AI_DEBUG_CAPABILITY.to_owned()]
+    );
+    assert!(matches!(
+        registry.register_viewport_overlay_provider(provider),
+        Err(zircon_editor::core::editor_extension::EditorExtensionRegistryError::DuplicateContribution { id, .. })
+            if id == AI_PERCEPTION_OVERLAY_PROVIDER_ID
+    ));
 }
 
 fn category_name(category: BehaviorNodeCategory) -> &'static str {
@@ -458,10 +472,16 @@ fn perception_overlay_draws_runtime_fov_ranges_and_stimuli_from_the_pie_mirror()
 
     let overlay = crate::build_ai_perception_overlay(101, &WorldHandle::new(3), &mirror);
     assert_eq!(overlay.kind, SceneGizmoKind::AiPerception);
-    assert!(
-        overlay.lines.len() >= 35,
-        "FOV, hearing radius, and stimulus link"
-    );
+    // A 90-degree cone has six arc segments and two radial edges; hearing
+    // contributes 24 circle segments and the single stimulus adds one link.
+    assert_eq!(overlay.lines.len(), 8 + 24 + 1);
+    assert_eq!(overlay.pick_shapes.len(), 3);
+    let stimulus_link = overlay.lines.last().unwrap();
+    assert_eq!(stimulus_link.start, Vec3::new(1.0, 0.0, 2.0));
+    assert_eq!(stimulus_link.end, stimulus_position);
+    assert!(overlay.pick_shapes.iter().any(|shape| {
+        matches!(shape, OverlayPickShape::Circle { radius, .. } if *radius == 4.0)
+    }));
     assert!(overlay.pick_shapes.iter().any(|shape| {
         matches!(shape, OverlayPickShape::Sphere { center, .. } if *center == stimulus_position)
     }));

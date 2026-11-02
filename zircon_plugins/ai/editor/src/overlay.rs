@@ -1,5 +1,5 @@
 use zircon_editor::core::commands::{EditorCommandDescriptor, EditorCommandMenuPath};
-use zircon_editor::core::editor_authoring_extension::ViewportToolModeDescriptor;
+use zircon_editor::core::editor_event::{EditorEvent, EditorViewportEvent};
 use zircon_editor::core::editor_extension::{
     EditorExtensionRegistry, EditorExtensionRegistryError, EditorUiTemplateDescriptor,
 };
@@ -14,7 +14,7 @@ use zircon_runtime::core::math::{Real, Vec3, Vec4};
 
 use crate::capability::AI_DEBUG_CAPABILITY;
 use crate::extension_ids::{
-    AI_PERCEPTION_DEBUG_TEMPLATE_ID, AI_PERCEPTION_DEBUG_VIEW_ID, AI_PERCEPTION_OVERLAY_MODE_ID,
+    AI_PERCEPTION_DEBUG_TEMPLATE_ID, AI_PERCEPTION_DEBUG_VIEW_ID,
     AI_PERCEPTION_OVERLAY_PROVIDER_ID, AI_TOGGLE_PERCEPTION_OVERLAY_OPERATION,
 };
 use crate::runtime_mirror::AiPieMirror;
@@ -123,17 +123,13 @@ pub(crate) fn register_ai_perception_overlay(
                 "plugins",
                 &["ai"],
             ))
-            .with_required_capabilities([AI_DEBUG_CAPABILITY]),
-    )?;
-    registry.register_viewport_tool_mode(
-        ViewportToolModeDescriptor::new(
-            AI_PERCEPTION_OVERLAY_MODE_ID,
-            "AI Perception Overlay",
-            AI_PERCEPTION_DEBUG_VIEW_ID,
-            operation,
-        )
-        .with_overlay_provider_id(AI_PERCEPTION_OVERLAY_PROVIDER_ID)
-        .with_required_capabilities([AI_DEBUG_CAPABILITY]),
+            .with_required_capabilities([AI_DEBUG_CAPABILITY])
+            .with_callable_from_remote(false)
+            .with_event(EditorEvent::Viewport(
+                EditorViewportEvent::ToggleOverlayProvider {
+                    provider_id: AI_PERCEPTION_OVERLAY_PROVIDER_ID.to_owned(),
+                },
+            )),
     )
 }
 

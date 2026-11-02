@@ -6488,6 +6488,7 @@ name = "zircon_first_party_editor_catalog"
 version = "0.1.0"
 dependencies = [
  "zircon_editor",
+ "zircon_plugin_ai_editor",
  "zircon_plugin_navigation_editor",
  "zircon_plugin_neural_editor",
  "zircon_plugin_particles_editor",

@@ -29,6 +29,10 @@ fn first_party_editor_registration_provider(
     _plugin_id: &RuntimePluginId,
 ) -> Option<EditorPluginRegistrationProvider> {
     // @cargo-zircon:editor-registration-begin
+    #[cfg(feature = "ai-editor-plugin")]
+    if *_plugin_id == RuntimePluginId::Ai {
+        return Some(ai_registration_with_root);
+    }
     #[cfg(feature = "navigation-editor-plugin")]
     if *_plugin_id == RuntimePluginId::Navigation {
         return Some(zircon_plugin_navigation_editor::plugin_registration);
@@ -47,6 +51,18 @@ fn first_party_editor_registration_provider(
     }
     // @cargo-zircon:editor-registration-end
     None
+}
+
+#[cfg(feature = "ai-editor-plugin")]
+fn ai_registration_with_root() -> EditorPluginRegistrationReport {
+    zircon_plugin_ai_editor::plugin_registration().with_ui_template_root(ai_ui_template_root())
+}
+
+#[cfg(feature = "ai-editor-plugin")]
+pub(super) fn ai_ui_template_root() -> std::path::PathBuf {
+    std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("ai")
 }
 
 #[cfg(feature = "particles-editor-plugin")]

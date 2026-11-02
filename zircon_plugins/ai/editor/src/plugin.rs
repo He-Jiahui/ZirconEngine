@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use zircon_editor::core::asset::{
     AssetToolkitDescriptor, AssetTypeContribution, AssetTypeId, AssetTypePresentation,
@@ -12,12 +12,14 @@ use zircon_editor::core::editor_extension::{
     AssetImporterDescriptor, EditorExtensionRegistry, EditorExtensionRegistryError,
 };
 use zircon_editor::core::editor_operation::EditorOperationPath;
+use zircon_editor::core::runtime_event_consumer::EditorRuntimeEventConsumerRegistry;
+use zircon_editor::{EditorPlugin, EditorPluginDescriptor, EditorPluginRegistrationReport};
 use zircon_plugin_ai_runtime::behavior_tree::{standard_node_catalog, BehaviorNodeCategory};
 use zircon_plugin_editor_support::{
     register_authoring_contribution_batch, register_authoring_extensions,
     EditorAuthoringContributionBatch, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
-use zircon_plugin_sdk::{authoring_plugin, EditorPluginDeclaration};
+use zircon_plugin_sdk::EditorPluginDeclaration;
 
 use crate::capability::{AI_AUTHORING_CAPABILITY, EDITOR_CAPABILITIES, PLUGIN_ID};
 use crate::extension_ids::{
@@ -27,22 +29,36 @@ use crate::extension_ids::{
     AI_BEHAVIOR_TREE_VIEW_ID, AI_BT_NODE_RESULT_CONSUMER_ID,
 };
 use crate::overlay::register_ai_perception_overlay;
-use crate::runtime_mirror::{
-    ai_runtime_event_consumers, AiBtNodeResultMirror, AiPieMirror,
-};
+use crate::runtime_mirror::{ai_runtime_event_consumers, AiBtNodeResultMirror, AiPieMirror};
+use crate::viewport_overlay_provider::register_ai_viewport_overlay_provider;
 
-authoring_plugin! {
-    pub struct AiEditorPlugin {
-        package_id: PLUGIN_ID,
-        display_name: "AI",
-        crate_name: "zircon_plugin_ai_editor",
-        category: "runtime",
-        description: "AI behavior-tree authoring extensions.",
-        maturity: zircon_runtime::plugin::PluginMaturity::Experimental,
-        mirrors_runtime_manifest: zircon_plugin_ai_runtime::package_manifest(),
-        capabilities: EDITOR_CAPABILITIES,
-        runtime_event_consumers: ai_runtime_event_consumers(),
-        register_extensions: register_ai_authoring_extensions,
+#[derive(Clone, Debug)]
+pub struct AiEditorPlugin {
+    declaration: EditorPluginDeclaration,
+}
+
+impl Default for AiEditorPlugin {
+    fn default() -> Self {
+        static RUNTIME_MANIFEST: OnceLock<zircon_runtime::plugin::PluginPackageManifest> =
+            OnceLock::new();
+
+        // Linked package metadata is immutable. Cache only that value: each
+        // declaration still creates its own consumers, mirrors and provider.
+        let runtime_manifest = RUNTIME_MANIFEST
+            .get_or_init(zircon_plugin_ai_runtime::package_manifest)
+            .clone();
+        let declaration = ai_runtime_event_consumers().into_iter().fold(
+            EditorPluginDeclaration::new(PLUGIN_ID, "AI", "zircon_plugin_ai_editor")
+                .with_category("runtime")
+                .with_description("AI behavior-tree authoring extensions.")
+                .with_maturity(zircon_runtime::plugin::PluginMaturity::Experimental)
+                .mirrors_runtime_manifest(runtime_manifest)
+                .with_capabilities(EDITOR_CAPABILITIES.iter().copied()),
+            |declaration, registration| {
+                declaration.with_runtime_event_consumer_registration(registration)
+            },
+        );
+        Self { declaration }
     }
 }
 
@@ -59,6 +75,26 @@ pub fn editor_plugin() -> AiEditorPlugin {
 }
 
 impl AiEditorPlugin {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn declaration(&self) -> &EditorPluginDeclaration {
+        &self.declaration
+    }
+
+    pub fn package_manifest(&self) -> zircon_runtime::plugin::PluginPackageManifest {
+        self.declaration.package_manifest()
+    }
+
+    pub fn editor_capabilities(&self) -> Vec<String> {
+        self.declaration.capabilities().to_vec()
+    }
+
+    pub fn registration_report(&self) -> EditorPluginRegistrationReport {
+        self.declaration.registration_report(self)
+    }
+
     pub fn pie_mirror(&self) -> Arc<Mutex<AiPieMirror>> {
         self.declaration()
             .runtime_event_consumers()
@@ -73,6 +109,25 @@ impl AiEditorPlugin {
             .registration(AI_BT_NODE_RESULT_CONSUMER_ID)
             .and_then(|registration| registration.state::<AiBtNodeResultMirror>())
             .expect("AI behavior-tree node result mirror declaration is registered")
+    }
+}
+
+impl EditorPlugin for AiEditorPlugin {
+    fn descriptor(&self) -> &EditorPluginDescriptor {
+        self.declaration.descriptor()
+    }
+
+    fn register_editor_extensions(
+        &self,
+        registry: &mut EditorExtensionRegistry,
+    ) -> Result<(), EditorExtensionRegistryError> {
+        register_ai_authoring_extensions(registry)?;
+        // The provider and event consumer must observe the same PIE state.
+        register_ai_viewport_overlay_provider(registry, self.pie_mirror())
+    }
+
+    fn runtime_event_consumers(&self) -> EditorRuntimeEventConsumerRegistry {
+        self.declaration.runtime_event_consumers()
     }
 }
 

@@ -408,6 +408,86 @@ fn selected_particles_provider_makes_particle_system_customization_available() {
     assert_eq!(fresh[0].capabilities, registration.capabilities);
 }
 
+#[cfg(feature = "ai-editor-plugin")]
+#[test]
+fn selected_ai_provider_registers_behavior_tree_graph_editor_and_documents() {
+    use std::sync::Arc;
+
+    use zircon_editor::core::asset::AssetTypeId;
+    use zircon_editor::core::plugin::{
+        EditorPluginHandle, EditorPluginLoadingPhase, EditorPluginManager,
+    };
+    use zircon_plugin_ai_editor::{AI_AUTHORING_CAPABILITY, AI_DEBUG_CAPABILITY};
+    use zircon_runtime::plugin::PluginModuleKind;
+
+    let manifest = ProjectPluginManifest {
+        selections: vec![
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Ai, true, false)
+                .with_target_modes([RuntimeTargetMode::EditorHost]),
+        ],
+    };
+    let registrations = first_party_editor_plugin_registrations_for_manifest(
+        RuntimeTargetMode::EditorHost,
+        &manifest,
+    );
+    assert_eq!(registrations.len(), 1);
+    let registration = &registrations[0];
+    assert_eq!(registration.package_manifest.id, "ai");
+    assert!(registration.is_success(), "{:?}", registration.diagnostics);
+    for capability in [AI_AUTHORING_CAPABILITY, AI_DEBUG_CAPABILITY] {
+        assert!(registration
+            .capabilities
+            .iter()
+            .any(|registered| registered == capability));
+    }
+
+    // Read private contributions through the public active manager snapshot,
+    // mirroring sound/particles and rebuilding only the attached editor module.
+    let mut runtime_manifest = registration.package_manifest.clone();
+    runtime_manifest
+        .modules
+        .retain(|module| module.kind != PluginModuleKind::Editor);
+    let plugin: EditorPluginHandle = Arc::new(zircon_plugin_ai_editor::editor_plugin());
+    let manager = EditorPluginManager::from_plugins([(plugin, runtime_manifest)]).unwrap();
+    manager
+        .advance_loading_phase(EditorPluginLoadingPhase::Default)
+        .unwrap();
+    let snapshot = manager.apply_project_manifest(&manifest).unwrap();
+    let extensions = snapshot.active_extensions();
+    assert!(extensions.is_success(), "{:?}", extensions.diagnostics);
+    let graph_editors = extensions.registry.graph_editors();
+    assert_eq!(graph_editors.len(), 1);
+    assert_eq!(
+        graph_editors[0].asset_type(),
+        &AssetTypeId::parse("ai.behavior_tree").unwrap()
+    );
+    assert!(extensions.registry.inspector_customizations().is_empty());
+
+    // Gate parity and file resolution only; G5 filtering and GUI materialization
+    // retain their separate acceptance gates. Use the production root helper.
+    let root = crate::catalog::ai_ui_template_root()
+        .canonicalize()
+        .unwrap();
+    let templates = extensions.registry.ui_templates();
+    let documents = templates
+        .iter()
+        .map(|template| template.ui_document())
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(templates.len(), 2);
+    assert_eq!(
+        documents,
+        std::collections::BTreeSet::from([
+            "plugins://ai/editor/behavior_tree.zui",
+            "plugins://ai/editor/perception_debug.zui",
+        ])
+    );
+    for uri in documents {
+        let relative = uri.strip_prefix("plugins://ai/").unwrap();
+        let document = root.join(relative).canonicalize().unwrap();
+        assert!(document.starts_with(&root) && document.is_file(), "{uri}");
+    }
+}
+
 #[cfg(feature = "navigation-editor-plugin")]
 #[test]
 fn duplicate_project_selections_produce_one_editor_registration() {

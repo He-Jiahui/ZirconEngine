@@ -9734,6 +9734,7 @@ name = "zircon_first_party_editor_catalog"
 version = "0.1.0"
 dependencies = [
  "zircon_editor",
+ "zircon_plugin_ai_editor",
  "zircon_plugin_navigation_editor",
  "zircon_plugin_neural_editor",
  "zircon_plugin_particles_editor",
@@ -9793,6 +9794,18 @@ dependencies = [
  "uuid",
  "webbrowser",
  "zircon_runtime_interface",
+]
+
+[[package]]
+name = "zircon_plugin_ai_editor"
+version = "0.1.0"
+dependencies = [
+ "thiserror 2.0.20",
+ "zircon_editor",
+ "zircon_plugin_ai_runtime",
+ "zircon_plugin_editor_support",
+ "zircon_plugin_sdk",
+ "zircon_runtime",
 ]
 
 [[package]]

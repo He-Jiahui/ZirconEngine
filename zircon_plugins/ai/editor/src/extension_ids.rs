@@ -12,6 +12,5 @@ pub const AI_BT_NODE_RESULT_SNAPSHOT_PRUNE_CONSUMER_ID: &str =
     "ai.editor.bt_node_result_snapshot_prune";
 pub const AI_PERCEPTION_DEBUG_VIEW_ID: &str = "ai.perception.debug";
 pub const AI_PERCEPTION_DEBUG_TEMPLATE_ID: &str = "ai.perception.debug";
-pub const AI_PERCEPTION_OVERLAY_MODE_ID: &str = "ai.perception.viewport.overlay";
 pub const AI_PERCEPTION_OVERLAY_PROVIDER_ID: &str = "ai.perception.viewport.overlay.provider";
 pub const AI_TOGGLE_PERCEPTION_OVERLAY_OPERATION: &str = "ai.perception.toggle_overlay";
