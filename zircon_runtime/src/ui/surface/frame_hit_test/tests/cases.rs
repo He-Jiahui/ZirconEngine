@@ -379,29 +379,81 @@ fn projected_geometry_batch_preflight_failure_preserves_grid() {
 }
 
 #[test]
-fn projected_cold_lookup_preflight_failure_preserves_reverse_maps_and_grid() {
+fn projected_zero_cell_cold_lookup_patch_matches_rebuild() {
     let node_id = UiNodeId::new(1);
-    let entry = hit_entry(node_id, node_id, 0, 0);
+    let mut entry = hit_entry(node_id, node_id, 0, 0);
+    entry.frame = UiFrame::new(0.0, 0.0, 0.0, 10.0);
+    entry.clip_frame = entry.frame;
     let base_grid = test_hit_grid(vec![(entry.clone(), node_id)]);
+    let base_index = UiHitTestIndex::from_grid(base_grid.clone());
+    let changed_node_ids = BTreeSet::from([node_id]);
     let mut projected = UiProjectedHitTestIndex::default();
     projected.rebuild(&base_grid, &[]);
+    assert_eq!(projected.grid.entries.len(), 1);
+    assert!(projected.grid.cells.is_empty());
+
+    // Reproduce the dig's cold membership map with a populated entry lookup.
     projected.entry_cells.clear();
-    projected.entry_indices.clear();
-    let before_grid = projected.grid.clone();
-    let before_entry_cells = projected.entry_cells.clone();
-    let before_entry_indices = projected.entry_indices.clone();
-
-    let mut invalid = entry;
-    invalid.z_index = projected.overlay_z_base;
-    let updated_base = UiHitTestIndex::from_grid(test_hit_grid(vec![(invalid, node_id)]));
-
+    assert_eq!(projected.entry_indices[&node_id], 0);
     assert_eq!(
-        projected.patch(&updated_base, &[], &BTreeSet::from([node_id])),
-        Err(())
+        projected.patch(&base_index, &[], &changed_node_ids),
+        Ok(false)
     );
-    assert_eq!(projected.grid, before_grid);
-    assert_eq!(projected.entry_cells, before_entry_cells);
-    assert_eq!(projected.entry_indices, before_entry_indices);
+    assert!(projected.entry_cells[&node_id].is_empty());
+    assert_eq!(projected.grid, base_grid);
+    assert_eq!(
+        projected.patch(&base_index, &[], &changed_node_ids),
+        Ok(false)
+    );
+
+    entry.frame.x = 20.0;
+    entry.clip_frame = entry.frame;
+    let updated_grid = test_hit_grid(vec![(entry, node_id)]);
+    let updated_base = UiHitTestIndex::from_grid(updated_grid.clone());
+    assert_eq!(
+        projected.patch(&updated_base, &[], &changed_node_ids),
+        Ok(true)
+    );
+
+    let mut rebuilt = UiProjectedHitTestIndex::default();
+    rebuilt.rebuild(&updated_grid, &[]);
+    assert_eq!(projected.grid, rebuilt.grid);
+    assert_eq!(projected.entry_cells, rebuilt.entry_cells);
+    assert_eq!(projected.entry_indices, rebuilt.entry_indices);
+    assert_eq!(
+        projected.patch(&updated_base, &[], &changed_node_ids),
+        Ok(false)
+    );
+}
+
+#[test]
+fn projected_cold_lookup_preflight_failure_preserves_reverse_maps_and_grid() {
+    for width in [10.0, 0.0] {
+        let node_id = UiNodeId::new(1);
+        let mut entry = hit_entry(node_id, node_id, 0, 0);
+        entry.frame.width = width;
+        entry.clip_frame = entry.frame;
+        let base_grid = test_hit_grid(vec![(entry.clone(), node_id)]);
+        let mut projected = UiProjectedHitTestIndex::default();
+        projected.rebuild(&base_grid, &[]);
+        projected.entry_cells.clear();
+        projected.entry_indices.clear();
+        let before_grid = projected.grid.clone();
+        let before_entry_cells = projected.entry_cells.clone();
+        let before_entry_indices = projected.entry_indices.clone();
+
+        let mut invalid = entry;
+        invalid.z_index = projected.overlay_z_base;
+        let updated_base = UiHitTestIndex::from_grid(test_hit_grid(vec![(invalid, node_id)]));
+
+        assert_eq!(
+            projected.patch(&updated_base, &[], &BTreeSet::from([node_id])),
+            Err(())
+        );
+        assert_eq!(projected.grid, before_grid);
+        assert_eq!(projected.entry_cells, before_entry_cells);
+        assert_eq!(projected.entry_indices, before_entry_indices);
+    }
 }
 
 #[test]
