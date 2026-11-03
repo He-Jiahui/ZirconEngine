@@ -5,12 +5,18 @@ import io
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 from tools.dev import local_cargo
+
+
+def management_repository() -> Path:
+    """Use the real installed receiver while Jenkins tests a task worktree."""
+    return Path(os.environ.get("ZIRCON_MANAGEMENT_TEST_REPO_ROOT", str(Path(__file__).resolve().parents[2])))
 
 
 @unittest.skipUnless(os.name == "nt", "Windows storage contract")
@@ -40,11 +46,11 @@ class LocalCargoTests(unittest.TestCase):
     def test_dry_run_never_creates_output_or_contacts_coordinator(self) -> None:
         import hashlib
         from tools.jenkins import frontend
-        repo = Path(__file__).resolve().parents[2]
+        repo = management_repository()
         entry = frontend.management_entry(repo)
-        cargo_args = ["check", "-p", "zircon_runtime", "--locked"]
-        expected_recipe = {"verb": "check", "packages": ["zircon_runtime"], "features": [],
-            "profile": "dev", "offline": False, "noDefaultFeatures": False, "allFeatures": False,
+        cargo_args = ["check", "-p", "zircon_runtime", "--no-default-features", "--features", "core-min", "--locked"]
+        expected_recipe = {"verb": "check", "packages": ["zircon_runtime"], "features": ["core-min"],
+            "profile": "dev", "offline": False, "noDefaultFeatures": True, "allFeatures": False,
             "locked": True, "jobs": 1, "lib": False, "tests": [], "noRun": False}
         # Real identity reading and recipe parsing; downstream dispatch is this
         # unit boundary, so no capsule, authority or Cargo acceptance is claimed.
@@ -59,7 +65,7 @@ class LocalCargoTests(unittest.TestCase):
             prepared = {"status": "prepared-not-submitted", "payload": {**identity, **expected_recipe},
                         "requestedTargetDir": target, "buildRoot": build_root,
                         "actualTargetDir": None, "formalAcceptance": False, "m8Accepted": False}
-            base = ["--target-dir", target, "--build-root", build_root, "--dry-run"]
+            base = ["--repo-root", str(repo), "--target-dir", target, "--build-root", build_root, "--dry-run"]
             try:
                 with patch.dict(os.environ, {"JENKINS_IDENTITY_FILE": "", "ZIRCON_JENKINS_IDENTITY_FILE": ""}), \
                         patch.object(frontend, "management_entry", return_value=entry), \
@@ -72,7 +78,7 @@ class LocalCargoTests(unittest.TestCase):
                         code = local_cargo.main([*base, "--jenkins-identity-file", str(path), "--", *cargo_args])
                     self.assertEqual(0, code)
                     self.assertEqual(prepared, json.loads(out.getvalue()))
-                    parse.assert_called_once_with(cargo_args)
+                    parse.assert_called_once_with(cargo_args, enforce_policy=True, repo=repo)
                     dispatch.assert_called_once_with(repo, identity, recipe=expected_recipe,
                         target_dir=target, build_root=build_root, query_only=False, dry_run=True)
                     dispatch.reset_mock()
@@ -122,10 +128,12 @@ class LocalCargoTests(unittest.TestCase):
 
     def test_powershell_wrapper_preserves_package_and_test_scope(self) -> None:
         import hashlib
+        from tools.jenkins import frontend
         wrapper = Path(__file__).resolve().parents[1] / "dev/local-cargo.ps1"
-        repo = wrapper.parents[2]
+        repo = management_repository()
+        entry = frontend.management_entry(repo)
         shell = Path(os.environ["SystemRoot"]) / "System32/WindowsPowerShell/v1.0/powershell.exe"
-        cargo_args = ["test", "-p", "zircon_runtime", "--lib", "focused_filter",
+        cargo_args = ["test", "-p", "zircon_runtime", "--no-default-features", "--lib", "focused_filter",
                       "--locked", "--", "--exact"]
         # Run the original wrapper in an actual PowerShell child. This tiny
         # interpreter-argv probe never invokes Cargo or claims capsule authority.
@@ -135,6 +143,11 @@ class LocalCargoTests(unittest.TestCase):
                 identity: json.dumps({"action": "validate", "sessionId": "wrapper-fixture",
                     "requestId": "fixture-request", "operationId": "fixture-operation"}, sort_keys=True).encode("utf-8"),
                 probe: ("$ErrorActionPreference = 'Stop'\n"
+                    "if ($args.Count -ge 5 -and $args[3] -ceq '-c') {\n"
+                    "    & '" + sys.executable.replace("'", "''") + "' @args\n"
+                    "    $global:LASTEXITCODE = $LASTEXITCODE\n"
+                    "    return\n"
+                    "}\n"
                     "[ordered]@{status='argv-observed';argv=@($args);formalAcceptance=$false} | "
                     "ConvertTo-Json -Compress -Depth 8\n"
                     "$global:LASTEXITCODE = 0\n").encode("utf-8"),
@@ -154,8 +167,8 @@ class LocalCargoTests(unittest.TestCase):
                 report = json.loads(result.stdout)
                 self.assertEqual("argv-observed", report["status"])
                 self.assertFalse(report["formalAcceptance"])
-                self.assertEqual(["-B", "-X", "utf8", "-m", "tools.dev.local_cargo", "--repo-root", str(repo),
-                    "--jenkins-identity-file", str(identity), "--target-dir", target, "--build-root", build_root,
+                self.assertEqual(["-B", "-X", "utf8", str(Path(entry.__file__)), "cargo", "--repo-root", str(repo),
+                    "--identity-file", str(identity), "--target-dir", target, "--build-root", build_root,
                     "--dry-run", "--", *cargo_args], report["argv"])
                 self.assertFalse((leaf / "target").exists())
             finally:
