@@ -167,5 +167,39 @@ class CandidateInventoryTests(unittest.TestCase):
             self.assertFalse((base / "owned").exists())
 
 
+class TaskPriorityTests(unittest.TestCase):
+    def setUp(self):
+        self.owner = "01a1a1d6-d294-7b51-b7b4-049bd8fcf5bc"
+        path = m.ROOT / "tools/jenkins-management/merge_queue_recovery.py"
+        self.recovery = m.load("priority_recovery_contract", {"path": str(path), "sha256": m.sha(path.read_bytes())})
+        self.records = {op: {"status": "committed", "sourceCommit": op * 40,
+                            "integrationStatus": "pending", "request": {"ownerThreadId": self.owner},
+                            "periodicIntegration": {"build": build}}
+                        for op, build in (("a", 0), ("b", 1), ("c", 1200), ("d", 0))}
+        self.priority = {"ownerThreadId": self.owner, "operations": [{"operationId": "c", "sourceCommit": "c" * 40}]}
+
+    def select(self, **kwargs):
+        return m.select_task_priority(self.records, self.recovery.select_operations,
+                                      self.recovery.eligible, self.priority, **kwargs)
+
+    def test_mvp_commit_precedes_old_backlog_and_preserves_fair_remainder(self):
+        before = copy.deepcopy(self.records)
+        self.assertEqual(self.select(limit=3), ["c", "a", "d"])
+        self.assertEqual(self.records, before)
+
+    def test_retained_native_owner_precedes_task_priority(self):
+        self.assertEqual(self.select(limit=3, active_owner="b"), ["b", "c", "a"])
+
+    def test_completed_remote_delivery_is_not_republished(self):
+        self.records["c"]["integrationStatus"] = "awaiting-main-sync"
+        self.assertEqual(self.select(limit=3), ["a", "d", "b"])
+
+    def test_another_owner_or_changed_commit_cannot_acquire_priority(self):
+        for field, value in (("sourceCommit", "f" * 40), ("request", {"ownerThreadId": "f" * 36})):
+            with self.subTest(field=field), patch.dict(self.records["c"], {field: value}):
+                with self.assertRaises(ValueError):
+                    self.select(limit=3)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -41,12 +41,44 @@ def install(delivery, repo):
     utility = sys.modules.get("periodic_merge_util")
     if utility is not None and os.environ.get("JOB_NAME") == "zircon-merge-queue":
         original_load = utility.load
+        priority = None
+        if "--plan-file" in sys.argv:
+            path = physical(sys.argv[sys.argv.index("--plan-file") + 1])
+            if path.parent != SYNC_CONTROL / "runtime-plans":
+                raise ValueError("Task priority requires the original pinned queue plan")
+            digest = sys.argv[sys.argv.index("--plan-sha") + 1]
+            priority = json.loads(read_pin({"path": str(path), "sha256": digest})).get("taskPriority")
         def load_registered_branch(name, *args, **kwargs):
             module = original_load(name, *args, **kwargs)
             if name == "periodic_merge_branch":
                 module.register_candidate_output = register_candidate_output
+            elif name == "periodic_merge_queue_recovery" and priority:
+                original_select = module.select_operations
+                module.select_operations = lambda records, limit=8, active_owner=None: select_task_priority(
+                    records, original_select, module.eligible, priority, limit, active_owner)
             return module
         utility.load = load_registered_branch
+
+
+def select_task_priority(records, original_select, eligible, priority, limit=8, active_owner=None):
+    """Reserve at most two places for exact task commits; retain active ownership and fairness."""
+    if (type(limit) is not int or not 1 <= limit <= 8 or not isinstance(priority, dict)
+            or not re.fullmatch(r"[0-9a-f-]{36}", priority.get("ownerThreadId", ""))
+            or not 1 <= len(priority.get("operations", [])) <= 2):
+        raise ValueError("Task priority requires a bounded original-owner selection")
+    selected = [active_owner] if active_owner in records and eligible(records[active_owner]) else []
+    for item in priority["operations"]:
+        operation = item["operationId"]
+        record = records.get(operation, {})
+        if (not ID.fullmatch(operation) or record.get("sourceCommit") != item["sourceCommit"]
+                or record.get("request", {}).get("ownerThreadId") != priority["ownerThreadId"]):
+            raise ValueError("Prioritized immutable task ownership changed")
+        if eligible(record) and operation not in selected and len(selected) < limit:
+            selected.append(operation)
+    remaining = {op: record for op, record in records.items() if op not in selected}
+    if len(selected) < limit:
+        selected.extend(original_select(remaining, limit=limit-len(selected)))
+    return selected
 
 
 def register_candidate_output(delivery, output, manifest):
@@ -111,7 +143,7 @@ def save(path, value):
 def validate_plan(plan):
     if (not ID.fullmatch(plan.get("taskId", "")) or not ID.fullmatch(plan.get("operationId", ""))
             or plan.get("mode") not in {"qualify", "fetch-audit", "apply", "mvp-tooling",
-                                        "qualify-integration", "repair-integration"}
+                                        "qualify-integration", "repair-integration", "cleanup-fixtures"}
             or plan.get("repository") != str(ROOT)):
         raise ValueError("Invalid bounded consolidation identity")
     for selection in (plan.get("branches", []), plan.get("worktrees", [])):
@@ -384,6 +416,41 @@ def retire(plan, before, helper, output):
 def execute(plan, output):
     proof = runtime(plan)
     save(output / "runtime.json", proof)
+    if plan["mode"] == "cleanup-fixtures":
+        checks = load("consolidation_fixture_checks", plan["checksHelper"])
+        removed = []
+        for item in plan.get("fixtureOperations", []):
+            if not ID.fullmatch(item["operationId"]) or item["operationId"] == plan["operationId"]:
+                raise ValueError("Only previous task-owned fixtures can be retired")
+            base = physical(REPORTS / plan["taskId"] / item["operationId"])
+            if (physical(item["summary"]["path"]) != base / "summary.json"
+                    or physical(item["native"]["path"]) != base / "native-terminal.json"):
+                raise ValueError("Fixture receipt belongs to another operation")
+            summary = json.loads(read_pin(item["summary"]))
+            native = json.loads(read_pin(item["native"]))
+            if (summary.get("nativeComplete") is not True
+                    or not checks.native_complete(native, native["command"], ROOT)):
+                raise ValueError("Retain fixtures whose native process is not terminal")
+            fixtures = physical(base / "fixtures")
+            if fixtures.exists():
+                children = [physical(path) for path in fixtures.rglob("*")]
+                if any(not path.is_dir() for path in children):
+                    raise ValueError("Nonempty fixture evidence is retained")
+                for path in sorted(children, key=lambda p: len(p.parts), reverse=True) + [fixtures]:
+                    with (output / "cleanup-journal.jsonl").open("a", encoding="utf-8") as stream:
+                        stream.write(json.dumps({"status": "intent", "kind": "empty-directory", "path": str(path)}) + "\n")
+                        stream.flush()
+                        os.fsync(stream.fileno())
+                    path.rmdir()
+                    removed.append(str(path))
+                    with (output / "cleanup-journal.jsonl").open("a", encoding="utf-8") as stream:
+                        stream.write(json.dumps({"status": "removed", "kind": "empty-directory", "path": str(path)}) + "\n")
+                        stream.flush()
+                        os.fsync(stream.fileno())
+        result = {"status": "complete", "removedEmptyFixtureDirectories": removed,
+                  "deletedFiles": 0, "releasedFileAllocationBytes": 0}
+        save(output / "receipt.json", result)
+        return result
     if plan["mode"] in {"mvp-tooling", "qualify-integration"}:
         return qualify_tooling(plan, output)
     if plan["mode"] == "repair-integration":
@@ -536,6 +603,8 @@ def repair_integration(plan, output):
     new_path = SYNC_CONTROL / "runtime-plans" / (plan["taskId"] + "-" + plan["operationId"] + ".json")
     updated["repair"] = {"ownerThreadId": plan["ownerThreadId"], "qualification": plan["qualification"],
                          "missingHistoricalInputs": sorted(missing), "originalRequestsChanged": False}
+    if plan.get("taskPriority"):
+        updated["taskPriority"] = plan["taskPriority"]
     save(new_path, updated)
     new_sha = sha(new_path.read_bytes())
     reconcile_prelaunch(plan, output)
