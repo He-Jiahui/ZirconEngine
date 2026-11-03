@@ -27,6 +27,7 @@ MARKER = "// ZIRCON BOUNDED WORKTREE CONSOLIDATION"
 ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,79}\Z")
 SELECTED_PATHS_SHA256 = "e0a19a680badbb4142216f1c44c43bea5cc320effff985c04556cc88ec796ed1"
 SYNC_CONTROL = ROOT / ".jenkins/state/management/reports/zircon-git-sync-20261018-r1"
+MERGE_REPORTS = REPORTS / "zircon-git-sync-20261018-r1/runs"
 
 
 def install(delivery, repo):
@@ -37,6 +38,35 @@ def install(delivery, repo):
               "sha256": SELECTED_PATHS_SHA256}
     qualified = load("consolidation_selected_paths", source)
     delivery.commit.selected_paths = qualified.selected_paths
+    utility = sys.modules.get("periodic_merge_util")
+    if utility is not None and os.environ.get("JOB_NAME") == "zircon-merge-queue":
+        original_load = utility.load
+        def load_registered_branch(name, *args, **kwargs):
+            module = original_load(name, *args, **kwargs)
+            if name == "periodic_merge_branch":
+                module.register_candidate_output = register_candidate_output
+            return module
+        utility.load = load_registered_branch
+
+
+def register_candidate_output(delivery, output, manifest):
+    """Register new native outputs in this run, without recreating lost history."""
+    number = os.environ.get("BUILD_NUMBER", "")
+    if (os.environ.get("JOB_NAME") != "zircon-merge-queue" or not number.isdigit()
+            or os.environ.get("NODE_NAME") != "zircon-windows-agent"):
+        raise ValueError("Candidate inventory requires the original merge-queue agent")
+    run = physical(MERGE_REPORTS / number)
+    current = json.loads((run / "artifacts.json").read_bytes())
+    output = physical(output)
+    operation = manifest.get("task_id", "")
+    if (current.get("task_id") != "zircon-git-sync-" + number or not ID.fullmatch(operation)
+            or output.parent != physical(delivery.OUTPUT / operation)
+            or not re.fullmatch(r"candidate-(initial-checkout|checkout|merge|abort)-[0-9]+", output.name)
+            or output.exists()):
+        raise ValueError("Candidate output differs from its preregistered owner")
+    key = sha(str(output).casefold().encode("utf-8"))
+    save(run / "candidate-inventory" / (key + ".json"),
+         {**manifest, "paths": [str(output)], "releasedBytes": 0, "originalInventoryRecreated": False})
 
 
 def sha(raw):
@@ -429,6 +459,52 @@ def qualify_tooling(plan, output):
     return summary
 
 
+def reconcile_prelaunch(plan, output):
+    proof = plan.get("prelaunchProof")
+    if not proof:
+        return
+    failed = json.loads(read_pin(proof["summary"]))
+    native = json.loads(read_pin(proof["native"]))
+    checks = load("consolidation_prelaunch_checks", plan["checksHelper"])
+    audit = json.loads(read_pin(proof["audit"]))
+    root = ROOT / ".jenkins/worktrees/integration-queue"
+    prior = next(row for row in audit["worktrees"] if Path(row["path"]) == root)
+    operation = proof["operationId"]
+    phases = [row for row in failed.get("receipt", {}).get("operations", []) if row.get("operationId") == operation]
+    if (not ID.fullmatch(operation) or failed.get("build") != proof["build"]
+            or failed.get("nativeComplete") is not True or failed.get("nativeExitCode") != 1
+            or native.get("rootExitCode") != 1 or native.get("cleanup", {}).get("attempted") is not False
+            or not checks.native_complete(native, native["command"], ROOT)
+            or len(phases) != 1 or phases[0].get("status") != "reconciliation-required"
+            or "jenkins-one-worktree-flow-20261015" not in phases[0].get("reason", "")):
+        raise ValueError("Original prelaunch failure has no exact native proof")
+    helper = load("consolidation_prelaunch_git", plan["gitHelper"])
+    os.environ["ZR_COMMIT_NATIVE"] = "1"
+    marker_path = ROOT / ".jenkins/state/management/branch-integration/candidate.json"
+    record_path = marker_path.parent / "requests" / (operation + ".json")
+    with helper.git_lock(ROOT / ".jenkins/state/locks/management-git.lock"):
+        marker = json.loads(marker_path.read_bytes())
+        record = json.loads(record_path.read_bytes())
+        gd = Path(helper.git(root, "rev-parse", "--absolute-git-dir").stdout.decode().strip())
+        head = helper.git(root, "rev-parse", "HEAD").stdout.decode().strip()
+        dirty = helper.git(root, "status", "--porcelain=v1", "--untracked-files=all").stdout
+        common = Path(helper.git(root, "rev-parse", "--path-format=absolute", "--git-common-dir").stdout.decode().strip())
+        if (marker.get("status") != "active" or marker.get("operationId") != operation
+                or Path(marker.get("path", "")) != root or head != prior["head"] or dirty
+                or common != ROOT / ".git" or record["request"].get("ownerThreadId") != plan["ownerThreadId"]
+                or any(key in record for key in ("candidateGit", "candidateGitAttempt", "candidateGitHistory", "candidateHead"))
+                or any((gd / name).exists() for name in ("index.lock", "MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "rebase-merge", "rebase-apply"))):
+            raise ValueError("Original candidate acquired native work or changed source")
+        recovered = {"status": "prelaunch-failure-reconciled", "operationId": operation,
+                     "headUnchanged": head, "originalMarker": marker, "proof": proof,
+                     "nativeGitStarted": False, "nativeTerminationClaimed": False,
+                     "originalRequestUnchanged": True}
+        save(output / "prelaunch-reconciliation.json", recovered)
+        record["candidateRecovery"] = recovered
+        helper.write_json(record_path, record)
+        helper.write_json(marker_path, {"path": str(root), "status": "idle", "prelaunchRecovery": recovered})
+
+
 def repair_integration(plan, output):
     qualified = json.loads(read_pin(plan["qualification"]))
     if qualified.get("status") != "passed" or qualified.get("nativeComplete") is not True:
@@ -443,8 +519,10 @@ def repair_integration(plan, output):
     if any(Path(path).exists() for path in missing):
         raise ValueError("Original missing dependencies changed; reconcile before repair")
     updated = dict(original)
-    updated.update(runtime=plan["runtime"], revision=original["revision"] + 1,
-                   previousPlan=plan["originalPlan"],
+    installed_plan = plan.get("installedPlan", plan["originalPlan"])
+    installed = json.loads(read_pin(installed_plan))
+    updated.update(runtime=plan["runtime"], revision=installed["revision"] + 1,
+                   previousPlan=installed_plan,
                    queueRecoverySource={"path": str(ROOT / "tools/jenkins-management/merge_queue_recovery.py"),
                                         "sha256": sha((ROOT / "tools/jenkins-management/merge_queue_recovery.py").read_bytes())},
                    selectedPermissionsBridge={"path": str(Path(__file__).absolute()),
@@ -455,11 +533,12 @@ def repair_integration(plan, output):
                 {"path": str(ROOT / "tools/jenkins-management/checkout_commit.py"), "sha256": SELECTED_PATHS_SHA256}):
         read_pin(pin)
         updated["sourcePins"][pin["path"]] = pin
-    new_path = SYNC_CONTROL / "runtime-plans" / (plan["taskId"] + ".json")
+    new_path = SYNC_CONTROL / "runtime-plans" / (plan["taskId"] + "-" + plan["operationId"] + ".json")
     updated["repair"] = {"ownerThreadId": plan["ownerThreadId"], "qualification": plan["qualification"],
                          "missingHistoricalInputs": sorted(missing), "originalRequestsChanged": False}
     save(new_path, updated)
     new_sha = sha(new_path.read_bytes())
+    reconcile_prelaunch(plan, output)
     transport = load("consolidation_transport", plan["transportHelper"]).Transport(ROOT)
     endpoint = "job/zircon-merge-queue/config.xml"
     status, raw, _ = transport.request(endpoint)
@@ -470,10 +549,10 @@ def repair_integration(plan, output):
     if (script is None or document.findtext(".//hudson.triggers.TimerTrigger/spec") != "H/15 * * * *"
             or document.findtext("disabled") != "false"):
         raise ValueError("Original periodic integration schedule or owner changed")
-    old_path = str(Path(plan["originalPlan"]["path"])).replace("\\", "/")
-    if script.text.count(plan["originalPlan"]["sha256"]) != 1 or script.text.count(old_path) != 1:
+    old_path = str(Path(installed_plan["path"])).replace("\\", "/")
+    if script.text.count(installed_plan["sha256"]) != 1 or script.text.count(old_path) != 1:
         raise ValueError("Original periodic integration plan binding changed")
-    script.text = script.text.replace(plan["originalPlan"]["sha256"], new_sha).replace(old_path, new_path.as_posix())
+    script.text = script.text.replace(installed_plan["sha256"], new_sha).replace(old_path, new_path.as_posix())
     _, latest, _ = transport.request(endpoint)
     if latest != raw:
         raise ValueError("Concurrent periodic integration update retained")

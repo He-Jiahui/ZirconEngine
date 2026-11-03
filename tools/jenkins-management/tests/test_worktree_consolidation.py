@@ -6,6 +6,7 @@ from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 SOURCE = Path(__file__).parents[1] / "worktree_consolidation.py"
 spec = importlib.util.spec_from_file_location("consolidation_under_test", SOURCE)
@@ -109,6 +110,61 @@ class AllocationTests(unittest.TestCase):
             self.assertEqual(shared["hardLinks"], 2)
             self.assertEqual(shared["allocatedBytes"], 0)
             self.assertEqual(before["sha256"], shared["sha256"])
+
+
+class CandidateInventoryTests(unittest.TestCase):
+    def test_new_registration_precedes_output_and_rejects_duplicate_attempt(self):
+        with tempfile.TemporaryDirectory(prefix="candidate-inventory-", dir=os.environ["TEMP"]) as folder:
+            base = Path(folder)
+            run = base / "runs/123"
+            run.mkdir(parents=True)
+            (run / "artifacts.json").write_text('{"task_id":"zircon-git-sync-123"}')
+            delivery = SimpleNamespace(OUTPUT=base / "deliveries")
+            output = delivery.OUTPUT / "owned/candidate-checkout-0"
+            with patch.object(m, "MERGE_REPORTS", base / "runs"), patch.dict(os.environ,
+                    {"JOB_NAME": "zircon-merge-queue", "NODE_NAME": "zircon-windows-agent", "BUILD_NUMBER": "123"}):
+                m.register_candidate_output(delivery, output, {"task_id": "owned"})
+                self.assertFalse(output.exists())
+                self.assertEqual(len(list((run / "candidate-inventory").glob("*.json"))), 1)
+                with self.assertRaises(FileExistsError):
+                    m.register_candidate_output(delivery, output, {"task_id": "owned"})
+                with self.assertRaises(ValueError):
+                    m.register_candidate_output(delivery, output.parent.parent / "foreign/candidate-checkout-0", {"task_id": "owned"})
+
+    def test_adapter_preserves_pinned_loader_for_other_modules(self):
+        ordinary, branch = SimpleNamespace(), SimpleNamespace(register_candidate_output=None)
+        calls = []
+        def original(name, *args, **kwargs):
+            calls.append((name, args, kwargs))
+            return branch if name == "periodic_merge_branch" else ordinary
+        utility = SimpleNamespace(load=original)
+        delivery = SimpleNamespace(commit=SimpleNamespace(selected_paths=None))
+        with patch.dict(m.sys.modules, {"periodic_merge_util": utility}), patch.dict(os.environ, {"JOB_NAME": "zircon-merge-queue"}):
+            m.install(delivery, m.ROOT)
+            self.assertIs(utility.load("other", "path", "digest"), ordinary)
+            self.assertIs(utility.load("periodic_merge_branch", "path", "digest"), branch)
+            self.assertIs(branch.register_candidate_output, m.register_candidate_output)
+            self.assertEqual(calls, [("other", ("path", "digest"), {}), ("periodic_merge_branch", ("path", "digest"), {})])
+
+    def test_immutable_factory_registration_failure_starts_no_native_git(self):
+        component = m.ROOT / ".jenkins/runtime/branch-integration/c3b118ea14f1eb8757672dacd4c32cf715b0c1649c03eebc9f7e461180e0bc0f"
+        branch_path = component / "branch_integration.py"
+        branch = m.load("prelaunch_branch_contract", {"path": str(branch_path), "sha256": m.sha(branch_path.read_bytes())})
+        with tempfile.TemporaryDirectory(prefix="prelaunch-", dir=os.environ["TEMP"]) as folder:
+            base = Path(folder)
+            def module(name, path):
+                return m.load("prelaunch_" + name, {"path": str(path), "sha256": m.sha(Path(path).read_bytes())})
+            delivery = SimpleNamespace(OUTPUT=base, module=module,
+                                       commit=SimpleNamespace(physical=m.physical, ID=m.ID))
+            record = {"request": {"operationId": "owned", "sessionId": "owner"}}
+            with patch.object(branch, "register_candidate_output", side_effect=FileNotFoundError("original registry missing")), \
+                    patch.dict(os.environ, {"ZR_COMMIT_NATIVE": "1"}):
+                with self.assertRaises(FileNotFoundError):
+                    branch.candidate_git(delivery, m.ROOT, m.ROOT, "checkout", "a" * 40,
+                                         record, base / "queue.json", {})
+            self.assertNotIn("candidateGit", record)
+            self.assertNotIn("candidateGitAttempt", record)
+            self.assertFalse((base / "owned").exists())
 
 
 if __name__ == "__main__":
