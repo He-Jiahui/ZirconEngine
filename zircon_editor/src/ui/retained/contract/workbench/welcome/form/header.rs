@@ -27,7 +27,13 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_new_project_head
         .round()
         .max(template_font_size.ceil());
     let content_height = title_line_height + metrics.gap_s + template_line_height;
-    let content_y = header.y + ((header.height - content_height).max(0.0) * 0.5);
+    let show_template = header.height >= content_height;
+    let visible_height = if show_template {
+        content_height
+    } else {
+        title_line_height
+    };
+    let content_y = header.y + ((header.height - visible_height).max(0.0) * 0.5);
     let text_width = header.width.max(MIN_HEADER_TEXT_WIDTH);
 
     draw_text_with_size_and_style(
@@ -38,13 +44,19 @@ pub(in crate::ui::retained_host::host_contract) fn draw_welcome_new_project_head
             width: text_width,
             height: title_line_height,
         },
-        "New Project",
+        &crate::ui::retained_host::startup_splash::content::startup_text(
+            "editor.welcome.project_heading",
+        ),
         Some(clip),
         crate::ui::retained_host::host_contract::paint_theme::current_host_palette().text,
         title_font_size,
         title_line_height,
         UiTextRunPaintStyle::default(),
     );
+    // A compact task heading keeps optional template copy out of the next field.
+    if !show_template {
+        return;
+    }
     draw_text_with_size_and_style(
         frame,
         FrameRect {

@@ -2,7 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use notify::{RecommendedWatcher, RecursiveMode, Watcher};
+use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use thiserror::Error;
 
 use super::{consume_focus_signals, HubFocusSignalError};
@@ -45,11 +45,7 @@ impl HubFocusSignalWatch {
                 let Ok(event) = event else {
                     return;
                 };
-                if !event
-                    .paths
-                    .iter()
-                    .any(|path| path.starts_with(&callback_focus_directory))
-                {
+                if !may_publish_focus_signal(&event, &callback_focus_directory) {
                     return;
                 }
                 if let Err(error) = consume_pending_focus_signals(
@@ -79,7 +75,21 @@ impl HubFocusSignalWatch {
     }
 }
 
-/// Consumes the target mailbox once after watch registration and from every notify callback.
+/// Reads can generate access notifications on Linux. Scanning on those events feeds the
+/// watcher's own directory reads back into its callback indefinitely, even with an empty inbox.
+/// New requests arrive by creation or atomic rename; overflow recovery must also rescan.
+fn may_publish_focus_signal(event: &Event, focus_directory: &Path) -> bool {
+    event.need_rescan()
+        || (matches!(
+            event.kind,
+            EventKind::Any | EventKind::Create(_) | EventKind::Modify(_)
+        ) && event
+            .paths
+            .iter()
+            .any(|path| path.starts_with(focus_directory)))
+}
+
+/// Consumes the target mailbox after watch registration and notifications of possible writes.
 ///
 /// The rename claim in `consume_focus_signal` makes concurrent calls safe: only one path can
 /// observe a published request, so startup recovery cannot duplicate window attention.

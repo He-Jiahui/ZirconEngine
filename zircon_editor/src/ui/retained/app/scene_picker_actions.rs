@@ -171,6 +171,12 @@ impl RetainedEditorHost {
                     .submit_scene_create_request(ticket, request)
                     .map(|_| format!("Created scene {scene_uri}"))
             }
+            ScenePickerSubmission::SaveAs { ticket, request } => {
+                let scene_uri = request.scene_uri().to_string();
+                self.runtime
+                    .submit_scene_save_as_request(ticket, request)
+                    .map(|()| format!("Saved scene as {scene_uri}"))
+            }
         };
         match result {
             Ok(status) => {
@@ -253,6 +259,7 @@ fn scene_picker_action_name(mode: ScenePickerMode) -> &'static str {
     match mode {
         ScenePickerMode::Open => "Open",
         ScenePickerMode::Create => "Create",
+        ScenePickerMode::SaveAs => "Save As",
     }
 }
 

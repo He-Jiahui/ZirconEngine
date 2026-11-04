@@ -32,6 +32,7 @@ pub(crate) fn operation_path_for_menu_action(action: &MenuAction) -> Option<Edit
         MenuAction::OpenScene => "file.scene.open",
         MenuAction::CreateScene => "file.scene.create",
         MenuAction::SaveProject => "file.project.save",
+        MenuAction::SaveSceneAs => "file.scene.save_as",
         MenuAction::SaveAllDocuments => "file.documents.save_all",
         MenuAction::CloseProject => "file.project.close",
         MenuAction::SaveLayout => "window.layout.save",

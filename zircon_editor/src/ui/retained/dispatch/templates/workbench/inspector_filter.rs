@@ -18,6 +18,7 @@ const FILTER_COMMIT_ACTION: &str = "workbench.inspector.search.commit";
 const INSPECTOR_METADATA: &str = "WorkbenchInspectorMetadata";
 const INSPECTOR_TRANSFORM: &str = "WorkbenchInspectorTransform";
 const INSPECTOR_COMPONENT: &str = "WorkbenchInspectorMesh";
+const INSPECTOR_PROPERTIES: &str = "WorkbenchInspectorMeshProperties";
 const ADD_COMPONENT: &str = "WorkbenchAddComponent";
 const FILTER_EMPTY: &str = "WorkbenchInspectorFilterEmpty";
 const INSPECTOR_NAME_AREA: &str = "UnrealDetailsNameArea";
@@ -127,6 +128,20 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         self.set_visible(INSPECTOR_COMPONENT, component_visible)?;
         self.set_visible(ADD_COMPONENT, add_component_visible)?;
         self.set_visible(FILTER_EMPTY, empty_visible)?;
+
+        // Opening the section must resolve its viewport before sizing the physical row pool.
+        // Otherwise the first sync removes every row using the previously collapsed layout.
+        if component_visible
+            && !visible_properties.is_empty()
+            && self
+                .control_node_id(INSPECTOR_PROPERTIES)
+                .and_then(|id| self.template_surface.surface.tree.node(id))
+                .and_then(|node| node.scroll_state)
+                .is_some_and(|scroll| scroll.viewport_extent <= 0.0)
+        {
+            self.template_surface
+                .refresh_after_state_change(self.runtime.as_ref())?;
+        }
 
         let visible_properties: Arc<[InspectorPluginComponentPropertySnapshot]> =
             if component_visible {

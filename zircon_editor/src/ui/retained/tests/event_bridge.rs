@@ -6,6 +6,42 @@ use crate::core::editor_event::{
 use super::{apply_record_effects, UiHostEventEffects};
 
 #[test]
+fn scene_interaction_redraw_covers_committed_commands_without_promoting_pointer_motion() {
+    let mut record = EditorEventRecord {
+        event_id: EditorEventId::new(1),
+        sequence: EditorEventSequence::new(1),
+        source: EditorEventSource::RetainedHost,
+        event: EditorEvent::WorkbenchMenu(MenuAction::Undo),
+        binding_path: None,
+        operation_id: None,
+        operation_display_name: None,
+        operation_arguments: None,
+        operation_group: None,
+        transaction_id: None,
+        save_generation: None,
+        effects: vec![EditorEventEffect::PresentationChanged],
+        undo_policy: EditorEventUndoPolicy::NonUndoable,
+        before_revision: 0,
+        after_revision: 1,
+        result: EditorEventResult::success(serde_json::json!({"changed": true})),
+    };
+    let mut committed = UiHostEventEffects::default();
+    apply_record_effects(&mut committed, &record);
+    assert!(committed.redraw_scene_interaction);
+    record.event = EditorEvent::Viewport(
+        crate::core::editor_event::EditorViewportEvent::PointerMoved { x: 1.0, y: 2.0 },
+    );
+    let mut pointer = UiHostEventEffects::default();
+    apply_record_effects(&mut pointer, &record);
+    assert!(!pointer.redraw_scene_interaction);
+    record.event = EditorEvent::WorkbenchMenu(MenuAction::Undo);
+    record.result = EditorEventResult::success(serde_json::json!({"changed": false}));
+    let mut unchanged = UiHostEventEffects::default();
+    apply_record_effects(&mut unchanged, &record);
+    assert!(!unchanged.redraw_scene_interaction);
+}
+
+#[test]
 fn viewport_resize_projection_requires_presentation_and_render_only() {
     let mut effects = UiHostEventEffects::default();
     effects.request_presentation();

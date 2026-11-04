@@ -4,11 +4,25 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 import re
 import subprocess
+import time
 
 from tools.analysis.visual.zircon_pbr_visual_oracle import decode_rgba_png
+from tools.build.zircon_build_support import platform_executable_name, platform_runtime_library_name
+
+
+def smoke_output_path(path: Path) -> Path:
+    from tools.build.build_editor import ordinary, output_path
+    if os.name == 'nt':
+        return output_path(path)
+    # Native Linux/macOS smoke runs have no Windows drive mapping. Keep the
+    # caller's physical, absolute evidence directory and reject path aliases.
+    if not path.is_absolute() or '..' in path.parts or ordinary(path).resolve() != path:
+        raise ValueError(f'Smoke output must be an absolute physical path: {path}')
+    return path
 
 
 def inspect_first_frame(path: Path, expected_size: tuple[int, int] | None = None) -> dict:
@@ -34,9 +48,9 @@ def inspect_first_frame(path: Path, expected_size: tuple[int, int] | None = None
 def run_startup_smoke(staging: Path, evidence: Path, environment: dict[str, str], *,
                       timeout_seconds: float = 120, creationflags: int = 0) -> dict:
     """Caller validates physical output paths; keep failed logs/receipt and never publish success."""
-    from tools.build.build_editor import output_path
+    output_path = smoke_output_path
     staging, evidence = output_path(staging), output_path(evidence)
-    executable = staging / 'zircon_editor.exe'
+    executable = staging / platform_executable_name('zircon_editor')
     capture = output_path(evidence / 'first-frame.png')
     receipt_path = output_path(evidence / 'startup-smoke-receipt.json')
     if capture.exists() or receipt_path.exists():
@@ -49,15 +63,18 @@ def run_startup_smoke(staging: Path, evidence: Path, environment: dict[str, str]
     # Keep user state and generated UI caches out of the staged product and user profile.
     child_environment.update({
         'ZIRCON_ASSET_ROOT': str(staging / 'assets'),
-        'ZIRCON_RUNTIME_LIBRARY': str(staging / 'zircon_runtime.dll'),
+        'ZIRCON_RUNTIME_LIBRARY': str(staging / platform_runtime_library_name()),
         'ZIRCON_CONFIG_PATH': str(profile / 'editor-config.json'),
         'ZIRCON_LOG_ROOT': str(evidence / 'logs'),
         'ZIRCON_UI_COMPILED_ARTIFACT_CACHE': str(evidence / 'ui-cache'),
         'APPDATA': str(profile), 'LOCALAPPDATA': str(profile),
+        'XDG_CONFIG_HOME': str(profile / 'config'),
+        'XDG_CACHE_HOME': str(profile / 'cache'),
+        'XDG_DATA_HOME': str(profile / 'data'),
         'ZIRCON_EDITOR_EXIT_AFTER_FIRST_FRAME': '1',
         'ZIRCON_EDITOR_CAPTURE_FIRST_FRAME_PNG': str(capture),
     })
-    receipt = {'status': 'failed', 'first_frame_verified': False, 'commands': [],
+    receipt = {'status': 'failed', 'first_frame_verified': False, 'commands': [], 'launches': [],
                'timeout_seconds': timeout_seconds}
     try:
         for label, arguments in [
@@ -67,11 +84,14 @@ def run_startup_smoke(staging: Path, evidence: Path, environment: dict[str, str]
         ]:
             command = [str(executable), *arguments]
             receipt['commands'].append(command)
+            started = time.perf_counter()
             with output_path(evidence / f'{label}.stdout.log').open('xb') as stdout, \
                     output_path(evidence / f'{label}.stderr.log').open('xb') as stderr:
                 completed = subprocess.run(command, cwd=staging, env=child_environment,
                                            stdout=stdout, stderr=stderr, check=False,
                                            timeout=timeout_seconds, creationflags=creationflags)
+            receipt['launches'].append({'label': label, 'wall_seconds': time.perf_counter() - started,
+                                       'returncode': completed.returncode})
             if completed.returncode:
                 raise ValueError(f'Editor {label} failed ({completed.returncode}); inspect {evidence}')
             if label == 'help':
@@ -100,3 +120,23 @@ def run_startup_smoke(staging: Path, evidence: Path, environment: dict[str, str]
     finally:
         receipt_path.write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
     return receipt
+
+
+def main() -> int:
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--staging', type=Path, required=True)
+    parser.add_argument('--evidence', type=Path, required=True)
+    parser.add_argument('--timeout-seconds', type=float, default=120)
+    args = parser.parse_args()
+    # Fail before creating evidence if either requested path is an alias.
+    staging, evidence = smoke_output_path(args.staging), smoke_output_path(args.evidence)
+    evidence.mkdir(parents=True, exist_ok=False)
+    result = run_startup_smoke(staging, evidence, dict(os.environ),
+                               timeout_seconds=args.timeout_seconds)
+    print(json.dumps(result, indent=2))
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

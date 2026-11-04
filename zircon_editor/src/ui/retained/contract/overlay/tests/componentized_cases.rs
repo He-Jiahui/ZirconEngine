@@ -69,6 +69,85 @@ fn current_presentation(
     presentation
 }
 
+#[test]
+fn native_play_images_survive_the_full_workbench_composition() {
+    use crate::core::commands::{CommandEvalCtx, EditorCommandRegistry};
+    use crate::core::editor_message::PlayStateKind;
+    use crate::ui::retained_host::host_contract::data::{HostDocumentDockSurfaceData, PaneData};
+    use crate::ui::workbench::model::RunControlsModel;
+    let _guard = env_lock()
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
+    // Painting resolves icons asynchronously. Keep this test's loader owner alive,
+    // independent of any earlier native-host fixture's retired runtime.
+    let asset_owner = crate::ui::retained_host::UiHostWindow::new().unwrap();
+    asset_owner.bind_visual_asset_jobs(crate::core::jobs::test_job_system(), Arc::new(|| {}));
+    let mut bridge = window_bridge();
+    let context = CommandEvalCtx::interactive()
+        .with_project_open(true)
+        .with_play_state(PlayStateKind::Playing);
+    bridge
+        .apply_run_controls(RunControlsModel::from_commands(
+            &EditorCommandRegistry::default_workbench(),
+            &context,
+        ))
+        .unwrap();
+    bridge.refresh_prepared_state_change().unwrap();
+    let mut presentation = current_presentation(&bridge);
+    presentation.host_layout.center_band_frame =
+        node_frame(node(&presentation, "WorkbenchWindowMainBandRegion"));
+    let media = node_frame(node(&presentation, "WorkbenchViewportSurface"));
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        surface_key: "document:test-play".to_owned(),
+        region_frame: presentation.host_layout.center_band_frame.clone(),
+        content_frame: media.clone(),
+        pane: PaneData {
+            kind: "Game".into(),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let color = [19, 197, 83, 255];
+    presentation
+        .viewport_images
+        .replace_game(HostViewportImageData {
+            resource_key: "play-viewport:test-composition".into(),
+            width: 1,
+            height: 1,
+            rgba: Some(Arc::from(color)),
+            ..Default::default()
+        });
+    let mut frame = HostRgbaFrame::filled(WINDOW_WIDTH, WINDOW_HEIGHT, SENTINEL);
+    let stop = node_frame(node(&presentation, "WorkbenchRunStop"));
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    let visible_glyph = loop {
+        draw_componentized_workbench_window(&mut frame, &presentation);
+        let visible = (stop.y as usize..(stop.y + stop.height) as usize).any(|y| {
+            (stop.x as usize..(stop.x + stop.width) as usize).any(|x| {
+                let color = pixel(&frame, x, y);
+                color[..3].iter().all(|channel| *channel > 120)
+            })
+        });
+        if visible || std::time::Instant::now() >= deadline {
+            break visible;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    };
+    assert_eq!(
+        pixel(
+            &frame,
+            (media.x + media.width * 0.5) as usize,
+            (media.y + media.height * 0.5) as usize
+        ),
+        color,
+        "the Game product must remain visible after authored pane composition"
+    );
+    assert!(
+        visible_glyph,
+        "the visible Stop control must paint its authored glyph"
+    );
+}
+
 fn node<'a>(
     presentation: &'a HostWindowPresentationData,
     control: &str,

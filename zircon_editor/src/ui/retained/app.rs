@@ -122,6 +122,8 @@ mod asset_surface_pointer_state;
 mod asset_tree_pointer;
 #[path = "app/assets.rs"]
 mod assets;
+#[path = "app/async_play.rs"]
+mod async_play;
 #[path = "app/automation.rs"]
 mod automation;
 #[path = "app/autosave.rs"]
@@ -166,6 +168,8 @@ mod host_lifecycle;
 mod hub_focus_binding;
 #[path = "app/inspector.rs"]
 mod inspector;
+#[path = "app/interaction_evidence.rs"]
+mod interaction_evidence;
 #[path = "app/invalidation.rs"]
 mod invalidation;
 #[path = "app/job_progress.rs"]
@@ -416,6 +420,9 @@ pub fn run_editor_with_config(
             .and_then(|manager| manager.apply_layout_command(LayoutCommand::LoadPreset { name }))
             .map_err(|error| hub_startup_reporter.report_failure(error))?;
     }
+    retained_host
+        .runtime
+        .enable_async_play(ui.background_event_wake_callback());
     let host = Rc::new(RefCell::new(retained_host));
     let notification_context = host.borrow().runtime.context().clone();
     ui.on_toast_presented(move |id, token| {
@@ -488,16 +495,19 @@ pub fn run_editor_with_config(
             .report_failure_with_code(HubEditorStartupFailureCodeV1::FocusInboxBinding, error)
             .into());
     }
-    if let Some(receipt) = hub_ready_receipt {
-        let reporter = hub_startup_reporter.clone();
-        ui.on_first_presented(move || match reporter.report_ready(receipt) {
-            Ok(()) => Ok(()),
-            Err(error) => Err(reporter
-                .report_failure_with_code(HubEditorStartupFailureCodeV1::MailboxPublish, error)
-                .to_string()),
-        })
-        .map_err(|error| hub_startup_reporter.report_failure(error))?;
-    }
+    let reporter = hub_startup_reporter.clone();
+    ui.on_first_presented(move || {
+        super::startup_splash::EditorStartupSplash::first_frame_presented();
+        if let Some(receipt) = hub_ready_receipt {
+            reporter.report_ready(receipt).map_err(|error| {
+                reporter
+                    .report_failure_with_code(HubEditorStartupFailureCodeV1::MailboxPublish, error)
+                    .to_string()
+            })?;
+        }
+        Ok(())
+    })
+    .map_err(|error| hub_startup_reporter.report_failure(error))?;
     if product_frame_evidence_requested {
         let retained_host = host.borrow();
         let diagnostic =
@@ -731,8 +741,14 @@ struct RetainedEditorHost {
     ui: UiHostWindow,
     self_handle: Option<Weak<RefCell<RetainedEditorHost>>>,
     runtime_lease: RetainedHostRuntimeLease,
-    runtime: EditorHostEventController,
+    runtime: Arc<EditorHostEventController>,
     runtime_shutdown_receipt: Option<EditorRuntimeSessionShutdownReceipt>,
+    close_after_play_transition: bool,
+    play_gpu_identity: Option<(
+        crate::core::play::PlayInstanceId,
+        crate::core::gateway::GatewaySessionIdentity,
+    )>,
+    play_gpu_unavailable: Option<crate::core::play::PlayInstanceId>,
     editor_manager: ServiceHandle<EditorManager>,
     hub_focus_binding: HubFocusBinding,
     hub_focus_request_attention: Arc<dyn Fn() + Send + Sync>,

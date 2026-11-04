@@ -330,6 +330,30 @@ impl EditorManager {
         })
     }
 
+    /// Publishes the current authoring world to a new scene without replacing its history.
+    pub(crate) fn save_scene_document_as(
+        &self,
+        ticket: ScenePickerTicket,
+        request: SceneCreateRequest,
+        world: &zircon_runtime::scene::Scene,
+    ) -> Result<ActiveSceneDocumentIdentity, EditorError> {
+        let asset_manager = self.host.asset_manager()?;
+        let editor_asset_manager = self.host.editor_asset_manager()?;
+        let project = asset_manager.current_project_snapshot().ok_or_else(|| {
+            EditorError::Project("cannot save a scene without an active project".to_string())
+        })?;
+        let journal = self.document_journal()?;
+        let catalog = RuntimeSceneAssetCatalog::new(&*asset_manager, &*editor_asset_manager);
+        let identity =
+            SceneDocumentRoute::new(&project, &self.document_lifecycle, journal.as_ref(), ticket)
+                .save_as(request, world, &catalog)
+                .map_err(|error| EditorError::Project(error.to_string()))?;
+        self.publish_document_messages([DocumentMessage::Saved {
+            doc: identity.document(),
+        }]);
+        Ok(identity)
+    }
+
     /// Issues the project-session capability that a scene picker must preserve until submit.
     pub fn scene_picker_ticket(&self) -> Result<ScenePickerTicket, EditorError> {
         let project = self.host.current_project_snapshot()?.ok_or_else(|| {

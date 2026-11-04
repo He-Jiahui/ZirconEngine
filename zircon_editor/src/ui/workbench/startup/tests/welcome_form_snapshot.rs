@@ -1,6 +1,21 @@
 use super::EditorStartupSessionDocument;
 
 #[test]
+fn first_run_explains_both_project_actions_and_preserves_real_errors() {
+    let mut session = EditorStartupSessionDocument::default();
+    let snapshot = session.welcome_pane_snapshot(false);
+    assert!(snapshot.recent_projects.is_empty());
+    assert!(snapshot.status_message.contains("parent folder"));
+    assert!(snapshot.status_message.contains("create"));
+    assert!(snapshot.status_message.contains("open"));
+    session.status_message = "Project manifest could not be read".to_string();
+    assert_eq!(
+        session.welcome_pane_snapshot(false).status_message,
+        session.status_message
+    );
+}
+
+#[test]
 fn a_valid_new_project_keeps_create_enabled_and_explains_disabled_open() {
     let session = EditorStartupSessionDocument {
         creation_validation: String::new(),

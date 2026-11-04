@@ -19,7 +19,7 @@ use self::overlay::{is_anchor_positioned_overlay, uses_popper_placement};
 use self::placement::{default_popper_placement, popper_position};
 use super::super::pane_value_conversion::value_as_string;
 
-pub(super) fn projected_popup_frame(
+pub(in crate::ui::retained_host::ui) fn projected_popup_frame(
     attributes: &std::collections::BTreeMap<String, toml::Value>,
     component_role: &str,
     popup_open: bool,

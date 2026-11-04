@@ -87,7 +87,7 @@ pub(super) use self::native_template_node_panes::{
 pub(super) use self::pane_component_projection::{
     projected_command_palette_option_rows, projected_notification_center_metadata,
     projected_notification_center_metadata_from_host, projected_notification_center_option_rows,
-    projected_notification_center_value_text, projected_sample_grid_data,
+    projected_notification_center_value_text, projected_popup_frame, projected_sample_grid_data,
     projected_settings_window_data, projected_timeline_strip_data, projected_weight_heatmap_data,
     NotificationCenterMetadata,
 };

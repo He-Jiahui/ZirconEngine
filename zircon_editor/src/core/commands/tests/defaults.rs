@@ -11,13 +11,17 @@ fn viewport_commands_resolve_focus_at_execution_and_drawer_uses_a_host_intent() 
         .with_project_open(true)
         .with_focused_document_kind(DocumentKind::scene());
     assert_eq!(
-        registry.event_for_command("viewport.selection.frame", &context).unwrap(),
+        registry
+            .event_for_command("viewport.selection.frame", &context)
+            .unwrap(),
         EditorEvent::Viewport(EditorViewportEvent::ForFocusedScene {
             event: Box::new(EditorViewportEvent::FrameSelection),
         })
     );
     assert_eq!(
-        registry.event_for_command("viewport.tool.translate", &context).unwrap(),
+        registry
+            .event_for_command("viewport.tool.translate", &context)
+            .unwrap(),
         EditorEvent::Viewport(EditorViewportEvent::ForFocusedScene {
             event: Box::new(EditorViewportEvent::ActivateSceneMode {
                 mode: SceneModeActivation::Transform(TransformHandleKind::Move),
@@ -25,7 +29,9 @@ fn viewport_commands_resolve_focus_at_execution_and_drawer_uses_a_host_intent() 
         })
     );
     assert_eq!(
-        registry.event_for_command("view.content_drawer.toggle", &context).unwrap(),
+        registry
+            .event_for_command("view.content_drawer.toggle", &context)
+            .unwrap(),
         EditorEvent::Transient(EditorEventTransient::ToggleContentDrawer)
     );
 }
@@ -89,6 +95,37 @@ fn open_scene_owns_ctrl_o_and_open_project_has_no_default_chord() {
             .count(),
         1
     );
+}
+
+#[test]
+fn save_as_is_a_project_scoped_scene_command_and_preserves_save_all_shortcut() {
+    let commands = default_workbench_commands();
+    let save_as = commands
+        .iter()
+        .find(|command| command.id().as_str() == "file.scene.save_as")
+        .expect("Save As must be available in the File menu and command palette");
+    assert!(matches!(save_as.when(), WhenClause::ProjectOpen));
+    assert_eq!(
+        save_as.menu_path().map(|path| path.root().id().as_str()),
+        Some("file")
+    );
+    assert_eq!(
+        save_as.presentation().label_key(),
+        "command.file.scene.save_as.label"
+    );
+    assert!(matches!(
+        save_as.event(),
+        Some(EditorEvent::WorkbenchMenu(MenuAction::SaveSceneAs))
+    ));
+    assert!(save_as.default_chord().is_none());
+
+    let save_all_chord = EditorKeyChord::from_str("Ctrl+Shift+S").unwrap();
+    let shortcut_owners = commands
+        .iter()
+        .filter(|command| command.default_chord() == Some(&save_all_chord))
+        .map(|command| command.id().as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(shortcut_owners, vec!["file.documents.save_all"]);
 }
 
 #[test]

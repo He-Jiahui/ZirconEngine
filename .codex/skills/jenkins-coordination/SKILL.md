@@ -147,10 +147,17 @@ capability within the current task instead of requesting per-session permission.
 Before submitting each compilation-capable `check`, `build` or `test`, announce
 the modules, explicit packages, features, targets/test filters, profile, command
 and coverage reason using [the build declaration](../zircon-dev/validation/guide.md#declare-every-build).
-Keep that same scope in the Jenkins request and actual command evidence. Disable
-default features and select only required features. Full builds are prohibited:
-no `--workspace`, `--all`, `--all-features`, `--all-targets`, implicit root-wide
-selection or equivalent all-package loops/matrices, including wave/release work.
+Keep that same scope in the Jenkins request and actual command evidence. For ordinary work, disable
+default features and select only required features. Explicit workspace/package-set
+builds called for by the current task or owning validation documentation are
+allowed under [declared gates](../../../docs/testing-and-validation/milestone-validation-policy.md#declared-workspace-and-package-set-gates).
+Blind `--all`, `--all-features`, `--all-targets`, implicit root-wide selection
+and undeclared all-package loops/matrices remain prohibited unless the user
+explicitly authorizes that scope; wave/release work alone supplies none.
+John's authorized local Windows/MSVC U09 regression follows
+[the U09 exception](../../../docs/testing-and-validation/milestone-validation-policy.md#authorized-windowsmsvc-u09-regression);
+it permits the documented full gate without Jenkins/Penpot startup and supplies
+independent command evidence, not Jenkins acceptance.
 Inspect a recipe's actual Cargo commands before submission; if it cannot express
 the required module scope, preserve the pending handoff and report that limitation.
 Do not submit its full-build fallback. Reuse compatible managed outputs under

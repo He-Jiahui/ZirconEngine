@@ -1,3 +1,5 @@
+#[path = "async_play.rs"]
+mod async_play;
 #[path = "generated_bottom_pane.rs"]
 mod generated_bottom_pane;
 #[path = "support.rs"]
@@ -60,3 +62,6 @@ mod module_tools_menus;
 
 #[path = "module_plugin_details.rs"]
 mod module_plugin_details;
+
+#[path = "welcome_probe.rs"]
+mod welcome_probe;

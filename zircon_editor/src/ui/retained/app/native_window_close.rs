@@ -12,6 +12,12 @@ mod prompt_actions;
 
 impl RetainedEditorHost {
     pub(super) fn native_main_window_close_requested(&mut self) -> CloseRequestResponse {
+        if self.runtime.pending_play_label().is_some() {
+            self.close_after_play_transition = true;
+            self.ui
+                .set_lifecycle_frame_update(Some(std::time::Instant::now()));
+            return CloseRequestResponse::KeepWindowShown;
+        }
         if self.main_window_close_requested() && !self.main_window_close_waiting_decision() {
             self.ui
                 .set_lifecycle_frame_update(Some(std::time::Instant::now()));

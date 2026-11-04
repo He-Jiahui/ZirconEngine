@@ -16,21 +16,6 @@ pub fn apply_inspector_binding(
     let batch = dispatch_inspector_binding(binding)?;
     let node_id = resolve_subject_path(state, &batch.subject_path)?;
     state.ensure_inspector_binding_can_begin()?;
-    for change in &batch.changes {
-        if change
-            .field_id
-            .rsplit_once('.')
-            .is_some_and(|(component, _)| {
-                crate::ui::workbench::snapshot::InspectorNativeFieldSnapshot::is_component_type(
-                    component,
-                )
-            })
-        {
-            return Err(EditorBindingDispatchError::UnsupportedInspectorField(
-                change.field_id.clone(),
-            ));
-        }
-    }
     if matches!(
         state.viewport_controller.selection().active_domain(),
         WorldDomain::Play(_)
@@ -120,6 +105,15 @@ fn apply_inspector_draft_field_value(
         }
         "transform.translation.z" => {
             state.update_translation_field(2, binding_value_to_string(value, field_id)?);
+        }
+        "transform.rotation_degrees.x" => {
+            state.update_rotation_field(0, binding_value_to_string(value, field_id)?);
+        }
+        "transform.rotation_degrees.y" => {
+            state.update_rotation_field(1, binding_value_to_string(value, field_id)?);
+        }
+        "transform.rotation_degrees.z" => {
+            state.update_rotation_field(2, binding_value_to_string(value, field_id)?);
         }
         "transform.scale.x" => {
             state.update_scale_field(0, binding_value_to_string(value, field_id)?);

@@ -4,7 +4,9 @@ pub(in crate::ui::retained_host::host_contract::surface_hit_test::template_node)
     action_id: &str,
     label: &str,
 ) -> SharedString {
-    if action_id.starts_with("menu.item.") {
+    // Dotted IDs identify registered operations. Legacy label-only rows still
+    // use the menu.item namespace, but real commands must retain their identity.
+    if action_id.contains('.') {
         return action_id.into();
     }
     menu_item_action_id(if label.is_empty() { action_id } else { label }).into()

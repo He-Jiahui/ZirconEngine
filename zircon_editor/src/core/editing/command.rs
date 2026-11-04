@@ -28,6 +28,14 @@ pub(crate) use add_component::{
     ADD_COMPONENT_OPERATION,
 };
 
+#[path = "command/script_bindings.rs"]
+mod script_bindings;
+pub(crate) use script_bindings::{
+    read_script_bindings, SetScriptBindingsCommand, SetScriptBindingsFactory,
+    SetScriptBindingsPayload, SetScriptBindingsRequest, SET_SCRIPT_BINDINGS_JOURNAL,
+    SET_SCRIPT_BINDINGS_OPERATION,
+};
+
 #[path = "command/batch_transform.rs"]
 mod batch_transform;
 #[path = "command/play_transform.rs"]
@@ -44,6 +52,7 @@ pub(crate) enum EditorCommand {
     BatchTransform(BatchTransformCommand),
     PlayTransform(PlayTransformCommand),
     SetReflectedSceneField(SetReflectedSceneFieldCommand),
+    SetScriptBindings(SetScriptBindingsCommand),
 }
 
 impl EditorCommand {
@@ -166,15 +175,14 @@ impl EditorCommand {
     ) -> Result<Self, EditCommandError> {
         SetReflectedSceneFieldCommand::from_journal(payload).map(Self::SetReflectedSceneField)
     }
-}
 
-impl EditCommand for EditorCommand {
-    fn retention_plan_v1(
+    fn plan_v1(
         &self,
         context: &dyn EditContext,
         phase: super::engine::RetentionPhaseV1,
         model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
         limit: u64,
+        peak_limit: u64,
     ) -> Result<super::engine::CommandRetentionPlanV1, EditCommandError> {
         use super::engine::{CommandRetentionPlanV1, RetentionPhaseV1};
         use zircon_runtime_interface::retained_memory::*;
@@ -184,8 +192,33 @@ impl EditCommand for EditorCommand {
                 expected: "CoreEditContext",
             },
         )?;
+        if let Self::SetScriptBindings(command) = self {
+            command.validate(
+                core,
+                matches!(phase, RetentionPhaseV1::Undo | RetentionPhaseV1::Rollback),
+            )?;
+            // Typed values, reflected reads and JSON materialization may overlap.
+            plan.add_peak(
+                plan.retained_bytes
+                    .checked_mul(4)
+                    .ok_or(RetentionContractError::Overflow)?,
+            )?;
+        }
         core.with_scene(|scene| -> Result<(), EditCommandError> {
             plan.owner_revision = Some(scene.world_generation());
+            if let Self::SetScriptBindings(command) = self {
+                // Staging is transient; quoted replay retains only the command
+                // payload and reserves this scratch through materialization.
+                let mut scratch =
+                    RetainedBoundBuilderV1::with_limit(model, RetainedBytesV1::new(peak_limit));
+                scene.dynamic_component_creation_peak_v1(
+                    &[command.payload.node_id],
+                    &serde_json::Value::Null,
+                    zircon_runtime::asset::SceneScriptBindingAsset::COMPONENT_TYPE_PATH,
+                    &mut scratch,
+                )?;
+                plan.add_peak(scratch.bytes().get())?;
+            }
             if let Self::DeleteNode(command) = self {
                 if !matches!(phase, RetentionPhaseV1::Undo | RetentionPhaseV1::Rollback) {
                     let mut m =
@@ -227,6 +260,35 @@ impl EditCommand for EditorCommand {
         })??;
         Ok(plan)
     }
+}
+
+impl EditCommand for EditorCommand {
+    fn retention_plan_v1(
+        &self,
+        context: &dyn EditContext,
+        phase: super::engine::RetentionPhaseV1,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limit: u64,
+    ) -> Result<super::engine::CommandRetentionPlanV1, EditCommandError> {
+        self.plan_v1(context, phase, model, limit, limit)
+    }
+
+    fn retention_plan_with_limits_v1(
+        &self,
+        context: &dyn EditContext,
+        phase: super::engine::RetentionPhaseV1,
+        model: zircon_runtime_interface::retained_memory::RetainedAccountingModelV1,
+        limits: super::engine::CommandRetentionLimitsV1,
+    ) -> Result<super::engine::CommandRetentionPlanV1, EditCommandError> {
+        self.plan_v1(
+            context,
+            phase,
+            model,
+            limits.retained_bytes,
+            limits.materialization_bytes,
+        )
+    }
+
     fn prepare_retention_v1(
         &mut self,
         context: &mut dyn EditContext,
@@ -265,6 +327,7 @@ impl EditCommand for EditorCommand {
             Self::BatchTransform(_) => "Transform scene selection",
             Self::PlayTransform(_) => "Transform Play scene node",
             Self::SetReflectedSceneField(_) => "Set reflected scene field",
+            Self::SetScriptBindings(_) => "Set script bindings",
         }
     }
 
@@ -277,6 +340,7 @@ impl EditCommand for EditorCommand {
             Self::BatchTransform(command) => command.apply(context),
             Self::PlayTransform(command) => command.apply(context),
             Self::SetReflectedSceneField(command) => command.apply(context),
+            Self::SetScriptBindings(command) => command.apply(context),
         }
     }
 
@@ -289,6 +353,7 @@ impl EditCommand for EditorCommand {
             Self::BatchTransform(command) => command.revert(context),
             Self::PlayTransform(command) => command.revert(context),
             Self::SetReflectedSceneField(command) => command.revert(context),
+            Self::SetScriptBindings(command) => command.revert(context),
         }
     }
 
@@ -324,6 +389,7 @@ impl EditCommand for EditorCommand {
             Self::BatchTransform(command) => command.journal_payload(),
             Self::PlayTransform(command) => command.journal_payload(),
             Self::SetReflectedSceneField(command) => command.journal_payload(),
+            Self::SetScriptBindings(command) => command.journal_payload(),
         }
     }
 
@@ -1196,6 +1262,7 @@ impl zircon_runtime_interface::retained_memory::RetainedOwnerV1 for EditorComman
             Self::BatchTransform(v) => v.retained_bound_v1(m),
             Self::PlayTransform(v) => v.retained_bound_v1(m),
             Self::SetReflectedSceneField(v) => v.retained_bound_v1(m),
+            Self::SetScriptBindings(v) => v.retained_bound_v1(m),
         }
     }
 }

@@ -4,6 +4,8 @@ mod command_execution;
 mod inspector_mutation;
 #[path = "multi_selection.rs"]
 mod multi_selection;
+#[path = "native_fields.rs"]
+mod native_fields;
 #[path = "schema_editability.rs"]
 mod schema_editability;
 #[path = "snapshot_projection.rs"]

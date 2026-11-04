@@ -194,8 +194,9 @@ fn default_palette_keeps_contextual_operations_registered_without_exposing_rows(
     let locale = i18n.active_locale();
     let context = CommandEvalCtx::interactive();
 
-    assert_eq!(registry.commands().count(), 75);
-    assert_eq!(catalog.len(), 69);
+    // Save As adds a visible command; the seven contextual operations stay hidden.
+    assert_eq!(registry.commands().count(), 77);
+    assert_eq!(catalog.len(), 70);
     for id in [
         "view.editor.ui_asset.open",
         "timeline_sequence.authoring.open",
@@ -203,6 +204,7 @@ fn default_palette_keeps_contextual_operations_registered_without_exposing_rows(
         "animation_graph.authoring.open_state_machine",
         "inspector.field.apply_batch",
         "inspector.component.add",
+        "inspector.script_binding.set",
     ] {
         let descriptor = registry
             .command(id)
@@ -220,10 +222,13 @@ fn default_palette_keeps_contextual_operations_registered_without_exposing_rows(
             .entries()
             .all(|entry| entry.id != id));
     }
-    assert!(catalog
-        .query_window(&i18n, &locale, &context, "file.project.open", 0, 75)
-        .entries()
-        .any(|entry| entry.id == "file.project.open"));
+    let project_context = context.clone().with_project_open(true);
+    for id in ["file.project.open", "file.scene.save_as"] {
+        assert!(catalog
+            .query_window(&i18n, &locale, &project_context, id, 0, 75)
+            .entries()
+            .any(|entry| entry.id == id));
+    }
     assert!(registry
         .event_for_command("file.project.open", &context)
         .is_ok());

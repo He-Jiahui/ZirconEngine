@@ -1,4 +1,5 @@
 use super::*;
+use zircon_runtime_interface::math::EulerRot;
 #[test]
 fn local_xyz_quaternion_is_displayed_in_degrees_without_mutating_storage() {
     assert_eq!(

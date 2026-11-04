@@ -1,0 +1,18 @@
+{
+  "repository": "https://github.com/He-Jiahui/zr_vm",
+  "revision": "3c1352ecb6ddfab02752d46682cc376558d5f481",
+  "path": "zr_vm_rust_binding/rust/zr_vm_rust_binding_sys",
+  "original_sha256": {
+    "Cargo.toml": "37cf76955f12237446141612930ec84fbd96f00e1e07977b129be841b65e4276",
+    "build.rs": "b149e3451846e52bd913c7ead24bd1b667e94404ffa5e9d82b9b9766edd96d35",
+    "src/lib.rs": "50237f1a8ec6aef605d24d9f009bb302c5a098932b038b5151ed4093cb66cba7",
+    "src/native.rs": "76db1ac5de6ee9f582d54d5abd5cbb778d6572aac6bf1749e17fc4b57337d5af",
+    "src/execution_budget.rs": "03fdcafc1b3bd9cce29834768b22113fd81ede2ed9ba79f609f68e7b70ab7192",
+    "src/project_session_checkpoint.rs": "4d95cd6fce52ae257b2a941fa90a0a2ba0f90f84f666e22e41abfb2c6d06ca8b"
+  },
+  "changes": "Local output policy, pinned native-source discovery, and Linux-only native CMake integration; src/ ABI mirrors are unchanged.",
+  "native_recipe_reference": {
+    "path": "zr_vm_rust_binding/CMakeLists.txt",
+    "sha256": "63f2bf2297d66e40b97b575440520d5bf4404409d614416bdf886bad67790597"
+  }
+}

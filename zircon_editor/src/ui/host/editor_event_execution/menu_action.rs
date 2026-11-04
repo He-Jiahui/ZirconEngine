@@ -64,6 +64,14 @@ pub(super) fn execute_menu_action_with_save_authorization(
                 EditorEventEffect::ReflectionChanged,
             ],
         }),
+        MenuAction::SaveSceneAs => Ok(ExecutionOutcome {
+            changed: false,
+            effects: vec![
+                EditorEventEffect::SaveSceneAsPickerRequested,
+                EditorEventEffect::PresentationChanged,
+                EditorEventEffect::ReflectionChanged,
+            ],
+        }),
         MenuAction::SaveProject => {
             let manager = controller.enter_editor_manager()?;
             let mut shell = controller.shell().lock();

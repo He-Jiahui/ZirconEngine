@@ -10,7 +10,10 @@ use crate::core::{
 };
 use crate::diagnostic_log::{write_log, write_log_lazy};
 use crate::operation::RuntimeOperationService;
-use crate::plugin::{RuntimeExtensionRegistryError, RuntimePluginRegistrationReport};
+use crate::plugin::{
+    RuntimeExtensionRegistryError, RuntimePluginFeatureRegistrationReport,
+    RuntimePluginRegistrationReport,
+};
 use crate::scene::components::NodeKind;
 use crate::text::{text_runtime_context_for_core, TEXT_MODULE_NAME};
 
@@ -81,7 +84,10 @@ fn rebase_frame_clock_after_session_activation(runtime: &CoreRuntime) -> FrameCl
 
 pub(super) enum RuntimePluginPlanInput {
     CoreOnly,
-    Linked(Vec<RuntimePluginRegistrationReport>),
+    Linked {
+        plugins: Vec<RuntimePluginRegistrationReport>,
+        features: Vec<RuntimePluginFeatureRegistrationReport>,
+    },
 }
 
 pub(super) fn build(
@@ -114,8 +120,9 @@ pub(super) fn build(
         RuntimePluginPlanInput::CoreOnly => {
             LinkedRuntimePluginPlan::prepare_core_only(profile.target_mode())?
         }
-        RuntimePluginPlanInput::Linked(registrations) => LinkedRuntimePluginPlan::prepare(
-            &registrations,
+        RuntimePluginPlanInput::Linked { plugins, features } => LinkedRuntimePluginPlan::prepare(
+            &plugins,
+            &features,
             project_plugin_manifest,
             profile.target_mode(),
         )?,
@@ -159,12 +166,29 @@ pub(super) fn build(
     {
         crate::profile_scope!("runtime", "dynamic_api", "runtime_session_register_modules");
         for descriptor in modules.module_descriptors() {
-            construction_cleanup.check(runtime.register_module(descriptor.clone()).map_err(
-                |source| RuntimeDynamicSessionError::CoreStep {
+            let mut descriptor = descriptor.clone();
+            #[cfg(feature = "native-host")]
+            if descriptor.name == crate::core::framework::foundation::FOUNDATION_MODULE_NAME {
+                if let Some(path) = prepared_project
+                    .as_ref()
+                    .and_then(RuntimePreparedProject::play_config_file_path)
+                {
+                    construction_cleanup.check(
+                        crate::foundation::bind_config_file_path(&mut descriptor, path).map_err(
+                            |source| RuntimeDynamicSessionError::CoreStep {
+                                step: "bind Play configuration",
+                                source,
+                            },
+                        ),
+                    )?;
+                }
+            }
+            construction_cleanup.check(runtime.register_module(descriptor).map_err(|source| {
+                RuntimeDynamicSessionError::CoreStep {
                     step: "register runtime module",
                     source,
-                },
-            ))?;
+                }
+            }))?;
         }
     }
     write_log(
@@ -413,10 +437,7 @@ pub(super) fn build(
             .claim_attachment()
             .map_err(|reason| RuntimeDynamicSessionError::CoreStep {
                 step: "claim input ingress attachment",
-                source: CoreError::Initialization(
-                    INPUT_MODULE_NAME.to_owned(),
-                    reason.to_string(),
-                ),
+                source: CoreError::Initialization(INPUT_MODULE_NAME.to_owned(), reason.to_string()),
             })
     })())?;
     let frame_clock_activation_rebase = rebase_frame_clock_after_session_activation(&runtime);

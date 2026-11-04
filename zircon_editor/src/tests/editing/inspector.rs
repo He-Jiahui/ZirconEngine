@@ -64,8 +64,10 @@ fn inspector_batch_commit_is_atomic_on_invalid_parent() {
     assert!(
         matches!(
             &error,
-            EditorStateOperationError::EditCommand(EditCommandError::ExternalEffect { source })
-                if source.to_string().contains("missing parent 999999")
+            EditorStateOperationError::EditCommand(EditCommandError::ReflectError { source })
+                if matches!(source.downcast_ref::<zircon_runtime_interface::reflect::ReflectError>(),
+                    Some(zircon_runtime_interface::reflect::ReflectError::UnsupportedConversion { source: reason, .. })
+                        if reason.contains("missing parent 999999"))
         ),
         "unexpected invalid-parent error: {error}"
     );

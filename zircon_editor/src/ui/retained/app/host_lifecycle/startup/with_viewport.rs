@@ -56,6 +56,15 @@ impl RetainedEditorHost {
                     .native_plugin_artifact_authority_for_project(project_root)
             })
         };
+        let native_plugin_admission_resolver: crate::core::play::NativePluginAdmissionResolver = {
+            let editor_manager = startup_managers.editor_manager.clone();
+            Arc::new(move |project_root, target| {
+                editor_manager
+                    .enter()
+                    .map_err(|error| error.to_string())?
+                    .native_plugin_admission_for_project(project_root, target)
+            })
+        };
         ui.bind_profile_artifact_jobs(editor_jobs.clone());
         ui.bind_visual_asset_jobs(editor_jobs, ui.background_visual_asset_wake_callback());
         let viewport_size = UVec2::new(1280, 720);
@@ -70,8 +79,11 @@ impl RetainedEditorHost {
         let shell_scale_factor = resolve_startup_shell_scale_factor(&ui);
         let template_bridges =
             create_startup_template_bridges(shell_size, runtime.context().i18n_handle())?;
-        let runtime_backend =
-            create_startup_runtime_backend(runtime, native_plugin_authority_resolver);
+        let runtime_backend = create_startup_runtime_backend(
+            runtime,
+            native_plugin_authority_resolver,
+            native_plugin_admission_resolver,
+        );
 
         let mut host = construct_startup_host(StartupHostConstruction {
             ui,

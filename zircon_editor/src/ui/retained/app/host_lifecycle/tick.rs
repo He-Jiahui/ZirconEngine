@@ -74,6 +74,9 @@ impl RetainedEditorHost {
     }
 
     pub(in crate::ui::retained_host::app) fn tick(&mut self) {
+        if self.poll_async_play_command() {
+            return;
+        }
         let slow_tick_started = slow_tick_trace_enabled().then(Instant::now);
         zircon_runtime::profile_frame!("editor", "retained_host_tick");
         zircon_runtime::profile_scope!("editor", "retained_host", "tick");
@@ -82,6 +85,7 @@ impl RetainedEditorHost {
         let close_deadline = self.main_window_close_poll_deadline();
         self.ui.set_lifecycle_frame_update(close_deadline);
         if self.main_window_close_blocks_session_ui() {
+            self.publish_interaction_evidence();
             return;
         }
         let plugin_watch_deadline = match self.poll_module_plugin_development_watches() {
@@ -130,7 +134,9 @@ impl RetainedEditorHost {
             }
             self.set_status_line(message);
         }
+        self.poll_welcome_project_probe();
         let lifecycle_deadline = [
+            self.welcome_project_probe.poll_deadline(Instant::now()),
             close_deadline,
             plugin_watch_deadline,
             match self
@@ -156,7 +162,6 @@ impl RetainedEditorHost {
         self.poll_active_scene_reload();
         self.poll_prompted_close_save();
         self.poll_document_save_all();
-        self.poll_welcome_project_probe();
         self.poll_desktop_export_jobs();
         self.poll_desktop_export_wizard_sessions();
         self.sync_editor_job_progress();
@@ -193,6 +198,7 @@ impl RetainedEditorHost {
             self.set_status_line(error);
             self.recompute_if_dirty();
         }
+        self.publish_interaction_evidence();
         trace_slow_tick(
             slow_tick_started,
             refresh_started,
@@ -202,6 +208,11 @@ impl RetainedEditorHost {
     }
 
     fn tick_runtime(&mut self) {
+        if self.runtime.native_preview_in_flight() {
+            self.ui
+                .set_lifecycle_frame_update(Some(Instant::now() + Duration::from_millis(33)));
+            return;
+        }
         self.runtime.update_scene_modes();
         self.sync_play_preview_input_focus();
         self.sync_simulate_preview_camera();
@@ -224,6 +235,9 @@ impl RetainedEditorHost {
     }
 
     pub(in crate::ui::retained_host::app) fn tick_runtime_only(&mut self) {
+        if self.poll_async_play_command() {
+            return;
+        }
         let _scenario = enter_ui_perf_scenario(UiPerfScenario::PlayInEditor);
         let _timer = time_ui_perf_scenario(UiPerfScenario::PlayInEditor);
         self.tick_runtime();
@@ -236,6 +250,9 @@ impl RetainedEditorHost {
     }
 
     pub(in crate::ui::retained_host::app) fn commit_interactive_frame_update(&mut self) {
+        if self.poll_async_play_command() {
+            return;
+        }
         if self.main_window_close_blocks_session_ui() {
             self.ui
                 .set_lifecycle_frame_update(self.main_window_close_poll_deadline());
@@ -273,6 +290,7 @@ impl RetainedEditorHost {
         self.recompute_if_dirty();
         let recompute_ended = trace_started.map(|_| Instant::now());
         self.submit_render_frame_if_dirty();
+        self.publish_interaction_evidence();
         if let (Some(started), Some(sync_ended), Some(recompute_ended)) =
             (trace_started, sync_ended, recompute_ended)
         {

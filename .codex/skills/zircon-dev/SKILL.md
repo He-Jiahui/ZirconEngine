@@ -14,16 +14,21 @@ Inspect the current Cargo manifest and touched code to identify ownership. `zirc
 Before every compilation-capable `check`, `build` or `test` command, explicitly
 announce the engine modules, Cargo packages, selected features, targets/test
 filters, profile, exact command and coverage reason to the user. Follow
-[the build declaration](validation/guide.md#declare-every-build). Disable default
+[the build declaration](validation/guide.md#declare-every-build). For ordinary work, disable default
 features and enable only those needed by the affected modules; required
 transitive dependencies remain part of that declared build.
 Prefer the owning leaf crate over an aggregate runtime/editor build when it
 covers the change.
 
-Full builds are prohibited, including `--workspace`, `--all`, `--all-features`,
-`--all-targets`, implicit root-wide selection and equivalent all-package loops
-or matrices. Wave/release gates and manifest/lockfile/toolchain changes supply
-no exception. Inspect dependencies when scope is unclear. Use
+Explicit `--workspace` or package-set builds required by the current task or
+owning validation documentation are allowed under
+[declared gates](../../../docs/testing-and-validation/milestone-validation-policy.md#declared-workspace-and-package-set-gates).
+Blind `--all`, `--all-features`, `--all-targets`, implicit root-wide selection
+and undeclared all-package loops/matrices remain prohibited unless the user
+explicitly authorizes that scope. Wave/release or manifest/lockfile/toolchain
+work alone supplies none. John's full local Windows/MSVC U09 regression follows
+[the U09 exception](../../../docs/testing-and-validation/milestone-validation-policy.md#authorized-windowsmsvc-u09-regression).
+Inspect dependencies when ordinary scope is unclear. Use
 `tools/dev/dev-module-build.ps1` with an explicit `-Package` for supported
 selections; Jenkins executes the scoped build and reuses compatible artifacts.
 

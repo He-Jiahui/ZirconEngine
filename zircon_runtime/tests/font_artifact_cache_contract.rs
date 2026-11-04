@@ -117,7 +117,7 @@ fn font_artifact_cache_roundtrips_fields_omitted_by_authoring_formats() {
         .read(&paths, &artifact_uri)
         .expect("font artifact cache should deserialize");
 
-    assert!(payload.starts_with(b"ZRARTZ01"));
+    assert!(payload.starts_with(b"ZRARTM07"));
     assert_eq!(loaded, ImportedAsset::Font(font));
 
     let _ = fs::remove_dir_all(root);

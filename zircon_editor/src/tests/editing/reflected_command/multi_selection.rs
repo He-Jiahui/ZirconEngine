@@ -2,7 +2,6 @@ use serde_json::json;
 use zircon_runtime_interface::math::Vec3;
 use zircon_runtime_interface::reflect::ReflectedValue;
 
-use crate::core::editing::engine::HistoryContextId;
 use crate::core::editing::intent::EditorIntent;
 use crate::tests::editing::support::{cube_and_camera, test_state};
 
@@ -115,7 +114,7 @@ fn reflected_inspector_batch_mutates_all_selected_nodes_in_one_history_record() 
     assert_eq!(
         state
             .transactions()
-            .history_status(HistoryContextId::Global)
+            .history_status(state.scene_history_context().unwrap())
             .unwrap()
             .len,
         1
@@ -194,7 +193,7 @@ fn reflected_inspector_batch_rejects_missing_dynamic_component_without_partial_m
     assert_eq!(
         state
             .transactions()
-            .history_status(HistoryContextId::Global)
+            .history_status(state.scene_history_context().unwrap())
             .unwrap()
             .len,
         0
@@ -246,7 +245,7 @@ fn mixed_selection_no_op_apply_produces_no_commands_or_property_changes() {
     assert_eq!(
         state
             .transactions()
-            .history_status(HistoryContextId::Global)
+            .history_status(state.scene_history_context().unwrap())
             .unwrap()
             .len,
         0
@@ -348,7 +347,7 @@ fn draft_from_an_older_selection_revision_does_not_mutate_new_targets() {
     assert_eq!(
         state
             .transactions()
-            .history_status(HistoryContextId::Global)
+            .history_status(state.scene_history_context().unwrap())
             .unwrap()
             .len,
         0

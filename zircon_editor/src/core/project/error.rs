@@ -157,6 +157,14 @@ pub enum ProjectAuthorityError {
         cleanup: Box<ProjectAuthorityError>,
         rollback: Box<ProjectAuthorityError>,
     },
+    #[error(
+        "scene lease verification failed: {failure}; removing the owned publication also failed: {rollback}"
+    )]
+    SceneLeaseRollback {
+        #[source]
+        failure: Box<ProjectAuthorityError>,
+        rollback: Box<ProjectAuthorityError>,
+    },
     #[error("project template pack failed: {source}")]
     TemplatePack {
         #[from]

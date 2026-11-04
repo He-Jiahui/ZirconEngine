@@ -120,6 +120,24 @@ fn inspector_repeat_projection_does_not_invent_missing_parent_source() {
 }
 
 #[test]
+fn native_run_control_retains_its_authored_icon_before_a_render_summary_exists() {
+    let mut node = test_host_node("IconButton", "icon-button", Some("Stop"), []);
+    node.control_id = Some("WorkbenchRunStop".into());
+    node.icon = None;
+    node.properties.insert(
+        "icon".into(),
+        RetainedUiHostValue::String("zircon_editor_shell/toolbar/stop.svg".into()),
+    );
+    let index = ProjectionNodeIndex::new([&node]);
+    let native =
+        to_host_contract_workbench_window_node_with_previous(&node, &index, None, 1.0).unwrap();
+    assert_eq!(
+        native.icon_name.as_str(),
+        "zircon_editor_shell/toolbar/stop.svg"
+    );
+}
+
+#[test]
 fn workbench_projection_uses_a_memoized_node_index() {
     let source = include_str!("../../windows.rs");
 

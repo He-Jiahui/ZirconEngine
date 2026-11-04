@@ -26,6 +26,38 @@ pub struct PlayPreviewFrameIdentity {
 }
 
 impl PlayPreviewFrameIdentity {
+    /// Queued products keep their submitting gateway's provenance even if the
+    /// active gateway is replaced before the renderer returns the product.
+    pub(crate) fn viewport_surface_key(
+        instance: PlayInstanceId,
+        gateway: &GatewaySessionIdentity,
+    ) -> String {
+        format!(
+            "editor.play:{}:{}:{}:{}:{}:{:?}:{:?}",
+            instance.raw(),
+            gateway.runtime_instance(),
+            gateway.runtime_session().raw(),
+            gateway.transport_epoch(),
+            gateway.gateway_generation(),
+            gateway.play_instance(),
+            gateway.project(),
+        )
+    }
+
+    pub(crate) fn for_viewport_product(
+        instance: PlayInstanceId,
+        gateway: GatewaySessionIdentity,
+        product: &crate::scene::viewport::RenderViewportProduct,
+    ) -> Self {
+        Self {
+            instance,
+            gateway,
+            width: product.width(),
+            height: product.height(),
+            generation: product.generation(),
+        }
+    }
+
     pub const fn instance(&self) -> PlayInstanceId {
         self.instance
     }

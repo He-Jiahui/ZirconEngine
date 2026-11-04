@@ -18,6 +18,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn should_
 ) -> bool {
     property_row_text_painted
         || table_row_text_painted
+        || (matches!(node.component_role.as_str(), "menu" | "popup-menu")
+            && node.structured_menu_items.row_count() > 0)
         || is_native_painter_owner(node)
         || (is_icon_only_node(node) && !fallback_text_role_allows_empty_label(node))
 }

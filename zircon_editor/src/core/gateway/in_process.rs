@@ -94,6 +94,22 @@ impl EditorRuntimeGateway for InProcessGateway {
         Ok(())
     }
 
+    fn render_preview_extract(
+        &self,
+        size: zircon_runtime_interface::math::UVec2,
+    ) -> Result<zircon_runtime::core::framework::render::RenderFrameExtract, GatewayError> {
+        use zircon_runtime::core::framework::render::{
+            RenderExtractContext, RenderExtractProducer,
+        };
+        let context = self.level.with_world(|world| {
+            RenderExtractContext::new(world.render_world_snapshot_handle(), Default::default())
+        });
+        Ok(self
+            .level
+            .build_render_frame_extract(&context)
+            .with_viewport_size(size))
+    }
+
     fn query_world(&self, query: WorldQuery) -> Result<WorldQueryResult, GatewayError> {
         Ok(self.level.query_world(&query))
     }

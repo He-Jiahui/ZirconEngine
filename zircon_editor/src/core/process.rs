@@ -128,7 +128,13 @@ impl ProcessTreeLease {
 
         #[cfg(all(unix, not(windows)))]
         {
-            return terminate_platform_process_tree(self.child_id, label).unwrap_or_else(|| {
+            return terminate_platform_process_tree(self.child_id, label).map(|result| {
+                ProcessTreeTermination {
+                    diagnostic: result.diagnostic,
+                    succeeded: result.succeeded,
+                    error: result.error,
+                }
+            }).unwrap_or_else(|| {
                 ProcessTreeTermination {
                     diagnostic: format!(
                         "{label} cancellation requested but no process-group termination is available"

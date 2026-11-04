@@ -42,6 +42,21 @@ impl RetainedViewportController {
         Ok(true)
     }
 
+    pub(crate) fn submit_play_extract(
+        &self,
+        surface_key: &str,
+        mut extract: RenderFrameExtract,
+        size: UVec2,
+    ) -> Result<bool, RenderFrameworkError> {
+        let _operation = self.lock_viewport_lifecycle();
+        let Some((viewport, framework)) = self.ensure_viewport(surface_key, size)? else {
+            return Ok(false);
+        };
+        extract.apply_viewport_size(size);
+        framework.submit_frame_extract(viewport, extract)?;
+        Ok(true)
+    }
+
     pub(crate) fn visible_spatial_snapshot(
         &self,
         surface_key: &str,

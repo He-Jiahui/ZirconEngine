@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 pub enum PlayStateKind {
     Edit,
     Building,
+    Starting,
     Playing,
+    Stopping,
     CleanupFailed,
 }

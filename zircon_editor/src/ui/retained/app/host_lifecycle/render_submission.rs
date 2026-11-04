@@ -57,7 +57,7 @@ impl RetainedEditorHost {
             self.render_dirty = false;
             return;
         }
-        let retained = surfaces
+        let mut retained = surfaces
             .iter()
             .map(|surface| surface.surface_key.clone())
             .collect::<BTreeSet<_>>();
@@ -77,6 +77,13 @@ impl RetainedEditorHost {
             .collect::<BTreeSet<_>>();
         self.runtime.retain_scene_viewports(&retained_views);
         let mut keep_render_dirty = false;
+        if let Some((instance, gateway)) = self.play_gpu_identity.as_ref() {
+            retained.insert(
+                crate::core::play::PlayPreviewFrameIdentity::viewport_surface_key(
+                    *instance, gateway,
+                ),
+            );
+        }
         if let Err(error) = self.viewport.retain_viewport_surfaces(&retained) {
             write_error(
                 "editor_viewport_retirement",

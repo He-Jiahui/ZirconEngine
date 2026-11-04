@@ -32,8 +32,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ic
         tint,
         Some(damage_frame),
     ) else {
+        trace_stop_icon(icon_name, rect, false);
         return false;
     };
+    trace_stop_icon(icon_name, rect, true);
 
     commands.push(HostPaintCommand::from_image_pixels(
         rect.clone(),
@@ -43,4 +45,15 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_ic
         opacity,
     ));
     true
+}
+
+fn trace_stop_icon(icon_name: &str, rect: &FrameRect, ready: bool) {
+    if icon_name.ends_with("/stop.svg")
+        && std::env::var_os("ZIRCON_TRACE_EDITOR_INTERACTION").is_some()
+    {
+        static SAMPLES: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+        if SAMPLES.fetch_add(1, std::sync::atomic::Ordering::Relaxed) < 8 {
+            eprintln!("editor_interaction kind=stop_icon ready={ready} rect={rect:?}");
+        }
+    }
 }

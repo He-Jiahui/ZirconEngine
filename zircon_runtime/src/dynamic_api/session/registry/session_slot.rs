@@ -19,7 +19,7 @@ use super::{RuntimeFrameActivity, RuntimeWakeRegistration};
 use crate::dynamic_api::session::profile::RuntimeDynamicSessionProfile;
 use crate::dynamic_api::session::project::RuntimeProjectConfig;
 use crate::dynamic_api::session::RuntimeDynamicSession;
-use crate::plugin::RuntimePluginRegistrationReport;
+use crate::plugin::{RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport};
 
 /// 会话注册表中的共享槽位，组合 owner 分派、动作计数与异步 wake 的生命周期。
 ///
@@ -135,6 +135,7 @@ impl SessionSlot {
         profile: RuntimeDynamicSessionProfile,
         project: Option<RuntimeProjectConfig>,
         registrations: Vec<RuntimePluginRegistrationReport>,
+        feature_registrations: Vec<RuntimePluginFeatureRegistrationReport>,
     ) -> Result<Self, RuntimeSessionOwnerCreateError> {
         let wake = RuntimeWakeRegistration::disabled();
         let frame_activity = RuntimeFrameActivity::new(wake.clone());
@@ -143,6 +144,7 @@ impl SessionSlot {
             profile,
             project,
             registrations,
+            feature_registrations,
             wake,
             code_owner,
         )?;

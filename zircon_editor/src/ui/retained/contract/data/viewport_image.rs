@@ -155,6 +155,12 @@ impl HostViewportImageData {
     }
 
     pub(crate) fn from_play_preview_frame(frame: PlayPreviewFrame) -> Option<Self> {
+        // Native capture returns generation zero while its asynchronous readback
+        // is pending. Keep the last completed image instead of publishing that
+        // transparent placeholder over it.
+        if frame.generation() == 0 {
+            return None;
+        }
         let identity = frame.identity().clone();
         let image = Self {
             resource_key: identity.resource_scope("play-viewport"),

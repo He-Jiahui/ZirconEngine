@@ -1,0 +1,167 @@
+let gameplay = import("zr.zircon.gameplay");
+
+pub fn activate(): int { return 0; }
+pub fn deactivate(): int { return 0; }
+pub fn saveState(): string { return "orb_run"; }
+pub fn restoreState(state: string): int { return 0; }
+pub fn onFixedUpdate(entity: int, dt: float): int { return 0; }
+
+pub fn onStart(entity: int, dt: float): int {
+    if (gameplay.script_property_matches(entity, "role", "player")) {
+        gameplay.set_component_json(entity, "gameplay.menu_state",
+            "{\"state\":\"start\",\"title\":\"Orb Run\",\"subtitle\":\"WASD/Arrows move. Collect 8 orbs in 60 s. P pauses.\",\"button\":\"Start\"}");
+        gameplay.set_component_json(entity, "gameplay.control_state", "\"none\"");
+        gameplay.set_component_json(entity, "orb.run_state", "\"start_menu\"");
+        gameplay.set_component_json(entity, "orb.p_was_down", "\"0\"");
+        gameplay.set_hud_text(entity, "Orb Run\nPress Start");
+    }
+    return 0;
+}
+
+pub fn onUpdate(entity: int, dt: float): int {
+    if (gameplay.script_property_matches(entity, "role", "player")) {
+        gameplay.camera_follow(1, entity, 0.0, 9.0, 11.0);
+        var clock = gameplay.nearest_by_script_property(entity, "role", "clock", 1000.0);
+        var score = gameplay.nearest_by_script_property(entity, "role", "score", 1000.0);
+        var command = gameplay.component_string(entity, "gameplay.control_state", "none");
+        if (command == "start_game" || command == "retry_game") {
+            gameplay.set_position(entity, 0.0, 0.5, 0.0);
+            gameplay.heal_entity(clock, 61.0, 61.0);
+            var collectedBefore = gameplay.current_hp(score, 1.0);
+            if (collectedBefore > 1.0) {
+                gameplay.damage_entity(score, collectedBefore - 1.0);
+            }
+            gameplay.set_component_json(entity, "gameplay.menu_state", "null");
+            gameplay.set_component_json(entity, "gameplay.control_state", "\"none\"");
+            gameplay.set_component_json(entity, "orb.run_state", "\"reset\"");
+            return 0;
+        }
+        var runState = gameplay.component_string(entity, "orb.run_state", "start_menu");
+        if (runState == "reset") {
+            gameplay.set_component_json(entity, "orb.run_state", "\"playing\"");
+            return 0;
+        }
+        // Pause toggle on the P key edge (KeyCode:80; fallback "Enter", see G-10).
+        var pDown = gameplay.key_pressed("KeyCode:80");
+        var pWas = gameplay.component_string(entity, "orb.p_was_down", "0");
+        var pEdge = false;
+        if (pDown && pWas == "0") { pEdge = true; }
+        if (pDown) { gameplay.set_component_json(entity, "orb.p_was_down", "\"1\""); }
+        else { gameplay.set_component_json(entity, "orb.p_was_down", "\"0\""); }
+        if (runState == "paused") {
+            if (pEdge) { gameplay.set_component_json(entity, "orb.run_state", "\"playing\""); }
+            gameplay.set_hud_text(entity, "PAUSED - press P to resume");
+            return 0;
+        }
+        if (runState != "playing") { return 0; }
+        if (pEdge) {
+            gameplay.set_component_json(entity, "orb.run_state", "\"paused\"");
+            return 0;
+        }
+
+        // Movement: W = -Z (camera sits at +Z looking toward -Z).
+        var dx = 0.0;
+        var dz = 0.0;
+        if (gameplay.key_pressed("A") || gameplay.key_pressed("ArrowLeft")) { dx = -1.0; }
+        if (gameplay.key_pressed("D") || gameplay.key_pressed("ArrowRight")) { dx = 1.0; }
+        if (gameplay.key_pressed("W") || gameplay.key_pressed("ArrowUp")) { dz = -1.0; }
+        if (gameplay.key_pressed("S") || gameplay.key_pressed("ArrowDown")) { dz = 1.0; }
+        var step = 6.0 * dt;                 // fallback if VM multiplication misbehaves: var step = 0.1;
+        if (dx != 0.0 || dz != 0.0) {
+            gameplay.translate(entity, dx * step, 0.0, dz * step);
+            var px = gameplay.position_x(entity);
+            var pz = gameplay.position_z(entity);
+            if (px > 11.0) { px = 11.0; }
+            if (px < -11.0) { px = -11.0; }
+            if (pz > 11.0) { pz = 11.0; }
+            if (pz < -11.0) { pz = -11.0; }
+            gameplay.set_position(entity, px, 0.5, pz);
+        }
+
+        // Lose: drone contact.
+        var drone = gameplay.nearest_by_script_property(entity, "role", "drone", 0.9);
+        if (gameplay.entity_exists(drone)) {
+            gameplay.set_component_json(entity, "gameplay.menu_state",
+                "{\"state\":\"game_over\",\"title\":\"Caught!\",\"subtitle\":\"The drone got you.\",\"button\":\"Play again\"}");
+            gameplay.set_component_json(entity, "orb.run_state", "\"ended\"");
+            return 0;
+        }
+        // Lose: timer (clock hp keeps a +1 offset because damage_entity removes the entity at 0).
+        var timeLeft = gameplay.current_hp(clock, 61.0) - 1.0;
+        if (timeLeft <= dt) {
+            gameplay.set_component_json(entity, "gameplay.menu_state",
+                "{\"state\":\"game_over\",\"title\":\"Time's up\",\"subtitle\":\"Collect all 8 orbs within 60 seconds.\",\"button\":\"Play again\"}");
+            gameplay.set_component_json(entity, "orb.run_state", "\"ended\"");
+            return 0;
+        }
+        gameplay.damage_entity(clock, dt);
+        // Win.
+        var collected = gameplay.current_hp(score, 1.0) - 1.0;
+        var total = gameplay.script_number(entity, "orb_total", 8.0);
+        if (collected >= total) {
+            gameplay.set_component_json(entity, "gameplay.menu_state",
+                "{\"state\":\"game_over\",\"title\":\"You win!\",\"subtitle\":\"All orbs collected.\",\"button\":\"Play again\"}");
+            gameplay.set_component_json(entity, "orb.run_state", "\"ended\"");
+            return 0;
+        }
+        // HUD (literal ladders; replace with number formatting if ZrVM supports it).
+        var orbsText = "Orbs 0/8";
+        if (collected >= 1.0) { orbsText = "Orbs 1/8"; }
+        if (collected >= 2.0) { orbsText = "Orbs 2/8"; }
+        if (collected >= 3.0) { orbsText = "Orbs 3/8"; }
+        if (collected >= 4.0) { orbsText = "Orbs 4/8"; }
+        if (collected >= 5.0) { orbsText = "Orbs 5/8"; }
+        if (collected >= 6.0) { orbsText = "Orbs 6/8"; }
+        if (collected >= 7.0) { orbsText = "Orbs 7/8"; }
+        var timeText = "Time <5s";
+        if (timeLeft >= 5.0) { timeText = "Time 5s+"; }
+        if (timeLeft >= 10.0) { timeText = "Time 10s+"; }
+        if (timeLeft >= 20.0) { timeText = "Time 20s+"; }
+        if (timeLeft >= 30.0) { timeText = "Time 30s+"; }
+        if (timeLeft >= 40.0) { timeText = "Time 40s+"; }
+        if (timeLeft >= 50.0) { timeText = "Time 50s+"; }
+        gameplay.set_hud_text(entity, orbsText + "\n" + timeText);
+        return 0;
+    } else if (gameplay.script_property_matches(entity, "role", "pickup")) {
+        var player = gameplay.nearest_by_script_property(entity, "role", "player", 1000.0);
+        if (gameplay.entity_exists(player)) {
+            var runState = gameplay.component_string(player, "orb.run_state", "start_menu");
+            if (runState == "reset") {
+                gameplay.set_position(entity,
+                    gameplay.script_number(entity, "home_x", 0.0),
+                    gameplay.script_number(entity, "home_y", 0.6),
+                    gameplay.script_number(entity, "home_z", 0.0));
+                gameplay.set_component_json(entity, "orb.collected", "\"0\"");
+                return 0;
+            }
+            if (runState != "playing") { return 0; }
+            if (gameplay.component_string(entity, "orb.collected", "0") == "1") { return 0; }
+            var touching = gameplay.nearest_by_script_property(entity, "role", "player", 1.1);
+            if (gameplay.entity_exists(touching)) {
+                gameplay.set_component_json(entity, "orb.collected", "\"1\"");
+                gameplay.set_position(entity, 0.0, -50.0, 0.0);
+                var score = gameplay.nearest_by_script_property(entity, "role", "score", 1000.0);
+                gameplay.heal_entity(score, 1.0, 1000.0);
+            }
+        }
+        return 0;
+    } else if (gameplay.script_property_matches(entity, "role", "drone")) {
+        var target = gameplay.nearest_by_script_property(entity, "role", "player", 1000.0);
+        if (gameplay.entity_exists(target)) {
+            var state = gameplay.component_string(target, "orb.run_state", "start_menu");
+            if (state == "reset") {
+                gameplay.set_position(entity,
+                    gameplay.script_number(entity, "home_x", 10.0),
+                    gameplay.script_number(entity, "home_y", 0.6),
+                    gameplay.script_number(entity, "home_z", -10.0));
+                return 0;
+            }
+            if (state == "playing") {
+                gameplay.move_towards_entity(entity, target,
+                    gameplay.script_number(entity, "speed", 2.2), dt);
+            }
+        }
+        return 0;
+    }
+    return 0;   // camera, clock, score: no per-frame work
+}

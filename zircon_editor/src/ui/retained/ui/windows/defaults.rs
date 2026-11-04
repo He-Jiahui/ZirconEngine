@@ -10,6 +10,11 @@ pub(super) fn projected_workbench_text(
     component_role: &str,
 ) -> String {
     let authored_text = first_string_property(&node.properties, &["text", "label"]);
+    if matches!(component_role, "menu" | "popup-menu") {
+        // Runtime projection may summarize the first painted row as node text.
+        // Structured menu rows already own those labels in the native painter.
+        return String::new();
+    }
     let authored_text = authored_text.or_else(|| {
         matches!(node.component.as_str(), "SearchField")
             .then(|| first_string_property(&node.properties, &["placeholder"]))

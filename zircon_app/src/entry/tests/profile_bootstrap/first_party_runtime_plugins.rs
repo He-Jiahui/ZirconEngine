@@ -514,10 +514,7 @@ fn render_profile_runtime_plugins_link_advanced_providers_when_advanced_render_i
         1
     );
 
-    let diagnostics =
-        EntryRunner::module_selection_diagnostics_with_first_party_runtime_plugin_registrations(
-            config,
-        )
+    let diagnostics = EntryRunner::module_selection_diagnostics(config)
         .expect("advanced render provider registrations should satisfy diagnostics");
 
     assert!(diagnostics.contains("module=virtual_geometry.runtime"));
@@ -562,10 +559,7 @@ fn render_profile_runtime_plugins_link_solari_provider_when_solari_experimental_
         1
     );
 
-    let diagnostics =
-        EntryRunner::module_selection_diagnostics_with_first_party_runtime_plugin_registrations(
-            config,
-        )
+    let diagnostics = EntryRunner::module_selection_diagnostics(config)
         .expect("solari experimental provider registrations should satisfy diagnostics");
 
     assert!(diagnostics.contains("module=virtual_geometry.runtime"));

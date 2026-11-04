@@ -9,7 +9,7 @@ fn normal_model_or_assert_arbitrary_precision_refusal() -> Option<RetainedAccoun
         ));
         return None;
     }
-    Some(verified_std_model_v1().expect("admitted ordinary-number Windows model must be available"))
+    Some(verified_std_model_v1().expect("admitted ordinary-number model must be available"))
 }
 
 #[test]

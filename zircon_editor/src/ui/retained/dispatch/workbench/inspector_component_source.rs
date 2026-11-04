@@ -27,7 +27,7 @@ pub(super) fn inspector_component_source(
             },
             value: field.value.clone(),
             value_kind: field.value_kind.clone(),
-            editable: false,
+            editable: field.editable,
             field_editor: field.field_editor.clone(),
         });
     }

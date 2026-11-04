@@ -47,7 +47,18 @@ impl EditorState {
                 parent: self.parent_field.clone(),
                 translation: self.transform_fields.clone(),
                 rotation_degrees: scene.local_transform(id).and_then(|transform| {
-                    InspectorSnapshot::rotation_degrees_from_quaternion(transform.rotation)
+                    InspectorSnapshot::rotation_degrees_from_quaternion(transform.rotation).map(
+                        |mut degrees| {
+                            if self.inspector_draft_context_is_current() {
+                                for (axis, value) in degrees.iter_mut().enumerate() {
+                                    if self.inspector_edited_fields.rotation[axis] {
+                                        *value = self.rotation_fields[axis].clone();
+                                    }
+                                }
+                            }
+                            degrees
+                        },
+                    )
                 }),
                 scale: self.scale_fields.clone(),
                 render_layer_mask: scene
@@ -60,6 +71,15 @@ impl EditorState {
                             super::inspector_snapshot::InspectorNativeFieldSnapshot::project(
                                 artifact.fields(),
                             );
+                        if self.inspector_draft_context_is_current() {
+                            for field in fields.iter_mut().filter(|field| field.editable) {
+                                if let Some(value) =
+                                    self.inspector_dynamic_fields.get(&field.field_id)
+                                {
+                                    field.value.clone_from(value);
+                                }
+                            }
+                        }
                         self.asset_workspace
                             .resolve_inspector_resource_labels(&mut fields);
                         fields

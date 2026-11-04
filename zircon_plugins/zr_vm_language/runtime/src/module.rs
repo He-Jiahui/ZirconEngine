@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use zircon_runtime::core::runtime::ServiceObject;
-use zircon_runtime::core::{ModuleDescriptor, StartupMode};
+use zircon_runtime::core::{ModuleDependencySpec, ModuleDescriptor, StartupMode};
 use zircon_runtime::engine_module::{dependency_on, plugin_factory, qualified_name};
 use zircon_runtime::script::{VmPluginManager, SCRIPT_MODULE_NAME, VM_PLUGIN_MANAGER_NAME};
 
@@ -25,6 +25,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
         ZR_VM_LANGUAGE_MODULE_NAME,
         "ZrVM language backend registration",
     )
+    .with_module_dependency(ModuleDependencySpec::named(SCRIPT_MODULE_NAME))
     .with_plugin(zircon_runtime::core::PluginDescriptor::new(
         qualified_name(
             ZR_VM_LANGUAGE_MODULE_NAME,

@@ -6,6 +6,8 @@ mod assets_and_welcome;
 mod docking;
 #[path = "inspector.rs"]
 mod inspector;
+#[path = "inspector_rotation.rs"]
+mod inspector_rotation;
 #[path = "selection.rs"]
 mod selection;
 #[path = "support.rs"]

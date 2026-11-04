@@ -4,6 +4,7 @@ pub(crate) fn merge_effects(target: &mut UiHostEventEffects, source: UiHostEvent
     target.merge_shell_content_scope_state_from(&source);
     target.merge_dirty_domains(source.dirty_domains());
     target.sync_viewport_chrome |= source.sync_viewport_chrome;
+    target.redraw_scene_interaction |= source.redraw_scene_interaction;
     if source.active_layout_preset_name.is_some() {
         target.active_layout_preset_name = source.active_layout_preset_name;
     }
@@ -21,6 +22,7 @@ pub(crate) fn merge_effects(target: &mut UiHostEventEffects, source: UiHostEvent
     }
     target.open_scene_picker_requested |= source.open_scene_picker_requested;
     target.create_scene_picker_requested |= source.create_scene_picker_requested;
+    target.save_scene_as_picker_requested |= source.save_scene_as_picker_requested;
     target
         .opened_view_visibility_requests
         .extend(source.opened_view_visibility_requests);

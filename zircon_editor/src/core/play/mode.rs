@@ -8,7 +8,9 @@ pub enum PlayModeKind {
     #[default]
     Edit,
     Building,
+    Starting,
     Playing,
+    Stopping,
     CleanupFailed,
 }
 
@@ -69,7 +71,13 @@ pub enum PlayMode {
         request: PlayStartRequest,
         play_after_build: bool,
     },
+    Starting {
+        kind: PlayKind,
+    },
     Playing {
+        kind: PlayKind,
+    },
+    Stopping {
         kind: PlayKind,
     },
     CleanupFailed {
@@ -83,7 +91,9 @@ impl PlayMode {
         match self {
             Self::Edit => PlayModeKind::Edit,
             Self::Building { .. } => PlayModeKind::Building,
+            Self::Starting { .. } => PlayModeKind::Starting,
             Self::Playing { .. } => PlayModeKind::Playing,
+            Self::Stopping { .. } => PlayModeKind::Stopping,
             Self::CleanupFailed { .. } => PlayModeKind::CleanupFailed,
         }
     }

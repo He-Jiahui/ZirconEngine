@@ -1,7 +1,8 @@
 use super::editor_state::EditorState;
 use crate::core::editor_event::ConsoleMessageFilter;
 use crate::ui::workbench::snapshot::{
-    ConsoleOutputSnapshot, EditorConsoleMessageLevel, StatusTaskProgressSnapshot,
+    ConsoleOutputSnapshot, EditorConsoleMessageLevel, InspectorNativeFieldSnapshot,
+    StatusTaskProgressSnapshot,
 };
 use zircon_runtime_interface::reflect::{ReflectObjectAddress, ReflectReadRequest};
 
@@ -10,6 +11,13 @@ impl EditorState {
         self.begin_inspector_draft_edit();
         self.transform_fields[axis] = value;
         self.inspector_edited_fields.translation[axis] = true;
+        false
+    }
+
+    pub fn update_rotation_field(&mut self, axis: usize, value: String) -> bool {
+        self.begin_inspector_draft_edit();
+        self.rotation_fields[axis] = value;
+        self.inspector_edited_fields.rotation[axis] = true;
         false
     }
 
@@ -56,6 +64,12 @@ impl EditorState {
                     self.transform_fields[axis].clone(),
                 ));
             }
+            if edited.rotation[axis] {
+                changes.push((
+                    format!("transform.rotation_degrees.{suffix}"),
+                    self.rotation_fields[axis].clone(),
+                ));
+            }
             if edited.scale[axis] {
                 changes.push((
                     format!("transform.scale.{suffix}"),
@@ -78,11 +92,6 @@ impl EditorState {
         let Some((component_type_path, field_name)) = field_id.rsplit_once('.') else {
             return Ok(false);
         };
-        if crate::ui::workbench::snapshot::InspectorNativeFieldSnapshot::is_component_type(
-            component_type_path,
-        ) {
-            return Ok(false);
-        }
         let Some(selected) = self.viewport_controller.selection().active_primary() else {
             return Ok(false);
         };
@@ -104,7 +113,13 @@ impl EditorState {
                 };
                 scene
                     .reflect_read(ReflectReadRequest::new(address, field.id))
-                    .is_ok()
+                    .is_ok_and(|response| {
+                        !InspectorNativeFieldSnapshot::is_component_type(component_type_path)
+                            || InspectorNativeFieldSnapshot::supports_editing(
+                                field_name,
+                                &response.field.value,
+                            )
+                    })
             })?
             .unwrap_or(false))
     }

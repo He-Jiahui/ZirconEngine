@@ -27,10 +27,18 @@ fn deferred(
     invocation: EditorOperationInvocation,
     retention: PendingEditRetention,
 ) -> DeferredOperationInvocation {
+    deferred_for(EditOperationTarget::EditWorkspace, invocation, retention)
+}
+
+fn deferred_for(
+    target: EditOperationTarget,
+    invocation: EditorOperationInvocation,
+    retention: PendingEditRetention,
+) -> DeferredOperationInvocation {
     OperationCommandFactoryRegistration::new(
         invocation.operation_id.clone(),
         "Pending edit test",
-        EditOperationTarget::EditWorkspace,
+        target,
         Arc::new(PendingEditFixtureFactory),
     )
     .with_pending_edit_retention(retention)
@@ -242,7 +250,11 @@ fn latest_retention_coalesces_only_the_same_target_and_operation() {
     let other_target = queue
         .enqueue(
             EditOperationTarget::EditDocument(DocumentId::new(11)),
-            deferred(operation, PendingEditRetention::latest()),
+            deferred_for(
+                EditOperationTarget::EditDocument(DocumentId::new(11)),
+                operation,
+                PendingEditRetention::latest(),
+            ),
         )
         .unwrap();
 
@@ -397,7 +409,7 @@ fn bounded_retention_evicts_only_its_typed_cohort() {
     let other_operation = queue
         .enqueue(
             EditOperationTarget::EditWorkspace,
-            deferred(invocation("other-drag"), policy()),
+            deferred(invocation("other_drag"), policy()),
         )
         .unwrap();
 
@@ -458,7 +470,7 @@ fn bounded_retention_rejects_new_work_after_its_own_age_limit() {
             operation_id,
             max_oldest_age,
             ..
-        } if operation_id == "drag" && max_oldest_age == Duration::from_millis(1)
+        } if operation_id == "editor.test.drag" && max_oldest_age == Duration::from_millis(1)
     ));
     assert_eq!(queue.summary().pending_count, 1);
 }
@@ -594,7 +606,11 @@ fn pending_decision_blocks_the_next_play_start_until_queue_resolution() {
     controller
         .route_edit(
             EditOperationTarget::EditDocument(DocumentId::new(11)),
-            lossless("rename"),
+            deferred_for(
+                EditOperationTarget::EditDocument(DocumentId::new(11)),
+                invocation("rename"),
+                PendingEditRetention::Lossless,
+            ),
         )
         .unwrap();
     let stopped = controller.request_stop().unwrap();
@@ -836,7 +852,7 @@ fn failed_decision_publication_releases_the_fence_for_a_retry() {
         true
     );
     assert!(!matches!(
-        controller.route_edit(EditOperationTarget::EditWorkspace, lossless("after-retry")),
+        controller.route_edit(EditOperationTarget::EditWorkspace, lossless("after_retry")),
         Err(PlayEditRouteError::PendingResolutionInProgress)
     ));
     assert!(matches!(

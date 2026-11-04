@@ -1,6 +1,8 @@
 use crate::graphics::types::GraphicsError;
 use std::sync::Arc;
-use zr_rhi::{AdapterSelectionPolicy, RenderDeviceRequestPolicy};
+#[cfg(target_arch = "wasm32")]
+use zr_rhi::AdapterSelectionPolicy;
+use zr_rhi::RenderDeviceRequestPolicy;
 use zr_rhi_wgpu::{initial_wgpu_render_device_profile, WgpuRenderDevice, WgpuRenderDeviceContext};
 
 use super::config::RenderBackendConfig;
@@ -18,11 +20,8 @@ impl RenderBackend {
     ) -> Result<Self, GraphicsError> {
         let config = RenderBackendConfig::from_environment();
         let instance = wgpu::Instance::new(config.instance_descriptor());
-        let (adapter, adapter_facts) = select_offscreen_adapter(
-            &instance,
-            config,
-            &AdapterSelectionPolicy::default(),
-        )?;
+        let (adapter, adapter_facts) =
+            select_offscreen_adapter(&instance, config, &config.adapter_selection_policy())?;
         let requested_device = request_device_with_policy(&adapter, device_request_policy)?;
         let device_profile = initial_wgpu_render_device_profile(
             adapter_facts,

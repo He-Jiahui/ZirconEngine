@@ -11,6 +11,7 @@ use crate::core::editing::context::CoreEditContext;
 use crate::core::editing::engine::MergeMode;
 use crate::core::editing::intent::EditorIntent;
 use crate::core::play::WorldDomain;
+use crate::ui::workbench::snapshot::InspectorNativeFieldSnapshot;
 
 use super::no_project_open::no_project_open;
 use super::parse_parent_field::parse_parent_field;
@@ -23,6 +24,10 @@ const NAME_COMPONENT_TYPE_PATH: &str = "zircon_runtime::scene::components::Name"
 const HIERARCHY_COMPONENT_TYPE_PATH: &str = "zircon_runtime::scene::components::Hierarchy";
 const LOCAL_TRANSFORM_COMPONENT_TYPE_PATH: &str =
     "zircon_runtime::scene::components::LocalTransform";
+
+#[path = "inspector_rotation.rs"]
+mod inspector_rotation;
+use inspector_rotation::capture_rotation_command;
 
 impl EditorState {
     pub(crate) fn select_node_in_world(
@@ -129,6 +134,11 @@ impl EditorState {
             edited.translation,
             InspectorTransformField::Translation,
         )?;
+        let rotation = parse_edited_axes(
+            &self.rotation_fields,
+            edited.rotation,
+            InspectorTransformField::Rotation,
+        )?;
         let scale = parse_edited_axes(
             &self.scale_fields,
             edited.scale,
@@ -137,6 +147,15 @@ impl EditorState {
         let mut commands = Vec::new();
 
         for node_id in &selected {
+            // Capture rotation before reflected translation/scale writes so a mixed batch
+            // cannot overwrite them with the transform captured before the transaction.
+            let rotation_command = self
+                .world
+                .with_world(|scene| capture_rotation_command(scene, *node_id, rotation))?
+                .ok_or_else(no_project_open)??;
+            if let Some(command) = rotation_command {
+                commands.push(command);
+            }
             let mut reflected_updates = self.prepare_reflected_node_updates(
                 *node_id,
                 name.as_deref(),
@@ -386,6 +405,9 @@ impl EditorState {
                 format!("{:.2}", node.translation.y),
                 format!("{:.2}", node.translation.z),
             ];
+            self.rotation_fields = crate::ui::workbench::snapshot::InspectorSnapshot::
+                rotation_degrees_from_quaternion(node.rotation)
+                .unwrap_or_default();
             self.scale_fields = [
                 format!("{:.2}", node.scale.x),
                 format!("{:.2}", node.scale.y),
@@ -399,6 +421,7 @@ impl EditorState {
         self.name_field.clear();
         self.parent_field.clear();
         self.transform_fields = [String::new(), String::new(), String::new()];
+        self.rotation_fields = Default::default();
         self.scale_fields = [String::new(), String::new(), String::new()];
         self.inspector_dynamic_fields.clear();
     }
@@ -417,6 +440,7 @@ fn capture_play_inspector_commands(
 ) -> Result<Vec<EditorCommand>, EditorStateOperationError> {
     let mut updates = BTreeMap::<(String, String), ReflectedValue>::new();
     let mut translation_axes = [None; 3];
+    let mut rotation_axes = [None; 3];
     let mut scale_axes = [None; 3];
 
     for (field_id, value) in changes {
@@ -456,6 +480,24 @@ fn capture_play_inspector_commands(
                 translation_axes[2] = Some(parse_play_inspector_axis(
                     value,
                     InspectorTransformField::Translation,
+                )?);
+            }
+            "transform.rotation_degrees.x" => {
+                rotation_axes[0] = Some(parse_play_inspector_axis(
+                    value,
+                    InspectorTransformField::Rotation,
+                )?);
+            }
+            "transform.rotation_degrees.y" => {
+                rotation_axes[1] = Some(parse_play_inspector_axis(
+                    value,
+                    InspectorTransformField::Rotation,
+                )?);
+            }
+            "transform.rotation_degrees.z" => {
+                rotation_axes[2] = Some(parse_play_inspector_axis(
+                    value,
+                    InspectorTransformField::Rotation,
                 )?);
             }
             "transform.scale.x" => {
@@ -503,6 +545,9 @@ fn capture_play_inspector_commands(
     insert_play_vec3_update(scene, node_id, "scale", scale_axes, &mut updates)?;
 
     let mut commands = Vec::with_capacity(updates.len());
+    if let Some(command) = capture_rotation_command(scene, node_id, rotation_axes)? {
+        commands.push(command);
+    }
     for ((component_type_path, field_name), value) in updates {
         if let Some(command) = EditorCommand::set_reflected_scene_field(
             scene,
@@ -577,15 +622,15 @@ fn read_reflected_inspector_value(
 ) -> Result<ReflectedValue, InspectorEditError> {
     let field_stable_id = scene
         .reflect_schema(component_type_path)
-        .ok()
-        .and_then(|schema| {
-            schema
-                .type_info
-                .fields
-                .into_iter()
-                .find(|field| field.name == field_name)
-                .map(|field| field.id)
-        })
+        .map_err(|source| InspectorEditError::ReflectionRead {
+            field_id: field_id.to_owned(),
+            source,
+        })?
+        .type_info
+        .fields
+        .into_iter()
+        .find(|field| field.name == field_name)
+        .map(|field| field.id)
         .ok_or_else(|| InspectorEditError::UnsupportedFieldId {
             field_id: field_id.to_owned(),
         })?;
@@ -596,19 +641,32 @@ fn read_reflected_inspector_value(
                 source,
             }
         })?;
-    scene
+    let value = scene
         .reflect_read(ReflectReadRequest::new(address, field_stable_id))
         .map(|response| response.field.value)
         .map_err(|source| InspectorEditError::ReflectionRead {
             field_id: field_id.to_owned(),
             source,
-        })
+        })?;
+    // Apply the same native-kind policy to drafts and active Play-world edits.
+    if InspectorNativeFieldSnapshot::is_component_type(component_type_path) {
+        if !InspectorNativeFieldSnapshot::supports_editing(field_name, &value) {
+            return Err(InspectorEditError::UnsupportedFieldId {
+                field_id: field_id.to_owned(),
+            });
+        }
+        if scene.mobility(node_id) == Some(zircon_runtime::scene::components::Mobility::Static) {
+            return Err(InspectorEditError::StaticNativeComponent { node_id });
+        }
+    }
+    Ok(value)
 }
 
 struct SelectedInspectorState {
     name: String,
     parent: Option<NodeId>,
     translation: Vec3,
+    rotation: zircon_runtime_interface::math::Quat,
     world_translation: Vec3,
     scale: Vec3,
 }
@@ -618,12 +676,14 @@ fn selected_inspector_state(scene: &Scene, selected: NodeId) -> Option<SelectedI
     let row = hierarchy.hierarchy_row(selected)?;
     let fields = scene.inspection_fields_artifact(selected)?;
     let translation = inspection_vec3_field(fields.fields(), "translation")?;
+    let rotation = scene.local_transform(selected)?.rotation;
     let world_translation = scene.world_transform(selected)?.translation;
     let scale = inspection_vec3_field(fields.fields(), "scale")?;
     Some(SelectedInspectorState {
         name: row.display_name.clone(),
         parent: row.parent,
         translation,
+        rotation,
         world_translation,
         scale,
     })
