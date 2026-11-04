@@ -529,6 +529,7 @@ fn close_preparation_is_pending(error: &RetainedProjectCloseError) -> bool {
             | RetainedProjectCloseError::PendingModelImport
             | RetainedProjectCloseError::PendingAssetRelocation
             | RetainedProjectCloseError::PendingAssetDeletion
+            | RetainedProjectCloseError::PendingAssetMaintenance
             | RetainedProjectCloseError::PlayTeardown { .. }
             | RetainedProjectCloseError::PendingPlayEditDecision
     )

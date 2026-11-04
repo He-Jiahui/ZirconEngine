@@ -65,6 +65,39 @@ impl RetainedEditorHost {
                 Err(error) => self.set_status_line(error),
             }
         }
+        if let Some(request) = effects.asset_folder_create_requested.as_ref() {
+            if let Err(error) = self.request_folder_create(&request.parent_folder_id) {
+                self.set_status_line(error);
+            }
+        }
+        if let Some(request) = effects.asset_folder_rename_requested.as_ref() {
+            if let Err(error) = self.request_folder_rename(&request.folder_id) {
+                self.set_status_line(error);
+            }
+        }
+        if let Some(request) = effects.asset_folder_deletion_requested.as_ref() {
+            match self.request_folder_mutation(
+                crate::core::asset::EditorAssetFolderOperation::Delete,
+                &request.folder_id,
+                None,
+            ) {
+                Ok(()) => {
+                    self.set_status_line(format!("Deleting empty folder {}", request.folder_id))
+                }
+                Err(error) => self.set_status_line(error),
+            }
+        }
+        if let Some(request) = effects.asset_rename_requested.as_ref() {
+            if let Err(error) = self.request_asset_rename(&request.asset_uuid) {
+                self.set_status_line(error);
+            }
+        }
+        if let Some(request) = effects.asset_reimport_requested.as_ref() {
+            match self.request_asset_reimport(&request.asset_uuid) {
+                Ok(()) => self.set_status_line(format!("Reimporting asset {}", request.asset_uuid)),
+                Err(error) => self.set_status_line(error),
+            }
+        }
         if effects.open_command_palette_requested {
             self.open_workbench_command_palette();
         }

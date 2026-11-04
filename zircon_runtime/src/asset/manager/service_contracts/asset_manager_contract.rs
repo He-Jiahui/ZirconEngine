@@ -154,7 +154,7 @@ impl AssetManagerContract for ProjectAssetManager {
     }
 
     fn import_asset(&self, uri: &str) -> Result<Option<AssetStatusRecord>, CoreError> {
-        self.import_asset_for_scope(None, uri)
+        self.import_asset_for_scope(None, uri, None)
     }
 
     fn reimport_all(&self) -> Result<Vec<AssetStatusRecord>, CoreError> {
@@ -240,7 +240,18 @@ impl ProjectAssetManager {
         expected: &crate::asset::project::ProjectActivationIdentity,
         uri: &str,
     ) -> Result<Option<AssetStatusRecord>, CoreError> {
-        self.import_asset_for_scope(Some(expected), uri)
+        self.import_asset_for_scope(Some(expected), uri, None)
+    }
+
+    /// Reimport binds both activation and the source UUID at the candidate-clone fence.
+    /// A relocated source's old path may never select an unrelated replacement asset.
+    pub fn reimport_project_source_for_project(
+        &self,
+        expected: &crate::asset::project::ProjectActivationIdentity,
+        source_uuid: crate::asset::AssetUuid,
+        uri: &str,
+    ) -> Result<Option<AssetStatusRecord>, CoreError> {
+        self.import_asset_for_scope(Some(expected), uri, Some(source_uuid))
     }
 
     /// Model imports use the same active-packet fence and original transaction owner.
@@ -366,6 +377,7 @@ impl ProjectAssetManager {
         &self,
         expected: Option<&crate::asset::project::ProjectActivationIdentity>,
         uri: &str,
+        expected_source: Option<crate::asset::AssetUuid>,
     ) -> Result<Option<AssetStatusRecord>, CoreError> {
         let uri = AssetUri::parse(uri).map_err(asset_error)?;
         let (
@@ -381,6 +393,8 @@ impl ProjectAssetManager {
             let Some(active_project) = project.as_ref() else {
                 return Ok(None);
             };
+            require_import_source_identity(active_project, &uri, expected_source)?;
+            validate_scoped_import_paths(active_project, &uri, expected.is_some())?;
             let indexed_source_path = self.indexed_project_source_path(&uri);
             let source_path = match indexed_source_path {
                 Some(path) => path,
@@ -420,6 +434,7 @@ impl ProjectAssetManager {
             .registry()
             .get_by_locator(&uri)
             .map(build_status_record);
+        require_import_source_identity(&candidate, &uri, expected_source)?;
         let generation = self.project_generation_write();
         let mut project = self.project_write();
         require_import_activation(project.as_ref(), expected)?;
@@ -437,6 +452,7 @@ impl ProjectAssetManager {
                 "targeted asset import was superseded by a newer project generation",
             ));
         }
+        validate_scoped_import_paths(active_project, &uri, expected.is_some())?;
         let commit_outcome = self.commit_targeted_project_resource_sync(
             prepared,
             || prepared_generation.commit().map_err(asset_error),
@@ -455,6 +471,53 @@ impl ProjectAssetManager {
         commit_outcome.ensure_durable().map_err(asset_error)?;
         Ok(status)
     }
+}
+
+fn require_import_source_identity(
+    project: &ProjectManager,
+    uri: &AssetUri,
+    expected: Option<crate::asset::AssetUuid>,
+) -> Result<(), CoreError> {
+    if expected.is_some_and(|expected| {
+        project
+            .asset_registry()
+            .entry_by_path(uri)
+            .is_none_or(|entry| entry.uuid() != expected)
+    }) {
+        return Err(asset_error_message(
+            "Reimport source identity changed; refresh the asset browser and retry",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_scoped_import_paths(
+    project: &ProjectManager,
+    uri: &AssetUri,
+    scoped: bool,
+) -> Result<(), CoreError> {
+    if !scoped || uri.scheme() != ResourceScheme::Res {
+        return Ok(());
+    }
+    // A queued Reimport must inspect the lexical source before a resolver erases link
+    // components. Keep automatic watcher removal semantics in the existing unscoped path.
+    let source = project
+        .source_path_for_no_follow(uri)
+        .map_err(asset_error)?;
+    crate::asset::safe_mutation_path::validate_no_follow_path(
+        project.paths().root(),
+        &source,
+        false,
+    )
+    .map_err(asset_error)?;
+    let mut meta_name = source.as_os_str().to_os_string();
+    meta_name.push(".zmeta");
+    crate::asset::safe_mutation_path::validate_no_follow_path(
+        project.paths().root(),
+        std::path::Path::new(&meta_name),
+        true,
+    )
+    .map_err(asset_error)
 }
 
 fn require_import_activation(

@@ -329,6 +329,11 @@ fn invalidation_mask_for_effects(effects: &[EditorEventEffect]) -> EditorViewInv
             | EditorEventEffect::ImportModelRequested
             | EditorEventEffect::AssetRelocationRequested { .. }
             | EditorEventEffect::AssetDeletionRequested { .. }
+            | EditorEventEffect::AssetFolderCreateRequested { .. }
+            | EditorEventEffect::AssetFolderRenameRequested { .. }
+            | EditorEventEffect::AssetFolderDeletionRequested { .. }
+            | EditorEventEffect::AssetRenameRequested { .. }
+            | EditorEventEffect::AssetReimportRequested { .. }
             | EditorEventEffect::CommandPaletteOpenRequested
             | EditorEventEffect::SettingsWindowOpenRequested
             | EditorEventEffect::ContentDrawerToggleRequested

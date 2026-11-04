@@ -13,6 +13,27 @@ pub(crate) fn merge_effects(target: &mut UiHostEventEffects, source: UiHostEvent
     target.refresh_asset_details |= source.refresh_asset_details;
     target.refresh_visible_asset_previews |= source.refresh_visible_asset_previews;
     target.import_model_requested |= source.import_model_requested;
+    if source.asset_deletion_requested.is_some() {
+        target.asset_deletion_requested = source.asset_deletion_requested;
+    }
+    if source.asset_relocation_requested.is_some() {
+        target.asset_relocation_requested = source.asset_relocation_requested;
+    }
+    if source.asset_folder_create_requested.is_some() {
+        target.asset_folder_create_requested = source.asset_folder_create_requested;
+    }
+    if source.asset_folder_rename_requested.is_some() {
+        target.asset_folder_rename_requested = source.asset_folder_rename_requested;
+    }
+    if source.asset_folder_deletion_requested.is_some() {
+        target.asset_folder_deletion_requested = source.asset_folder_deletion_requested;
+    }
+    if source.asset_rename_requested.is_some() {
+        target.asset_rename_requested = source.asset_rename_requested;
+    }
+    if source.asset_reimport_requested.is_some() {
+        target.asset_reimport_requested = source.asset_reimport_requested;
+    }
     target.reset_active_layout_preset |= source.reset_active_layout_preset;
     target.open_command_palette_requested |= source.open_command_palette_requested;
     target.open_settings_window_requested |= source.open_settings_window_requested;

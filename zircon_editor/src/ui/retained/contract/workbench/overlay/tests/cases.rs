@@ -71,26 +71,46 @@ fn actual_authored_scene_picker_overlay_paints_and_routes_outside_chrome_then_cl
         .workbench_window_nodes
         .get(palette_row)
         .unwrap();
+    let panel =
+        crate::ui::retained_host::host_contract::template_geometry::frame_from_template_node(
+            &palette,
+        );
+    let candidate = crate::ui::retained_host::host_contract::template_popup_layout::command_palette_option_frame_within(&panel, 0, &bounds)
+        .expect("the actual authored candidate must have painted coverage inside its panel");
+    // Put the authored candidate in the center band, outside both chrome paint clips.
+    // Its position comes from the palette layout rather than a guessed dropdown offset.
+    let center_top = (candidate.y - candidate.height).max(0.0);
+    assert!(candidate.y + candidate.height < 780.0);
+    presentation.host_layout.center_band_frame.y = center_top;
+    presentation.host_layout.center_band_frame.height = 780.0 - center_top;
     assert!(palette.popup_open);
     assert!(overlays.rows.contains(&palette_row));
     assert!(!RootOverlayRows::chrome_exclusion(&presentation)
         .transform_row(palette_row, palette.clone(), bounds.clone())
         .is_some());
     let index = HostWorkbenchHitIndex::from_presentation(&presentation);
-    // Locate the real projected option geometry through the production hit owner.
-    let hit = (120..780)
-        .find_map(|y| {
-            let x = palette.frame.x + palette.frame.width * 0.5;
-            hit_test_workbench_window_template_node_with_index(&presentation, &index, x, y as f32)
-                .filter(|hit| {
-                    hit.control_id.as_str() == "WorkbenchCommandPalette"
-                        && hit.value_text.as_str() == "scene-picker-create-confirm"
-                })
-                .map(|hit| (x as usize, y, hit))
-        })
-        .expect("real palette option must be hit outside both chrome clips");
+    let x = (candidate.x + candidate.width * 0.5).floor() as usize;
+    let y = (candidate.y + candidate.height * 0.5).floor() as usize;
+    assert!((y as f32) > center_top && y < 780);
+    let hit = hit_test_workbench_window_template_node_with_index(
+        &presentation,
+        &index,
+        x as f32,
+        y as f32,
+    )
+    .filter(|hit| {
+        hit.control_id.as_str() == "WorkbenchCommandPalette"
+            && hit.value_text.as_str() == "scene-picker-create-confirm"
+    })
+    .map(|hit| (x, y, hit))
+    .expect("real palette option must be hit outside both chrome clips");
     assert_eq!(hit.2.dispatch_kind.as_str(), "workbench_option");
     assert_eq!(hit.2.commit_action_id.as_str(), "CommandPalette/Commit");
+    assert_eq!(hit.2.action_id.as_str(), "CommandPalette/Commit");
+    assert_eq!(
+        hit.2.frame, candidate,
+        "authored scene-picker hit must match its painted candidate inside the palette panel"
+    );
     let background = [241, 17, 193, 255];
     let mut overlay_frame = HostRgbaFrame::filled(1280, 800, background);
     draw_authored_root_overlays(&mut overlay_frame, &presentation, &bounds);

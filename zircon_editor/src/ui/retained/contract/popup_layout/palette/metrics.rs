@@ -1,14 +1,13 @@
 //! 把当前宿主控件密度投影为面板内部的尺寸合同；搜索区域、候选行和文本使用同一份指标。
 //! from_host 入口允许测试独立验证映射，生产入口从本次宿主主题取得指标。
 
-use super::super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
+use super::super::super::paint_theme::{current_host_metrics, HostControlMetrics};
 
 const ROW_DETAIL_LEFT_RATIO: f32 = 0.72;
 const ROW_DETAIL_WIDTH_RATIO: f32 = 0.24;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchCommandPaletteMetrics
-{
+pub(in crate::ui::retained_host::host_contract) struct WorkbenchCommandPaletteMetrics {
     pub panel_radius: f32,
     pub search_radius: f32,
     pub row_radius: f32,
@@ -36,12 +35,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub empty_text_y: f32,
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn command_palette_metrics(
+pub(in crate::ui::retained_host::host_contract) fn command_palette_metrics(
 ) -> WorkbenchCommandPaletteMetrics {
     command_palette_metrics_from_host(current_host_metrics())
 }
 
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn command_palette_metrics_from_host(
+pub(in crate::ui::retained_host::host_contract) fn command_palette_metrics_from_host(
     metrics: HostControlMetrics,
 ) -> WorkbenchCommandPaletteMetrics {
     let font_size = (metrics.font_body + metrics.font_large) * 0.5;

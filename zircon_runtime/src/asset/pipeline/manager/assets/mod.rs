@@ -8,6 +8,8 @@ mod construction;
 mod debug;
 #[path = "deletion.rs"]
 mod deletion;
+#[path = "folders.rs"]
+mod folders;
 #[path = "generated_source.rs"]
 mod generated_source;
 #[path = "handle.rs"]

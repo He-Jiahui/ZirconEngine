@@ -40,7 +40,8 @@ fn native_template_painter_draws_command_palette_panel_search_and_rows() {
     assert_eq!(pixel(&bytes, 208, 24, 24), SEARCH_SURFACE);
     assert_eq!(pixel(&bytes, 208, 96, 18), FOCUS_RING);
     assert_eq!(pixel(&bytes, 208, 160, 66), SELECTED_ROW);
-    assert_eq!(pixel(&bytes, 208, 16, 66), POPUP_BORDER);
+    // The selected, focused row uses the shared accent outline.
+    assert_eq!(pixel(&bytes, 208, 16, 66), FOCUS_RING);
     assert_eq!(pixel(&bytes, 208, 160, 92), POPUP_SURFACE);
     assert_eq!(pixel(&bytes, 208, 204, 12), BACKGROUND);
 }

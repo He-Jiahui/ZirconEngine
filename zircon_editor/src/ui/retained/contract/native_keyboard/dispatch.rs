@@ -1,5 +1,5 @@
 #[path = "dispatch/actions.rs"]
-mod actions;
+pub(super) mod actions;
 
 use self::actions::{
     dispatch_popup_accept, dispatch_popup_cancel, dispatch_popup_hover_row,

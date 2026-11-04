@@ -24,6 +24,8 @@ mod deletion;
 mod durable_transaction;
 #[path = "editor_document_transaction.rs"]
 mod editor_document_transaction;
+#[path = "folders.rs"]
+mod folders;
 #[path = "hash_bytes.rs"]
 mod hash_bytes;
 #[path = "importer_access.rs"]

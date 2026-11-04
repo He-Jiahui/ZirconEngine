@@ -159,6 +159,7 @@ impl RetainedEditorHost {
         self.poll_model_import();
         self.poll_asset_deletion();
         self.poll_asset_relocation();
+        self.poll_asset_maintenance();
         self.poll_active_scene_reload();
         self.poll_prompted_close_save();
         self.poll_document_save_all();

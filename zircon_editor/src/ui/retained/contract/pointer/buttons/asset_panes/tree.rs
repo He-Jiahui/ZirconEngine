@@ -21,6 +21,8 @@ pub(in crate::ui::retained_host::host_contract) fn dispatch_asset_tree_button(
         pointer.local_y,
         pointer.width,
         pointer.height,
+        pointer.frame.x,
+        pointer.frame.y,
     );
     if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary {
         pane_host.invoke_asset_tree_pointer_clicked(

@@ -35,7 +35,7 @@ impl PaneSurfaceHostContext<'_> {
     callback_methods!(pane_callbacks, on_asset_control_changed, invoke_asset_control_changed, asset_control_changed, (source: SharedString, control_id: SharedString, value: SharedString));
     callback_methods!(pane_callbacks, on_asset_control_clicked, invoke_asset_control_clicked, asset_control_clicked, (source: SharedString, control_id: SharedString));
     callback_methods!(pane_callbacks, on_asset_tree_pointer_clicked, invoke_asset_tree_pointer_clicked, asset_tree_pointer_clicked, (surface_mode: SharedString, x: f32, y: f32, width: f32, height: f32));
-    callback_methods!(pane_callbacks, on_asset_tree_pointer_event, invoke_asset_tree_pointer_event, asset_tree_pointer_event, (surface_mode: SharedString, kind: i32, button: i32, x: f32, y: f32, width: f32, height: f32));
+    callback_methods!(pane_callbacks, on_asset_tree_pointer_event, invoke_asset_tree_pointer_event, asset_tree_pointer_event, (surface_mode: SharedString, kind: i32, button: i32, x: f32, y: f32, width: f32, height: f32, origin_x: f32, origin_y: f32));
     callback_methods!(pane_callbacks, on_asset_tree_pointer_moved, invoke_asset_tree_pointer_moved, asset_tree_pointer_moved, (surface_mode: SharedString, x: f32, y: f32, width: f32, height: f32));
     callback_methods!(pane_callbacks, on_asset_tree_pointer_scrolled, invoke_asset_tree_pointer_scrolled, asset_tree_pointer_scrolled, (surface_mode: SharedString, x: f32, y: f32, delta: f32, width: f32, height: f32));
     callback_methods!(pane_callbacks, on_asset_content_pointer_clicked, invoke_asset_content_pointer_clicked, asset_content_pointer_clicked, (surface_mode: SharedString, x: f32, y: f32, width: f32, height: f32));

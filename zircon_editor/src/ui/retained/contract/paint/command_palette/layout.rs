@@ -4,8 +4,6 @@
 mod common;
 #[path = "layout/indicator.rs"]
 mod indicator;
-#[path = "layout/metrics.rs"]
-mod metrics;
 #[path = "layout/panel.rs"]
 mod panel;
 #[path = "layout/rows.rs"]
@@ -19,13 +17,13 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use common
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use indicator::{
     match_indicator_radius, match_indicator_rect,
 };
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use metrics::{
-    command_palette_metrics, command_palette_metrics_from_host, WorkbenchCommandPaletteMetrics,
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use crate::ui::retained_host::host_contract::template_popup_layout::{
+    command_palette_metrics, command_palette_metrics_from_host,
+    command_palette_option_frame as row_rect, command_palette_search_frame as search_rect,
+    WorkbenchCommandPaletteMetrics,
 };
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use panel::empty_text_rect;
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use rows::{
-    row_detail_rect, row_label_rect, row_rect,
-};
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use rows::{row_detail_rect, row_label_rect};
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) use search::{
-    search_icon_rect, search_rect, search_text_rect,
+    search_icon_rect, search_text_rect,
 };

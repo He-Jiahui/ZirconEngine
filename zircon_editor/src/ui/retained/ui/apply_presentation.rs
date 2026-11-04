@@ -106,6 +106,7 @@ pub(crate) fn apply_presentation(
     );
 }
 
+#[inline(never)]
 pub(crate) fn apply_presentation_with_template_v2_data(
     ui: &UiHostWindow,
     model: &WorkbenchViewModel,
@@ -140,29 +141,23 @@ pub(crate) fn apply_presentation_with_template_v2_data(
     module_plugins_projection_cache: &mut pane_data_conversion::ModulePluginsPaneProjectionCache,
     shell_content_only: bool,
 ) -> Option<std::sync::Arc<ShellPresentation>> {
-    let mut presentation = {
-        zircon_runtime::profile_scope!(
-            "editor",
-            "retained_host",
-            "apply_shell_presentation_from_state"
-        );
-        record_current_ui_perf_counter(UiPerfCounter::ShellPresentationBuildCount, 1.0);
-        std::sync::Arc::new(ShellPresentation::from_state(
-            model,
-            chrome,
-            geometry,
-            preset_names,
-            active_preset_name,
-            ui_asset_panes,
-            animation_panes,
-            runtime_diagnostics,
-            module_plugins,
-            build_export,
-            template_v2_data,
-            floating_window_projection_bundle,
-            chrome_projection_cache,
-        ))
-    };
+    // Keep large debug temporaries in separate frames. In particular, pane
+    // conversion can enter cold template projection while this frame is live.
+    let mut presentation = build_shell_presentation(
+        model,
+        chrome,
+        geometry,
+        preset_names,
+        active_preset_name,
+        ui_asset_panes,
+        animation_panes,
+        runtime_diagnostics,
+        module_plugins,
+        build_export,
+        template_v2_data,
+        floating_window_projection_bundle,
+        chrome_projection_cache,
+    );
     let pane_surface_host = ui.global::<host_contract::PaneSurfaceHostContext>();
 
     let host_layout = {
@@ -183,73 +178,221 @@ pub(crate) fn apply_presentation_with_template_v2_data(
     {
         return None;
     }
-    let host_scene_data = std::sync::Arc::new({
-        zircon_runtime::profile_scope!("editor", "retained_host", "apply_build_host_scene_data");
-        record_current_ui_perf_counter(UiPerfCounter::HostSceneBuildCount, 1.0);
-        build_host_scene_data_with_cache(
-            &model.menu_bar,
-            &presentation.host_surface_data,
-            &presentation.host_shell,
-            &host_layout,
-            &presentation.status_primary,
-            chrome.inspector.is_some(),
-            &chrome.project_overview,
-            chrome,
-            chrome_projection_cache,
-        )
-    });
+    let host_scene_data = build_retained_scene_data(
+        model,
+        chrome,
+        &presentation,
+        &host_layout,
+        chrome_projection_cache,
+    );
     std::sync::Arc::get_mut(&mut presentation)
         .expect("shell presentation must be unique before publication")
         .retained_scene_data = Some(std::sync::Arc::clone(&host_scene_data));
-    let host_welcome_pane = {
-        zircon_runtime::profile_scope!("editor", "retained_host", "apply_build_welcome_pane");
-        let welcome_pane = project_welcome_pane(&presentation.welcome.pane, &host_scene_data);
-        to_host_contract_welcome_pane(&welcome_pane, &presentation.welcome.recent_projects)
-    };
-    let native_floating_surface_data = {
-        zircon_runtime::profile_scope!(
-            "editor",
-            "retained_host",
-            "apply_build_native_floating_surface_data"
-        );
-        build_native_floating_surface_data(&host_scene_data, &presentation.host_shell)
-    };
+    let host_welcome_pane = build_host_welcome_pane(&presentation, &host_scene_data);
+    let native_floating_surface_data =
+        build_presentation_native_floating_surface_data(&host_scene_data, &presentation);
     let current_generation = ui.get_host_presentation_generation();
     let current_structure = current_generation.structure();
-    let host_scene_data = {
-        zircon_runtime::profile_scope!("editor", "retained_host", "apply_convert_host_scene_data");
-        record_current_ui_perf_counter(UiPerfCounter::PaneProjectionBuildCount, 1.0);
-        to_host_contract_host_scene_data_with_runtime(
-            &host_scene_data,
-            pane_runtimes,
-            Some(&presentation.welcome),
-            hierarchy_filter_query,
-            console_projection_cache,
-            module_plugins_projection_cache,
-        )
-    };
-    let native_floating_surface_data = {
-        zircon_runtime::profile_scope!(
-            "editor",
-            "retained_host",
-            "apply_convert_native_floating_surface_data"
-        );
-        to_host_contract_native_floating_surface_data_with_runtime(
-            &native_floating_surface_data,
-            pane_runtimes,
-            Some(&presentation.welcome),
-            hierarchy_filter_query,
-            console_projection_cache,
-            module_plugins_projection_cache,
-        )
-    };
+    let host_scene_data = convert_presentation_scene_data(
+        &host_scene_data,
+        pane_runtimes,
+        &presentation.welcome,
+        hierarchy_filter_query,
+        console_projection_cache,
+        module_plugins_projection_cache,
+    );
+    let native_floating_surface_data = convert_presentation_native_floating_surface_data(
+        &native_floating_surface_data,
+        pane_runtimes,
+        &presentation.welcome,
+        hierarchy_filter_query,
+        console_projection_cache,
+        module_plugins_projection_cache,
+    );
+    let host_presentation = assemble_host_presentation(
+        ui,
+        &presentation,
+        &host_layout,
+        host_scene_data,
+        native_floating_surface_data,
+        current_structure,
+        root_template_projection,
+        workbench_window_projection,
+        componentized_workbench_layout_frames,
+        template_scale_factor,
+    );
+    drop(current_generation);
+    publish_host_presentation(ui, host_presentation, &pane_surface_host, host_welcome_pane);
+    Some(presentation)
+}
+
+// These helpers return heap-backed values so their by-value construction slots
+// are gone before the next phase starts, even in unoptimized builds.
+#[inline(never)]
+fn build_shell_presentation(
+    model: &WorkbenchViewModel,
+    chrome: &EditorChromeSnapshot,
+    geometry: &WorkbenchShellGeometry,
+    preset_names: &[String],
+    active_preset_name: Option<&str>,
+    ui_asset_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::asset_editor::UiAssetEditorPanePresentation,
+    >,
+    animation_panes: &std::collections::BTreeMap<
+        String,
+        crate::ui::animation_editor::AnimationEditorPanePresentation,
+    >,
+    runtime_diagnostics: Option<&zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot>,
+    module_plugins: &host_window::ModulePluginsPaneViewData,
+    build_export: &host_window::BuildExportPaneViewData,
+    template_v2_data: &std::collections::BTreeMap<
+        String,
+        crate::core::editor_extension::EditorUiTemplatePaneDataSnapshot,
+    >,
+    floating_window_projection_bundle: &FloatingWindowProjectionBundle,
+    chrome_projection_cache: &mut HostChromeProjectionCache,
+) -> std::sync::Arc<ShellPresentation> {
+    zircon_runtime::profile_scope!(
+        "editor",
+        "retained_host",
+        "apply_shell_presentation_from_state"
+    );
+    record_current_ui_perf_counter(UiPerfCounter::ShellPresentationBuildCount, 1.0);
+    std::sync::Arc::new(ShellPresentation::from_state(
+        model,
+        chrome,
+        geometry,
+        preset_names,
+        active_preset_name,
+        ui_asset_panes,
+        animation_panes,
+        runtime_diagnostics,
+        module_plugins,
+        build_export,
+        template_v2_data,
+        floating_window_projection_bundle,
+        chrome_projection_cache,
+    ))
+}
+
+#[inline(never)]
+fn build_retained_scene_data(
+    model: &WorkbenchViewModel,
+    chrome: &EditorChromeSnapshot,
+    presentation: &ShellPresentation,
+    host_layout: &host_window::HostWindowLayoutData,
+    chrome_projection_cache: &mut HostChromeProjectionCache,
+) -> std::sync::Arc<host_window::HostWindowSceneData> {
+    zircon_runtime::profile_scope!("editor", "retained_host", "apply_build_host_scene_data");
+    record_current_ui_perf_counter(UiPerfCounter::HostSceneBuildCount, 1.0);
+    std::sync::Arc::new(build_host_scene_data_with_cache(
+        &model.menu_bar,
+        &presentation.host_surface_data,
+        &presentation.host_shell,
+        host_layout,
+        &presentation.status_primary,
+        chrome.inspector.is_some(),
+        &chrome.project_overview,
+        chrome,
+        chrome_projection_cache,
+    ))
+}
+
+#[inline(never)]
+fn build_host_welcome_pane(
+    presentation: &ShellPresentation,
+    host_scene_data: &host_window::HostWindowSceneData,
+) -> Box<host_contract::WelcomePaneData> {
+    zircon_runtime::profile_scope!("editor", "retained_host", "apply_build_welcome_pane");
+    let welcome_pane = project_welcome_pane(&presentation.welcome.pane, host_scene_data);
+    Box::new(to_host_contract_welcome_pane(
+        &welcome_pane,
+        &presentation.welcome.recent_projects,
+    ))
+}
+
+#[inline(never)]
+fn build_presentation_native_floating_surface_data(
+    host_scene_data: &host_window::HostWindowSceneData,
+    presentation: &ShellPresentation,
+) -> Box<host_window::HostNativeFloatingWindowSurfaceData> {
+    zircon_runtime::profile_scope!(
+        "editor",
+        "retained_host",
+        "apply_build_native_floating_surface_data"
+    );
+    Box::new(build_native_floating_surface_data(
+        host_scene_data,
+        &presentation.host_shell,
+    ))
+}
+
+#[inline(never)]
+fn convert_presentation_scene_data(
+    host_scene_data: &host_window::HostWindowSceneData,
+    pane_runtimes: crate::ui::retained_host::ui::PaneRuntimeContext<'_>,
+    welcome: &view_data::WelcomePresentation,
+    hierarchy_filter_query: &str,
+    console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
+    module_plugins_projection_cache: &mut pane_data_conversion::ModulePluginsPaneProjectionCache,
+) -> Box<host_contract::HostWindowSceneData> {
+    zircon_runtime::profile_scope!("editor", "retained_host", "apply_convert_host_scene_data");
+    record_current_ui_perf_counter(UiPerfCounter::PaneProjectionBuildCount, 1.0);
+    Box::new(to_host_contract_host_scene_data_with_runtime(
+        host_scene_data,
+        pane_runtimes,
+        Some(welcome),
+        hierarchy_filter_query,
+        console_projection_cache,
+        module_plugins_projection_cache,
+    ))
+}
+
+#[inline(never)]
+fn convert_presentation_native_floating_surface_data(
+    native_floating_surface_data: &host_window::HostNativeFloatingWindowSurfaceData,
+    pane_runtimes: crate::ui::retained_host::ui::PaneRuntimeContext<'_>,
+    welcome: &view_data::WelcomePresentation,
+    hierarchy_filter_query: &str,
+    console_projection_cache: &mut pane_data_conversion::ConsolePaneProjectionCache,
+    module_plugins_projection_cache: &mut pane_data_conversion::ModulePluginsPaneProjectionCache,
+) -> Box<host_contract::HostNativeFloatingWindowSurfaceData> {
+    zircon_runtime::profile_scope!(
+        "editor",
+        "retained_host",
+        "apply_convert_native_floating_surface_data"
+    );
+    Box::new(to_host_contract_native_floating_surface_data_with_runtime(
+        native_floating_surface_data,
+        pane_runtimes,
+        Some(welcome),
+        hierarchy_filter_query,
+        console_projection_cache,
+        module_plugins_projection_cache,
+    ))
+}
+
+#[inline(never)]
+fn assemble_host_presentation(
+    ui: &UiHostWindow,
+    presentation: &ShellPresentation,
+    host_layout: &host_window::HostWindowLayoutData,
+    host_scene_data: Box<host_contract::HostWindowSceneData>,
+    native_floating_surface_data: Box<host_contract::HostNativeFloatingWindowSurfaceData>,
+    current_structure: &HostWindowPresentationData,
+    root_template_projection: Option<&RetainedUiHostProjection>,
+    workbench_window_projection: Option<&RetainedUiHostProjection>,
+    componentized_workbench_layout_frames: BuiltinWorkbenchWindowLayoutFrames,
+    template_scale_factor: f32,
+) -> Box<HostWindowPresentationData> {
     let host_shell = {
         zircon_runtime::profile_scope!("editor", "retained_host", "apply_convert_host_shell");
         to_host_contract_host_shell(&presentation.host_shell)
     };
     let host_layout = {
         zircon_runtime::profile_scope!("editor", "retained_host", "apply_convert_host_layout");
-        to_host_contract_host_window_layout(&host_layout)
+        to_host_contract_host_window_layout(host_layout)
     };
     let workbench_window_nodes =
         to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale(
@@ -259,9 +402,9 @@ pub(crate) fn apply_presentation_with_template_v2_data(
             template_scale_factor,
         );
     let window_size = ui.window().size();
-    let host_presentation = HostWindowPresentationData {
-        host_scene_data,
-        native_floating_surface_data,
+    Box::new(HostWindowPresentationData {
+        host_scene_data: *host_scene_data,
+        native_floating_surface_data: *native_floating_surface_data,
         host_shell,
         host_layout,
         asset_deletion_blocker: current_structure
@@ -274,17 +417,24 @@ pub(crate) fn apply_presentation_with_template_v2_data(
         ),
         workbench_window_nodes,
         ..HostWindowPresentationData::default()
-    };
-    drop(current_generation);
+    })
+}
+
+#[inline(never)]
+fn publish_host_presentation(
+    ui: &UiHostWindow,
+    host_presentation: Box<HostWindowPresentationData>,
+    pane_surface_host: &host_contract::PaneSurfaceHostContext,
+    host_welcome_pane: Box<host_contract::WelcomePaneData>,
+) {
     {
         zircon_runtime::profile_scope!("editor", "retained_host", "apply_set_host_presentation");
-        ui.set_host_presentation(host_presentation);
+        ui.set_host_presentation(*host_presentation);
     }
     {
         zircon_runtime::profile_scope!("editor", "retained_host", "apply_set_tail_globals");
-        pane_surface_host.set_welcome_pane(host_welcome_pane);
+        pane_surface_host.set_welcome_pane(*host_welcome_pane);
     }
-    Some(presentation)
 }
 
 pub(super) fn host_window_layout(

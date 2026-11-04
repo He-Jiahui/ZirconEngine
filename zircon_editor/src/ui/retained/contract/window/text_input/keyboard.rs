@@ -34,7 +34,7 @@ impl UiHostWindow {
         }
         match &event.logical_key {
             Key::Named(NamedKey::Backspace) => self.dispatch_focused_text_backspace(),
-            Key::Named(NamedKey::Escape) => self.cancel_focused_text_input(),
+            Key::Named(NamedKey::Escape) => self.dispatch_focused_text_escape(),
             Key::Named(NamedKey::Enter) => self.dispatch_focused_text_commit(),
             _ => event
                 .text

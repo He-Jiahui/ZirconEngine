@@ -105,3 +105,35 @@ fn asset_command_binding_roundtrips_for_deletion() {
         binding
     );
 }
+
+#[test]
+fn u09_folder_asset_rename_and_reimport_bindings_roundtrip_with_target_identity() {
+    for command in [
+        AssetCommand::CreateFolder {
+            parent_folder_id: "res://levels".to_owned(),
+        },
+        AssetCommand::RenameFolder {
+            folder_id: "res://levels/old".to_owned(),
+        },
+        AssetCommand::DeleteFolder {
+            folder_id: "res://levels/empty".to_owned(),
+        },
+        AssetCommand::RenameAsset {
+            asset_uuid: "00112233-4455-6677-8899-aabbccddeeff".to_owned(),
+        },
+        AssetCommand::ReimportAsset {
+            asset_uuid: "11112233-4455-6677-8899-aabbccddeeff".to_owned(),
+        },
+    ] {
+        let binding = EditorUiBinding::new(
+            "AssetContextMenu",
+            "FolderOrAssetMutation",
+            EditorUiEventKind::Click,
+            EditorUiBindingPayload::asset_command(command),
+        );
+        assert_eq!(
+            EditorUiBinding::parse_native_binding(&binding.native_binding()).unwrap(),
+            binding
+        );
+    }
+}

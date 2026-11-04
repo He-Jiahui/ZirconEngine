@@ -96,6 +96,15 @@ fn apply_presentation_carries_componentized_workbench_window_nodes_separately() 
 #[test]
 fn apply_presentation_projects_open_workbench_command_palette_rows_for_native_input() {
     let ui = reference_sized_host_window();
+    let projection = open_reference_command_palette_projection();
+    apply_template_projection_from_workbench_window_projection(&ui, &projection);
+    assert_open_reference_command_palette_rows(&ui);
+}
+
+// Keep presentation-sized debug locals out of the frame that stays live during
+// the full presentation apply on the 2 MiB libtest thread.
+#[inline(never)]
+fn open_reference_command_palette_projection() -> Box<RetainedUiHostProjection> {
     let mut workbench_window_bridge =
         BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(
             WORKBENCH_REFERENCE_WIDTH as f32,
@@ -117,17 +126,22 @@ fn apply_presentation_projects_open_workbench_command_palette_rows_for_native_in
             window_offset: 0,
         })
         .expect("command palette state should apply to the workbench window bridge");
-    apply_template_projection_from_workbench_window_projection(
-        &ui,
-        workbench_window_bridge.host_projection(),
-    );
+    Box::new(workbench_window_bridge.host_projection().clone())
+}
 
+#[inline(never)]
+fn assert_open_reference_command_palette_rows(ui: &UiHostWindow) {
     let presentation = ui.get_host_presentation();
     let palette = find_workbench_window_node(&presentation, "WorkbenchCommandPalette")
         .expect("workbench command palette mount should be present");
 
     assert_eq!(palette.component_role.as_str(), "command-palette");
     assert!(palette.popup_open);
+    assert_eq!(
+        palette.edit_action_id.as_str(),
+        "CommandPalette/QueryChanged"
+    );
+    assert_eq!(palette.commit_action_id.as_str(), "CommandPalette/Commit");
     assert_eq!(palette.structured_options.row_count(), 2);
     let open_project = palette
         .structured_options

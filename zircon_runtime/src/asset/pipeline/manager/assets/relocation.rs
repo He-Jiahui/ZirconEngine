@@ -1,4 +1,4 @@
-use crate::asset::project::ProjectGenerationPhase;
+use crate::asset::project::{ProjectActivationIdentity, ProjectGenerationPhase};
 use crate::asset::watch::{AssetChange, AssetChangeKind};
 use crate::asset::{AssetStatusRecord, AssetUri, AssetUuid};
 use crate::core::CoreError;
@@ -18,6 +18,24 @@ impl ProjectAssetManager {
         source_uuid: AssetUuid,
         target: AssetUri,
     ) -> Result<Vec<AssetStatusRecord>, CoreError> {
+        self.relocate_project_source_for_scope(None, source_uuid, target)
+    }
+
+    pub fn relocate_project_source_for_project(
+        &self,
+        expected: &ProjectActivationIdentity,
+        source_uuid: AssetUuid,
+        target: AssetUri,
+    ) -> Result<Vec<AssetStatusRecord>, CoreError> {
+        self.relocate_project_source_for_scope(Some(expected), source_uuid, target)
+    }
+
+    fn relocate_project_source_for_scope(
+        &self,
+        expected: Option<&ProjectActivationIdentity>,
+        source_uuid: AssetUuid,
+        target: AssetUri,
+    ) -> Result<Vec<AssetStatusRecord>, CoreError> {
         let (expected_generation, expected_preparation_epoch, mut candidate) = {
             let _generation = self.project_generation_read();
             let project = self.project_read();
@@ -26,6 +44,11 @@ impl ProjectAssetManager {
                     "project source relocation requires an active project",
                 ));
             };
+            if expected.is_some_and(|expected| active_project.activation_identity() != expected) {
+                return Err(asset_error_message(
+                    "project source relocation activation was superseded",
+                ));
+            }
             (
                 active_project.catalog_input_generation().sequence(),
                 self.current_project_preparation_epoch(),

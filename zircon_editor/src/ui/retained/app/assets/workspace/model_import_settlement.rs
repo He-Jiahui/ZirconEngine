@@ -163,6 +163,7 @@ impl RetainedEditorHost {
     ) -> Result<(), String> {
         if self.pending_asset_deletion.is_some()
             || self.pending_asset_relocation.is_some()
+            || self.pending_asset_maintenance.is_some()
             || self.pending_model_import.is_some()
         {
             return Err(self.model_import_text("editor.asset.model_import.busy"));

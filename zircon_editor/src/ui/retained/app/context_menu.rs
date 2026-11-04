@@ -1,4 +1,5 @@
 use super::*;
+use crate::ui::template_runtime::builtin::ASSET_WINDOW_DOCUMENT_ID;
 use crate::ui::template_runtime::UNREAL_EDITOR_WINDOW_DOCUMENT_ID;
 
 impl RetainedEditorHost {
@@ -7,9 +8,26 @@ impl RetainedEditorHost {
         mut request: WorkbenchContextMenuRequestData,
     ) {
         self.focus_callback_source_window();
-        if !(match self
+        // The shared foreground popup surface is also published on the dedicated Browser
+        // page. That page admits only asset targets; scene/workbench commands keep their owner.
+        let asset_target = request
+            .target_path
+            .as_str()
+            .starts_with("workbench://asset/")
+            || request
+                .target_path
+                .as_str()
+                .starts_with("workbench://asset-folder/");
+        let admitted = self
             .active_activity_window_template_document_is(UNREAL_EDITOR_WINDOW_DOCUMENT_ID)
-        {
+            .and_then(|workbench| {
+                if workbench || !asset_target {
+                    Ok(workbench)
+                } else {
+                    self.active_activity_window_template_document_is(ASSET_WINDOW_DOCUMENT_ID)
+                }
+            });
+        if !(match admitted {
             Ok(value) => value,
             Err(error) => {
                 self.set_status_line(error.to_string());

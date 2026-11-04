@@ -1,5 +1,6 @@
 use super::super::super::*;
 use crate::ui::retained_host::workbench_popup_actions::WORKBENCH_POPUP_CANCEL_ACTION_ID;
+use crate::ui::template_runtime::builtin::ASSET_WINDOW_DOCUMENT_ID;
 use crate::ui::template_runtime::builtin::UNREAL_EDITOR_WINDOW_DOCUMENT_ID;
 
 impl RetainedEditorHost {
@@ -10,7 +11,23 @@ impl RetainedEditorHost {
     ) -> Option<Result<UiHostEventEffects, String>> {
         match self.active_activity_window_template_document_is(UNREAL_EDITOR_WINDOW_DOCUMENT_ID) {
             Ok(true) => {}
-            Ok(false) => return None,
+            Ok(false) => {
+                let asset_popup_action = (control_id
+                    == callback_dispatch::WORKBENCH_CONTEXT_MENU_CONTROL_ID
+                    && (action_id.starts_with("menu.item.asset.")
+                        || action_id == WORKBENCH_POPUP_CANCEL_ACTION_ID))
+                    || (control_id == callback_dispatch::WORKBENCH_COMMAND_PALETTE_CONTROL_ID
+                        && action_id == WORKBENCH_POPUP_CANCEL_ACTION_ID
+                        && self.asset_name_prompt.is_some());
+                if !asset_popup_action {
+                    return None;
+                }
+                match self.active_activity_window_template_document_is(ASSET_WINDOW_DOCUMENT_ID) {
+                    Ok(true) => {}
+                    Ok(false) => return None,
+                    Err(error) => return Some(Err(error.to_string())),
+                }
+            }
             Err(error) => return Some(Err(error.to_string())),
         }
         let workbench_binding_id = (!action_id.is_empty())
@@ -41,6 +58,7 @@ impl RetainedEditorHost {
                 && action_id == WORKBENCH_POPUP_CANCEL_ACTION_ID
             {
                 self.scene_picker_session = None;
+                self.cancel_asset_name_prompt();
             }
             return Some(result);
         }

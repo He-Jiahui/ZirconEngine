@@ -206,6 +206,7 @@ fn hit_test_setting<'a>(
         if contains_point(&control, x, y) {
             return TemplatePopupRowTarget::TextInput {
                 control_id: entry.key.as_str(),
+                dispatch_kind: "commit_only",
                 edit_action_id: SETTINGS_EDIT_STRING_ACTION_ID,
                 commit_action_id: SETTINGS_COMMIT_STRING_ACTION_ID,
                 value_text: entry.value_text.as_str(),

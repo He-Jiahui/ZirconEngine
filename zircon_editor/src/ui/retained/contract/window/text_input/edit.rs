@@ -4,9 +4,11 @@ mod dispatch;
 mod redraw;
 
 use super::super::UiHostWindow;
+use crate::ui::retained_host::host_contract::native_keyboard::dispatch_focused_command_palette_key;
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
 use crate::ui::retained_host::primitives::SharedString;
 use dispatch::dispatch_text_focus_value;
+use winit::keyboard::NamedKey;
 
 impl UiHostWindow {
     pub(crate) fn text_input_focus_active(&self) -> bool {
@@ -89,9 +91,23 @@ impl UiHostWindow {
         if !focus.is_active() || focus.commit_action_id.is_empty() {
             return NativePointerDispatchResult::idle();
         }
+        if let Some(result) = dispatch_focused_command_palette_key(self, &focus, NamedKey::Enter) {
+            return result;
+        }
         let target_id = focus.commit_target_id();
         let value = focus.value_text.clone();
         dispatch_text_focus_value(self, focus, target_id, value)
+    }
+
+    pub(in crate::ui::retained_host::host_contract) fn dispatch_focused_text_escape(
+        &self,
+    ) -> NativePointerDispatchResult {
+        let focus = self.state.borrow().text_input_focus.as_ref().clone();
+        let result = self.cancel_focused_text_input();
+        match dispatch_focused_command_palette_key(self, &focus, NamedKey::Escape) {
+            Some(popup) => result.merge(popup),
+            None => result,
+        }
     }
 
     pub(in crate::ui::retained_host::host_contract) fn dispatch_focused_chord_commit(

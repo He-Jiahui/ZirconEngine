@@ -44,6 +44,7 @@ pub(in crate::ui::host::editor_asset_manager::manager) struct EditorAssetState {
     pub(in crate::ui::host::editor_asset_manager::manager) catalog_generation:
         Arc<EditorAssetCatalogGeneration>,
     pub(in crate::ui::host::editor_asset_manager::manager) project: Option<ProjectManager>,
+    pub(in crate::ui::host::editor_asset_manager::manager) project_folder_uris: Vec<AssetUri>,
     pub(in crate::ui::host::editor_asset_manager::manager) asset_index:
         Option<Arc<Mutex<EditorAssetIndex>>>,
     pub(in crate::ui::host::editor_asset_manager::manager) preview_cache: Option<PreviewCache>,

@@ -1,21 +1,8 @@
 //! 搜索控件内部的图标与文字共用位置合同；输入矩形已是面板内的搜索区域，避免重复加入面板原点。
 
 use super::super::super::super::data::FrameRect;
+use super::command_palette_metrics;
 use super::common::{centered_offset, symmetric_extent};
-use super::metrics::command_palette_metrics;
-
-pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn search_rect(
-    panel_rect: &FrameRect,
-) -> FrameRect {
-    let metrics = command_palette_metrics();
-    FrameRect {
-        x: panel_rect.x + metrics.panel_padding_x,
-        y: panel_rect.y + metrics.search_top,
-        width: (panel_rect.width - symmetric_extent(metrics.panel_padding_x))
-            .max(metrics.min_frame_extent),
-        height: metrics.search_height,
-    }
-}
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn search_text_rect(
     search_rect: &FrameRect,

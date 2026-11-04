@@ -8,6 +8,7 @@ use zircon_runtime::core::CoreError;
 
 use crate::core::asset::{
     AssetDeletePreflight, AssetSourceWritePolicy, EditorAssetDeletionTicket,
+    EditorAssetFolderOperation, EditorAssetFolderTicket, EditorAssetReimportTicket,
     EditorAssetRelocationTicket, EditorModelImportTicket,
 };
 
@@ -56,6 +57,18 @@ pub trait EditorAssetManager: Send + Sync {
         uuid: &str,
         target: AssetUri,
     ) -> Result<EditorAssetRelocationTicket, CoreError>;
+    /// Queues one Runtime-owned folder transaction. Delete accepts only an empty folder.
+    fn submit_project_folder_mutation(
+        &self,
+        operation: EditorAssetFolderOperation,
+        source: AssetUri,
+        target: Option<AssetUri>,
+    ) -> Result<EditorAssetFolderTicket, CoreError>;
+    /// Reprocesses one registered source, resolving its locator by stable UUID in this activation.
+    fn submit_project_asset_reimport(
+        &self,
+        uuid: &str,
+    ) -> Result<EditorAssetReimportTicket, CoreError>;
     /// Queues one Runtime-owned compound model import and returns its completion receipt ticket.
     fn submit_model_import(
         &self,

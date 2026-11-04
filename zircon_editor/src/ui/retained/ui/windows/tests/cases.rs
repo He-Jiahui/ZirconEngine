@@ -9,7 +9,7 @@ use crate::ui::retained_host::{
     WorkbenchContextMenuRequestData,
 };
 use crate::ui::template_runtime::RetainedUiHostComponentKind;
-use zircon_runtime_interface::ui::layout::UiSize;
+use zircon_runtime_interface::ui::layout::{UiPoint, UiSize};
 
 #[test]
 fn native_run_control_retains_its_authored_icon_before_a_render_summary_exists() {
@@ -400,22 +400,39 @@ fn mounted_context_menu_round_trips_the_global_pointer_anchor() {
 
     assert!(bridge
         .open_context_menu(&WorkbenchContextMenuRequestData {
-            target_control_id: "WorkbenchScenePropsItem".into(),
-            target_action_id: "workbench.hierarchy.select_props".into(),
+            target_control_id: "WorkbenchMainBandSceneTreePanel".into(),
+            target_action_id: "Hierarchy/ContextMenu".into(),
             target_dispatch_kind: "workbench".into(),
-            target_role: "tree-row".into(),
-            target_value_text: "Props".into(),
-            target_path: "workbench://scene/props".into(),
+            target_role: "tree".into(),
+            target_value_text: "Scene".into(),
+            target_path: "workbench://control/scene-tree".into(),
             popup_anchor_x: global_anchor.0,
             popup_anchor_y: global_anchor.1,
             menu_items: vec!["Open|icon=folder".into(), "Delete|danger,icon=trash".into()],
         })
         .expect("mounted context menu should open"));
 
+    let menu_node_id = bridge
+        .surface()
+        .unique_control_node_id(WORKBENCH_CONTEXT_MENU_CONTROL_ID)
+        .expect("opened context menu should retain a unique runtime node");
+    assert_eq!(
+        bridge
+            .surface()
+            .input
+            .popup_anchor_points
+            .get(&menu_node_id)
+            .copied(),
+        Some(UiPoint::new(
+            global_anchor.0 - mount_frame.x,
+            global_anchor.1 - mount_frame.y,
+        ))
+    );
     let local_projection = bridge.host_projection();
     let local_menu = local_projection
         .node_by_control_id(WORKBENCH_CONTEXT_MENU_CONTROL_ID)
         .expect("local context menu projection");
+    assert!(local_menu.has_popup_anchor);
     assert_eq!(
         local_menu.popup_anchor_x,
         f64::from(global_anchor.0 - mount_frame.x)
@@ -434,8 +451,18 @@ fn mounted_context_menu_round_trips_the_global_pointer_anchor() {
         .filter_map(|row| mounted.row_data(row))
         .find(|node| node.control_id.as_str() == WORKBENCH_CONTEXT_MENU_CONTROL_ID)
         .expect("mounted context menu projection");
+    assert!(mounted_menu.has_popup_anchor);
     assert_eq!(mounted_menu.popup_anchor_x, global_anchor.0);
     assert_eq!(mounted_menu.popup_anchor_y, global_anchor.1);
+    assert!(bridge
+        .close_popup(WORKBENCH_CONTEXT_MENU_CONTROL_ID)
+        .expect("mounted context menu should close"));
+    let closed_menu = bridge
+        .host_projection()
+        .node_by_control_id(WORKBENCH_CONTEXT_MENU_CONTROL_ID)
+        .expect("closed context menu projection");
+    assert!(!closed_menu.popup_open);
+    assert!(!closed_menu.has_popup_anchor);
 }
 
 #[test]

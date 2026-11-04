@@ -13,6 +13,15 @@ impl RetainedEditorHost {
         asset_uuid: &str,
         target_locator: &str,
     ) -> Result<(), String> {
+        self.ensure_asset_mutation_idle()?;
+        let catalog = self
+            .editor_asset_manager_at_use_point()
+            .map_err(|error| error.to_string())?
+            .catalog_snapshot();
+        let source = catalog
+            .asset(asset_uuid)
+            .ok_or_else(|| "The asset is no longer in the current catalog.".to_owned())?;
+        self.ensure_asset_source_not_open_scene(&source.locator, false)?;
         if self.pending_asset_relocation.is_some() {
             return Err("an asset move is already running".to_owned());
         }

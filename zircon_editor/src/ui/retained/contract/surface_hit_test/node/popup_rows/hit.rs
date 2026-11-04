@@ -36,6 +36,7 @@ pub(in crate::ui::retained_host::host_contract::surface_hit_test::template_node)
     },
     TextInput {
         control_id: &'a str,
+        dispatch_kind: &'a str,
         edit_action_id: &'a str,
         commit_action_id: &'a str,
         value_text: &'a str,
@@ -78,6 +79,7 @@ impl<'a> TemplatePopupRowTarget<'a> {
             }
             Self::TextInput {
                 control_id,
+                dispatch_kind,
                 edit_action_id,
                 commit_action_id,
                 value_text,
@@ -85,6 +87,7 @@ impl<'a> TemplatePopupRowTarget<'a> {
             } => TemplatePopupRowHit::Hit(template_popup_text_input_hit(
                 frame,
                 control_id,
+                dispatch_kind,
                 edit_action_id,
                 commit_action_id,
                 value_text,
@@ -127,6 +130,7 @@ impl<'a> TemplatePopupRowTarget<'a> {
             }),
             Self::TextInput {
                 control_id,
+                dispatch_kind: _,
                 edit_action_id,
                 commit_action_id: _,
                 value_text,
@@ -189,6 +193,7 @@ impl<'a> TemplatePopupRowTarget<'a> {
             }),
             Self::TextInput {
                 control_id,
+                dispatch_kind,
                 edit_action_id,
                 commit_action_id,
                 value_text,
@@ -198,7 +203,7 @@ impl<'a> TemplatePopupRowTarget<'a> {
                 control_id,
                 action_id: "",
                 binding_id: "",
-                dispatch_kind: "commit_only",
+                dispatch_kind,
                 component_role: "input-field",
                 component_family: Some(TemplateComponentFamily::TextInput),
                 value_text,
@@ -279,6 +284,7 @@ pub(super) fn template_popup_row_hit(
 fn template_popup_text_input_hit(
     frame: FrameRect,
     control_id: &str,
+    dispatch_kind: &str,
     edit_action_id: &str,
     commit_action_id: &str,
     value_text: &str,
@@ -288,7 +294,7 @@ fn template_popup_text_input_hit(
         control_id: control_id.into(),
         action_id: SharedString::new(),
         binding_id: SharedString::new(),
-        dispatch_kind: "commit_only".into(),
+        dispatch_kind: dispatch_kind.into(),
         component_role: "input-field".into(),
         component_family: Some(TemplateComponentFamily::TextInput),
         value_text: value_text.into(),

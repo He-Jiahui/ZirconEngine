@@ -1,11 +1,11 @@
 //! 删除准备只在候选 ProjectManager 上更新注册表、资源与 catalog；Runtime 管线在代际门控下提交源文件/sidecar 事务后才发布候选。
 
-use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::asset::mutation::{AssetMutationDeleteDisposition, AssetMutationDeletePreflight};
 use crate::asset::project::ProjectCatalogInputGeneration;
+use crate::asset::safe_mutation_path::{read_regular_file, validate_no_follow_path};
 use crate::asset::{AssetId, AssetImportError, AssetUri, AssetUuid};
 use crate::core::resource::{ResourceRecord, ResourceRegistryAssemblyExt};
 
@@ -14,10 +14,14 @@ use super::durable_transaction::{
     ProjectTransactionFault,
 };
 use super::meta_path_for_source::meta_path_for_source;
-use super::relocation::{validate_relocatable_source, verify_meta_preconditions};
+use super::relocation::{
+    load_meta_no_follow, validate_relocatable_source, verify_meta_preconditions,
+};
 use super::ProjectManager;
 
 pub(crate) struct PreparedProjectSourceDeletion {
+    project_root: PathBuf,
+    source_path: PathBuf,
     journal_directory: PathBuf,
     writes: Vec<PreparedFileWrite>,
     meta_paths: Vec<PathBuf>,
@@ -36,8 +40,12 @@ impl PreparedProjectSourceDeletion {
     }
 
     pub(crate) fn commit(self) -> Result<ProjectFileCommitOutcome, AssetImportError> {
+        validate_no_follow_path(&self.project_root, &self.source_path, false)?;
+        for path in &self.meta_paths {
+            validate_no_follow_path(&self.project_root, path, false)?;
+        }
         let _meta_write_guards = crate::asset::project::lock_meta_document_paths(&self.meta_paths)?;
-        verify_meta_preconditions(&self.meta_preconditions)?;
+        verify_meta_preconditions(&self.project_root, &self.meta_preconditions)?;
         commit_prepared_files(
             &self.journal_directory,
             self.writes,
@@ -70,11 +78,17 @@ impl ProjectManager {
             )));
         }
 
-        let source_path = self.source_path_for_uri(&source)?;
+        let source_path = self.source_path_for_no_follow(&source)?;
         let meta_path = meta_path_for_source(&source_path);
-        let source_bytes = fs::read(&source_path)?;
-        let meta_bytes = fs::read(&meta_path)?;
-        let source_meta = crate::asset::project::AssetMetaDocument::load(&meta_path)?;
+        validate_no_follow_path(self.paths.root(), &source_path, false)?;
+        validate_no_follow_path(self.paths.root(), &meta_path, false)?;
+        let source_bytes = read_regular_file(self.paths.root(), &source_path)?;
+        let source_meta = load_meta_no_follow(self.paths.root(), &meta_path)?;
+        let meta_bytes = crate::asset::safe_mutation_path::read_regular_file_limited(
+            self.paths.root(),
+            &meta_path,
+            super::super::meta::MAX_ASSET_META_DOCUMENT_BYTES,
+        )?;
         validate_relocatable_source(&source, &source_meta, &source_bytes)?;
 
         let removed_records = self.source_resource_records(&source);
@@ -113,6 +127,8 @@ impl ProjectManager {
         self.asset_registry = Arc::new(asset_registry);
         self.catalog_input_generation = catalog_input_generation;
         Ok(PreparedProjectSourceDeletion {
+            project_root: self.paths.root().to_path_buf(),
+            source_path: source_path.clone(),
             journal_directory: journal_directory(&self.paths),
             writes: vec![PreparedFileWrite::new(persisted.path, persisted.bytes)
                 .retiring_with_expected_digest(

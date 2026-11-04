@@ -46,6 +46,8 @@ pub mod registry;
 mod replace_file_meta_temp;
 #[path = "runtime_asset_path.rs"]
 mod runtime_asset_path;
+#[path = "safe_mutation_path.rs"]
+mod safe_mutation_path;
 #[path = "safe_project_path.rs"]
 mod safe_project_path;
 #[path = "virtual_geometry_cook/mod.rs"]

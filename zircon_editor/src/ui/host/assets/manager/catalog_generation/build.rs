@@ -7,9 +7,10 @@ use zircon_runtime::asset::registry::AssetRegistryIndex;
 use zircon_runtime::asset::{AssetUri, AssetUuid};
 
 use super::details::build_details_generation;
-use super::folders::build_folder_records;
+use super::folders::build_folder_records_with_project_folders;
 use crate::ui::host::editor_asset_manager::{AssetCatalogRecord, EditorAssetCatalogGeneration};
 
+#[allow(clippy::too_many_arguments)]
 pub(in crate::ui::host::editor_asset_manager::manager) fn build_catalog_generation(
     project: &ProjectManager,
     runtime_registry: &AssetRegistryIndex,
@@ -18,6 +19,7 @@ pub(in crate::ui::host::editor_asset_manager::manager) fn build_catalog_generati
     publish_epoch: u64,
     catalog_by_uuid: &HashMap<AssetUuid, AssetCatalogRecord>,
     uuid_by_locator: &HashMap<AssetUri, AssetUuid>,
+    project_folder_uris: &[AssetUri],
 ) -> Arc<EditorAssetCatalogGeneration> {
     let mut records = Vec::with_capacity(catalog_by_uuid.len());
     records.extend(catalog_by_uuid.values());
@@ -62,7 +64,7 @@ pub(in crate::ui::host::editor_asset_manager::manager) fn build_catalog_generati
         project.manifest().default_scene.to_string(),
         catalog_revision,
         publish_epoch,
-        build_folder_records(catalog_by_uuid),
+        build_folder_records_with_project_folders(catalog_by_uuid, project_folder_uris),
         assets,
         details,
         catalog_records,
