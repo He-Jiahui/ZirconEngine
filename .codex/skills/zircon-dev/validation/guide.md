@@ -25,7 +25,7 @@ Before each compilation-capable command, including `check`, `build`, `test` and
 `test --no-run`, send a user-visible declaration containing:
 
 - The engine modules being verified and their explicit Cargo package names.
-- `--no-default-features` and the exact required features, or an explicit empty feature set.
+- `--no-default-features` and the exact required features, or an explicit empty feature set; an authorized gate using documented defaults must declare those defaults explicitly.
 - The selected library/binary/test targets, test filters when applicable, action and profile.
 - The exact scoped command and why those modules cover the changed behavior.
 
@@ -37,12 +37,19 @@ If the command or module selection changes, declare it again before execution.
 Use the module entry with explicit `-Package` for its supported selections; use
 the verified scoped Jenkins Cargo interface for a target it cannot express.
 
-Full builds are prohibited. Do not use `--workspace`, `--all`, `--all-features`,
-`--all-targets`, implicit root-wide defaults or all-package loops/matrices to
-recreate one. Wave/release gates and root manifest/lockfile/toolchain changes do
-not permit a full build. Inspect affected dependencies first, then select only
-the required modules and features. Cargo may compile their required transitive
-dependencies. Keep broader acceptance pending when scoped evidence is incomplete.
+Explicit `--workspace` or package-set builds are allowed when the current task
+or owning validation documentation requires that coverage and the workspace or
+member/package set, features, targets, profile and reason are declared before
+execution. Follow [declared gates](../../../../docs/testing-and-validation/milestone-validation-policy.md#declared-workspace-and-package-set-gates).
+Blind `--all`, `--all-features`, `--all-targets`, implicit root-wide defaults
+and undeclared all-package loops/matrices remain prohibited unless the user
+explicitly authorizes that scope. Wave/release or manifest/lockfile/toolchain
+work alone supplies none. Inspect ordinary dependencies first and select only
+required modules/features and their transitive dependencies. Keep broader
+acceptance pending when the actual executed evidence is incomplete.
+John's authorized full local Windows/MSVC U09 regression, including the plugin
+workspace and documented feature defaults, follows
+[the U09 exception](../../../../docs/testing-and-validation/milestone-validation-policy.md#authorized-windowsmsvc-u09-regression).
 
 The following local examples require the explicit local exception described above;
 normal execution uses Jenkins:
@@ -57,7 +64,7 @@ normal execution uses Jenkins:
 - Use `--release` for release evidence and `--profile profiling` for the workspace profiling profile. Separate platforms, toolchains, architectures, profiles and incompatible feature configurations.
 - Keep `--locked`; the wrapper adds it if omitted. Lockfile updates require their own authorized workflow.
 - Preserve exact filters, feature settings, environment/platform and source revision in evidence. Run ignored tests only with an explicitly scoped test selection.
-- Apply the same minimal module selection to wave/release and root manifest/lockfile/toolchain changes. No full builds or duplicate Windows/WSL runs.
+- Apply the same minimal module selection to ordinary wave/release and root manifest/lockfile/toolchain changes. A task/document-required workspace or package-set gate follows the declared scope above; duplicate Windows/WSL runs remain prohibited.
 - A dry run creates no directories, discovers no compiler and provides no passing validation evidence. Record terminal command output separately from milestone acceptance.
 - Legacy export/profile/convention matrix scripts remain historical migration source. Compose their required scoped commands from current CI and the owning tests; do not restart the coordinator to execute them.
 

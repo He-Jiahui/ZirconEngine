@@ -46,6 +46,16 @@ missing credentials. They do not compile Rust or establish Windows acceptance.
 
 ## Windows reproduction
 
+John's explicitly authorized 2026-11-03 local U09 regression uses
+[the U09 policy exception](../testing-and-validation/milestone-validation-policy.md#authorized-windowsmsvc-u09-regression).
+Run the complete sequence below, including the full plugin `--workspace` check
+with its default features and targets. Append `--offline` to each locked Cargo
+command and use the prior child-only local VM URL mappings at pinned revision
+`3c1352ecb6ddfab02752d46682cc376558d5f481`. Reuse the verified compatible D:
+run/toolchain with `prepare-cargo-roots.ps1 -VerifyOnly`; no toolchain reinstall,
+GitHub fetch, Jenkins/Penpot startup or fresh output tree is required for this
+authorized rerun. The ordinary fresh-run instructions below still apply to CI.
+
 Use a Windows checkout with VS x64 C++ tools, `rustup` on PATH and a physical D:
 volume. Run in a fresh PowerShell process so the environment changes are scoped
 to that process. Pick a new numeric run identity for each attempt:

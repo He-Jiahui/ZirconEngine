@@ -57,7 +57,14 @@ Jenkins 源码准备目录顺序构建，保持未变源码的时间戳；编译
 关闭增量和 dev/test 符号；特殊诊断需另交需求、空间预算与保留条件，不自动启用。
 不得通过环境变量、包级 profile 覆盖或新 target 目录静默恢复高占用默认值。
 
-每次验证只选受影响的 package、必要 features 和目标，关闭默认 features；禁止全量构建。
+日常验证只选受影响的 package、必要 features 和目标，关闭默认 features。
+任务或所属验证文档要求的显式 `--workspace` / package-set 构建按
+[声明范围的门禁](../../docs/testing-and-validation/milestone-validation-policy.md#declared-workspace-and-package-set-gates)
+执行；运行前声明包集、features、targets 和 profile。未经用户明确授权，仍禁止盲目
+`--all` / `--all-features` / `--all-targets`、隐式全根选择和未声明的全包循环。
+John 于 2026-11-03 明确授权的完整 Windows/MSVC U09 回归按
+[U09 例外](../../docs/testing-and-validation/milestone-validation-policy.md#authorized-windowsmsvc-u09-regression)
+执行，允许文档规定的插件 workspace 检查和默认 features；物理产物路径和空间约束保持有效。
 复用兼容的 Jenkins 构建池，不为每个会话复制一套 target。关闭增量不会自动删除旧缓存；
 旧缓存仍须由 Jenkins 核对归属、活动进程和实际回执后清理。最终交付包、符号、
 共享编译产物及增量缓存分别计量，不把配置改变宣称为已释放磁盘。

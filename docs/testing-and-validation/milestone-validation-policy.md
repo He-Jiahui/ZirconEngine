@@ -14,7 +14,7 @@ Apply [`minimum-viable-engine-foundation.md`](minimum-viable-engine-foundation.m
 | --- | --- | --- |
 | Implementation slice | Produce one coherent source change. | Formatting, `git diff --check`, structural guards, plus only the focused-test exceptions enumerated in §2.4. No routine Cargo compile. |
 | Milestone | Integrate all slices that satisfy one declared milestone. | One batched package compile and the focused regression set for every behavior and boundary changed by the milestone. |
-| Execution wave | Close a dependency-complete group of milestones. | Explicitly scoped affected-module regressions, product/visual verification where applicable, and scoped CI-equivalent checks before declaring the wave accepted. Full builds are prohibited. |
+| Execution wave | Close a dependency-complete group of milestones. | Affected-module regressions, product/visual verification where applicable, and declared CI-equivalent checks before declaring the wave accepted. Task/document-required workspace or package-set gates are allowed under §4. |
 
 ## 2. Slice Discipline
 
@@ -31,7 +31,7 @@ Before every compilation-capable command (`check`, `build`, `test`, including
 `--no-run`), explicitly announce its engine modules, Cargo packages, features,
 targets/test filters, action/profile, exact command and coverage reason to the
 user using [the build declaration](../../.codex/skills/zircon-dev/validation/guide.md#declare-every-build).
-Disable default features and name only needed features. Preserve the declared
+For ordinary work, disable default features and name only needed features. Preserve the declared
 scope in the Jenkins request and actual command evidence; declare changes before
 execution. Required transitive dependencies remain part of the scoped build.
 
@@ -46,9 +46,55 @@ Failures are diagnosed from the lowest shared layer first. Re-run only the affec
 
 ## 4. Wave and Release Gates
 
-1. Full builds are prohibited, including `--workspace`, `--all`, `--all-features`, `--all-targets`, implicit root-wide selection and equivalent all-package loops/matrices. Wave/release gates and root manifest/lockfile/toolchain changes require explicitly named affected modules and minimal feature/target batches. Inspect dependency scope before choosing commands; keep uncovered acceptance pending rather than substitute a full build.
+1. Explicit `--workspace` or package-set builds called for by the current task or owning validation documentation are allowed under the declared-gate rule below. Blind `--all`, `--all-features`, `--all-targets`, implicit root-wide selection and undeclared all-package loops/matrices remain prohibited unless the user explicitly authorizes that scope. Ordinary wave/release or root manifest/lockfile/toolchain work still uses the minimal affected modules/features/targets; those changes alone do not justify broad coverage. Inspect unclear dependencies and keep uncovered acceptance pending rather than claim a broad pass from narrower evidence.
 2. Keep all regression and contract tests. Optimization comes from scheduling and batching them, not from deleting assertions or weakening expected behavior.
 3. A wave may be accepted only when its milestone evidence identifies the exact commands, profiles, failures repaired, and any deferred external validation.
+
+### Declared workspace and package-set gates
+
+The current task or owning validation documentation may require a complete
+workspace or explicit package set. Such a gate is allowed: declare its manifest,
+workspace members/package names, default and additional features, target/test
+selection, action/profile, exact command and coverage reason before execution.
+Use the documented defaults when they are part of that gate; do not narrow the
+required coverage merely to satisfy the ordinary minimal-scope default.
+
+This scope permission does not grant local execution outside Jenkins ownership,
+remote Git actions, service startup, alternate output roots or destructive
+cleanup. Those actions retain their own authorization. Physical storage, native
+locks, source/process preservation and actual terminal evidence still apply.
+Ordinary implementation slices continue to use the smallest affected scope.
+
+### Authorized Windows/MSVC U09 regression
+
+John explicitly authorized this policy exception on 2026-11-03 for the complete
+local Windows/MSVC U09 regression in `E:\Git\ZirconEngine`, branch
+`fix/editor-orbrun-u09-folders-20261027`. Execute every gate in
+[Editor CI Windows reproduction](../editor/ci-validation.md#windows-reproduction),
+including `cargo +1.94.1 check --manifest-path zircon_plugins/Cargo.toml --workspace --locked --offline`.
+The workspace check covers every member and its default check targets and
+features; do not replace it with selected packages or disable its default features.
+Use the documented feature settings for the Editor host check and all three
+test batches. Keep `-RequireMatchingTests` for each test batch and append
+`--offline` to the documented `--locked` commands. This exception does not grant
+`--all-features`, `--all-targets`, unrelated root-workspace builds or test matrices.
+
+This authorization also permits direct local validation, compatible artifact
+reuse, task-owned evidence generation and bounded task-owned temporary cleanup;
+do not start Jenkins/Penpot or claim their acceptance. Verify physical D: Cargo,
+rustup, target, build and temporary roots before execution; the C: output ban,
+35 GiB reserve, native Cargo locks and process/source preservation remain in force.
+Reuse the prior local `E:\Git\zr_vm` object stores at locked revision
+`3c1352ecb6ddfab02752d46682cc376558d5f481` with child-only Git URL rewrites;
+do not depend on a GitHub fetch or mutate the dirty VM worktree.
+
+Declare each actual command, package/feature/target scope and profile before
+execution. Bind logs and terminal exit receipts to the current source hashes.
+Report full-gate PASS only if every required step actually passes; otherwise
+report FAIL and retain the failing evidence. Record policy wording, results and
+remaining blockers in `D:\CodexData\ze-drive\msvc-regression-u09-workspace-20261103.md`
+and details under `reports/msvc-regression-u09-workspace-20261103/`.
+Ordinary slices and other wave/release work retain the minimal-scope default.
 
 ## 5. Parallel Development and Build Lanes
 
