@@ -18,6 +18,8 @@ widgets = [
   "res://ui/editor/unreal/components/status_bar.zui#UnrealEditorStatusBar",
   "res://ui/editor/unreal/components/content_drawer.zui#UnrealContentDrawer",
   "res://ui/editor/unreal/components/bottom_activity_dock.zui#UnrealBottomActivityDock",
+  "res://ui/editor/workbench/primitives/feedback/context_menu.zui#WorkbenchContextMenu",
+  "res://ui/editor/workbench/primitives/feedback/command_palette.zui#WorkbenchCommandPalette",
 ]
 styles = ["res://ui/editor/unreal/starship.zui"]
 
@@ -27,7 +29,7 @@ control_id = "WorkbenchWindowRoot"
 pixel_snapping = "disabled"
 classes = ["unreal-editor-window"]
 layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "editor_content" }, { node = "content_drawer" }, { node = "menu_popups" }]
+children = [{ node = "editor_content" }, { node = "content_drawer" }, { node = "menu_popups" }, { node = "context_menu" }, { node = "command_palette" }]
 
 [nodes.editor_content]
 component = "VerticalGroup"
@@ -138,3 +140,23 @@ component = "UnrealBottomActivityDock"
 control_id = "BottomDrawerShellRoot"
 classes = ["unreal-dock"]
 layout = { width = { stretch = "Stretch" } }
+
+# Reuse the existing popup owners: pointer-anchored context actions and a keyboard
+# command/name prompt. Both start closed; the host supplies their complete contents.
+[nodes.context_menu]
+component = "WorkbenchContextMenu"
+control_id = "WorkbenchContextMenu"
+widget = { behavior = "popup", popup_anchor = { kind = "pointer", owner_property = "popup_owner" }, open_property = "popup_open" }
+props = { visibility = "collapsed", visible = false, open = false, popup_open = false, options = [], menu_items = [], disabled_options = [], popup_owner = "", context_target = "", context_target_path = "", aria_labelledby = { text_key = "workbench.context_menu.title", table = "editor" }, aria_describedby = { text_key = "workbench.context_menu.description", table = "editor" } }
+layout = { z_index = 1400 }
+
+[nodes.command_palette]
+component = "WorkbenchCommandPalette"
+control_id = "WorkbenchCommandPalette"
+props = { visibility = "collapsed", visible = false, open = false, popup_open = false, query = "", commands = [], filtered_commands = [], recent_commands = [], selected_command_id = "", focused_index = -1, placeholder = "", empty_text = "", aria_labelledby = "", aria_describedby = "" }
+layout = { z_index = 1500 }
+events = [
+  { id = "CommandPalette/Commit", event = "Submit", route = "editor.command.palette" },
+  { id = "CommandPalette/QueryChanged", event = "Change", route = "editor.command_palette.query_changed" },
+  { id = "CommandPalette/WindowRequested", event = "Change", route = "editor.command_palette.window_requested" },
+]

@@ -130,11 +130,17 @@ fn browser_right_click_opens_the_context_target_asset_not_the_selected_asset() {
     let _guard = lock_env();
 
     let harness = ChildWindowHostHarness::new("zircon_browser_context_open_target_identity");
+    harness.activate_workbench_page();
     let _asset_browser = harness.open_view("editor.asset_browser");
     let (catalog, target_asset, selected_asset) = asset_drag_source_catalog_with_reference();
 
     {
         let mut host = harness.host.borrow_mut();
+        assert!(host
+            .active_activity_window_template_document_is(
+                crate::ui::template_runtime::builtin::ASSET_WINDOW_DOCUMENT_ID,
+            )
+            .unwrap());
         host.runtime.sync_asset_catalog(Arc::new(
             EditorAssetCatalogGeneration::from_snapshot_record(catalog, 1),
         ));

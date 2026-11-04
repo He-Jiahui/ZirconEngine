@@ -2,7 +2,7 @@
 
 use super::super::super::super::data::FrameRect;
 use super::common::{centered_offset, symmetric_extent};
-use super::metrics::WorkbenchCommandPaletteMetrics;
+use super::WorkbenchCommandPaletteMetrics;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn match_indicator_rect(
     row_rect: &FrameRect,

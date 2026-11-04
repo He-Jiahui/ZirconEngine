@@ -51,6 +51,8 @@ mod runtime_diagnostics_drawer;
 mod scoped_presentation;
 #[path = "serialized_startup_presentation.rs"]
 mod serialized_startup_presentation;
+#[path = "u09_asset_menus.rs"]
+mod u09_asset_menus;
 #[path = "viewport_template_bridge.rs"]
 mod viewport_template_bridge;
 

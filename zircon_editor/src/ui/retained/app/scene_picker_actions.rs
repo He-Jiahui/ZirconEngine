@@ -17,6 +17,7 @@ const COMMIT_BINDING_ID: &str = "CommandPalette/Commit";
 
 impl RetainedEditorHost {
     pub(super) fn open_startup_scene(&mut self, scene_uri: AssetUri) -> Result<(), String> {
+        self.ensure_asset_mutation_idle()?;
         let scene_uri_text = scene_uri.to_string();
         let ticket = self.runtime.begin_scene_picker()?;
         let request = SceneOpenRequest::new(scene_uri);
@@ -26,6 +27,11 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn open_workbench_scene_picker(&mut self, mode: ScenePickerMode) {
+        if let Err(error) = self.ensure_asset_mutation_idle() {
+            self.set_status_line(error);
+            return;
+        }
+        self.cancel_asset_name_prompt();
         let ticket = match self.runtime.begin_scene_picker() {
             Ok(ticket) => ticket,
             Err(error) => {
@@ -138,6 +144,12 @@ impl RetainedEditorHost {
         let Some(mode) = self.active_scene_picker_mode() else {
             return None;
         };
+        // A picker can predate the queued mutation. Recheck at commit so activation cannot
+        // invalidate the source-scene safety check while its asset operation is in flight.
+        if let Err(error) = self.ensure_asset_mutation_idle() {
+            self.set_status_line(error.clone());
+            return Some(Err(error));
+        }
         let query = self.workbench_window_bridge.command_palette_query();
         let Some(window_offset) = self.workbench_window_bridge.command_palette_window_offset()
         else {

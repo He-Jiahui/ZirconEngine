@@ -14,7 +14,28 @@ impl RetainedEditorHost {
         y: f32,
         width: f32,
         height: f32,
+        origin_x: f32,
+        origin_y: f32,
     ) {
+        if kind == 0 && button == 2 {
+            self.focus_callback_source_window();
+            if !self.prepare_asset_tree_pointer_target(surface_mode, width, height) {
+                return;
+            }
+            let route = self
+                .asset_surface_pointer_state(surface_mode)
+                .and_then(|surface| surface.tree_bridge.route_at(UiPoint::new(x, y)));
+            if let Some(AssetPointerTreeRoute::Folder { folder_id, .. }) = route {
+                self.open_asset_folder_context_menu(
+                    surface_mode,
+                    &folder_id,
+                    true,
+                    origin_x + x,
+                    origin_y + y,
+                );
+            }
+            return;
+        }
         if kind != 2 || button != 1 {
             return;
         }

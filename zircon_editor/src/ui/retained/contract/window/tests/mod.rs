@@ -10,6 +10,8 @@ mod generation;
 mod lifecycle;
 #[path = "metadata.rs"]
 mod metadata;
+#[path = "palette.rs"]
+mod palette;
 #[path = "pane_patches.rs"]
 mod pane_patches;
 #[path = "sparse_patches.rs"]

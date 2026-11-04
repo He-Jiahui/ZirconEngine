@@ -82,6 +82,21 @@ pub(crate) fn normalize_editor_event_binding(
                 AssetHostEvent::DeleteAsset { asset_uuid } => {
                     EditorAssetEvent::DeleteAsset { asset_uuid }
                 }
+                AssetHostEvent::CreateFolder { parent_folder_id } => {
+                    EditorAssetEvent::CreateFolder { parent_folder_id }
+                }
+                AssetHostEvent::RenameFolder { folder_id } => {
+                    EditorAssetEvent::RenameFolder { folder_id }
+                }
+                AssetHostEvent::DeleteFolder { folder_id } => {
+                    EditorAssetEvent::DeleteFolder { folder_id }
+                }
+                AssetHostEvent::RenameAsset { asset_uuid } => {
+                    EditorAssetEvent::RenameAsset { asset_uuid }
+                }
+                AssetHostEvent::ReimportAsset { asset_uuid } => {
+                    EditorAssetEvent::ReimportAsset { asset_uuid }
+                }
                 AssetHostEvent::OpenAssetBrowser => EditorAssetEvent::OpenAssetBrowser,
                 AssetHostEvent::LocateSelectedAsset => EditorAssetEvent::LocateSelectedAsset,
                 AssetHostEvent::ImportModel => EditorAssetEvent::ImportModel,

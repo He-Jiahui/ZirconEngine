@@ -50,6 +50,21 @@ pub fn dispatch_asset_binding(
         AssetCommand::DeleteAsset { asset_uuid } => Ok(AssetHostEvent::DeleteAsset {
             asset_uuid: asset_uuid.clone(),
         }),
+        AssetCommand::CreateFolder { parent_folder_id } => Ok(AssetHostEvent::CreateFolder {
+            parent_folder_id: parent_folder_id.clone(),
+        }),
+        AssetCommand::RenameFolder { folder_id } => Ok(AssetHostEvent::RenameFolder {
+            folder_id: folder_id.clone(),
+        }),
+        AssetCommand::DeleteFolder { folder_id } => Ok(AssetHostEvent::DeleteFolder {
+            folder_id: folder_id.clone(),
+        }),
+        AssetCommand::RenameAsset { asset_uuid } => Ok(AssetHostEvent::RenameAsset {
+            asset_uuid: asset_uuid.clone(),
+        }),
+        AssetCommand::ReimportAsset { asset_uuid } => Ok(AssetHostEvent::ReimportAsset {
+            asset_uuid: asset_uuid.clone(),
+        }),
         AssetCommand::OpenAssetBrowser => Ok(AssetHostEvent::OpenAssetBrowser),
         AssetCommand::LocateSelectedAsset => Ok(AssetHostEvent::LocateSelectedAsset),
         AssetCommand::ImportModel => Ok(AssetHostEvent::ImportModel),

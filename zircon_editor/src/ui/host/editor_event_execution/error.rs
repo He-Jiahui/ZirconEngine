@@ -63,6 +63,8 @@ pub enum AssetEventExecutionError {
     },
     #[error("invalid asset UUID `{asset_uuid}`: {detail}")]
     InvalidAssetUuid { asset_uuid: String, detail: String },
+    #[error("invalid asset folder `{folder_id}`: {detail}")]
+    InvalidFolderTarget { folder_id: String, detail: String },
     #[error("invalid asset relocation target `{target_locator}`: {source}")]
     InvalidRelocationTarget {
         target_locator: String,

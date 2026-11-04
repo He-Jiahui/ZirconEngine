@@ -11,7 +11,7 @@ fn project_source_relocation_moves_authoring_files_and_preserves_live_identity()
         .unwrap();
     ProjectManifest::new(
         "SourceRelocationSandbox",
-        AssetUri::parse("res://data/original.counted").unwrap(),
+        AssetUri::parse("res://scenes/default.scene.toml").unwrap(),
         1,
     )
     .save(paths.manifest_path())
@@ -98,7 +98,7 @@ fn interrupted_project_source_relocation_recovers_the_original_generation() {
         .unwrap();
     ProjectManifest::new(
         "SourceRelocationRecoverySandbox",
-        AssetUri::parse("res://data/original.counted").unwrap(),
+        AssetUri::parse("res://scenes/default.scene.toml").unwrap(),
         1,
     )
     .save(paths.manifest_path())
@@ -138,13 +138,26 @@ fn interrupted_project_source_relocation_recovers_the_original_generation() {
     assert!(!source_path.exists());
     drop(manager);
 
-    let reopened = ProjectManager::open(&root)
+    let mut reopened = ProjectManager::open(&root)
         .expect("project recovery must accept and roll back a source relocation transaction");
     assert_eq!(fs::read(&source_path).unwrap(), source_before);
     assert_eq!(fs::read(&source_meta_path).unwrap(), source_meta_before);
     assert_eq!(fs::read(&registry_path).unwrap(), registry_before);
     assert!(!target_path.exists());
     assert!(!target_meta_path.exists());
+    assert_eq!(
+        reopened
+            .asset_registry()
+            .entry_by_path(&source)
+            .unwrap()
+            .uuid(),
+        source_uuid
+    );
+    assert!(reopened.asset_registry().entry_by_path(&target).is_none());
+    reopened
+        .register_asset_importer(counted_data_importer())
+        .unwrap();
+    reopened.scan_and_import().unwrap();
     assert!(reopened.registry().get_by_locator(&source).is_some());
     assert!(reopened.registry().get_by_locator(&target).is_none());
 

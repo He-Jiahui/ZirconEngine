@@ -77,6 +77,11 @@ fn context_menu_open_commits_projection_without_full_shell_recompute() {
     let _guard = lock_env();
     let harness = ChildWindowHostHarness::new("zircon_retained_context_menu_projection");
     harness.activate_workbench_page();
+    assert!(harness
+        .host
+        .borrow()
+        .active_activity_window_template_document_is(UNREAL_EDITOR_WINDOW_DOCUMENT_ID)
+        .expect("workbench template authority query"));
     let slow_path_rebuilds = harness
         .host
         .borrow()
@@ -87,22 +92,22 @@ fn context_menu_open_commits_projection_without_full_shell_recompute() {
     {
         let mut host = harness.host.borrow_mut();
         host.dispatch_workbench_context_menu_requested(WorkbenchContextMenuRequestData {
-            target_control_id: "WorkbenchScenePropsItem".into(),
-            target_action_id: "workbench.hierarchy.select_props".into(),
+            target_control_id: "WorkbenchMainBandSceneTreePanel".into(),
+            target_action_id: "Hierarchy/ContextMenu".into(),
             target_dispatch_kind: "workbench".into(),
-            target_role: "tree-row".into(),
-            target_value_text: "Props".into(),
-            target_path: "workbench://scene/props".into(),
+            target_role: "tree".into(),
+            target_value_text: "Scene".into(),
+            target_path: "workbench://control/scene-tree".into(),
             popup_anchor_x: 128.0,
             popup_anchor_y: 256.0,
             menu_items: vec!["Open|icon=folder".into(), "Delete|danger,icon=trash".into()],
         });
 
-        assert!(workbench_control_bool(
-            &host,
-            "WorkbenchContextMenu",
-            "popup_open"
-        ));
+        assert!(
+            workbench_control_bool(&host, "WorkbenchContextMenu", "popup_open"),
+            "context popup did not open: {}",
+            host.runtime.editor_snapshot().unwrap().status_line
+        );
         assert!(host
             .workbench_window_bridge
             .has_pending_host_projection_commit());
@@ -110,6 +115,12 @@ fn context_menu_open_commits_projection_without_full_shell_recompute() {
         assert!(!host
             .workbench_window_bridge
             .has_pending_host_projection_commit());
+        assert!(host
+            .ui
+            .get_host_presentation()
+            .workbench_window_nodes
+            .iter()
+            .any(|node| node.control_id.as_str() == "WorkbenchContextMenu" && node.popup_open));
         assert_eq!(
             host.invalidation
                 .diagnostics_snapshot()

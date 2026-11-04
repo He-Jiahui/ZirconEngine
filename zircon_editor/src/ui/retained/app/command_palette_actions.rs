@@ -54,6 +54,7 @@ impl RetainedEditorHost {
         match self.workbench_window_bridge.open_command_palette(state) {
             Ok(true) => {
                 self.scene_picker_session = None;
+                self.cancel_asset_name_prompt();
                 self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
             }
             Ok(false) => {}

@@ -12,7 +12,11 @@ use crate::asset::mutation::{
 use crate::asset::project::{
     AssetMetaDocument, AssetSourceUnit, ProjectCatalogInputGeneration, ProjectCatalogInputSource,
 };
+use crate::asset::safe_mutation_path::{
+    read_regular_file, read_regular_file_limited, validate_no_follow_path,
+};
 use crate::asset::{AssetId, AssetImportError, AssetReference, AssetUri, AssetUuid};
+use crate::core::resource::io::SourceRevision;
 use crate::core::resource::{ResourceRecord, ResourceRegistryAssemblyExt};
 
 use super::durable_transaction::{
@@ -25,6 +29,9 @@ use super::scan_and_import::refresh_runtime_dependency_closure;
 use super::ProjectManager;
 
 pub(crate) struct PreparedProjectSourceRelocation {
+    project_root: PathBuf,
+    safety_paths: Vec<(PathBuf, bool)>,
+    vacant_targets: Vec<PathBuf>,
     journal_directory: PathBuf,
     writes: Vec<PreparedFileWrite>,
     meta_paths: Vec<PathBuf>,
@@ -32,7 +39,7 @@ pub(crate) struct PreparedProjectSourceRelocation {
     updated: Vec<ResourceRecord>,
     source: AssetUri,
     target: AssetUri,
-    target_path: PathBuf,
+    source_path_moves: Vec<(AssetUri, AssetUri, PathBuf)>,
     locator_moves: Vec<(AssetUri, AssetUri)>,
 }
 
@@ -49,17 +56,67 @@ impl PreparedProjectSourceRelocation {
         &self.target
     }
 
-    pub(crate) fn target_path(&self) -> &Path {
-        &self.target_path
+    pub(crate) fn source_path_moves(&self) -> &[(AssetUri, AssetUri, PathBuf)] {
+        &self.source_path_moves
     }
 
     pub(crate) fn locator_moves(&self) -> &[(AssetUri, AssetUri)] {
         &self.locator_moves
     }
 
+    /// Combines already-preflighted root relocations into one durable authoring generation.
+    /// Intermediate registry snapshots must never be published as separate transactions.
+    pub(super) fn combine(
+        project_root: PathBuf,
+        source: AssetUri,
+        target: AssetUri,
+        journal_directory: PathBuf,
+        relocations: Vec<Self>,
+        final_registry: PreparedFileWrite,
+        updated: Vec<ResourceRecord>,
+    ) -> Self {
+        let mut combined = Self {
+            project_root,
+            safety_paths: Vec::new(),
+            vacant_targets: Vec::new(),
+            journal_directory,
+            writes: Vec::new(),
+            meta_paths: Vec::new(),
+            meta_preconditions: Vec::new(),
+            updated,
+            source,
+            target,
+            source_path_moves: Vec::new(),
+            locator_moves: Vec::new(),
+        };
+        for relocation in relocations {
+            combined.safety_paths.extend(relocation.safety_paths);
+            combined.vacant_targets.extend(relocation.vacant_targets);
+            combined.writes.extend(
+                relocation
+                    .writes
+                    .into_iter()
+                    .filter(|write| write.path() != final_registry.path()),
+            );
+            combined.meta_paths.extend(relocation.meta_paths);
+            combined
+                .meta_preconditions
+                .extend(relocation.meta_preconditions);
+            combined
+                .source_path_moves
+                .extend(relocation.source_path_moves);
+            combined.locator_moves.extend(relocation.locator_moves);
+        }
+        if !combined.writes.is_empty() {
+            combined.writes.push(final_registry);
+        }
+        combined
+    }
+
     pub(crate) fn commit(self) -> Result<ProjectFileCommitOutcome, AssetImportError> {
+        self.verify_safety_paths()?;
         let _meta_write_guards = crate::asset::project::lock_meta_document_paths(&self.meta_paths)?;
-        verify_meta_preconditions(&self.meta_preconditions)?;
+        verify_meta_preconditions(&self.project_root, &self.meta_preconditions)?;
         commit_prepared_files(
             &self.journal_directory,
             self.writes,
@@ -68,13 +125,25 @@ impl PreparedProjectSourceRelocation {
     }
 
     #[cfg(test)]
-    fn commit_with_fault(
+    pub(super) fn commit_with_fault(
         self,
         fault: ProjectTransactionFault,
     ) -> Result<ProjectFileCommitOutcome, AssetImportError> {
+        self.verify_safety_paths()?;
         let _meta_write_guards = crate::asset::project::lock_meta_document_paths(&self.meta_paths)?;
-        verify_meta_preconditions(&self.meta_preconditions)?;
+        verify_meta_preconditions(&self.project_root, &self.meta_preconditions)?;
         commit_prepared_files(&self.journal_directory, self.writes, fault)
+    }
+
+    fn verify_safety_paths(&self) -> Result<(), AssetImportError> {
+        for (path, allow_missing) in &self.safety_paths {
+            validate_no_follow_path(&self.project_root, path, *allow_missing)?;
+        }
+        for path in &self.vacant_targets {
+            validate_no_follow_path(&self.project_root, path, true)?;
+            ensure_missing_target(path)?;
+        }
+        Ok(())
     }
 }
 
@@ -140,6 +209,9 @@ impl ProjectManager {
                     .locator()
                     .clone();
                 return Ok(PreparedProjectSourceRelocation {
+                    project_root: self.paths.root().to_path_buf(),
+                    safety_paths: Vec::new(),
+                    vacant_targets: Vec::new(),
                     journal_directory: journal_directory(&self.paths),
                     writes: Vec::new(),
                     meta_paths: Vec::new(),
@@ -147,7 +219,7 @@ impl ProjectManager {
                     updated: Vec::new(),
                     source,
                     target,
-                    target_path: PathBuf::new(),
+                    source_path_moves: Vec::new(),
                     locator_moves: Vec::new(),
                 });
             }
@@ -168,16 +240,39 @@ impl ProjectManager {
             })?
             .locator()
             .clone();
-        let source_path = self.source_path_for_uri(&source)?;
-        let target_path = self.primary_project_source_path_for_uri(&target)?;
-        ensure_missing_target(&target_path)?;
+        if source == self.manifest.default_scene {
+            return Err(AssetImportError::Parse(format!(
+                "project source relocation cannot relocate the active default scene {source}"
+            )));
+        }
+        if self.manifest.ui_roots.contains(&source) {
+            return Err(AssetImportError::Parse(format!(
+                "project source relocation cannot relocate a manifest UI root {source}"
+            )));
+        }
+        let source_path = self.source_path_for_no_follow(&source)?;
+        let target_path = self.primary_project_source_path_for_no_follow(&target)?;
+        validate_no_follow_path(self.paths.root(), &source_path, false)?;
+        validate_no_follow_path(self.paths.root(), &target_path, true)?;
+        let mut vacant_targets = Vec::new();
+        // Every physical asset root shares the same logical res:// namespace, including files
+        // not yet indexed by an importer and orphan sidecars.
+        for root in self.project_asset_roots() {
+            let candidate = root.join(target.path());
+            for path in [candidate.clone(), meta_path_for_source(&candidate)] {
+                validate_no_follow_path(self.paths.root(), &path, true)?;
+                ensure_missing_target(&path)?;
+                vacant_targets.push(path);
+            }
+        }
         let source_meta_path = meta_path_for_source(&source_path);
         let target_meta_path = meta_path_for_source(&target_path);
-        ensure_missing_target(&target_meta_path)?;
+        validate_no_follow_path(self.paths.root(), &source_meta_path, false)?;
+        validate_no_follow_path(self.paths.root(), &target_meta_path, true)?;
 
-        let source_bytes = fs::read(&source_path)?;
+        let source_bytes = read_regular_file(self.paths.root(), &source_path)?;
         let expected_source_retirement_digest = blake3::hash(&source_bytes).to_hex().to_string();
-        let source_meta = AssetMetaDocument::load(&source_meta_path)?;
+        let source_meta = load_meta_no_follow(self.paths.root(), &source_meta_path)?;
         validate_relocatable_source(&source, &source_meta, &source_bytes)?;
         let (relocated_meta, locator_map) = relocate_meta_document(&source_meta, &source, &target)?;
         let (asset_registry, affected_uuids) = self
@@ -231,11 +326,21 @@ impl ProjectManager {
         self.asset_registry = Arc::new(asset_registry);
         self.catalog_input_generation = catalog_input_generation;
         Ok(PreparedProjectSourceRelocation {
+            project_root: self.paths.root().to_path_buf(),
+            safety_paths: vec![
+                (source_path.clone(), false),
+                (source_meta_path.clone(), false),
+                (target_path.clone(), true),
+                (target_meta_path.clone(), true),
+            ],
+            vacant_targets,
             journal_directory: journal_directory(&self.paths),
             writes: vec![
                 PreparedFileWrite::new(target_path.clone(), source_bytes)
+                    .expecting_source(SourceRevision::Missing)
                     .retiring_with_expected_digest(source_path, expected_source_retirement_digest),
                 PreparedFileWrite::new(target_meta_path.clone(), relocated_meta.to_pretty_bytes()?)
+                    .expecting_source(SourceRevision::Missing)
                     .retiring(source_meta_path.clone()),
                 PreparedFileWrite::new(persisted.path, persisted.bytes),
             ],
@@ -245,9 +350,9 @@ impl ProjectManager {
                 (target_meta_path, None),
             ],
             updated,
+            source_path_moves: vec![(source.clone(), target.clone(), target_path)],
             source,
             target,
-            target_path,
             locator_moves: sorted_locator_moves(locator_map),
         })
     }
@@ -362,10 +467,11 @@ fn affected_records(
 }
 
 pub(super) fn verify_meta_preconditions(
+    project_root: &Path,
     preconditions: &[(PathBuf, Option<AssetMetaDocument>)],
 ) -> Result<(), AssetImportError> {
     for (path, expected) in preconditions {
-        let current = match AssetMetaDocument::load(path) {
+        let current = match load_meta_no_follow(project_root, path) {
             Ok(document) => Some(document),
             Err(error) if error.kind() == io::ErrorKind::NotFound => None,
             Err(error) => return Err(error.into()),
@@ -378,6 +484,18 @@ pub(super) fn verify_meta_preconditions(
         }
     }
     Ok(())
+}
+
+pub(super) fn load_meta_no_follow(root: &Path, path: &Path) -> io::Result<AssetMetaDocument> {
+    let bytes = read_regular_file_limited(
+        root,
+        path,
+        super::super::meta::MAX_ASSET_META_DOCUMENT_BYTES,
+    )?;
+    let text = std::str::from_utf8(&bytes)
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
+    AssetMetaDocument::from_toml_str(text)
+        .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))
 }
 
 fn ensure_missing_target(path: &Path) -> Result<(), AssetImportError> {

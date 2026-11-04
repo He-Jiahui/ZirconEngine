@@ -68,7 +68,7 @@ pub(in crate::ui::retained_host::host_contract) struct PaneSurfaceCallbacks {
     pub(in crate::ui::retained_host::host_contract) asset_tree_pointer_clicked:
         Option<Callback5<SharedString, f32, f32, f32, f32>>,
     pub(in crate::ui::retained_host::host_contract) asset_tree_pointer_event:
-        Option<Callback7<SharedString, i32, i32, f32, f32, f32, f32>>,
+        Option<Callback9<SharedString, i32, i32, f32, f32, f32, f32, f32, f32>>,
     pub(in crate::ui::retained_host::host_contract) asset_tree_pointer_moved:
         Option<Callback5<SharedString, f32, f32, f32, f32>>,
     pub(in crate::ui::retained_host::host_contract) asset_tree_pointer_scrolled:

@@ -28,6 +28,21 @@ pub(crate) struct AssetDeletionRequest {
     pub(crate) asset_uuid: String,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct AssetFolderCreateRequest {
+    pub(crate) parent_folder_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct AssetFolderRequest {
+    pub(crate) folder_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct AssetIdentityRequest {
+    pub(crate) asset_uuid: String,
+}
+
 impl HostShellContentScope {
     pub(crate) fn new(slot: ActivityDrawerSlot, instance_id: ViewInstanceId) -> Self {
         Self { slot, instance_id }
@@ -53,6 +68,11 @@ pub(crate) struct UiHostEventEffects {
     pub import_model_requested: bool,
     pub asset_deletion_requested: Option<AssetDeletionRequest>,
     pub asset_relocation_requested: Option<AssetRelocationRequest>,
+    pub asset_folder_create_requested: Option<AssetFolderCreateRequest>,
+    pub asset_folder_rename_requested: Option<AssetFolderRequest>,
+    pub asset_folder_deletion_requested: Option<AssetFolderRequest>,
+    pub asset_rename_requested: Option<AssetIdentityRequest>,
+    pub asset_reimport_requested: Option<AssetIdentityRequest>,
     pub reset_active_layout_preset: bool,
     pub open_command_palette_requested: bool,
     pub open_settings_window_requested: bool,
@@ -153,6 +173,11 @@ impl UiHostEventEffects {
             && !self.import_model_requested
             && self.asset_deletion_requested.is_none()
             && self.asset_relocation_requested.is_none()
+            && self.asset_folder_create_requested.is_none()
+            && self.asset_folder_rename_requested.is_none()
+            && self.asset_folder_deletion_requested.is_none()
+            && self.asset_rename_requested.is_none()
+            && self.asset_reimport_requested.is_none()
             && !self.reset_active_layout_preset
             && !self.open_command_palette_requested
             && !self.open_settings_window_requested
@@ -283,6 +308,31 @@ pub(crate) fn apply_record_effects(target: &mut UiHostEventEffects, record: &Edi
             }
             EditorEventEffect::AssetDeletionRequested { asset_uuid } => {
                 target.asset_deletion_requested = Some(AssetDeletionRequest {
+                    asset_uuid: asset_uuid.clone(),
+                });
+            }
+            EditorEventEffect::AssetFolderCreateRequested { parent_folder_id } => {
+                target.asset_folder_create_requested = Some(AssetFolderCreateRequest {
+                    parent_folder_id: parent_folder_id.clone(),
+                });
+            }
+            EditorEventEffect::AssetFolderRenameRequested { folder_id } => {
+                target.asset_folder_rename_requested = Some(AssetFolderRequest {
+                    folder_id: folder_id.clone(),
+                });
+            }
+            EditorEventEffect::AssetFolderDeletionRequested { folder_id } => {
+                target.asset_folder_deletion_requested = Some(AssetFolderRequest {
+                    folder_id: folder_id.clone(),
+                });
+            }
+            EditorEventEffect::AssetRenameRequested { asset_uuid } => {
+                target.asset_rename_requested = Some(AssetIdentityRequest {
+                    asset_uuid: asset_uuid.clone(),
+                });
+            }
+            EditorEventEffect::AssetReimportRequested { asset_uuid } => {
+                target.asset_reimport_requested = Some(AssetIdentityRequest {
                     asset_uuid: asset_uuid.clone(),
                 });
             }

@@ -408,10 +408,26 @@ fn to_host_contract_workbench_window_node_with_previous(
         [UiEventKind::Click, UiEventKind::Toggle, UiEventKind::Change],
     )
     .unwrap_or_default();
-    let edit_action_id =
-        preferred_route_action_id(&node.routes, [UiEventKind::Change]).unwrap_or_default();
-    let commit_action_id =
-        preferred_route_action_id(&node.routes, [UiEventKind::Submit]).unwrap_or_default();
+    let (edit_action_id, commit_action_id) = if component_role == "command-palette" {
+        // Palette input edits and candidate acceptance use authored event bindings;
+        // the Submit route's action opens the palette rather than naming a candidate.
+        let binding_id = |kind| {
+            node.routes
+                .iter()
+                .find(|route| route.event_kind == kind)
+                .map(|route| route.binding_id.clone())
+                .unwrap_or_default()
+        };
+        (
+            binding_id(UiEventKind::Change),
+            binding_id(UiEventKind::Submit),
+        )
+    } else {
+        (
+            preferred_route_action_id(&node.routes, [UiEventKind::Change]).unwrap_or_default(),
+            preferred_route_action_id(&node.routes, [UiEventKind::Submit]).unwrap_or_default(),
+        )
+    };
     let structured_menu_item_values = structured_menu_items(&menu_item_values);
     let surface_variant = first_string_property(&node.properties, &["surface_variant"])
         .or_else(|| default_workbench_surface_variant(&node.component, &component_role))

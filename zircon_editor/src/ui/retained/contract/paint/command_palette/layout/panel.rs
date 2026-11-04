@@ -1,8 +1,8 @@
 //! 空结果文案占用搜索区之后的剩余内容带；短面板允许该带退化为零高。
 
 use super::super::super::super::data::FrameRect;
+use super::command_palette_metrics;
 use super::common::symmetric_extent;
-use super::metrics::command_palette_metrics;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn empty_text_rect(
     panel_rect: &FrameRect,

@@ -32,8 +32,11 @@ const VALUE: &str = "value";
 const VALUE_TEXT: &str = "value_text";
 const CONTEXT_TARGET: &str = "context_target";
 const CONTEXT_TARGET_PATH: &str = "context_target_path";
+const POPUP_OWNER: &str = "popup_owner";
+const WORKBENCH_WINDOW_ROOT_CONTROL_ID: &str = "WorkbenchWindowRoot";
 const ASSET_CONTEXT_TARGET_PREFIX: &str = "workbench://asset/";
 const ASSET_OPEN_LOCATOR_QUERY: &str = "?open_locator=";
+const ASSET_FOLDER_CONTEXT_TARGET_PREFIX: &str = "workbench://asset-folder/";
 const LAYOUT_MIN_WIDTH: &str = "layout_min_width";
 
 fn open_asset_locator_from_context_target_path(target_path: &str) -> Option<String> {
@@ -106,6 +109,72 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 EditorUiBindingPayload::asset_command(AssetCommand::DeleteAsset { asset_uuid }),
             ));
         }
+        if matches!(
+            action_id,
+            "menu.item.asset.rename" | "menu.item.asset.reimport"
+        ) {
+            let target_path =
+                self.control_string(WORKBENCH_CONTEXT_MENU_CONTROL_ID, CONTEXT_TARGET_PATH)?;
+            let asset_uuid = target_path
+                .strip_prefix(ASSET_CONTEXT_TARGET_PREFIX)?
+                .split('?')
+                .next()?
+                .to_owned();
+            if asset_uuid.is_empty() {
+                return None;
+            }
+            let command = if action_id == "menu.item.asset.rename" {
+                AssetCommand::RenameAsset { asset_uuid }
+            } else {
+                AssetCommand::ReimportAsset { asset_uuid }
+            };
+            return Some(EditorUiBinding::new(
+                WORKBENCH_CONTEXT_MENU_CONTROL_ID,
+                action_id,
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::asset_command(command),
+            ));
+        }
+        if action_id.starts_with("menu.item.asset.folder.") {
+            let target_path =
+                self.control_string(WORKBENCH_CONTEXT_MENU_CONTROL_ID, CONTEXT_TARGET_PATH)?;
+            let folder_id = if let Some(encoded) =
+                target_path.strip_prefix(ASSET_FOLDER_CONTEXT_TARGET_PREFIX)
+            {
+                decode_context_path_hex(encoded)?
+            } else if action_id == "menu.item.asset.folder.create" {
+                let locator = open_asset_locator_from_context_target_path(&target_path)?;
+                let uri = zircon_runtime::asset::AssetUri::parse(&locator).ok()?;
+                if uri.scheme() != zircon_runtime_interface::resource::ResourceScheme::Res
+                    || uri.label().is_some()
+                {
+                    return None;
+                }
+                let parent = uri
+                    .path()
+                    .rsplit_once('/')
+                    .map(|(parent, _)| parent)
+                    .unwrap_or("");
+                format!("res://{parent}")
+            } else {
+                return None;
+            };
+            let command = match action_id {
+                "menu.item.asset.folder.create" => AssetCommand::CreateFolder {
+                    parent_folder_id: folder_id,
+                },
+                "menu.item.asset.folder.open" => AssetCommand::SelectFolder { folder_id },
+                "menu.item.asset.folder.rename" => AssetCommand::RenameFolder { folder_id },
+                "menu.item.asset.folder.delete" => AssetCommand::DeleteFolder { folder_id },
+                _ => return None,
+            };
+            return Some(EditorUiBinding::new(
+                WORKBENCH_CONTEXT_MENU_CONTROL_ID,
+                action_id,
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::asset_command(command),
+            ));
+        }
         None
     }
 
@@ -153,6 +222,33 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
             WORKBENCH_CONTEXT_MENU_CONTROL_ID,
             CONTEXT_TARGET_PATH,
             UiValue::String(request.target_path.to_string()),
+        )?;
+        // Native asset panes publish into this shared foreground surface. Their pane
+        // identities are action targets, while the surface root owns their popup.
+        // In-surface controls retain their own owner and Runtime validity checks.
+        let popup_owner = match request.target_control_id.as_str() {
+            "AssetContent:browser" | "AssetContent:activity"
+                if request
+                    .target_path
+                    .as_str()
+                    .starts_with(ASSET_CONTEXT_TARGET_PREFIX) =>
+            {
+                WORKBENCH_WINDOW_ROOT_CONTROL_ID
+            }
+            "AssetFolder:browser" | "AssetFolder:activity"
+                if request
+                    .target_path
+                    .as_str()
+                    .starts_with(ASSET_FOLDER_CONTEXT_TARGET_PREFIX) =>
+            {
+                WORKBENCH_WINDOW_ROOT_CONTROL_ID
+            }
+            _ => request.target_control_id.as_str(),
+        };
+        self.mutate_control_property(
+            WORKBENCH_CONTEXT_MENU_CONTROL_ID,
+            POPUP_OWNER,
+            UiValue::String(popup_owner.to_string()),
         )?;
         let local_anchor_x = logical_axis_from_physical(
             request.popup_anchor_x,
@@ -208,7 +304,7 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         }
         self.template_surface
             .refresh_after_state_change(self.runtime.as_ref())?;
-        Ok(true)
+        Ok(self.control_bool(WORKBENCH_CONTEXT_MENU_CONTROL_ID, POPUP_OPEN))
     }
 
     pub(super) fn close_context_menu_if_target(

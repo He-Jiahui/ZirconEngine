@@ -13,7 +13,7 @@ use crate::ui::retained_host::callback_dispatch::{
     WORKBENCH_COMMAND_PALETTE_COMMIT_BINDING_ID, WORKBENCH_COMMAND_PALETTE_CONTROL_ID,
 };
 use crate::ui::retained_host::host_contract::data::{
-    HostDockOverflowMenuStateData, HostPageOverflowMenuStateData,
+    FrameRect, HostDockOverflowMenuStateData, HostPageOverflowMenuStateData,
 };
 use crate::ui::retained_host::host_contract::host_dock_overflow_menu::{
     host_dock_overflow_projection, host_dock_overflow_scroll_offset_for_tab,
@@ -21,7 +21,7 @@ use crate::ui::retained_host::host_contract::host_dock_overflow_menu::{
 use crate::ui::retained_host::host_contract::host_page_overflow_menu::host_page_overflow_scroll_offset_for_page_with_state;
 use crate::ui::retained_host::workbench_popup_actions::WORKBENCH_POPUP_CANCEL_ACTION_ID;
 
-pub(super) fn dispatch_popup_accept(
+pub(in crate::ui::retained_host::host_contract::native_keyboard) fn dispatch_popup_accept(
     ui: &UiHostWindow,
     target: PopupKeyboardTarget,
 ) -> NativePointerDispatchResult {
@@ -119,9 +119,16 @@ pub(super) fn dispatch_popup_cancel(
             .set_host_page_overflow_menu_state(HostPageOverflowMenuStateData::default());
         return NativePointerDispatchResult::region_with_frame_update(popup_frame);
     }
-    let pane_host = ui.global::<PaneSurfaceHostContext>();
-    pane_host
-        .invoke_surface_control_clicked(target.control_id, WORKBENCH_POPUP_CANCEL_ACTION_ID.into());
+    dispatch_popup_cancel_control(ui, target.control_id, popup_frame)
+}
+
+pub(in crate::ui::retained_host::host_contract::native_keyboard) fn dispatch_popup_cancel_control(
+    ui: &UiHostWindow,
+    control_id: crate::ui::retained_host::primitives::SharedString,
+    popup_frame: FrameRect,
+) -> NativePointerDispatchResult {
+    ui.global::<PaneSurfaceHostContext>()
+        .invoke_surface_control_clicked(control_id, WORKBENCH_POPUP_CANCEL_ACTION_ID.into());
     ui.clear_hovered_template_node_for_pointer_move();
     NativePointerDispatchResult::region_with_frame_update(popup_frame)
 }

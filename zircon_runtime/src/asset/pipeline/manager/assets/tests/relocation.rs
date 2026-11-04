@@ -16,7 +16,7 @@ fn pipeline_relocation_commits_live_resource_rename_and_change_event() {
     paths.ensure_layout(&[RelPath::project_assets()]).unwrap();
     ProjectManifest::new(
         "PipelineSourceRelocation",
-        AssetUri::parse("res://data/original.counted").unwrap(),
+        AssetUri::parse("res://scenes/default.scene.toml").unwrap(),
         1,
     )
     .save(paths.manifest_path())

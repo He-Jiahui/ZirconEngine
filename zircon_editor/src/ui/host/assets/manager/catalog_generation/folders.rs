@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use zircon_runtime::asset::AssetUuid;
+use zircon_runtime::asset::{AssetUri, AssetUuid};
 use zircon_runtime_interface::resource::ResourceScheme;
 
 use crate::ui::host::editor_asset_manager::{AssetCatalogRecord, EditorAssetFolderRecord};
@@ -17,6 +17,13 @@ struct FolderBuilder {
 
 pub(super) fn build_folder_records(
     catalog_by_uuid: &HashMap<AssetUuid, AssetCatalogRecord>,
+) -> Vec<EditorAssetFolderRecord> {
+    build_folder_records_with_project_folders(catalog_by_uuid, &[])
+}
+
+pub(super) fn build_folder_records_with_project_folders(
+    catalog_by_uuid: &HashMap<AssetUuid, AssetCatalogRecord>,
+    project_folder_uris: &[AssetUri],
 ) -> Vec<EditorAssetFolderRecord> {
     let mut folders = BTreeMap::<String, FolderBuilder>::new();
     folders.insert(
@@ -85,6 +92,34 @@ pub(super) fn build_folder_records(
                 .direct_asset_uuids
                 .push(record.asset_uuid.to_string());
             folder.recursive_asset_count += 1;
+        }
+    }
+
+    // Runtime supplies a bounded, no-follow inventory. Empty directories have no catalog
+    // asset row, but they must survive a refresh and a later project reopen.
+    for uri in project_folder_uris
+        .iter()
+        .filter(|uri| uri.scheme() == ResourceScheme::Res && uri.label().is_none())
+    {
+        let mut parent_id = "res://".to_owned();
+        for segment in uri.path().split('/').filter(|segment| !segment.is_empty()) {
+            let folder_id = if parent_id == "res://" {
+                format!("res://{segment}")
+            } else {
+                format!("{parent_id}/{segment}")
+            };
+            folders
+                .entry(folder_id.clone())
+                .or_insert_with(|| FolderBuilder {
+                    parent_folder_id: Some(parent_id.clone()),
+                    locator_prefix: folder_id.clone(),
+                    display_name: segment.to_owned(),
+                    ..FolderBuilder::default()
+                });
+            if let Some(parent) = folders.get_mut(&parent_id) {
+                parent.child_folder_ids.insert(folder_id.clone());
+            }
+            parent_id = folder_id;
         }
     }
 

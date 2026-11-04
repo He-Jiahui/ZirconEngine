@@ -38,6 +38,18 @@ impl AssetCommand {
                 .with_argument(UiBindingValue::string(target_locator)),
             Self::DeleteAsset { asset_uuid } => UiBindingCall::new("AssetCommand.DeleteAsset")
                 .with_argument(UiBindingValue::string(asset_uuid)),
+            Self::CreateFolder { parent_folder_id } => {
+                UiBindingCall::new("AssetCommand.CreateFolder")
+                    .with_argument(UiBindingValue::string(parent_folder_id))
+            }
+            Self::RenameFolder { folder_id } => UiBindingCall::new("AssetCommand.RenameFolder")
+                .with_argument(UiBindingValue::string(folder_id)),
+            Self::DeleteFolder { folder_id } => UiBindingCall::new("AssetCommand.DeleteFolder")
+                .with_argument(UiBindingValue::string(folder_id)),
+            Self::RenameAsset { asset_uuid } => UiBindingCall::new("AssetCommand.RenameAsset")
+                .with_argument(UiBindingValue::string(asset_uuid)),
+            Self::ReimportAsset { asset_uuid } => UiBindingCall::new("AssetCommand.ReimportAsset")
+                .with_argument(UiBindingValue::string(asset_uuid)),
             Self::OpenAssetBrowser => UiBindingCall::new("AssetCommand.OpenAssetBrowser"),
             Self::LocateSelectedAsset => UiBindingCall::new("AssetCommand.LocateSelectedAsset"),
             Self::ImportModel => UiBindingCall::new("AssetCommand.ImportModel"),
@@ -78,6 +90,21 @@ impl AssetCommand {
             },
             "AssetCommand.DeleteAsset" => Self::DeleteAsset {
                 asset_uuid: required_string_argument(&call, 0, "AssetCommand.DeleteAsset")?,
+            },
+            "AssetCommand.CreateFolder" => Self::CreateFolder {
+                parent_folder_id: required_string_argument(&call, 0, "AssetCommand.CreateFolder")?,
+            },
+            "AssetCommand.RenameFolder" => Self::RenameFolder {
+                folder_id: required_string_argument(&call, 0, "AssetCommand.RenameFolder")?,
+            },
+            "AssetCommand.DeleteFolder" => Self::DeleteFolder {
+                folder_id: required_string_argument(&call, 0, "AssetCommand.DeleteFolder")?,
+            },
+            "AssetCommand.RenameAsset" => Self::RenameAsset {
+                asset_uuid: required_string_argument(&call, 0, "AssetCommand.RenameAsset")?,
+            },
+            "AssetCommand.ReimportAsset" => Self::ReimportAsset {
+                asset_uuid: required_string_argument(&call, 0, "AssetCommand.ReimportAsset")?,
             },
             "AssetCommand.OpenAssetBrowser" => Self::OpenAssetBrowser,
             "AssetCommand.LocateSelectedAsset" => Self::LocateSelectedAsset,

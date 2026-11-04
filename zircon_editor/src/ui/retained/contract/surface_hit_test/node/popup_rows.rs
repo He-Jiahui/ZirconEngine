@@ -6,6 +6,8 @@ mod hit;
 mod menu;
 #[path = "../../node/popup_rows/option.rs"]
 mod option;
+#[path = "popup_rows/pal.rs"]
+mod palette;
 #[path = "../../node/popup_rows/settings.rs"]
 mod settings;
 
@@ -13,6 +15,7 @@ use crate::ui::retained_host::primitives::ModelRc;
 
 use self::menu::hit_test_template_menu_row_target;
 use self::option::hit_test_template_option_row_target;
+use self::palette::hit_test_command_palette_target;
 use self::settings::hit_test_settings_window_target;
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::HostPaneTemplateHitIndex;
@@ -57,6 +60,9 @@ pub(super) fn hit_test_template_popup_target<'a>(
 ) -> Option<TemplatePopupRowTarget<'a>> {
     if !node.popup_open || node.disabled || node.control_id.is_empty() {
         return None;
+    }
+    if super::super::super::template_popup_layout::is_command_palette(node) {
+        return hit_test_command_palette_target(node, origin, x, y);
     }
     hit_test_settings_window_target(node, origin, x, y)
         .or_else(|| hit_test_template_menu_row_target(node, origin, x, y))

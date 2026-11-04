@@ -59,6 +59,7 @@ fn runtime_project_projection_is_empty(state: &super::EditorAssetState) -> bool 
         && state.project_name.is_empty()
         && state.default_scene_uri.is_none()
         && state.project.is_none()
+        && state.project_folder_uris.is_empty()
         && state.catalog_generation.project_root.is_empty()
         && state.catalog_generation.assets.is_empty()
         && state.catalog_generation.folders.is_empty()

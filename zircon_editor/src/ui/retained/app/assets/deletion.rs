@@ -29,6 +29,7 @@ impl RetainedEditorHost {
         &mut self,
         asset_uuid: &str,
     ) -> Result<(), String> {
+        self.ensure_asset_mutation_idle()?;
         if self.pending_asset_deletion.is_some() {
             return Err("an asset deletion is already running".to_owned());
         }

@@ -318,6 +318,16 @@ impl ProjectCatalogInputGeneration {
         Arc::new(current)
     }
 
+    /// Folder topology is part of the project commit identity even when no asset row changes.
+    /// Share all immutable records while invalidating work prepared against the previous tree.
+    pub(crate) fn publish_folder_topology(previous: &Arc<Self>) -> Arc<Self> {
+        let mut current = previous.as_ref().clone();
+        current.sequence = next_sequence();
+        current.predecessor_sequence = Some(previous.sequence);
+        current.delta_from_predecessor = ProjectCatalogInputDelta::default();
+        Arc::new(current)
+    }
+
     pub fn sequence(&self) -> u64 {
         self.sequence
     }

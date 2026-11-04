@@ -112,6 +112,8 @@ mod activity_log_jump;
 mod asset_content_pointer;
 #[path = "app/asset_drag_payload.rs"]
 mod asset_drag_payload;
+#[path = "app/asset_name_prompt.rs"]
+mod asset_name_prompt;
 #[path = "app/asset_reference_pointer.rs"]
 mod asset_reference_pointer;
 #[path = "app/asset_runtime_access.rs"]
@@ -776,6 +778,7 @@ struct RetainedEditorHost {
     pending_model_import: Option<assets::PendingModelImport>,
     pending_asset_deletion: Option<assets::PendingAssetDeletion>,
     pending_asset_relocation: Option<assets::PendingAssetRelocation>,
+    pending_asset_maintenance: Option<assets::PendingAssetMaintenance>,
     startup_session: EditorStartupSessionDocument,
     welcome_project_probe: welcome_session::WelcomeProjectProbeState,
     viewport_size: UVec2,
@@ -858,6 +861,7 @@ struct RetainedEditorHost {
     pending_document_save_all: bool,
     queued_document_save_all: bool,
     scene_picker_session: Option<scene_picker_session::ScenePickerSession>,
+    asset_name_prompt: Option<asset_name_prompt::AssetNamePromptSession>,
     invalidation: HostInvalidationRoot,
     pending_ui_perf_scenario: Option<UiPerfScenario>,
     pending_activity_projection_refresh: bool,

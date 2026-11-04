@@ -3,8 +3,6 @@
 
 #[path = "command_palette/commands.rs"]
 mod commands;
-#[path = "command_palette/identity.rs"]
-mod identity;
 #[path = "command_palette/layers.rs"]
 mod layers;
 #[path = "command_palette/layout.rs"]

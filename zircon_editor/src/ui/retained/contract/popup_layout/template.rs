@@ -1,6 +1,8 @@
 use super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::paint_geometry::intersect;
 use super::dropdown::dropdown_option_popup_frame_with_height_within;
 use super::metrics::{dropdown_option_row_height, popup_row_height, popup_rows_height};
+use super::palette::{command_palette_option_frame_within, is_command_palette};
 use super::rows::popup_row_frame;
 
 pub(crate) fn template_option_popup_frame_within(
@@ -9,6 +11,11 @@ pub(crate) fn template_option_popup_frame_within(
     row_count: usize,
     bounds: &FrameRect,
 ) -> Option<FrameRect> {
+    if is_command_palette(node) {
+        return (row_count > 0)
+            .then(|| intersect(control_frame, bounds))
+            .flatten();
+    }
     if template_option_rows_use_projected_frame(node) {
         return (row_count > 0).then_some(control_frame.clone());
     }
@@ -27,6 +34,9 @@ pub(crate) fn template_option_row_frame_within(
     if row >= row_count {
         return None;
     }
+    if is_command_palette(node) {
+        return command_palette_option_frame_within(control_frame, row, bounds);
+    }
     let popup = template_option_popup_frame_within(node, control_frame, row_count, bounds)?;
     let row_height = if template_option_rows_use_projected_frame(node) {
         popup_row_height(node, &popup, row_count)?
@@ -39,4 +49,5 @@ pub(crate) fn template_option_row_frame_within(
 pub(crate) fn template_option_rows_use_projected_frame(node: &TemplatePaneNodeData) -> bool {
     matches!(node.role.as_str(), "DropdownPopup")
         || matches!(node.component_role.as_str(), "dropdown-popup")
+        || is_command_palette(node)
 }

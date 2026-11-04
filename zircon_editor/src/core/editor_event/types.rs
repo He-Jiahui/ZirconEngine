@@ -114,6 +114,21 @@ pub enum EditorAssetEvent {
     DeleteAsset {
         asset_uuid: String,
     },
+    CreateFolder {
+        parent_folder_id: String,
+    },
+    RenameFolder {
+        folder_id: String,
+    },
+    DeleteFolder {
+        folder_id: String,
+    },
+    RenameAsset {
+        asset_uuid: String,
+    },
+    ReimportAsset {
+        asset_uuid: String,
+    },
     OpenAssetBrowser,
     LocateSelectedAsset,
     ImportModel,
@@ -449,6 +464,21 @@ pub enum EditorEventEffect {
         target_locator: String,
     },
     AssetDeletionRequested {
+        asset_uuid: String,
+    },
+    AssetFolderCreateRequested {
+        parent_folder_id: String,
+    },
+    AssetFolderRenameRequested {
+        folder_id: String,
+    },
+    AssetFolderDeletionRequested {
+        folder_id: String,
+    },
+    AssetRenameRequested {
+        asset_uuid: String,
+    },
+    AssetReimportRequested {
         asset_uuid: String,
     },
     CommandPaletteOpenRequested,

@@ -35,9 +35,7 @@ pub(in crate::asset::pipeline::manager) struct PreparedCompoundProjectResourceSy
 }
 
 pub(in crate::asset::pipeline::manager) struct PreparedProjectSourceRelocationResourceSync {
-    source_uri: AssetUri,
-    target_uri: AssetUri,
-    target_path: std::path::PathBuf,
+    source_path_moves: Vec<(AssetUri, AssetUri, std::path::PathBuf)>,
     locator_moves: Vec<(AssetUri, AssetUri)>,
     record_updates: Vec<ResourceRecord>,
 }
@@ -260,9 +258,7 @@ impl ProjectAssetManager {
             .cloned()
             .collect();
         PreparedProjectSourceRelocationResourceSync {
-            source_uri: relocation.source().clone(),
-            target_uri: relocation.target().clone(),
-            target_path: relocation.target_path().to_path_buf(),
+            source_path_moves: relocation.source_path_moves().to_vec(),
             locator_moves: relocation.locator_moves().to_vec(),
             record_updates,
         }
@@ -286,19 +282,20 @@ impl ProjectAssetManager {
             {
                 let _phase = ProjectGenerationPhase::ProjectInstall.enter();
                 let mut source_paths = self.project_source_paths_write();
-                let remove_scheme = source_paths
-                    .get_mut(&prepared.source_uri.scheme())
-                    .is_some_and(|paths| {
-                        paths.remove(prepared.source_uri.path());
-                        paths.is_empty()
-                    });
-                if remove_scheme {
-                    source_paths.remove(&prepared.source_uri.scheme());
+                for (source, target, target_path) in prepared.source_path_moves {
+                    let remove_scheme =
+                        source_paths.get_mut(&source.scheme()).is_some_and(|paths| {
+                            paths.remove(source.path());
+                            paths.is_empty()
+                        });
+                    if remove_scheme {
+                        source_paths.remove(&source.scheme());
+                    }
+                    source_paths
+                        .entry(target.scheme())
+                        .or_default()
+                        .insert(target.path().to_string(), target_path);
                 }
-                source_paths
-                    .entry(prepared.target_uri.scheme())
-                    .or_default()
-                    .insert(prepared.target_uri.path().to_string(), prepared.target_path);
                 commit_project_state();
             }
             Ok(outcome)

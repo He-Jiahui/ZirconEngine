@@ -8,6 +8,7 @@ use zircon_runtime::core::CoreError;
 
 use crate::core::asset::{
     AssetDeletePreflight, AssetSourceWritePolicy, EditorAssetDeletionTicket,
+    EditorAssetFolderOperation, EditorAssetFolderTicket, EditorAssetReimportTicket,
     EditorAssetRelocationTicket, EditorModelImportTicket,
 };
 
@@ -84,6 +85,22 @@ impl EditorAssetManager for DefaultEditorAssetManager {
         source_path: PathBuf,
     ) -> Result<EditorModelImportTicket, CoreError> {
         DefaultEditorAssetManager::submit_model_import(self, source_path)
+    }
+
+    fn submit_project_folder_mutation(
+        &self,
+        operation: EditorAssetFolderOperation,
+        source: AssetUri,
+        target: Option<AssetUri>,
+    ) -> Result<EditorAssetFolderTicket, CoreError> {
+        DefaultEditorAssetManager::submit_project_folder_mutation(self, operation, source, target)
+    }
+
+    fn submit_project_asset_reimport(
+        &self,
+        uuid: &str,
+    ) -> Result<EditorAssetReimportTicket, CoreError> {
+        DefaultEditorAssetManager::submit_project_asset_reimport(self, parse_uuid(uuid)?)
     }
 
     fn subscribe_editor_asset_changes(&self) -> EditorAssetChangeSubscription {

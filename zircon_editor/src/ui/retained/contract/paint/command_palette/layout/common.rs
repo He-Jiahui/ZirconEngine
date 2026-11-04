@@ -2,7 +2,7 @@
 //! 这里不进行像素取整；命令入口负责决定尺寸过小时是否跳过整个面板。
 
 use super::super::super::super::data::FrameRect;
-use super::metrics::command_palette_metrics;
+use super::command_palette_metrics;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn min_frame_extent() -> f32 {
     command_palette_metrics().min_frame_extent

@@ -4,9 +4,10 @@ use crate::ui::retained_host::asset_control_ids::asset_dispatch_source;
 use crate::ui::retained_host::host_contract::data::{
     FrameRect, HostPaneInteractionStateData, TemplatePaneNodeData,
 };
+use crate::ui::retained_host::host_contract::paint_geometry::intersect;
 use crate::ui::retained_host::host_contract::template_geometry::frame_from_template_node;
 use crate::ui::retained_host::host_contract::template_popup_layout::{
-    dropdown_option_row_frame_within, template_option_popup_frame_within,
+    dropdown_option_row_frame_within, is_command_palette, template_option_popup_frame_within,
     template_option_row_frame_within, template_option_rows_use_projected_frame,
 };
 
@@ -15,12 +16,28 @@ pub(in crate::ui::retained_host::host_contract) fn option_popup_keyboard_target(
     interaction: &HostPaneInteractionStateData,
     bounds: &FrameRect,
 ) -> Option<PopupKeyboardTarget> {
+    let palette_clip = if is_command_palette(node) && node.has_clip_frame {
+        Some(intersect(
+            bounds,
+            &FrameRect {
+                x: node.clip_frame.x,
+                y: node.clip_frame.y,
+                width: node.clip_frame.width,
+                height: node.clip_frame.height,
+            },
+        )?)
+    } else {
+        None
+    };
+    let bounds = palette_clip.as_ref().unwrap_or(bounds);
     let row_count = node.structured_options.row_count();
     if row_count == 0 {
         return None;
     }
 
-    let action_id = if node.edit_action_id.is_empty() {
+    let action_id = if is_command_palette(node) {
+        node.commit_action_id.clone()
+    } else if node.edit_action_id.is_empty() {
         node.action_id.clone()
     } else {
         node.edit_action_id.clone()

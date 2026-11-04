@@ -11,6 +11,7 @@ use crate::ui::retained_host::ui::{
     build_host_contract_workbench_window_node_patch_at_mount_and_scale,
     build_ui_asset_presentation_patch, patch_shell_content_presentation_from_state,
     patch_ui_asset_presentation, shell_content_target,
+    to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale,
 };
 use crate::ui::retained_host::ui_perf::{
     enter_ui_perf_scenario, record_current_ui_perf_counter, time_ui_perf_scenario, UiPerfCounter,
@@ -210,7 +211,12 @@ impl RetainedEditorHost {
             self.workbench_window_bridge.presentation_scale_factor(),
         ) else {
             record_workbench_projection_fallback(WorkbenchProjectionFallback::Projection);
-            return Ok(false);
+            drop(current_generation);
+            // Opening a collapsed popup inserts a native row, which cannot use a sparse
+            // replacement. Publish the workbench projection through the existing host
+            // transaction without rebuilding the committed shell, pane data or layout.
+            self.replace_workbench_projection_presentation();
+            return Ok(true);
         };
         let damage = workbench_projection_damage(current_nodes, &patch.nodes, &patch.changed_rows);
         drop(current_generation);
@@ -246,6 +252,37 @@ impl RetainedEditorHost {
         );
         self.publish_refresh_invalidation_diagnostics();
         Ok(true)
+    }
+
+    fn replace_workbench_projection_presentation(&mut self) {
+        let current_generation = self.ui.get_host_presentation_generation();
+        let current_nodes = &current_generation.structure().workbench_window_nodes;
+        let next_nodes = to_host_contract_workbench_window_nodes_with_previous_at_mount_and_scale(
+            Some(self.workbench_window_bridge.host_projection()),
+            Some(current_nodes),
+            self.workbench_window_bridge.layout_frames().mount_frame,
+            self.workbench_window_bridge.presentation_scale_factor(),
+        );
+        let changed_rows =
+            (0..current_nodes.row_count().max(next_nodes.row_count())).collect::<Vec<_>>();
+        let damage = workbench_projection_damage(current_nodes, &next_nodes, &changed_rows);
+        drop(current_generation);
+        self.ui.update_host_presentation(|presentation| {
+            presentation.workbench_window_nodes = next_nodes;
+        });
+        self.invalidate_committed_shell_presentation();
+        self.workbench_window_bridge
+            .mark_host_projection_committed();
+        self.sync_content_drawer_native_focus();
+        for frame in damage {
+            self.ui.request_frame_update_region(frame);
+        }
+        zircon_runtime::profile_counter!(
+            "editor",
+            "ui.workbench_projection.presentation_replacement_count",
+            1
+        );
+        self.publish_refresh_invalidation_diagnostics();
     }
 
     pub(in crate::ui::retained_host::app) fn apply_scoped_ui_asset_presentation(

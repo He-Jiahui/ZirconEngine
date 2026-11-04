@@ -3,6 +3,7 @@ use super::super::*;
 use crate::core::asset::{
     AssetToolkitDescriptor, AssetToolkitOpenRoute, AssetTypeContribution, AssetTypeId,
 };
+use crate::core::editor_event::EditorEventUndoPolicy;
 use crate::core::editor_extension::{EditorExtensionRegistry, ViewDescriptor};
 use crate::core::editor_operation::EditorOperationPath;
 use crate::ui::host::editor_asset_manager::{
@@ -175,4 +176,131 @@ props = { text = "Non-ZUI" }
     );
 
     let _ = fs::remove_file(ui_asset_path);
+}
+
+#[test]
+fn u09_folder_rename_and_reimport_events_emit_non_dirty_host_intents() {
+    let _guard = env_lock().lock().unwrap();
+    let harness = EventRuntimeHarness::new("zircon_editor_u09_asset_mutation_intents");
+    let uuid = "00112233-4455-6677-8899-aabbccddeeff".to_owned();
+    let history = harness
+        .runtime
+        .active_scene_transaction_history_snapshot()
+        .unwrap();
+    let dirty = harness
+        .runtime
+        .context()
+        .dirty_documents()
+        .changes_since(None)
+        .unwrap();
+    for (event, expected) in [
+        (
+            EditorAssetEvent::CreateFolder {
+                parent_folder_id: "res://".to_owned(),
+            },
+            EditorEventEffect::AssetFolderCreateRequested {
+                parent_folder_id: "res://".to_owned(),
+            },
+        ),
+        (
+            EditorAssetEvent::RenameFolder {
+                folder_id: "res://levels".to_owned(),
+            },
+            EditorEventEffect::AssetFolderRenameRequested {
+                folder_id: "res://levels".to_owned(),
+            },
+        ),
+        (
+            EditorAssetEvent::DeleteFolder {
+                folder_id: "res://empty".to_owned(),
+            },
+            EditorEventEffect::AssetFolderDeletionRequested {
+                folder_id: "res://empty".to_owned(),
+            },
+        ),
+        (
+            EditorAssetEvent::RenameAsset {
+                asset_uuid: uuid.clone(),
+            },
+            EditorEventEffect::AssetRenameRequested {
+                asset_uuid: uuid.clone(),
+            },
+        ),
+        (
+            EditorAssetEvent::ReimportAsset {
+                asset_uuid: uuid.clone(),
+            },
+            EditorEventEffect::AssetReimportRequested {
+                asset_uuid: uuid.clone(),
+            },
+        ),
+    ] {
+        let record = harness
+            .runtime
+            .dispatch_event(EditorEventSource::Headless, EditorEvent::Asset(event))
+            .unwrap();
+        assert!(record.result.error.is_none(), "{:?}", record.result.error);
+        assert_eq!(record.effects, vec![expected]);
+        // Durable event revisions count dispatches, even for host-only intents.
+        assert_eq!(record.after_revision, record.before_revision + 1);
+        assert_eq!(record.result.value.as_ref().unwrap()["changed"], false);
+        assert!(record.transaction_id.is_none());
+        assert!(record.save_generation.is_none());
+        assert_eq!(
+            record.undo_policy,
+            EditorEventUndoPolicy::FutureInverseEvent
+        );
+    }
+    for event in [
+        EditorAssetEvent::RenameFolder {
+            folder_id: "res://".to_owned(),
+        },
+        EditorAssetEvent::DeleteFolder {
+            folder_id: "res://".to_owned(),
+        },
+        EditorAssetEvent::CreateFolder {
+            parent_folder_id: "package://builtin".to_owned(),
+        },
+        EditorAssetEvent::ReimportAsset {
+            asset_uuid: "invalid".to_owned(),
+        },
+    ] {
+        let result = harness
+            .runtime
+            .dispatch_event(EditorEventSource::Headless, EditorEvent::Asset(event));
+        assert!(result.is_err());
+        let journal = harness.runtime.journal();
+        let record = journal.records().last().unwrap();
+        assert!(record.result.error.is_some());
+        assert_eq!(
+            record.effects,
+            vec![
+                EditorEventEffect::PresentationChanged,
+                EditorEventEffect::ReflectionChanged
+            ]
+        );
+        assert_eq!(record.after_revision, record.before_revision + 1);
+        assert!(record.transaction_id.is_none());
+        assert!(record.save_generation.is_none());
+        assert_eq!(
+            record.undo_policy,
+            EditorEventUndoPolicy::FutureInverseEvent
+        );
+    }
+    assert_eq!(
+        harness
+            .runtime
+            .active_scene_transaction_history_snapshot()
+            .unwrap(),
+        history
+    );
+    let dirty_after = harness
+        .runtime
+        .context()
+        .dirty_documents()
+        .changes_since(Some(dirty.cursor()))
+        .unwrap();
+    assert!(!dirty_after.is_reset());
+    assert!(dirty_after.snapshots().is_empty());
+    assert!(dirty_after.removed_documents().is_empty());
 }

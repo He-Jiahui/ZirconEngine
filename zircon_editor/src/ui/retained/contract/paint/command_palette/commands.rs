@@ -5,11 +5,11 @@ use std::ops::Range;
 
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::super::render_commands::HostPaintCommand;
-use super::identity::is_command_palette;
 use super::layers::{empty_message_order, row_order};
 use super::layout::{command_palette_metrics, min_frame_extent, paint_rect, row_rect};
 use super::panel::{push_command_palette_empty_message, push_command_palette_panel_commands};
 use super::rows::push_command_row_commands;
+use crate::ui::retained_host::host_contract::template_popup_layout::is_command_palette;
 
 const COMMAND_PALETTE_PANEL_COMMAND_UPPER_BOUND: usize = 4;
 const COMMAND_PALETTE_EMPTY_COMMAND_UPPER_BOUND: usize = 1;

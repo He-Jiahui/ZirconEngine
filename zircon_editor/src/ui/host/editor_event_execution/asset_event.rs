@@ -186,6 +186,51 @@ pub(super) fn execute_asset_event(
                 }],
             })
         }
+        EditorAssetEvent::CreateFolder { parent_folder_id } => {
+            let parent = validate_project_folder(parent_folder_id, true)?;
+            Ok(ExecutionOutcome {
+                changed: false,
+                effects: vec![EditorEventEffect::AssetFolderCreateRequested {
+                    parent_folder_id: parent.to_string(),
+                }],
+            })
+        }
+        EditorAssetEvent::RenameFolder { folder_id } => {
+            let folder = validate_project_folder(folder_id, false)?;
+            Ok(ExecutionOutcome {
+                changed: false,
+                effects: vec![EditorEventEffect::AssetFolderRenameRequested {
+                    folder_id: folder.to_string(),
+                }],
+            })
+        }
+        EditorAssetEvent::DeleteFolder { folder_id } => {
+            let folder = validate_project_folder(folder_id, false)?;
+            Ok(ExecutionOutcome {
+                changed: false,
+                effects: vec![EditorEventEffect::AssetFolderDeletionRequested {
+                    folder_id: folder.to_string(),
+                }],
+            })
+        }
+        EditorAssetEvent::RenameAsset { asset_uuid } => {
+            validate_asset_uuid(asset_uuid)?;
+            Ok(ExecutionOutcome {
+                changed: false,
+                effects: vec![EditorEventEffect::AssetRenameRequested {
+                    asset_uuid: asset_uuid.clone(),
+                }],
+            })
+        }
+        EditorAssetEvent::ReimportAsset { asset_uuid } => {
+            validate_asset_uuid(asset_uuid)?;
+            Ok(ExecutionOutcome {
+                changed: false,
+                effects: vec![EditorEventEffect::AssetReimportRequested {
+                    asset_uuid: asset_uuid.clone(),
+                }],
+            })
+        }
         EditorAssetEvent::OpenAssetBrowser => {
             let manager = controller.enter_editor_manager()?;
             let mut shell = controller.shell().lock();
@@ -228,6 +273,42 @@ pub(super) fn execute_asset_event(
             effects: vec![EditorEventEffect::ImportModelRequested],
         }),
     }
+}
+
+fn validate_project_folder(
+    folder_id: &str,
+    allow_root: bool,
+) -> Result<String, AssetEventExecutionError> {
+    // The browser root is a folder identity, not a resource locator with a source path.
+    if allow_root && folder_id == "res://" {
+        return Ok(folder_id.to_owned());
+    }
+    let folder = AssetUri::parse(folder_id).map_err(|error| {
+        AssetEventExecutionError::InvalidFolderTarget {
+            folder_id: folder_id.to_owned(),
+            detail: error.to_string(),
+        }
+    })?;
+    if folder.scheme() != zircon_runtime_interface::resource::ResourceScheme::Res
+        || folder.label().is_some()
+        || (!allow_root && folder.path().is_empty())
+    {
+        return Err(AssetEventExecutionError::InvalidFolderTarget {
+            folder_id: folder_id.to_owned(),
+            detail: "folder operations require a project-owned folder; the asset root cannot be renamed or deleted".to_owned(),
+        });
+    }
+    Ok(folder.to_string())
+}
+
+fn validate_asset_uuid(asset_uuid: &str) -> Result<(), AssetEventExecutionError> {
+    asset_uuid
+        .parse::<zircon_runtime::asset::AssetUuid>()
+        .map_err(|source| AssetEventExecutionError::InvalidAssetUuid {
+            asset_uuid: asset_uuid.to_owned(),
+            detail: source.to_string(),
+        })?;
+    Ok(())
 }
 
 fn open_asset_document_view(

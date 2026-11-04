@@ -70,6 +70,7 @@ impl DefaultEditorAssetManager {
             expected_source_generation,
             expected_activation,
             current_asset_index,
+            previous_project_folders,
         ) = {
             let state = self.read_state_recovering_poison();
             let (source, activation) = state
@@ -90,6 +91,7 @@ impl DefaultEditorAssetManager {
                 source,
                 activation,
                 state.asset_index.clone(),
+                state.project_folder_uris.clone(),
             )
         };
         let runtime_delta = expected_source_generation
@@ -133,7 +135,9 @@ impl DefaultEditorAssetManager {
                 .as_ref()
                 .map_or(0, |delta| delta.renamed.len())
         );
+        let project_folder_uris = project.project_folder_uris()?;
         if expected_activation.as_ref() == Some(project.activation_identity())
+            && previous_project_folders == project_folder_uris
             && runtime_delta
                 .as_ref()
                 .is_some_and(|delta| delta.is_unchanged())
@@ -232,6 +236,7 @@ impl DefaultEditorAssetManager {
                 publish_epoch,
                 &catalog_by_uuid,
                 &uuid_by_locator,
+                &project_folder_uris,
             );
             let source_commit_guard =
                 lock_editor_asset_gate_recovering_poison(self.source_sync_gate.as_ref());
@@ -279,6 +284,7 @@ impl DefaultEditorAssetManager {
                 state.default_scene_uri = Some(default_scene_uri);
                 state.catalog_generation = catalog_generation;
                 state.project = pending_project.take();
+                state.project_folder_uris.clone_from(&project_folder_uris);
                 let candidate_index = pending_candidate_index
                     .take()
                     .expect("a winning project sync owns its index candidate");

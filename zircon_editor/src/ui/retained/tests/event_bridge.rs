@@ -6,6 +6,85 @@ use crate::core::editor_event::{
 use super::{apply_record_effects, UiHostEventEffects};
 
 #[test]
+fn u09_folder_rename_reimport_effects_preserve_independent_context_targets() {
+    let record = EditorEventRecord {
+        event_id: EditorEventId::new(1),
+        sequence: EditorEventSequence::new(1),
+        source: EditorEventSource::RetainedHost,
+        event: EditorEvent::Asset(crate::core::editor_event::EditorAssetEvent::ReimportAsset {
+            asset_uuid: "reimport-uuid".to_owned(),
+        }),
+        binding_path: None,
+        operation_id: None,
+        operation_display_name: None,
+        operation_arguments: None,
+        operation_group: None,
+        transaction_id: None,
+        save_generation: None,
+        effects: vec![
+            EditorEventEffect::AssetFolderCreateRequested {
+                parent_folder_id: "res://parent".to_owned(),
+            },
+            EditorEventEffect::AssetFolderRenameRequested {
+                folder_id: "res://rename".to_owned(),
+            },
+            EditorEventEffect::AssetFolderDeletionRequested {
+                folder_id: "res://empty".to_owned(),
+            },
+            EditorEventEffect::AssetRenameRequested {
+                asset_uuid: "rename-uuid".to_owned(),
+            },
+            EditorEventEffect::AssetReimportRequested {
+                asset_uuid: "reimport-uuid".to_owned(),
+            },
+        ],
+        undo_policy: EditorEventUndoPolicy::NonUndoable,
+        before_revision: 0,
+        after_revision: 0,
+        result: EditorEventResult::success(serde_json::json!({"changed": false})),
+    };
+    let mut effects = UiHostEventEffects::default();
+    apply_record_effects(&mut effects, &record);
+    assert_eq!(
+        effects
+            .asset_folder_create_requested
+            .unwrap()
+            .parent_folder_id,
+        "res://parent"
+    );
+    assert_eq!(
+        effects
+            .asset_folder_rename_requested
+            .as_ref()
+            .unwrap()
+            .folder_id,
+        "res://rename"
+    );
+    assert_eq!(
+        effects
+            .asset_folder_deletion_requested
+            .as_ref()
+            .unwrap()
+            .folder_id,
+        "res://empty"
+    );
+    assert_eq!(
+        effects.asset_rename_requested.as_ref().unwrap().asset_uuid,
+        "rename-uuid"
+    );
+    assert_eq!(
+        effects
+            .asset_reimport_requested
+            .as_ref()
+            .unwrap()
+            .asset_uuid,
+        "reimport-uuid"
+    );
+    assert!(!effects.layout_dirty);
+    assert!(!effects.render_dirty);
+}
+
+#[test]
 fn scene_interaction_redraw_covers_committed_commands_without_promoting_pointer_motion() {
     let mut record = EditorEventRecord {
         event_id: EditorEventId::new(1),

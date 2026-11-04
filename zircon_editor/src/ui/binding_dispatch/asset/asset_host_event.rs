@@ -35,6 +35,21 @@ pub enum AssetHostEvent {
     DeleteAsset {
         asset_uuid: String,
     },
+    CreateFolder {
+        parent_folder_id: String,
+    },
+    RenameFolder {
+        folder_id: String,
+    },
+    DeleteFolder {
+        folder_id: String,
+    },
+    RenameAsset {
+        asset_uuid: String,
+    },
+    ReimportAsset {
+        asset_uuid: String,
+    },
     OpenAssetBrowser,
     LocateSelectedAsset,
     ImportModel,

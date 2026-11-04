@@ -57,6 +57,8 @@ pub(in crate::ui::retained_host::app) enum RetainedProjectCloseError {
     PendingAssetRelocation,
     #[error("Project close is waiting for the active asset deletion to reach a terminal state.")]
     PendingAssetDeletion,
+    #[error("Project close is waiting for the active folder operation or Reimport to finish.")]
+    PendingAssetMaintenance,
     #[error("Project close could not dismiss the command palette: {source}")]
     CommandPalette {
         #[source]
@@ -417,6 +419,9 @@ impl RetainedEditorHost {
         if !self.cancel_pending_asset_relocation() {
             return Err(RetainedProjectCloseError::PendingAssetRelocation);
         }
+        if !self.cancel_pending_asset_maintenance() {
+            return Err(RetainedProjectCloseError::PendingAssetMaintenance);
+        }
         if !self.cancel_pending_model_import() {
             return Err(RetainedProjectCloseError::PendingModelImport);
         }
@@ -456,6 +461,7 @@ impl RetainedEditorHost {
             .close_command_palette()
             .map_err(|source| RetainedProjectCloseError::CommandPalette { source })?;
         self.scene_picker_session = None;
+        self.cancel_asset_name_prompt();
         if palette_closed {
             self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
         }

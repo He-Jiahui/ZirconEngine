@@ -29,6 +29,15 @@ mod preview_trait_bridge;
 mod project_deactivation;
 #[path = "project_deletion.rs"]
 mod project_deletion;
+#[path = "project_folders.rs"]
+mod project_folders;
+#[path = "project_mutation_guard.rs"]
+mod project_mutation_guard;
+#[cfg(test)]
+#[path = "tests/mutation_support.rs"]
+mod project_mutation_tests;
+#[path = "project_reimport.rs"]
+mod project_reimport;
 #[path = "project_relocation.rs"]
 mod project_relocation;
 #[path = "readonly_query.rs"]

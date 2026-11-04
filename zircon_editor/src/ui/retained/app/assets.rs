@@ -13,6 +13,8 @@ mod bridge;
 mod controls;
 #[path = "assets/deletion.rs"]
 mod deletion;
+#[path = "assets/maintenance.rs"]
+mod maintenance;
 #[path = "assets/refresh.rs"]
 mod refresh;
 #[path = "assets/relocation.rs"]
@@ -21,6 +23,7 @@ mod relocation;
 mod workspace;
 
 pub(super) use deletion::PendingAssetDeletion;
+pub(super) use maintenance::PendingAssetMaintenance;
 pub(super) use refresh::{AssetRefreshAccumulator, AssetRefreshQueueAgeState};
 pub(super) use relocation::PendingAssetRelocation;
 pub(super) use workspace::{

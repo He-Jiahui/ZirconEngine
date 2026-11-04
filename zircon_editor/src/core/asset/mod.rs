@@ -37,7 +37,9 @@ pub use import_flow::{
 pub use index::{EditorAssetImportState, EditorAssetIndex, EditorAssetIndexError, EditorAssetRow};
 pub use refactor::{
     AssetDeleteDisposition, AssetDeletePreflight, EditorAssetDeletionResult,
-    EditorAssetDeletionTicket, EditorAssetRelocationResult, EditorAssetRelocationTicket,
+    EditorAssetDeletionTicket, EditorAssetFolderOperation, EditorAssetFolderResult,
+    EditorAssetFolderTicket, EditorAssetReimportResult, EditorAssetReimportTicket,
+    EditorAssetRelocationResult, EditorAssetRelocationTicket,
 };
 pub use source_authority::{
     AssetSourceAuthority, AssetSourceKind, AssetSourceWritePolicy, AssetWriteAccess,
