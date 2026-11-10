@@ -174,7 +174,10 @@ fn runtime56_recovery_batch_allocation_free_gamepad_disconnect_transitions_sourc
         .split_once("fn append_disconnected_axis_transitions")
         .expect("direct disconnect transition helper")
         .1;
-    let manager_source = include_str!("../default_input_manager.rs");
+    let manager_source = concat!(
+        include_str!("../default_input_manager.rs"),
+        include_str!("../default_input_manager/apply_event.rs"),
+    );
     let connection = manager_source
         .split_once("InputEvent::GamepadConnection(info)")
         .expect("gamepad connection arm")

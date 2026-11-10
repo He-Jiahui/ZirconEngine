@@ -49,33 +49,9 @@ pub enum InputEvent {
     /// # 参考
     /// 参见 [InputFrameSnapshot](super::InputFrameSnapshot)、[InputEvent::MouseMotion](super::InputEvent::MouseMotion)。
     CursorMoved {
-        /// 绝对指针位置的横向分量。
-        ///
-        /// # 使用时机与职责
-        /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
-        ///
-        /// # 约束
         /// DefaultInputManager原样替换位置 x；坐标空间、有限性由提交方负责。
-        ///
-        /// # 生命周期
-        /// 字段按值随事件保存，不借用管理器或宿主输入缓冲。
-        ///
-        /// # 参考
-        /// 参见 [InputEvent::CursorMoved](super::InputEvent::CursorMoved)、[InputFrameSnapshot](super::InputFrameSnapshot)。
         x: f32,
-        /// 绝对指针位置的纵向分量。
-        ///
-        /// # 使用时机与职责
-        /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
-        ///
-        /// # 约束
         /// DefaultInputManager原样替换位置 y；不由此推断窗口内或焦点状态。
-        ///
-        /// # 生命周期
-        /// 字段按值随事件保存，不借用管理器或宿主输入缓冲。
-        ///
-        /// # 参考
-        /// 参见 [InputEvent::CursorMoved](super::InputEvent::CursorMoved)、[InputFrameSnapshot](super::InputFrameSnapshot)。
         y: f32,
     },
     /// 通知指针进入窗口。
@@ -120,33 +96,9 @@ pub enum InputEvent {
     /// # 参考
     /// 参见 [InputFrameSnapshot](super::InputFrameSnapshot)、[InputEvent::CursorMoved](super::InputEvent::CursorMoved)。
     MouseMotion {
-        /// 本次相对移动的横向增量。
-        ///
-        /// # 使用时机与职责
-        /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
-        ///
-        /// # 约束
         /// DefaultInputManager累加到本帧 x；不是绝对坐标，非有限值不在类型中验证。
-        ///
-        /// # 生命周期
-        /// 字段按值随事件保存，不借用管理器或宿主输入缓冲。
-        ///
-        /// # 参考
-        /// 参见 [InputEvent::MouseMotion](super::InputEvent::MouseMotion)、[InputFrameSnapshot](super::InputFrameSnapshot)。
         delta_x: f32,
-        /// 本次相对移动的纵向增量。
-        ///
-        /// # 使用时机与职责
-        /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
-        ///
-        /// # 约束
         /// DefaultInputManager累加到本帧 y；邻接合并和浮点相加不恢复每个原始样本。
-        ///
-        /// # 生命周期
-        /// 字段按值随事件保存，不借用管理器或宿主输入缓冲。
-        ///
-        /// # 参考
-        /// 参见 [InputEvent::MouseMotion](super::InputEvent::MouseMotion)、[InputFrameSnapshot](super::InputFrameSnapshot)。
         delta_y: f32,
     },
     /// 提交一个完整按钮身份的按下通知。
@@ -191,19 +143,7 @@ pub enum InputEvent {
     /// # 参考
     /// 参见 [MouseWheelEvent](super::MouseWheelEvent)、[InputEvent::MouseWheel](super::InputEvent::MouseWheel)、[InputFrameSnapshot](super::InputFrameSnapshot)。
     WheelScrolled {
-        /// 旧式本次纵向行单位滚动增量。
-        ///
-        /// # 使用时机与职责
-        /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
-        ///
-        /// # 约束
         /// DefaultInputManager累加兼容纵向值，并合成 Line 滚轮事件；非有限性不在本类型验证。
-        ///
-        /// # 生命周期
-        /// 字段按值随事件保存，不借用管理器或宿主输入缓冲。
-        ///
-        /// # 参考
-        /// 参见 [InputEvent::WheelScrolled](super::InputEvent::WheelScrolled)、[MouseWheelEvent](super::MouseWheelEvent)。
         delta: f32,
     },
     /// 提交携带 Line/Pixel 单位的二维滚轮事件。
@@ -234,75 +174,15 @@ pub enum InputEvent {
     /// # 参考
     /// 参见 [InputButton](super::InputButton)、[InputFrameSnapshot](super::InputFrameSnapshot)、[InputEvent::Ime](super::InputEvent::Ime)。
     KeyboardInput {
-        /// 本次物理键码身份值。
-        ///
-        /// # 使用时机与职责
-        /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
-        ///
-        /// # 约束
         /// DefaultInputManager独立作为 InputButton::KeyCode 更新；数字约定来自提交方，不等同逻辑字符串。
-        ///
-        /// # 生命周期
-        /// 字段按值随事件保存，不借用管理器或宿主输入缓冲。
-        ///
-        /// # 参考
-        /// 参见 [InputEvent::KeyboardInput](super::InputEvent::KeyboardInput)、[InputButton](super::InputButton)。
         key_code: u32,
-        /// 可选的拥有型逻辑键名。
-        ///
-        /// # 使用时机与职责
-        /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
-        ///
-        /// # 约束
         /// Some 时 DefaultInputManager独立更新 InputButton::Key；None 时只更新物理码。按放载荷的名称需由提交方保持匹配，类型不折叠大小写。
-        ///
-        /// # 生命周期
-        /// 拥有型 String 及其 Option 随事件保存，不借用宿主临时缓冲。
-        ///
-        /// # 参考
-        /// 参见 [InputEvent::KeyboardInput](super::InputEvent::KeyboardInput)、[InputButton](super::InputButton)。
         logical_key: Option<String>,
-        /// 本次可选的拥有型键盘文本。
-        ///
-        /// # 使用时机与职责
-        /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
-        ///
-        /// # 约束
         /// DefaultInputManager不将它自动追加到 IME commits；启用且保留策略允许时原始记录保存该载荷，宿主文本可先由 UI 接管。
-        ///
-        /// # 生命周期
-        /// 拥有型 String 及其 Option 随事件保存，不借用宿主临时缓冲。
-        ///
-        /// # 参考
-        /// 参见 [InputEvent::KeyboardInput](super::InputEvent::KeyboardInput)、[InputEventRecord](super::InputEventRecord)。
         text: Option<String>,
-        /// 本次键盘样本的按下/释放标志。
-        ///
-        /// # 使用时机与职责
-        /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
-        ///
-        /// # 约束
         /// DefaultInputManager以 true 按下、false 释放各键身份；重复按下由集合幂等处理，不代表本帧边沿本身。
-        ///
-        /// # 生命周期
-        /// 字段按值随事件保存，不借用管理器或宿主输入缓冲。
-        ///
-        /// # 参考
-        /// 参见 [InputEvent::KeyboardInput](super::InputEvent::KeyboardInput)、[ButtonInputState](super::ButtonInputState)。
         pressed: bool,
-        /// 提交方提供的键盘重复标志。
-        ///
-        /// # 使用时机与职责
-        /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
-        ///
-        /// # 约束
         /// DefaultInputManager不凭此字段产生额外边沿或文本，当前动态宿主输入路径填写 false；直接构造或记录可保留其他值。
-        ///
-        /// # 生命周期
-        /// 字段按值随事件保存，不借用管理器或宿主输入缓冲。
-        ///
-        /// # 参考
-        /// 参见 [InputEvent::KeyboardInput](super::InputEvent::KeyboardInput)、[InputEventRecord](super::InputEventRecord)。
         repeat: bool,
     },
     /// 提交窗口状态通知。
@@ -367,7 +247,7 @@ pub enum InputEvent {
     /// DefaultInputManager追加到待发光标队列，宿主经排空领取。
     ///
     /// # 约束
-    /// 载荷 .0 为 CursorHostRequest；SetPosition 不在此直接改写已观察指针位置，命令不证明窗口能力或执行成功。
+    /// 载荷 .0 为 CursorHostRequest；`InputEvent::CursorHostRequest` 只入队，SetPosition 不直接改写已观察指针位置。
     ///
     /// # 生命周期
     /// 事件按值拥有载荷；提交后由实现消费，克隆或录制副本的保留与输入状态更新独立。
@@ -403,61 +283,13 @@ pub enum InputEvent {
     /// # 参考
     /// 参见 [TouchPhase](super::TouchPhase)、[TouchPoint](super::TouchPoint)、[InputFrameSnapshot](super::InputFrameSnapshot)。
     Touch {
-        /// 提交方提供的触点身份键。
-        ///
-        /// # 使用时机与职责
-        /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
-        ///
-        /// # 约束
         /// DefaultInputManager仅按此整数区分活动点；没有设备/窗口世代验证，不拥有触点对象。
-        ///
-        /// # 生命周期
-        /// 字段按值随事件保存，不借用管理器或宿主输入缓冲。
-        ///
-        /// # 参考
-        /// 参见 [InputEvent::Touch](super::InputEvent::Touch)、[TouchPoint](super::TouchPoint)。
         id: u64,
-        /// 本次触点阶段。
-        ///
-        /// # 使用时机与职责
-        /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
-        ///
-        /// # 约束
         /// Started/Moved 写入最后样本，Ended/Cancelled 移除；DefaultInputManager 不验证阶段先后，终止边沿需读事件流。
-        ///
-        /// # 生命周期
-        /// 字段按值随事件保存，不借用管理器或宿主输入缓冲。
-        ///
-        /// # 参考
-        /// 参见 [InputEvent::Touch](super::InputEvent::Touch)、[TouchPhase](super::TouchPhase)。
         phase: TouchPhase,
-        /// 本次触点位置的横向分量。
-        ///
-        /// # 使用时机与职责
-        /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
-        ///
-        /// # 约束
         /// DefaultInputManager写入该 id 的样本，不自行检查有限性或换算坐标空间。
-        ///
-        /// # 生命周期
-        /// 字段按值随事件保存，不借用管理器或宿主输入缓冲。
-        ///
-        /// # 参考
-        /// 参见 [InputEvent::Touch](super::InputEvent::Touch)、[TouchPoint](super::TouchPoint)。
         x: f32,
-        /// 本次触点位置的纵向分量。
-        ///
-        /// # 使用时机与职责
-        /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
-        ///
-        /// # 约束
         /// DefaultInputManager写入该 id 的样本，Ended/Cancelled 的载荷仍可从原始事件读取而不留在活动列表。
-        ///
-        /// # 生命周期
-        /// 字段按值随事件保存，不借用管理器或宿主输入缓冲。
-        ///
-        /// # 参考
-        /// 参见 [InputEvent::Touch](super::InputEvent::Touch)、[TouchPoint](super::TouchPoint)。
         y: f32,
     },
     /// 提交手柄连接/断开通知及描述元数据。
@@ -491,61 +323,13 @@ pub enum InputEvent {
         /// Incarnation captured by the producer before queueing this sample.
         /// A sample never establishes a connection or inherits the current generation.
         generation: NonZeroU64,
-        /// 本次按钮样本的手柄身份。
-        ///
-        /// # 使用时机与职责
-        /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
-        ///
-        /// # 约束
         /// 与 button 一起构成路由状态键；DefaultInputManager 另验证事件 generation 与已观察的打开连接一致。
-        ///
-        /// # 生命周期
-        /// 字段按值随事件保存，不借用管理器或宿主输入缓冲。
-        ///
-        /// # 参考
-        /// 参见 [InputEvent::GamepadButton](super::InputEvent::GamepadButton)、[GamepadId](super::GamepadId)。
         gamepad: GamepadId,
-        /// 指定手柄上的按钮身份。
-        ///
-        /// # 使用时机与职责
-        /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
-        ///
-        /// # 约束
         /// 与 gamepad 联合匹配；同名按钮在不同手柄上是不同状态，不提供业务动作含义。
-        ///
-        /// # 生命周期
-        /// 字段按值随事件保存，不借用管理器或宿主输入缓冲。
-        ///
-        /// # 参考
-        /// 参见 [InputEvent::GamepadButton](super::InputEvent::GamepadButton)、[GamepadButton](super::GamepadButton)。
         button: GamepadButton,
-        /// 提交的原始按钮或扳机幅值。
-        ///
-        /// # 使用时机与职责
-        /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
-        ///
-        /// # 约束
         /// DefaultInputManager先过滤非有限值、映射到默认范围并检查变化阈值；发布幅值与原始录制值可以不同。
-        ///
-        /// # 生命周期
-        /// 字段按值随事件保存，不借用管理器或宿主输入缓冲。
-        ///
-        /// # 参考
-        /// 参见 [InputEvent::GamepadButton](super::InputEvent::GamepadButton)、[GamepadButtonAxisSettings](super::GamepadButtonAxisSettings)。
         value: f32,
-        /// 宿主提供的按钮按下标志。
-        ///
-        /// # 使用时机与职责
-        /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
-        ///
-        /// # 约束
         /// DefaultInputManager将此标志与处理后幅值和滞回共同使用；当幅值未发布变化时不会仅凭该标志更新状态。
-        ///
-        /// # 生命周期
-        /// 字段按值随事件保存，不借用管理器或宿主输入缓冲。
-        ///
-        /// # 参考
-        /// 参见 [InputEvent::GamepadButton](super::InputEvent::GamepadButton)、[GamepadButtonSettings](super::GamepadButtonSettings)。
         pressed: bool,
     },
     /// 提交指定手柄轴的原始模拟值。
@@ -565,47 +349,11 @@ pub enum InputEvent {
         /// Incarnation captured by the producer before queueing this sample.
         /// A sample never establishes a connection or inherits the current generation.
         generation: NonZeroU64,
-        /// 本次轴样本的手柄身份。
-        ///
-        /// # 使用时机与职责
-        /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
-        ///
-        /// # 约束
         /// 与 axis 联合匹配持续值和边沿；不拥有设备，也不自动加入连接集合。
-        ///
-        /// # 生命周期
-        /// 字段按值随事件保存，不借用管理器或宿主输入缓冲。
-        ///
-        /// # 参考
-        /// 参见 [InputEvent::GamepadAxis](super::InputEvent::GamepadAxis)、[GamepadId](super::GamepadId)。
         gamepad: GamepadId,
-        /// 指定手柄上的轴身份。
-        ///
-        /// # 使用时机与职责
-        /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
-        ///
-        /// # 约束
         /// 与 gamepad 构成完整键；方向、业务动作与消费上下文由上层绑定解释。
-        ///
-        /// # 生命周期
-        /// 字段按值随事件保存，不借用管理器或宿主输入缓冲。
-        ///
-        /// # 参考
-        /// 参见 [InputEvent::GamepadAxis](super::InputEvent::GamepadAxis)、[GamepadAxisState](super::GamepadAxisState)。
         axis: GamepadAxis,
-        /// 提交的原始手柄轴值。
-        ///
-        /// # 使用时机与职责
-        /// 随所属事件分支按值提交；处理时机和状态保留规则参见该分支。
-        ///
-        /// # 约束
         /// DefaultInputManager使用默认死区、活区、夹紧与变化阈值后才发布状态；启用且保留策略允许时，原始记录仍保存提交值，不替换成处理后状态。
-        ///
-        /// # 生命周期
-        /// 字段按值随事件保存，不借用管理器或宿主输入缓冲。
-        ///
-        /// # 参考
-        /// 参见 [InputEvent::GamepadAxis](super::InputEvent::GamepadAxis)、[GamepadAxisSettings](super::GamepadAxisSettings)。
         value: f32,
     },
     /// 提交待宿主执行的反向手柄震动命令。
