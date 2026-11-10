@@ -77,7 +77,7 @@ class Runtime87ReferenceResolutionContractTests(unittest.TestCase):
     def test_guid_subasset_mismatch_is_a_conflict(self):
         self.assertIn("if entry.path().label() != reference.sub()", self.resolver)
         self.assertIn("ReferenceResolutionError::Conflict", self.resolver)
-        self.assertIn("must never replace a stable GUID", self.resolver)
+        self.assertIn("cannot replace the stable parent GUID", self.resolver)
 
     def test_registry_reference_lookup_does_not_fall_back_to_path(self):
         self.assertNotIn(
@@ -181,7 +181,8 @@ class Runtime87ReferenceResolutionContractTests(unittest.TestCase):
 
     def test_editor_relocation_gateway_only_delegates_to_runtime_then_refreshes_projection(self):
         self.assertIn("submit_project_source_relocation", self.editor_asset_api)
-        self.assertIn("self.manager\n                .relocate_project_source", self.editor_asset_relocation)
+        self.assertIn("self.access.project_asset_manager()?;", self.editor_asset_relocation)
+        self.assertIn("manager.relocate_project_source(self.source_uuid.clone(), self.target.clone())", self.editor_asset_relocation)
         self.assertIn("EditorAssetRelocationTicket::new", self.editor_asset_relocation)
         self.assertIn("context.check_cancelled()?", self.editor_asset_relocation)
         self.assertNotIn("std::fs", self.editor_asset_relocation)
