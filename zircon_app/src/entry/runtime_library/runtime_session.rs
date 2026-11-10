@@ -254,12 +254,32 @@ impl RuntimeSession {
         let destroy_session = self.runtime().destroy_session();
         write_log("runtime_session", "teardown_destroy_start");
         let destroy_status = unsafe { destroy_session(self.handle) };
-        write_log("runtime_session", "teardown_destroy_done");
-        ensure_status(destroy_status, "destroy runtime session")?;
+        if let Err(error) = ensure_status(destroy_status, "destroy runtime session") {
+            write_log(
+                "runtime_session",
+                format!(
+                    "teardown_destroy_failed status={}",
+                    status_code_label(destroy_status.status_code())
+                ),
+            );
+            return Err(error);
+        }
+        // FFI ok is returned only after the owner joins and the registry slot
+        // is removed. The DLL log often drops `destroy_shutdown_done` once it
+        // unpublishes the last dynamic generation, so this host line is the
+        // receipt that survives that generation and a later library drop.
+        write_log("runtime_session", "teardown_destroy_done status=ok");
         if let Some(wake_registration) = &mut self.wake_registration {
             wake_registration.unregister();
         }
         self.handle = ZrRuntimeSessionHandle::invalid();
+        write_log(
+            "runtime_session",
+            format!(
+                "teardown_library_release receipt={}",
+                self.runtime().module_mapping_receipt()
+            ),
+        );
         self.runtime.take();
         Ok(())
     }
@@ -751,8 +771,9 @@ impl Drop for RuntimeSession {
 /// A failed dynamic-session destroy cannot prove that copied callbacks and DLL workers stopped.
 ///
 /// Returning into normal Rust drop would unload the library or release host callback storage while
-/// that code may still execute. Process termination is the only safe terminal path; successful
-/// teardown continues through ordinary drop and releases the dynamic library normally.
+/// that code may still execute. Process termination is the only safe terminal path. Successful
+/// teardown drops this session's library handle. On Windows the sealed image stays mapped until
+/// process exit so a wgpu-hal handler that failed to unregister does not point at an unmapped DLL.
 fn abort_after_runtime_session_teardown_failure(detail: &str) -> ! {
     eprintln!(
         "fatal runtime session teardown failure: {detail}; aborting before dynamic library unload"
@@ -805,6 +826,20 @@ impl Drop for RuntimeFrame<'_> {
     }
 }
 
+fn status_code_label(code: ZrStatusCode) -> &'static str {
+    match code {
+        ZrStatusCode::Ok => "ok",
+        ZrStatusCode::Error => "error",
+        ZrStatusCode::UnsupportedVersion => "unsupported-version",
+        ZrStatusCode::InvalidArgument => "invalid-argument",
+        ZrStatusCode::NotFound => "not-found",
+        ZrStatusCode::CapabilityDenied => "capability-denied",
+        ZrStatusCode::BridgeNotEnabled => "bridge-not-enabled",
+        ZrStatusCode::Panic => "panic",
+        ZrStatusCode::LimitExceeded => "limit-exceeded",
+    }
+}
+
 fn ensure_status(status: ZrStatus, operation: &'static str) -> Result<(), RuntimeLibraryError> {
     if status.is_ok() {
         return Ok(());
@@ -820,17 +855,7 @@ fn ensure_status(status: ZrStatus, operation: &'static str) -> Result<(), Runtim
         ))
     })?;
     let diagnostics = String::from_utf8_lossy(diagnostics);
-    let code = match status.status_code() {
-        ZrStatusCode::Ok => "ok",
-        ZrStatusCode::Error => "error",
-        ZrStatusCode::UnsupportedVersion => "unsupported-version",
-        ZrStatusCode::InvalidArgument => "invalid-argument",
-        ZrStatusCode::NotFound => "not-found",
-        ZrStatusCode::CapabilityDenied => "capability-denied",
-        ZrStatusCode::BridgeNotEnabled => "bridge-not-enabled",
-        ZrStatusCode::Panic => "panic",
-        ZrStatusCode::LimitExceeded => "limit-exceeded",
-    };
+    let code = status_code_label(status.status_code());
     Err(RuntimeLibraryError::new(format!(
         "failed to {operation}: {code}: {diagnostics}"
     )))

@@ -538,6 +538,10 @@ pub(super) fn destroy_session_slot_with_timeout(
         slot.shutdown_until(destroy_deadline),
         super::session_owner::OwnerShutdownReceipt::Joined
     );
+    // When this session holds the last dynamic log lease, shutdown_until has
+    // already unpublished that generation. write_log then no-ops, which is why
+    // a clean final exit can omit destroy_shutdown_done without a crash. The
+    // host records teardown_destroy_done status=ok only after ZrStatus::ok.
     write_log("runtime_session", "destroy_shutdown_done");
 
     if !session_shutdown {
