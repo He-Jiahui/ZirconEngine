@@ -72,6 +72,14 @@ impl EditorState {
         self.asset_workspace.navigate_to_asset(asset_uuid)
     }
 
+    pub(crate) fn asset_locator_for_uuid(&self, asset_uuid: &str) -> Option<String> {
+        self.asset_workspace.asset_locator_for_uuid(asset_uuid)
+    }
+
+    pub(crate) fn asset_uuid_for_locator(&self, locator: &AssetUri) -> Option<String> {
+        self.asset_workspace.asset_uuid_for_locator(locator)
+    }
+
     pub(crate) fn asset_type_id_for_locator(&self, locator: &AssetUri) -> Option<AssetTypeId> {
         self.asset_workspace.asset_type_id_for_locator(locator)
     }

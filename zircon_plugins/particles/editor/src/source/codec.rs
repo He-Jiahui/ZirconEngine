@@ -70,20 +70,27 @@ impl ParticleSystemSource {
     /// Adopts legacy items without deriving identity from a mutable label, time or sorted index.
     /// Existing explicit keys are checked before any allocation and never reassigned.
     pub fn assign_missing_keys(&mut self) -> Result<usize, ParticleSourceError> {
+        reject_conflicting_explicit_keys(self)?;
         let mut used = BTreeSet::new();
-        for key in self.emitters.iter().flat_map(|e| {
-            e.key
+        for key in self.emitters.iter().flat_map(|emitter| {
+            emitter
+                .key
                 .iter()
-                .chain(e.bursts.iter().filter_map(|k| k.key.as_ref()))
-                .chain(e.color_over_lifetime.iter().filter_map(|k| k.key.as_ref()))
-                .chain(e.size_over_lifetime.iter().filter_map(|k| k.key.as_ref()))
+                .chain(emitter.bursts.iter().filter_map(|burst| burst.key.as_ref()))
+                .chain(
+                    emitter
+                        .color_over_lifetime
+                        .iter()
+                        .filter_map(|point| point.key.as_ref()),
+                )
+                .chain(
+                    emitter
+                        .size_over_lifetime
+                        .iter()
+                        .filter_map(|point| point.key.as_ref()),
+                )
         }) {
-            if key.trim().is_empty() || key.trim() != key || !used.insert(key.clone()) {
-                return Err(ParticleSourceError::invalid(
-                    "key",
-                    "keys must be nonempty and unique",
-                ));
-            }
+            used.insert(key.clone());
         }
         let mut assigned_keys = 0;
         for emitter in &mut self.emitters {
@@ -100,6 +107,54 @@ impl ParticleSystemSource {
         }
         Ok(assigned_keys)
     }
+}
+
+fn reject_conflicting_explicit_keys(
+    source: &ParticleSystemSource,
+) -> Result<(), ParticleSourceError> {
+    let mut emitter_keys = BTreeSet::new();
+    for emitter in &source.emitters {
+        let emitter_key =
+            accept_explicit_key(&mut emitter_keys, emitter.key.as_deref(), "emitters.key")?;
+        let path =
+            emitter_key.map_or_else(|| "emitters".to_string(), |key| format!("emitters[{key}]"));
+        let mut burst_keys = BTreeSet::new();
+        for burst in &emitter.bursts {
+            accept_explicit_key(
+                &mut burst_keys,
+                burst.key.as_deref(),
+                &format!("{path}.bursts.key"),
+            )?;
+        }
+        let mut size_keys = BTreeSet::new();
+        for point in &emitter.size_over_lifetime {
+            accept_explicit_key(
+                &mut size_keys,
+                point.key.as_deref(),
+                &format!("{path}.size_over_lifetime.key"),
+            )?;
+        }
+        let mut color_keys = BTreeSet::new();
+        for point in &emitter.color_over_lifetime {
+            accept_explicit_key(
+                &mut color_keys,
+                point.key.as_deref(),
+                &format!("{path}.color_over_lifetime.key"),
+            )?;
+        }
+    }
+    Ok(())
+}
+
+fn accept_explicit_key<'a>(
+    keys: &mut BTreeSet<&'a str>,
+    key: Option<&'a str>,
+    path: &str,
+) -> Result<Option<&'a str>, ParticleSourceError> {
+    let Some(key) = key else {
+        return Ok(None);
+    };
+    super::validation::require_key(keys, Some(key), path).map(Some)
 }
 
 fn assign(key: &mut Option<String>, prefix: &str, used: &mut BTreeSet<String>) -> bool {

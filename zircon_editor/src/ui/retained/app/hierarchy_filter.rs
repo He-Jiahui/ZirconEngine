@@ -1,7 +1,8 @@
 use std::borrow::Cow;
 use std::cell::RefCell;
+use std::collections::BTreeSet;
 
-use zircon_runtime::scene::WorldInspectionHierarchyRow;
+use zircon_runtime::scene::{NodeId, WorldInspectionHierarchyRow};
 
 use super::{HostInvalidationMask, RetainedEditorHost};
 use crate::ui::workbench::snapshot::SceneEntries;
@@ -23,24 +24,32 @@ impl SceneEntries {
         if query.is_empty() {
             return self.clone();
         }
-        FILTER_CACHE.with_borrow_mut(|cache| {
+        let name_rows = FILTER_CACHE.with_borrow_mut(|cache| {
             if let Some(cached) = cache.as_ref() {
                 if cached.source.shares_hierarchy_with(self)
                     && cached.source.inspection_generation() == self.inspection_generation()
                     && cached.query == query
                 {
-                    // Selection is a separate overlay and must remain current on a row-cache hit.
-                    return self.with_hierarchy_rows(cached.filtered.hierarchy_rows_arc());
+                    return cached.filtered.hierarchy_rows_arc();
                 }
             }
             let filtered = self.with_hierarchy_rows(hierarchy_entries_matching_query(self, query));
+            let rows = filtered.hierarchy_rows_arc();
             *cache = Some(HierarchyFilterCache {
                 source: self.clone(),
                 query: query.to_owned(),
-                filtered: filtered.clone(),
+                filtered,
             });
-            filtered
-        })
+            rows
+        });
+        // Name matches stay cached without selection. Selected entities that miss the
+        // query stay visible so the outliner and the viewport outline describe one selection.
+        let visible = if rows_cover_selection(&name_rows, self.selected_entities()) {
+            name_rows
+        } else {
+            hierarchy_entries_keeping_selection(self, &name_rows, self.selected_entities()).into()
+        };
+        self.with_hierarchy_rows(visible)
     }
 }
 
@@ -72,6 +81,45 @@ impl RetainedEditorHost {
             HostInvalidationMask::PRESENTATION_DATA.union(HostInvalidationMask::HIT_TEST),
         );
     }
+}
+
+fn rows_cover_selection(rows: &[WorldInspectionHierarchyRow], selected: &BTreeSet<NodeId>) -> bool {
+    selected
+        .iter()
+        .all(|entity| rows.iter().any(|row| row.entity == *entity))
+}
+
+fn hierarchy_entries_keeping_selection(
+    entries: &[WorldInspectionHierarchyRow],
+    name_matches: &[WorldInspectionHierarchyRow],
+    selected: &BTreeSet<NodeId>,
+) -> Vec<WorldInspectionHierarchyRow> {
+    let mut included = vec![false; entries.len()];
+    let mut matched = 0usize;
+    for (index, entry) in entries.iter().enumerate() {
+        if selected.contains(&entry.entity)
+            || name_matches.iter().any(|row| row.entity == entry.entity)
+        {
+            included[index] = true;
+            matched += 1;
+        }
+    }
+    if matched == 0 {
+        return Vec::new();
+    }
+    let parent_indices = hierarchy_parent_indices(entries);
+    for index in (0..entries.len()).rev() {
+        if included[index] {
+            if let Some(parent_index) = parent_indices[index] {
+                included[parent_index] = true;
+            }
+        }
+    }
+    entries
+        .iter()
+        .zip(included)
+        .filter_map(|(entry, included)| included.then(|| entry.clone()))
+        .collect()
 }
 
 fn hierarchy_entries_matching_query(

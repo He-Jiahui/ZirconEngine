@@ -89,8 +89,172 @@ fn connection_plan<'a>(
     })
 }
 
-pub(super) fn validate_types(graph: &MaterialGraphAsset) -> Result<(), MaterialGraphDiagnostic> {
-    analyze_types(graph.nodes.iter(), graph.links.iter(), None).map(|_| ())
+/// Reports every type mismatch that can be resolved from the current graph.
+///
+/// Structural problems stay with the graph contract. A missing math input, a
+/// duplicate id, or another diagnostic must not hide metallic, roughness, normal,
+/// or texture-math errors on pins whose source types are already known.
+pub(super) fn collect_type_diagnostics(
+    graph: &MaterialGraphAsset,
+    index: &super::MaterialGraphIndex<'_>,
+) -> Vec<MaterialGraphDiagnostic> {
+    let types = resolve_known_value_types(graph, index);
+    let mut diagnostics = Vec::new();
+    for node in &graph.nodes {
+        match &node.kind {
+            MaterialGraphNodeKindAsset::Add | MaterialGraphNodeKindAsset::Multiply => {
+                let op = if matches!(node.kind, MaterialGraphNodeKindAsset::Add) {
+                    "add"
+                } else {
+                    "multiply"
+                };
+                for pin in ["a", "b"] {
+                    let Some(link) = index.incoming_link(&node.id, pin) else {
+                        continue;
+                    };
+                    if types.get(link.from_node.as_str()).copied()
+                        == Some(MaterialGraphValueType::Texture)
+                    {
+                        diagnostics.push(MaterialGraphDiagnostic::input(
+                            &node.id,
+                            pin,
+                            format!(
+                                "material graph `{op}` node cannot combine texture-backed inputs in v1"
+                            ),
+                        ));
+                    }
+                }
+            }
+            MaterialGraphNodeKindAsset::Output => {
+                for pin in ["metallic", "roughness"] {
+                    let Some(link) = index.incoming_link(&node.id, pin) else {
+                        continue;
+                    };
+                    if matches!(
+                        types.get(link.from_node.as_str()).copied(),
+                        Some(MaterialGraphValueType::Vector | MaterialGraphValueType::Texture)
+                    ) {
+                        diagnostics.push(MaterialGraphDiagnostic::output(
+                            &link.from_node,
+                            &link.from_pin,
+                            scalar_output_message(&link.from_node, &node.id, pin),
+                        ));
+                    }
+                }
+                if let Some(link) = index.incoming_link(&node.id, "normal") {
+                    if index.node(&link.from_node).is_some_and(|source| {
+                        !matches!(
+                            source.kind,
+                            MaterialGraphNodeKindAsset::TextureSample { .. }
+                        )
+                    }) {
+                        diagnostics.push(MaterialGraphDiagnostic::input(
+                            &node.id,
+                            "normal",
+                            "material graph `normal` requires a texture sample in v1",
+                        ));
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    diagnostics
+}
+
+fn scalar_output_message(source: &str, output: &str, pin: &str) -> String {
+    format!("node `{source}` does not produce a scalar for `{output}.{pin}`")
+}
+
+fn resolve_known_value_types<'a>(
+    graph: &'a MaterialGraphAsset,
+    index: &super::MaterialGraphIndex<'a>,
+) -> BTreeMap<&'a str, MaterialGraphValueType> {
+    let mut degrees: BTreeMap<&str, usize> =
+        index.nodes.keys().copied().map(|id| (id, 0)).collect();
+    let mut outgoing: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
+    for link in &graph.links {
+        if link.from_node == link.to_node
+            || link.from_pin.trim().is_empty()
+            || link.to_pin.trim().is_empty()
+        {
+            continue;
+        }
+        let Some(source) = index.node(&link.from_node) else {
+            continue;
+        };
+        let Some(target) = index.node(&link.to_node) else {
+            continue;
+        };
+        if super::graph_contract::output_pin(&source.kind) != Some(link.from_pin.as_str())
+            || !super::graph_contract::has_input_pin(&target.kind, &link.to_pin)
+        {
+            continue;
+        }
+        let Some(first) = index.incoming_link(&link.to_node, &link.to_pin) else {
+            continue;
+        };
+        if !std::ptr::eq(first, link) {
+            continue;
+        }
+        if let Some(degree) = degrees.get_mut(link.to_node.as_str()) {
+            *degree += 1;
+            outgoing
+                .entry(link.from_node.as_str())
+                .or_default()
+                .push(link.to_node.as_str());
+        }
+    }
+    let mut ready: VecDeque<&str> = degrees
+        .iter()
+        .filter_map(|(id, degree)| (*degree == 0).then_some(*id))
+        .collect();
+    let mut types = BTreeMap::new();
+    while let Some(id) = ready.pop_front() {
+        let Some(node) = index.node(id) else {
+            continue;
+        };
+        let input_type = |pin: &str| {
+            index
+                .incoming_link(id, pin)
+                .and_then(|link| types.get(link.from_node.as_str()).copied())
+                .unwrap_or(MaterialGraphValueType::Undetermined)
+        };
+        let value_type = match &node.kind {
+            MaterialGraphNodeKindAsset::ScalarParameter { .. } => MaterialGraphValueType::Scalar,
+            MaterialGraphNodeKindAsset::VectorParameter { .. } => MaterialGraphValueType::Vector,
+            MaterialGraphNodeKindAsset::TextureSample { .. } => MaterialGraphValueType::Texture,
+            MaterialGraphNodeKindAsset::Add | MaterialGraphNodeKindAsset::Multiply => {
+                let a = input_type("a");
+                let b = input_type("b");
+                if a == MaterialGraphValueType::Texture || b == MaterialGraphValueType::Texture {
+                    None
+                } else if a == MaterialGraphValueType::Vector || b == MaterialGraphValueType::Vector
+                {
+                    Some(MaterialGraphValueType::Vector)
+                } else if a == MaterialGraphValueType::Scalar && b == MaterialGraphValueType::Scalar
+                {
+                    Some(MaterialGraphValueType::Scalar)
+                } else {
+                    Some(MaterialGraphValueType::Undetermined)
+                }
+            }
+            MaterialGraphNodeKindAsset::Output => None,
+        };
+        if let Some(value_type) = value_type {
+            types.insert(id, value_type);
+        }
+        for target in outgoing.get(id).into_iter().flatten() {
+            let Some(degree) = degrees.get_mut(target) else {
+                continue;
+            };
+            *degree = degree.saturating_sub(1);
+            if *degree == 0 {
+                ready.push_back(*target);
+            }
+        }
+    }
+    types
 }
 
 pub(super) fn resolved_node_types(
@@ -269,7 +433,7 @@ fn analyze_types<'a>(
                             return Err(MaterialGraphDiagnostic::output(
                                 &link.from_node,
                                 &link.from_pin,
-                                format!("node `{}` does not produce a scalar", link.from_node),
+                                scalar_output_message(&link.from_node, id, pin),
                             ));
                         }
                     }

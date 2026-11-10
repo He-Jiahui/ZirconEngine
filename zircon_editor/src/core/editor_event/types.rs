@@ -92,6 +92,7 @@ pub enum EditorAssetEvent {
     },
     ActivateReference {
         asset_uuid: String,
+        asset_locator: String,
     },
     SetSearchQuery {
         query: String,

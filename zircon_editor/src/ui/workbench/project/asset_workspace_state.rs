@@ -347,6 +347,18 @@ impl AssetWorkspaceState {
         true
     }
 
+    pub(crate) fn asset_locator_for_uuid(&self, asset_uuid: &str) -> Option<String> {
+        self.asset_record(asset_uuid)
+            .map(|record| record.locator.clone())
+    }
+
+    pub(crate) fn asset_uuid_for_locator(&self, locator: &AssetUri) -> Option<String> {
+        self.catalog
+            .as_ref()?
+            .asset_by_locator(&locator.to_string())
+            .map(|asset| asset.uuid.clone())
+    }
+
     pub fn navigate_to_asset(&mut self, asset_uuid: &str) -> bool {
         let Some(selected_folder_id) = self
             .asset_record(asset_uuid)

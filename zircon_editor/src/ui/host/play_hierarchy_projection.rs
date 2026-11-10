@@ -326,14 +326,11 @@ impl PlayHierarchyProjection {
         selection_revision: u64,
         selected_entities: &BTreeSet<EntityId>,
     ) -> Result<SceneInspectionHierarchyFragment, PlayHierarchyProjectionError> {
-        let focused_entity =
-            focused_entity.filter(|entity| rows.iter().any(|row| row.entity == *entity));
+        // Selection and focus stay with SelectionModel. Dropping entities that are
+        // absent from this row set made the outliner disagree with the viewport outline.
         let entries = SceneEntries::from_hierarchy_rows_at_generation(
-            rows.clone(),
-            selected_entities
-                .iter()
-                .copied()
-                .filter(|entity| rows.iter().any(|row| row.entity == *entity)),
+            rows,
+            selected_entities.iter().copied(),
             generation,
         );
         let message = SceneInspectionMessage::resync_with_selection_revision(

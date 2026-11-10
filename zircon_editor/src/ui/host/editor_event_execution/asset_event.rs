@@ -24,57 +24,7 @@ pub(super) fn execute_asset_event(
 ) -> Result<ExecutionOutcome, AssetEventExecutionError> {
     match event {
         EditorAssetEvent::OpenAsset { asset_locator } => {
-            let manager = controller.enter_editor_manager()?;
-            let mut shell = controller.shell().lock();
-            let asset_locator = match AssetUri::parse(asset_locator) {
-                Ok(asset_locator) => asset_locator,
-                Err(error) => {
-                    shell
-                        .state
-                        .set_status_line(format!("Invalid asset locator {asset_locator}: {error}"));
-                    return Ok(asset_effects(false, false, false));
-                }
-            };
-            let Some(asset_type) = shell.state.asset_type_id_for_locator(&asset_locator) else {
-                shell
-                    .state
-                    .set_status_line(format!("Asset type is not indexed for {asset_locator}"));
-                return Ok(asset_effects(false, false, false));
-            };
-            let registry = enabled_asset_types_for_shell(&mut shell, &manager)?;
-            let Some(definition) = registry.get(&asset_type) else {
-                return Err(AssetEventExecutionError::UnregisteredAssetType {
-                    asset_type: asset_type.clone(),
-                });
-            };
-            if let Some(toolkit) = definition.toolkit() {
-                let operation = {
-                    controller
-                        .commands()
-                        .lock()
-                        .command(toolkit.open_operation().as_str())
-                        .cloned()
-                }
-                .ok_or_else(|| {
-                    EditorCommandRegistryError::MissingCommand(toolkit.open_operation().clone())
-                })?;
-                let context = controller
-                    .command_eval_ctx_for_source(&EditorOperationSource::UiBinding)
-                    .map_err(crate::ui::host::EditorError::from)?;
-                EditorCommandRegistry::ensure_enabled(&operation, &context)?;
-                return open_asset_document_view(
-                    &mut shell,
-                    &manager,
-                    toolkit.view_id(),
-                    AssetToolkitOpenRoute::new(asset_locator, toolkit.open_operation().clone()),
-                    definition.presentation().display_name(),
-                    "Opened asset toolkit for",
-                );
-            }
-            shell
-                .state
-                .set_status_line(format!("No toolkit is registered for `{asset_type}`"));
-            Ok(asset_effects(false, false, false))
+            open_asset_at_locator(controller, asset_locator)
         }
         EditorAssetEvent::SelectFolder { folder_id } => {
             let mut shell = controller.shell().lock();
@@ -99,11 +49,10 @@ pub(super) fn execute_asset_event(
             let changed = shell.state.select_asset(Some(asset_uuid.clone()));
             Ok(asset_mutation_effects(changed, true, true))
         }
-        EditorAssetEvent::ActivateReference { asset_uuid } => {
-            let mut shell = controller.shell().lock();
-            let changed = shell.state.navigate_to_asset(asset_uuid);
-            Ok(asset_mutation_effects(changed, true, true))
-        }
+        EditorAssetEvent::ActivateReference {
+            asset_uuid,
+            asset_locator,
+        } => activate_asset_reference(controller, asset_uuid, asset_locator),
         EditorAssetEvent::SetSearchQuery { query } => {
             let mut shell = controller.shell().lock();
             let changed = shell.state.set_asset_search_query(query.clone());
@@ -228,6 +177,131 @@ pub(super) fn execute_asset_event(
             effects: vec![EditorEventEffect::ImportModelRequested],
         }),
     }
+}
+
+fn activate_asset_reference(
+    controller: &EditorHostEventController,
+    asset_uuid: &str,
+    asset_locator: &str,
+) -> Result<ExecutionOutcome, AssetEventExecutionError> {
+    let (navigated, locator) = {
+        let mut shell = controller.shell().lock();
+        let navigated = shell.state.navigate_to_asset(asset_uuid);
+        let locator = reference_open_locator(&shell.state, asset_uuid, asset_locator);
+        if locator.is_none() {
+            shell.state.set_status_line(format!(
+                "Asset reference `{asset_uuid}` is not in this project"
+            ));
+        }
+        (navigated, locator)
+    };
+    let Some(locator) = locator else {
+        return Ok(asset_effects(navigated, navigated, navigated));
+    };
+    match open_asset_at_locator(controller, &locator) {
+        Ok(outcome) => Ok(merge_reference_navigation(navigated, outcome)),
+        Err(error @ AssetEventExecutionError::UnregisteredAssetType { .. }) => {
+            let mut shell = controller.shell().lock();
+            shell.state.set_status_line(error.to_string());
+            Ok(asset_effects(navigated, navigated, navigated))
+        }
+        Err(error) => Err(error),
+    }
+}
+
+fn reference_open_locator(
+    state: &crate::ui::workbench::state::EditorState,
+    asset_uuid: &str,
+    hinted_locator: &str,
+) -> Option<String> {
+    if let Some(locator) = state.asset_locator_for_uuid(asset_uuid) {
+        return Some(locator);
+    }
+    let hinted_locator = hinted_locator.trim();
+    if hinted_locator.is_empty() {
+        return None;
+    }
+    let uri = AssetUri::parse(hinted_locator).ok()?;
+    match state.asset_uuid_for_locator(&uri) {
+        Some(owner) if owner == asset_uuid => Some(hinted_locator.to_string()),
+        Some(_) => None,
+        None => Some(hinted_locator.to_string()),
+    }
+}
+
+fn merge_reference_navigation(navigated: bool, mut outcome: ExecutionOutcome) -> ExecutionOutcome {
+    if !navigated {
+        return outcome;
+    }
+    outcome.changed = true;
+    for effect in [
+        EditorEventEffect::PresentationChanged,
+        EditorEventEffect::ReflectionChanged,
+        EditorEventEffect::AssetDetailsRefreshRequested,
+        EditorEventEffect::AssetPreviewRefreshRequested,
+    ] {
+        if !outcome.effects.contains(&effect) {
+            outcome.effects.push(effect);
+        }
+    }
+    outcome
+}
+
+fn open_asset_at_locator(
+    controller: &EditorHostEventController,
+    asset_locator: &str,
+) -> Result<ExecutionOutcome, AssetEventExecutionError> {
+    let manager = controller.enter_editor_manager()?;
+    let mut shell = controller.shell().lock();
+    let asset_locator = match AssetUri::parse(asset_locator) {
+        Ok(asset_locator) => asset_locator,
+        Err(error) => {
+            shell
+                .state
+                .set_status_line(format!("Invalid asset locator {asset_locator}: {error}"));
+            return Ok(asset_effects(false, false, false));
+        }
+    };
+    let Some(asset_type) = shell.state.asset_type_id_for_locator(&asset_locator) else {
+        shell
+            .state
+            .set_status_line(format!("Asset type is not indexed for {asset_locator}"));
+        return Ok(asset_effects(false, false, false));
+    };
+    let registry = enabled_asset_types_for_shell(&mut shell, &manager)?;
+    let Some(definition) = registry.get(&asset_type) else {
+        return Err(AssetEventExecutionError::UnregisteredAssetType {
+            asset_type: asset_type.clone(),
+        });
+    };
+    if let Some(toolkit) = definition.toolkit() {
+        let operation = {
+            controller
+                .commands()
+                .lock()
+                .command(toolkit.open_operation().as_str())
+                .cloned()
+        }
+        .ok_or_else(|| {
+            EditorCommandRegistryError::MissingCommand(toolkit.open_operation().clone())
+        })?;
+        let context = controller
+            .command_eval_ctx_for_source(&EditorOperationSource::UiBinding)
+            .map_err(crate::ui::host::EditorError::from)?;
+        EditorCommandRegistry::ensure_enabled(&operation, &context)?;
+        return open_asset_document_view(
+            &mut shell,
+            &manager,
+            toolkit.view_id(),
+            AssetToolkitOpenRoute::new(asset_locator, toolkit.open_operation().clone()),
+            definition.presentation().display_name(),
+            "Opened asset toolkit for",
+        );
+    }
+    shell
+        .state
+        .set_status_line(format!("No toolkit is registered for `{asset_type}`"));
+    Ok(asset_effects(false, false, false))
 }
 
 fn open_asset_document_view(
