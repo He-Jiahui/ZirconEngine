@@ -9,7 +9,6 @@ related_records:
 implementation_files:
   - zircon_editor/src/scene/viewport/edit_mode_projection/build.rs
 tests:
-  - zircon_editor/src/scene/viewport/edit_mode_projection/build/field_capacity_tests.rs
 ---
 
 # Editor883 Scene Inspector Field Capacity

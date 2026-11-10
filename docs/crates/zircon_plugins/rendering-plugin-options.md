@@ -160,16 +160,16 @@ tests:
   - zircon_runtime/src/graphics/scene/renderer/mesh/prepared_queue.rs::tests::prepared_queue_stats_count_gpu_skinned_motion_vectors_with_previous_palette
   - zircon_runtime/src/graphics/scene/gpu_scene/prev_transform.rs::tests::object_motion_history_keeps_dynamic_skinned_pose_sideband
   - zircon_runtime/src/graphics/runtime/viewport_record/motion_vector_camera.rs::tests::successful_submit_records_dynamic_object_history_for_next_frame
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs::tests::skinned_gpu_source_candidate_requires_palette
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs::tests::previous_palette_morph_weights_accept_matching_active_shared_source_weights
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs::tests::previous_palette_morph_weights_reject_changed_active_weights
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs::tests::skinned_gpu_source_candidate_requires_palette
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs::tests::previous_palette_morph_weights_accept_matching_active_shared_source_weights
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs::tests::previous_palette_morph_weights_reject_changed_active_weights
   - zircon_runtime/src/graphics/scene/mesh/build_mesh_draws/create_mesh_draw.rs::tests::model_uniform_appends_motion_and_skinning_flags_without_moving_existing_fields
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::joint_palette_composes_pose_world_against_bind_world_matrices
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::joint_palette_reports_missing_parent_bone_reference
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::joint_palette_uniform_packs_gpu_matrices_and_count
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::joint_palette_uniform_rejects_current_uniform_limit_overflow
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::prepared_skinned_model_primitive_keeps_cpu_skinning_when_palette_exceeds_uniform_limit
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::prepare_skinned_mesh_asset_primitive_keeps_morphed_shader_source_before_cpu_skinning
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs::tests::joint_palette_composes_pose_world_against_bind_world_matrices
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs::tests::joint_palette_reports_missing_parent_bone_reference
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs::tests::joint_palette_uniform_packs_gpu_matrices_and_count
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs::tests::joint_palette_uniform_rejects_current_uniform_limit_overflow
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs::tests::prepared_skinned_model_primitive_keeps_cpu_skinning_when_palette_exceeds_uniform_limit
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs::tests::prepare_skinned_mesh_asset_primitive_keeps_morphed_shader_source_before_cpu_skinning
   - zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_exposes_skinning_vertex_channels
   - zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_exposes_object_motion_vector_entries
   - zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_executes_skinned_joint_palette_behind_draw_flag

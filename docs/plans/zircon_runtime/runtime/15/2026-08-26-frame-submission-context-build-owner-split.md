@@ -13,10 +13,6 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 tests:
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build/tests.rs::frame_submission_context_build_root_remains_a_declarative_orchestration_owner
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build/tests.rs::context_build_moves_owned_viewport_and_virtual_geometry_payloads
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build/tests.rs::post_process_mutation_reborrows_before_building_the_view_family
-  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build/tests.rs::submission_view_family_preserves_the_selected_camera_viewport_rect
   - rustfmt --edition 2021 --check
   - git diff --check
 doc_type: milestone-detail

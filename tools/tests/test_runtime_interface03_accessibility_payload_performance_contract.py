@@ -4,7 +4,7 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "zircon_runtime_interface/src/ui/window/runtime_event_adapter.rs"
-BENCH = ROOT / "zircon_runtime_interface/src/ui/window/runtime_event_adapter/tests/accessibility_payload_performance_tests.rs"
+BENCH = ROOT / "zircon_runtime_interface/src/ui/window/tests/accessibility_payload_perf.rs"
 
 
 class RuntimeInterface03AccessibilityPayloadPerformanceContract(unittest.TestCase):
@@ -14,8 +14,8 @@ class RuntimeInterface03AccessibilityPayloadPerformanceContract(unittest.TestCas
         end = source.index("\n}\n", start) + len("\n}")
         body = source[start:end]
 
-        self.assertIn("checked_slice", body)
-        self.assertIn("ZR_RUNTIME_EVENT_PAYLOAD_MAX_ENCODED_BYTES_V1", body)
+        self.assertIn("let payload = event.payload;", body)
+        self.assertNotIn("checked_slice", body)
         self.assertNotIn("payload_bytes", body)
         self.assertNotIn("to_vec", body)
         self.assertIn("serde_json::from_slice::<UiAccessibilityActionRequest>(payload)", body)

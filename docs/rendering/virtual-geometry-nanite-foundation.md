@@ -181,7 +181,6 @@ tests:
   - zircon_runtime/src/asset/tests/virtual_geometry_cook.rs
   - zircon_runtime/src/asset/tests/assets/model.rs
   - zircon_runtime/src/asset/tests/pipeline/manager.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build_mesh_draw_build_context.rs
   - zircon_runtime/src/graphics/runtime/extract/submit/build_runtime_frame.rs
   - zircon_plugins/virtual_geometry/runtime/src/geometry/tests/selection_filter.rs
   - zircon_plugins/virtual_geometry/runtime/src/geometry/tests/seed_backed_ranges.rs
@@ -923,7 +922,6 @@ This slice is locked by two focused tests:
 - `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs`
   - proves the runtime-frame overlay path consumes prepare-owned same-frame visbuffer marks and still follows the prepare-time unified draw fallback when the stored snapshot is still empty
   - proves the same module-local reconstruction stays disabled when `visualize_visbuffer` is false
-- `zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build_mesh_draw_build_context.rs`
   - proves mesh-build assembly now accepts frame-owned VG cluster raster input without direct prepare access, preserving allowed-entity gating and per-entity draw ownership from the new runtime-frame seam
 - `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/store_last_runtime_outputs.rs`
   - proves the stored renderer-owned snapshot re-authoritatively rebuilds `selected_clusters` from `execution_segments` when submission-build selection was broader than the real execution subset

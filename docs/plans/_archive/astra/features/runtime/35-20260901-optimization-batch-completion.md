@@ -63,7 +63,6 @@ related_code:
   - zircon_runtime/src/graphics/shader/template/module_registry.rs
 tests:
   - zircon_runtime/src/core/runtime/diagnostics/profiling/ui_hotspot/tests/mod.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/gpu_scene_sync/optimization_batch_ip_runtime626_tests.rs
 ---
 
 # Runtime September Micro-Optimization Completion
