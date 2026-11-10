@@ -29,7 +29,9 @@ pub(crate) mod product_shutdown;
 mod runtime_entry_app;
 #[path = "runtime_library/mod.rs"]
 pub(crate) mod runtime_library;
-pub use runtime_library::{retry_runtime_startup_cleanup, RuntimeSessionCreateFailure};
+pub use runtime_library::{
+    retry_runtime_startup_cleanup, runtime_module_unload_receipt, RuntimeSessionCreateFailure,
+};
 #[cfg(any(feature = "platform-winit", feature = "diagnostic-log"))]
 #[path = "runtime_product_proof.rs"]
 mod runtime_product_proof;

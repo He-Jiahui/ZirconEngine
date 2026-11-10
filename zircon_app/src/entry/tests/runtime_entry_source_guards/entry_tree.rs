@@ -91,6 +91,7 @@ fn entry_subsystem_is_split_into_builtin_modules_run_modes_and_runtime_app_tree(
         "runtime_entry_app/window_surface/native_target.rs",
         "runtime_library/mod.rs",
         "runtime_library/loaded_runtime.rs",
+        "runtime_library/loaded_runtime/module_pin.rs",
         "runtime_library/runtime_session.rs",
         "tests/mod.rs",
         "tests/runtime_entry_device_guards/mod.rs",

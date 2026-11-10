@@ -112,8 +112,12 @@ fn dynamic_session_shutdown_keeps_mirrors_before_core_and_process_log_last() {
         .unwrap();
     let core = body.find("shutdown_runtime_core_until(").unwrap();
     let log = body.find("process_log.shutdown_until(deadline)").unwrap();
+    let release_marker = body
+        .find("\"destroy_shutdown_log_release_start\"")
+        .expect("last-session log release marker");
     assert!(mirrors < core);
-    assert!(core < log);
+    assert!(core < release_marker);
+    assert!(release_marker < log);
 }
 
 #[test]

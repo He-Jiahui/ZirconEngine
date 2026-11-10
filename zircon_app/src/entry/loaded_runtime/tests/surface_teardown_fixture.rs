@@ -281,9 +281,12 @@ pub(in crate::entry) fn with_runtime(
         None
     };
     let runtime = LoadedRuntime {
-        _library: libloading::os::windows::Library::this()
-            .expect("pin the fixture callback module")
-            .into(),
+        _library: Some(super::module_pin::SealedDynamicLibrary::seal(
+            libloading::os::windows::Library::this()
+                .expect("pin the fixture callback module")
+                .into(),
+            install_provider_api::<0> as *const (),
+        )),
         _artifact_manifest: None,
         api,
         size_bytes: validated.size_bytes,

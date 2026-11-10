@@ -67,7 +67,9 @@ pub use plugins::{
 };
 
 #[cfg(feature = "native-host")]
-pub use entry::{retry_runtime_startup_cleanup, RuntimeSessionCreateFailure};
+pub use entry::{
+    retry_runtime_startup_cleanup, runtime_module_unload_receipt, RuntimeSessionCreateFailure,
+};
 
 #[cfg(test)]
 #[path = "tests/mod.rs"]
