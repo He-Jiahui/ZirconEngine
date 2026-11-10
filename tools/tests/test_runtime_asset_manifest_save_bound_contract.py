@@ -17,25 +17,31 @@ class RuntimeAssetManifestSaveBoundContractTests(unittest.TestCase):
             "ProjectManifestSummaryError, MAX_PROJECT_MANIFEST_BYTES,",
             source,
         )
-        validation = source.index("self.validate()?;")
-        serialization = source.index("serialize_current_project_manifest(self)")
-        size_guard = source.index("if document.len() > MAX_PROJECT_MANIFEST_BYTES")
-        typed_error = source.index("ProjectManifestSummaryError::DocumentTooLarge")
-        atomic_replace = source.index("atomic_write_with_fault(")
+        admission = source.split("fn to_current_format_bytes", 1)[1].split("fn serialize_current_project_manifest", 1)[0]
+        writer = source.split("fn save_with_atomic_fault", 1)[1].split("fn to_current_format_bytes", 1)[0]
+        validation = admission.index("self.validate()?;")
+        serialization = admission.index("serialize_current_project_manifest(self)")
+        size_guard = admission.index("if document.len() > MAX_PROJECT_MANIFEST_BYTES")
+        typed_error = admission.index("ProjectManifestSummaryError::DocumentTooLarge")
+        prepared = writer.index("to_current_format_bytes()?")
+        atomic_replace = writer.index("atomic_write_with_fault(")
 
         self.assertLess(validation, serialization)
         self.assertLess(serialization, size_guard)
         self.assertLess(size_guard, typed_error)
-        self.assertLess(typed_error, atomic_replace)
+        self.assertLess(prepared, atomic_replace)
         self.assertNotIn("unwrap_or(now)", source)
 
     def test_save_regression_covers_exact_limit_plus_one_and_destination_preservation(self) -> None:
-        source = SAVE.read_text(encoding="utf-8")
+        source = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in (SAVE, SAVE.parent / "tests/save_source_integrity_tests.rs")
+        )
 
         for anchor in (
             "manifest_save_accepts_exact_limit_and_rejects_limit_plus_one_before_replace",
             'manifest.asset_manifest = Some("a".repeat(MAX_PROJECT_MANIFEST_BYTES - fixed_len))',
-            "assert_eq!(\n            serialize_current_project_manifest(&manifest).unwrap().len(),\n            MAX_PROJECT_MANIFEST_BYTES\n        );",
+            "serialize_current_project_manifest(&manifest).unwrap().len()",
             "manifest.save(&exact_path).unwrap();",
             "let loaded = ProjectManifest::load(&exact_path).unwrap();",
             ".push('a');",

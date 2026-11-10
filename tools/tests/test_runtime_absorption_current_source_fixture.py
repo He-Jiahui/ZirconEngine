@@ -22,6 +22,9 @@ EXPECTED_CONSUMERS = {
     'contracts/input_stack/split_layout.rs',
     'contracts/naming_boundary/split_layout.rs',
     'contracts/review/plugin_importer_dx/d10_bridge_call.rs',
+    'review/d1_capability_single_source/split_layout.rs',
+    'review/plugin_importer_dx/d11_test_runtime_fixture.rs',
+    'review/plugin_importer_dx/d5_editor_authoring.rs',
     'contracts/root_entries/module_families/split_layout.rs',
     'contracts/script_binding/split_layout.rs',
     'contracts/tech_stack/split_layout.rs',
@@ -184,7 +187,7 @@ class RuntimeAbsorptionCurrentSourceFixtureTests(unittest.TestCase):
             if path != FIXTURE_OWNER and f"::{FIXTURE_SYMBOL}()" in source:
                 consumers.add(path.relative_to(RUNTIME_TEST_ROOT).as_posix())
         self.assertEqual(EXPECTED_CONSUMERS, consumers)
-        self.assertEqual(12, len(consumers))
+        self.assertEqual(15, len(consumers))
         self.assertFalse(
             (RUNTIME_ABSORPTION_ROOT / "plan_status").exists(),
             "the retired status tree must not be restored for fixture consumers",
