@@ -80,7 +80,7 @@ fn ibl_bake_compute_dispatch_records_match_graph_plan_workloads() {
     let iem = compute_dispatch_by_pass(&record, IBL_BAKE_IRRADIANCE_CUBE_PASS);
     assert_eq!(
         pmrem_mip0.storage_write_resources,
-        [IBL_BAKE_PMREM_RESOURCE.to_string()]
+        [crate::graphics::RenderReportLabel::from(IBL_BAKE_PMREM_RESOURCE)]
     );
     assert_eq!(pmrem_mip0.dispatch_groups, [16, 16, 6]);
     assert_eq!(pmrem_mip7.dispatch_groups, [1, 1, 1]);

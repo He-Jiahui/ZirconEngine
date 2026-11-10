@@ -277,7 +277,7 @@ fn generic_executor_records_fixed_storage_dispatch() {
     assert_eq!(dispatches[0].dispatch_groups, [4, 1, 1]);
     assert_eq!(
         dispatches[0].storage_write_resources,
-        ["output".to_string()]
+        [crate::graphics::RenderReportLabel::from("output")]
     );
     drop(context);
     backend.queue.submit([encoder.finish()]);
@@ -479,7 +479,7 @@ fn generic_executor_records_indirect_storage_dispatch() {
     assert_eq!(dispatches[0].dispatch_groups, [0, 1, 1]);
     assert_eq!(
         dispatches[0].storage_write_resources,
-        ["indirect-output".to_string()]
+        [crate::graphics::RenderReportLabel::from("indirect-output")]
     );
     drop(context);
     backend.queue.submit([encoder.finish()]);

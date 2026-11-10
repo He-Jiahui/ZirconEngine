@@ -1,4 +1,9 @@
 use super::*;
+use crate::core::editing::context::CoreEditContext;
+use crate::core::editing::engine::{EditCommandError, HistoryContextId};
+use crate::core::editing::selection::SceneSelection;
+use crate::core::editor_operation::EditorOperationInvocation;
+use zircon_runtime::scene::{NodeId, Scene};
 use crate::core::commands::EditorCommandRegistry;
 use crate::core::editing::engine::{
     EditorTransactionEngine, HistoryRetentionBudgetV1, HistoryRetentionDomainV1,

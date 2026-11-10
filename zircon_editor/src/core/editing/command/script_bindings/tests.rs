@@ -1,4 +1,9 @@
 use super::*;
+use super::super::EditorCommand;
+use crate::core::editing::context::CoreEditContext;
+use crate::core::editing::selection::SceneSelection;
+use zircon_runtime::asset::SceneScriptBindingAsset;
+use zircon_runtime::scene::{NodeId, Scene};
 use crate::core::commands::EditorCommandRegistry;
 use crate::core::editing::engine::{
     EditCommandCodecRegistry, EditorTransactionEngine, HistoryContextId, TransactionJournal,

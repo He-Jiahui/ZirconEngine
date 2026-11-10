@@ -300,7 +300,9 @@ fn graph_context_records_pmrem_wgpu_dispatch_from_materialized_resources() {
     assert_eq!(records[0].dispatch_groups, pmrem_base_dispatch);
     assert_eq!(
         records[0].storage_write_resources,
-        [super::super::ibl_bake_graph_plan::IBL_BAKE_PMREM_RESOURCE.to_string()]
+        [crate::graphics::RenderReportLabel::from(
+            super::super::ibl_bake_graph_plan::IBL_BAKE_PMREM_RESOURCE,
+        )]
     );
 }
 
@@ -320,7 +322,9 @@ fn graph_context_records_sh9_wgpu_dispatch_from_materialized_resources() {
     assert_eq!(records[0].dispatch_groups, [1, 1, 1]);
     assert_eq!(
         records[0].storage_write_resources,
-        [super::super::ibl_bake_graph_plan::IBL_BAKE_IRRADIANCE_SH9_RESOURCE.to_string()]
+        [crate::graphics::RenderReportLabel::from(
+            super::super::ibl_bake_graph_plan::IBL_BAKE_IRRADIANCE_SH9_RESOURCE,
+        )]
     );
 }
 
@@ -340,7 +344,9 @@ fn graph_context_records_iem_wgpu_dispatch_from_materialized_resources() {
     assert_eq!(records[0].dispatch_groups, [4, 4, 6]);
     assert_eq!(
         records[0].storage_write_resources,
-        [super::super::ibl_bake_graph_plan::IBL_BAKE_IRRADIANCE_CUBE_RESOURCE.to_string()]
+        [crate::graphics::RenderReportLabel::from(
+            super::super::ibl_bake_graph_plan::IBL_BAKE_IRRADIANCE_CUBE_RESOURCE,
+        )]
     );
 }
 

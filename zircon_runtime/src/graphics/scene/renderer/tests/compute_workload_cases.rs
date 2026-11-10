@@ -63,7 +63,7 @@ fn execution_record_tracks_compute_dispatch_metadata() {
     assert_eq!(record.compute_storage_write_resource_count(), 2);
     assert_eq!(
         record.compute_dispatches()[0].storage_write_resources,
-        ["ambient-occlusion".to_string()]
+        [crate::graphics::RenderReportLabel::from("ambient-occlusion")]
     );
     assert_eq!(record.compute_dispatches()[1].resource_accesses.len(), 1);
     assert_eq!(
