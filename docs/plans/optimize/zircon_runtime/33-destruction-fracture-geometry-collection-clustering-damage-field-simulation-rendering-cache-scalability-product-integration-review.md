@@ -22,7 +22,6 @@ tests:
   - zircon_runtime/src/scene/tests/physics_animation_components.rs
   - zircon_plugins/physics/runtime/src/backend/tests
   - zircon_plugins/physics/runtime/tests/physics_manager_runtime_contract.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance/tests.rs
   - zircon_runtime/src/graphics/tests/visibility.rs
 plan_sources:
   - docs/plans/optimize/00-engine-wide-review.md

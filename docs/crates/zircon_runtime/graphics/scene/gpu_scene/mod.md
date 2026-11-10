@@ -128,8 +128,8 @@ tests:
   - zircon_runtime/src/graphics/scene/gpu_scene/binding.rs::tests::render_gpu_scene_bind_group_layout_reserves_storage_and_palette_bindings
   - cargo test -p zircon_runtime --lib --target-dir E:\cargo-targets\zircon-plan08-support-repair-0630 render_gpu_scene_bind_group_layout_reserves_storage_and_palette_bindings -- --nocapture --test-threads=1 (2026-06-30 Plan 08 HZB/material-pass staged-cache support repair: passed, 1/1; confirms 9 compute-visible GPUScene storage buffers for the 15-slot HZB limit gate)
   - zircon_runtime/src/graphics/scene/gpu_scene/morph.rs::tests::render_gpu_scene_uploads_morph_storage_buffers
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/morph_payload_upload.rs::tests::morph_payload_projection_keeps_active_position_deltas_and_weights
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/morph_payload_upload.rs::tests::morph_payload_projection_keeps_normal_tangent_and_color_delta_rows
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/morph_payload_upload.rs::tests::morph_payload_projection_keeps_active_position_deltas_and_weights
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/morph_payload_upload.rs::tests::morph_payload_projection_keeps_normal_tangent_and_color_delta_rows
   - zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_declares_gpu_scene_group
   - zircon_runtime/src/graphics/scene/mesh/mesh_pipeline_cache/shader_source.rs::tests::mesh_pipeline_shadow_template_source_uses_shadow_pass_surface_only_when_alpha_masked
   - zircon_runtime/src/graphics/mesh/mesh_pipeline/fallback_mesh_shader_source.rs::tests::fallback_mesh_shader_reads_gpu_scene_instance_data

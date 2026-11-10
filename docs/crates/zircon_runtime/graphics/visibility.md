@@ -182,8 +182,7 @@ tests:
   - zircon_runtime/src/graphics/runtime/framework/extract/update_stats/base_stats.rs::tests::update_visibility_stats_sums_per_view_culling_counts
   - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/processors/mod.rs::tests::processors_keep_shadow_candidate_when_main_view_layer_filters_mesh
   - zircon_runtime/src/graphics/scene/renderer/mesh/mesh_pass/processors/mod.rs::tests::shadow_processor_respects_shadow_view_visibility
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs::tests::mesh_visibility_states_preserve_shadow_only_casters
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/phase_ordering.rs::tests::phase_ordered_meshes_filter_meshes_by_selected_camera_layers
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/phase_ordering.rs::tests::phase_ordered_meshes_filter_meshes_by_selected_camera_layers
   - cargo test -p zircon_runtime --lib primitive_relevance --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan09-relevance-typed-layer-0623 --message-format short --color never -- --test-threads=1 --nocapture (timed out in the tool window; no pass evidence)
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan09-relevance-typed-layer-0623-check --message-format short --color never (blocked before compilation by current Cargo.lock drift)
   - cargo test -p zircon_runtime --lib visibility_batch_key_preserves_layers_above_legacy_mask_width --no-default-features --features core-min --locked --jobs 1 --target-dir target\codex-plan09-visibility-batch-typed-layer-0623 --message-format short --color never -- --test-threads=1 --nocapture (blocked before compilation by current Cargo.lock drift)
