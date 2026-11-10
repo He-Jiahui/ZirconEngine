@@ -8,7 +8,9 @@ from __future__ import annotations
 from pathlib import Path
 import subprocess
 
-BASELINE = "4f1ec91205d32c90a211b0ad060b6968eedd09a0"
+# Trunk aa73011a1 already contains the inline-test modules and long paths that
+# accumulated after 4f1ec912. Later declarations still fail against this tree.
+BASELINE = "aa73011a10ecf21069e1ef461a59766ce8f1f37c"
 
 
 def baseline_sources(root: Path, paths: list[str]) -> tuple[set[str], dict[str, str]]:
