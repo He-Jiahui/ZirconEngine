@@ -7,7 +7,7 @@ INPUT_MOD_DECLARATIONS = (
     "mod runtime;",
     "pub use crate::core::framework::input::INPUT_MODULE_NAME;",
     "pub use crate::core::framework::input::{",
-    "DefaultInputActionManager, DefaultInputManager, InputActionEvaluator, InputDriver,",
+    "DefaultInputActionManager, DefaultInputManager, InputActionEvaluator, InputAttachment,",
 )
 RUNTIME_MOD_DECLARATIONS = (
     "mod action_evaluator;",
@@ -38,12 +38,13 @@ FRAMEWORK_MOD_DECLARATIONS = (
     "mod input_action_manager;",
     "mod input_action_map;",
     "mod input_action_state;",
+    "mod input_batch;",
     "mod input_binding;",
     "mod input_event;",
     "mod input_frame_snapshot;",
     "mod input_manager;",
     "mod module_identity;",
-    "pub use input_manager::InputManager;",
+    "InputManager, QueuedGamepadRumbleRequest,",
     "pub use module_identity::INPUT_MODULE_NAME;",
 )
 INPUT_PRELUDE_ANCHORS = (
@@ -180,7 +181,7 @@ RUNTIME_12_DOC_ANCHORS = (
 )
 RUNTIME_12_TEST_ANCHORS = (
     "input_snapshot_just_pressed_is_true_for_exactly_one_frame",
-    "frame_input_clears_after_level_tick_not_before",
+    "tick_frame_drives_loaded_level_before_clearing_frame_input",
     "action_map_resolves_chords_and_reports_just_activated",
     "replacing_action_map_rebuilds_bindings_automatically",
     "action_contexts_filter_gameplay_and_menu_maps_without_rebinding",
