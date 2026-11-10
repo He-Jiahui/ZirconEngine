@@ -23,8 +23,12 @@ pub fn dispatch_asset_binding(
         AssetCommand::SelectItem { asset_uuid } => Ok(AssetHostEvent::SelectItem {
             asset_uuid: asset_uuid.clone(),
         }),
-        AssetCommand::ActivateReference { asset_uuid } => Ok(AssetHostEvent::ActivateReference {
+        AssetCommand::ActivateReference {
+            asset_uuid,
+            asset_locator,
+        } => Ok(AssetHostEvent::ActivateReference {
             asset_uuid: asset_uuid.clone(),
+            asset_locator: asset_locator.clone(),
         }),
         AssetCommand::SetSearchQuery { query } => Ok(AssetHostEvent::SetSearchQuery {
             query: query.clone(),

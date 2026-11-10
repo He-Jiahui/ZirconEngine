@@ -64,34 +64,56 @@ fn material_graph_unknown_pin_targets_its_node_without_inventing_a_pin() {
         .target,
         input("output", "base_color"),
     );
+    assert!(diagnostics
+        .iter()
+        .all(|entry| !entry.message.contains("base_color input is disconnected")));
 }
 
 #[test]
-fn material_graph_ambiguous_and_empty_node_ids_never_become_jump_targets() {
-    for id in ["tint", "   "] {
-        let mut graph = graph();
-        add_node(&mut graph, id, Node::Add);
-        let diagnostics = validate_material_graph_with_diagnostics(&graph);
-        for pin in ["a", "b"] {
-            assert_eq!(
-                diagnostic(
-                    &diagnostics,
-                    &format!("material graph node `{id}` is missing required input `{pin}`")
-                )
-                .target,
-                Target::Graph,
-            );
-        }
-        let identity_message = if id == "tint" {
-            "material graph has duplicate node `tint`"
-        } else {
-            "material graph node id must not be empty"
-        };
+fn material_graph_duplicate_ids_keep_pin_targets_and_empty_ids_stay_distinct() {
+    let mut duplicate = graph();
+    add_node(&mut duplicate, "tint", Node::Add);
+    let diagnostics = validate_material_graph_with_diagnostics(&duplicate);
+    for pin in ["a", "b"] {
         assert_eq!(
-            diagnostic(&diagnostics, identity_message).target,
-            Target::Graph
+            diagnostic(
+                &diagnostics,
+                &format!("material graph node `tint` is missing required input `{pin}`"),
+            )
+            .target,
+            input("tint", pin),
         );
     }
+    assert_eq!(
+        diagnostic(&diagnostics, "material graph has duplicate node `tint`").target,
+        Target::Graph,
+    );
+
+    let mut blank = graph();
+    add_node(&mut blank, "   ", Node::Add);
+    add_node(&mut blank, "", Node::Add);
+    let diagnostics = validate_material_graph_with_diagnostics(&blank);
+    for (id, pin) in [("   ", "a"), ("   ", "b"), ("", "a"), ("", "b")] {
+        assert_eq!(
+            diagnostic(
+                &diagnostics,
+                &format!("material graph node `{id}` is missing required input `{pin}`"),
+            )
+            .target,
+            input(id, pin),
+        );
+    }
+    let empty_ids: Vec<_> = diagnostics
+        .iter()
+        .filter(|entry| entry.message.contains("has an empty id"))
+        .collect();
+    assert_eq!(empty_ids.len(), 2);
+    assert!(empty_ids
+        .iter()
+        .any(|entry| { entry.message.contains("index 2") && entry.target == node("   ") }));
+    assert!(empty_ids
+        .iter()
+        .any(|entry| entry.message.contains("index 3") && entry.target == node("")));
 }
 
 #[test]
@@ -115,6 +137,9 @@ fn material_graph_missing_source_does_not_invent_a_node_but_keeps_real_input() {
         .target,
         input("output", "base_color"),
     );
+    assert!(diagnostics.iter().all(|entry| !entry
+        .message
+        .contains("missing required input `base_color`")));
 }
 
 #[test]
@@ -202,7 +227,7 @@ fn material_graph_parameter_override_locations_use_map_keys() {
 fn material_graph_scalar_type_failure_points_to_real_source_output() {
     let mut graph = graph();
     let candidate = link("tint", "value", "output", "metallic");
-    let message = "node `tint` does not produce a scalar";
+    let message = "node `tint` does not produce a scalar for `output.metallic`";
     assert_eq!(
         can_connect_material_graph(&graph, &candidate).unwrap_err(),
         message
@@ -313,10 +338,116 @@ fn material_graph_cycle_remains_graph_level_without_guessing_a_failing_node() {
     assert_eq!(
         compile_material_graph_with_diagnostics(&graph).unwrap_err(),
         vec![MaterialGraphDiagnostic {
-            message: "material graph contains a cycle".into(),
+            message: "material graph contains a cycle involving `math`".into(),
             target: Target::Graph,
         }]
     );
+}
+
+#[test]
+fn material_graph_type_errors_are_not_hidden_by_another_diagnostic() {
+    let mut graph = graph();
+    add_node(&mut graph, "math", Node::Add);
+    graph.links.push(link("tint", "value", "math", "a"));
+    graph
+        .links
+        .push(link("tint", "value", "output", "metallic"));
+    graph
+        .links
+        .push(link("tint", "value", "output", "roughness"));
+    graph.links.push(link("tint", "value", "output", "normal"));
+    let diagnostics = validate_material_graph_with_diagnostics(&graph);
+    assert_eq!(
+        diagnostic(
+            &diagnostics,
+            "material graph node `math` is missing required input `b`",
+        )
+        .target,
+        input("math", "b"),
+    );
+    assert_eq!(
+        diagnostic(
+            &diagnostics,
+            "node `tint` does not produce a scalar for `output.metallic`",
+        )
+        .target,
+        Target::Output {
+            node_id: "tint".into(),
+            pin_name: "value".into(),
+        },
+    );
+    assert_eq!(
+        diagnostic(
+            &diagnostics,
+            "node `tint` does not produce a scalar for `output.roughness`",
+        )
+        .target,
+        Target::Output {
+            node_id: "tint".into(),
+            pin_name: "value".into(),
+        },
+    );
+    assert_eq!(
+        diagnostic(
+            &diagnostics,
+            "material graph `normal` requires a texture sample in v1",
+        )
+        .target,
+        input("output", "normal"),
+    );
+}
+
+#[test]
+fn material_graph_empty_pins_keep_distinct_pin_targets() {
+    let mut graph = graph();
+    graph.links.push(link("tint", "", "output", "metallic"));
+    graph.links.push(link("tint", "value", "output", ""));
+    let diagnostics = validate_material_graph_with_diagnostics(&graph);
+    assert_eq!(
+        diagnostic(
+            &diagnostics,
+            "material graph link 1 from `tint` has an empty output pin",
+        )
+        .target,
+        Target::Output {
+            node_id: "tint".into(),
+            pin_name: String::new(),
+        },
+    );
+    assert_eq!(
+        diagnostic(
+            &diagnostics,
+            "material graph link 2 to `output` has an empty input pin",
+        )
+        .target,
+        input("output", ""),
+    );
+}
+
+#[test]
+fn material_graph_compile_operation_keeps_repeated_messages_at_distinct_pins() {
+    let mut graph = graph();
+    add_node(
+        &mut graph,
+        "texture",
+        Node::TextureSample {
+            texture: reference("res://textures/tint.png"),
+        },
+    );
+    add_node(&mut graph, "math", Node::Multiply);
+    graph.links.push(link("texture", "color", "math", "a"));
+    graph.links.push(link("texture", "color", "math", "b"));
+    let message = "material graph `multiply` node cannot combine texture-backed inputs in v1";
+    let report = compile_material_graph_operation(&graph);
+    assert!(report.material.is_none());
+    let pins: Vec<_> = report
+        .diagnostics
+        .iter()
+        .filter(|entry| entry.message == message)
+        .map(|entry| entry.target.clone())
+        .collect();
+    assert_eq!(pins, vec![input("math", "a"), input("math", "b")]);
+    assert_eq!(compile_material_graph(&graph).unwrap_err(), vec![message]);
 }
 
 #[test]

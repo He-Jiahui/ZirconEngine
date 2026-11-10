@@ -338,7 +338,7 @@ fn material_graph_compile_operation_reports_diagnostics_without_material() {
     assert!(report
         .diagnostics
         .iter()
-        .any(|message| message.contains("has no output node")));
+        .any(|diagnostic| diagnostic.message.contains("has no output node")));
 }
 
 fn graph_with_shader() -> MaterialGraphAsset {
