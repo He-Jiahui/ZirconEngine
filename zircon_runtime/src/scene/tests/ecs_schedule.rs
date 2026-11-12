@@ -34,6 +34,8 @@ mod render_extract;
 mod resources_events;
 #[path = "ecs_schedule/schedule_plan.rs"]
 mod schedule_plan;
+#[path = "ecs_schedule/unreal_stage_contract.rs"]
+mod unreal_stage_contract;
 #[path = "ecs_schedule/world_driver.rs"]
 mod world_driver;
 #[path = "ecs_schedule/world_time_controller.rs"]
