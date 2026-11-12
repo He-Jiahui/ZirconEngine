@@ -42,7 +42,7 @@ pub(super) struct ArtifactCacheSceneEntityAsset {
     animation_state_machine_player: Option<crate::asset::SceneAnimationStateMachinePlayerAsset>,
     terrain: Option<crate::asset::SceneTerrainAsset>,
     tilemap: Option<crate::asset::SceneTileMapAsset>,
-    prefab_instance: Option<crate::asset::PrefabInstanceAsset>,
+    prefab_instance: Option<super::prefab::ArtifactCachePrefabInstanceAsset>,
     script_bindings: Vec<ArtifactCacheSceneScriptBindingAsset>,
 }
 
@@ -86,7 +86,7 @@ impl From<&crate::asset::SceneEntityAsset> for ArtifactCacheSceneEntityAsset {
             animation_state_machine_player: asset.animation_state_machine_player.clone(),
             terrain: asset.terrain.clone(),
             tilemap: asset.tilemap.clone(),
-            prefab_instance: asset.prefab_instance.clone(),
+            prefab_instance: asset.prefab_instance.as_ref().map(Into::into),
             components: asset
                 .components
                 .iter()
@@ -135,7 +135,10 @@ impl ArtifactCacheSceneEntityAsset {
             animation_state_machine_player: self.animation_state_machine_player,
             terrain: self.terrain,
             tilemap: self.tilemap,
-            prefab_instance: self.prefab_instance,
+            prefab_instance: self
+                .prefab_instance
+                .map(super::prefab::ArtifactCachePrefabInstanceAsset::into_asset)
+                .transpose()?,
             components: self
                 .components
                 .into_iter()
