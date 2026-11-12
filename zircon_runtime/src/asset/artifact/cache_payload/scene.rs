@@ -4,6 +4,8 @@ mod component;
 mod entity;
 #[path = "scene/physics.rs"]
 mod physics;
+#[path = "scene/prefab.rs"]
+mod prefab;
 #[path = "scene/rendering.rs"]
 mod rendering;
 #[path = "scene/script.rs"]

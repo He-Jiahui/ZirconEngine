@@ -14,6 +14,9 @@ use zircon_runtime::core::resource::{
     PrefabMarker, ResourceActiveSnapshotError, ResourceHandle, ResourceManager, ResourceRecord,
 };
 
+#[path = "unreal_equivalent.rs"]
+mod unreal_equivalent;
+
 #[test]
 fn prefab_authoring_snapshot_preserves_serialized_rows_and_all_conflict_locations() {
     let instance = instance(vec![
