@@ -285,12 +285,28 @@ fn register_captured_reflection_probe_blob(
     asset_manager
         .assets::<TextureAsset>()
         .insert(
-            ResourceRecord::new(texture_id, ResourceKind::Texture, uri),
+            captured_probe_texture_record(texture_id, uri, blob),
             texture,
         )
         .map_err(|_| CapturedReflectionProbeConsumeError::RegisterTexture)?;
     let probe = placement.runtime_probe(Vec3::from_array(request.position), Some(texture_id))?;
     Ok(CapturedReflectionProbeAsset { texture_id, probe })
+}
+
+/// 同一个 PMREM URI 只有一个资源 ID，重新捕获会重复发布同一条记录。
+/// 记录因此携带工件载荷的 BLAKE3：内容变化时贴图修订递增并发出更新事件，
+/// 按修订缓存的探针 cubemap 槽位才会重新上传；重复登记同一工件保持修订与事件不变。
+fn captured_probe_texture_record(
+    texture_id: ResourceId,
+    uri: AssetUri,
+    blob: &IblBakeArtifactBlob,
+) -> ResourceRecord {
+    let payload_checksum = blob
+        .payload_checksum()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    ResourceRecord::new(texture_id, ResourceKind::Texture, uri).with_source_hash(payload_checksum)
 }
 
 #[derive(Debug, Error)]
