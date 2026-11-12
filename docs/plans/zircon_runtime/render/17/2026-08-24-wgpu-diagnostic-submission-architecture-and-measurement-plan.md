@@ -191,6 +191,13 @@ diagnostic-readback regression are source test definitions only. Managed Cargo, 
 execution, RenderDoc, PNG/RDC artifact, performance/energy data, milestone acceptance, and a
 coordinator submission remain pending.
 
+Texture-copy format rule amendment, 2026-11-12 (R07, PR #132): the shared validation rule above now
+admits formats that are equal or differ only in sRGB encoding (`Rgba8Unorm`/`Rgba8UnormSrgb`,
+`Bgra8Unorm`/`Bgra8UnormSrgb`); the bytes are copied unchanged. The basis is Unreal's
+`FRHITextureTests::Test_RHICopyTexture` UNorm/sRGB cases (RHITests `Public/RHITextureTests.h`) and
+WGPU's own copy-compatibility rule. Every other restriction in the 2026-08-24 entry still holds.
+This is a source change with source test definitions only; Cargo has not run on it.
+
 Device-context handoff prerequisite source completion, 2026-08-24: the neutral production owner
 now accepts one opaque `WgpuRenderDeviceContext` carrying the negotiated `Instance`, `Adapter`,
 `Device`, `Queue`, and UI shared-image registry. `WgpuRenderDevice` retains that generation state,

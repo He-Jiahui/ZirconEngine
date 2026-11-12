@@ -604,6 +604,72 @@ fn deterministic_rhi_contract_copy_texture_to_texture_preserves_subresource_byte
     );
 }
 
+// Unreal's FRHITextureTests::Test_RHICopyTexture (RHITests/Public/RHITextureTests.h)
+// copies 16x16 PF_B8G8R8A8 textures across every UNorm/sRGB pairing and requires the
+// destination to stay bitwise identical to the source.
+#[test]
+fn deterministic_rhi_contract_copy_texture_to_texture_preserves_bytes_across_srgb_encoding() {
+    let device = DeterministicRhiContractDevice::new_headless();
+    let pixels: Vec<u8> = (1_u32..=256).flat_map(u32::to_le_bytes).collect();
+    let region = TextureCopyRegion::new(16, 16);
+
+    for (source_format, destination_format) in [
+        (TextureFormat::Bgra8Unorm, TextureFormat::Bgra8Unorm),
+        (TextureFormat::Bgra8Unorm, TextureFormat::Bgra8UnormSrgb),
+        (TextureFormat::Bgra8UnormSrgb, TextureFormat::Bgra8Unorm),
+        (TextureFormat::Bgra8UnormSrgb, TextureFormat::Bgra8UnormSrgb),
+    ] {
+        let upload = device
+            .create_buffer(&BufferDesc::new(
+                "texture-to-texture-srgb-upload",
+                1024,
+                BufferUsage::COPY_DST | BufferUsage::COPY_SRC,
+            ))
+            .unwrap();
+        let source = device
+            .create_texture(&TextureDesc::new(
+                "texture-to-texture-srgb-source",
+                16,
+                16,
+                source_format,
+                TextureUsage::COPY_DST | TextureUsage::COPY_SRC,
+            ))
+            .unwrap();
+        let destination = device
+            .create_texture(&TextureDesc::new(
+                "texture-to-texture-srgb-destination",
+                16,
+                16,
+                destination_format,
+                TextureUsage::COPY_DST | TextureUsage::COPY_SRC,
+            ))
+            .unwrap();
+        let readback = device
+            .create_buffer(&BufferDesc::new(
+                "texture-to-texture-srgb-readback",
+                1024,
+                BufferUsage::COPY_DST | BufferUsage::STAGING_READ,
+            ))
+            .unwrap();
+
+        device.write_buffer(upload, 0, &pixels).unwrap();
+
+        let mut commands = device
+            .create_command_list(RenderQueueClass::Copy, "texture-to-texture-srgb-copy")
+            .unwrap();
+        commands.copy_buffer_to_texture(upload, source, 0, 64, region);
+        commands.copy_texture_to_texture(source, destination, region, region);
+        commands.copy_texture_to_buffer(destination, readback, 0, 64, region);
+        device.submit(commands).unwrap();
+
+        assert_eq!(
+            device.read_buffer(readback, 0, 1024).unwrap(),
+            pixels,
+            "{source_format:?} -> {destination_format:?}"
+        );
+    }
+}
+
 #[test]
 fn deterministic_rhi_contract_copy_texture_to_texture_rejects_incompatible_regions_and_formats() {
     let device = DeterministicRhiContractDevice::new_headless();
@@ -616,12 +682,13 @@ fn deterministic_rhi_contract_copy_texture_to_texture_rejects_incompatible_regio
             TextureUsage::COPY_SRC,
         ))
         .unwrap();
+    // Same texel size, different channel order: not an sRGB-only difference.
     let incompatible_format = device
         .create_texture(&TextureDesc::new(
-            "texture-to-texture-srgb-destination",
+            "texture-to-texture-bgra-destination",
             2,
             2,
-            TextureFormat::Rgba8UnormSrgb,
+            TextureFormat::Bgra8Unorm,
             TextureUsage::COPY_DST,
         ))
         .unwrap();

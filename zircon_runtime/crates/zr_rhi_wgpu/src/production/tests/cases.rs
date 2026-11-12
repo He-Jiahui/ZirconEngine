@@ -41,6 +41,9 @@ mod surface_bootstrap;
 #[path = "device_ownership.rs"]
 mod device_ownership;
 
+#[path = "unreal_resource_contract.rs"]
+mod unreal_resource_contract;
+
 #[path = "capabilities.rs"]
 mod capabilities;
 
