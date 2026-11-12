@@ -3,13 +3,16 @@
 //! - Public/RHIBufferTests.h: FRHIBufferTests::Test_RHICreateBuffer_Buffer (409-499),
 //!   with Private/RHIBufferTests.cpp: VerifyBufferContents (68-107).
 //! - Public/RHITextureTests.h: FRHITextureTests::Test_RHICopyTexture (876-1023),
-//!   specifically the whole-texture and same-format UNorm/sRGB cases.
+//!   specifically the whole-texture case and the four CopyTextureSrgbLambda
+//!   UNorm/sRGB pairings, whose destination stays bitwise identical to the source.
 //!
 //! R07/F02: exercise resource creation and recording through the existing neutral
 //! interface and the transitional native recorder, with the same device owner
 //! submitting and delivering the bytes. These are not architecture-convergence
-//! assertions or render-thread/graph tests. Unreal's zero/one-byte buffers and
-//! cross-format copies are outside this WGPU-aligned, same-format subset.
+//! assertions or render-thread/graph tests. Unreal's zero-byte null buffer is
+//! rejected by the neutral descriptor contract and its one-byte buffer cannot use
+//! the four-byte-aligned readback, so both stay outside this subset, as do the
+//! mip and slice copies.
 
 use std::time::{Duration, Instant};
 
@@ -128,16 +131,33 @@ fn unreal_copy_texture_preserves_unorm_and_srgb_bytes_through_neutral_rhi() {
     let expected = texture_pattern();
     let region = TextureCopyRegion::new(16, 16);
 
-    for format in [TextureFormat::Rgba8Unorm, TextureFormat::Rgba8UnormSrgb] {
-        let desc = TextureDesc::new(
-            "unreal-neutral-copy-texture",
-            16,
-            16,
-            format,
-            TextureUsage::COPY_SRC | TextureUsage::COPY_DST,
-        );
-        let source = device.create_texture(&desc).unwrap();
-        let destination = device.create_texture(&desc).unwrap();
+    // UE's sRGB cases use PF_B8G8R8A8; the RGBA8 pairs keep the whole-copy coverage.
+    for (source_format, destination_format) in [
+        (TextureFormat::Rgba8Unorm, TextureFormat::Rgba8Unorm),
+        (TextureFormat::Rgba8UnormSrgb, TextureFormat::Rgba8UnormSrgb),
+        (TextureFormat::Bgra8Unorm, TextureFormat::Bgra8Unorm),
+        (TextureFormat::Bgra8Unorm, TextureFormat::Bgra8UnormSrgb),
+        (TextureFormat::Bgra8UnormSrgb, TextureFormat::Bgra8Unorm),
+        (TextureFormat::Bgra8UnormSrgb, TextureFormat::Bgra8UnormSrgb),
+    ] {
+        let source = device
+            .create_texture(&TextureDesc::new(
+                "unreal-neutral-copy-source",
+                16,
+                16,
+                source_format,
+                TextureUsage::COPY_SRC | TextureUsage::COPY_DST,
+            ))
+            .unwrap();
+        let destination = device
+            .create_texture(&TextureDesc::new(
+                "unreal-neutral-copy-destination",
+                16,
+                16,
+                destination_format,
+                TextureUsage::COPY_SRC | TextureUsage::COPY_DST,
+            ))
+            .unwrap();
         device
             .write_texture(source, region, 16 * 4, &expected)
             .unwrap();
@@ -179,9 +199,25 @@ fn unreal_copy_texture_preserves_unorm_and_srgb_bytes_through_native_recorder() 
         padded[row * 256..row * 256 + 64].copy_from_slice(&expected[row * 64..(row + 1) * 64]);
     }
 
-    for format in [
-        wgpu::TextureFormat::Rgba8Unorm,
-        wgpu::TextureFormat::Rgba8UnormSrgb,
+    // The public native readback bridge admits RGBA8 only, so the four UE sRGB
+    // pairings run on RGBA8 here; the neutral test covers UE's BGRA8 layout.
+    for (source_format, destination_format) in [
+        (
+            wgpu::TextureFormat::Rgba8Unorm,
+            wgpu::TextureFormat::Rgba8Unorm,
+        ),
+        (
+            wgpu::TextureFormat::Rgba8Unorm,
+            wgpu::TextureFormat::Rgba8UnormSrgb,
+        ),
+        (
+            wgpu::TextureFormat::Rgba8UnormSrgb,
+            wgpu::TextureFormat::Rgba8Unorm,
+        ),
+        (
+            wgpu::TextureFormat::Rgba8UnormSrgb,
+            wgpu::TextureFormat::Rgba8UnormSrgb,
+        ),
     ] {
         device.begin_diagnostic_readback_frame(1).unwrap();
         let mut admission = None;
@@ -196,7 +232,7 @@ fn unreal_copy_texture_preserves_unorm_and_srgb_bytes_through_native_recorder() 
                     height: 16,
                     depth_or_array_layers: 1,
                 };
-                let desc = wgpu::TextureDescriptor {
+                let texture_desc = |format: wgpu::TextureFormat| wgpu::TextureDescriptor {
                     label: Some("unreal-native-copy-texture"),
                     size: extent,
                     mip_level_count: 1,
@@ -206,8 +242,8 @@ fn unreal_copy_texture_preserves_unorm_and_srgb_bytes_through_native_recorder() 
                     usage: wgpu::TextureUsages::COPY_SRC | wgpu::TextureUsages::COPY_DST,
                     view_formats: &[],
                 };
-                let source = native.create_texture(&desc);
-                let destination = native.create_texture(&desc);
+                let source = native.create_texture(&texture_desc(source_format));
+                let destination = native.create_texture(&texture_desc(destination_format));
                 let upload = native.create_buffer(&wgpu::BufferDescriptor {
                     label: Some("unreal-native-texture-upload"),
                     size: padded.len() as u64,
