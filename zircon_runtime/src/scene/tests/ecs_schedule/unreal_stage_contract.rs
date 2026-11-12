@@ -6,10 +6,21 @@
 //! - Engine/Source/Developer/MassEntityTestSuite/Private/MassDependencyTest.cpp:
 //!   FSimpleDependency verifies the resolved execution order.
 //!
+//!   FBadInput_Empty and FBadInput_Duplicates verify bad input is handled at the solve
+//!   boundary instead of reaching execution.
+//!
 //! These mirror execution completeness and plan order using ZE's existing WorldDriver.
-//! Unreal does not expose ZE's serialized stage vectors. Custom-stage policy remains
-//! open: admission may reject or canonicalize a candidate, but an admitted plan must
-//! describe the callbacks that run. No particular rejection policy is required here.
+//! Unreal does not expose ZE's serialized stage vectors; its phase order is fixed in code:
+//! - Engine/Source/Runtime/Engine/Private/LevelTick.cpp: UWorld::Tick calls
+//!   UWorld::RunTickGroup in one fixed order, and RunTickGroup checks
+//!   `TickGroup == Group` so a reordered group cannot run.
+//! - Engine/Source/Runtime/MassEntity/Private/MassProcessingPhaseManager.cpp:
+//!   UE::Mass::Private::PhaseToTickingGroup maps each phase to one tick group.
+//!
+//! ZE keeps the same guarantee at schedule admission (official review R03-01): a stage
+//! list must follow `SystemStage::ORDER` and list the fixed group whole or not at all.
+//! Admitted plans must describe exactly the callbacks WorldDriver runs; other lists
+//! are rejected before they reach the driver.
 
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -32,50 +43,75 @@ fn canonical_persisted_stage_list_executes_every_stage_once() {
 }
 
 #[test]
-fn reversed_nonfixed_stages_agree_with_the_admitted_plan() {
-    assert_custom_admission_agrees_with_driver(&[SystemStage::Update, SystemStage::PreUpdate]);
-}
-
-#[test]
-fn fixed_update_without_fixed_first_agrees_with_the_admitted_plan() {
-    assert_custom_admission_agrees_with_driver(&[SystemStage::FixedUpdate]);
-}
-
-#[test]
-fn fixed_post_update_without_fixed_first_agrees_with_the_admitted_plan() {
-    assert_custom_admission_agrees_with_driver(&[SystemStage::FixedPostUpdate]);
-}
-
-#[test]
-fn reordered_fixed_group_agrees_with_the_admitted_plan() {
-    assert_custom_admission_agrees_with_driver(&[
-        SystemStage::FixedPostUpdate,
+fn ordered_custom_stage_subset_executes_every_listed_stage_once() {
+    let schedule = persisted_schedule(&[
+        SystemStage::PreUpdate,
+        SystemStage::FixedFirst,
         SystemStage::FixedUpdate,
-        SystemStage::FixedFirst,
-    ]);
-}
-
-#[test]
-fn interleaved_fixed_group_agrees_with_the_admitted_plan() {
-    assert_custom_admission_agrees_with_driver(&[
-        SystemStage::FixedFirst,
+        SystemStage::FixedPostUpdate,
         SystemStage::Update,
-        SystemStage::FixedUpdate,
-        SystemStage::FixedPostUpdate,
-    ]);
+    ])
+    .expect("an ordered subset with the whole fixed group must remain admissible");
+    assert_driver_follows_admitted_plan(schedule);
 }
+
+#[test]
+fn reversed_nonfixed_stages_are_rejected_before_the_driver() {
+    assert_admission_rejects(
+        &[SystemStage::Update, SystemStage::PreUpdate],
+        STAGE_ORDER_MESSAGE,
+    );
+}
+
+#[test]
+fn fixed_update_without_fixed_first_is_rejected_before_the_driver() {
+    assert_admission_rejects(&[SystemStage::FixedUpdate], FIXED_GROUP_MESSAGE);
+}
+
+#[test]
+fn fixed_post_update_without_fixed_first_is_rejected_before_the_driver() {
+    assert_admission_rejects(&[SystemStage::FixedPostUpdate], FIXED_GROUP_MESSAGE);
+}
+
+#[test]
+fn reordered_fixed_group_is_rejected_before_the_driver() {
+    assert_admission_rejects(
+        &[
+            SystemStage::FixedPostUpdate,
+            SystemStage::FixedUpdate,
+            SystemStage::FixedFirst,
+        ],
+        STAGE_ORDER_MESSAGE,
+    );
+}
+
+#[test]
+fn interleaved_fixed_group_is_rejected_before_the_driver() {
+    assert_admission_rejects(
+        &[
+            SystemStage::FixedFirst,
+            SystemStage::Update,
+            SystemStage::FixedUpdate,
+            SystemStage::FixedPostUpdate,
+        ],
+        STAGE_ORDER_MESSAGE,
+    );
+}
+
+const STAGE_ORDER_MESSAGE: &str = "against the documented stage order";
+const FIXED_GROUP_MESSAGE: &str = "list the whole fixed group or none of it";
 
 fn persisted_schedule(stages: &[SystemStage]) -> Result<Schedule, serde_json::Error> {
     serde_json::from_value(serde_json::json!({ "stages": stages, "systems": [] }))
 }
 
-fn assert_custom_admission_agrees_with_driver(stages: &[SystemStage]) {
-    // Rejection is a valid way to keep unsupported custom plans out of the driver.
-    // The required canonical controls above prevent a broken serializer from
-    // satisfying the entire batch by rejecting every candidate.
-    if let Ok(schedule) = persisted_schedule(stages) {
-        assert_driver_follows_admitted_plan(schedule);
-    }
+fn assert_admission_rejects(stages: &[SystemStage], message: &str) {
+    // WorldDriver would run these lists differently from what they say, so they must
+    // fail at admission. The admissible controls above keep a serializer that rejects
+    // everything from satisfying the batch.
+    let error = persisted_schedule(stages)
+        .expect_err("a stage list WorldDriver cannot run as written must be rejected");
+    assert!(error.to_string().contains(message), "{error}");
 }
 
 fn assert_driver_follows_admitted_plan(schedule: Schedule) {
