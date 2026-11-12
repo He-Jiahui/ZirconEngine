@@ -2,6 +2,75 @@
 
 use super::*;
 
+// Unreal Engine/Plugins/Tests/CQTest/Source/CQTestTests/Private/Helpers/
+// CQTestAssetHelperTests.cpp: BEFORE_ALL registers an asset; FindAssets_WithFilter_ReturnsAssetArray
+// queries the catalog and calls GetAsset. Reuse ZE's project fixture and real texture reader.
+#[test]
+fn unreal_equivalent_prepared_project_publishes_uuid_identity_to_runtime_reader() {
+    use crate::asset::TextureAsset;
+    use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
+    use std::sync::Arc;
+
+    let root = unique_temp_project_root("r05_unreal_equivalent_project_publication");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    let assets = zircon_runtime_interface::project::RelPath::project_assets();
+    paths.ensure_layout(&[assets.clone()]).unwrap();
+    ProjectManifest::new(
+        "R05 publication",
+        AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+    let uri = AssetUri::parse("res://textures/checker.png").unwrap();
+    write_checker_png(paths.asset_root(&assets).join("textures/checker.png"));
+    let manager = project_asset_manager_with_first_wave_plugin_fixtures();
+    let runtime_reader = manager.resource_manager();
+    let before = runtime_reader.projection_snapshot();
+    assert!(runtime_reader.registry().get_by_locator(&uri).is_none());
+
+    let project = ProjectManager::open(&root).unwrap();
+    AssetManager::open_prepared_project(&manager, project).unwrap();
+
+    let uuid = {
+        let project = AssetManager::current_project_snapshot(&manager).unwrap();
+        project.asset_registry().entry_by_path(&uri).unwrap().uuid()
+    };
+    let id = ResourceId::from_asset_uuid(uuid);
+    assert_eq!(manager.resolve_asset_id(&uri), Some(id));
+    let snapshot = manager.load_texture_asset_snapshot(id).unwrap();
+    let runtime_payload = runtime_reader
+        .get::<TextureMarker, TextureAsset>(ResourceHandle::new(id))
+        .expect("the reader obtained before activation shares the published authority");
+    assert!(Arc::ptr_eq(snapshot.resource(), &runtime_payload));
+    assert!(!snapshot.rgba.is_empty());
+    let published = runtime_reader.projection_snapshot();
+    let by_id = published.management().row_by_id(id).unwrap();
+    let by_path = published
+        .management()
+        .row_by_locator(&uri.to_string())
+        .unwrap();
+    assert!(Arc::ptr_eq(&by_id, &by_path));
+    assert_eq!(by_id.kind, ResourceKind::Texture);
+    assert_eq!(by_id.state, ResourceState::Ready);
+    assert_eq!(by_id.revision, snapshot.revision());
+    assert_eq!(
+        runtime_reader.registry().get_by_locator(&uri).unwrap().id,
+        id
+    );
+    assert!(published
+        .readiness()
+        .contains_kind(id, ResourceKind::Texture));
+    assert!(before.management().row_by_id(id).is_none());
+
+    drop(snapshot);
+    drop(runtime_payload);
+    manager.close_project().unwrap();
+    drop(runtime_reader);
+    drop(manager);
+    fs::remove_dir_all(root).unwrap();
+}
+
 #[test]
 fn resource_server_reports_resource_records_for_project_assets() {
     let root = unique_temp_project_root("asset_manager_resource_status");

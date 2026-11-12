@@ -274,6 +274,14 @@ fn runtime_environment_ibl_bake_artifact_blob_round_trips_header_and_payload() {
     assert_eq!(decoded.header(), blob.header());
     assert_eq!(decoded.descriptor(), descriptor);
     assert_eq!(decoded.payload().bytes(), blob.payload().bytes());
+    // Unreal EditorBulkDataTests.cpp, FEditorBulkData::UpdatePayloadCompressedBuffer:
+    // GetPayloadId equals the hash of the payload bytes. The blob exposes the stored checksum.
+    assert_eq!(
+        blob.payload_checksum().as_slice(),
+        &encoded[IBL_BAKE_ARTIFACT_HEADER_SIZE
+            ..IBL_BAKE_ARTIFACT_HEADER_SIZE + IBL_BAKE_ARTIFACT_PAYLOAD_CHECKSUM_SIZE]
+    );
+    assert_eq!(decoded.payload_checksum(), blob.payload_checksum());
 
     let request = IblBakeArtifactRequest::new(key, face_size, mip_count);
     let current = IblBakeArtifactBlob::decode_current_for_request(&request, &encoded)
