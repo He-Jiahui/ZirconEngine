@@ -27,7 +27,7 @@ use super::{production_test_device, wait_for_submission};
 
 #[test]
 fn unreal_create_buffer_preserves_zero_and_initialized_bytes_through_neutral_rhi() {
-    let Some(device) = production_test_device() else {
+    let Some(device) = unreal_test_device() else {
         eprintln!("SKIP Unreal buffer contract: production GPU context unavailable");
         return;
     };
@@ -67,7 +67,7 @@ fn unreal_create_buffer_preserves_zero_and_initialized_bytes_through_neutral_rhi
 
 #[test]
 fn unreal_create_buffer_preserves_zero_and_initialized_bytes_through_native_recorder() {
-    let Some(device) = production_test_device() else {
+    let Some(device) = unreal_test_device() else {
         eprintln!("SKIP Unreal native buffer contract: production GPU context unavailable");
         return;
     };
@@ -124,7 +124,7 @@ fn unreal_create_buffer_preserves_zero_and_initialized_bytes_through_native_reco
 
 #[test]
 fn unreal_copy_texture_preserves_unorm_and_srgb_bytes_through_neutral_rhi() {
-    let Some(device) = production_test_device() else {
+    let Some(device) = unreal_test_device() else {
         eprintln!("SKIP Unreal texture contract: production GPU context unavailable");
         return;
     };
@@ -189,7 +189,7 @@ fn unreal_copy_texture_preserves_unorm_and_srgb_bytes_through_neutral_rhi() {
 
 #[test]
 fn unreal_copy_texture_preserves_unorm_and_srgb_bytes_through_native_recorder() {
-    let Some(device) = production_test_device() else {
+    let Some(device) = unreal_test_device() else {
         eprintln!("SKIP Unreal native texture contract: production GPU context unavailable");
         return;
     };
@@ -293,6 +293,17 @@ fn unreal_copy_texture_preserves_unorm_and_srgb_bytes_through_native_recorder() 
 
         assert_submitted_bytes(&device, admission.unwrap(), ticket, &expected);
     }
+}
+
+fn unreal_test_device() -> Option<WgpuRenderDevice> {
+    let device = production_test_device();
+    if device.is_none() && std::env::var("ZIRCON_REQUIRE_GPU_TESTS").as_deref() == Ok("1") {
+        panic!(
+            "ZIRCON_REQUIRE_GPU_TESTS=1: production GPU context unavailable; \
+             Unreal resource contract tests cannot be skipped"
+        );
+    }
+    device
 }
 
 fn buffer_pattern(size: usize, initialized: bool) -> Vec<u8> {
