@@ -130,6 +130,11 @@ pub(super) fn collect_type_diagnostics(
                     let Some(link) = index.incoming_link(&node.id, pin) else {
                         continue;
                     };
+                    if !index.node(&link.from_node).is_some_and(|source| {
+                        graph_contract::output_pin(&source.kind) == Some(link.from_pin.as_str())
+                    }) {
+                        continue;
+                    }
                     if matches!(
                         types.get(link.from_node.as_str()).copied(),
                         Some(MaterialGraphValueType::Vector | MaterialGraphValueType::Texture)
@@ -221,9 +226,15 @@ fn resolve_known_value_types<'a>(
                 .unwrap_or(MaterialGraphValueType::Undetermined)
         };
         let value_type = match &node.kind {
-            MaterialGraphNodeKindAsset::ScalarParameter { .. } => MaterialGraphValueType::Scalar,
-            MaterialGraphNodeKindAsset::VectorParameter { .. } => MaterialGraphValueType::Vector,
-            MaterialGraphNodeKindAsset::TextureSample { .. } => MaterialGraphValueType::Texture,
+            MaterialGraphNodeKindAsset::ScalarParameter { .. } => {
+                Some(MaterialGraphValueType::Scalar)
+            }
+            MaterialGraphNodeKindAsset::VectorParameter { .. } => {
+                Some(MaterialGraphValueType::Vector)
+            }
+            MaterialGraphNodeKindAsset::TextureSample { .. } => {
+                Some(MaterialGraphValueType::Texture)
+            }
             MaterialGraphNodeKindAsset::Add | MaterialGraphNodeKindAsset::Multiply => {
                 let a = input_type("a");
                 let b = input_type("b");
