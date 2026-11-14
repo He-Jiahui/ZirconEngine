@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from runtime_structure_audits.dynamic_runtime_api_archive_inventory import HistoricalArchiveReader
@@ -111,9 +112,11 @@ RUNTIME_12_CLOSEOUT_ARCHIVE = (
     "2026-07-17-m5-input-event-bounds-current-source-closeout.md"
 )
 RUNTIME_12_HISTORICAL_IDENTITIES = {
+    # Identity of the closeout tracked in this repository. The older external
+    # archive bytes are not mounted in GitHub CI.
     RUNTIME_12_CLOSEOUT_ARCHIVE: (
-        9157,
-        "4c9924b96701c8cfe6954a0cf9475ca67e898f6f0ba06e3776b36b7f3fd4cf4b",
+        9076,
+        "8e76c4f3fa97c37757a549e176ca70ea5e0f18aa686b77f5e616bb19595fe208",
     ),
 }
 
@@ -121,8 +124,13 @@ RUNTIME_12_HISTORICAL_IDENTITIES = {
 def input_stack_boundary_audit(
     root: Path, *, archive_root: Path | None = None
 ) -> dict[str, object]:
+    # The closeout is stored in the repository. Use that tree when no external
+    # archive root is configured.
+    if archive_root is None and not os.environ.get("ZIRCON_DOCS_HISTORY_ARCHIVE_ROOT"):
+        archive_root = root.resolve()
     history = HistoricalArchiveReader(
-        archive_root, identities=RUNTIME_12_HISTORICAL_IDENTITIES
+        archive_root,
+        identities=RUNTIME_12_HISTORICAL_IDENTITIES,
     )
     historical_closeout = history.read(RUNTIME_12_CLOSEOUT_ARCHIVE)
     input_mod = root / "zircon_runtime/src/input/mod.rs"
@@ -189,10 +197,18 @@ def input_stack_boundary_audit(
         )
         if source is not None
     )
+    session_profile_tests = root / "zircon_runtime/src/dynamic_api/tests/session_profiles.rs"
     test_sources = tuple(
-        _read_text(root / module)
-        for module in (*INPUT_TEST_MODULES, *INPUT_MANAGER_CHILD_TEST_MODULES)
-        if (root / module).exists()
+        source
+        for source in (
+            *(
+                _read_text(root / module)
+                for module in (*INPUT_TEST_MODULES, *INPUT_MANAGER_CHILD_TEST_MODULES)
+                if (root / module).exists()
+            ),
+            _read_text(session_profile_tests) if session_profile_tests.exists() else None,
+        )
+        if source is not None
     )
     gamepad_sources = tuple(
         _read_text(path)
@@ -203,6 +219,8 @@ def input_stack_boundary_audit(
             dynamic_session_events,
             dynamic_session_gamepad_events,
             input_event,
+            root / "zircon_runtime_interface/src/runtime_api/session/events.rs",
+            root / "zircon_runtime/src/dynamic_api/tests/input_events.rs",
         )
         if path.exists()
     )

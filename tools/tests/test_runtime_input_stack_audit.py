@@ -21,8 +21,8 @@ class RuntimeInputStackAuditTests(unittest.TestCase):
 
         audit = input_stack_boundary_audit(self.repo_root)
 
-        self.assertEqual(audit["expected_runtime_module_count"], 27)
-        self.assertEqual(audit["expected_framework_module_count"], 44)
+        self.assertEqual(audit["expected_runtime_module_count"], 29)
+        self.assertEqual(audit["expected_framework_module_count"], 46)
         self.assertEqual(audit["expected_test_module_count"], 7)
         self.assertEqual(audit["expected_guard_file_count"], 6)
         self.assertEqual(audit["missing_guard_files"], [])

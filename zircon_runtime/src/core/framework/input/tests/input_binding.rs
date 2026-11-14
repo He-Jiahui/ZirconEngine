@@ -31,7 +31,10 @@ fn runtime56_batch_scratch_free_binding_sort_preserves_retired_order_and_dedupli
 
 #[test]
 fn runtime56_batch_scratch_free_binding_sort_source_contract() {
-    let source = include_str!("../input_binding.rs");
+    let source = concat!(
+        include_str!("../input_binding.rs"),
+        include_str!("../input_binding/binding_ctor.rs"),
+    );
     let production = source
         .split_once("\n#[cfg(test)]\nmod tests")
         .expect("production module end")

@@ -473,51 +473,14 @@ impl ActionEvaluationWorkspace {
         let _ = grew;
     }
 
-    /// 在测试构建读取容量增长观测的累计次数。
-    ///
-    /// 生产构建不提供该方法；reset与逐帧准备不会把累计计数归零，它不是分配调用次数。
-    ///
-    /// # 参数
-    ///
-    /// - `self`：借用工作区。
-    ///
-    /// # 返回
-    ///
-    /// 自默认初始化或调用方设置以来的 `usize` 副本，不清零。
-    ///
-    /// # 生命周期
-    ///
-    /// 读取不改变累计值；返回的整数不借用工作区，也不跟随后续增长变化。
-    ///
-    /// # 参考
-    ///
-    /// [`ActionEvaluationWorkspace::record_growth`]、[`super::InputActionEvaluator::workspace_storage_growth_count`]。
+    /// Test-only cumulative count of workspace storage growth. Not an allocation call count.
     #[cfg(test)]
     pub(super) fn storage_growth_count(&self) -> usize {
         self.storage_growth_count
     }
 }
 
-/// 调整结果向量长度并重置仍保留的旧前缀。
-///
-/// 缩小时丢弃尾部；扩展时 resize 为新槽位提供默认值，仅再次填充调整前保留的前缀。容量足够时不重新分配，清空至零仍保留容量。
-///
-/// # 参数
-///
-/// - `actions`：独占借用的动作向量。
-/// - `action_count`：目标逻辑长度。
-///
-/// # 返回
-///
-/// 返回 `()`；向量长度匹配目标，全部逻辑元素为默认结果。
-///
-/// # 生命周期
-///
-/// 输入向量仍由调用方拥有，方法只独占借用。归零不释放容量，缩减丢弃的尾部不再属于逻辑结果。
-///
-/// # 参考
-///
-/// [`EvaluatedAction`]、[`ActionEvaluationWorkspace::prepare_actions`]。
+/// Resize `actions` to `action_count` and reset the retained prefix in place.
 fn reset_action_storage(actions: &mut Vec<EvaluatedAction>, action_count: usize) {
     let reset_len = actions.len().min(action_count);
     actions.resize(action_count, EvaluatedAction::default());
