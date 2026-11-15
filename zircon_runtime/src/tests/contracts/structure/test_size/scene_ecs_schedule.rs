@@ -15,6 +15,8 @@ fn runtime_15_scene_ecs_schedule_tests_are_folder_backed() {
     let resources_events = read_runtime_src("scene/tests/ecs_schedule/resources_events.rs");
     let schedule_plan = read_runtime_src("scene/tests/ecs_schedule/schedule_plan.rs");
     let world_driver = read_runtime_src("scene/tests/ecs_schedule/world_driver.rs");
+    let unreal_stage_contract =
+        read_runtime_src("scene/tests/ecs_schedule/unreal_stage_contract.rs");
     let world_time_controller =
         read_runtime_src("scene/tests/ecs_schedule/world_time_controller.rs");
     let _runtime_15_plan =
@@ -22,21 +24,22 @@ fn runtime_15_scene_ecs_schedule_tests_are_folder_backed() {
     let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
     let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let _ecs_doc = read_repo("docs/zircon_runtime/scene/ecs.md");
+    let _module_doc = read_repo("docs/crates/zircon_runtime/structure/module-convention.md");
+    let _ecs_doc = read_repo("docs/crates/zircon_runtime/scene/ecs.md");
 
     assert_contains_all(
         "scene ECS schedule parent test module mounts",
         &parent,
         &[
-            "mod conflict_graph;",
-            "mod fixed_update;",
-            "mod parallel_executor;",
-            "mod render_extract;",
-            "mod resources_events;",
-            "mod schedule_plan;",
-            "mod world_driver;",
-            "mod world_time_controller;",
+            "#[path = \"ecs_schedule/conflict_graph.rs\"]\nmod conflict_graph;",
+            "#[path = \"ecs_schedule/fixed_update.rs\"]\nmod fixed_update;",
+            "#[path = \"ecs_schedule/parallel_executor.rs\"]\nmod parallel_executor;",
+            "#[path = \"ecs_schedule/render_extract.rs\"]\nmod render_extract;",
+            "#[path = \"ecs_schedule/resources_events.rs\"]\nmod resources_events;",
+            "#[path = \"ecs_schedule/schedule_plan.rs\"]\nmod schedule_plan;",
+            "#[path = \"ecs_schedule/unreal_stage_contract.rs\"]\nmod unreal_stage_contract;",
+            "#[path = \"ecs_schedule/world_driver.rs\"]\nmod world_driver;",
+            "#[path = \"ecs_schedule/world_time_controller.rs\"]\nmod world_time_controller;",
         ],
     );
     assert_eq!(
@@ -53,7 +56,7 @@ fn runtime_15_scene_ecs_schedule_tests_are_folder_backed() {
         "fn world_mutations_mark_derived_state_dirty_until_post_update_systems_flush",
         "fn canonical_render_frame_extract_populates_scene_sections_directly",
         "fn inactive_render_camera_extracts_no_scene_renderables",
-        "fn world_driver_defers_hook_mutations_until_builtin_post_update_systems_run",
+        "fn world_driver_defers_runtime_system_mutations_until_builtin_post_update_systems_run",
         "fn world_driver_runs_runtime_scene_systems_in_schedule_order",
     ] {
         assert!(
@@ -96,13 +99,13 @@ fn runtime_15_scene_ecs_schedule_tests_are_folder_backed() {
         ],
     );
     assert_contains_all(
-        "world driver child owns hook and runtime scene system ordering contracts",
+        "world driver child owns runtime scene system mutation and ordering contracts",
         &world_driver,
         &[
             "use super::*;",
-            "fn world_driver_defers_hook_mutations_until_builtin_post_update_systems_run",
-            "fn world_driver_runs_native_render_extract_system_before_render_extract_hooks",
-            "fn world_driver_orders_native_systems_with_plugin_hooks",
+            "fn world_driver_defers_runtime_system_mutations_until_builtin_post_update_systems_run",
+            "fn world_driver_runs_native_render_extract_system_before_runtime_scene_systems",
+            "fn world_driver_orders_native_systems_with_plugin_runtime_systems",
             "fn world_driver_runs_runtime_scene_systems_in_schedule_order",
         ],
     );
@@ -115,6 +118,43 @@ fn runtime_15_scene_ecs_schedule_tests_are_folder_backed() {
         ],
     );
 
+    assert_contains_all(
+        "Unreal stage-contract child owns admitted-stage completeness and rejection regressions",
+        &unreal_stage_contract,
+        &[
+            "fn default_schedule_executes_all_stages_in_declared_order",
+            "fn canonical_persisted_stage_list_executes_every_stage_once",
+            "fn ordered_custom_stage_subset_executes_every_listed_stage_once",
+            "fn reversed_nonfixed_stages_are_rejected_before_the_driver",
+            "fn fixed_update_without_fixed_first_is_rejected_before_the_driver",
+            "fn fixed_post_update_without_fixed_first_is_rejected_before_the_driver",
+            "fn reordered_fixed_group_is_rejected_before_the_driver",
+            "fn interleaved_fixed_group_is_rejected_before_the_driver",
+        ],
+    );
+    // The old 42/66 snapshots predate the current owners and the new eight-test child.
+    // Keep exact per-owner counts as well as both aggregate checks: no dropped test
+    // in one owner may be hidden by an unrelated addition in another owner.
+    for (owner, source, expected) in [
+        ("conflict graph", conflict_graph.as_str(), 0),
+        ("conflict access", conflict_access.as_str(), 7),
+        ("conflict parallel", conflict_parallel.as_str(), 2),
+        ("fixed update", fixed_update.as_str(), 13),
+        ("parallel executor", parallel_executor.as_str(), 8),
+        ("render extract", render_extract.as_str(), 9),
+        ("resources/events", resources_events.as_str(), 11),
+        ("schedule plan", schedule_plan.as_str(), 16),
+        ("world driver", world_driver.as_str(), 12),
+        ("world time controller", world_time_controller.as_str(), 13),
+        ("Unreal stage contract", unreal_stage_contract.as_str(), 8),
+    ] {
+        assert_eq!(
+            source.matches("#[test]").count(),
+            expected,
+            "scene ECS schedule {owner} should preserve its current behavior tests"
+        );
+    }
+
     let migrated_test_count = [
         resources_events.as_str(),
         schedule_plan.as_str(),
@@ -125,8 +165,8 @@ fn runtime_15_scene_ecs_schedule_tests_are_folder_backed() {
     .map(|source| source.matches("#[test]").count())
     .sum::<usize>();
     assert_eq!(
-        migrated_test_count, 42,
-        "scene ECS schedule child owners should preserve the current 42 moved behavior tests"
+        migrated_test_count, 48,
+        "scene ECS schedule child owners should preserve 11 resource, 16 plan, 9 render and 12 driver tests"
     );
     let schedule_family_test_count = [
         conflict_graph.as_str(),
@@ -139,13 +179,14 @@ fn runtime_15_scene_ecs_schedule_tests_are_folder_backed() {
         schedule_plan.as_str(),
         world_driver.as_str(),
         world_time_controller.as_str(),
+        unreal_stage_contract.as_str(),
     ]
     .iter()
     .map(|source| source.matches("#[test]").count())
     .sum::<usize>();
     assert_eq!(
-        schedule_family_test_count, 66,
-        "scene ECS schedule folder should retain the current 66-test family"
+        schedule_family_test_count, 99,
+        "scene ECS schedule folder should retain 91 existing tests plus 8 Unreal stage-contract tests"
     );
 
     for (path, source) in [
@@ -190,6 +231,10 @@ fn runtime_15_scene_ecs_schedule_tests_are_folder_backed() {
             "scene/tests/ecs_schedule/world_time_controller.rs",
             world_time_controller.as_str(),
         ),
+        (
+            "scene/tests/ecs_schedule/unreal_stage_contract.rs",
+            unreal_stage_contract.as_str(),
+        ),
     ] {
         let line_count = source.lines().count();
         assert!(
@@ -210,7 +255,10 @@ fn runtime_15_scene_ecs_schedule_conflict_graph_children_are_folder_backed() {
     assert_contains_all(
         "scene ECS schedule conflict graph parent mounts child owners",
         &parent,
-        &["mod access_conflicts;", "mod parallel_batches;"],
+        &[
+            "#[path = \"conflict_graph/access_conflicts.rs\"]\nmod access_conflicts;",
+            "#[path = \"conflict_graph/parallel_batches.rs\"]\nmod parallel_batches;",
+        ],
     );
     assert_eq!(
         parent.matches("#[test]").count(),
@@ -286,6 +334,6 @@ fn runtime_15_scene_ecs_schedule_conflict_graph_children_are_folder_backed() {
     let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
     let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
-    let _ecs_doc = read_repo("docs/zircon_runtime/scene/ecs.md");
+    let _module_doc = read_repo("docs/crates/zircon_runtime/structure/module-convention.md");
+    let _ecs_doc = read_repo("docs/crates/zircon_runtime/scene/ecs.md");
 }

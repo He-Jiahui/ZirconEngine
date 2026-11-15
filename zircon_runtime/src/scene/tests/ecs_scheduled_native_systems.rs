@@ -9,6 +9,10 @@ use crate::scene::ecs::{
 };
 use crate::scene::{EntityId, World};
 
+#[path = "ecs_source_guard.rs"]
+mod source_guard;
+use source_guard::{source_item, Source};
+
 #[derive(Debug, PartialEq, Eq)]
 struct Health(u32);
 
@@ -329,17 +333,42 @@ fn scheduled_native_steps_show_apply_deferred_after_command_systems() {
 
 #[test]
 fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
-    let driver_source = include_str!("../module/world_driver.rs");
+    let driver_source = Source::new(include_str!("../module/world_driver.rs"));
     assert!(!driver_source.contains("SceneRuntimeHook"));
     assert!(!driver_source.contains("scene_runtime_hook"));
-    assert!(driver_source.contains("world.begin_schedule_execution()"));
-    assert!(driver_source.contains("let schedule = execution.plan();"));
-    assert!(driver_source.contains("with_world_mut_if_schedule_execution(&execution"));
+    let driver_tick = source_item(driver_source, "pub(crate) fn tick_level(");
+    assert!(driver_tick.contains(
+        "let (world_time, world_generation, execution) = level.begin_world_frame(snapshot)?;"
+    ));
+    assert!(driver_tick.contains("let schedule = execution.plan();"));
+    assert!(driver_tick.contains("with_world_mut_if_schedule_execution(&execution"));
+    let level_source = Source::new(include_str!("../level_system.rs"));
+    let begin_frame = source_item(level_source, "pub(crate) fn begin_world_frame(");
+    assert!(begin_frame.contains("let execution = world.begin_schedule_execution();"));
+    assert_eq!(
+        begin_frame
+            .matches("world.begin_schedule_execution()")
+            .count(),
+        1
+    );
+    assert_eq!(
+        driver_tick
+            .matches("level.begin_world_frame(snapshot)")
+            .count(),
+        1
+    );
+    assert!(!driver_tick.contains("world.begin_schedule_execution()"));
+    let stage_run = source_item(driver_source, "fn run_stage(");
+    assert!(stage_run.contains("execution: &crate::scene::ecs::ScheduleExecution"));
+    assert!(stage_run.contains("SceneScheduleRunner::run_stage("));
+    assert!(!stage_run.contains("begin_schedule_execution()"));
     assert!(!driver_source.contains("world.schedule().systems().to_vec()"));
     assert!(!driver_source.contains("systems_for_stage(&systems"));
     assert!(!driver_source.contains("scene_runtime_hooks_for_stage(stage)"));
 
-    let runtime_extensions_source = include_str!("../../core/runtime/handle/runtime_extensions.rs");
+    let runtime_extensions_source = Source::new(include_str!(
+        "../../core/runtime/handle/runtime_extensions.rs"
+    ));
     assert!(!runtime_extensions_source.contains("SceneRuntimeHook"));
     assert!(!runtime_extensions_source.contains("scene_runtime_hook_stage_plan_snapshot"));
 
@@ -347,8 +376,12 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
         .join("src/scene/runtime_hook")
         .exists());
 
-    let runner_source = include_str!("../ecs/schedule_runner.rs");
-    assert!(runner_source.contains("execution: &ScheduleExecution"));
+    let runner_source = Source::new(include_str!("../ecs/schedule_runner.rs"));
+    let runner_stage = source_item(runner_source, "pub(crate) fn run_stage(");
+    assert!(runner_stage.contains("execution: &ScheduleExecution"));
+    assert!(runner_stage.contains("let plan_owner = execution.plan();"));
+    assert!(!runner_stage.contains("begin_schedule_execution()"));
+    assert!(!runner_stage.contains(".to_vec()"));
     assert!(runner_source.contains("plan_owner.internal_systems_for_stage(stage)"));
     assert!(runner_source.contains("plan_owner.native_steps_for_stage(stage)"));
     assert!(!runner_source.contains("SceneRuntimeHook"));
@@ -358,7 +391,7 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(!runner_source.contains("let steps ="));
     assert!(!runner_source.contains("scheduled_native_system_steps_for_stage(stage)"));
 
-    let step_source = include_str!("../ecs/system/native/scheduled_scene_step.rs");
+    let step_source = Source::new(include_str!("../ecs/system/native/scheduled_scene_step.rs"));
     assert!(step_source.contains("pub(crate) struct SortedScheduledSceneSteps<'a>"));
     assert!(step_source.contains("type Item = ScheduledSceneStepRef<'a>;"));
     assert!(step_source.contains("pub(crate) enum ScheduledSceneStepRef<'a>"));
@@ -397,7 +430,7 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(!step_source.contains("filter(|system| system.stage == stage)"));
     assert!(!step_source.contains("filter(|hook| hook.descriptor().stage == stage)"));
 
-    let schedule_source = include_str!("../ecs/schedule_stage_plan.rs");
+    let schedule_source = Source::new(include_str!("../ecs/schedule_stage_plan.rs"));
     assert!(schedule_source.contains("struct SceneScheduleStagePlan"));
     assert!(schedule_source.contains("from_registry("));
     assert!(!schedule_source.contains("from_schedule("));
@@ -430,9 +463,13 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(!schedule_source.contains("fn empty_internal_system_groups("));
     assert!(!schedule_source.contains("std::array::from_fn(|_| Vec::new())"));
 
-    let schedule_owner_source = include_str!("../ecs/schedule.rs");
+    let schedule_owner_source = Source::new(include_str!("../ecs/schedule.rs"));
     assert!(schedule_owner_source.contains("executor_plan: Arc<SceneScheduleStagePlan>"));
-    assert!(schedule_owner_source.contains("Arc::clone(&self.executor_plan)"));
+    let plan_snapshot = source_item(schedule_owner_source, "pub(crate) fn stage_plan(");
+    assert!(plan_snapshot.contains("Arc::clone(&self.executor_plan)"));
+    let begin_execution = source_item(schedule_owner_source, "pub(crate) fn begin_execution(");
+    assert!(begin_execution.contains("Arc::clone(&self.executor_plan)"));
+    assert!(!begin_execution.contains("SceneScheduleStagePlan::from_registry("));
     assert!(schedule_owner_source
         .contains("fn refresh_or_defer_executor_plan(&mut self) -> Result<(), ScheduleError>"));
     assert!(schedule_owner_source.contains("SceneScheduleStagePlan::from_registry("));
@@ -466,11 +503,8 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(!schedule_owner_source.contains(".position(|taken_id| taken_id.as_str() == id)"));
     assert!(schedule_owner_source.contains("impl<'de> Deserialize<'de> for Schedule"));
     assert!(schedule_owner_source.contains("impl Clone for Schedule"));
-    let default_stage_order_body = schedule_owner_source
-        .split("pub fn default_stage_order() -> Vec<SystemStage>")
-        .nth(1)
-        .and_then(|text| text.split("fn default_system_registry").next())
-        .expect("read default_stage_order body");
+    let default_stage_order_body =
+        source_item(schedule_owner_source, "pub fn default_stage_order(");
     assert!(default_stage_order_body.contains("Vec::with_capacity(SystemStage::ORDER.len())"));
     assert!(default_stage_order_body.contains("for stage in SystemStage::ORDER.iter().copied()"));
     assert!(default_stage_order_body.contains("stages.push(stage);"));
@@ -485,11 +519,10 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(!schedule_owner_source
         .contains("taken_native_system_ids.retain(|taken_id| taken_id.as_str() != id);"));
     assert!(!schedule_owner_source.contains("SceneScheduleStagePlan::from_schedule(self)"));
-    let restore_native_system_body = schedule_owner_source
-        .split("pub(crate) fn restore_native_system(&mut self, system: BoxedSceneSystem)")
-        .nth(1)
-        .and_then(|text| text.split("fn from_parts(").next())
-        .expect("read Schedule::restore_native_system body");
+    let restore_native_system_body = source_item(
+        schedule_owner_source,
+        "pub(crate) fn restore_native_system(",
+    );
     assert!(!restore_native_system_body.contains("system.id().to_string()"));
     let borrowed_restore_id_index = restore_native_system_body
         .find("let system_id = system.id();")
@@ -499,7 +532,7 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
         .expect("restore should move the native system back into the registry");
     assert!(borrowed_restore_id_index < restore_system_index);
 
-    let registry_source = include_str!("../ecs/scene_system_registry.rs");
+    let registry_source = Source::new(include_str!("../ecs/scene_system_registry.rs"));
     assert!(registry_source.contains("native_system_steps_by_stage("));
     assert!(registry_source.contains("let native_step_counts ="));
     assert!(registry_source.contains("native_step_counts_by_stage(&self.plan_systems)"));
@@ -509,7 +542,8 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(registry_source.contains("plan_systems: Vec<SceneSystemPlanDescriptor>"));
     assert!(registry_source.contains("systems: &[SceneSystemPlanDescriptor]"));
     assert!(!registry_source.contains("let runtime_systems: Vec<_>"));
-    let plan_descriptor_source = include_str!("../ecs/scene_system_plan_descriptor.rs");
+    let plan_descriptor_source =
+        Source::new(include_str!("../ecs/scene_system_plan_descriptor.rs"));
     assert!(registry_source.contains("counts[system.stage().rank()] += system.step_count();"));
     assert!(plan_descriptor_source.contains("worker_safe: false,"));
     assert!(plan_descriptor_source.contains("has_deferred_commands: true,"));
@@ -529,22 +563,16 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(registry_source.contains("runtime_systems: RuntimeSystemSlots"));
     assert!(registry_source.contains("self.runtime_systems.take(id)"));
     assert!(registry_source.contains("self.runtime_systems.restore(system)"));
-    let runtime_slots_source = include_str!("../ecs/scene_system_registry/runtime_system_slots.rs");
+    let runtime_slots_source = Source::new(include_str!(
+        "../ecs/scene_system_registry/runtime_system_slots.rs"
+    ));
     assert!(runtime_slots_source.contains("slots: Vec<RuntimeSystemSlot>"));
     assert!(runtime_slots_source.contains("indices: HashMap<String, usize>"));
-    let runtime_take_body = runtime_slots_source
-        .split("pub(super) fn take(")
-        .nth(1)
-        .and_then(|text| text.split("pub(super) fn remove(").next())
-        .expect("read RuntimeSystemSlots::take body");
+    let runtime_take_body = source_item(runtime_slots_source, "pub(super) fn take(");
     assert!(runtime_take_body.contains("self.indices.get(id)"));
     assert!(runtime_take_body.contains("self.slots.get_mut(index)?.system.take()"));
     assert!(!runtime_take_body.contains("self.slots.remove("));
-    let runtime_restore_body = runtime_slots_source
-        .split("pub(super) fn restore(")
-        .nth(1)
-        .and_then(|text| text.split("pub(super) fn insert(").next())
-        .expect("read RuntimeSystemSlots::restore body");
+    let runtime_restore_body = source_item(runtime_slots_source, "pub(super) fn restore(");
     assert!(
         runtime_restore_body.contains("let index = *self")
             && runtime_restore_body.contains(".indices")
@@ -599,11 +627,7 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(registry_source.contains("return true;"));
     assert!(!registry_source.contains(".iter().any(|system| system.id == id)"));
     assert!(!registry_source.contains(".iter().any(|system| system.id() == id)"));
-    let take_native_system_body = registry_source
-        .split("pub(crate) fn take_native_system(&mut self, id: &str)")
-        .nth(1)
-        .and_then(|text| text.split("pub(crate) fn restore_native_system").next())
-        .expect("read SceneSystemRegistry::take_native_system body");
+    let take_native_system_body = source_item(registry_source, "pub(crate) fn take_native_system(");
     assert!(take_native_system_body.contains("let mut index = 0_usize;"));
     assert!(take_native_system_body.contains("while index < self.native_systems.len()"));
     assert!(take_native_system_body.contains("self.native_systems[index].id() == id"));
@@ -628,15 +652,14 @@ fn world_driver_reuses_tick_schedule_snapshots_for_stage_runs() {
     assert!(registry_source.contains("fn native_conflict_graph_node_count_for_stage("));
     assert!(registry_source.contains("count += system.step_count();"));
     assert!(registry_source.contains("system.append_conflict_nodes(&mut nodes)"));
-    let native_conflict_graph_body = registry_source
-        .split("pub fn native_system_conflict_graph_for_stage(")
-        .nth(1)
-        .and_then(|text| text.split("pub(crate) fn take_native_system").next())
-        .expect("read native system conflict-graph builder");
+    let native_conflict_graph_body = source_item(
+        registry_source,
+        "pub fn native_system_conflict_graph_for_stage(",
+    );
     assert!(!native_conflict_graph_body.contains(".filter(|system| system.stage() == stage)"));
     assert!(!native_conflict_graph_body.contains(".flat_map(|system|"));
 
-    let graph_source = include_str!("../ecs/schedule_conflict_graph.rs");
+    let graph_source = Source::new(include_str!("../ecs/schedule_conflict_graph.rs"));
     assert!(graph_source
         .contains("pub(crate) fn from_node_vec(nodes: Vec<ScheduleConflictNode>) -> Self"));
     assert!(graph_source.contains("Self::from_node_vec(nodes)"));
