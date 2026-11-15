@@ -196,6 +196,9 @@ impl SealedDynamicLibrary {
     }
 }
 
+/// Pins the image containing an exported code address without invoking that export.
+/// Production retains the typed runtime getter's library during this call; the Windows
+/// loader regression shares this helper with an opaque symbol from a System32 library.
 #[cfg(windows)]
 fn pin_module_containing(code_address: *const ()) -> bool {
     const GET_MODULE_HANDLE_EX_FLAG_PIN: u32 = 0x0000_0001;
