@@ -239,6 +239,11 @@ impl RuntimeDynamicSession {
         {
             return false;
         }
+        // The last dynamic log lease unpublishes its generation inside the
+        // shutdown below. Records queued here are flushed by that join.
+        // `destroy_shutdown_done` is written by the caller after this returns,
+        // so that later line is absent when this was the last lease.
+        write_log("runtime_session", "destroy_shutdown_log_release_start");
         let process_log_shutdown = if let Some(process_log) = self.dynamic_process_log.as_mut() {
             let shutdown = process_log.shutdown_until(deadline);
             if shutdown {

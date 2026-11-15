@@ -85,18 +85,40 @@ fn untyped_editor_runner_failure_keeps_generic_code_when_log_shutdown_fails() {
     assert_eq!(outcome.secondary().len(), 1);
 }
 
-#[test]
-fn teardown_diagnostic_records_completed_exit_code() {
-    assert_eq!(
-        editor_process_teardown_diagnostic(&Ok::<_, ()>(host_success())),
-        "editor_process_teardown_complete result=completed exit_code=0"
-    );
+fn pin_receipt(diagnostic: &str) -> &str {
+    diagnostic
+        .split_once("runtime_module_pin=")
+        .map(|(_, receipt)| receipt)
+        .unwrap_or("")
+}
+
+fn known_pin_receipt(receipt: &str) -> bool {
+    matches!(
+        receipt,
+        "not_loaded"
+            | "release_on_last_session"
+            | "pinned_until_process_exit"
+            | "pin_failed_reference_leaked"
+    )
 }
 
 #[test]
-fn teardown_diagnostic_records_failed_exit_code() {
-    assert_eq!(
-        editor_process_teardown_diagnostic(&Err::<zircon_app::ProductTerminalOutcome, ()>(())),
-        "editor_process_teardown_complete result=failed exit_code=1"
-    );
+fn teardown_diagnostic_records_completed_runner_projection_not_process_exit() {
+    let diagnostic = editor_process_teardown_diagnostic(&Ok::<_, ()>(host_success()));
+    assert!(diagnostic.starts_with(
+        "editor_process_teardown_complete result=completed runner_projected_exit_code=0 process_exit=pending runtime_module_pin="
+    ));
+    assert!(known_pin_receipt(pin_receipt(&diagnostic)));
+    assert!(!diagnostic.contains(" exit_code="));
+}
+
+#[test]
+fn teardown_diagnostic_records_failed_runner_projection_not_process_exit() {
+    let diagnostic =
+        editor_process_teardown_diagnostic(&Err::<zircon_app::ProductTerminalOutcome, ()>(()));
+    assert!(diagnostic.starts_with(
+        "editor_process_teardown_complete result=failed runner_projected_exit_code=1 process_exit=pending runtime_module_pin="
+    ));
+    assert!(known_pin_receipt(pin_receipt(&diagnostic)));
+    assert!(!diagnostic.contains(" exit_code="));
 }

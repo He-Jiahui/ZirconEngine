@@ -1,4 +1,7 @@
-#![cfg_attr(all(windows, feature = "shipping-editor"), windows_subsystem = "windows")]
+#![cfg_attr(
+    all(windows, feature = "shipping-editor"),
+    windows_subsystem = "windows"
+)]
 
 #[path = "editor/startup_diagnostic.rs"]
 mod startup_diagnostic;
@@ -9,8 +12,9 @@ fn main() -> std::process::ExitCode {
         return result;
     }
     use zircon_runtime::diagnostic_log::{
-        initialize_process_log, install_process_log_panic_flush, shutdown_process_log, write_error, write_log,
-        DEFAULT_DIAGNOSTIC_LOG_CRASH_FLUSH_TIMEOUT, DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT,
+        initialize_process_log, install_process_log_panic_flush, shutdown_process_log, write_error,
+        write_log, DEFAULT_DIAGNOSTIC_LOG_CRASH_FLUSH_TIMEOUT,
+        DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT,
     };
 
     install_process_log_panic_flush(DEFAULT_DIAGNOSTIC_LOG_CRASH_FLUSH_TIMEOUT);
@@ -22,6 +26,10 @@ fn main() -> std::process::ExitCode {
         write_error("editor_app", &diagnostic);
         (diagnostic, log_path)
     });
+    // This line is the runner projection after EntryRunner returns. Session
+    // library handles are already dropped. It is not the OS process exit code:
+    // log shutdown below can still change a successful projection, and the
+    // process has not exited.
     write_log("editor_app", editor_process_teardown_diagnostic(&result));
     let process_log_shutdown_completed =
         shutdown_process_log(DEFAULT_DIAGNOSTIC_LOG_SHUTDOWN_TIMEOUT);
@@ -60,12 +68,15 @@ fn editor_process_exit_code<E: std::fmt::Display>(
 fn editor_process_teardown_diagnostic<E>(
     result: &Result<zircon_app::ProductTerminalOutcome, E>,
 ) -> String {
+    let pin = zircon_app::runtime_module_unload_receipt();
     match result {
         Ok(outcome) => format!(
-            "editor_process_teardown_complete result=completed exit_code={}",
+            "editor_process_teardown_complete result=completed runner_projected_exit_code={} process_exit=pending runtime_module_pin={pin}",
             outcome.exit_code().code()
         ),
-        Err(_) => "editor_process_teardown_complete result=failed exit_code=1".to_string(),
+        Err(_) => format!(
+            "editor_process_teardown_complete result=failed runner_projected_exit_code=1 process_exit=pending runtime_module_pin={pin}"
+        ),
     }
 }
 
