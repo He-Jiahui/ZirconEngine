@@ -116,6 +116,7 @@ fn prepared_viewport_extract_is_idempotent_without_authoring_edits() {
     assert!(!world.has_pending_scene_systems());
 }
 
+#[cfg(feature = "memory-validation")]
 #[test]
 fn memory_profile_prepared_viewport_packet_10k_entities() {
     use crate::core::framework::render::SceneViewportExtractRequest;
