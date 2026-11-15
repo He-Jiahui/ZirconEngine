@@ -209,6 +209,29 @@ impl RuntimePluginAvailabilityReason {
     }
 }
 
+/// Catalog facts retained by one immutable compiled plan; this carries no provider authority.
+#[derive(Debug)]
+pub(crate) struct RuntimePluginAvailabilityDescriptorSnapshot {
+    pub(super) package_id: String,
+    pub(super) runtime_id: RuntimePluginId,
+    pub(super) maturity: PluginMaturity,
+    pub(super) target_modes: Box<[RuntimeTargetMode]>,
+}
+
+impl RuntimePluginAvailabilityDescriptorSnapshot {
+    pub(crate) fn from_registration(
+        registration: &RuntimePluginRegistrationReport,
+    ) -> Option<Self> {
+        let descriptor = RuntimePluginAvailabilityDescriptorRef::from_registration(registration)?;
+        Some(Self {
+            package_id: descriptor.package_id.to_owned(),
+            runtime_id: descriptor.runtime_id,
+            maturity: descriptor.maturity,
+            target_modes: descriptor.target_modes.into(),
+        })
+    }
+}
+
 // 从目录或注册报告借用计算所需的最小字段，不复制整个包清单。
 pub(super) struct RuntimePluginAvailabilityDescriptorRef<'a> {
     pub(super) package_id: &'a str,
@@ -218,6 +241,15 @@ pub(super) struct RuntimePluginAvailabilityDescriptorRef<'a> {
 }
 
 impl<'a> RuntimePluginAvailabilityDescriptorRef<'a> {
+    pub(super) fn from_snapshot(snapshot: &'a RuntimePluginAvailabilityDescriptorSnapshot) -> Self {
+        Self {
+            package_id: &snapshot.package_id,
+            runtime_id: snapshot.runtime_id.clone(),
+            maturity: snapshot.maturity,
+            target_modes: &snapshot.target_modes,
+        }
+    }
+
     pub(super) fn from_descriptor(descriptor: &'a RuntimePluginDescriptor) -> Self {
         Self {
             package_id: descriptor.package_id(),

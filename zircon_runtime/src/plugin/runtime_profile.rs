@@ -14,6 +14,7 @@ mod descriptor;
 #[path = "runtime_profile/feature_presets.rs"]
 mod feature_presets;
 
+pub(crate) use availability_projection::RuntimePluginAvailabilityDescriptorSnapshot;
 pub use availability_projection::{
     RuntimePluginAvailabilityGeneration, RuntimePluginAvailabilityRow,
     RuntimePluginAvailabilitySummary,

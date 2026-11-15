@@ -312,7 +312,7 @@ fn selected_plugin_ids_for_effective_context(
 /// Select one eligible catalog registration for each canonical runtime plugin ID. Explicit aliases
 /// resolve to the matching registration when present, while duplicate alias rows cannot cause a
 /// second package to be re-enabled when the manifest explicitly disabled that row.
-fn selected_registration_indices(
+pub(super) fn selected_registration_indices(
     registrations: &[RuntimePluginRegistrationReport],
     completed: &ProjectPluginManifest,
     target: RuntimeTargetMode,
