@@ -14,7 +14,7 @@ use super::{InputAxisBinding, InputBinding, InputButton};
 ///
 /// # 参考
 /// 参见 [`InputBinding::chord`]、[`InputBinding::buttons_and_axes`]、[`InputBinding::is_empty`]。
-impl super::InputBinding {
+impl InputBinding {
     /// 用一个完整按钮身份创建无轴绑定。
     ///
     /// # 参数
@@ -58,7 +58,7 @@ impl super::InputBinding {
     /// 收集完成后不借用迭代器；String 和含字符串的按钮随返回值拥有。
     ///
     /// # 参考
-    /// 参见 [`super::InputButton`]、[`InputBinding::buttons_and_axes`]、[`super::InputActionMap::bind`]。
+    /// 参见 [`super::InputButton`]、[`InputBinding::buttons_and_axes`]、[`crate::core::framework::input::InputActionMap::bind`]。
     pub fn chord(
         action: impl Into<String>,
         buttons: impl IntoIterator<Item = InputButton>,
@@ -145,7 +145,7 @@ impl super::InputBinding {
     /// 两次收集均取得元素所有权，返回值不借用迭代器；方法不安装映射或保存帧。
     ///
     /// # 参考
-    /// 参见 [`InputBinding::chord`]、[`InputAxisBinding`]、[`super::InputActionMap::bind`]。
+    /// 参见 [`InputBinding::chord`]、[`InputAxisBinding`]、[`crate::core::framework::input::InputActionMap::bind`]。
     pub fn buttons_and_axes(
         action: impl Into<String>,
         buttons: impl IntoIterator<Item = InputButton>,
@@ -182,9 +182,8 @@ impl super::InputBinding {
     /// 不修改或保留借用，返回 bool 按值拥有。
     ///
     /// # 参考
-    /// 参见 [`super::InputActionMap::bind`]、[`InputBinding`]。
+    /// 参见 [`crate::core::framework::input::InputActionMap::bind`]、[`InputBinding`]。
     pub fn is_empty(&self) -> bool {
         self.buttons.is_empty() && self.axes.is_empty()
     }
 }
-

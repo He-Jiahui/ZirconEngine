@@ -111,9 +111,15 @@ RUNTIME_12_CLOSEOUT_ARCHIVE = (
     "docs/plans/zircon_runtime/runtime/12/"
     "2026-07-17-m5-input-event-bounds-current-source-closeout.md"
 )
+# External archives retain their original exact-byte identity.
 RUNTIME_12_HISTORICAL_IDENTITIES = {
-    # Identity of the closeout tracked in this repository. The older external
-    # archive bytes are not mounted in GitHub CI.
+    RUNTIME_12_CLOSEOUT_ARCHIVE: (
+        9157,
+        "4c9924b96701c8cfe6954a0cf9475ca67e898f6f0ba06e3776b36b7f3fd4cf4b",
+    ),
+}
+# Git text checkouts may use LF or CRLF; this identity is the canonical LF text.
+RUNTIME_12_REPOSITORY_IDENTITIES = {
     RUNTIME_12_CLOSEOUT_ARCHIVE: (
         9076,
         "8e76c4f3fa97c37757a549e176ca70ea5e0f18aa686b77f5e616bb19595fe208",
@@ -126,11 +132,13 @@ def input_stack_boundary_audit(
 ) -> dict[str, object]:
     # The closeout is stored in the repository. Use that tree when no external
     # archive root is configured.
-    if archive_root is None and not os.environ.get("ZIRCON_DOCS_HISTORY_ARCHIVE_ROOT"):
+    repository_copy = archive_root is None and not os.environ.get("ZIRCON_DOCS_HISTORY_ARCHIVE_ROOT")
+    if repository_copy:
         archive_root = root.resolve()
     history = HistoricalArchiveReader(
         archive_root,
-        identities=RUNTIME_12_HISTORICAL_IDENTITIES,
+        identities=(RUNTIME_12_REPOSITORY_IDENTITIES if repository_copy else RUNTIME_12_HISTORICAL_IDENTITIES),
+        canonical_newlines=bool(repository_copy),
     )
     historical_closeout = history.read(RUNTIME_12_CLOSEOUT_ARCHIVE)
     input_mod = root / "zircon_runtime/src/input/mod.rs"

@@ -11,15 +11,14 @@
 use std::sync::{Mutex, MutexGuard};
 
 use crate::core::framework::input::{
-    GamepadInputRejection, InputBatchLimits, InputBatchRejection, InputBatchSize,
-    InputEventAdmission, InputManager as InputManagerFacade, QueuedGamepadRumbleRequest,
+    InputBatchLimits, InputBatchRejection, InputBatchSize, InputEventAdmission,
+    InputManager as InputManagerFacade, QueuedGamepadRumbleRequest,
 };
 
 use crate::input::{
-    CursorHostRequest, GamepadAxisSettings, GamepadButtonAxisSettings, GamepadButtonSettings,
-    ImeEvent, ImeHostRequest, InputButton, InputEvent, InputEventQueueStatus, InputEventRecord,
-    InputEventRecordingConfig, InputEventRecordingStatus, InputFrameSnapshot, InputSnapshot,
-    MouseScrollUnit, MouseWheelEvent, TouchPhase, TouchPoint,
+    CursorHostRequest, ImeHostRequest, InputButton, InputEvent, InputEventQueueStatus,
+    InputEventRecord, InputEventRecordingConfig, InputEventRecordingStatus, InputFrameSnapshot,
+    InputSnapshot, MouseScrollUnit,
 };
 
 use super::InputState;
@@ -30,7 +29,7 @@ mod batch;
 #[path = "default_input_manager/apply_event.rs"]
 mod apply_event;
 
-use apply_event::apply_input_event;
+use apply_event::{apply_input_event, gamepad_input_admission};
 
 /// 维护一份可通过共享引用访问的运行时输入状态。
 ///
@@ -121,7 +120,7 @@ impl InputManagerFacade for DefaultInputManager {
     /// 返回代际准入回执；拒绝发生在任何状态、边沿、帧事件或录制变更之前。手柄幅值被过滤时可能不改变相应状态，原事件仍经过录制尝试与瞬时缓冲。请求只入队，窗口通知只保存，均不执行宿主动作；本调用也不表明 UI 已处理事件。
     ///
     /// # 参考
-    /// 参见 [`InputEvent`]、[`GamepadAxisSettings::process_value`]、[`GamepadButtonAxisSettings::process_value`] 与 [`InputManagerFacade::drain_events`]。
+    /// 参见 [`InputEvent`]、[`crate::input::GamepadAxisSettings::process_value`]、[`crate::input::GamepadButtonAxisSettings::process_value`] 与 [`InputManagerFacade::drain_events`]。
     fn submit_event_with_admission(&self, event: InputEvent) -> InputEventAdmission {
         let mut state = self.lock_state();
         let admission = gamepad_input_admission(&state, &event);

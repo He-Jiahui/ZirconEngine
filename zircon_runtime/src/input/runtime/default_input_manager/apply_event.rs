@@ -1,13 +1,12 @@
 //! Apply one admitted input event to persistent state and the frame window.
+use super::super::InputState;
 use crate::core::framework::input::{
     GamepadInputRejection, InputEventAdmission, QueuedGamepadRumbleRequest,
 };
 use crate::input::{
-    CursorHostRequest, GamepadAxisSettings, GamepadButtonAxisSettings, GamepadButtonSettings,
-    ImeEvent, ImeHostRequest, InputButton, InputEvent, MouseScrollUnit, MouseWheelEvent,
-    TouchPhase, TouchPoint,
+    GamepadAxisSettings, GamepadButtonAxisSettings, GamepadButtonSettings, ImeEvent, InputButton,
+    InputEvent, MouseScrollUnit, MouseWheelEvent, TouchPhase, TouchPoint,
 };
-use super::super::InputState;
 
 pub(super) fn apply_input_event(state: &mut InputState, event: InputEvent) {
     match &event {
@@ -210,7 +209,10 @@ pub(super) fn apply_input_event(state: &mut InputState, event: InputEvent) {
     state.frame_events.push(event);
 }
 
-fn gamepad_input_admission(state: &InputState, event: &InputEvent) -> InputEventAdmission {
+pub(super) fn gamepad_input_admission(
+    state: &InputState,
+    event: &InputEvent,
+) -> InputEventAdmission {
     gamepad_admission(event, |gamepad| {
         state.gamepad_generations.get(&gamepad).copied()
     })

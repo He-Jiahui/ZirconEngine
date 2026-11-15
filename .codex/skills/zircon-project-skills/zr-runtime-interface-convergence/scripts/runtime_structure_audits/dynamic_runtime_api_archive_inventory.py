@@ -48,10 +48,12 @@ class HistoricalArchiveReader:
         archive_root: Path | None = None,
         *,
         identities: Mapping[str, tuple[int, str]] | None = None,
+        canonical_newlines: bool = False,
     ) -> None:
         configured = os.environ.get(ARCHIVE_ROOT_ENV) if archive_root is None else archive_root
         self.archive_root = Path(configured) if configured else None
         self.identities = dict(HISTORICAL_IDENTITIES if identities is None else identities)
+        self.canonical_newlines = canonical_newlines
         self.records: dict[str, dict[str, object]] = {}
         self._texts: dict[str, str | None] = {}
 
@@ -90,6 +92,13 @@ class HistoricalArchiveReader:
                 return None
             record["archive_path"] = str(path)
             payload = path.read_bytes()
+            if self.canonical_newlines:
+                # Only repository text copies opt in. External archive verification
+                # remains byte-exact, including its original newline representation.
+                record["physical_length"] = len(payload)
+                record["physical_sha256"] = hashlib.sha256(payload).hexdigest()
+                record["newline_policy"] = "git-lf-text"
+                payload = payload.replace(b"\r\n", b"\n")
             record["actual_length"] = len(payload)
             record["actual_sha256"] = hashlib.sha256(payload).hexdigest()
             if len(payload) != expected_length:
