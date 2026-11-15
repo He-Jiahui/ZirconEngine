@@ -205,6 +205,88 @@ fn scene_assets_keep_prefab_instance_metadata_after_runtime_extension_installati
 }
 
 #[test]
+fn unreal_equiv_prefab_scene_roundtrip_preserves_independent_override_metadata() {
+    // Unreal reference (E:/Git/ZirconEngine/dev/UnrealEngine):
+    // Engine/Source/Runtime/CoreUObject/Tests/ArchetypeHashTest.cpp,
+    // DuplicatePreservesHash::{ContainerOverrides, EmptyOverrideSet} and
+    // HashDiscriminatesSetupsAndOverrides. Preserve recorded data through ZE's
+    // existing World metadata roundtrip; this does not exercise prefab expansion.
+    let root = unique_temp_project_root("unreal_equiv_prefab_metadata");
+    let project = create_test_project(&root);
+    let source = asset_reference("res://prefabs/hero.prefab.toml");
+    let mut entities = Vec::new();
+    for (entity_id, value) in [(42, Some(1)), (43, Some(2)), (44, None)] {
+        let overrides = value
+            .map(|value| {
+                vec![
+                    PrefabPropertyOverrideAsset {
+                        entity_path: "Root/Component".to_owned(),
+                        property_path: "custom.IntArray".to_owned(),
+                        value: serde_json::json!([value, 2, 3]),
+                    },
+                    PrefabPropertyOverrideAsset {
+                        entity_path: "Root/Component".to_owned(),
+                        property_path: "custom.IntMap".to_owned(),
+                        value: serde_json::json!({"1": value, "2": 20}),
+                    },
+                ]
+            })
+            .unwrap_or_default();
+        let instance = PrefabInstanceAsset {
+            prefab: source.clone(),
+            local_transform: TransformAsset {
+                translation: [entity_id as f32, 2.0, 1.0],
+                ..Default::default()
+            },
+            overrides,
+        };
+        entities.push(
+            serde_json::from_value::<SceneEntityAsset>(serde_json::json!({
+                "entity": entity_id,
+                "name": format!("Instance{entity_id}"),
+                "parent": null,
+                "transform": TransformAsset::default(),
+                "prefab_instance": instance,
+            }))
+            .unwrap(),
+        );
+    }
+    let scene = SceneAsset { entities };
+    let world = World::from_scene_asset(&project, &scene).unwrap();
+    let saved = world.to_scene_asset(&project).unwrap();
+
+    assert_eq!(saved.entities.len(), 3);
+    for expected in &scene.entities {
+        assert!(world
+            .dynamic_component(expected.entity, "zircon.prefab.instance")
+            .is_some());
+        let actual = saved
+            .entities
+            .iter()
+            .find(|entity| entity.entity == expected.entity)
+            .expect("same scene entity ID after roundtrip");
+        assert_eq!(actual.prefab_instance, expected.prefab_instance);
+    }
+    let overrides_for = |entity_id| {
+        &saved
+            .entities
+            .iter()
+            .find(|entity| entity.entity == entity_id)
+            .unwrap()
+            .prefab_instance
+            .as_ref()
+            .unwrap()
+            .overrides
+    };
+    assert_ne!(overrides_for(42), overrides_for(43));
+    assert_eq!(overrides_for(42)[0].value, serde_json::json!([1, 2, 3]));
+    assert_eq!(overrides_for(43)[0].value, serde_json::json!([2, 2, 3]));
+    assert!(overrides_for(44).is_empty());
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn scene_asset_load_uses_asset_preserving_normalizer_source_guard() {
     let source = project_io_source();
     let from_scene_asset =
