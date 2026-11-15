@@ -1,5 +1,6 @@
 use zr_rhi::{
-    RhiError, TextureCopyAspect, TextureCopyRegion, TextureDesc, TextureDimension, TextureHandle,
+    RhiError, TextureCopyAspect, TextureCopyRegion, TextureDesc, TextureDimension, TextureFormat,
+    TextureHandle,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -109,10 +110,21 @@ pub(crate) fn validate_texture_copy_destination_aspect(
     })
 }
 
+/// Returns whether raw texel bytes may move between the two formats. Equal
+/// formats and the UNorm/sRGB pair of one base format are copy-compatible, as
+/// in WGPU's texture-copy rule and Unreal's
+/// `FRHITextureTests::Test_RHICopyTexture` UNorm/sRGB cases
+/// (RHITests/Public/RHITextureTests.h), where the destination stays bitwise
+/// identical to the source. No colour conversion is applied.
+fn texture_formats_copy_compatible(source: TextureFormat, destination: TextureFormat) -> bool {
+    source == destination || source.supports_alternate_view_format(destination)
+}
+
 /// Validates the MVP texture-to-texture path shared by deterministic and WGPU
-/// executors. It intentionally admits only exact-format, single-sampled color
-/// copies between distinct physical textures; view reinterpretation and
-/// depth/stencil transfers need their own resource/aspect contracts.
+/// executors. It intentionally admits only single-sampled color copies between
+/// distinct physical textures whose formats are equal or differ only in sRGB
+/// encoding; other format conversions and depth/stencil transfers need their
+/// own resource/aspect contracts.
 pub(crate) fn texture_to_texture_copy_layouts(
     source: TextureHandle,
     source_desc: &TextureDesc,
@@ -127,13 +139,13 @@ pub(crate) fn texture_to_texture_copy_layouts(
         });
     }
     if source_desc.dimension != destination_desc.dimension
-        || source_desc.format != destination_desc.format
+        || !texture_formats_copy_compatible(source_desc.format, destination_desc.format)
         || source_desc.sample_count != 1
         || destination_desc.sample_count != 1
     {
         return Err(RhiError::InvalidCopy {
             reason: format!(
-                "texture copy {:?} -> {:?} requires matching dimension, format, and single-sample descriptors",
+                "texture copy {:?} -> {:?} requires matching dimension, copy-compatible format, and single-sample descriptors",
                 source.diagnostic_id(),
                 destination.diagnostic_id(),
             ),

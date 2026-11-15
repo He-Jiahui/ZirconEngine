@@ -374,9 +374,10 @@ pub trait CommandList: Send {
         bytes_per_row: u64,
         region: TextureCopyRegion,
     );
-    /// Records a same-format, single-sampled color subresource copy. Source
-    /// and destination must be distinct physical textures with equal copy
-    /// extents; depth/stencil and reinterpretation copies remain deferred.
+    /// Records a single-sampled color subresource copy of raw texel bytes.
+    /// Source and destination must be distinct physical textures with equal
+    /// copy extents and formats that are equal or differ only in sRGB
+    /// encoding; depth/stencil and converting copies remain deferred.
     fn copy_texture_to_texture(
         &mut self,
         source: TextureHandle,
