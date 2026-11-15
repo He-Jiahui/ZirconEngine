@@ -12,10 +12,12 @@ impl AssetCommand {
                 .with_argument(UiBindingValue::string(folder_id)),
             Self::SelectItem { asset_uuid } => UiBindingCall::new("AssetCommand.SelectItem")
                 .with_argument(UiBindingValue::string(asset_uuid)),
-            Self::ActivateReference { asset_uuid } => {
-                UiBindingCall::new("AssetCommand.ActivateReference")
-                    .with_argument(UiBindingValue::string(asset_uuid))
-            }
+            Self::ActivateReference {
+                asset_uuid,
+                asset_locator,
+            } => UiBindingCall::new("AssetCommand.ActivateReference")
+                .with_argument(UiBindingValue::string(asset_uuid))
+                .with_argument(UiBindingValue::string(asset_locator)),
             Self::SetSearchQuery { query } => UiBindingCall::new("AssetCommand.SetSearchQuery")
                 .with_argument(UiBindingValue::string(query)),
             Self::SetKindFilter { kind } => UiBindingCall::new("AssetCommand.SetKindFilter")
@@ -57,6 +59,18 @@ impl AssetCommand {
             },
             "AssetCommand.ActivateReference" => Self::ActivateReference {
                 asset_uuid: required_string_argument(&call, 0, "AssetCommand.ActivateReference")?,
+                asset_locator: call
+                    .argument(1)
+                    .map(|value| {
+                        value.as_str().map(str::to_string).ok_or_else(|| {
+                            EditorUiBindingError::InvalidPayload(
+                                "AssetCommand.ActivateReference expects string argument at index 1"
+                                    .into(),
+                            )
+                        })
+                    })
+                    .transpose()?
+                    .unwrap_or_default(),
             },
             "AssetCommand.SetSearchQuery" => Self::SetSearchQuery {
                 query: required_string_argument(&call, 0, "AssetCommand.SetSearchQuery")?,

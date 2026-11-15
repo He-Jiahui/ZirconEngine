@@ -73,12 +73,15 @@ pub fn compile_material_graph_with_diagnostics(
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MaterialGraphCompileReport {
-    pub diagnostics: Vec<String>,
+    pub diagnostics: Vec<MaterialGraphDiagnostic>,
     pub material: Option<MaterialAsset>,
 }
 
+/// Operation host entry. Diagnostics keep the node and pin targets produced by
+/// validation and evaluation. The legacy `compile_material_graph` string list
+/// still deduplicates message text and cannot carry those targets.
 pub fn compile_material_graph_operation(graph: &MaterialGraphAsset) -> MaterialGraphCompileReport {
-    match compile_material_graph(graph) {
+    match compile_material_graph_with_diagnostics(graph) {
         Ok(material) => MaterialGraphCompileReport {
             diagnostics: Vec::new(),
             material: Some(material),

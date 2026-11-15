@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
 
 use super::{
-    can_connect_material_graph, compile_material_graph, MaterialGraphConnectionAction as Action,
+    can_connect_material_graph, compile_material_graph, compile_material_graph_with_diagnostics,
+    validate_material_graph_with_diagnostics, MaterialGraphConnectionAction as Action,
+    MaterialGraphDiagnostic, MaterialGraphDiagnosticTarget as Target,
     MaterialGraphValueType as ValueType,
 };
 use zircon_runtime::asset::{
@@ -62,6 +64,16 @@ fn material_graph_connection_rejects_vector_and_texture_for_scalar_outputs() {
     ] {
         assert_rejected_by_preflight_and_compiler(&graph, &candidate, "does not produce a scalar");
     }
+}
+
+#[test]
+fn material_graph_metallic_unknown_source_pin_keeps_only_structural_diagnostic() {
+    assert_unknown_source_pin_keeps_only_structural_diagnostic("metallic");
+}
+
+#[test]
+fn material_graph_roughness_unknown_source_pin_keeps_only_structural_diagnostic() {
+    assert_unknown_source_pin_keeps_only_structural_diagnostic("roughness");
 }
 
 #[test]
@@ -245,6 +257,24 @@ fn material_graph_connection_rejects_duplicate_or_blank_node_identity() {
     assert!(can_connect_material_graph(&graph, &candidate)
         .unwrap_err()
         .contains("node id must not be empty"));
+}
+
+fn assert_unknown_source_pin_keeps_only_structural_diagnostic(pin: &str) {
+    let mut graph = base_graph();
+    graph.links.push(link("base", "bogus", "output", pin));
+    let before = graph.clone();
+    let expected = vec![MaterialGraphDiagnostic {
+        message: "material graph has no output pin `base.bogus`".into(),
+        target: Target::Node {
+            node_id: "base".into(),
+        },
+    }];
+    assert_eq!(validate_material_graph_with_diagnostics(&graph), expected);
+    assert_eq!(
+        compile_material_graph_with_diagnostics(&graph).unwrap_err(),
+        expected,
+    );
+    assert_eq!(graph, before);
 }
 
 fn assert_rejected_by_preflight_and_compiler(

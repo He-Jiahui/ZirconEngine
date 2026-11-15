@@ -379,6 +379,7 @@ fn build_builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
                 EditorUiEventKind::Click,
                 EditorUiBindingPayload::asset_command(AssetCommand::ActivateReference {
                     asset_uuid: "00000000-0000-0000-0000-000000000000".to_string(),
+                    asset_locator: String::new(),
                 }),
             ),
         ),

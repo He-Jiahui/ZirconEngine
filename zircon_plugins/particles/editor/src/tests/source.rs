@@ -1,8 +1,8 @@
 use super::{
     parse_particle_seed, ParticleCurveChannel, ParticleOverviewConnectionEligibility,
-    ParticleOverviewNodeId, ParticleSourceCurveAdapter, ParticleSourceCurveEdit,
-    ParticleSourceCurveId, ParticleSourceParameterEdit, ParticleSourceScalarRange,
-    ParticleSystemSource,
+    ParticleOverviewNodeId, ParticleSourceBurst, ParticleSourceCurveAdapter,
+    ParticleSourceCurveEdit, ParticleSourceCurveId, ParticleSourceParameterEdit,
+    ParticleSourceScalarRange, ParticleSystemSource,
 };
 use zircon_plugin_particles_runtime::{ParticleShape, ParticleSystemComponent, ParticlesManager};
 
@@ -85,14 +85,40 @@ fn identity_survives_rename_reorder_and_key_time_edits() {
 }
 
 #[test]
-fn duplicate_or_missing_keys_cannot_be_committed() {
+fn authoring_keys_are_unique_inside_each_list_and_may_repeat_across_lists() {
     let mut source = ParticleSystemSource::from_toml(TEMPLATE).unwrap();
-    source.emitters[0].size_over_lifetime[0].key = source.emitters[0].key.clone();
+    let shared = source.emitters[0].key.clone();
+    source.emitters[0].size_over_lifetime[0].key = shared.clone();
+    source.emitters[0].color_over_lifetime[0].key = shared.clone();
+    source.emitters[0].bursts.push(ParticleSourceBurst {
+        key: shared.clone(),
+        time_seconds: 0.25,
+        count: 4,
+    });
+    let mut second = source.emitters[0].clone();
+    second.id = "second".into();
+    second.key = Some("second-emitter".into());
+    second.size_over_lifetime[0].key = shared.clone();
+    source.emitters.push(second);
+    assert!(
+        source.validate().is_ok(),
+        "{}",
+        source.validate().unwrap_err()
+    );
+    assert!(source.assign_missing_keys().is_ok());
+    assert!(source.to_toml().is_ok());
+
+    source.emitters[0].size_over_lifetime[1].key =
+        source.emitters[0].size_over_lifetime[0].key.clone();
     let before = source.clone();
-    assert!(source.assign_missing_keys().is_err());
+    let error = source.assign_missing_keys().unwrap_err();
+    assert!(
+        error.to_string().contains("duplicated in this list"),
+        "{error}"
+    );
     assert_eq!(source, before);
     assert!(source.to_toml().is_err());
-    source.emitters[0].size_over_lifetime[0].key = None;
+    source.emitters[0].size_over_lifetime[1].key = None;
     assert!(source.to_toml().is_err());
     source.assign_missing_keys().unwrap();
     assert!(source.to_toml().is_ok());

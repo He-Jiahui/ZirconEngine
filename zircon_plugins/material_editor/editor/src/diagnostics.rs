@@ -105,19 +105,18 @@ pub(super) fn validate_with_index(
 ) -> Vec<MaterialGraphDiagnostic> {
     let mut diagnostics = Vec::new();
     let mut seen_ids = BTreeSet::new();
-    let mut ambiguous_ids = BTreeSet::new();
     let mut node_ids = BTreeSet::new();
     let mut output_nodes = Vec::new();
 
-    for node in &graph.nodes {
+    for (node_index, node) in graph.nodes.iter().enumerate() {
         if node.id.trim().is_empty() {
-            diagnostics.push(MaterialGraphDiagnostic::graph(
-                "material graph node id must not be empty",
+            diagnostics.push(MaterialGraphDiagnostic::node(
+                &node.id,
+                format!("material graph node at index {node_index} has an empty id"),
             ));
             continue;
         }
         if !seen_ids.insert(node.id.as_str()) {
-            ambiguous_ids.insert(node.id.as_str());
             diagnostics.push(MaterialGraphDiagnostic::graph(format!(
                 "material graph has duplicate node `{}`",
                 node.id
@@ -151,7 +150,7 @@ pub(super) fn validate_with_index(
         )),
     }
 
-    for link in &graph.links {
+    for (link_index, link) in graph.links.iter().enumerate() {
         if !node_ids.contains(link.from_node.as_str()) {
             diagnostics.push(MaterialGraphDiagnostic::graph(format!(
                 "material graph link references missing source node `{}`",
@@ -164,9 +163,24 @@ pub(super) fn validate_with_index(
                 link.to_node
             )));
         }
-        if link.from_pin.trim().is_empty() || link.to_pin.trim().is_empty() {
-            diagnostics.push(MaterialGraphDiagnostic::graph(
-                "material graph link pins must not be empty",
+        if link.from_pin.trim().is_empty() {
+            diagnostics.push(MaterialGraphDiagnostic::output(
+                &link.from_node,
+                &link.from_pin,
+                format!(
+                    "material graph link {link_index} from `{}` has an empty output pin",
+                    link.from_node
+                ),
+            ));
+        }
+        if link.to_pin.trim().is_empty() {
+            diagnostics.push(MaterialGraphDiagnostic::input(
+                &link.to_node,
+                &link.to_pin,
+                format!(
+                    "material graph link {link_index} to `{}` has an empty input pin",
+                    link.to_node
+                ),
             ));
         }
     }
@@ -206,37 +220,22 @@ pub(super) fn validate_with_index(
             }
         }
         if let MaterialGraphNodeKindAsset::Output = &node.kind {
-            if index
-                .incoming_link(&node.id, "base_color")
-                .and_then(|link| index.node(&link.from_node))
-                .is_none()
-            {
-                diagnostics.push(MaterialGraphDiagnostic::input(
-                    &node.id,
-                    "base_color",
-                    format!(
-                        "material graph output `{}` base_color input is disconnected",
-                        node.id
-                    ),
-                ));
+            if let Some(link) = index.incoming_link(&node.id, "base_color") {
+                if index.node(&link.from_node).is_none() {
+                    diagnostics.push(MaterialGraphDiagnostic::input(
+                        &node.id,
+                        "base_color",
+                        format!(
+                            "material graph output `{}` base_color input is disconnected",
+                            node.id
+                        ),
+                    ));
+                }
             }
         }
     }
 
     graph_contract::validate(graph, index, &mut diagnostics);
-    for diagnostic in &mut diagnostics {
-        let node_id = match &diagnostic.target {
-            MaterialGraphDiagnosticTarget::Node { node_id }
-            | MaterialGraphDiagnosticTarget::Input { node_id, .. }
-            | MaterialGraphDiagnosticTarget::Output { node_id, .. } => Some(node_id.as_str()),
-            _ => None,
-        };
-        if node_id.is_some_and(|id| !node_ids.contains(id) || ambiguous_ids.contains(id)) {
-            // The borrowed index keeps one duplicate for lookup, but it cannot
-            // establish a unique jump target in a malformed authoring document.
-            diagnostic.target = MaterialGraphDiagnosticTarget::Graph;
-        }
-    }
     diagnostics.sort_by(|a, b| {
         a.message
             .cmp(&b.message)

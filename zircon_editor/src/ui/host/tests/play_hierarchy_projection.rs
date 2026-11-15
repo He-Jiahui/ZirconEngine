@@ -49,6 +49,46 @@ fn first_identity_snapshot_requires_a_complete_reflow() {
 }
 
 #[test]
+fn reflow_keeps_selection_and_focus_when_the_entity_is_absent_from_rows() {
+    let mut projection = PlayHierarchyProjection::default();
+    projection
+        .apply(
+            identity(1),
+            WorldQueryResult::HierarchyRows {
+                generation: 4,
+                rows: vec![row(1, None, 0, "Root"), row(2, Some(1), 1, "Hidden")],
+            },
+            Some(2),
+            3,
+            [2],
+            false,
+        )
+        .unwrap();
+
+    let fragment = projection
+        .apply(
+            identity(1),
+            WorldQueryResult::HierarchyRows {
+                generation: 5,
+                rows: vec![row(1, None, 0, "Root")],
+            },
+            Some(2),
+            4,
+            [2],
+            false,
+        )
+        .unwrap()
+        .expect("topology change publishes a reflow");
+
+    let entries = fragment
+        .reflow_entries()
+        .expect("reflow carries the selection overlay");
+    assert!(entries.is_selected(2));
+    assert_eq!(fragment.message().focused_entity(), Some(2));
+    assert_eq!(projection.row(2), None);
+}
+
+#[test]
 fn world_replacement_clear_removes_the_generation_hint_and_rows() {
     let current_identity = identity(1);
     let mut projection = PlayHierarchyProjection::default();

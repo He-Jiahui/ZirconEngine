@@ -133,14 +133,15 @@ fn editor57_reference_identity_details_and_catalog_drive_the_same_pointer_target
         let dispatch = pointer
             .handle_click(UiPoint::new(8.0, asset_reference_viewport_y() + 8.0))
             .expect("reference row pointer dispatch");
+        assert_eq!(
+            dispatch.route,
+            Some(AssetPointerReferenceRoute::Item {
+                row_index: 0,
+                asset_uuid: expected_uuid.to_string(),
+                asset_locator: expected_locator.to_string(),
+            })
+        );
         if known {
-            assert_eq!(
-                dispatch.route,
-                Some(AssetPointerReferenceRoute::Item {
-                    row_index: 0,
-                    asset_uuid: expected_uuid.to_string(),
-                })
-            );
             if let Some(AssetPointerReferenceRoute::Item { asset_uuid, .. }) = dispatch.route {
                 assert!(workspace.navigate_to_asset(&asset_uuid));
             }
@@ -149,10 +150,9 @@ fn editor57_reference_identity_details_and_catalog_drive_the_same_pointer_target
                 Some(expected_uuid.to_string().as_str())
             );
         } else {
-            assert_eq!(
-                dispatch.route,
-                Some(AssetPointerReferenceRoute::ListSurface)
-            );
+            if let Some(AssetPointerReferenceRoute::Item { asset_uuid, .. }) = &dispatch.route {
+                assert!(!workspace.navigate_to_asset(asset_uuid));
+            }
             assert_eq!(
                 workspace.selected_asset_uuid(),
                 Some(source.asset_uuid.to_string().as_str())

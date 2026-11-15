@@ -150,6 +150,7 @@ impl AssetReferenceListPointerBridge {
             .map(|row_index| AssetReferenceListPointerTarget::Item {
                 row_index,
                 asset_uuid: self.layout.entries[row_index].asset_uuid.clone(),
+                asset_locator: self.layout.entries[row_index].asset_locator.clone(),
             })
             .or_else(|| {
                 viewport_frame(&self.layout)
@@ -171,9 +172,7 @@ impl AssetReferenceListPointerBridge {
             ROW_GAP,
             self.layout.entries.len(),
         )?;
-        self.layout.entries[row_index]
-            .known_project_asset
-            .then_some(row_index)
+        Some(row_index)
     }
 
     fn clamp_scroll_offset(&mut self) {

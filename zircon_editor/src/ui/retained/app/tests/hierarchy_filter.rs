@@ -280,5 +280,58 @@ fn repeated_filter_shares_rows_and_keeps_current_selection() {
         .filtered_by_hierarchy_query("cam");
     assert!(!again.shares_hierarchy_with(&next_generation));
     let other_query = selected.filtered_by_hierarchy_query("cube");
-    assert_eq!(other_query[0].entity, 2);
+    assert_eq!(
+        other_query
+            .iter()
+            .map(|entry| entry.entity)
+            .collect::<Vec<_>>(),
+        vec![1, 2]
+    );
+    assert!(other_query.is_selected(1));
+}
+
+#[test]
+fn hierarchy_filter_keeps_selected_entities_that_miss_the_name_query() {
+    let entries = SceneEntries::from_entries(
+        [
+            SceneEntry {
+                id: 1,
+                name: "Environment".to_string(),
+                depth: 0,
+            },
+            SceneEntry {
+                id: 2,
+                name: "Camera".to_string(),
+                depth: 1,
+            },
+            SceneEntry {
+                id: 3,
+                name: "Cube".to_string(),
+                depth: 1,
+            },
+            SceneEntry {
+                id: 4,
+                name: "Light".to_string(),
+                depth: 0,
+            },
+        ],
+        [3],
+    );
+
+    let filtered = entries.filtered_by_hierarchy_query("cam");
+    assert_eq!(
+        filtered
+            .iter()
+            .map(|entry| entry.entity)
+            .collect::<Vec<_>>(),
+        vec![1, 2, 3]
+    );
+    assert!(filtered.is_selected(3));
+    assert!(!filtered.is_selected(4));
+
+    let hidden = entries.filtered_by_hierarchy_query("missing");
+    assert_eq!(
+        hidden.iter().map(|entry| entry.entity).collect::<Vec<_>>(),
+        vec![1, 3]
+    );
 }

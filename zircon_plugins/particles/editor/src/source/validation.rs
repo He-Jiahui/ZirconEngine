@@ -19,10 +19,10 @@ impl ParticleSystemSource {
             ));
         }
         nonempty("system.id", &self.system.id)?;
-        let mut keys = BTreeSet::new();
+        let mut emitter_keys = BTreeSet::new();
         let mut emitter_ids = BTreeSet::new();
         for emitter in &self.emitters {
-            let key = require_key(&mut keys, emitter.key.as_deref(), "emitters.key")?;
+            let key = require_key(&mut emitter_keys, emitter.key.as_deref(), "emitters.key")?;
             let path = format!("emitters[{key}]");
             nonempty(&format!("{path}.id"), &emitter.id)?;
             if !emitter_ids.insert(emitter.id.as_str()) {
@@ -31,16 +31,15 @@ impl ParticleSystemSource {
                     "duplicate runtime emitter id",
                 ));
             }
-            validate_emitter(emitter, &path, &mut keys)?;
+            validate_emitter(emitter, &path)?;
         }
         Ok(())
     }
 }
 
-fn validate_emitter<'a>(
-    emitter: &'a ParticleSourceEmitter,
+fn validate_emitter(
+    emitter: &ParticleSourceEmitter,
     path: &str,
-    keys: &mut BTreeSet<&'a str>,
 ) -> Result<(), ParticleSourceError> {
     // Capacity zero does not bypass source validation, unlike the current runtime validator.
     nonnegative(
@@ -125,17 +124,23 @@ fn validate_emitter<'a>(
             })?;
         }
     }
+    let mut burst_keys = BTreeSet::new();
     for burst in &emitter.bursts {
-        let key = require_key(keys, burst.key.as_deref(), &format!("{path}.bursts.key"))?;
+        let key = require_key(
+            &mut burst_keys,
+            burst.key.as_deref(),
+            &format!("{path}.bursts.key"),
+        )?;
         nonnegative(
             &format!("{path}.bursts[{key}].time_seconds"),
             burst.time_seconds,
         )?;
     }
+    let mut size_keys = BTreeSet::new();
     let mut previous = None;
     for key in &emitter.size_over_lifetime {
         let id = require_key(
-            keys,
+            &mut size_keys,
             key.key.as_deref(),
             &format!("{path}.size_over_lifetime.key"),
         )?;
@@ -143,10 +148,11 @@ fn validate_emitter<'a>(
         ordered_time(&path, key.t, &mut previous)?;
         nonnegative(&format!("{path}.value"), key.value)?;
     }
+    let mut color_keys = BTreeSet::new();
     let mut previous = None;
     for key in &emitter.color_over_lifetime {
         let id = require_key(
-            keys,
+            &mut color_keys,
             key.key.as_deref(),
             &format!("{path}.color_over_lifetime.key"),
         )?;
@@ -157,17 +163,25 @@ fn validate_emitter<'a>(
     Ok(())
 }
 
-fn require_key<'a>(
+/// Emitter, burst, and curve keys are unique inside their own list.
+/// The same authoring key may name an emitter and a curve point.
+pub(crate) fn require_key<'a>(
     keys: &mut BTreeSet<&'a str>,
     key: Option<&'a str>,
     path: &str,
 ) -> Result<&'a str, ParticleSourceError> {
     let key =
         key.ok_or_else(|| ParticleSourceError::invalid(path, "missing persistent authoring key"))?;
-    if key.trim().is_empty() || key.trim() != key || !keys.insert(key) {
+    if key.trim().is_empty() || key.trim() != key {
         return Err(ParticleSourceError::invalid(
             path,
-            "keys must be nonempty and unique",
+            "keys must be nonempty and must not have surrounding whitespace",
+        ));
+    }
+    if !keys.insert(key) {
+        return Err(ParticleSourceError::invalid(
+            path,
+            format!("key `{key}` is duplicated in this list"),
         ));
     }
     Ok(key)

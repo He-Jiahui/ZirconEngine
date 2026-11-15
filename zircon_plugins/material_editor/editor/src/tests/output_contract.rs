@@ -231,7 +231,7 @@ fn assert_error(graph: &MaterialGraphAsset, expected: &str) {
         report
             .diagnostics
             .iter()
-            .any(|message| message.contains(expected)),
+            .any(|diagnostic| diagnostic.message.contains(expected)),
         "expected {expected:?}, got {:?}",
         report.diagnostics
     );

@@ -28,6 +28,7 @@ impl AssetReferenceListPointerLayout {
                 .iter()
                 .map(|reference| AssetReferenceListPointerEntry {
                     asset_uuid: reference.uuid.clone(),
+                    asset_locator: reference.locator.clone(),
                     known_project_asset: reference.known_project_asset,
                 }),
         );
