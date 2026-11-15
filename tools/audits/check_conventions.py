@@ -506,7 +506,9 @@ def _test_reference_paths(entry: str) -> list[str]:
         return [repository_path]
     if any(character.isspace() for character in entry):
         return []
-    if any(part in {"build", "target"} for part in PurePosixPath(repository_path).parts):
+    parts = PurePosixPath(repository_path).parts
+    # Cargo output stays out of the docs gate. Source modules named build still count.
+    if "target" in parts or ("build" in parts and "src" not in parts):
         return []
     return [repository_path]
 

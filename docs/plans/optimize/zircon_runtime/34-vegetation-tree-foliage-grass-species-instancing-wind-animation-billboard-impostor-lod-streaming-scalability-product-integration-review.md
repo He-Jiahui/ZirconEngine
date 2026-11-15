@@ -23,7 +23,6 @@ related_code:
 tests:
   - zircon_runtime/src/asset/tests/assets/mesh.rs
   - zircon_runtime/src/asset/tests/assets/model.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance/tests.rs
   - zircon_runtime/src/graphics/tests/visibility.rs
   - zircon_runtime/src/asset/tests/project/example_vampire
 plan_sources:
