@@ -106,18 +106,21 @@ fn material_graph_disconnected_overflow_is_evaluated_only_after_output_connectio
     connect(&mut graph, "overflow", "output", "roughness");
     let report = compile_material_graph_operation(&graph);
     assert!(report.material.is_none());
-    assert!(report.diagnostics.iter().any(|message| {
-        message.contains("output.roughness")
-            && message.contains("node `overflow` produced a non-finite scalar")
+    assert!(report.diagnostics.iter().any(|diagnostic| {
+        diagnostic.message.contains("output.roughness")
+            && diagnostic
+                .message
+                .contains("node `overflow` produced a non-finite scalar")
     }));
     graph.links.pop();
     graph.links[2].from_node = "overflow".into();
     let report = compile_material_graph_operation(&graph);
     assert!(report.material.is_none());
-    assert!(report
-        .diagnostics
-        .iter()
-        .any(|message| message.contains("`add` produced a non-finite value")));
+    assert!(report.diagnostics.iter().any(|diagnostic| {
+        diagnostic
+            .message
+            .contains("`add` produced a non-finite value")
+    }));
 }
 
 fn graph() -> MaterialGraphAsset {

@@ -290,7 +290,11 @@ impl<'a> MaterialGraphPresentation<'a> {
             .outputs()
             .iter()
             .map(|pin| {
-                GraphPinView::output(pin.name(), output_type.map_or(pin.value_type(), type_name))
+                let value_type = match output_type {
+                    Some(value_type) => type_name(value_type),
+                    None => pin.value_type(),
+                };
+                GraphPinView::output(pin.name(), value_type)
             })
             .collect();
         Ok(GraphNodeView {

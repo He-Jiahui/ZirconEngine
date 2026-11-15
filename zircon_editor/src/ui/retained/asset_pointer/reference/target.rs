@@ -5,6 +5,7 @@ pub(super) enum AssetReferenceListPointerTarget {
     Item {
         row_index: usize,
         asset_uuid: String,
+        asset_locator: String,
     },
     ListSurface,
 }
@@ -16,9 +17,11 @@ pub(super) fn to_public_route(
         AssetReferenceListPointerTarget::Item {
             row_index,
             asset_uuid,
+            asset_locator,
         } => AssetPointerReferenceRoute::Item {
             row_index,
             asset_uuid,
+            asset_locator,
         },
         AssetReferenceListPointerTarget::ListSurface => AssetPointerReferenceRoute::ListSurface,
     }

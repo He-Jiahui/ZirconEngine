@@ -116,11 +116,7 @@ pub(super) fn validate(
         }
     }
     validate_acyclic(graph, index, diagnostics);
-    if diagnostics.is_empty() {
-        if let Err(error) = super::connections::validate_types(graph) {
-            diagnostics.push(error);
-        }
-    }
+    diagnostics.extend(super::connections::collect_type_diagnostics(graph, index));
 }
 
 fn validate_acyclic(
@@ -159,8 +155,14 @@ fn validate_acyclic(
         }
     }
     if visited != degrees.len() {
-        diagnostics.push(MaterialGraphDiagnostic::graph(
-            "material graph contains a cycle",
-        ));
+        let involved = degrees
+            .iter()
+            .filter_map(|(id, degree)| (*degree > 0).then_some(*id))
+            .map(|id| format!("`{id}`"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        diagnostics.push(MaterialGraphDiagnostic::graph(format!(
+            "material graph contains a cycle involving {involved}"
+        )));
     }
 }

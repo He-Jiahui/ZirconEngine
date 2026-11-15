@@ -7,6 +7,7 @@ fn pane_size_patch_preserves_reference_projection() {
     let entries = (0..1_024)
         .map(|index| AssetReferenceListPointerEntry {
             asset_uuid: format!("asset-{index}"),
+            asset_locator: format!("res://asset-{index}.asset"),
             known_project_asset: index % 2 == 0,
         })
         .collect::<Vec<_>>();

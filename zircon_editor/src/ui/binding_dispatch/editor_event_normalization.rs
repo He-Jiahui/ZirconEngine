@@ -59,9 +59,13 @@ pub(crate) fn normalize_editor_event_binding(
                 AssetHostEvent::SelectItem { asset_uuid } => {
                     EditorAssetEvent::SelectItem { asset_uuid }
                 }
-                AssetHostEvent::ActivateReference { asset_uuid } => {
-                    EditorAssetEvent::ActivateReference { asset_uuid }
-                }
+                AssetHostEvent::ActivateReference {
+                    asset_uuid,
+                    asset_locator,
+                } => EditorAssetEvent::ActivateReference {
+                    asset_uuid,
+                    asset_locator,
+                },
                 AssetHostEvent::SetSearchQuery { query } => {
                     EditorAssetEvent::SetSearchQuery { query }
                 }

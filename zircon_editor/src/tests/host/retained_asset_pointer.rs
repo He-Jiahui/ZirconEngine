@@ -54,6 +54,7 @@ fn shared_asset_pointer_bridges_skip_rebuild_for_unchanged_layout_and_state() {
         pane_size: UiSize::new(280.0, 180.0),
         entries: vec![AssetReferenceListPointerEntry {
             asset_uuid: "11111111-1111-1111-1111-111111111111".to_string(),
+            asset_locator: "res://materials/grid.zmaterial".to_string(),
             known_project_asset: true,
         }],
     };
@@ -149,6 +150,7 @@ fn asset_pointer_surfaces_keep_constant_authority_for_large_virtual_lists() {
     let entries = (0..ITEM_COUNT)
         .map(|index| AssetReferenceListPointerEntry {
             asset_uuid: format!("reference-{index:05}"),
+            asset_locator: format!("res://reference-{index:05}.asset"),
             known_project_asset: index != 5_001,
         })
         .collect::<Vec<_>>();
@@ -169,6 +171,7 @@ fn asset_pointer_surfaces_keep_constant_authority_for_large_virtual_lists() {
     let expected_reference_route = AssetPointerReferenceRoute::Item {
         row_index: 5_000,
         asset_uuid: entries[5_000].asset_uuid.clone(),
+        asset_locator: entries[5_000].asset_locator.clone(),
     };
     assert_eq!(
         reference_scrolled.route,
@@ -184,9 +187,13 @@ fn asset_pointer_surfaces_keep_constant_authority_for_large_virtual_lists() {
     assert_eq!(
         reference_bridge
             .handle_click(UiPoint::new(reference_point.x, reference_point.y + 38.0))
-            .expect("unknown reference should still route to the list surface")
+            .expect("unknown reference rows stay hit targets")
             .route,
-        Some(AssetPointerReferenceRoute::ListSurface)
+        Some(AssetPointerReferenceRoute::Item {
+            row_index: 5_001,
+            asset_uuid: entries[5_001].asset_uuid.clone(),
+            asset_locator: entries[5_001].asset_locator.clone(),
+        })
     );
     assert_eq!(
         reference_bridge.surface_authority_generation_for_test(),
@@ -558,6 +565,7 @@ fn shared_asset_reference_pointer_bridge_scrolls_and_dispatches_reference_activa
         Some(AssetPointerReferenceRoute::Item {
             row_index,
             asset_uuid: reference_entries[row_index].asset_uuid.clone(),
+            asset_locator: reference_entries[row_index].asset_locator.clone(),
         })
     );
     let effects = dispatched
@@ -568,6 +576,7 @@ fn shared_asset_reference_pointer_bridge_scrolls_and_dispatches_reference_activa
         harness.runtime.journal().records().last().unwrap().event,
         EditorEvent::Asset(EditorAssetEvent::ActivateReference {
             asset_uuid: reference_entries[row_index].asset_uuid.clone(),
+            asset_locator: reference_entries[row_index].asset_locator.clone(),
         })
     );
 }
@@ -667,11 +676,23 @@ fn repeated_ids(ids: &[String], len: usize) -> Vec<String> {
         .collect()
 }
 
+fn reference_locator(asset_uuid: &str) -> String {
+    match asset_uuid {
+        "11111111-1111-1111-1111-111111111111" => "res://materials/grid.zmaterial".to_string(),
+        "22222222-2222-2222-2222-222222222222" => "res://scenes/main.scene.toml".to_string(),
+        _ => String::new(),
+    }
+}
+
 fn repeated_reference_entries(ids: &[String], len: usize) -> Vec<AssetReferenceListPointerEntry> {
     (0..len)
-        .map(|index| AssetReferenceListPointerEntry {
-            asset_uuid: ids[index % ids.len()].clone(),
-            known_project_asset: true,
+        .map(|index| {
+            let asset_uuid = ids[index % ids.len()].clone();
+            AssetReferenceListPointerEntry {
+                asset_locator: reference_locator(&asset_uuid),
+                asset_uuid,
+                known_project_asset: true,
+            }
         })
         .collect()
 }
