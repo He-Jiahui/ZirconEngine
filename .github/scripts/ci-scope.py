@@ -148,6 +148,7 @@ RUNTIME_RULES = {
     "core/framework/time/": ("core-min", "core::framework::time::"),
     "core/runtime/": ("native-host", "core::runtime::"),
     "core/math/": ("core-min", None),
+    "core/error_source.rs": ("core-min", None),
     "engine_module/": ("core-min", "engine_module::"),
     "core/": ("native-host", "core::"),
     "animation/": ("animation", "animation::"),
@@ -438,7 +439,7 @@ def plan_paths(paths, packages, recipes, selected=()):
             picked.add("export-policy")
             continue
         owners = [p for p in packages.values() if path.startswith(p["directory"] + "/")]
-        if path in public_controls or path.endswith("/build.rs"):
+        if path in public_controls or any(path == package["directory"] + "/build.rs" for package in packages.values()):
             # Plugin lock edges are covered by the library recipes of the manifests
             # in the same change. A lock-only edit, including Windows target churn,
             # still needs its own reviewed rule.
@@ -510,10 +511,13 @@ def plan_paths(paths, packages, recipes, selected=()):
         elif name == "zircon_editor" and "editor-zircon_editor" in recipes:
             candidates.add("editor-zircon_editor")
         elif name == "zircon_app" and relative.startswith("src/entry/"):
-            # Profile is explicitly chosen because this common entry serves different targets.
-            candidates.update(rid for rid in explicit if rid.startswith("profile-"))
-            if not candidates:
+            # The plan job does not receive --select. An explicit profile still wins;
+            # otherwise every reviewed app profile covers this shared entry.
+            profiles = {rid for rid in recipes if rid.startswith("profile-")}
+            chosen_profiles = {rid for rid in explicit if rid.startswith("profile-")} or profiles
+            if not chosen_profiles:
                 unresolved.append(path + ": choose applicable --select profile-ID; catalog lists valid IDs")
+            candidates.update(chosen_profiles)
         else:
             unresolved.append(path + ": owner has no reviewed scoped recipe: " + name)
         picked.update(candidates)

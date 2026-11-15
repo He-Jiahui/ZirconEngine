@@ -616,6 +616,20 @@ class CiGatesContractTests(unittest.TestCase):
                 with self.assertRaisesRegex(SCOPE.ScopeError, "Uncovered impact"):
                     SCOPE.plan_paths([path], packages, recipes, ("runtime-scene",))
 
+    def test_nested_modules_named_build_are_not_package_build_scripts(self) -> None:
+        packages = SCOPE.catalog(REPO_ROOT)
+        recipes = SCOPE.registry(packages)
+        path = "zircon_runtime/src/graphics/visibility/planning/geometry_plan/build.rs"
+        self.assertTrue((REPO_ROOT / path).is_file())
+        chosen = {value["id"] for value in SCOPE.plan_paths([path], packages, recipes)}
+        self.assertIn("runtime-graphics", chosen)
+        error = SCOPE.plan_paths(["zircon_runtime/src/core/error_source.rs"], packages, recipes)
+        self.assertIn("runtime-core-error_source.rs", {value["id"] for value in error})
+        entry = "zircon_app/src/entry/host_requests/clipboard/platform/windows.rs"
+        profiles = {value["id"] for value in SCOPE.plan_paths([entry], packages, recipes)}
+        self.assertTrue(profiles and profiles <= {rid for rid in recipes if rid.startswith("profile-")})
+        self.assertIn("profile-editor", profiles)
+
     def test_scope_uncovered_reverse_consumer_is_a_blocker(self) -> None:
         packages, recipes = self.scope_fixture()
         packages["unused"]["dependencies"] = ["zr_math"]
