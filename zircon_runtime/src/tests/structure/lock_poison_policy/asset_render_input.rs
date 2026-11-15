@@ -11,26 +11,22 @@ const TEST_ATTRIBUTE: &str = concat!("#[", "test", "]");
 
 #[test]
 fn runtime_15_asset_render_input_lock_poison_guard_child_owner_split() {
-    let parent = read_runtime_src(
-        "tests/runtime_absorption/structure_convention/lock_poison_policy/asset_render_input.rs",
-    );
-    let asset_pipeline = read_runtime_src(
-        "tests/runtime_absorption/structure_convention/lock_poison_policy/asset_render_input/asset_pipeline.rs",
-    );
-    let render_animation = read_runtime_src(
-        "tests/runtime_absorption/structure_convention/lock_poison_policy/asset_render_input/render_animation.rs",
-    );
-    let input_script = read_runtime_src(
-        "tests/runtime_absorption/structure_convention/lock_poison_policy/asset_render_input/input_script.rs",
-    );
+    let parent_path = "tests/structure/lock_poison_policy/asset_render_input.rs";
+    let asset_pipeline_path = "tests/structure/asset_render_input/asset_pipeline.rs";
+    let render_animation_path = "tests/structure/asset_render_input/render_animation.rs";
+    let input_script_path = "tests/contracts/structure/asset_render_input/input_script.rs";
+    let parent = read_runtime_src(parent_path).replace("\r\n", "\n");
+    let asset_pipeline = read_runtime_src(asset_pipeline_path);
+    let render_animation = read_runtime_src(render_animation_path);
+    let input_script = read_runtime_src(input_script_path);
 
     assert_contains_all(
         "asset/render/input lock-poison parent mounts child owners",
         &parent,
         &[
-            "mod asset_pipeline;",
-            "mod input_script;",
-            "mod render_animation;",
+            "#[path = \"../asset_render_input/asset_pipeline.rs\"]\nmod asset_pipeline;",
+            "#[path = \"../../contracts/structure/asset_render_input/input_script.rs\"]\nmod input_script;",
+            "#[path = \"../asset_render_input/render_animation.rs\"]\nmod render_animation;",
         ],
     );
 
@@ -120,26 +116,14 @@ fn runtime_15_asset_render_input_lock_poison_guard_child_owner_split() {
     .sum::<usize>();
     assert_eq!(
         child_test_total, 7,
-        "asset/render/input lock-poison children should preserve seven existing guards plus the new split guard"
+        "asset/render/input lock-poison should preserve six child guards plus the split guard"
     );
 
     for (path, source) in [
-        (
-            "structure_convention/lock_poison_policy/asset_render_input.rs",
-            parent.as_str(),
-        ),
-        (
-            "structure_convention/lock_poison_policy/asset_render_input/asset_pipeline.rs",
-            asset_pipeline.as_str(),
-        ),
-        (
-            "structure_convention/lock_poison_policy/asset_render_input/render_animation.rs",
-            render_animation.as_str(),
-        ),
-        (
-            "structure_convention/lock_poison_policy/asset_render_input/input_script.rs",
-            input_script.as_str(),
-        ),
+        (parent_path, parent.as_str()),
+        (asset_pipeline_path, asset_pipeline.as_str()),
+        (render_animation_path, render_animation.as_str()),
+        (input_script_path, input_script.as_str()),
     ] {
         let line_count = source.lines().count();
         assert!(
@@ -148,10 +132,17 @@ fn runtime_15_asset_render_input_lock_poison_guard_child_owner_split() {
         );
     }
 
-    let _runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let _runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let _review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let _structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let _module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
+    let _runtime_15_plan = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+    );
+    let _runtime_index = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
+    let _review_findings = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    );
+    let _structure_convention = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
+    let _module_doc = read_repo("docs/crates/zircon_runtime/structure/module-convention.md");
 }
