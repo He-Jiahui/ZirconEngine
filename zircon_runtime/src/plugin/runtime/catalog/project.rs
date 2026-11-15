@@ -5,6 +5,7 @@ use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::framework::project::{
     ProjectPluginManifest, ProjectPluginSelection, RuntimeProfileId,
 };
+use crate::plugin::runtime_profile::RuntimePluginAvailabilityDescriptorSnapshot;
 use crate::plugin::{PluginMaturity, RuntimeProfileDescriptor};
 
 #[path = "project/cache.rs"]
@@ -55,6 +56,7 @@ pub struct CompiledProjectPluginPlan {
     source_manifest_fingerprint: u64,
     target_mode: RuntimeTargetMode,
     runtime_profile_admission: Option<(RuntimeProfileId, PluginMaturity)>,
+    availability_descriptors: Box<[RuntimePluginAvailabilityDescriptorSnapshot]>,
     pub(super) completed_manifest: Arc<ProjectPluginManifest>,
     pub(super) feature_report: Arc<RuntimePluginFeatureDependencyReport>,
     pub(super) extension_report: Arc<RuntimeExtensionCatalogReport>,
@@ -80,6 +82,13 @@ impl CompiledProjectPluginPlan {
     /// Exact profile identity and maturity policy applied before executable selection.
     pub fn runtime_profile_admission(&self) -> Option<(RuntimeProfileId, PluginMaturity)> {
         self.runtime_profile_admission
+    }
+
+    /// Catalog facts frozen with the same canonical provider priority as this plan.
+    pub(crate) fn availability_descriptors(
+        &self,
+    ) -> &[RuntimePluginAvailabilityDescriptorSnapshot] {
+        &self.availability_descriptors
     }
 
     /// Completed project manifest retained by this plan generation.
@@ -256,6 +265,20 @@ impl RuntimePluginCatalog {
                 &self.projection,
                 &cache_entry.source_manifest,
             ));
+            // Preserve facts before maturity admission so the evaluator can still explain
+            // a blocked provider. Reuse selection's exact/canonical/alias priority, never last-wins.
+            let availability_descriptors = selection::selected_registration_indices(
+                &self.registrations,
+                completed_manifest.as_ref(),
+                target,
+            )
+            .into_iter()
+            .filter_map(|index| {
+                RuntimePluginAvailabilityDescriptorSnapshot::from_registration(
+                    &self.registrations[index],
+                )
+            })
+            .collect::<Box<[_]>>();
             // Keep raw request intent; one admitted snapshot drives all executable consumers.
             let (admitted_manifest, maturity_diagnostics) =
                 selection::manifest_admitted_for_maturity(
@@ -306,6 +329,7 @@ impl RuntimePluginCatalog {
                 source_manifest_fingerprint: fingerprint,
                 target_mode: target,
                 runtime_profile_admission: admission,
+                availability_descriptors,
                 completed_manifest,
                 feature_report,
                 extension_report,

@@ -5,7 +5,8 @@ use std::collections::HashSet;
 
 use crate::core::framework::project::ProjectPluginManifest;
 use crate::plugin::{
-    RuntimePluginCatalog, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
+    CompiledProjectPluginPlan, RuntimePluginCatalog, RuntimePluginDescriptor,
+    RuntimePluginRegistrationReport,
 };
 
 use super::availability_projection::{
@@ -90,6 +91,23 @@ impl RuntimeProfileDescriptor {
             native_dynamic_plugin_ids,
         )
         .report_for_manifest(self, manifest, true)
+    }
+
+    /// Evaluate frozen catalog facts using the same policy as built-in descriptors.
+    pub(crate) fn availability_report_for_compiled_plan<'a>(
+        &self,
+        descriptors: impl IntoIterator<Item = &'a RuntimePluginDescriptor>,
+        plan: &'a CompiledProjectPluginPlan,
+    ) -> RuntimePluginAvailabilityReport {
+        RuntimePluginAvailabilityProjection::new(
+            descriptors,
+            plan.linked_provider_package_ids(),
+            // Packaging intent is not the native loader's authenticated authority.
+            // Never promote a compiled NativeDynamic provider to Ready here.
+            std::iter::empty::<String>(),
+        )
+        .with_plan_descriptors(plan.availability_descriptors())
+        .report_for_manifest(self, plan.completed_manifest(), true)
     }
 
     /// 反复查询状态时可保留此生成代；其借用的描述符必须在整个使用期保持存活。
