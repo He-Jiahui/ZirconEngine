@@ -25,10 +25,10 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use crate::core::framework::scene::SCENE_MODULE_NAME;
-use crate::core::{CoreRuntime, TimePolicyTransaction};
+use super::scene_test_runtime;
+use crate::core::TimePolicyTransaction;
+use crate::scene::create_default_level;
 use crate::scene::ecs::{FunctionRuntimeSceneSystem, SceneSystemMetadata, Schedule, SystemStage};
-use crate::scene::{create_default_level, module_descriptor};
 
 #[test]
 fn default_schedule_executes_all_stages_in_declared_order() {
@@ -115,9 +115,7 @@ fn assert_admission_rejects(stages: &[SystemStage], message: &str) {
 }
 
 fn assert_driver_follows_admitted_plan(schedule: Schedule) {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
     level
         .apply_time_policy(TimePolicyTransaction::new(

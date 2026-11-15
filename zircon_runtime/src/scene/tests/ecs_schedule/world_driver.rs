@@ -20,9 +20,7 @@ impl crate::scene::ecs::Component for PausedFrameMaintenanceComponent {}
 
 #[test]
 fn delayed_outer_snapshot_keeps_one_atomic_monotonic_real_tuple() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
     let observed = Arc::new(Mutex::new(None));
 
@@ -65,9 +63,7 @@ fn delayed_outer_snapshot_keeps_one_atomic_monotonic_real_tuple() {
 
 #[test]
 fn world_driver_defers_runtime_system_mutations_until_builtin_post_update_systems_run() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
     let cube = level.with_world(|world| {
         world
@@ -137,9 +133,7 @@ fn world_driver_defers_runtime_system_mutations_until_builtin_post_update_system
 
 #[test]
 fn world_driver_consumes_runtime_time_advance_without_advancing_clocks_again() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     runtime
         .apply_time_policy(crate::core::TimePolicyTransaction::new(
             runtime
@@ -164,9 +158,7 @@ fn world_driver_consumes_runtime_time_advance_without_advancing_clocks_again() {
 
 #[test]
 fn core_default_time_policy_applies_only_to_levels_created_after_the_change() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let existing_level = create_default_level(&runtime.handle()).unwrap();
     let existing_policy = existing_level.time_policy();
     let requested_policy = existing_policy
@@ -184,9 +176,7 @@ fn core_default_time_policy_applies_only_to_levels_created_after_the_change() {
 
 #[test]
 fn world_driver_runs_native_render_extract_system_before_runtime_scene_systems() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
     let cube = level.with_world(|world| {
         world
@@ -240,9 +230,7 @@ fn world_driver_runs_native_render_extract_system_before_runtime_scene_systems()
 
 #[test]
 fn world_driver_orders_native_systems_with_plugin_runtime_systems() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
     let cube = level.with_world(|world| {
         world
@@ -329,9 +317,7 @@ fn world_driver_orders_native_systems_with_plugin_runtime_systems() {
 
 #[test]
 fn world_driver_runs_runtime_scene_systems_in_schedule_order() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
     let events = Arc::new(Mutex::new(Vec::new()));
 
@@ -412,9 +398,7 @@ struct WorldDriverTickEvent(u32);
 
 #[test]
 fn world_driver_rotates_event_generations_once_per_tick() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
     let mut subscription = level.with_world_mut(|world| {
         let mut subscription = world.register_dormant_event_subscription::<WorldDriverTickEvent>();
@@ -469,9 +453,7 @@ fn apply_runtime_scene_systems(
 
 #[test]
 fn world_driver_pauses_virtual_systems_and_runs_explicit_real_time_systems() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
     let cube = level.with_world(|world| {
         world
@@ -585,9 +567,7 @@ fn world_driver_pauses_virtual_systems_and_runs_explicit_real_time_systems() {
 
 #[test]
 fn world_driver_advances_event_maintenance_while_virtual_time_is_paused() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
 
     level.with_world_mut(|world| {
@@ -623,9 +603,7 @@ fn world_driver_advances_event_maintenance_while_virtual_time_is_paused() {
 
 #[test]
 fn world_driver_keeps_event_removal_and_deferred_boundaries_while_virtual_time_is_paused() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
     let real_runtime_calls = Arc::new(Mutex::new(0_usize));
 
