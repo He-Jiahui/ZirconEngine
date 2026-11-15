@@ -7,7 +7,6 @@ related_records:
   - docs/plans/astra/features/runtime/696-20260911-runtime-editor-async-validation-admission-log.md
 implementation_files:
 tests:
-  - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/build/hash_membership_tests.rs
 ---
 
 # Runtime954 · virtual-geometry hash membership

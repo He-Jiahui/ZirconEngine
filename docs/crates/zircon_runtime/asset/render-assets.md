@@ -616,13 +616,13 @@ tests:
 
   - cargo test -p zircon_runtime --lib morph --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-01 explicit morph-weight conversion: passed, 5 passed, 2272 filtered; package-cache/artifact lock waits and existing zircon_runtime lib-test warnings only)
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::skin_mesh_asset_primitive_converts_direct_mesh_attributes_before_skinning
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs::tests::skin_mesh_asset_primitive_converts_direct_mesh_attributes_before_skinning
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs::tests::skin_mesh_asset_primitive_applies_morph_weights_before_skinning
+  - zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs::tests::skin_mesh_asset_primitive_applies_morph_weights_before_skinning
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs::tests::morphed_mesh_asset_primitive_applies_nonzero_weights_for_dynamic_direct_mesh
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs::tests::morphed_mesh_asset_primitive_applies_nonzero_weights_for_dynamic_direct_mesh
 
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs::tests::morphed_mesh_asset_primitive_ignores_zero_weights_for_static_direct_mesh_fallback
+  - zircon_runtime/src/graphics/mesh/build/extend_pending_draws_for_mesh_instance.rs::tests::morphed_mesh_asset_primitive_ignores_zero_weights_for_static_direct_mesh_fallback
 
   - cargo test -p zircon_runtime --lib skin_ --locked --jobs 1 --target-dir D:\cargo-targets\zircon-mesh-index-format-0530 --message-format short --color never -- --test-threads=1 --nocapture (2026-06-01 direct mesh CPU skinning parity after morph-aware conversion entry point: passed, 3 passed, 2274 filtered; package-cache lock waits and existing zircon_runtime lib-test warnings only)
 

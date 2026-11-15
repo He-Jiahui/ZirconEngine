@@ -160,7 +160,6 @@ tests:
   - zircon_runtime/src/graphics/scene/renderer/shadow/shadow_map_renderer.rs::tests::shadow_atlas_view_filter_keeps_only_visible_source_entities
   - zircon_runtime/src/graphics/scene/renderer/shadow/shadow_map_renderer.rs::tests::shadow_atlas_binds_forward_shadow_receiver_layout_slot
   - zircon_runtime/src/graphics/scene/scene_renderer/shadow/shadow_map_renderer.rs::tests::shadow_map_scene_bind_group_matches_environment_scene_layout (2026-07-05 direct binary passed 1/1; log docs/tests/runtime/render/plan08_shadow_scene_bind_group_environment_layout_direct_binary_20260705.out.log)
-  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build.rs::tests::mesh_visibility_states_preserve_shadow_only_casters
   - zircon_runtime/src/graphics/tests/render_product_shadows.rs::render_product_csm_directional
   - zircon_runtime/src/graphics/tests/render_product_shadows.rs::render_product_multi_spot_shadows
   - zircon_runtime/src/graphics/tests/render_product_shadow_captures/directional.rs::render_product_directional_shadow_atlas_capture_records_receiver_path

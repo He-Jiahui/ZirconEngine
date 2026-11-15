@@ -123,6 +123,43 @@ class DocumentPathAuditTests(unittest.TestCase):
                 ],
             )
 
+    def test_checks_source_build_paths_and_ignores_cargo_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repo_root = Path(temporary_directory)
+            docs_root = repo_root / "docs"
+            source_root = repo_root / "engine" / "src" / "graphics" / "build"
+            docs_root.mkdir()
+            source_root.mkdir(parents=True)
+            (source_root / "present.rs").write_text("", encoding="utf-8")
+            (docs_root / "module.md").write_text(
+                "---\n"
+                "tests:\n"
+                "  - engine/src/graphics/build/present.rs\n"
+                "  - engine/src/graphics/build/missing.rs\n"
+                "  - build/generated/report.json\n"
+                "  - engine/build/generated/report.json\n"
+                "  - target/debug/report.json\n"
+                "  - engine/target/debug/report.json\n"
+                "---\n\n"
+                "# Module\n",
+                encoding="utf-8",
+            )
+
+            report = audit_document_paths(repo_root)
+
+            self.assertEqual(report["checked_path_count"], 2)
+            self.assertEqual(
+                report["violations"],
+                [
+                    {
+                        "document": "docs/module.md",
+                        "field": "tests",
+                        "path": "engine/src/graphics/build/missing.rs",
+                        "reason": "missing path",
+                    }
+                ],
+            )
+
     def test_rejects_unsafe_paths_declared_by_tests(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             repo_root = Path(temporary_directory)
