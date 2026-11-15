@@ -22,7 +22,7 @@ fn prefab_authoring_registration_exposes_only_read_only_surfaces_without_factori
 
     for operation in operations {
         let operation = EditorOperationPath::parse(operation).expect("operation path");
-        assert!(registry.commands().command(&operation).is_none());
+        assert!(registry.pending_command(&operation).is_none());
     }
     let unavailable_operations = [
         "prefab_tools.authoring.create_from_selection",

@@ -34,6 +34,8 @@ mod bounded_read;
 mod lazy_residency;
 #[path = "artifact_store/material_data.rs"]
 mod material_data;
+#[path = "artifact_store/prefab_overrides.rs"]
+mod prefab_overrides;
 #[path = "artifact_store/scene_components.rs"]
 mod scene_components;
 #[path = "artifact_store/scene_script.rs"]
@@ -58,7 +60,7 @@ struct ArtifactChunkFixture {
 
 #[test]
 fn artifact_store_streams_compressed_bytes_into_final_payload() {
-    let source = include_str!("../../artifact/store.rs");
+    let source = include_str!("../../artifact/store.rs").replace("\r\n", "\n");
     let residency_source = include_str!("../../artifact/chunk_residency.rs");
 
     assert!(source.contains("struct ArtifactManifest"));

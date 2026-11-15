@@ -299,7 +299,7 @@ fn mark_source_parent_cycles(
         if !matches!(visits[start], Visit::Unseen) {
             continue;
         }
-        let mut path = Vec::new();
+        let mut path: Vec<usize> = Vec::new();
         let mut current = Some(start);
         while let Some(index) = current {
             match visits[index] {
