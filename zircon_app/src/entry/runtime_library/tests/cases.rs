@@ -25,6 +25,8 @@ use super::runtime_session::{RuntimeFrameDemand, MAX_HOST_RUNTIME_FRAME_DELAY};
 mod api_v8_layout;
 #[path = "editor_gateway.rs"]
 mod editor_gateway;
+#[path = "module_pin.rs"]
+mod module_pin;
 
 unsafe extern "C" fn fake_subscribe_plugin_event(
     _session: ZrRuntimeSessionHandle,
@@ -427,10 +429,22 @@ fn runtime_session_destroys_before_releasing_host_wake_token() {
         .find("wake_registration.unregister()")
         .unwrap();
 
-    assert!(destroy < unregister);
-    assert!(
-        try_destroy_body.contains("ensure_status(destroy_status, \"destroy runtime session\")?")
-    );
+    let status_check = try_destroy_body
+        .find("ensure_status(destroy_status, \"destroy runtime session\")")
+        .unwrap();
+    let destroy_done = try_destroy_body
+        .find("teardown_destroy_done status=ok")
+        .unwrap();
+    let library_release = try_destroy_body
+        .find("teardown_library_release receipt=")
+        .unwrap();
+    let release_library = try_destroy_body.find("self.runtime.take()").unwrap();
+    assert!(destroy < status_check);
+    assert!(status_check < destroy_done);
+    assert!(destroy_done < unregister);
+    assert!(unregister < library_release);
+    assert!(library_release < release_library);
+    assert!(try_destroy_body.contains("teardown_destroy_failed status={}"));
     assert!(try_destroy_body.contains("self.handle = ZrRuntimeSessionHandle::invalid();"));
     assert!(drop_body.contains("self.try_destroy()"));
     assert!(drop_body.contains("self.teardown_failure_state.record(error)"));

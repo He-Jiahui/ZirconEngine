@@ -34,11 +34,16 @@ use super::{
 #[cfg(feature = "editor-scripting")]
 #[path = "loaded_runtime/linked.rs"]
 mod linked;
+#[path = "loaded_runtime/module_pin.rs"]
+mod module_pin;
+
+pub use module_pin::runtime_module_unload_receipt;
 
 /// 持有已验证的 V8 表及库句柄；RuntimeSession 和编辑器网关间接调用期间必须保持存活。
 pub(crate) struct LoadedRuntime {
-    // None only for the process-lifetime linked API table.
-    _library: Option<Library>,
+    // None only for the process-lifetime linked API table. A sealed dynamic
+    // library may outlive this handle on Windows; see `module_pin`.
+    _library: Option<module_pin::SealedDynamicLibrary>,
     _artifact_manifest:
         Option<zircon_runtime_interface::runtime_build_set::ZrRuntimeArtifactManifestV1>,
     api: NonNull<ZrRuntimeApiV8>,
@@ -188,7 +193,7 @@ impl LoadedRuntime {
         let library = unsafe { Library::new(path) }
             .map_err(|error| runtime_library_startup_error_for_request(&requested_path, error))?;
         let host = ZrHostApiV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
-        let api = unsafe {
+        let (code_address, api) = unsafe {
             let get_api = library
                 .get::<ZrRuntimeGetApiFnV8>(ZR_RUNTIME_GET_API_SYMBOL_V8)
                 .map_err(|error| {
@@ -197,12 +202,14 @@ impl LoadedRuntime {
                         format!("failed to resolve zircon runtime API V8 symbol: {error}"),
                     )
                 })?;
-            NonNull::new(get_api(&host) as *mut ZrRuntimeApiV8).ok_or_else(|| {
+            let code_address = (*get_api) as *const ();
+            let api = NonNull::new(get_api(&host) as *mut ZrRuntimeApiV8).ok_or_else(|| {
                 runtime_library_startup_error_for_request(
                     &requested_path,
                     "runtime library rejected host ABI version",
                 )
-            })?
+            })?;
+            (code_address, api)
         };
         // `library` remains owned by LoadedRuntime for every table access.
         let validated = unsafe { validate_v8_api(api) }
@@ -226,6 +233,9 @@ impl LoadedRuntime {
         };
         let runtime_instance = allocate_runtime_instance_id(&NEXT_RUNTIME_INSTANCE_ID)
             .map_err(|error| runtime_library_startup_error_for_request(&requested_path, error))?;
+        // Seal only after the table is valid. A rejected library has not created
+        // a wgpu device, so its VEH cannot be live yet and the handle may drop.
+        let library = module_pin::SealedDynamicLibrary::seal(library, code_address);
         Ok(Self {
             _library: Some(library),
             _artifact_manifest: artifact_manifest,
@@ -240,6 +250,13 @@ impl LoadedRuntime {
 
     pub(crate) fn runtime_instance(&self) -> u64 {
         self.runtime_instance
+    }
+
+    pub(crate) fn module_mapping_receipt(&self) -> &'static str {
+        self._library
+            .as_ref()
+            .map(module_pin::SealedDynamicLibrary::receipt_label)
+            .unwrap_or("linked")
     }
 
     pub(crate) fn bind_viewport_surface_v2(&self) -> Option<ZrRuntimeBindViewportSurfaceFnV2> {

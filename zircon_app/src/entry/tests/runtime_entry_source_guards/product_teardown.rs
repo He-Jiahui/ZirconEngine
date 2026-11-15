@@ -17,6 +17,16 @@ fn product_binaries_log_teardown_completion_before_process_log_shutdown() {
         ],
         "editor binary must report teardown only after its entry runner returns and before log shutdown",
     );
+    assert!(
+        editor.contains(
+            "runner_projected_exit_code={} process_exit=pending runtime_module_pin={pin}"
+        ),
+        "editor teardown diagnostic must name the runner projection and leave process exit pending"
+    );
+    assert!(
+        !editor.contains("result=completed exit_code="),
+        "editor teardown diagnostic must not present the runner projection as the process exit code"
+    );
     assert_source_order(
         runtime,
         &[

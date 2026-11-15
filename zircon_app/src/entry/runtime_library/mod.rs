@@ -23,6 +23,7 @@ pub(crate) use library_path::{
     default_runtime_library_path, runtime_library_environment_override_request,
     RuntimeLibraryPathError, RuntimeLibraryPathSelection,
 };
+pub use loaded_runtime::runtime_module_unload_receipt;
 #[cfg(all(
     test,
     target_os = "windows",
