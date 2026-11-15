@@ -3,14 +3,13 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::time::Instant;
 
-use crate::core::framework::scene::SCENE_MODULE_NAME;
+use super::scene_test_runtime;
 use crate::core::framework::time::ClockDomainId;
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreRuntime, TimePolicy, TimePolicyTransaction};
 use crate::plugin::RuntimeExtensionRegistry;
 use crate::scene::{
-    create_default_level, module_descriptor, FixedStepFailurePhase, SystemStage, SystemTickContext,
-    World,
+    create_default_level, FixedStepFailurePhase, SystemStage, SystemTickContext, World,
 };
 
 #[test]
@@ -596,9 +595,7 @@ fn fixed_update_fixture() -> (
     crate::scene::LevelSystem,
     Arc<Mutex<Vec<Real>>>,
 ) {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
     (runtime, level, Arc::new(Mutex::new(Vec::new())))
 }

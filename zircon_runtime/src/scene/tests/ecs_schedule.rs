@@ -9,7 +9,9 @@ use crate::core::framework::render::{
 };
 use crate::core::framework::scene::SCENE_MODULE_NAME;
 use crate::core::math::{Transform, UVec2, Vec3};
+use crate::core::runtime::modules::{TasksModule, TimeModule};
 use crate::core::CoreRuntime;
+use crate::engine_module::EngineModule;
 use crate::plugin::RuntimeExtensionRegistry;
 use crate::scene::components::{CameraComponent, MeshRenderer, Mobility};
 use crate::scene::ecs::{
@@ -21,6 +23,21 @@ use crate::scene::ecs::{
     EVENT_INLINE_PAYLOAD_MAX_BYTES,
 };
 use crate::scene::{create_default_level, module_descriptor, NodeKind, World};
+
+fn scene_test_runtime() -> CoreRuntime {
+    let runtime = CoreRuntime::new();
+    // Core owns the services but starts with an empty module dependency graph.
+    for descriptor in [
+        TasksModule.descriptor(),
+        TimeModule.descriptor(),
+        crate::asset::module_descriptor(),
+        module_descriptor(),
+    ] {
+        runtime.register_module(descriptor).unwrap();
+    }
+    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    runtime
+}
 
 #[path = "ecs_schedule/conflict_graph.rs"]
 mod conflict_graph;
