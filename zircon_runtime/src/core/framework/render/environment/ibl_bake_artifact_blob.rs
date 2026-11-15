@@ -102,6 +102,12 @@ impl IblBakeArtifactBlob {
         &self.payload
     }
 
+    /// 载荷字节的 BLAKE3：与 `encode` 写入、`decode` 校验的是同一个值。
+    /// 由此工件派生资源的发布者用它作为内容身份，载荷变化时身份随之变化。
+    pub fn payload_checksum(&self) -> [u8; IBL_BAKE_ARTIFACT_PAYLOAD_CHECKSUM_SIZE] {
+        payload_checksum(self.payload.bytes())
+    }
+
     pub fn encoded_len(&self) -> usize {
         IBL_BAKE_ARTIFACT_HEADER_SIZE
             + IBL_BAKE_ARTIFACT_PAYLOAD_CHECKSUM_SIZE

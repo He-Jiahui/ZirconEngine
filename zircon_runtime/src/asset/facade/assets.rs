@@ -65,6 +65,8 @@ impl<TAsset: Asset> Assets<TAsset> {
         row.record.failure_reason().map(str::to_owned)
     }
 
+    /// 发布 Ready 记录与载荷。记录的内容身份字段（来源、导入器、配置、产物、依赖）须随载荷内容变化：
+    /// 身份未变的重复发布保持修订且不发更新事件，按修订缓存的消费者不会看到被替换的载荷。
     pub fn insert(&self, record: ResourceRecord, asset: TAsset) -> ResourceResult<Handle<TAsset>> {
         if record.kind != TAsset::Marker::KIND {
             return Err(ResourceRegistryError::KindConflict {
