@@ -14,6 +14,14 @@ fn runtime_15_platform_input_uses_dom_keycode_names() {
         &manifest_root.join("src/ui/platform_input/winit_translation.rs"),
         "platform input winit translation should be readable",
     );
+    let winit_keyboard = read_text(
+        &manifest_root.join("src/ui/platform_input/winit_translation/keyboard.rs"),
+        "platform input winit keyboard translation should be readable",
+    );
+    let winit_pointer = read_text(
+        &manifest_root.join("src/ui/platform_input/winit_translation/pointer.rs"),
+        "platform input winit pointer translation should be readable",
+    );
     let runtime_15_plan = read_repo_text(
         manifest_root,
         "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
@@ -32,10 +40,12 @@ fn runtime_15_platform_input_uses_dom_keycode_names() {
     );
     let module_doc = read_repo_text(
         manifest_root,
-        "docs/zircon_runtime/structure/module-convention.md",
+        "docs/crates/zircon_runtime/structure/module-convention.md",
     );
-    let platform_input_doc =
-        read_repo_text(manifest_root, "docs/zircon_runtime/ui/platform_input.md");
+    let platform_input_doc = read_repo_text(
+        manifest_root,
+        "docs/crates/zircon_runtime/ui/platform_input.md",
+    );
 
     assert_contains_all(
         "platform input keyboard map",
@@ -55,24 +65,42 @@ fn runtime_15_platform_input_uses_dom_keycode_names() {
         "platform input winit translation",
         &winit_translation,
         &[
-            "dom_key_code(&event.logical_key)",
-            "const PIXEL_SCROLL_LINE_DELTA_SCALE",
+            "#[path = \"winit_translation/keyboard.rs\"]",
+            "mod keyboard;",
+            "#[path = \"winit_translation/pointer.rs\"]",
+            "mod pointer;",
         ],
     );
     assert_contains_all(
-        "platform input winit translation",
+        "platform input winit keyboard translation",
+        &winit_keyboard,
+        &["dom_key_code(&event.logical_key)"],
+    );
+    assert_contains_all(
+        "platform input winit pointer translation",
+        &winit_pointer,
+        &["const PIXEL_SCROLL_LINE_DELTA_SCALE"],
+    );
+    assert_contains_all(
+        "platform input winit translation tests",
         &read_text(
             &manifest_root.join("src/ui/platform_input/tests/winit_translation.rs"),
-            "platform input winit translation should be readable",
+            "platform input winit translation tests should be readable",
         ),
         &["translate_winit_wheel_preserves_precise_delta_and_line_delta_scale"],
     );
-    assert!(
-        !winit_translation.contains("legacy_key_code")
-            && !winit_translation.contains("PIXEL_SCROLL_LEGACY_LINE_SCALE")
-            && !winit_translation.contains("legacy_scalar"),
-        "platform input winit translation should not keep legacy naming"
-    );
+    for (label, source) in [
+        ("winit translation", &winit_translation),
+        ("winit keyboard translation", &winit_keyboard),
+        ("winit pointer translation", &winit_pointer),
+    ] {
+        assert!(
+            !source.contains("legacy_key_code")
+                && !source.contains("PIXEL_SCROLL_LEGACY_LINE_SCALE")
+                && !source.contains("legacy_scalar"),
+            "{label} should not keep legacy naming"
+        );
+    }
 
     for (label, source) in [
         ("Runtime 15 plan", runtime_15_plan),
@@ -121,24 +149,32 @@ fn runtime_15_platform_input_winit_tests_use_runtime_input_baseline_names() {
     );
     let module_doc = read_repo_text(
         manifest_root,
-        "docs/zircon_runtime/structure/module-convention.md",
+        "docs/crates/zircon_runtime/structure/module-convention.md",
     );
-    let platform_input_doc =
-        read_repo_text(manifest_root, "docs/zircon_runtime/ui/platform_input.md");
+    let platform_input_doc = read_repo_text(
+        manifest_root,
+        "docs/crates/zircon_runtime/ui/platform_input.md",
+    );
 
+    let winit_tests = read_text(
+        &manifest_root.join("src/ui/platform_input/tests/winit_translation.rs"),
+        "platform input winit translation tests should be readable",
+    );
+    assert_contains_all(
+        "platform input winit translation test wiring",
+        &winit_translation,
+        &["#[path = \"tests/winit_translation.rs\"]", "mod tests;"],
+    );
     assert_contains_all(
         "platform input winit translation runtime-input baseline tests",
-        &read_text(
-            &manifest_root.join("src/ui/platform_input/tests/winit_translation.rs"),
-            "platform input winit translation should be readable",
-        ),
+        &winit_tests,
         &[
             "translate_winit_keyboard_matrix_matches_runtime_input_baseline",
             "translate_winit_ime_preedit_commit_and_disable_match_runtime_input_baseline",
         ],
     );
     assert!(
-        !winit_translation.contains("editor_baseline"),
+        !winit_translation.contains("editor_baseline") && !winit_tests.contains("editor_baseline"),
         "platform input runtime tests should not use editor_baseline names inside the runtime owner"
     );
 

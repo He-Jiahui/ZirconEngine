@@ -216,7 +216,7 @@ class Frameworks01SceneAnimationBoundaryTests(unittest.TestCase):
             (pipeline_root / "tick.rs").read_text(encoding="utf-8")
         )
         pipeline_code = _rust_code_view(
-            (pipeline_root / "animation_evaluation_pipeline.rs").read_text(
+            (pipeline_root.parent / "animation_evaluation_pipeline.rs").read_text(
                 encoding="utf-8"
             )
         )
@@ -471,10 +471,12 @@ class Frameworks01SceneAnimationBoundaryTests(unittest.TestCase):
             source_root / "evaluation/pipeline/state_machine_cache.rs"
         ).read_text(encoding="utf-8")
         pipeline = (
-            source_root / "evaluation/pipeline/animation_evaluation_pipeline.rs"
+            source_root / "evaluation/animation_evaluation_pipeline.rs"
+        ).read_text(encoding="utf-8") + (
+            source_root / "tests/animation_evaluation_pipeline.rs"
         ).read_text(encoding="utf-8")
         nested_machine_resolve = (
-            source_root / "evaluation/pipeline/nested_machine_resolve.rs"
+            source_root / "evaluation/nested_machine_resolve.rs"
         ).read_text(encoding="utf-8")
         state_graph_sample = (
             source_root / "evaluation/pipeline/state_graph_sample.rs"
@@ -495,8 +497,7 @@ class Frameworks01SceneAnimationBoundaryTests(unittest.TestCase):
             source_root / "state_machine/compiled/compiled_state.rs"
         ).read_text(encoding="utf-8")
         compiled_machine = (
-            source_root
-            / "state_machine/compiled/compiled_animation_state_machine.rs"
+            source_root / "state_machine/animation_state_machine.rs"
         ).read_text(encoding="utf-8")
         compiled_evaluate = (
             source_root / "state_machine/compiled/evaluate.rs"

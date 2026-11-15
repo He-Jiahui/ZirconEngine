@@ -24,9 +24,17 @@ fn runtime_15_input_mouse_wheel_line_delta_uses_current_names() {
         &manifest_root.join("src/prelude.rs"),
         "runtime prelude should be readable",
     );
+    let input_prelude = read_text(
+        &manifest_root.join("src/input/prelude.rs"),
+        "runtime input prelude should be readable",
+    );
     let default_input_manager = read_text(
         &manifest_root.join("src/input/runtime/default_input_manager.rs"),
         "default input manager should be readable",
+    );
+    let apply_input_event = read_text(
+        &manifest_root.join("src/input/runtime/default_input_manager/apply_event.rs"),
+        "input event application owner should be readable",
     );
     let dynamic_events = read_text(
         &manifest_root.join("src/dynamic_api/session/events.rs"),
@@ -62,12 +70,17 @@ fn runtime_15_input_mouse_wheel_line_delta_uses_current_names() {
     );
     let module_doc = read_repo_text(
         manifest_root,
-        "docs/zircon_runtime/structure/module-convention.md",
+        "docs/crates/zircon_runtime/structure/module-convention.md",
     );
-    let input_state_doc = read_repo_text(manifest_root, "docs/zircon_runtime/input/input_state.md");
-    let dynamic_api_doc =
-        read_repo_text(manifest_root, "docs/zircon_runtime/dynamic_api/session.md");
-    let prelude_doc = read_repo_text(manifest_root, "docs/zircon_runtime/prelude.md");
+    let input_state_doc = read_repo_text(
+        manifest_root,
+        "docs/crates/zircon_runtime/input/input_state.md",
+    );
+    let dynamic_api_doc = read_repo_text(
+        manifest_root,
+        "docs/crates/zircon_runtime/dynamic_api/session.md",
+    );
+    let prelude_doc = read_repo_text(manifest_root, "docs/crates/zircon_runtime/prelude.md");
 
     assert_contains_all(
         "framework mouse-wheel owner",
@@ -91,11 +104,25 @@ fn runtime_15_input_mouse_wheel_line_delta_uses_current_names() {
     assert_contains_all(
         "runtime prelude",
         &prelude,
+        &["pub use crate::input::prelude::*;"],
+    );
+    assert_contains_all(
+        "runtime input prelude",
+        &input_prelude,
         &["PIXEL_SCROLL_LINE_DELTA_SCALE"],
     );
     assert_contains_all(
-        "default input manager",
+        "default input manager event application wiring",
         &default_input_manager,
+        &[
+            "#[path = \"default_input_manager/apply_event.rs\"]",
+            "mod apply_event;",
+            "apply_input_event(&mut state, event);",
+        ],
+    );
+    assert_contains_all(
+        "input event application owner",
+        &apply_input_event,
         &["wheel.vertical_line_delta()"],
     );
     assert_contains_all(
@@ -127,7 +154,9 @@ fn runtime_15_input_mouse_wheel_line_delta_uses_current_names() {
         ("framework input module entry", framework_input_mod.as_str()),
         ("runtime input module entry", input_mod.as_str()),
         ("runtime prelude", prelude.as_str()),
+        ("runtime input prelude", input_prelude.as_str()),
         ("default input manager", default_input_manager.as_str()),
+        ("input event application owner", apply_input_event.as_str()),
         ("dynamic API session events", dynamic_events.as_str()),
     ] {
         assert!(
