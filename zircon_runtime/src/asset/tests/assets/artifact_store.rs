@@ -60,7 +60,7 @@ struct ArtifactChunkFixture {
 
 #[test]
 fn artifact_store_streams_compressed_bytes_into_final_payload() {
-    let source = include_str!("../../artifact/store.rs");
+    let source = include_str!("../../artifact/store.rs").replace("\r\n", "\n");
     let residency_source = include_str!("../../artifact/chunk_residency.rs");
 
     assert!(source.contains("struct ArtifactManifest"));
