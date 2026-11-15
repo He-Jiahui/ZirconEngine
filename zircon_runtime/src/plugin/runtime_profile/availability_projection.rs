@@ -20,6 +20,7 @@ mod generation;
 mod selection;
 
 use generation::RuntimePluginAvailabilityDescriptorRef;
+pub(crate) use generation::RuntimePluginAvailabilityDescriptorSnapshot;
 pub use generation::{
     RuntimePluginAvailabilityGeneration, RuntimePluginAvailabilityRow,
     RuntimePluginAvailabilitySummary,
@@ -115,6 +116,30 @@ impl<'descriptor> RuntimePluginAvailabilityProjection<'descriptor, 'static> {
                 native_dynamic_provider_rows,
             },
         }
+    }
+
+    /// Supplement nonreserved catalog IDs without replacing built-in policy.
+    pub(super) fn with_plan_descriptors(
+        mut self,
+        snapshots: &'descriptor [RuntimePluginAvailabilityDescriptorSnapshot],
+    ) -> Self {
+        #[cfg(test)]
+        let previous_count = self.descriptors.len();
+        for snapshot in snapshots {
+            // Preserve the existing evaluator's descriptor-missing UI feature guard.
+            // A registration for this reserved domain cannot replace that guard.
+            if snapshot.runtime_id == RuntimePluginId::Ui {
+                continue;
+            }
+            self.descriptors
+                .entry(snapshot.runtime_id.clone())
+                .or_insert_with(|| RuntimePluginAvailabilityDescriptorRef::from_snapshot(snapshot));
+        }
+        #[cfg(test)]
+        {
+            self.metrics.descriptor_rows += self.descriptors.len() - previous_count;
+        }
+        self
     }
 }
 

@@ -590,6 +590,17 @@ impl EngineEntry for BuiltinEngineEntry {
                 preference_storage_backend.as_ref(),
             )?)?;
         }
+        // Foundation 的 ConfigManager 读盘时磁盘同名键会覆盖 entry 值。先单独激活 Foundation 并立即
+        // 重新应用 entry overlay，其余模块的 startup service、ready 和 finish 才不会读到被磁盘值顶掉的
+        // entry 键。依据：Unreal ConfigContext.cpp 的 FConfigContext::GenerateDestIniFile 在合并
+        // SavedLayer 后于同一次加载内应用 FConfigFile::OverrideFromCommandline；官方评审 R01-R1。
+        if descriptors
+            .iter()
+            .any(|descriptor| descriptor.name == FOUNDATION_MODULE_NAME)
+        {
+            runtime.activate_module(FOUNDATION_MODULE_NAME)?;
+            self.store_entry_config(runtime)?;
+        }
         runtime.activate_registered_modules()?;
         self.store_entry_config(runtime)?;
 
