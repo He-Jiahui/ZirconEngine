@@ -5,19 +5,17 @@ use std::sync::{
 use std::time::Duration;
 use std::{hint::black_box, time::Instant};
 
-use crate::core::framework::scene::SCENE_MODULE_NAME;
+use super::scene_test_runtime;
 use crate::core::{ClockDiscontinuity, CoreError, CoreRuntime, TimePolicyTransaction};
 use crate::plugin::RuntimeExtensionRegistry;
 use crate::scene::{
-    create_default_level, module_descriptor, LevelTickError, SystemStage, World,
-    WorldTimeAdvanceError, WorldTimeControlError,
+    create_default_level, LevelTickError, SystemStage, World, WorldTimeAdvanceError,
+    WorldTimeControlError,
 };
 
 #[test]
 fn worlds_derive_virtual_and_fixed_time_independently_from_one_outer_frame() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     runtime
         .apply_time_policy(TimePolicyTransaction::new(
             runtime
@@ -54,9 +52,7 @@ fn worlds_derive_virtual_and_fixed_time_independently_from_one_outer_frame() {
 
 #[test]
 fn paused_world_single_step_advances_one_fixed_tick_then_stays_paused() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
     level
         .apply_time_policy(TimePolicyTransaction::new(
@@ -149,9 +145,7 @@ fn paused_world_single_step_advances_one_fixed_tick_then_stays_paused() {
 
 #[test]
 fn paused_single_step_consumes_only_one_preexisting_debt_step() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
     level
         .apply_time_policy(TimePolicyTransaction::new(
@@ -199,9 +193,7 @@ fn paused_single_step_consumes_only_one_preexisting_debt_step() {
 
 #[test]
 fn single_step_rejects_unpaused_and_duplicate_requests() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
 
     assert_eq!(
@@ -226,9 +218,7 @@ fn single_step_rejects_unpaused_and_duplicate_requests() {
 
 #[test]
 fn world_replacement_cancels_unconsumed_single_step() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
     level.pause_virtual_time();
     level.request_single_step().unwrap();
@@ -246,9 +236,7 @@ fn world_replacement_cancels_unconsumed_single_step() {
 
 #[test]
 fn failed_single_step_retries_without_duplicating_fixed_debt() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
     level
         .apply_time_policy(TimePolicyTransaction::new(
@@ -322,9 +310,7 @@ fn failed_single_step_retries_without_duplicating_fixed_debt() {
 
 #[test]
 fn rejected_outer_frame_does_not_consume_pending_single_step() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
     level.pause_virtual_time();
     let first = runtime.advance_time_by(Duration::from_millis(16), 8);
@@ -349,9 +335,7 @@ fn rejected_outer_frame_does_not_consume_pending_single_step() {
 
 #[test]
 fn world_fixed_debt_uses_the_outer_budget_not_another_clock_step_count() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
     level
         .apply_time_policy(TimePolicyTransaction::new(
@@ -374,9 +358,7 @@ fn world_fixed_debt_uses_the_outer_budget_not_another_clock_step_count() {
 
 #[test]
 fn world_rejects_duplicate_outer_frame_before_mutating_time() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
     let outer = runtime.advance_time_by(Duration::from_millis(25), 4);
 
@@ -396,9 +378,7 @@ fn world_rejects_duplicate_outer_frame_before_mutating_time() {
 
 #[test]
 fn world_rejects_decreasing_outer_frame_before_mutating_time() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
     let first = runtime.advance_time_by(Duration::from_millis(11), 4);
     let second = runtime.advance_time_by(Duration::from_millis(17), 4);
@@ -422,9 +402,7 @@ fn world_rejects_decreasing_outer_frame_before_mutating_time() {
 
 #[test]
 fn world_rejects_skipped_outer_frame_without_discontinuity() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
     let first = runtime.advance_time_by(Duration::from_millis(11), 4);
     level.tick(&runtime.handle(), first).unwrap();
@@ -448,9 +426,7 @@ fn world_rejects_skipped_outer_frame_without_discontinuity() {
 
 #[test]
 fn world_accepts_skipped_outer_frames_with_explicit_discontinuity() {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
     let first = runtime.advance_time_by(Duration::from_millis(11), 4);
     level.tick(&runtime.handle(), first).unwrap();

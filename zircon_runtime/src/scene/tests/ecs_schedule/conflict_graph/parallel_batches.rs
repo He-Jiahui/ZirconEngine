@@ -1,5 +1,9 @@
 use super::*;
 
+#[path = "../../ecs_source_guard.rs"]
+mod source_guard;
+use source_guard::{source_item, Source};
+
 #[test]
 fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     let mut world = World::empty();
@@ -31,8 +35,8 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(graph.systems_conflict("read.health", "write.health"));
     assert!(!graph.systems_conflict("read.counter", "write.health"));
 
-    let graph_source = include_str!("../../../ecs/schedule_conflict_graph.rs");
-    assert!(graph_source.contains("use std::collections::HashMap;"));
+    let graph_source = Source::new(include_str!("../../../ecs/schedule_conflict_graph.rs"));
+    assert!(graph_source.contains("use std::collections::{hash_map::Entry, HashMap};"));
     assert!(graph_source.contains("node_indices_by_system_id: HashMap<String, usize>"));
     assert!(graph_source.contains("conflict_edge_indices_by_node: Vec<Vec<usize>>"));
     assert!(graph_source.contains("conflict_node_adjacency: Vec<Vec<usize>>"));
@@ -88,11 +92,10 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(graph_source.contains("conflict_node_adjacency: &mut [Vec<usize>]"));
     assert!(graph_source.contains("Some(&self.graph.edges[edge_index])"));
     assert!(graph_source.contains("self.node_indices_by_system_id"));
-    assert!(graph_source.contains("self.conflict_edge_indices_by_node[*node_index]"));
+    assert!(graph_source.contains("self.conflict_edge_indices_by_node[*index].iter().copied()"));
     assert!(graph_source.contains("match self.node_indices_by_system_id.get(system_id)"));
-    assert!(graph_source.contains(
-        "Some(node_index) => self.conflict_edge_indices_by_node[*node_index].as_slice()"
-    ));
+    assert!(graph_source
+        .contains("Some(index) => self.conflict_edge_indices_by_node[*index].as_slice()"));
     assert!(graph_source.contains("None => &[],"));
     assert!(graph_source.contains("ScheduleConflictEdges::new(self, edge_indices)"));
     assert!(graph_source.contains("struct ScheduleConflictEdges<'graph>"));
@@ -103,12 +106,27 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(!graph_source.contains("edge_indices.iter().map(|index| &self.edges[*index])"));
     assert!(!graph_source.contains("&edges[*index]"));
     assert!(graph_source.contains("self.conflict_node_adjacency"));
-    assert!(graph_source
-        .contains("let Some(left_index) = self.node_indices_by_system_id.get(left_system_id)"));
-    assert!(graph_source
-        .contains("let Some(right_index) = self.node_indices_by_system_id.get(right_system_id)"));
+    let systems_conflict = source_item(graph_source, "pub fn systems_conflict(");
+    assert!(systems_conflict.contains("self.node_indices_for_system_id(left_system_id)"));
+    assert!(systems_conflict.contains("self.node_indices_for_system_id(right_system_id)"));
     assert!(graph_source.contains("return false;"));
-    assert!(graph_source.contains("self.node_indices_conflict(*left_index, *right_index)"));
+    assert!(systems_conflict.contains("self.node_indices_conflict(*left, *right)"));
+    let node_lookup = source_item(graph_source, "fn node_indices_for_system_id(");
+    assert!(node_lookup.contains("self.duplicate_node_indices_by_system_id.get(system_id)"));
+    assert!(node_lookup.contains("return indices;"));
+    assert!(node_lookup.contains(
+        "self.node_indices_by_system_id.get(system_id).map_or(&[], std::slice::from_ref)"
+    ));
+    let conflict_edges = source_item(graph_source, "pub fn conflicts_for<'graph>(");
+    assert!(
+        conflict_edges.contains("self.duplicate_node_indices_by_system_id.contains_key(system_id)")
+    );
+    assert!(conflict_edges.contains("self.node_indices_for_system_id(system_id)"));
+    assert!(
+        conflict_edges.contains("indices.sort_unstable(); indices.dedup(); Cow::Owned(indices)")
+    );
+    assert!(conflict_edges
+        .contains("Cow::Borrowed(match self.node_indices_by_system_id.get(system_id)"));
     assert!(graph_source.contains("struct ScheduleConflictGraphInputs"));
     assert!(graph_source.contains("node_indices_by_system_id: HashMap<String, usize>"));
     assert!(graph_source.contains("node_counts_by_stage: [usize; SystemStage::COUNT]"));
@@ -118,9 +136,10 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     ));
     assert!(graph_source
         .contains("let mut node_indices_by_system_id = HashMap::with_capacity(nodes.len())"));
-    assert!(
-        graph_source.contains("node_indices_by_system_id.insert(node.system_id.clone(), index);")
-    );
+    let graph_inputs = source_item(graph_source, "fn schedule_conflict_graph_inputs(");
+    assert!(graph_inputs.contains("match node_indices_by_system_id.entry(node.system_id.clone())"));
+    assert!(graph_inputs.contains("Entry::Vacant(entry) => { entry.insert(index); }"));
+    assert!(graph_inputs.contains("Entry::Occupied(entry) => { duplicate_node_indices_by_system_id.entry(node.system_id.clone()).or_insert_with(|| vec![*entry.get()]).push(index); }"));
     assert!(graph_source.contains("let mut node_counts_by_stage = [0_usize; SystemStage::COUNT];"));
     assert!(graph_source
         .contains("let mut non_barrier_node_counts_by_stage = [0_usize; SystemStage::COUNT];"));
@@ -145,13 +164,17 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(graph_source.contains("edge_upper_bound\n}"));
     assert!(graph_source.contains("fn conflict_pair_count(node_count: usize) -> usize"));
     assert!(graph_source.contains("node_count.saturating_mul(node_count.saturating_sub(1)) / 2"));
-    let batch_struct = graph_source
-        .split("pub struct ScheduleParallelBatch {")
-        .nth(1)
-        .and_then(|text| text.split("enum ScheduleParallelBatchSystems").next())
-        .expect("read ScheduleParallelBatch declaration");
-    // BUG: [CR-R02-runtime_ecs_schedule_systems-0002] 当前字段为 Arc<ScheduleParallelBatchSystems>，到达此处时旧文本断言必失败；后续 binary_search 守卫也与单调游标实现不符。证据：include_str 的当前源码。
-    assert!(batch_struct.contains("systems: ScheduleParallelBatchSystems"));
+    let batch_struct = source_item(graph_source, "pub struct ScheduleParallelBatch");
+    assert!(batch_struct.contains("systems: Arc<ScheduleParallelBatchSystems>"));
+    let batch_push = source_item(graph_source, "fn push_system(");
+    assert!(batch_push.contains("let systems = Arc::make_mut(&mut self.systems);"));
+    assert!(batch_push.contains("*systems = promoted;"));
+    let shared_batch = source_item(graph_source, "pub(super) fn shared_systems(");
+    assert!(shared_batch.contains("Arc::clone(&self.systems)"));
+    let executor_source = Source::new(include_str!("../../../ecs/schedule_parallel_executor.rs"));
+    let execute_batches = source_item(executor_source, "pub fn run_batches_with_report<E>(");
+    assert!(execute_batches.contains("let batch_systems = batch.shared_systems();"));
+    assert!(!execute_batches.contains("batch.system_ids().to_vec()"));
     assert!(!batch_struct.contains("system_ids: Vec<String>"));
     assert!(!batch_struct.contains("node_indices: Vec<usize>"));
     assert!(graph_source.contains("enum ScheduleParallelBatchSystems"));
@@ -279,7 +302,7 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(!graph_source.contains(".system_ids\n                        .iter()"));
     assert!(!graph_source.contains("!self.systems_conflict(system_id, node.system_id())"));
 
-    let access_source = include_str!("../../../ecs/system/system_param_access.rs");
+    let access_source = Source::new(include_str!("../../../ecs/system/system_param_access.rs"));
     assert!(access_source.contains("pub fn conflicts_with(&self, other: &Self) -> bool"));
     assert!(access_source.contains("resource_access_conflicts("));
     assert!(access_source.contains("type_access_conflicts("));
@@ -288,7 +311,18 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(access_source.contains("ids.insert(index, resource_id);"));
     assert!(access_source.contains("ids.insert(index, type_id);"));
     assert!(access_source.contains("ids.binary_search(&type_id).is_ok()"));
-    assert!(access_source.contains("query_access.writes().binary_search(component_id).is_err()"));
+    let add_query_access = source_item(access_source, "pub fn add_query_access(");
+    assert!(add_query_access.contains("let mut write_index = 0;"));
+    assert!(add_query_access.contains("while write_index < query_access.writes().len()"));
+    assert!(add_query_access.contains("let write_id = query_access.writes()[write_index];"));
+    assert!(
+        add_query_access.contains("if write_id < *component_id { write_index += 1; continue; }")
+    );
+    assert!(add_query_access.contains("if write_id == *component_id { write_index += 1; break; }"));
+    assert!(add_query_access.contains("self.component_access.add_read(*component_id)?;"));
+    assert!(add_query_access.contains("write_index == query_access.writes().len()"));
+    assert!(add_query_access.contains(".is_none_or(|write_id| write_id < component_id)"));
+    assert!(!add_query_access.contains("query_access.writes().binary_search(component_id)"));
     assert!(access_source.contains("insert_type_id(&mut self.event_reads, type_id);\n        insert_type_id(&mut self.event_writes, type_id);"));
     assert!(access_source.contains("insert_type_id(&mut self.message_reads, type_id);\n        insert_type_id(&mut self.message_writes, type_id);"));
     assert!(access_source.contains("access_slices_intersect(left_writes, right_reads)"));
@@ -304,21 +338,14 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(access_source.contains("fn read_access_is_written<T>("));
     assert!(access_source.contains("fn push_conflict("));
     assert!(access_source.contains("conflicts.push(conflict);"));
-    let access_boolean_intersect = access_source
-        .split("fn access_slices_intersect<T>(")
-        .nth(1)
-        .and_then(|text| text.split("fn read_only_access_intersects<T>").next())
-        .expect("read system-param access boolean intersection helper");
+    let access_boolean_intersect = source_item(access_source, "fn access_slices_intersect<T>(");
     assert!(access_boolean_intersect
         .contains("while left_index < left.len() && right_index < right.len()"));
     assert!(access_boolean_intersect.contains("let left_value = &left[left_index];"));
     assert!(access_boolean_intersect.contains("let right_value = &right[right_index];"));
     assert!(!access_boolean_intersect.contains("while let (Some(left_value), Some(right_value)) ="));
-    let access_read_only_intersect = access_source
-        .split("fn read_only_access_intersects<T>(")
-        .nth(1)
-        .and_then(|text| text.split("fn push_resource_conflicts").next())
-        .expect("read system-param access read-only intersection helper");
+    let access_read_only_intersect =
+        source_item(access_source, "fn read_only_access_intersects<T>(");
     assert!(access_read_only_intersect
         .contains("while read_index < reads.len() && right_index < right.len()"));
     assert!(access_read_only_intersect.contains("let read_value = reads[read_index];"));
@@ -328,14 +355,8 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(
         !access_read_only_intersect.contains("while let (Some(read_value), Some(right_value)) =")
     );
-    let access_diagnostic_intersect = access_source
-        .split("fn push_access_intersections<T>(")
-        .nth(1)
-        .and_then(|text| {
-            text.split("fn push_read_only_access_intersections<T>")
-                .next()
-        })
-        .expect("read system-param access diagnostic intersection helper");
+    let access_diagnostic_intersect =
+        source_item(access_source, "fn push_access_intersections<T>(");
     assert!(access_diagnostic_intersect
         .contains("while left_index < left.len() && right_index < right.len()"));
     assert!(access_diagnostic_intersect.contains("let left_value = left[left_index];"));
@@ -346,11 +367,8 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
         !access_diagnostic_intersect.contains("while let (Some(left_value), Some(right_value)) =")
     );
     assert!(!access_diagnostic_intersect.contains("conflict_kind(*left_value)"));
-    let access_read_only_diagnostic = access_source
-        .split("fn push_read_only_access_intersections<T>(")
-        .nth(1)
-        .and_then(|text| text.split("fn read_access_is_written<T>").next())
-        .expect("read system-param read-only diagnostic helper");
+    let access_read_only_diagnostic =
+        source_item(access_source, "fn push_read_only_access_intersections<T>(");
     assert!(access_read_only_diagnostic
         .contains("while read_index < reads.len() && right_index < right.len()"));
     assert!(access_read_only_diagnostic.contains("let read_value = reads[read_index];"));
@@ -363,11 +381,7 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
         !access_read_only_diagnostic.contains("while let (Some(read_value), Some(right_value)) =")
     );
     assert!(!access_read_only_diagnostic.contains("conflict_kind(*read_value)"));
-    let access_write_probe = access_source
-        .split("fn read_access_is_written<T>(")
-        .nth(1)
-        .and_then(|text| text.split("fn push_conflict(").next())
-        .expect("read system-param write probe helper");
+    let access_write_probe = source_item(access_source, "fn read_access_is_written<T>(");
     assert!(access_write_probe.contains("while *write_index < writes.len()"));
     assert!(access_write_probe.contains("let write_value = writes[*write_index];"));
     assert!(access_write_probe.contains("if write_value < access_id"));
@@ -381,14 +395,12 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(!access_source.contains("ids.contains(&type_id)"));
     assert!(!access_source.contains("ids.sort_unstable();"));
 
-    let query_access_source = include_str!("../../../ecs/query/query_access.rs");
+    let query_access_source = Source::new(include_str!("../../../ecs/query/query_access.rs"));
     assert!(query_access_source.contains(
         "fn sorted_component_slices_intersect(left: &[ComponentId], right: &[ComponentId]) -> bool"
     ));
-    let sorted_component_intersect = query_access_source
-        .split("fn sorted_component_slices_intersect(left: &[ComponentId], right: &[ComponentId]) -> bool")
-        .nth(1)
-        .expect("read sorted component intersection helper");
+    let sorted_component_intersect =
+        source_item(query_access_source, "fn sorted_component_slices_intersect(");
     assert!(sorted_component_intersect
         .contains("while left_index < left.len() && right_index < right.len()"));
     assert!(sorted_component_intersect.contains("let left_value = left[left_index];"));
@@ -407,14 +419,10 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(query_access_source.contains(
         "fn push_sorted_component_intersections(\n    conflicts: &mut Vec<ComponentId>,"
     ));
-    let sorted_component_diagnostic = query_access_source
-        .split("fn push_sorted_component_intersections(")
-        .nth(1)
-        .and_then(|text| {
-            text.split("fn push_read_only_component_intersections")
-                .next()
-        })
-        .expect("read sorted component diagnostic helper");
+    let sorted_component_diagnostic = source_item(
+        query_access_source,
+        "fn push_sorted_component_intersections(",
+    );
     assert!(sorted_component_diagnostic
         .contains("while left_index < left.len() && right_index < right.len()"));
     assert!(sorted_component_diagnostic.contains("let left_value = left[left_index];"));
@@ -442,11 +450,10 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
         "detailed QueryAccess diagnostics must not repeat a write/write pass already covered by write-implies-read"
     );
     assert!(query_access_source.contains("push_read_only_component_intersections("));
-    let read_only_component_diagnostic = query_access_source
-        .split("fn push_read_only_component_intersections(")
-        .nth(1)
-        .and_then(|text| text.split("fn read_component_is_written").next())
-        .expect("read read-only component diagnostic helper");
+    let read_only_component_diagnostic = source_item(
+        query_access_source,
+        "fn push_read_only_component_intersections(",
+    );
     assert!(read_only_component_diagnostic
         .contains("while read_index < reads.len() && right_index < right.len()"));
     assert!(read_only_component_diagnostic.contains("let read_value = reads[read_index];"));
@@ -458,11 +465,7 @@ fn schedule_conflict_graph_builds_conservative_parallel_batches() {
     assert!(!read_only_component_diagnostic
         .contains("while let (Some(read_value), Some(right_value)) ="));
     assert!(query_access_source.contains("read_component_is_written("));
-    let written_component_probe = query_access_source
-        .split("fn read_component_is_written(")
-        .nth(1)
-        .and_then(|text| text.split("fn insert_id").next())
-        .expect("read written component probe helper");
+    let written_component_probe = source_item(query_access_source, "fn read_component_is_written(");
     assert!(written_component_probe.contains("while *write_index < writes.len()"));
     assert!(written_component_probe.contains("let write_value = writes[*write_index];"));
     assert!(written_component_probe.contains("if write_value < component_id"));

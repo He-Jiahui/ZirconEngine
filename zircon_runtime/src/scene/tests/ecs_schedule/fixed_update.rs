@@ -3,14 +3,13 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::time::Instant;
 
-use crate::core::framework::scene::SCENE_MODULE_NAME;
+use super::scene_test_runtime;
 use crate::core::framework::time::ClockDomainId;
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreRuntime, TimePolicy, TimePolicyTransaction};
 use crate::plugin::RuntimeExtensionRegistry;
 use crate::scene::{
-    create_default_level, module_descriptor, FixedStepFailurePhase, SystemStage, SystemTickContext,
-    World,
+    create_default_level, FixedStepFailurePhase, SystemStage, SystemTickContext, World,
 };
 
 #[test]
@@ -417,7 +416,15 @@ fn world_replacement_during_a_fixed_step_aborts_the_uncommitted_transaction() {
     let error = level
         .tick(&runtime.handle(), advance)
         .expect_err("replacement must prevent the old World fixed step from committing");
-    assert!(error.to_string().contains("World generation changed"));
+    let crate::scene::LevelTickError::FixedStep {
+        source: CoreError::Initialization(owner, reason),
+        ..
+    } = &error
+    else {
+        panic!("replacement must retain its typed fixed-step cause: {error:?}")
+    };
+    assert_eq!(owner, "SceneScheduleRunner schedule owner");
+    assert_eq!(reason, "World schedule was replaced during the active tick");
     assert!(level.world_generation() > original_generation);
 
     let receipt = error
@@ -427,7 +434,10 @@ fn world_replacement_during_a_fixed_step_aborts_the_uncommitted_transaction() {
         receipt.phase(),
         FixedStepFailurePhase::Stage(SystemStage::FixedUpdate)
     );
-    assert_eq!(receipt.system_id(), None);
+    assert_eq!(
+        receipt.system_id(),
+        Some("runtime03.fixed.replacement.injected")
+    );
     assert_eq!(receipt.tick().world_generation(), original_generation);
     assert_eq!(
         receipt.observed_world_generation(),
@@ -596,9 +606,7 @@ fn fixed_update_fixture() -> (
     crate::scene::LevelSystem,
     Arc<Mutex<Vec<Real>>>,
 ) {
-    let runtime = CoreRuntime::new();
-    runtime.register_module(module_descriptor()).unwrap();
-    runtime.activate_module(SCENE_MODULE_NAME).unwrap();
+    let runtime = scene_test_runtime();
     let level = create_default_level(&runtime.handle()).unwrap();
     (runtime, level, Arc::new(Mutex::new(Vec::new())))
 }

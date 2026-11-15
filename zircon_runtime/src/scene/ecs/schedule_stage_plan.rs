@@ -20,6 +20,9 @@ pub(crate) struct SceneScheduleStagePlan {
 
 impl SceneScheduleStagePlan {
     /// 将当前注册表编成阶段内拓扑顺序、命令 barrier 和冲突图；WorldDriver 只读此快照执行。
+    ///
+    /// 准入只接受 WorldDriver 能照单执行的阶段列表：保持 `SystemStage::ORDER` 的相对顺序，
+    /// 固定步组整组在列或整组缺席，且每个已注册系统的阶段都在列表内。
     pub(crate) fn from_registry(
         stages: &[SystemStage],
         registry: &SceneSystemRegistry,
@@ -30,8 +33,11 @@ impl SceneScheduleStagePlan {
                 return Err(ScheduleError::DuplicateStage(*stage));
             }
         }
+        validate_stage_order(stages)?;
+        validate_fixed_stage_group(&seen_stages)?;
         let systems = registry.systems();
         let plan_systems = registry.plan_systems();
+        validate_system_stages(&seen_stages, systems, plan_systems)?;
         for system in plan_systems {
             system.validate_execution_policy()?;
         }
@@ -146,6 +152,62 @@ impl SceneScheduleStagePlan {
         }
         None
     }
+}
+
+// 重复阶段已先被拒绝，所以相邻序号只需检查是否倒退。
+fn validate_stage_order(stages: &[SystemStage]) -> Result<(), ScheduleError> {
+    for pair in stages.windows(2) {
+        if pair[1].rank() < pair[0].rank() {
+            return Err(ScheduleError::StageOutOfOrder {
+                previous: pair[0],
+                stage: pair[1],
+            });
+        }
+    }
+    Ok(())
+}
+
+// WorldDriver 只在 FixedFirst 处展开整个固定步组；残缺的组会让列表内的阶段永不执行。
+fn validate_fixed_stage_group(
+    seen_stages: &[bool; SystemStage::COUNT],
+) -> Result<(), ScheduleError> {
+    let Some(present) = SystemStage::FIXED_LOOP
+        .into_iter()
+        .find(|stage| seen_stages[stage.rank()])
+    else {
+        return Ok(());
+    };
+    for missing in SystemStage::FIXED_LOOP {
+        if !seen_stages[missing.rank()] {
+            return Err(ScheduleError::IncompleteFixedStageGroup { present, missing });
+        }
+    }
+    Ok(())
+}
+
+// 阶段不在列表内的系统不会进入任何执行桶，注册成功却永不运行；在准入处拒绝。
+fn validate_system_stages(
+    seen_stages: &[bool; SystemStage::COUNT],
+    systems: &[SceneSystemDescriptor],
+    plan_systems: &[SceneSystemPlanDescriptor],
+) -> Result<(), ScheduleError> {
+    for system in systems {
+        if !seen_stages[system.stage.rank()] {
+            return Err(ScheduleError::SystemStageNotScheduled {
+                system_id: system.id.clone(),
+                stage: system.stage,
+            });
+        }
+    }
+    for system in plan_systems {
+        if !seen_stages[system.stage().rank()] {
+            return Err(ScheduleError::SystemStageNotScheduled {
+                system_id: system.id().to_string(),
+                stage: system.stage(),
+            });
+        }
+    }
+    Ok(())
 }
 
 fn internal_system_counts_by_stage(
