@@ -297,6 +297,12 @@ fn unreal_copy_texture_preserves_unorm_and_srgb_bytes_through_native_recorder() 
 
 fn unreal_test_device() -> Option<WgpuRenderDevice> {
     let device = production_test_device();
+    if let Some(device) = &device {
+        eprintln!(
+            "Unreal resource contract adapter: {:?}",
+            device.profile().adapter()
+        );
+    }
     if device.is_none() && std::env::var("ZIRCON_REQUIRE_GPU_TESTS").as_deref() == Ok("1") {
         panic!(
             "ZIRCON_REQUIRE_GPU_TESTS=1: production GPU context unavailable; \
