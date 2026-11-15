@@ -84,6 +84,9 @@ fn non_windows_policy_unmaps_on_the_last_session_release() {
 #[cfg(windows)]
 #[test]
 fn windows_pin_retains_a_real_system_dll_after_library_drop() {
+    use std::os::windows::process::CommandExt;
+
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
     const CHILD_ENV: &str = "ZIRCON_TEST_REAL_MODULE_PIN_CHILD";
     // A distinct exit code proves the child reached the actual loader assertions:
     // a misspelled --exact filter would run zero tests and exit 0, which must fail.
@@ -108,6 +111,7 @@ fn windows_pin_retains_a_real_system_dll_after_library_drop() {
         std::process::Command::new(std::env::current_exe().expect("current test binary"))
             .args(["--exact", test_name, "--nocapture", "--test-threads=1"])
             .env(CHILD_ENV, "1")
+            .creation_flags(CREATE_NO_WINDOW)
             .stdin(std::process::Stdio::null())
             .stdout(std::process::Stdio::inherit())
             .stderr(std::process::Stdio::inherit())
