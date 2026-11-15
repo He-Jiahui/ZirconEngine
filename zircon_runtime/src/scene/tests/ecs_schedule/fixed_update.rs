@@ -416,7 +416,15 @@ fn world_replacement_during_a_fixed_step_aborts_the_uncommitted_transaction() {
     let error = level
         .tick(&runtime.handle(), advance)
         .expect_err("replacement must prevent the old World fixed step from committing");
-    assert!(error.to_string().contains("World generation changed"));
+    let crate::scene::LevelTickError::FixedStep {
+        source: CoreError::Initialization(owner, reason),
+        ..
+    } = &error
+    else {
+        panic!("replacement must retain its typed fixed-step cause: {error:?}")
+    };
+    assert_eq!(owner, "SceneScheduleRunner schedule owner");
+    assert_eq!(reason, "World schedule was replaced during the active tick");
     assert!(level.world_generation() > original_generation);
 
     let receipt = error
@@ -426,7 +434,10 @@ fn world_replacement_during_a_fixed_step_aborts_the_uncommitted_transaction() {
         receipt.phase(),
         FixedStepFailurePhase::Stage(SystemStage::FixedUpdate)
     );
-    assert_eq!(receipt.system_id(), None);
+    assert_eq!(
+        receipt.system_id(),
+        Some("runtime03.fixed.replacement.injected")
+    );
     assert_eq!(receipt.tick().world_generation(), original_generation);
     assert_eq!(
         receipt.observed_world_generation(),
