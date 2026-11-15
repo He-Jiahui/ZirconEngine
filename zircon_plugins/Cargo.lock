@@ -6799,8 +6799,11 @@ dependencies = [
 name = "zircon_plugin_material_editor_dist"
 version = "0.1.0"
 dependencies = [
+ "serde",
+ "serde_json",
  "zircon_plugin_material_editor_editor",
  "zircon_plugin_sdk",
+ "zircon_runtime",
 ]
 
 [[package]]

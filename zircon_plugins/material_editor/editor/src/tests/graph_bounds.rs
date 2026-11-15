@@ -201,7 +201,9 @@ fn material_graph_bounds_rounds_union_outward_instead_of_omitting_far_node() {
         .fit_graph_bounds(bounds, GraphPoint::new(447.0, 400.0), 10.0)
         .unwrap();
     assert!(!fit.fully_visible);
-    assert_eq!(canvas.zoom());
+    let mut minimum_zoom_canvas = GraphCanvasState::<String>::default();
+    assert!(minimum_zoom_canvas.zoom_about_screen_point(GraphPoint::new(0.0, 0.0), f32::MIN));
+    assert_eq!(canvas.zoom(), minimum_zoom_canvas.zoom());
     assert_eq!(graph, before);
 }
 

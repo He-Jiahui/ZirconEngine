@@ -362,7 +362,10 @@ fn material_graph_details_shader_clear_preserves_authored_none_through_codec_and
         node("output", Node::Output),
         scalar("roughness", "粗糙度", 0.3),
     ];
-    source.links = vec![link("roughness", "roughness")];
+    source.links = vec![
+        link("roughness", "roughness"),
+        link("roughness", "base_color"),
+    ];
     source.parameters.insert("孤立".into(), Value::Scalar(-0.0));
     let plan =
         plan_material_graph_details_edit(&source, MaterialGraphDetailsEdit::Shader(None), |_| {
@@ -389,8 +392,20 @@ fn material_graph_details_shader_clear_preserves_authored_none_through_codec_and
         unreachable!()
     };
     assert!(orphan.is_sign_negative());
-    let material = compile_material_graph(&reopened).unwrap();
+    assert_eq!(
+        compile_material_graph(&reopened).unwrap_err(),
+        vec![format!(
+            "material graph `{}` has no shader target for MaterialAsset compile",
+            reopened.name
+        )]
+    );
+    // Clearing remains a source edit; only an explicitly restored shader makes
+    // the candidate compile-ready again. Never let the compiler invent one.
+    let mut restored = reopened.clone();
+    restored.shader = source.shader.clone();
+    let material = compile_material_graph(&restored).unwrap();
     assert_eq!(material.roughness, 0.3);
+    assert!(reopened.shader.is_none());
     assert!(source.shader.is_some());
 }
 
@@ -401,7 +416,10 @@ fn material_graph_details_name_and_shader_candidates_survive_real_codec_with_sou
         node("output", Node::Output),
         scalar("roughness", "粗糙度", 0.1),
     ];
-    source.links = vec![link("roughness", "roughness")];
+    source.links = vec![
+        link("roughness", "roughness"),
+        link("roughness", "base_color"),
+    ];
     source
         .parameters
         .insert("粗糙度".into(), Value::Scalar(0.72));
