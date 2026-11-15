@@ -236,9 +236,10 @@ The fixed-loop behavior has targeted owner tests in `zircon_runtime/src/scene/te
 The current ECS schedule is not purely registration-order based:
 
 - `SceneSystemDescriptor` supports `order`, `sets`, `before`, and `after` constraints in `zircon_runtime/src/scene/ecs/scene_system_descriptor.rs`.
-- `SceneScheduleStagePlan::from_registry(...)` at `zircon_runtime/src/scene/ecs/schedule_stage_plan.rs:13` builds per-stage groups and calls `topological_stage_order(...)`.
-- `topological_stage_order(...)` at `zircon_runtime/src/scene/ecs/schedule_stage_plan.rs:200` resolves same-stage constraints and falls back to `order` plus id through `compare_plan_nodes(...)` at `:327`.
-- Runtime-owned built-in scene systems are explicitly ordered in `zircon_runtime/src/scene/ecs/scene_system_registry.rs:318`: hierarchy validity, active hierarchy, world transform, node cache, and render extract prepare all set negative order values.
+- `SceneScheduleStagePlan::from_registry(...)` at `zircon_runtime/src/scene/ecs/schedule_stage_plan.rs:26` builds per-stage groups and calls `topological_stage_order(...)`.
+- `from_registry(...)` is also the stage-list admission boundary. It rejects a repeated stage (`ScheduleError::DuplicateStage`), a list that does not follow `SystemStage::ORDER` (`StageOutOfOrder`), a fixed-step group that is only partly listed (`IncompleteFixedStageGroup`), and a registered system whose stage is not listed (`SystemStageNotScheduled`). An ordered subset is admitted when it lists the fixed group whole or not at all and covers every registered system's stage. `WorldDriver` therefore runs an admitted list exactly as written, and a rejected registration leaves the installed plan in place.
+- `topological_stage_order(...)` at `zircon_runtime/src/scene/ecs/schedule_stage_plan.rs:331` resolves same-stage constraints and falls back to `order` plus id through `compare_plan_nodes(...)` at `:458`.
+- Runtime-owned built-in scene systems are explicitly ordered in `zircon_runtime/src/scene/ecs/scene_system_registry.rs:464`: hierarchy validity, active hierarchy, world transform, node cache, and render extract prepare all set negative order values.
 - External system registration exposes explicit order, constraint, and clock-domain data through the plugin registration builder and native host adapter. Runtime22 edits the runtime registry and plugin SDK public owners to propagate that clock-domain contract.
 
 M0 inventory verdict:

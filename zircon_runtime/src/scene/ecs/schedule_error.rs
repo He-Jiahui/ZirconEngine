@@ -15,6 +15,25 @@ pub enum ScheduleError {
     DuplicateSystem(String),
     #[error("stage {0:?} appears more than once in the schedule")]
     DuplicateStage(super::SystemStage),
+    #[error("stage {stage:?} is listed after {previous:?}, against the documented stage order")]
+    StageOutOfOrder {
+        previous: super::SystemStage,
+        stage: super::SystemStage,
+    },
+    #[error(
+        "fixed-step stage {present:?} is listed without {missing:?}; list the whole fixed group or none of it"
+    )]
+    IncompleteFixedStageGroup {
+        present: super::SystemStage,
+        missing: super::SystemStage,
+    },
+    #[error(
+        "system {system_id} is registered in stage {stage:?}, which the schedule does not list"
+    )]
+    SystemStageNotScheduled {
+        system_id: String,
+        stage: super::SystemStage,
+    },
     #[error("system {0} is still in flight and cannot be retired")]
     SystemInFlight(String),
     #[error("system {0} registration builder was already consumed")]
