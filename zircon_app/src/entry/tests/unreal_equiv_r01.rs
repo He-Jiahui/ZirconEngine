@@ -141,6 +141,7 @@ fn unreal_equiv_r01_entry_overlay_wins_while_later_modules_activate() {
         format!("zircon_plugin_{SAMPLER_PLUGIN_ID}_runtime"),
     )
     .with_target_modes([RuntimeTargetMode::ServerRuntime])
+    .with_capability("runtime.r01.activation_sampler")
     .with_package_role(PluginPackageRole::Production)
     .with_module_descriptor(
         ModuleDescriptor::new(format!("{SAMPLER_PLUGIN_ID}.runtime"), SAMPLER_PLUGIN_ID)
