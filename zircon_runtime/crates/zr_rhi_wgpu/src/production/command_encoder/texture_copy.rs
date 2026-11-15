@@ -152,9 +152,9 @@ pub(crate) fn encode_texture_to_buffer_copy(
 }
 
 /// Encodes a conservative color texture subresource copy used by physical mip
-/// residency transitions. The shared contract rejects reinterpretation,
-/// depth/stencil, multisample, aliasing, and mismatched extents before WGPU
-/// sees the command.
+/// residency transitions. The shared contract rejects formats that are not
+/// copy-compatible, depth/stencil, multisample, aliasing, and mismatched
+/// extents before WGPU sees the command.
 pub(crate) fn encode_texture_to_texture_copy(
     encoder: &mut wgpu::CommandEncoder,
     registry: &WgpuResourceRegistry,
