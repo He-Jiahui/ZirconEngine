@@ -806,6 +806,8 @@ fn geometric_growth_events(target_len: usize, initial_capacity: usize) -> usize 
 mod dependency_scale;
 #[path = "ownership.rs"]
 mod ownership;
+#[path = "unreal_equiv_r01.rs"]
+mod unreal_equiv_r01;
 
 #[path = "../../../scope/tests/supplied_scheduler.rs"]
 mod supplied_scheduler;
