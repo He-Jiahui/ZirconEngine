@@ -21,8 +21,8 @@ class RuntimeInputStackAuditTests(unittest.TestCase):
 
         audit = input_stack_boundary_audit(self.repo_root)
 
-        self.assertEqual(audit["expected_runtime_module_count"], 27)
-        self.assertEqual(audit["expected_framework_module_count"], 44)
+        self.assertEqual(audit["expected_runtime_module_count"], 29)
+        self.assertEqual(audit["expected_framework_module_count"], 46)
         self.assertEqual(audit["expected_test_module_count"], 7)
         self.assertEqual(audit["expected_guard_file_count"], 6)
         self.assertEqual(audit["missing_guard_files"], [])
@@ -43,7 +43,7 @@ class RuntimeInputStackAuditTests(unittest.TestCase):
     def test_fixed_runtime_12_history_reads_verified_archive_identity(self) -> None:
         from runtime_structure_audits.input_stack_boundary import (
             RUNTIME_12_CLOSEOUT_ARCHIVE,
-            RUNTIME_12_HISTORICAL_IDENTITIES,
+            RUNTIME_12_REPOSITORY_IDENTITIES,
             input_stack_boundary_audit,
         )
 
@@ -54,9 +54,47 @@ class RuntimeInputStackAuditTests(unittest.TestCase):
         self.assertEqual(RUNTIME_12_CLOSEOUT_ARCHIVE, record["path"])
         self.assertTrue(record["historical_only"])
         self.assertEqual("verified", record["status"])
-        length, sha256 = RUNTIME_12_HISTORICAL_IDENTITIES[RUNTIME_12_CLOSEOUT_ARCHIVE]
+        length, sha256 = RUNTIME_12_REPOSITORY_IDENTITIES[RUNTIME_12_CLOSEOUT_ARCHIVE]
         self.assertEqual(length, record["actual_length"])
         self.assertEqual(sha256, record["actual_sha256"])
+
+    def test_repository_history_accepts_git_newlines_but_external_archive_stays_byte_exact(self) -> None:
+        from runtime_structure_audits.dynamic_runtime_api_archive_inventory import HistoricalArchiveReader
+        from runtime_structure_audits.input_stack_boundary import (
+            RUNTIME_12_CLOSEOUT_ARCHIVE,
+            RUNTIME_12_HISTORICAL_IDENTITIES,
+            RUNTIME_12_REPOSITORY_IDENTITIES,
+        )
+
+        canonical = (self.repo_root / RUNTIME_12_CLOSEOUT_ARCHIVE).read_bytes().replace(b"\r\n", b"\n")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / RUNTIME_12_CLOSEOUT_ARCHIVE
+            target.parent.mkdir(parents=True)
+            for windows_newlines in (False, True):
+                with self.subTest(windows_newlines=windows_newlines):
+                    payload = canonical.replace(b"\n", b"\r\n") if windows_newlines else canonical
+                    target.write_bytes(payload)
+                    repository = HistoricalArchiveReader(
+                        root, identities=RUNTIME_12_REPOSITORY_IDENTITIES, canonical_newlines=True
+                    )
+                    self.assertEqual(canonical.decode("utf-8"), repository.read(RUNTIME_12_CLOSEOUT_ARCHIVE))
+                    record = repository.records[RUNTIME_12_CLOSEOUT_ARCHIVE]
+                    self.assertEqual("verified", record["status"])
+                    self.assertEqual(len(payload), record["physical_length"])
+                    self.assertEqual("git-lf-text", record["newline_policy"])
+
+                    external = HistoricalArchiveReader(root, identities=RUNTIME_12_HISTORICAL_IDENTITIES)
+                    actual = external.read(RUNTIME_12_CLOSEOUT_ARCHIVE)
+                    self.assertEqual(windows_newlines, actual is not None)
+                    self.assertNotIn("newline_policy", external.records[RUNTIME_12_CLOSEOUT_ARCHIVE])
+
+            target.write_bytes(canonical.replace(b"#", b"!", 1))
+            tampered = HistoricalArchiveReader(
+                root, identities=RUNTIME_12_REPOSITORY_IDENTITIES, canonical_newlines=True
+            )
+            self.assertIsNone(tampered.read(RUNTIME_12_CLOSEOUT_ARCHIVE))
+            self.assertEqual("sha256-mismatch", tampered.records[RUNTIME_12_CLOSEOUT_ARCHIVE]["reason"])
 
     def test_archive_failure_is_not_masked_by_checkout_or_current_document_anchors(self) -> None:
         from runtime_structure_audits import input_stack_boundary as boundary

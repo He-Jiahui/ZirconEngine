@@ -53,7 +53,7 @@ pub(super) fn preflight(
         if !valid_payload(event) {
             return Err(Rejection::InvalidPayload { event_index });
         }
-        let admission = super::gamepad_admission(event, |id| {
+        let admission = super::apply_event::gamepad_admission(event, |id| {
             generations
                 .get(&id)
                 .copied()

@@ -31,11 +31,7 @@ fn runtime56_batch_scratch_free_binding_sort_preserves_retired_order_and_dedupli
 
 #[test]
 fn runtime56_batch_scratch_free_binding_sort_source_contract() {
-    let source = include_str!("../input_binding.rs");
-    let production = source
-        .split_once("\n#[cfg(test)]\nmod tests")
-        .expect("production module end")
-        .0;
+    let production = include_str!("../input_binding/binding_ctor.rs");
 
     assert_eq!(production.matches("buttons.sort_unstable();").count(), 1);
     assert_eq!(production.matches("axes.sort_unstable_by(").count(), 1);
