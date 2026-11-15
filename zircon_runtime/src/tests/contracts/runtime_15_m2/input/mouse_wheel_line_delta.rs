@@ -32,6 +32,10 @@ fn runtime_15_input_mouse_wheel_line_delta_uses_current_names() {
         &manifest_root.join("src/input/runtime/default_input_manager.rs"),
         "default input manager should be readable",
     );
+    let apply_input_event = read_text(
+        &manifest_root.join("src/input/runtime/default_input_manager/apply_event.rs"),
+        "input event application owner should be readable",
+    );
     let dynamic_events = read_text(
         &manifest_root.join("src/dynamic_api/session/events.rs"),
         "dynamic API session event owner should be readable",
@@ -108,8 +112,17 @@ fn runtime_15_input_mouse_wheel_line_delta_uses_current_names() {
         &["PIXEL_SCROLL_LINE_DELTA_SCALE"],
     );
     assert_contains_all(
-        "default input manager",
+        "default input manager event application wiring",
         &default_input_manager,
+        &[
+            "#[path = \"default_input_manager/apply_event.rs\"]",
+            "mod apply_event;",
+            "apply_input_event(&mut state, event);",
+        ],
+    );
+    assert_contains_all(
+        "input event application owner",
+        &apply_input_event,
         &["wheel.vertical_line_delta()"],
     );
     assert_contains_all(
@@ -143,6 +156,7 @@ fn runtime_15_input_mouse_wheel_line_delta_uses_current_names() {
         ("runtime prelude", prelude.as_str()),
         ("runtime input prelude", input_prelude.as_str()),
         ("default input manager", default_input_manager.as_str()),
+        ("input event application owner", apply_input_event.as_str()),
         ("dynamic API session events", dynamic_events.as_str()),
     ] {
         assert!(

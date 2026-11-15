@@ -38,10 +38,15 @@ class RuntimeAssetManifestSaveBoundContractTests(unittest.TestCase):
             for path in (SAVE, SAVE.parent / "tests/save_source_integrity_tests.rs")
         )
 
+        # Preserve the exact-limit assertion without depending on Rust indentation.
+        self.assertRegex(
+            source,
+            r"assert_eq!\(\s*serialize_current_project_manifest\(&manifest\)\.unwrap\(\)\.len\(\),"
+            r"\s*MAX_PROJECT_MANIFEST_BYTES\s*,?\s*\);",
+        )
         for anchor in (
             "manifest_save_accepts_exact_limit_and_rejects_limit_plus_one_before_replace",
             'manifest.asset_manifest = Some("a".repeat(MAX_PROJECT_MANIFEST_BYTES - fixed_len))',
-            "serialize_current_project_manifest(&manifest).unwrap().len()",
             "manifest.save(&exact_path).unwrap();",
             "let loaded = ProjectManifest::load(&exact_path).unwrap();",
             ".push('a');",
