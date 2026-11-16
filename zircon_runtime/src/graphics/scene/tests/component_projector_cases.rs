@@ -1,7 +1,7 @@
 use crate::core::framework::render::{
     render_mesh_stable_instance_key, CameraRenderDescriptor, ProjectionMode,
     RenderComponentFullReprojectionReason, RenderComponentProjectionMode, RenderExtractContext,
-    RenderMeshBounds, RenderWorldSnapshotHandle, SceneViewportExtractRequest,
+    RenderFrameExtract, RenderMeshBounds, RenderWorldSnapshotHandle, SceneViewportExtractRequest,
     ViewportCameraSnapshot,
 };
 use crate::core::math::{Mat4, Quat, Transform, Vec3};
@@ -517,9 +517,7 @@ fn render_scene_component_projector_preserves_hierarchical_shear_world_matrix() 
 #[test]
 fn prepared_mesh_keeps_affine_geometry_visible_across_sparse_replay() {
     let mut world = World::empty();
-    let parent = world
-        .spawn((Name("affine parent".into()), ActiveSelf::default()))
-        .unwrap();
+    let parent = world.spawn_node(crate::scene::NodeKind::Empty).unwrap();
     world
         .update_transform(
             parent,
@@ -591,21 +589,59 @@ fn prepared_mesh_keeps_affine_geometry_visible_across_sparse_replay() {
     assert!(changes.upserts().iter().all(|row| row.entity() != child));
     assert_eq!(world.world_matrix(child).unwrap(), world_matrix);
 
-    let observed = [&full, &sparse].map(|frame| {
+    let observe = |frame: &RenderFrameExtract| {
         let bounds = vec![Some(local); frame.geometry.meshes.len()];
         let context = VisibilityContext::from_extract_with_history_static_index_task_pool_and_feature_payloads_with_prepared_bounds(
             frame, None, None, None, None, None, None, Some(&bounds),
         );
-        let sphere = context.bvh_instances.iter().find(|row| row.stable_instance_key == stable_key).unwrap().bounds;
-        assert!(sphere.radius.is_finite() && sphere.radius < 10.0, "the provided bounds must not take the missing-geometry branch");
+        let sphere = context
+            .bvh_instances
+            .iter()
+            .find(|row| row.stable_instance_key == stable_key)
+            .unwrap()
+            .bounds;
+        assert!(
+            sphere.radius.is_finite() && sphere.radius < 10.0,
+            "the provided bounds must not take the missing-geometry branch"
+        );
         let contains_vertex = sphere.center.distance(world_vertex) <= sphere.radius;
         (context.main_view_visible_entities(), contains_vertex)
-    });
+    };
     assert_eq!(
-        observed,
+        [&full, &sparse].map(observe),
         [(vec![child], true), (vec![child], true)],
         "both the full and sparse frames must retain a mesh with an inside vertex"
     );
+
+    let shared = RenderFrameExtract::from_shared_scene(
+        sparse.shared_scene(),
+        sparse.view.clone(),
+        sparse.timing,
+    );
+    assert!(shared.shares_scene_with(&sparse));
+    assert_eq!(observe(&shared), (vec![child], true));
+
+    // The public DTO may be edited or replaced in a derived frame. An
+    // affine row from the old frame cannot override either change.
+    let mut moved = shared.clone();
+    let mesh = moved
+        .geometry
+        .meshes
+        .iter_mut()
+        .find(|mesh| mesh.node_id == child)
+        .unwrap();
+    mesh.transform.translation.x = -30.0;
+    assert!(observe(&moved).0.is_empty());
+    let mut replaced = shared.clone();
+    let mesh = replaced
+        .geometry
+        .meshes
+        .iter_mut()
+        .find(|mesh| mesh.node_id == child)
+        .unwrap();
+    mesh.transform_revision ^= 1;
+    assert!(observe(&replaced).0.is_empty());
+    assert_eq!(observe(&shared), (vec![child], true));
 }
 
 #[test]

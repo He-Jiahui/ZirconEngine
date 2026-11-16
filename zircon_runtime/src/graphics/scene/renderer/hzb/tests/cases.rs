@@ -9,8 +9,8 @@ use crate::graphics::resource_limits::{
     HZB_OCCLUSION_PASS_STORAGE_BUFFERS_PER_SHADER_STAGE,
 };
 use crate::graphics::scene::gpu_scene::{
-    GpuInstanceData, GpuPrimitiveData, GpuScene, GpuSceneEntry, GPU_PRIMITIVE_FLAG_VISIBLE,
-    GPU_SCENE_INVALID_PAYLOAD_SLOT,
+    GpuInstanceData, GpuPrimitiveData, GpuScene, GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM,
+    GPU_PRIMITIVE_FLAG_VISIBLE, GPU_SCENE_INVALID_PAYLOAD_SLOT,
 };
 use crate::graphics::scene::resources::default_pipeline_key;
 use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
@@ -45,9 +45,65 @@ fn hzb_occlusion_limit_gate_requires_pipeline_storage_buffer_capacity() {
 
 #[test]
 fn hzb_occlusion_culls_fully_hidden_indirect_args_on_wgpu() {
-    let Some(backend) = test_backend() else {
+    let mut hidden = test_primitive_data();
+    hidden.flags |= GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM;
+    let rows = [
+        (hidden, test_instance_data(TEST_HIDDEN_INSTANCE_Z)),
+        (
+            test_primitive_data(),
+            test_instance_data(TEST_VISIBLE_INSTANCE_Z),
+        ),
+    ];
+    let Some((stats, snapshot, draw_count)) = occlusion_readback_for_rows(&rows) else {
         return;
     };
+    assert_eq!(stats.tested_arg_count, 2);
+    assert_eq!(stats.tested_instance_count, 2);
+    assert_eq!(stats.culled_arg_count, 1);
+    assert_eq!(stats.culled_instance_count, 1);
+    assert_eq!(draw_count, 1);
+    assert_eq!(snapshot.args_count(), 2);
+    assert_eq!(snapshot.zero_instance_arg_count(), 1);
+    assert_eq!(snapshot.remaining_instance_count(), 1);
+}
+
+#[test]
+fn hzb_occlusion_keeps_unoccluded_geometry_under_the_selected_previous_affine() {
+    let mut primitive = test_primitive_data();
+    primitive.flags |= GPU_PRIMITIVE_FLAG_HAS_PREVIOUS_TRANSFORM;
+    primitive.local_bounds_radius = 0.22;
+    let mut instance = test_instance_data(TEST_HIDDEN_INSTANCE_Z);
+    assert_eq!(instance.flags, 0, "current model matrix is ordinary TRS");
+    instance.prev_world_from_local[0][2] = 2.0;
+    instance.prev_world_from_local[1][2] = 2.0;
+    instance.prev_world_from_local[2][2] = 2.0;
+
+    // Identity clip transform and a local point strictly inside the sphere.
+    // Its previous-world depth is 0.18: ahead of the 0.2 occluder. The
+    // largest-column radius (even inflated by 1.25) misses that depth.
+    let local_witness = -0.12_f32;
+    assert!(3.0 * local_witness * local_witness < primitive.local_bounds_radius.powi(2));
+    let previous = instance.prev_world_from_local;
+    let depth = previous[3][2] + (previous[0][2] + previous[1][2] + previous[2][2]) * local_witness;
+    assert!((0.0..TEST_WALL_DEPTH).contains(&depth));
+
+    let Some((stats, snapshot, draw_count)) = occlusion_readback_for_rows(&[(primitive, instance)])
+    else {
+        return;
+    };
+    assert_eq!(stats.tested_instance_count, 1);
+    assert_eq!(
+        draw_count, 1,
+        "selected previous affine bound contains an unoccluded point"
+    );
+    assert_eq!(stats.culled_instance_count, 0);
+    assert_eq!(snapshot.remaining_instance_count(), 1);
+}
+
+fn occlusion_readback_for_rows(
+    rows: &[(GpuPrimitiveData, GpuInstanceData)],
+) -> Option<(HzbOcclusionCullReadbackStats, MeshIndirectArgsSnapshot, u32)> {
+    let backend = test_backend()?;
     let device = &backend.device;
     if !hzb_occlusion_supported_by_limits(&device.limits()) {
         eprintln!(
@@ -55,15 +111,18 @@ fn hzb_occlusion_culls_fully_hidden_indirect_args_on_wgpu() {
             device.limits().max_storage_buffers_per_shader_stage,
             HZB_OCCLUSION_REQUIRED_STORAGE_BUFFERS_PER_SHADER_STAGE
         );
-        return;
+        return None;
     }
     let queue = &backend.queue;
     let (scene_layout, _scene_uniform_buffer, scene_bind_group) = test_scene_bind_group(device);
     let mut gpu_scene = test_gpu_scene(device);
-    let hidden =
-        sync_occlusion_test_entry(device, &mut gpu_scene, 0x1000_0001, TEST_HIDDEN_INSTANCE_Z);
-    let visible =
-        sync_occlusion_test_entry(device, &mut gpu_scene, 0x1000_0002, TEST_VISIBLE_INSTANCE_Z);
+    let mut commands = MeshDrawCommandList::new();
+    for (index, &(primitive, instance)) in rows.iter().enumerate() {
+        let entry = gpu_scene.register(device, 0x1000_0001 + index as u64, 1);
+        gpu_scene.write_primitive(entry, primitive);
+        gpu_scene.write_instances(entry, &[instance]);
+        commands.push(test_mesh_command(entry.first_instance_index));
+    }
     let upload = gpu_scene
         .flush_updates(&backend)
         .expect("GPU scene upload should be accepted");
@@ -78,9 +137,6 @@ fn hzb_occlusion_culls_fully_hidden_indirect_args_on_wgpu() {
     let hzb = test_hzb_texture(device, queue, TEST_WALL_DEPTH);
     let culler =
         HzbOcclusionCuller::new(device, &scene_layout, gpu_scene.scene_bind_group_layout());
-    let mut commands = MeshDrawCommandList::new();
-    commands.push(test_mesh_command(hidden.first_instance_index));
-    commands.push(test_mesh_command(visible.first_instance_index));
     let command_buffers =
         MeshPassCommandBuffers::from_cached_command_hits(commands, Default::default());
     let capabilities = gpu_driven_capabilities();
@@ -168,15 +224,7 @@ fn hzb_occlusion_culls_fully_hidden_indirect_args_on_wgpu() {
     let snapshot = collect_indirect_args_snapshot(device, &args_readback, execution.args_count())
         .expect("indirect args readback");
     let draw_count = collect_u32(device, &draw_count_readback).expect("draw-count readback");
-
-    assert_eq!(stats.tested_arg_count, 2);
-    assert_eq!(stats.tested_instance_count, 2);
-    assert_eq!(stats.culled_arg_count, 1);
-    assert_eq!(stats.culled_instance_count, 1);
-    assert_eq!(draw_count, 1);
-    assert_eq!(snapshot.args_count(), 2);
-    assert_eq!(snapshot.zero_instance_arg_count(), 1);
-    assert_eq!(snapshot.remaining_instance_count(), 1);
+    Some((stats, snapshot, draw_count))
 }
 
 #[test]
@@ -430,18 +478,6 @@ fn test_skinned_joint_palette_min_binding_size() -> wgpu::BufferSize {
             + TEST_SKINNED_JOINT_PARAMS_BYTES,
     )
     .expect("test skinned joint palette storage size is non-zero")
-}
-
-fn sync_occlusion_test_entry(
-    device: &wgpu::Device,
-    scene: &mut GpuScene,
-    stable_instance_key: u64,
-    translate_z: f32,
-) -> GpuSceneEntry {
-    let entry = scene.register(device, stable_instance_key, 1);
-    scene.write_primitive(entry, test_primitive_data());
-    scene.write_instances(entry, &[test_instance_data(translate_z)]);
-    entry
 }
 
 fn test_primitive_data() -> GpuPrimitiveData {
