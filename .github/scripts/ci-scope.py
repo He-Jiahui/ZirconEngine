@@ -578,10 +578,11 @@ def admission(value):
     if value["verb"] == "test":
         need(value["selector"] and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_:]{2,255}", value["selector"]), "Missing bounded test filter")
         args += [value["selector"]]
-    spec = importlib.util.spec_from_file_location("ci_management_admission", ROOT / "tools/jenkins-management/entry.py")
+    # Shared pure scope admission, not a management capsule or service request.
+    spec = importlib.util.spec_from_file_location("ci_agent_cargo_admission", ROOT / "tools/dev/agent_cargo_policy.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    module.parse_cargo(args, enforce_policy=True)
+    module.admit_cargo(args, ROOT)
     args[0] = value["verb"]
     args += ["--target", value["platform"]]
     if value["verb"] == "clippy":

@@ -25,12 +25,13 @@ the project default changed every active chat. This checkout's current chat
 already has unrestricted command execution; that observation alone does not
 prove another chat recovered.
 
-Jenkins continues to own Git, branches, worktrees, source preparation, generation,
-builds, validation, artifact reuse, integration and cleanup. Compiler products,
-caches and task evidence retain the existing physical cargo-targets placement
-rules. Preserve foreign changes, unknown source/artifacts, Git metadata and
-historical receipts. Full Access does not change task scope or grant unrelated
-operations.
+Agents directly manage authorized native Git/worktrees, source preparation,
+generation, local validation, artifact reuse and bounded cleanup under
+[the management standard](../tools/agent-artifact-management.md). Compiler
+products, caches and task evidence retain the physical cargo-targets placement,
+35 GiB reserve and native locks. Preserve foreign changes, unknown source/artifacts,
+Git metadata and historical receipts. Full Access does not expand task scope,
+commit/remote-action authority or deletion permission.
 
 ## Optional restricted profile
 
@@ -84,26 +85,21 @@ project default.
 The profile controls sandboxed local commands and their child processes. MCP
 servers and app tools use separate execution boundaries, so this checkout
 disables its configured RenderDoc and CUA MCP servers and default app access.
-Command networking is enabled. Read the actual filesystem table for current
-grants: it includes the user-authorized `.git` and `.jenkins` maintenance grants,
-while `.github` and retired activation state remain read-only. Git and lifecycle
-operations still belong to Jenkins. Scoped request inputs belong in `.codex/outbox`.
-Jenkins itself owns its runtime, Git metadata and authorization database. A local
-profile cannot confine an already-running service; relocating that installation
-and pinning its interpreter require a separate operator change.
+Command networking is enabled. Read the filesystem table for actual grants.
+The optional profile lists `.git`, `.github` and historical workflow data as
+read-only. Perform authorized Git or lifecycle actions only in a task checkout
+where the current permissions permit them. Use `.codex/outbox` for scoped
+handoff metadata, not source backups. Historical credentials and state remain protected.
 
 New directory grants need existing physical directories before the Windows
 sandbox can grant access beneath a read-only parent. Permission maintenance may
 initialize these exact, user-authorized empty directories, then rerun the probes;
 do not grant writes to the whole `.codex/state` parent to work around creation.
 
-The network host rules explicitly allow `127.0.0.1` and `localhost`, including the
-current Jenkins endpoint at `http://127.0.0.1:18080`. These rules apply when a
-network proxy is active. They do not enable the proxy; networking is direct when
-no proxy is active, so this is not a localhost-only network policy. The running
-Jenkins service has its own execution boundary and remains subject to its request
-authorization, selected-driver/runtime checks, physical output checks and native
-ownership locks. The command sandbox does not confine that preexisting service.
+The network host rules explicitly allow `127.0.0.1` and `localhost` when a
+network proxy is active. They do not enable the proxy or restrict direct networking
+when it is off. This is not a localhost-only network policy, and the command
+sandbox does not confine independently running host services.
 
 Under the optional profile, unlisted control configuration, AGENTS.md, reference
 trees, retired coordinator data, user directories and system temp have no write
@@ -120,10 +116,10 @@ Full Access selection; the optional profile's allowlist does not confine it.
 
 Use the installed CLI's `codex sandbox --permission-profile zircon-strict
 --include-managed-config -C E:\Git\ZirconEngine -- <command>` interface for
-actual file-operation and Jenkins connectivity probes. Record the configuration
+actual file-operation probes for the selected profile. Record the configuration
 hash, installed CLI identity, exact command and terminal result; register owned
 canaries in the task artifact manifest before creating them and remove them after
-the probe. Do not use the Jenkins service interpreter for ad hoc probe scripts.
+the probe. Use a general-purpose Python interpreter if a probe requires Python.
 An interpreter failure, timeout, missing directory or failed positive probe is
 a failed verification. Negative probes must receive actual access denials.
 
@@ -131,15 +127,15 @@ An earlier allowlist passed 15 checks with Codex 0.160.0 and native Windows
 `elevated` sandboxing; its historical receipt records no stderr, no forbidden output
 and an unchanged configuration:
 [runtime receipt](E:/cargo-targets/zircon-local/codex-permissions/probe-6151a82962894e9d9dea183eb2e5b764/receipt.json).
-That result does not validate the current, expanded allowlist. The current
-Jenkins handoff permission change records its own probes in
+That result does not validate the current, expanded allowlist. The historical Jenkins
+handoff permission change records its own probes in
 [the task receipt](E:/cargo-targets/zircon-local/reports/def-disk-cleanup-20261016/jenkins-permission-open/validation.json).
 Each receipt verifies only its tested sandbox invocation; the desktop chat still
 requires the profile selection described above.
 
 Re-run after changing the allowlist, Codex version, native sandbox mode or
 relevant Windows permissions. This is permission acceptance evidence, not Rust
-build, Jenkins migration or whole-workspace acceptance.
+build, migration or whole-workspace acceptance.
 
 ## Official references
 

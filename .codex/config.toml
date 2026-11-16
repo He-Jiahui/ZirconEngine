@@ -42,7 +42,7 @@ RUSTC_WRAPPER = ''
 RUSTC_WORKSPACE_WRAPPER = ''
 
 [permissions.zircon-strict]
-description = "ZirconEngine: scoped source/output writes and authorized local Jenkins task handoff."
+description = "ZirconEngine: scoped source and output writes for authorized local development."
 extends = ":read-only"
 
 [permissions.zircon-strict.filesystem]
@@ -92,7 +92,7 @@ extends = ":read-only"
 'E:/Git/ZirconEngine/docs/wiki' = "write"
 'E:/Git/ZirconEngine/third_party/penpot' = "write"
 'E:/Git/ZirconEngine/tools' = "write"
-# Jenkins executes these helpers with service credentials.
+# Keep historical workflow code and protected tooling read-only in this profile.
 'E:/Git/ZirconEngine/tools/jenkins-management' = "read"
 'E:/Git/ZirconEngine/tools/jenkins' = "read"
 'E:/Git/ZirconEngine/tools/dev' = "read"
@@ -195,8 +195,7 @@ extends = ":read-only"
 'E:/Git/ZirconEngine/LICENSE' = "write"
 'E:/Git/ZirconEngine/tests/test_execution_engine.py' = "write"
 
-# Service-owned executable code, metadata and authorization state stay read-only.
-# Agents submit task-scoped inputs via the existing .codex/outbox write grant.
+# Git internals and historical workflow data stay read-only in this profile.
 'E:/Git/ZirconEngine/.git' = "read"
 'E:/Git/ZirconEngine/.jenkins' = "read"
 'E:/Git/ZirconEngine/.codex/state/jenkins-coordinator' = "read"
@@ -204,20 +203,18 @@ extends = ":read-only"
 'E:/Git/ZirconEngine/.codex/state/jenkins-tray' = "read"
 
 # Compiler products, compiler caches, scratch, exports and generated evidence.
-# Jenkins and Cargo retain physical-path validation and native ownership locks.
+# Local build tools retain physical-path validation and native locks.
 'D:/cargo-targets/zircon-local' = "write"
 'E:/cargo-targets/zircon-local' = "write"
 'F:/cargo-targets/zircon-local' = "write"
 
 # Control configuration, hooks and Git data, unlisted reference trees/worktrees,
 # retired coordinator data, user directories and system temp have no write grant.
-# The existing Jenkins service has its own execution boundary; task-scoped
-# delegation to that verified service is explicitly authorized above.
 [permissions.zircon-strict.network]
 enabled = true
 
-# Permit the local Jenkins endpoint when a network proxy is active. These host
-# rules do not enable the proxy or restrict direct networking when it is off.
+# Permit loopback when a network proxy is active. These host rules do not
+# enable the proxy or restrict direct networking when it is off.
 [permissions.zircon-strict.network.domains]
 "127.0.0.1" = "allow"
 "localhost" = "allow"

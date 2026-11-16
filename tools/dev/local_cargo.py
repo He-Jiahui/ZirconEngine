@@ -1,7 +1,13 @@
-"""Submit scoped Cargo work through ordinary Jenkins; retain pinned runner helpers."""
+"""Bounded independent local Cargo execution with observed-root command receipts.
+
+No controller, installed capsule, identity file or service is consulted. The
+historical native auditors remain library code; this CLI does not expose them
+or claim process-tree, source-closure or compiler-artifact provenance.
+"""
 from __future__ import annotations
 
 import argparse
+from datetime import UTC, datetime
 import hashlib
 import json
 import os
@@ -12,6 +18,7 @@ import sys
 import uuid
 
 from tools.jenkins.contracts import JenkinsError
+from tools.dev.agent_cargo_policy import admit_cargo, plain_path, reject_retired_options
 
 
 MIN_FREE_BYTES = 35 * 1024**3
@@ -76,17 +83,89 @@ def prepare_command(arguments: list[str], target: Path, *, locked: bool = True) 
     return ["cargo", *options, *generated, *args[separator:]]
 
 
-def _default_target(repo: Path, args: list[str], *, dry_run: bool) -> Path:
-    # This namespace never reuses the retired coordinator's pools or job scratch.
-    root = storage_roots()[0] if dry_run else max(
-        (root for root in storage_roots() if root.parent.exists()), key=free_bytes
-    )
-    toolchain = repo / "rust-toolchain.toml"
-    identity = json.dumps({"repo": str(repo).casefold(), "platform": sys.platform,
-                           "toolchain": toolchain.read_text(encoding="utf-8") if toolchain.exists() else "default",
-                           "cargoArgs": args}, sort_keys=True).encode("utf-8")
-    key = hashlib.sha256(identity).hexdigest()[:20]
-    return root / "zircon-local" / sys.platform / key / "target"
+def _git_metadata_path(value: str, base: Path) -> Path:
+    """Resolve Git's relative control pointers, rejecting symlink/reparse aliases.
+
+    Git commondir commonly contains ../..; those literal parent components are
+    allowed only here, never by compiler-output admission. Check each existing
+    prefix before lexical normalization so a link hidden before /.. is rejected.
+    """
+    if not value or value != value.strip() or any(character in value for character in "\0\r\n"):
+        raise ValueError("Invalid Git control-directory pointer")
+    path = Path(value)
+    if not path.is_absolute():
+        path = base / path
+    current = Path(path.anchor)
+    for component in path.parts[1:]:
+        if component == "..":
+            current = current.parent
+        elif component != ".":
+            current /= component
+        if current.is_symlink() or (current.exists() and getattr(current.lstat(), "st_file_attributes", 0) & 0x400):
+            raise ValueError("Git cache identity cannot use a source/control path alias")
+    return plain_path(Path(os.path.abspath(path)))
+
+
+def _git_pointer(path: Path) -> str:
+    path = plain_path(path)
+    if not path.is_file() or path.stat().st_size > 32768:
+        raise ValueError("Invalid Git cache-identity control file")
+    value = path.read_text(encoding="utf-8").rstrip("\r\n")
+    if not value or any(character in value for character in "\0\r\n"):
+        raise ValueError("Invalid Git cache-identity control file")
+    return value
+
+
+def repository_cache_identity(repo: Path) -> dict:
+    """Read only .git and optional commondir, never Git config/credentials/state.
+
+    Linked worktrees share the physical common directory identity. A genuinely
+    non-Git source fixture uses its own root; broken Git pointers fail closed
+    instead of silently allocating another per-worktree cache.
+    """
+    repo = plain_path(repo)
+    marker = plain_path(repo / ".git")
+    if not marker.exists():
+        return {"kind": "source-root-without-git", "path": os.path.normcase(str(repo))}
+    if marker.is_dir():
+        gitdir = marker
+    else:
+        value = _git_pointer(marker)
+        if not value.startswith("gitdir: "):
+            raise ValueError("Invalid .git worktree control pointer")
+        gitdir = _git_metadata_path(value[len("gitdir: "):], repo)
+    if not gitdir.is_dir():
+        raise ValueError("Git cache-identity directory is missing")
+    pointer = plain_path(gitdir / "commondir")
+    common = _git_metadata_path(_git_pointer(pointer), gitdir) if pointer.exists() else gitdir
+    if not common.is_dir():
+        raise ValueError("Git common directory for cache identity is missing")
+    identity = common.stat()
+    return {"kind": "git-common-directory", "path": os.path.normcase(str(common)),
+            "device": identity.st_dev, "fileId": identity.st_ino}
+
+
+def _default_target(repo: Path, args: list[str], *, dry_run: bool, build_root: Path | None = None) -> Path:
+    # Stable across linked trees and preview/execution. Cargo owns profile/target
+    # subdirectories, feature fingerprints and the native writer lock; these do
+    # not create another entire Cargo home/target pool per package or worktree.
+    # The versioned namespace never adopts retired coordinator pools/job scratch.
+    roots = storage_roots()
+    root = build_root or next((candidate for candidate in roots if candidate.parent.exists()), roots[0])
+    toolchain = plain_path(repo / "rust-toolchain.toml")
+    legacy_toolchain = plain_path(repo / "rust-toolchain")
+    toolchain_input = (toolchain.read_text(encoding="utf-8") if toolchain.is_file() else
+                       legacy_toolchain.read_text(encoding="utf-8") if legacy_toolchain.is_file() else "default-installed")
+    host_arch = os.environ.get("PROCESSOR_ARCHITEW6432") or os.environ.get("PROCESSOR_ARCHITECTURE")
+    if not host_arch and hasattr(os, "uname"):
+        host_arch = os.uname().machine
+    identity = json.dumps({"schema": "agent-common-git-pool-v1", "repository": repository_cache_identity(repo),
+                           "platform": sys.platform, "hostArchitecture": host_arch, "toolchain": toolchain_input},
+                          sort_keys=True).encode("utf-8")
+    # Leave room for libgit2's MAX_PATH-bound checkout of the pinned zr_vm dependency.
+    # This short, separate namespace must not adopt any historical build pool.
+    key = hashlib.sha256(identity).hexdigest()[:16]
+    return root / "zircon-local" / "a" / sys.platform / key / "target"
 
 
 def _evidence_output(value: str | Path) -> Path:
@@ -520,6 +599,7 @@ def _run_with_evidence(command: list[str], repo: Path, target: Path, environment
                        RUSTDOC=compiler["binaries"]["rustdoc"]["path"])
     driver_names = [
         "tools/dev/local_cargo.py", "tools/dev/local-cargo.ps1",
+        "tools/dev/agent_cargo_policy.py", "tools/dev/agent-cargo-common.ps1",
         "tools/jenkins/pilot/native/windows_job_process.py",
         "tools/jenkins/pilot/native/process_identity.py",
         "tools/jenkins/pilot/process_evidence.py", "tools/jenkins/pilot/source_manifest.py",
@@ -581,40 +661,218 @@ def _run_with_evidence(command: list[str], repo: Path, target: Path, environment
     return native["rootExitCode"]
 
 
-def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Submit scoped Cargo work through ordinary Jenkins")
-    parser.add_argument("--repo-root", default=str(Path(__file__).resolve().parents[2]))
-    parser.add_argument("--target-dir")
-    parser.add_argument("--build-root")
-    parser.add_argument("--evidence-directory")
-    parser.add_argument("--evidence-input-manifest")
-    parser.add_argument("--evidence-timeout-seconds", type=float)
-    parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--query-only", action="store_true")
-    parser.add_argument("--unlocked", action="store_true")
-    parser.add_argument("--jenkins-identity-file")
-    parser.add_argument("--independent-preview", action="store_true")
-    parser.add_argument("cargo_args", nargs=argparse.REMAINDER)
-    options = parser.parse_args(argv)
-    args = options.cargo_args[1:] if options.cargo_args[:1] == ["--"] else options.cargo_args
+def _build_root(value: str | Path) -> Path:
+    if os.name == "nt":
+        from tools.jenkins.resources.paths import canonical_build_root
+        try:
+            return canonical_build_root(value, allow_missing=True).path
+        except JenkinsError as error:
+            raise ValueError(str(error)) from error
+    root = Path(value)
+    if root not in storage_roots() or root.resolve() != root:
+        raise ValueError("Build root must be the physical D/E/F drive-root cargo-targets")
+    return root
+
+
+def local_environment(target: Path) -> tuple[dict[str, str], list[Path]]:
+    """Prepare values only; reuse the selected pool's sibling Cargo home in place.
+
+    A cold home is not an offline dependency cache. Callers may use standard
+    Cargo online resolution or explicitly select an already compatible pool;
+    this wrapper never copies caches, edits TLS/config, or restores Jenkins.
+    MSVC must already be prepared by the caller. Unlisted toolchain/product
+    environment variables are deliberately not inherited.
+    """
+    target = validate_output_path(target)
+    generation = target.parent
+    directories = {name: validate_output_path(generation / name)
+                   for name in ("build", "cargo-home", "sccache", "temporary")}
+    if any(target == directory or target.is_relative_to(directory) or directory.is_relative_to(target)
+           for directory in directories.values()):
+        raise ValueError("Cargo target/build/cache/temporary directories must be distinct siblings")
+    allowed = {"SYSTEMROOT", "WINDIR", "COMSPEC", "PATH", "PATHEXT", "USERPROFILE", "HOME", "APPDATA", "LOCALAPPDATA",
+               "INCLUDE", "LIB", "LIBPATH", "VCTOOLSINSTALLDIR", "WINDOWSSDKDIR", "WINDOWSSDKVERSION", "RUSTUP_HOME"}
+    environment = {name: value for name, value in os.environ.items() if name.upper() in allowed}
+    environment.update({"CARGO_TARGET_DIR": str(target), "CARGO_BUILD_BUILD_DIR": str(directories["build"]),
+                        "CARGO_HOME": str(directories["cargo-home"]), "SCCACHE_DIR": str(directories["sccache"]),
+                        "TEMP": str(directories["temporary"]), "TMP": str(directories["temporary"]),
+                        "TMPDIR": str(directories["temporary"]), "RUSTC_WRAPPER": "", "RUSTC_WORKSPACE_WRAPPER": "",
+                        "CARGO_INCREMENTAL": "0", "CARGO_PROFILE_DEV_DEBUG": "0", "CARGO_PROFILE_TEST_DEBUG": "0",
+                        "CARGO_PROFILE_DEV_INCREMENTAL": "false", "CARGO_PROFILE_TEST_INCREMENTAL": "false",
+                        "PYTHONDONTWRITEBYTECODE": "1"})
+    return environment, [target, *directories.values()]
+
+
+def _configuration_preflight(repo: Path, environment: dict[str, str]) -> None:
+    # Reject, rather than interpret, configuration that can override build-dir,
+    # rustc, runners, flags or environment. No config/credential contents are read.
+    for directory in (repo, *repo.parents):
+        if any((directory / ".cargo" / name).exists() for name in ("config", "config.toml")):
+            raise ValueError("Ambient repository/ancestor Cargo configuration is not admitted by this bounded entry")
+    home = Path(environment["CARGO_HOME"])
+    if any((home / name).exists() for name in ("config", "config.toml")):
+        raise ValueError("The selected Cargo cache contains an unreviewed Cargo configuration")
+
+
+def _validate_artifact_evidence(command: list[str], timeout: float) -> None:
+    if command[1] not in {"build", "test"} or (command[1] == "test" and "--no-run" not in command):
+        raise ValueError("Native artifact evidence admits only build or test --no-run")
+    if "--" in command or command.count("--message-format=json") != 1:
+        raise ValueError("Native artifact evidence requires one literal --message-format=json and no harness arguments")
+    if not 0 < timeout <= 86400:
+        raise ValueError("Evidence timeout must be positive and at most 86400 seconds")
+
+
+def _ordinary_receipt(command: list[str], repo: Path, target: Path, environment: dict[str, str],
+                      output: Path, selection: dict) -> int:
+    """Observe an actual root exit and regular-file logs; not process-tree acceptance."""
+    output = _evidence_output(output)
+    validate_output_path(output.parent).mkdir(parents=True, exist_ok=True)
+    output.mkdir(exist_ok=False)
+    _evidence_output(output)
+    receipt = {"schema": "zircon_agent_local_cargo_command_v1", "origin": "agent-local-command",
+               "executionOwner": "Agent", "command": command, "cwd": str(repo), "owner": selection,
+               "targetDirectory": str(target), "buildDirectory": environment["CARGO_BUILD_BUILD_DIR"],
+               "status": "command-not-started", "commandExecuted": False, "exitCode": None,
+               "startedAt": datetime.now(UTC).isoformat(), "processTreeVerified": False,
+               "logsFinal": False, "compilerArtifactEvidence": False, "immutableInputSeal": False,
+               "sourceClosureVerified": False, "formalAcceptance": False, "milestoneAcceptance": False,
+               "JenkinsAcceptance": False}
+    stdout, stderr = output / "stdout.bin", output / "stderr.bin"
+    result = 2
     try:
-        if options.independent_preview or any(value is not None for value in (
-                options.evidence_directory, options.evidence_input_manifest, options.evidence_timeout_seconds)):
-            raise ValueError("Independent Cargo execution/evidence options have no ordinary Jenkins recipe")
-        root = Path(__file__).resolve().parents[2]
-        from tools.jenkins.frontend import management_entry
-        entry = management_entry(root)
-        if entry.plain(options.repo_root) != entry.plain(root):
-            raise ValueError("Use the identity file's registered worktree sourceView for another source root")
-        result = entry.cargo_entry(
-            root, args, identity_file=options.jenkins_identity_file,
-            target_dir=options.target_dir, build_root=options.build_root,
-            dry_run=options.dry_run, query_only=options.query_only, unlocked=options.unlocked)
-        print(json.dumps(result, ensure_ascii=False, sort_keys=True))
-        return 2 if result["status"] == "pending" else 0
+        with stdout.open("xb") as out, stderr.open("xb") as err:
+            # Files, not captured pipes: Cargo retains its own native writer lock.
+            # We do not claim descendant/EOF proof from the observed root exit.
+            completed = subprocess.run(command, cwd=repo, env=environment, stdout=out, stderr=err, check=False)
+        receipt.update(commandExecuted=True, exitCode=completed.returncode,
+                       status="command-completed" if completed.returncode == 0 else "command-failed")
+        result = completed.returncode
+    except (OSError, KeyboardInterrupt) as error:
+        receipt["error"] = {"type": type(error).__name__, "message": str(error)}
+        if isinstance(error, KeyboardInterrupt):
+            receipt.update(status="command-interrupted", commandExecuted=None)
+            result = 130  # Wrapper interruption, not an invented Cargo root exit.
+    receipt["finishedAt"] = datetime.now(UTC).isoformat()
+    try:
+        for name, path in (("stdout", stdout), ("stderr", stderr)):
+            if path.exists():
+                receipt[name] = _file_fact(path)
     except Exception as error:
-        print(json.dumps({"status": "pending", "reasonCode": getattr(error, "code", "ordinary_entry_pending"),
-                          "message": str(error), "formalAcceptance": False, "m8Accepted": False}))
+        receipt.update(status="receipt-incomplete", evidenceError={"type": type(error).__name__, "message": str(error)})
+        result = result or 2
+    reference = None
+    try:
+        reference = _write_fact(output / "receipt.json", receipt)
+    except Exception as error:
+        receipt.update(status="receipt-write-failed", evidenceError={"type": type(error).__name__, "message": str(error)})
+        result = result or 2
+    # Preserve Cargo JSON output for existing product consumers. Binary logs are
+    # authoritative; bounded-memory console replay is text convenience only.
+    try:
+        for path, stream in ((stdout, sys.stdout), (stderr, sys.stderr)):
+            if path.exists():
+                last = ""
+                with path.open(encoding="utf-8", errors="replace") as log:
+                    while chunk := log.read(65536):
+                        stream.write(chunk)
+                        last = chunk[-1]
+                if last and last != "\n":
+                    stream.write("\n")
+    except (OSError, BrokenPipeError):
+        # A closed console does not change the actual command/log/receipt facts.
+        pass
+    print(json.dumps({"status": receipt["status"], "executionOwner": "Agent", "commandExecuted": receipt["commandExecuted"],
+                      "exitCode": receipt["exitCode"], "receipt": reference, "evidenceError": receipt.get("evidenceError"),
+                      "formalAcceptance": False}, ensure_ascii=True))
+    return result
+
+
+class _LocalParser(argparse.ArgumentParser):
+    def error(self, message):
+        raise ValueError(message)
+
+
+def main(argv: list[str] | None = None) -> int:
+    execution_attempted = False
+    try:
+        supplied = list(sys.argv[1:] if argv is None else argv)
+        reject_retired_options(supplied)
+        parser = _LocalParser(description="Execute one scoped Cargo package directly under Agent ownership", allow_abbrev=False)
+        parser.add_argument("--repo-root", default=str(Path(__file__).resolve().parents[2]))
+        parser.add_argument("--target-dir")
+        parser.add_argument("--build-root")
+        parser.add_argument("--receipt-directory")
+        parser.add_argument("--evidence-directory")
+        parser.add_argument("--evidence-input-manifest")
+        parser.add_argument("--evidence-timeout-seconds", type=float)
+        parser.add_argument("--dry-run", action="store_true")
+        parser.add_argument("--query-only", action="store_true", help="Read-only local command plan; never executes or queries Jenkins")
+        parser.add_argument("--unlocked", action="store_true")
+        parser.add_argument("--independent-preview", action="store_true", help="Deprecated read-only plan alias; omit to execute directly")
+        parser.add_argument("cargo_args", nargs=argparse.REMAINDER)
+        options = parser.parse_args(supplied)
+        args = options.cargo_args[1:] if options.cargo_args[:1] == ["--"] else options.cargo_args
+        native_options = (options.evidence_directory, options.evidence_input_manifest, options.evidence_timeout_seconds)
+        if any(value is not None for value in native_options):
+            if any(value is None or value == "" for value in native_options) or options.receipt_directory is not None:
+                raise ValueError("Native evidence needs directory, input manifest and timeout together; ordinary receipt directory cannot be mixed")
+            # Do not expose the historical artifact runner as ordinary execution.
+            # A shared Cargo pool's writer lock ends before post-command auditing,
+            # and a foreign --repo-root cannot identify the actual loaded drivers.
+            raise ValueError("Native artifact evidence execution is not supported by this local entry; use ordinary command receipts without artifact-provenance claims")
+        repo = plain_path(options.repo_root)
+        selection = admit_cargo(args, repo)
+        root = _build_root(options.build_root) if options.build_root is not None else None
+        readonly = options.dry_run or options.query_only or options.independent_preview
+        target = validate_output_path(options.target_dir) if options.target_dir is not None else validate_output_path(
+            _default_target(repo, args, dry_run=readonly, build_root=root))
+        actual_root = next(candidate for candidate in storage_roots() if target.is_relative_to(candidate))
+        if root is not None and actual_root != root:
+            raise ValueError("Explicit target and build root must use the same physical drive-root")
+        environment, directories = local_environment(target)
+        _configuration_preflight(repo, environment)
+        command = prepare_command(selection["cargoArguments"], target, locked=not options.unlocked)
+        output = _evidence_output(options.receipt_directory) if options.receipt_directory is not None else (
+            actual_root / "zircon-local" / "agent-cargo-receipts" / uuid.uuid4().hex)
+        output = _evidence_output(output)
+        if any(output == directory or directory.is_relative_to(output) or output.is_relative_to(directory) for directory in directories):
+            raise ValueError("Receipt/evidence output must be separate from compiler/cache/temporary directories")
+        plan = {"status": "planned", "executionOwner": "Agent", "package": selection["package"],
+                "packageManifest": selection["packageManifest"], "workspaceManifest": selection["workspaceManifest"],
+                "selectionScope": selection["selectionScope"], "profile": selection["profile"], "features": selection["features"],
+                "noDefaultFeatures": True, "command": command, "cargoArguments": command[1:], "cwd": str(repo),
+                "targetDirectory": str(target), "buildDirectory": environment["CARGO_BUILD_BUILD_DIR"],
+                "buildRoot": str(actual_root), "outputEnvironment": {key: environment[key] for key in (
+                    "CARGO_HOME", "CARGO_TARGET_DIR", "CARGO_BUILD_BUILD_DIR", "SCCACHE_DIR", "TEMP", "TMP", "TMPDIR",
+                    "CARGO_INCREMENTAL", "CARGO_PROFILE_DEV_DEBUG", "CARGO_PROFILE_TEST_DEBUG")},
+                "evidenceMode": "observed-root-command",
+                "commandExecuted": False, "formalAcceptance": False, "milestoneAcceptance": False,
+                "queryOnly": options.query_only, "nativeWriterLock": "Cargo",
+                "dependencyCachePolicy": "reuse-compatible-pool-cargo-home-in-place; never copy or import configuration",
+                "offlineRequiresExistingDependencies": True, "compilerEnvironmentPolicy": "caller-prepared MSVC; allowlisted environment"}
+        if options.independent_preview:
+            plan["deprecatedOptions"] = ["IndependentPreview now means a read-only plan; omit it to execute directly"]
+        if readonly:
+            print(json.dumps(plan, ensure_ascii=True, sort_keys=True))
+            return 0
+        if output.exists():
+            raise ValueError("Receipt/evidence directory must be fresh; existing history is preserved")
+        for directory in [*directories, output.parent]:
+            if free_bytes(directory) < MIN_FREE_BYTES:
+                raise ValueError("Every output/cache/evidence volume requires at least 35 GiB free")
+        executable = shutil.which("cargo", path=environment.get("PATH", ""))
+        if not executable:
+            raise ValueError("An installed Cargo executable is required; this wrapper never installs a toolchain")
+        for directory in directories:
+            validate_output_path(directory).mkdir(parents=True, exist_ok=True)
+            validate_output_path(directory)
+        execution_attempted = True
+        return _ordinary_receipt([str(Path(executable).absolute()), *command[1:]], repo, target, environment, output, selection)
+    except Exception as error:
+        print(json.dumps({"status": "pending", "reasonCode": "agent_local_cargo_input", "executionOwner": "Agent",
+                          "message": str(error), "commandExecuted": None if execution_attempted else False,
+                          "executionAttempted": execution_attempted, "formalAcceptance": False, "milestoneAcceptance": False}))
         return 2
 
 

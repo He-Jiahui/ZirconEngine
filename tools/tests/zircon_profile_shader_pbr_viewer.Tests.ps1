@@ -33,7 +33,8 @@ function Get-ZirconShaderPbrCoordinatorArtifactReceipt {
 }
 
 $script:ProfileTestRepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-$script:ProfileTestPython = Join-Path $script:ProfileTestRepoRoot ".jenkins\runtime\python\python.exe"
+. (Join-Path $script:ProfileTestRepoRoot 'tools\dev\agent-cargo-common.ps1')
+$script:ProfileTestPython = Resolve-AgentPython
 
 function New-ZirconShaderProfileTestOwnedRoot {
     param([ValidatePattern('^[a-z0-9-]+$')][string]$Label)

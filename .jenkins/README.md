@@ -13,6 +13,8 @@ doc_type: deployment-specification
 
 # Jenkins 工程内部署配置
 
+> **历史部署资料，非当前开发或运维入口。** 下文的「当前」指当时记录的部署，不是实时状态；不要按本文启动、安装、提交或重放旧流程。普通开发遵循 [Agent 直接开发管理标准](../docs/tools/agent-artifact-management.md)。原配置、凭据、数据、回执及未完成验收保持原状；本次未停止或卸载主机服务，未修改启动项或调度。
+
 当前 Jenkins 已启动并接受任务，地址为 `http://127.0.0.1:18080/`。运行组件、Home、日志和 Windows 托盘位于工程 `.jenkins`。controller 为零执行槽；本机只使用固定节点 `zircon-windows-agent`，目前两个执行槽在线。79 个插件的版本及实际启用状态已核对。重复启动会检查并复用健康服务；固定节点配置未变化时不再执行迁移。
 
 当前普通管理与封存输入复用的运行证据见[2026-10-12 记录](../docs/plans/jenkins-session-coordination/01/2026-10-12-ordinary-sealed-input-reuse.md)。

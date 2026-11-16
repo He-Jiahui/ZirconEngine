@@ -1,5 +1,7 @@
 # Jenkins 增量缓存清理
 
+> **历史流程，不执行。** 下文保留旧规则、命令和回执含义，不作为当前开发、提交、安装或调度指令。当前使用 [Agent 直接开发管理标准](agent-artifact-management.md)；原数据与验收状态不变。
+
 `zircon-scheduled-cleanup` 保留 `H/30 * * * *` 定时器、固定 Windows 节点、CAS 清理和历史归属巡检。2026-10-18 审查确认：旧阶段只列出三个目录，D 盘 40 GiB 阈值也未触发；大部分实际增量缓存位于其他 D/E/F 盘命名空间，因此多次 SUCCESS 仍回收 0 字节。
 
 精确白名单在 `tools/jenkins-management/incremental_cache_cleanup.py` 的 `CACHE_POLICIES`。本次增加 D 盘 dependency-fix、windows，E 盘 wasm、Miri/跨平台缓存和 F 盘 penpot-workbench 的已审查 `incremental` 子目录。不会把整个产品目录、源码副本、Cargo 依赖下载或任意输入路径变成删除范围。所有目录均物理位于盘符根 `D/E/F:/cargo-targets`。

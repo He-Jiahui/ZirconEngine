@@ -14,7 +14,7 @@ Use current chats, diffs, owning plans and canonical `failure-*.md` records when
 - Identify the owning plan before changing a failure outside the current scope. Use [failure handoffs](../handle-plan-failure-handoffs/guide.md) for a cross-plan cause.
 - An applicable failure blocks dependent acceptance. Repair it at the fixing owner's next repair window, immediately when no independent slice remains; unrelated failures do not stop independent authorized work.
 - Follow [receipt lifecycle](references/receipt-lifecycle.md). Preserve historical receipt IDs and results for migration; do not submit them again to the retired service or infer a pass from pending work.
-- For Jenkins coordinator functional tests and bounded command submission, use [jenkins-coordination](../../jenkins-coordination/SKILL.md) and verify its active configuration and evidence. The Jenkins tray handles the current service lifecycle; pending requests retain their exact identities across chats and restarts. Jenkins command acceptance does not grant a milestone, whole-workspace or production migration pass.
+- Coordinate native Git/worktrees, local generation and validation directly within the task authorization and [management standard](../../../../docs/tools/agent-artifact-management.md). Preserve original pending request identities and evidence; reconcile unknown outcomes without replay. Command evidence does not grant broader acceptance.
 - Follow the current environment's status and delegation rules. Use [model selection](references/model-tier-policy.md) only when delegation is permitted; inherit the active model and effort by default.
 
 ## Minimal coordination records

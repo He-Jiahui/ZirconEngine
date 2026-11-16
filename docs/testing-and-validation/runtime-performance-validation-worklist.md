@@ -18,11 +18,11 @@ These content identities preserve the source of this transfer. They are not fres
 
 ## Profiling admission remains pending
 
-- ordinary Jenkins profiling recipe: pending
+- historical ordinary Jenkins profiling recipe: pending (preserved historical state, not a current execution gate)
 - formal profiling profile build: pending
 
-The current wrapper explicitly rejects profiling when no ordinary Jenkins recipe exists; no local fallback is available. Cargo's profiling feature forwards to zr_resource/profiling. The staged build runner has separate argument/config owners and retains profiling, shipping and shipping-symbols modes. These source contracts do not record an executed build. The original counted-evidence gate before Runtime 07 M2 and the separate profiling product cases remain required.
+Profiling now follows the [Agent-managed local workflow](../tools/agent-artifact-management.md) and declared validation scope; it does not wait for a Jenkins recipe or local-exception grant. Inspect the actual local entry's supported arguments and record unsupported capability or execution failures rather than inventing a pass. Cargo's profiling feature forwards to zr_resource/profiling. The staged build runner has separate argument/config owners and retains profiling, shipping and shipping-symbols modes. These source contracts do not record an executed build. The original counted-evidence gate before Runtime 07 M2 and the separate profiling product cases remain required.
 
-The fixed Runtime 07 output record owns the older dev-fast command. These historical command identities are not executable admission. Retired output examples outside physical drive-root cargo-targets are not current recommendations. Compiler/cache outputs require current physical-root checks and Jenkins admission. No profiling recipe, profile build or product measurement is marked passed here.
+The fixed Runtime 07 output record owns the older dev-fast command. These historical command identities are not current command recommendations. Retired output examples outside physical drive-root cargo-targets remain invalid. Compiler/cache outputs require physical-root checks, the 35 GiB reserve and native locks. No profiling recipe, profile build or product measurement is marked passed here.
 
 Pending production profiling controls (native-host, graphics, profiling; default features disabled): `core::runtime::diagnostics::profiling::tests::frame_context_from_a_retired_capture_epoch_does_not_attach_to_the_new_capture` and `core::runtime::diagnostics::profiling::tests::captured_frame_context_attaches_scoped_worker_samples_to_the_frame`. Source preparation 621 does not execute these cases or the profiling profile build.

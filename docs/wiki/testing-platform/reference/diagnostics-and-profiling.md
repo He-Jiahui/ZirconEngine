@@ -79,15 +79,15 @@ warmup 样本不能与 measurement 混算；首帧 shader 编译、asset import 
 
 ## 5. 采集路径约定
 
-`tools/analysis/profiling/shared/profile-capture-paths.ps1`、`tools/analysis/profiling/ui/ui-profile-capture.ps1` 和众多 `*_pressure.py` 工具都拒绝 C 盘输出。先准备 run-bound 目录，再把路径传给脚本：
+性能采集使用本机通用 Python，输出必须物理位于盘根 `D:\cargo-targets`、`E:\cargo-targets` 或 `F:\cargo-targets` 的 `zircon-local` 下。已有与本次源码匹配的产品时，可为本轮选择独立输出目录并跳过重复构建：
 
 ```powershell
-$root = 'D:\ZirconBuilds\profile-zircon-20260909'
-New-Item -ItemType Directory -Force $root | Out-Null
-.\tools\analysis\profiling\shared\profile-capture-paths.ps1 -OutputRoot $root
+.\tools\analysis\profiling\ui\ui-profile-capture.ps1 -SkipBuild `
+  -ProductDirectory '<已核验的本轮产品目录>' `
+  -OutputRoot 'D:\cargo-targets\zircon-local\profiles\<本轮唯一目录>'
 ```
 
-具体参数以脚本 `Get-Help` 为准；文档中的目录示例不能覆盖用户已有证据。
+路径参数中的占位符须替换为实际值。具体参数以脚本 `Get-Help` 为准；不要覆盖已有证据。
 
 ## 6. 性能比较 receipt
 

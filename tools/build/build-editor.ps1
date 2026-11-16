@@ -22,6 +22,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
+if ($PSBoundParameters.ContainsKey('JenkinsIdentityFile')) {
+    throw 'Jenkins workflow is retired; omit -JenkinsIdentityFile for direct execution.'
+}
 if (-not $PythonInterpreter) { throw 'Pass -PythonInterpreter with an explicit Python 3.11+ interpreter path.' }
 if (-not (Test-Path -LiteralPath $PythonInterpreter -PathType Leaf)) { throw "Python interpreter missing: $PythonInterpreter" }
 $buildArguments = @('-B', '-X', 'utf8', '-m', 'tools.build.build_editor', '--repo-root', $repoRoot,
@@ -29,7 +32,7 @@ $buildArguments = @('-B', '-X', 'utf8', '-m', 'tools.build.build_editor', '--rep
 foreach ($pair in @(
     @('--output-directory', $OutputDirectory), @('--target-dir', $TargetDir),
     @('--source-snapshot', $SourceSnapshot), @('--source-snapshot-digest', $SourceSnapshotDigest),
-    @('--jenkins-identity-file', $JenkinsIdentityFile), @('--crt-directory', $CrtDirectory))) {
+    @('--crt-directory', $CrtDirectory))) {
     if ($pair[1]) { $buildArguments += @($pair[0], $pair[1]) }
 }
 if ($Ephemeral) { $buildArguments += '--ephemeral' }

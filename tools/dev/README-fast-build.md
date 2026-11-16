@@ -3,16 +3,18 @@
 日常验证优先使用 `dev-module-build.ps1`。默认只检查 `zircon_runtime` 的 `core-min`，
 关闭默认 features；通过 `-Package`、`-Features` 和测试目标选择本次改动需要的模块。
 测试必须指定 `-LibTests` 或一个 `-TestTarget`；入口不会追加 `--workspace`、
-`--all-features` 或 `--all-targets`。请求沿用现有 Jenkins 身份和受管验证入口。
+`--all-features` 或 `--all-targets`。在任务 worktree 直接使用本地入口；版本、生成及产物生命周期遵循[管理标准](../../docs/tools/agent-artifact-management.md)。
 
 `dev-fast-build.ps1` 保留 `minimal`、`client2d`、`client3d`、`editor`、`dev` 和 `server`
-组合，用于相应的集成验证；扩大范围时显式选择配置。
+组合，用于相应的集成验证；扩大范围时显式选择配置。预设从规范 TOML 读取 `cargo_feature` 别名，依赖展开中的 `dep:` / `?/` 语法不会直接作为 CLI feature 传给 Cargo。
+
+普通入口目前支持单个精确包的 `check`、`build`、`test`；测试须选择库或一个目标。`-DryRun` / `-QueryOnly` 只读，不生成回执或启动 Cargo。`-PythonInterpreter`、`ZIRCON_PYTHON` 或一般 PATH 提供 Python 3.11+。Windows/MSVC 编译需已有相应开发环境，冷缓存的 `-Offline` 不保证成功。未实现的 run、快照、安装、发布、自定义链接和高级存储参数会明确拒绝，不静默忽略。
 
 从仓库根目录运行：
 
 ```powershell
-# 默认最小核心检查
-.\tools\dev\dev-module-build.ps1
+# 最小核心检查
+.\tools\dev\dev-module-build.ps1 -Package zircon_runtime
 
 # 只检查数学模块
 .\tools\dev\dev-module-build.ps1 -Package zr_math
@@ -32,23 +34,23 @@
 # 加载 zr-client-*、zr-server-*、zr-editor-* 别名
 . .\tools\dev\dev-fast-aliases.ps1
 
-# 交互选择 Runtime / Editor 和插件
-.\tools\dev\dev-module-interactive.ps1
+# 交互选择 Runtime / Editor 和插件；当前普通入口不支持默认 run
+.\tools\dev\dev-module-interactive.ps1 -Action check
 ```
 
 CMD 入口和常用检查、构建快捷命令也放在本目录。
-`-InstallSccache` 要求系统已安装 sccache；脚本不会自动安装。
+普通入口不安装 sccache；保留的 `-InstallSccache` 参数会明确报不支持，不能用于触发旧安装流程。
 
 构建目标和编译缓存必须物理位于盘根 `D:\cargo-targets`、`E:\cargo-targets` 或 `F:\cargo-targets` 下。
 详细参数和产物约定见[构建工具说明](../../docs/tooling/zircon-build-tool.md)。
 
-Jenkins 的共享构建池按仓库、工具链、目标平台、已登记环境和依赖布局确定；
-包、features、dev/test 选择保存在请求及 Cargo 指纹中，不再据此复制整份公共依赖缓存。
-同一池只允许一个 Jenkins writer，原生 Cargo 锁继续生效。多 worktree 通过稳定的
-Jenkins 源码准备目录顺序构建，保持未变源码的时间戳；编译中的输入不得被另一任务替换。
+兼容共享产物按仓库/源码输入、工具链、目标平台、有效环境和依赖布局核验；
+包、features、dev/test 选择保存在本地命令证据及 Cargo 指纹中，不按任务复制整份公共依赖缓存。
+同一输出只允许一个获准 writer，原生 Cargo 锁继续生效。多 worktree 构建须协调共享输出，
+编译中的源码输入不得被另一任务替换。
 交付产品继续沿用项目现有的独立产品身份与归档流程；共享缓存中的 EXE/PDB 可以被
 下一次构建替换，旧回执中的路径不能当作永久交付物，后续任务必须核验实际输入和字节。
-旧池和待对账请求原样保留；新目录策略随管理 capsule 更新生效，不搬移活动池。
+旧池、历史回执和待对账请求原样保留，不搬移活动池。普通回执只记录实际命令与观察到的根进程结果，不代替产品来源或原生进程树证据。
 
 主工作区、插件工作区和 WOC 独立工作区的日常 dev/test 均采用 `debug=0`、
 `incremental=false`，包括 Runtime、Editor 和 App，不再为大模块默认保留增量缓存。
@@ -65,8 +67,8 @@ Jenkins 源码准备目录顺序构建，保持未变源码的时间戳；编译
 John 于 2026-11-03 明确授权的完整 Windows/MSVC U09 回归按
 [U09 例外](../../docs/testing-and-validation/milestone-validation-policy.md#authorized-windowsmsvc-u09-regression)
 执行，允许文档规定的插件 workspace 检查和默认 features；物理产物路径和空间约束保持有效。
-复用兼容的 Jenkins 构建池，不为每个会话复制一套 target。关闭增量不会自动删除旧缓存；
-旧缓存仍须由 Jenkins 核对归属、活动进程和实际回执后清理。最终交付包、符号、
+复用兼容共享产物，不为每个会话复制一套 target。关闭增量不会自动删除旧缓存；
+旧缓存仍须在明确清理授权内核对归属、保留引用、活动进程/锁和实际回执后处理。最终交付包、符号、
 共享编译产物及增量缓存分别计量，不把配置改变宣称为已释放磁盘。
 
 

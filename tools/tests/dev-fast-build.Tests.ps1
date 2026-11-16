@@ -2,23 +2,27 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $scriptPath = Join-Path $repoRoot 'tools\dev\dev-fast-build.ps1'
 $aliasesPath = Join-Path $repoRoot 'tools\dev\dev-fast-aliases.ps1'
 
-Describe 'Dev fast build managed output policy' {
-    It 'delegates target allocation to the coordinator validator' {
+Describe 'Dev fast build Agent-local output policy' {
+    It 'uses the independent physical-output-checked wrapper' {
         $source = Get-Content -Raw -Encoding UTF8 $scriptPath
 
-        $source | Should Match 'validate-matrix\.ps1'
-        $source | Should Match 'coordinator compatibility pools'
+        $source | Should Match 'local-cargo\.ps1'
+        $source | Should Match 'Resolve-AgentPython'
+        $source | Should Not Match 'tools[\\/]jenkins-management[\\/]entry\.py'
+        $source | Should Not Match '\.jenkins[\\/]runtime[\\/]python'
         $source | Should Not Match '& cargo'
     }
 
-    It 'forwards explicit link and storage modes through the common entry' {
+    It 'preserves selectors and rejects unsupported modes instead of dropping them' {
         $source = Get-Content -Raw -Encoding UTF8 $scriptPath
 
         foreach ($name in @('LinkMode', 'Linker', 'StorageMode', 'RuntimeProductDll', 'LibTests', 'TestTarget', 'TestFilter')) {
             $source | Should Match ([regex]::Escape($name))
         }
-        $source | Should Match 'NoDefaultFeatures = \$true'
-        $source | Should Match "'test' \{"
+        $source | Should Match "'--no-default-features'"
+        $source | Should Match 'runtime-feature-presets\.toml'
+        $source | Should Match 'no supported direct executor'
+        $source | Should Match 'Select exactly one'
     }
 }
 

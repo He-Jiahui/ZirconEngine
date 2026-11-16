@@ -18,13 +18,15 @@ doc_type: workflow-detail
 
 # Jenkins 独立验证与验收
 
-> **当前方向：旧服务保持退役，Jenkins 独立验收。** 用户已于 2026-10-02 授权本方向。当前独立实现、两次真实 Jenkins Cargo 归档、Python、幂等/拒绝反例和四项故障试点验收均通过；范围与结果以[计划中的 I1–I6](../plans/jenkins-coordinator-pilot.md)和对应证据为准。本文不授予提交、推送、发布、删码或生产切换许可。
+> **历史试点资料，非当前开发入口。** 用户已改为[Agent直接开发](../tools/agent-artifact-management.md)。下文保留当时的方向、命令、运行状态和原验收，不作为普通任务的Jenkins激活/执行前提，也不表示主机服务已停止、卸载或历史门槛已通过。恢复服务或旧请求需要单独明确授权。
+
+> **2026-10-02 试点记录。** 当时的独立实现、两次真实 Jenkins Cargo 归档、Python、幂等/拒绝反例和四项故障试点验收均通过；范围与结果以[计划中的 I1–I6](../plans/jenkins-coordinator-pilot.md)和对应证据为准。下文的「当前」指当时状态，不授予提交、推送、发布、删码或生产切换许可。
 
 Jenkins 负责队列、节点、构建身份与归档；`tools/jenkins_pilot` 独立处理输入封存、物理存储边界、Windows Job、缓存排他写入和回执核验。该路径没有退役协调器的运行时导入、注册、租约、队列或数据库写入。所有编译产物及缓存实际位于驱动器根级 `D/E/F:\cargo-targets`；私有资源保管进程持有本根的物理身份和精确 PID/birth，仅管理资源生命周期。
 
 ## 当前独立入口
 
-日常协调器功能测试使用 [Windows 托盘及激活入口](jenkins-tray.md) 和 [jenkins-coordination 技能](../../.codex/skills/jenkins-coordination/SKILL.md)，核验 `active.json` 后调用 `tools/jenkins_coordinator.py`，保留原请求完成提交、对账、取消和接受。下方低层入口用于独立根的部署及受控诊断，不自动获得全工作区、里程碑或生产迁移接受。
+日常协调器功能测试使用 [Windows 托盘及激活入口](jenkins-tray.md) 和 [历史协调指南](../../.codex/skills/jenkins-coordination/guide.md)，核验 `active.json` 后调用 `tools/jenkins_coordinator.py`，保留原请求完成提交、对账、取消和接受。下方低层入口用于独立根的部署及受控诊断，不自动获得全工作区、里程碑或生产迁移接受。
 
 从仓库根运行以下顺序，并使用各步骤实际返回的 root、bundle 和 input hash。分配的 state 文件必须唯一；已有 pending 或 attempt 一律核对原请求，不能以换身份掩盖不确定状态。Windows Cargo 执行前在父进程装载本机 MSVC 环境，使保管进程与后续执行器继承相同环境。
 

@@ -32,6 +32,8 @@ doc_type: operator_workflow
 
 # Jenkins Windows 托盘
 
+> **历史运维参考，非当前开发入口。** 普通开发遵循 [Agent 直接开发管理标准](../tools/agent-artifact-management.md)。下文的「当前」指原托盘部署，不是实时观察；保留运行身份、命令与验收资料，不据此启动、安装或重放旧流程。服务、启动项或历史请求操作须另有明确授权；凭据、状态和回执继续保留。
+
 当前正式托盘使用工程部署规格 `E:\Git\ZirconEngine\.jenkins\deployment-spec.json`，打开 [本机 Jenkins](http://127.0.0.1:18080/)。Jenkins Home 位于 `.jenkins\jenkins_home`；运行组件、agent、日志、缓存、临时目录和托盘状态均在工程 `.jenkins` 内。流水线编译产物独立使用请求明确指定的真实 `D/E/F:\cargo-targets`，默认 `D:\cargo-targets`。
 
 托盘退出不会停止 Jenkins。使用“停止 Jenkins”菜单执行有边界的停止流程；登录启动项只启动托盘，不自动启动 Jenkins。
@@ -126,7 +128,7 @@ Windows 重启或 keeper 退出后，点击“启动 Jenkins”会先执行已�
 & $python -B 'E:\Git\ZirconEngine\tools\jenkins_coordinator.py' verify --request-file $request
 ```
 
-`$request` 和 `$bundle` 必须是已准备的不可变 RequestIdentity JSON 与封存 ZIP 的绝对路径，不能用新身份重投待处理请求。功能测试按 [jenkins-coordination 技能](../../.codex/skills/jenkins-coordination/SKILL.md) 执行，目前支持固定 Python、managed Cargo 与 fault 模板。启用记录允许协调器功能测试和有边界的命令提交，每次提交仍检查当前身份与源码摘要。
+`$request` 和 `$bundle` 必须是已准备的不可变 RequestIdentity JSON 与封存 ZIP 的绝对路径，不能用新身份重投待处理请求。功能测试按 [历史协调指南](../../.codex/skills/jenkins-coordination/guide.md) 执行，目前支持固定 Python、managed Cargo 与 fault 模板。启用记录允许协调器功能测试和有边界的命令提交，每次提交仍检查当前身份与源码摘要。
 
 ## 验收边界
 

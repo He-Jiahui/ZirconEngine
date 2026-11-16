@@ -1,5 +1,7 @@
 # Jenkins 分支与工作树收束
 
+> **历史流程，不执行。** 下文保留旧规则、命令和回执含义，不作为当前开发、提交、安装或调度指令。当前使用 [Agent 直接开发管理标准](agent-artifact-management.md)；原数据与验收状态不变。
+
 `tools/jenkins-management/worktree_consolidation.py` 为现有 `zircon-management`
 添加有界 `consolidate-worktrees` 操作。源码在正式任务工作树内维护，运行代码、
 原生 Git helper、runtime helper 和检查器逐项固定 SHA-256；不从临时报告目录部署执行源码。

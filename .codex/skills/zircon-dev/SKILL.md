@@ -30,7 +30,7 @@ work alone supplies none. John's full local Windows/MSVC U09 regression follows
 [the U09 exception](../../../docs/testing-and-validation/milestone-validation-policy.md#authorized-windowsmsvc-u09-regression).
 Inspect dependencies when ordinary scope is unclear. Use
 `tools/dev/dev-module-build.ps1` with an explicit `-Package` for supported
-selections; Jenkins executes the scoped build and reuses compatible artifacts.
+selections; the Agent executes locally and reuses compatible artifacts under their native locks.
 
 ## Read for the current operation
 
@@ -45,14 +45,14 @@ selections; Jenkins executes the scoped build and reuses compatible artifacts.
 Ordinary implementation slices use read-only formatting and structural checks.
 When scoped compilation or generated output is due under
 [the validation policy](../../../docs/testing-and-validation/milestone-validation-policy.md),
-hand off to Jenkins. Jenkins owns branches/worktrees/merges, generation, builds,
-artifact reuse and cleanup under the
+the Agent executes the scoped local tools directly under the
 [management standard](../../../docs/tools/agent-artifact-management.md).
-The independent local Cargo wrapper remains available only for an explicitly
-authorized local exception; it is not a fallback for a pending Jenkins request.
-Compilation products and compiler caches must physically remain below drive-root
-`D:\cargo-targets`, `E:\cargo-targets`, or `F:\cargo-targets`.
+Native Git/worktrees, generation, local Cargo and compatible artifact reuse are
+the ordinary workflow.
+Compilation products, build directories, compiler caches and temporary compiler
+outputs must physically remain below drive-root `D:\cargo-targets`,
+`E:\cargo-targets`, or `F:\cargo-targets`, retaining 35 GiB and native locks.
 
-Source snapshots and backup copies follow the [coordinator ownership policy](../jenkins-coordination/references/incremental-patch-validation.md): agents hand off patches and hashes; the independent Jenkins coordinator prepares the sources.
+Edit authorized canonical paths in the task worktree. Do not create ad hoc source snapshots, backup copies or validation source trees; preserve foreign changes, source identity and historical receipts. Commit and remote actions retain their own actual authorization.
 
 Open only guidance needed by the changed behavior or boundary. A small local edit does not require loading every architecture, execution, review, or closeout guide.
