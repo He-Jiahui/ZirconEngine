@@ -741,6 +741,51 @@ fn shadow_settings() -> LightShadowSettings {
 }
 
 #[test]
+fn main_view_keeps_a_prepared_mesh_crossing_the_perspective_side_plane() {
+    // Unlike missing bounds (a fail-open sphere), these points supply a finite
+    // prepared sphere. The first vertex lies inside the right clipping plane.
+    let vertex = Vec3::new(-11.0 / 16.0, 0.0, -11.0 / 16.0);
+    let local = RenderMeshBounds::try_from_positions([
+        vertex.to_array(),
+        [11.0 / 16.0, -0.125, 11.0 / 16.0],
+        [11.0 / 16.0, 0.125, 11.0 / 16.0],
+    ])
+    .unwrap();
+    let crossing = Vec3::new(6.25, 0.0, -5.0);
+    let witness = crossing + vertex;
+    assert!(witness.x < -witness.z);
+    let mut frame = frame_from_meshes(vec![
+        mesh_at(1, crossing, 1),
+        mesh_at(2, Vec3::new(8.0, 0.0, -5.0), 1),
+    ]);
+    frame.view.camera.fov_y_radians = std::f32::consts::FRAC_PI_2;
+    frame.view.camera.aspect_ratio = 1.0;
+    frame.view.camera.z_far = 10.0;
+    let bounds = [Some(local); 2];
+    let context = VisibilityContext::from_extract_with_history_static_index_task_pool_and_feature_payloads_with_prepared_bounds(
+        &frame, None, None, None, None, None, None, Some(&bounds),
+    );
+
+    assert_eq!(context.bvh_instances[0].bounds.center, crossing);
+    assert!(context.bvh_instances[0].bounds.radius < 1.0);
+    assert_eq!(
+        context.main_view_visible_entities(),
+        vec![1],
+        "the prepared triangle still crosses the right plane"
+    );
+    assert_eq!(context.main_view_culled_entities(), vec![2]);
+    assert_eq!(
+        context
+            .frame_visibility
+            .main_view()
+            .unwrap()
+            .stats
+            .frustum_culled_count,
+        1
+    );
+}
+
+#[test]
 fn visibility_context_borrows_history_entries_for_bvh_plan() {
     let source = include_str!("../../construct.rs");
 
