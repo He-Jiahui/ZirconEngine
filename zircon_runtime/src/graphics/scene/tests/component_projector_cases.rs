@@ -712,3 +712,87 @@ fn prepared_mesh_revision_tracks_opposite_shear_with_equal_projected_trs() {
         "same stable draw key needs a new transform revision when its actual world matrix changes"
     );
 }
+
+#[test]
+fn prepared_tighter_affine_bounds_keep_perspective_witness_visible() {
+    let mut world = World::empty();
+    let parent = world.spawn_node(crate::scene::NodeKind::Empty).unwrap();
+    world
+        .update_transform(
+            parent,
+            Transform::default().with_scale(Vec3::new(1.0, 3.0, 1.2)),
+        )
+        .unwrap();
+    let child = world
+        .spawn(mesh_bundle("crossing perspective mesh"))
+        .unwrap();
+    world
+        .update_transform(
+            child,
+            Transform::from_translation(Vec3::new(6.3, 0.0, -5.0 / 1.2))
+                .with_rotation(Quat::from_rotation_y(-std::f32::consts::FRAC_PI_4)),
+        )
+        .unwrap();
+    world.set_parent_checked(child, Some(parent)).unwrap();
+    let outside = world
+        .spawn(mesh_bundle("outside perspective mesh"))
+        .unwrap();
+    world
+        .update_transform(
+            outside,
+            Transform::from_translation(Vec3::new(30.0, 0.0, -5.0)),
+        )
+        .unwrap();
+
+    let camera = ViewportCameraSnapshot {
+        transform: Transform::default(),
+        projection_mode: ProjectionMode::Perspective,
+        fov_y_radians: std::f32::consts::FRAC_PI_2,
+        aspect_ratio: 1.0,
+        z_near: 0.1,
+        z_far: 10.0,
+        ..Default::default()
+    };
+    let frame = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
+        world.render_world_snapshot_handle(),
+        SceneViewportExtractRequest {
+            camera: Some(CameraRenderDescriptor::from_camera_payload(None, camera)),
+            ..Default::default()
+        },
+    ));
+    let world_matrix = world.world_matrix(child).unwrap();
+    let x = world_matrix.x_axis.truncate();
+    let z = world_matrix.z_axis.truncate();
+    assert!(x.dot(z) > 0.2);
+    let witness = world_matrix.transform_point3(Vec3::NEG_X);
+    assert!((witness - Vec3::new(5.592893, 0.0, -5.848528)).length() < 1.0e-5);
+    assert!((0.1..10.0).contains(&-witness.z) && witness.x.abs() < -witness.z);
+    let local = RenderMeshBounds::try_from_positions([
+        Vec3::NEG_X.to_array(),
+        [1.0, 0.01, 0.0],
+        [1.0, -0.01, 0.0],
+    ])
+    .unwrap();
+    let bounds = vec![Some(local); frame.geometry.meshes.len()];
+    let context = VisibilityContext::from_extract_with_history_static_index_task_pool_and_feature_payloads_with_prepared_bounds(
+        &frame, None, None, None, None, None, None, Some(&bounds),
+    );
+    let key = render_mesh_stable_instance_key(child, 0);
+    let sphere = context
+        .bvh_instances
+        .iter()
+        .find(|instance| instance.stable_instance_key == key)
+        .unwrap()
+        .bounds;
+    // Accept both the old loose sphere and the smaller affine box sphere, but
+    // never a missing-bounds fail-open. Keep the measured radius in the log.
+    assert!((1.0..3.1).contains(&sphere.radius));
+    assert!(sphere.center.distance(witness) <= sphere.radius);
+    eprintln!("BD02 perspective sphere radius: {:.8}", sphere.radius);
+    assert_eq!(
+        context.main_view_visible_entities(),
+        vec![child],
+        "the tighter sphere must retain an actual vertex inside the perspective side plane"
+    );
+    assert_eq!(context.main_view_culled_entities(), vec![outside]);
+}
