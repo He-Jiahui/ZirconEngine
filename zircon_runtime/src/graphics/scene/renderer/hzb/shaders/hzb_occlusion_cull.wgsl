@@ -54,12 +54,24 @@ struct IndirectDrawCount {
 @group(1) @binding(7) var<storage, read_write> occlusion_stats: HzbOcclusionCullStats;
 
 const MIN_CLIP_W: f32 = 0.0001;
+const MAX_FINITE: f32 = 3.402823466e38;
 
 fn transform_scale_radius(world_from_local: mat4x4<f32>, radius: f32) -> f32 {
-    let sx = length(world_from_local[0].xyz);
-    let sy = length(world_from_local[1].xyz);
-    let sz = length(world_from_local[2].xyz);
-    return radius * max(max(sx, sy), max(sz, 0.0001));
+    let x = world_from_local[0].xyz;
+    let y = world_from_local[1].xyz;
+    let z = world_from_local[2].xyz;
+    let xy = abs(dot(x, y));
+    let xz = abs(dot(x, z));
+    let yz = abs(dot(y, z));
+    // The largest absolute row sum of A^T A bounds the squared sphere scale.
+    // It reduces to the largest squared column length for orthogonal columns,
+    // but also bounds the selected previous matrix when only that frame has shear.
+    let row_sums = vec3<f32>(dot(x, x) + xy + xz, dot(y, y) + xy + yz, dot(z, z) + xz + yz);
+    if (!all(row_sums <= vec3<f32>(MAX_FINITE))) {
+        return -1.0;
+    }
+    let scale = sqrt(max(max(row_sums.x, row_sums.y), row_sums.z));
+    return radius * max(scale, 0.0001);
 }
 
 fn instance_world_from_local(instance: ZrGpuInstanceData, primitive: ZrGpuPrimitiveData) -> mat4x4<f32> {
@@ -85,14 +97,17 @@ fn instance_is_conservatively_visible(instance_index: u32) -> bool {
     let world_center = world_from_local * vec4<f32>(primitive.local_bounds_center, 1.0);
     let world_radius = transform_scale_radius(world_from_local, primitive.local_bounds_radius) *
         max(cull_params.values.y, 1.0);
+    if (!(world_radius >= 0.0 && world_radius <= MAX_FINITE)) {
+        return true;
+    }
     let clip_center = scene.previous_view_proj_unjittered * world_center;
-    if (clip_center.w <= MIN_CLIP_W) {
+    if (clip_center.w <= MIN_CLIP_W || !all(abs(clip_center) <= vec4<f32>(MAX_FINITE))) {
         return true;
     }
 
     let ndc_center = clip_center.xyz / clip_center.w;
     let radius_ndc = world_radius / max(clip_center.w, MIN_CLIP_W);
-    if (ndc_center.x + radius_ndc < -1.0 ||
+    if (!(radius_ndc <= MAX_FINITE) || ndc_center.x + radius_ndc < -1.0 ||
         ndc_center.x - radius_ndc > 1.0 ||
         ndc_center.y + radius_ndc < -1.0 ||
         ndc_center.y - radius_ndc > 1.0 ||
@@ -103,6 +118,9 @@ fn instance_is_conservatively_visible(instance_index: u32) -> bool {
 
     let hzb_size = vec2<f32>(max(textureDimensions(previous_hzb, 0u), vec2<u32>(1u, 1u)));
     let radius_pixels = radius_ndc * max(hzb_size.x, hzb_size.y);
+    if (!(radius_pixels <= MAX_FINITE)) {
+        return true;
+    }
     let mip = zr_hzb_mip_for_radius(radius_pixels, textureNumLevels(previous_hzb));
     let uv = ndc_center.xy * vec2<f32>(0.5, -0.5) + vec2<f32>(0.5, 0.5);
     let hzb_furthest = zr_hzb_load_furthest(uv, mip);

@@ -45,7 +45,7 @@ pub(crate) fn build_wireframe_vertices(
             }
             DisplayMode::Shaded => Vec4::ONE,
         };
-        let model_matrix = mesh_instance.transform.matrix();
+        let model_matrix = frame.extract.geometry.mesh_world_from_local(mesh_instance);
         for mesh in &model.meshes {
             vertices.reserve(mesh.wire_segments.len().saturating_mul(2));
             for [start, end] in &mesh.wire_segments {

@@ -262,6 +262,7 @@ pub use environment_capture::{
 pub use environment_capture_source_payload::{
     RenderEnvironmentCaptureSourcePayload, RenderEnvironmentCaptureSourcePayloadError,
 };
+pub(crate) use frame_extract::PreparedMeshAffine;
 pub use frame_extract::{
     DebugOverlayExtract, GeometryExtract, GeometryPhaseInput, LightingExtract, ParticleExtract,
     PostProcessExtract, RenderComponentChangeArtifact, RenderComponentChangeKind,
