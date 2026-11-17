@@ -6,8 +6,11 @@ use zircon_runtime::core::framework::physics::{
     PhysicsContactEvent, PhysicsJointSyncState, PhysicsJointType, PhysicsMaterialSyncState,
     PhysicsTriggerEvent, PhysicsWorldSyncState,
 };
-use zircon_runtime::core::framework::scene::WorldHandle;
-use zircon_runtime::core::math::{Transform, Vec3};
+use zircon_runtime::core::framework::scene::{EntityId, WorldHandle};
+use zircon_runtime::core::math::{
+    is_finite_mat4, transform_to_mat4, try_affine_inverse, Mat4, NumericPolicy, Transform,
+    ValidatedTransform, Vec3,
+};
 use zircon_runtime::scene::components::{ColliderShape, JointKind, RigidBodyType};
 use zircon_runtime::scene::world::World;
 
@@ -236,32 +239,139 @@ fn collider_shape_into_physics(shape: ColliderShape) -> PhysicsColliderShape {
 }
 
 pub(crate) fn apply_synchronized_bodies_to_scene(scene: &mut World, sync: &PhysicsWorldSyncState) {
+    let mut attached = Vec::new();
+    let entity_count = scene.entity_count();
     for body in &sync.bodies {
-        if !physics_body_sync_state_is_valid(body) {
-            continue;
+        if let Some(parent) = scene.parent_of(body.entity) {
+            let mut depth = 1;
+            let mut ancestor = parent;
+            while depth < entity_count {
+                let Some(next) = scene.parent_of(ancestor) else {
+                    break;
+                };
+                ancestor = next;
+                depth += 1;
+            }
+            attached.push((depth, parent, body));
+        } else {
+            apply_synchronized_body(scene, body, None);
         }
-        let Some(mut rigid_body) = scene.rigid_body(body.entity).cloned() else {
-            continue;
-        };
-        rigid_body.body_type = match body.body_type {
-            PhysicsBodyType::Static => RigidBodyType::Static,
-            PhysicsBodyType::Dynamic => RigidBodyType::Dynamic,
-            PhysicsBodyType::Kinematic => RigidBodyType::Kinematic,
-        };
-        rigid_body.mass = body.mass;
-        rigid_body.mass_properties = body.mass_properties;
-        rigid_body.linear_velocity = Vec3::from_array(body.linear_velocity);
-        rigid_body.angular_velocity = Vec3::from_array(body.angular_velocity);
-        rigid_body.linear_damping = body.linear_damping;
-        rigid_body.angular_damping = body.angular_damping;
-        rigid_body.gravity_scale = body.gravity_scale;
-        rigid_body.ccd_mode = body.ccd_mode;
-        rigid_body.sleep_policy = body.sleep_policy;
-        rigid_body.lock_translation = body.lock_translation;
-        rigid_body.lock_rotation = body.lock_rotation;
-        let _ = scene.update_transform(body.entity, body.transform);
-        let _ = scene.set_rigid_body(body.entity, Some(rigid_body));
     }
+    // A stable entity ID is not a hierarchy order. Read each child's actual
+    // parent matrix after accepted ancestor poses, including dirty chains.
+    attached.sort_unstable_by_key(|(depth, _, body)| (*depth, body.entity));
+    for (_, parent, body) in attached {
+        apply_synchronized_body(scene, body, Some(parent));
+    }
+}
+
+fn apply_synchronized_body(
+    scene: &mut World,
+    body: &PhysicsBodySyncState,
+    parent: Option<EntityId>,
+) {
+    if !physics_body_sync_state_is_valid(body) {
+        return;
+    }
+    let Some(mut rigid_body) = scene.rigid_body(body.entity).cloned() else {
+        return;
+    };
+    rigid_body.body_type = match body.body_type {
+        PhysicsBodyType::Static => RigidBodyType::Static,
+        PhysicsBodyType::Dynamic => RigidBodyType::Dynamic,
+        PhysicsBodyType::Kinematic => RigidBodyType::Kinematic,
+    };
+    rigid_body.mass = body.mass;
+    rigid_body.mass_properties = body.mass_properties;
+    rigid_body.linear_velocity = Vec3::from_array(body.linear_velocity);
+    rigid_body.angular_velocity = Vec3::from_array(body.angular_velocity);
+    rigid_body.linear_damping = body.linear_damping;
+    rigid_body.angular_damping = body.angular_damping;
+    rigid_body.gravity_scale = body.gravity_scale;
+    rigid_body.ccd_mode = body.ccd_mode;
+    rigid_body.sleep_policy = body.sleep_policy;
+    rigid_body.lock_translation = body.lock_translation;
+    rigid_body.lock_rotation = body.lock_rotation;
+
+    let local_pose = match parent {
+        None => Some(body.transform),
+        // The outgoing solver projection is TRS, not a copy of the affine
+        // scene matrix. Do not write that lossy projection back as new geometry.
+        Some(_) if scene.world_transform(body.entity) == Some(body.transform) => None,
+        Some(parent) => parented_body_local_pose(scene, parent, body.transform),
+    };
+    if let Some(local_pose) = local_pose {
+        let _ = scene.update_transform(body.entity, local_pose);
+    }
+    // Refusing an unrepresentable pose must not discard valid body properties.
+    let _ = scene.set_rigid_body(body.entity, Some(rigid_body));
+}
+
+fn parented_body_local_pose(
+    scene: &World,
+    parent: EntityId,
+    world_pose: Transform,
+) -> Option<Transform> {
+    let parent_world = scene.world_matrix(parent)?;
+    let parent_inverse = try_affine_inverse(parent_world, NumericPolicy::STRICT).ok()?;
+    let requested_world = transform_to_mat4(
+        ValidatedTransform::try_new(world_pose, NumericPolicy::STRICT)
+            .ok()?
+            .into_transform(),
+    );
+    let requested_local = parent_inverse * requested_world;
+    let determinant = requested_local.determinant();
+    if !is_finite_mat4(requested_local)
+        || !determinant.is_finite()
+        || determinant == 0.0
+        || [
+            requested_local.x_axis,
+            requested_local.y_axis,
+            requested_local.z_axis,
+        ]
+        .into_iter()
+        .any(|axis| {
+            let length_squared = axis.truncate().length_squared();
+            !length_squared.is_finite() || length_squared == 0.0
+        })
+    {
+        return None;
+    }
+    let (scale, rotation, translation) = requested_local.to_scale_rotation_translation();
+    let local = ValidatedTransform::try_new(
+        Transform {
+            translation,
+            rotation,
+            scale,
+        },
+        NumericPolicy::STRICT,
+    )
+    .ok()?
+    .into_transform();
+    let recomposed_local = transform_to_mat4(local);
+    (pose_matrix_matches(requested_local, recomposed_local)
+        && pose_matrix_matches(requested_world, parent_world * recomposed_local))
+    .then_some(local)
+}
+
+fn pose_matrix_matches(expected: Mat4, actual: Mat4) -> bool {
+    const RELATIVE_TOLERANCE: f32 = 1.0e-5;
+    if !is_finite_mat4(expected) || !is_finite_mat4(actual) {
+        return false;
+    }
+    // Measure each affine column separately: a large translation must not
+    // make lost shear (or another change to the basis) pass the check.
+    expected
+        .to_cols_array_2d()
+        .into_iter()
+        .zip(actual.to_cols_array_2d())
+        .all(|(expected, actual)| {
+            let magnitude = expected.iter().map(|value| value.abs()).fold(0.0, f32::max);
+            expected
+                .into_iter()
+                .zip(actual)
+                .all(|(value, actual)| (value - actual).abs() <= magnitude * RELATIVE_TOLERANCE)
+        })
 }
 
 pub(super) fn clear_world_state(
