@@ -228,28 +228,49 @@ fn render_mirrored_affine_transform_preserves_tbn_handedness() {
         [0.0, 0.0, 4.0, 0.0],
         [0.0, 0.0, 0.0, 1.0],
     ];
-    let normal = [0.0, 0.0, 1.0];
     let tangent = [1.0, 0.0, 0.0];
-    let bitangent = [0.0, 1.0, 0.0];
     let flags = normal_transform_flags_for_model_matrix(&transform);
 
     assert_ne!(flags & GPU_INSTANCE_FLAG_GENERAL_NORMAL_TRANSFORM, 0);
     assert_ne!(flags & GPU_INSTANCE_FLAG_NEGATIVE_DETERMINANT, 0);
-    let transformed_normal =
-        normalize3(shader_equivalent_normal_direction(transform, normal, flags));
-    let transformed_tangent = normalize3(linear_transform_direction(transform, tangent));
-    let handedness = if flags & GPU_INSTANCE_FLAG_NEGATIVE_DETERMINANT != 0 {
+    let determinant_sign = if flags & GPU_INSTANCE_FLAG_NEGATIVE_DETERMINANT != 0 {
         -1.0
     } else {
         1.0
     };
-    let reconstructed_bitangent = normalize3(scale3(
-        cross3(transformed_normal, transformed_tangent),
-        handedness,
-    ));
-    let expected_bitangent = normalize3(linear_transform_direction(transform, bitangent));
-
-    assert_vec3_approx_eq(reconstructed_bitangent, expected_bitangent, 1.0e-5);
+    let transformed_tangent = normalize3(linear_transform_direction(transform, tangent));
+    for (normal, bitangent) in [
+        ([0.0, 0.0, 1.0], [0.0, 1.0, 0.0]),
+        // Unlike Z, this normal's linear transform is not its inverse transpose.
+        ([0.0, 1.0, 0.0], [0.0, 0.0, -1.0]),
+    ] {
+        let transformed_normal =
+            normalize3(shader_equivalent_normal_direction(transform, normal, flags));
+        assert!(dot3(transformed_normal, transformed_tangent).abs() < 1.0e-5);
+        for sign in [-1.0, 1.0] {
+            let reconstructed = normalize3(scale3(
+                cross3(transformed_normal, transformed_tangent),
+                sign * determinant_sign,
+            ));
+            // Shear leaves part of A*B along T'. It is not part of the
+            // reconstructed bitangent (UE AssembleTangentToWorld).
+            let sheared = linear_transform_direction(transform, scale3(bitangent, sign));
+            let projected = add3(
+                sheared,
+                scale3(transformed_tangent, -dot3(sheared, transformed_tangent)),
+            );
+            assert_vec3_approx_eq(reconstructed, normalize3(projected), 1.0e-5);
+            assert_eq!(
+                dot3(
+                    cross3(transformed_tangent, reconstructed),
+                    transformed_normal
+                )
+                .signum(),
+                -sign,
+                "the reflected affine must flip the authored basis orientation"
+            );
+        }
+    }
 }
 
 #[test]
