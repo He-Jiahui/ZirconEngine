@@ -38,14 +38,14 @@ impl SceneViewportController {
             .as_ref()
             .is_some_and(|cached| cached.generation == generation && cached.request == request)
         {
-            let packet = scene.build_prepared_viewport_render_packet(&request);
+            let extract = scene.build_prepared_viewport_render_frame(
+                RenderWorldSnapshotHandle::new(generation),
+                &request,
+            );
             *cache = Some(CachedRenderScene {
                 generation: scene.world_generation(),
                 request,
-                extract: RenderFrameExtract::from_snapshot(
-                    RenderWorldSnapshotHandle::new(scene.world_generation()),
-                    packet,
-                ),
+                extract,
             });
         }
         let mut extract = cache
