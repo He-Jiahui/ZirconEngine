@@ -4,7 +4,7 @@
 mod test_support;
 
 use zircon_plugin_navigation_recast::RecastTileCache;
-use zircon_plugin_navigation_runtime::navigation_component_descriptors;
+use zircon_plugin_navigation_runtime::{navigation_component_descriptors, DefaultNavigationManager};
 use zircon_runtime::core::framework::navigation::{
     NavMeshBakeRequest, NavMeshLinkCapacity, NavMeshOffMeshBridgeDescriptor,
     NavMeshOffMeshLinkDescriptor, NavMeshSurfaceDescriptor, NavMeshUseGeometry, NavPathQuery,
