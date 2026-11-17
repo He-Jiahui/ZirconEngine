@@ -36,6 +36,9 @@ use zircon_runtime_interface::ZIRCON_RUNTIME_DEFAULT_VIEWPORT_HANDLE_V1;
 
 use super::super::support::{cube_and_camera, cube_id, test_state};
 
+#[path = "viewport/affine_hierarchy.rs"]
+mod affine_hierarchy;
+
 #[test]
 fn select_mode_click_selects_renderable_without_handle_overlay() {
     let mut state = test_state();
