@@ -4,7 +4,7 @@ use zircon_runtime::core::framework::navigation::{
     NavMeshOffMeshBridgeDescriptor, NavMeshOffMeshLinkDescriptor, MAX_OFF_MESH_BRIDGE_LANES,
     NAV_MESH_OFF_MESH_BRIDGE_COMPONENT_TYPE, NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE,
 };
-use zircon_runtime::core::math::{Real, Vec3};
+use zircon_runtime::core::math::{Mat4, Real, Vec3};
 use zircon_runtime::scene::World;
 
 // 从当前世界组件与端点变换重建链接，再按代理类型筛选并展开桥的车道。
@@ -169,9 +169,8 @@ fn link_endpoint_world_position(
 ) -> [Real; 3] {
     let transform_entity = endpoint_entity.unwrap_or(owner);
     world
-        .world_transform(transform_entity)
-        .unwrap_or_default()
-        .matrix()
+        .world_matrix(transform_entity)
+        .unwrap_or(Mat4::IDENTITY)
         .transform_point3(Vec3::from_array(local_point))
         .to_array()
 }
