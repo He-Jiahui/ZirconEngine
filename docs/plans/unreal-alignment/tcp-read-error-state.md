@@ -1,8 +1,8 @@
 # 网络：TCP 接收失败已发出 `Failed`，同一连接查询仍为 `Open`
 
-> 取证说明：UE 的本机路径与文件 SHA256 是用户提供参考树的依据；本轮 D: 审计快照/工作记录仅本地保存，不随本 PR 发布，也不冒充 GitHub 可读证据。UE/ZE 测试均未在本轮执行。
+> 取证说明：UE 的本机路径与文件 SHA256 是用户提供参考树的依据；本地工作记录不随 PR 发布，也不冒充 GitHub 可读证据。§1–6 保留首次问题定义；§7 是同一 Draft 的实际回归与修复阶段。UE 测试仍未执行。
 
-状态：单项源码实证，供独立问题 Draft 评估；本轮没有执行 ZE/UE 测试、启动网络对端、改引擎源码、写 Git 或访问远端。ZE 证据固定 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`，所引核心文件的本地内容按 Git 规范化重算与该提交 blob 一致。UE 取本机 [Build.version:2–9][ue-version]：6.0.0 / `UE5`，不推定上游 commit。
+原问题定义阶段：只有单项源码实证，当时未执行 ZE/UE 测试或修改生产；以下 §1–6 的 ZE 证据固定 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`，所引核心文件的本地内容按 Git 规范化重算与该提交 blob 一致。UE 取本机 [Build.version:2–9][ue-version]：6.0.0 / `UE5`，不推定上游 commit。
 
 ## 1. 差异与可达调用
 
@@ -100,3 +100,36 @@ ZE 链接均锚定 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`。核心 blob：`s
 [ue-beacon-invalid]: <E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Plugins/Online/OnlineSubsystemUtils/Source/OnlineSubsystemUtils/Private/Tests/OnlineBeaconUnitTest.cpp#L2551-L2604>
 [ue-iris]: <E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Net/Iris/Private/Iris/ReplicationSystem/ReplicationSystem.cpp#L1337-L1345>
 [ue-rg]: <E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Plugins/Runtime/ReplicationGraph/Source/Private/ReplicationGraph.cpp#L669-L700>
+
+
+## 7. 同一 Draft 后续：真实 TCP RED → 三文件窄修 → scoped GREEN
+
+### 既有 harness 与真实 RED（2026-11-18，Windows x64/MSVC）
+
+- 沿用 [原 TCP manager 测试](../../../zircon_plugins/net/runtime/src/tests/tcp.rs#L95-L255)，新增4条源码派生回归；原91行测试内容不变。真实 `DefaultNetManager`、worker 命令/回执与 ingress 均参与；对端通过已锁定 Tokio 1.52.3 的 `TcpSocket::set_zero_linger()` 建立本地回环连接后中止关闭。没有 mock 事件、读错误注入、测试新架构、新依赖或私有谓词替代行为。
+- 原实现实际 **3 PASS / 1 FAIL / 0 ignored**：非暂态读取返回 Winsock **10054** 的 `Io`，同一 accepted ID 已产生且仅产生一次 TCP `Failed` 事件；**不再 poll、不清理连接**，立即 `connection_state` 得到 `Open`，在测试158行与期望 `Failed` 不符。其余健康 `WouldBlock` / 零预算不消费字节、typed unknown ID、真实停止 worker 的外层 `Io` 控制均通过。
+- 先前离线尝试因插件 workspace 的另一可选成员所锁定 ZrVM Git 修订未缓存而在依赖解析退出，**0测试，不是 RED**。随后普通在线命令取得锁定修订及子模块，再实际编译并运行上述4案；未改 manifest/lock、未开启 VM feature、未扩大为 workspace 编译。该依赖前置与源文件 CRLF/LF 元数据检查不冒充行为证据。
+- **不是 UE 原测移植**：TcpMessaging 原实现提供“先迁移权威状态，再让通知与查询看同一状态”的依据；§6 的 Beacon/关闭邻近测试并不等于本例 native RST + manager 镜像 oracle，UE 测试未运行。
+
+### 可行复核后的最小修改
+
+1. [内部回执](../../../zircon_plugins/net/runtime/src/worker/egress.rs#L20-L25) 保留 worker 的连接状态，把字节结果改为内层 `Result<Vec<u8>, NetError>`。这是本 crate 的非序列化内部结构，不改公共 DTO/ABI。
+2. [worker 的既有 poll](../../../zircon_plugins/net/runtime/src/worker/transport_runtime.rs#L304-L363) 对**已有连接已完成的读取**回传“有效状态 + 原读取错误”，事件顺序不变；unknown ID / worker 请求、队列、回执失败仍在外层，不能据一个 `Io` 猜 `Failed`。健康数据、`WouldBlock`、零预算与 EOF 的既有策略保留，未夹带 EOF 重复事件或发送失败修复。
+3. [manager](../../../zircon_plugins/net/runtime/src/service_types/tcp.rs#L95-L116) 收到有效 worker 回执后先同步状态，再传播内层原错误；只有成功 payload 计 inbound bytes。没有第二次状态查询、重试、新锁、定时器或额外状态权威。
+
+### 同 oracle GREEN 与有界结果
+
+原4条回归字节未改，CRLF 原生输入 SHA256：`ba1124da63f83ac8ed91e49c3eaddb28cbde4fdee6ee93a5833239cfab367c1c`；Git 的 LF blob 是另一种身份口径。修复后一次运行 net 叶包全部60个 lib cases，**56 PASS / 0 FAIL / 4 既有 release 性能 ignored / 0 filtered**，包含原4案全部通过。4个 ignored 在原基线已存在，不新增跳过，也不据此声称性能通过。各次运行前后14份相关生产/测试/manifest/lock 输入哈希一致；RED→GREEN 仅3个生产文件变化，测试保持相同 oracle。
+
+实际 Cargo 范围如下（通过规范 Agent 本地 wrapper 显式绑定 owned 工作树；Rust/Cargo 1.94.1，test profile `debug=0, incremental=false`，构建/home/cache/temp 均在物理 F 盘允许根，1 job/1 test thread）：
+
+```text
+# RED：选定四案；普通在线取得固定依赖后执行
+cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --no-default-features --lib net_tcp_read_error_ --locked --jobs 1 -- --test-threads 1
+# GREEN：相同四案 + 全叶包既有控制；使用已就绪缓存
+cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --no-default-features --lib --locked --offline --jobs 1 -- --test-threads 1
+```
+
+包自身无新增 feature；继承的 Runtime 依赖使用 `native-host,net-contracts`，只构建其依赖库、**不编译 Runtime 自己的 libtest**，无需复制或屏蔽 #137 模型测试夹具，也不启用 Graphics/UI。原生命令回执 SHA256：RED `4fdff7f900b56608b198193314a0b62a7a3ff5ab08c4d2440cc0bb649f92b5b2`；GREEN `fd384cead0ea2f4568e309e43a06b7ab515fbfee9281805c2623ae7fff7623a0`。本地完整日志与输入记录保留，回执不冒充封闭进程树/源码闭包或产品验收。
+
+**边界仍是 Draft**：仅 Windows 原生 TCP 接收状态与该 net 叶包控制。未验证 UE 原测、其他 OS、所有内核错误、真实 HTTP/WS 可选后端、RPC/复制全链、完整 App/ECS 场景启动、吞吐/延迟或产品服务；不合并。

@@ -308,7 +308,7 @@ impl WorkerCore {
     ) -> Result<TcpPollResult, NetError> {
         if max_bytes == 0 {
             return Ok(TcpPollResult {
-                payload: Vec::new(),
+                payload: Ok(Vec::new()),
                 state: self.connection_state(connection)?,
             });
         }
@@ -323,25 +323,28 @@ impl WorkerCore {
             match entry.stream.try_read(&mut payload) {
                 Ok(0) => {
                     state_event = entry.state_machine.transition(NetConnectionState::Closed);
-                    Ok(TcpPollResult {
-                        payload: Vec::new(),
+                    TcpPollResult {
+                        payload: Ok(Vec::new()),
                         state: NetConnectionState::Closed,
-                    })
+                    }
                 }
                 Ok(received) => {
                     payload.truncate(received);
-                    Ok(TcpPollResult {
-                        payload,
+                    TcpPollResult {
+                        payload: Ok(payload),
                         state: entry.state_machine.state(),
-                    })
+                    }
                 }
-                Err(error) if error.kind() == ErrorKind::WouldBlock => Ok(TcpPollResult {
-                    payload: Vec::new(),
+                Err(error) if error.kind() == ErrorKind::WouldBlock => TcpPollResult {
+                    payload: Ok(Vec::new()),
                     state: entry.state_machine.state(),
-                }),
+                },
                 Err(error) => {
                     state_event = entry.state_machine.transition(NetConnectionState::Failed);
-                    Err(NetError::Io(error.to_string()))
+                    TcpPollResult {
+                        payload: Err(NetError::Io(error.to_string())),
+                        state: entry.state_machine.state(),
+                    }
                 }
             }
         };
@@ -349,7 +352,6 @@ impl WorkerCore {
         if let Some(event) = state_event {
             self.push_event(event);
         }
-        let result = result?;
         if result.state == NetConnectionState::Closed {
             self.push_event(NetEvent::ConnectionClosed {
                 connection,
