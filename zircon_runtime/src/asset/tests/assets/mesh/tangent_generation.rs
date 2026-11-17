@@ -380,6 +380,80 @@ fn mesh_asset_rebuilds_flat_morph_normal_and_mikktspace_tangent_deltas() {
 }
 
 #[test]
+fn mesh_asset_accepts_a_mirrored_morph_that_collapses_to_a_point() {
+    assert_mirrored_morph_endpoint_is_admitted(false);
+}
+
+#[test]
+fn mesh_asset_accepts_a_mirrored_morph_that_expands_from_a_point() {
+    assert_mirrored_morph_endpoint_is_admitted(true);
+}
+
+fn assert_mirrored_morph_endpoint_is_admitted(expands: bool) {
+    let triangle: [[f32; 3]; 3] = [[0.0; 3], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]];
+    let point = [[0.0; 3]; 3];
+    let (base, target) = if expands {
+        (point, triangle)
+    } else {
+        (triangle, point)
+    };
+    let position_deltas = target
+        .into_iter()
+        .zip(base)
+        .map(|(target, base)| {
+            [
+                target[0] - base[0],
+                target[1] - base[1],
+                target[2] - base[2],
+            ]
+        })
+        .collect();
+    let mut mesh = MeshAsset::new(
+        AssetUri::parse("res://meshes/mirrored-morph-endpoint.zmesh").unwrap(),
+        RenderMeshTopology::TriangleList,
+        BTreeMap::from([
+            (
+                MESH_ATTRIBUTE_POSITION.to_string(),
+                MeshAttributeValues::Float32x3(base.to_vec()),
+            ),
+            (
+                MESH_ATTRIBUTE_NORMAL.to_string(),
+                MeshAttributeValues::Float32x3(vec![[0.0, 0.0, 1.0]; 3]),
+            ),
+            (
+                MESH_ATTRIBUTE_UV0.to_string(),
+                MeshAttributeValues::Float32x2(vec![[0.0, 0.0], [0.0, 1.0], [1.0, 0.0]]),
+            ),
+        ]),
+        None,
+    )
+    .unwrap();
+    mesh.morph_targets.push(MeshMorphTargetAsset {
+        name: Some("endpoint".to_string()),
+        attributes: BTreeMap::from([(
+            MESH_ATTRIBUTE_POSITION.to_string(),
+            MeshAttributeValues::Float32x3(position_deltas),
+        )]),
+    });
+
+    // The single face has no neighbor to supply a tangent when collapsed.
+    // UE's glTF morph displacement is XYZ-only; a missing basis does not
+    // supply an independently authored handedness. This is an admission probe,
+    // not a test of normal-map shading on the expanded geometry.
+    assert!(mesh.try_generate_missing_tangents().unwrap());
+    assert_eq!(
+        mesh.try_rebuild_morph_tangent_frames_for_uv(false, Some(MESH_ATTRIBUTE_UV0)),
+        Ok(true),
+        "mirrored endpoint with no geometric basis must not be rejected (expands={expands})"
+    );
+    let deltas = mesh.morph_targets[0].attributes[MESH_ATTRIBUTE_TANGENT]
+        .as_float32x3()
+        .unwrap();
+    assert_eq!(deltas.len(), 3);
+    assert!(deltas.iter().flatten().all(|value| value.is_finite()));
+}
+
+#[test]
 fn mesh_asset_does_not_overwrite_existing_tangents() {
     let mut attributes = quad_indexed_attributes();
     attributes.insert(
