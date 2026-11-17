@@ -75,6 +75,28 @@ impl World {
         request: &SceneViewportExtractRequest,
     ) -> SceneViewportRenderPacket {
         self.prepare_viewport_render_extract();
+        self.build_viewport_render_packet(request, None)
+    }
+
+    /// Prepares a live viewport frame with the exact mesh matrices, while
+    /// keeping the viewport packet's camera, layer and preview semantics.
+    /// The caller's world handle is kept as-is; this path has no scene journal.
+    pub fn build_prepared_viewport_render_frame(
+        &mut self,
+        world: RenderWorldSnapshotHandle,
+        request: &SceneViewportExtractRequest,
+    ) -> RenderFrameExtract {
+        self.prepare_viewport_render_extract();
+        let mut mesh_affines = BTreeMap::new();
+        let packet = self.build_viewport_render_packet(request, Some(&mut mesh_affines));
+        RenderFrameExtract::from_snapshot_with_mesh_affines(world, packet, mesh_affines)
+    }
+
+    fn build_viewport_render_packet(
+        &self,
+        request: &SceneViewportExtractRequest,
+        mut mesh_affines: Option<&mut BTreeMap<crate::scene::EntityId, PreparedMeshAffine>>,
+    ) -> SceneViewportRenderPacket {
         let (camera_descriptor, _) = self.build_render_camera(request);
         let camera = camera_descriptor.camera.clone();
         if !camera_descriptor.is_active() {
@@ -108,7 +130,7 @@ impl World {
                             mesh,
                             &camera_layers,
                             camera_position,
-                            None,
+                            mesh_affines.as_deref_mut(),
                             |snapshot| meshes.push(snapshot),
                         );
                     });

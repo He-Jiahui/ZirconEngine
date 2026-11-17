@@ -1,9 +1,10 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 
 use crate::core::framework::scene::Mobility;
 use crate::core::math::UVec2;
+use crate::scene::EntityId;
 
 use super::super::{
     AdvancedLightingExtract, CameraRenderDescriptor, RenderBloomSettings,
@@ -12,8 +13,8 @@ use super::super::{
 };
 use super::{
     DebugOverlayExtract, GeometryExtract, LightingExtract, ParticleExtract, PostProcessExtract,
-    RenderFrameScenePayload, RenderViewExtract, RenderWorldSnapshotHandle, VisibilityInput,
-    VisibilityRenderableInput,
+    PreparedMeshAffine, RenderFrameScenePayload, RenderViewExtract, RenderWorldSnapshotHandle,
+    VisibilityInput, VisibilityRenderableInput,
 };
 
 /// Runtime 外层帧的时间标签，在场景缓存取出后叠加到本次提交。
@@ -94,6 +95,14 @@ impl RenderFrameExtract {
     /// sidebands such as sprites, particles, VG payloads, or level-owned
     /// animation poses from a `SceneViewportRenderPacket`.
     pub fn from_snapshot(world: RenderWorldSnapshotHandle, snapshot: RenderSceneSnapshot) -> Self {
+        Self::from_snapshot_with_mesh_affines(world, snapshot, BTreeMap::new())
+    }
+
+    pub(crate) fn from_snapshot_with_mesh_affines(
+        world: RenderWorldSnapshotHandle,
+        snapshot: RenderSceneSnapshot,
+        mesh_affines: BTreeMap<EntityId, PreparedMeshAffine>,
+    ) -> Self {
         let RenderSceneGeometryExtract {
             camera,
             meshes,
@@ -139,7 +148,8 @@ impl RenderFrameExtract {
         let scene = RenderFrameScenePayload::new(
             world,
             {
-                let mut geometry = GeometryExtract::from_meshes(camera_core_pipeline, meshes);
+                let mut geometry = GeometryExtract::from_meshes(camera_core_pipeline, meshes)
+                    .with_mesh_affines(mesh_affines);
                 geometry.virtual_geometry_debug = snapshot.virtual_geometry_debug;
                 geometry
             },
