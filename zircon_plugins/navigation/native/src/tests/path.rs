@@ -79,6 +79,146 @@ fn off_mesh_link_bridges_disconnected_polygons() {
 }
 
 #[test]
+fn ordinary_native_keeps_link_metadata_at_the_attached_start() {
+    let asset = two_island_asset(true);
+    let owner = crate::detour::DetourQuery::from_asset(&asset).expect("ordinary native owner");
+    let filter = crate::asset_ffi::asset_query_filter(&asset);
+    require_link_at_first_portal("detour", |query| raw_detour_path(&owner, &filter, query));
+}
+
+#[test]
+fn tile_cache_keeps_link_metadata_at_the_attached_start() {
+    let asset = two_island_asset(true);
+    let owner = crate::RecastTileCache::from_asset(&asset).expect("native TileCache owner");
+    require_link_at_first_portal("tile_cache", |query| owner.find_path(query));
+}
+
+fn raw_detour_path(
+    owner: &crate::detour::DetourQuery,
+    filter: &NavQueryFilter,
+    query: &NavPathQuery,
+) -> zircon_runtime::core::framework::navigation::NavPathResult {
+    use crate::ffi::{
+        zr_nav_detour_find_path, zr_nav_detour_free_path_result, ZrNavDetourPathResult,
+    };
+    use zircon_runtime::core::framework::navigation::NavPathResult;
+
+    let filter = crate::detour::detour_query_filter(filter);
+    let mut result = ZrNavDetourPathResult::default();
+    // SAFETY: The owned native handle, endpoint arrays and filter live through this call.
+    unsafe {
+        zr_nav_detour_find_path(
+            owner.as_raw(),
+            query.start.as_ptr(),
+            query.end.as_ptr(),
+            query.area_mask,
+            &filter,
+            &mut result,
+        );
+    }
+    let status = result.status;
+    // SAFETY: The native API initializes this fixed message buffer with a terminated string.
+    let message = unsafe { CStr::from_ptr(result.message.as_ptr()) }
+        .to_string_lossy()
+        .into_owned();
+    let raw = if result.points.is_null() || result.point_count == 0 {
+        Vec::new()
+    } else {
+        // SAFETY: Successful native queries own this many path points until free below.
+        unsafe { std::slice::from_raw_parts(result.points, result.point_count as usize) }.to_vec()
+    };
+    let converted = crate::detour_result::convert_path_result(&result);
+    // SAFETY: Both observers copied their data before releasing the one native allocation.
+    unsafe {
+        zr_nav_detour_free_path_result(&mut result);
+    }
+    match status {
+        1 => {
+            let path = converted.expect("ordinary native success must return points");
+            assert_eq!(path.points.len(), raw.len());
+            for (point, original) in path.points.iter().zip(raw) {
+                assert_eq!(point.position, original.position);
+                assert_eq!(
+                    point.off_mesh_link_id,
+                    (original.off_mesh_user_id != 0).then_some(original.off_mesh_user_id)
+                );
+                assert_eq!(
+                    point.flags.iter().any(|v| v == "off_mesh_link"),
+                    original.flags & 0x04 != 0
+                );
+            }
+            path
+        }
+        2 => {
+            assert_eq!(message, "Detour path query found no complete path");
+            assert!(raw.is_empty());
+            NavPathResult::no_path()
+        }
+        _ => panic!("unexpected ordinary native status {status}: {message}"),
+    }
+}
+
+fn require_link_at_first_portal(
+    label: &str,
+    query_native: impl Fn(&NavPathQuery) -> zircon_runtime::core::framework::navigation::NavPathResult,
+) {
+    use zircon_runtime::core::framework::navigation::AREA_JUMP;
+
+    let xz_gap = |a: [f32; 3], b: [f32; 3]| (a[0] - b[0]).hypot(a[2] - b[2]);
+    let left = [0.0, 0.0, 0.3];
+    let right = [8.0, 0.0, 0.3];
+    let mut both_directions = true;
+    for (direction, start, destination) in [("forward", left, right), ("reverse", right, left)] {
+        let ordinary = query_native(&NavPathQuery::new(start, destination));
+        assert_eq!(ordinary.status, NavPathStatus::Complete);
+        assert!(ordinary.visited_nodes >= 3 && ordinary.length > 6.0);
+        let attached = ordinary.points.iter().find(|point| {
+            point.off_mesh_link_id == Some(1) && point.flags.iter().any(|flag| flag == "off_mesh_link")
+        }).expect("interior crossing must establish a native attached portal, not just authored coordinates").position;
+        assert!(xz_gap(ordinary.points.first().unwrap().position, start) < 0.05);
+        assert!(xz_gap(ordinary.points.last().unwrap().position, destination) < 0.05);
+        assert!(xz_gap(start, attached) > 0.3 && xz_gap(start, attached) < 1.5);
+
+        // Same immutable native mesh, including both ground owners. Only mask the only link.
+        let mut disabled = NavPathQuery::new(attached, destination);
+        disabled.area_mask &= !(1_u64 << AREA_JUMP);
+        let blocked = query_native(&disabled);
+        assert_eq!(blocked.status, NavPathStatus::NoPath);
+        let mut same_island = NavPathQuery::new(attached, start);
+        same_island.area_mask = disabled.area_mask;
+        let local = query_native(&same_island);
+        assert_eq!(local.status, NavPathStatus::Complete);
+        assert!(xz_gap(local.points.first().unwrap().position, attached) < 1e-4);
+        assert!(xz_gap(local.points.last().unwrap().position, start) < 0.05);
+        assert!(local
+            .points
+            .iter()
+            .all(|point| point.off_mesh_link_id.is_none()));
+
+        let coincident = query_native(&NavPathQuery::new(attached, destination));
+        assert_eq!(coincident.status, NavPathStatus::Complete);
+        assert!(coincident.visited_nodes >= 3 && coincident.length > 5.0);
+        let gap = xz_gap(coincident.points.first().unwrap().position, attached);
+        assert!(gap < 1e-4, "must still start on the same native portal");
+        assert!(xz_gap(coincident.points.last().unwrap().position, destination) < 0.05);
+        let ids: Vec<_> = coincident
+            .points
+            .iter()
+            .filter_map(|point| point.off_mesh_link_id)
+            .collect();
+        println!("NATIVE_FIRST_PORTAL label={label} direction={direction} attached={attached:?} gap={gap} corridor={} mask={:?} local={:?} cross={:?} ids={ids:?}",
+            coincident.visited_nodes, blocked.status, local.status, coincident.status);
+        both_directions &= ids == [1]
+            && coincident.points.iter().take(2).any(|point| {
+                point.off_mesh_link_id == Some(1)
+                    && point.flags.iter().any(|flag| flag == "off_mesh_link")
+                    && xz_gap(point.position, attached) < 1e-4
+            });
+    }
+    assert!(both_directions, "the complete native crossing must retain the first attached link marker in both directions");
+}
+
+#[test]
 fn direct_abi_rejects_missing_off_mesh_link_pointer() {
     let vertices = [0.0_f32, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0];
     let indices = [0_u32, 1, 2];
