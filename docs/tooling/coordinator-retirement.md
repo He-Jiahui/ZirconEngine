@@ -8,6 +8,7 @@ related_code:
   - tools/jenkins/install-coordinator-worker.ps1
   - tools/dev/local-cargo.ps1
   - tools/dev/local_cargo.py
+  - tools/dev/session_workflow_handoff.py
   - tools/audits/check_conventions.py
   - tools/jenkins/jenkins_coordinator.py
   - tools/jenkins/tray/
@@ -19,6 +20,7 @@ plan_sources:
 tests:
   - tools/tests/test_local_cargo.py
   - tools/tests/test_check_conventions.py
+  - tools/tests/test_session_workflow_handoff.py
 doc_type: workflow-detail
 ---
 
@@ -29,6 +31,16 @@ doc_type: workflow-detail
 本仓库的旧协调器已弃用。后台服务、托盘、自启动和 Codex 自动登记挂钩停用；普通工作不再要求协调器登记、心跳、路径租约、归因接口、验证票据、候选提交或里程碑关闭接口。旧命令、源码和历史说明保留为迁移资料。
 
 当前工作按 [AGENTS](../../AGENTS.md) 与 [Agent 直接开发管理标准](../tools/agent-artifact-management.md)执行：Agent 直接管理获准的原生 Git/worktree、生成、复用和本地验证，不需要 Jenkins 服务、激活文件、capsule、登记、队列或本地例外许可。保留实际验证、必要审阅、文件归属、原有修改、原生 Cargo/进程锁及提交和远端/通知授权要求。旧 [Jenkins 指南](../../.codex/skills/jenkins-coordination/guide.md)与下文迁移表是历史资料，既不要求恢复其流程，也不证明任何主机服务已停止或卸载。全工作区、里程碑和产品仍需各自的真实接受证据；旧票据、本地窄命令与工作流替换都不关闭历史迁移验收。
+
+## 已有会话与旧工作树
+
+只在本地 `main` 合入退役提交，不会更新远端、其他工作树或已有会话记住的规则。旧树里要求服务在线或声明其排他拥有 Git 的文字已经失效，不构成新的等待或审批条件；按当前用户授权直接使用原生 Git 和 GitHub，不恢复旧服务来创建 Draft PR。
+
+本机可在各客户端支持的用户全局指引中附加仅限本仓库及同一 Git common-dir 工作树的规则。`tools/dev/session_workflow_handoff.py` 提供纯文本生成、保留原内容的自有标记段合并、人工确认后的会话筛选及一次性投递回执归一化；模块不自行读写用户配置、访问会话数据库、启动服务、联网、轮询或重试。安装时先读取原文件，保留原有字节并核验哈希；不能把整份用户指引替换成项目规则。
+
+DSH 的全局指引在初次请求、相关文件读取或会话恢复时载入，不是持续监视所有外部修改。活跃/等待中的旧会话应通过受支持的定向入口核对最新上下文；消息插入、规则文件已写入或历史交接均不等于采纳。没有接受回执的投递保留原请求 ID 和 `unknown`，不自动重发。已经按新规则继续工作的会话不重复投递，不恢复过时的人机确认或取消后续用户指示。
+
+用户指定的问题交付顺序保持为：先独立 Draft PR，再在同一 PR 补回归、提交修复，实际验收后才合并。退役不提供额外操作权限，也不取消真实 GitHub/CI、审阅和产品验收门槛。见[本次复现与逐项核验](session-workflow-stall-20261117.md)。
 
 ## 数据位置
 

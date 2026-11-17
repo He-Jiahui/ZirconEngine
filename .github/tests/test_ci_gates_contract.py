@@ -35,7 +35,8 @@ class CiGatesContractTests(unittest.TestCase):
         contracts = job_body(self.workflow, "source-contracts")
         self.assertIn("Test independent local workflow boundaries", contracts)
         for module in ("test_agent_local_cargo", "test_agent_execution_policy",
-                       "test_workflow_retirement_entries", "test_jenkins_retirement"):
+                       "test_workflow_retirement_entries", "test_jenkins_retirement",
+                       "test_session_workflow_handoff"):
             self.assertIn("tools.tests." + module, contracts)
 
     def test_pull_requests_compile_the_editor_and_plugins_and_run_commands(self) -> None:

@@ -136,6 +136,36 @@ class SessionWorkflowHandoffTests(unittest.TestCase):
             with self.subTest(clause=label):
                 self.assertRegex(flat, pattern)
 
+    def test_local_policy_is_project_scoped_and_does_not_wait_for_legacy_service(self) -> None:
+        policy = self.handoff.render_global_policy(CANONICAL_ROOT, DRAFT_PR_URL)
+        self.assertIn(CANONICAL_ROOT, policy)
+        self.assertIn(DRAFT_PR_URL, policy)
+        for clause in ("仅适用", "其他仓库", "不恢复", "不等待", "原生 Git", "Draft PR", "既有授权", "数据库"):
+            self.assertIn(clause, policy)
+        self.assertNotIn("Jenkins still owns", policy)
+
+    def test_owned_policy_append_is_idempotent_and_preserves_unrelated_instructions(self) -> None:
+        original = "# Existing policy\r\n\r\n- Preserve other tasks.\r\n"
+        policy = self.handoff.render_global_policy(CANONICAL_ROOT, DRAFT_PR_URL)
+        combined = self.handoff.merge_owned_policy(original, policy)
+        self.assertTrue(combined.startswith(original))
+        self.assertEqual(combined, self.handoff.merge_owned_policy(combined, policy))
+        self.assertEqual(1, combined.count(self.handoff.POLICY_START))
+        updated = self.handoff.merge_owned_policy(combined + "\n# Another owner\nKeep me.\n", policy.replace("2026-11-17", "2026-11-18"))
+        self.assertTrue(updated.startswith(original))
+        self.assertTrue(updated.endswith("\n# Another owner\nKeep me.\n"))
+
+    def test_malformed_owned_policy_is_not_overwritten(self) -> None:
+        policy = self.handoff.render_global_policy(CANONICAL_ROOT, DRAFT_PR_URL)
+        for source in (self.handoff.POLICY_START, policy + "\n" + policy):
+            with self.subTest(source=source[:70]), self.assertRaises(ValueError):
+                self.handoff.merge_owned_policy(source, policy)
+
+    def test_notice_does_not_revoke_the_receiving_task_original_authorization(self) -> None:
+        notice = self.handoff.build_notice(CANONICAL_ROOT, DRAFT_PR_URL)
+        self.assertIn("本工作流修复", notice)
+        self.assertIn("各任务既有授权不变", notice)
+
     def test_plan_has_stable_distinct_ids_and_modes_for_only_eligible_sessions(self) -> None:
         rows = [
             _session("active", running=True),
