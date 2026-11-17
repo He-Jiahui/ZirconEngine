@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，当前共 **26 个问题 Draft**；第五轮最新范围见第10节，第7/8/9节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，当前共 **26 个问题 Draft**；第六轮最新范围见第11节，第7/8/9/10节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -192,3 +192,19 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 资产异步/cook/registry深审还追了真实原生PNG准入、project watcher prepare/publish、资源commit与新载荷identity、Web Raw Fetch、semantic streaming pendingqueue/owner边界以及UE async package/DDC/cook/registry owner。没有把只追到队列的语义产品路线宣称为已接通，没有因缺功能登记第二个问题。UE原测来源明确区分包/texture邻近控制与ZE双watcher缓存准入/texel的源码派生回归；没有宣称测试已移植或运行。
 
 既有独立#159Windows Resource71PASS/1原perfIgnored、#175独立旧备份atomic29PASS/1原perfIgnored、#161工具18PASS范围和源输入不变；不将重叠控制累计成全引擎通过数。#178Capture、#171Notify及其他问题按各自当前Draft阶段继续。保留并发#177/#179图形、#176物理及全部导航/其他会话的源码、锁和回执。全领域收敛与产品门仍未完成，不自动合并。
+
+
+## 11. 第六轮当前状态：2026-11-18
+
+仍是 **26个独立问题 Draft + 1个目录 Draft，0合并**；没有因一个修复闭环把整个 Networking 域或全引擎标为通过。首轮8份CSV、2766条目录身份及集合指纹完全不变。
+
+| 原问题 / 工作项 | 本轮实证与推进 | 明确边界 |
+|---|---|---|
+| [#155 Networking](https://github.com/He-Jiahui/ZirconEngine/pull/155) | [同一PR已发布阶段](<https://github.com/He-Jiahui/ZirconEngine/blob/ae06746fc99ce3b0424115e91fa101cbf3e2fd61/docs/plans/unreal-alignment/tcp-read-error-state.md#L105-L135>)：既有net插件harness补4条源码派生回归；原实现实际 **3PASS/1FAIL**，真实回环RST使读取报Winsock10054，已产生同ID Failed事件而立即查询仍Open。独立可行复核后，仅3个内部owner把权威状态与内层读取Result配对，manager先同步状态再传播原Io。原4条字节未改且全GREEN；完整60个叶包case中 **56PASS/0FAIL/4原release性能Ignored/0filtered**。独立最终源码/证据复核Scoped PASS。 | 只Windows原生TCP接收状态+net叶包控制；公共API/ABI/ECS/schema/manifest/lock/feature未改，外层worker请求Io不猜Failed。初次离线缺另一个可选成员的固定Git依赖是0执行前置失败，不是RED；普通在线取得锁定源后实际执行，无workspace编译/VM启用/缓存配置复制。不是UE原测移植，不覆盖其他OS、所有错误、真实HTTP/WS可选后端、RPC/复制全链、App产品或性能，保持Draft。 |
+| [#167 Components/ECS](https://github.com/He-Jiahui/ZirconEngine/pull/167) | 独立本地工作树已在现成observer harness薄挂载5条源码派生回归，检查Remove/Despawn回调新增稀疏行、替换/已有行、存活实体和真实Drop所有权；仅2份测试输入，无生产修改。 | **本地未编译/执行/提交或发布跟进，0行为RED/GREEN**。真实owner是Runtime，不虚构独立ECS crate；`core-min,native-host`无Graphics单位harness只是静态可行候选，另有既存公开World integration落点，尚未验证。 |
+| [#160 Memory](https://github.com/He-Jiahui/ZirconEngine/pull/160) | 仅检查下一CPU回归的真实包/feature边界；仍为原问题Draft。 | `profiling-memory`的现成libtest闭包还会准入Graphics名称引用；私有counter隔离也不能用外围recorder测试替代。这是静态readiness限制，不是实际编译回执或另立的新问题，未加Graphics/屏蔽模块/新runner。 |
+| [#174 Text](https://github.com/He-Jiahui/ZirconEngine/pull/174) / [#180 Texture](https://github.com/He-Jiahui/ZirconEngine/pull/180) | 第10节状态未变：Text4条仍0执行、未改文本生产；Texture仅经典预备缓存准入问题定义。 | #137编译前置与#179默认Core2D产品前置均不复制、叠栈或隐藏；不把来源指纹、CPU key或准备的测试当成行为/GPU产品PASS。 |
+
+#155通过选择真正所属插件叶包，让Runtime仅构建为依赖库而非其libtest，合法避开无关图形测试闭包；没有抽取mini-runner、复制夹具或弱化oracle。首轮来源中的UE TcpMessaging与邻近原测归因不变，UE测试未执行。
+
+#159的71个Windows Resource结果、#175的29个独立atomic结果和#161的18个模拟artifact工具结果保持各自范围，控制可能重叠，不作全引擎累加。下一步优先在#167原PR取得真实CPU RED，再独立评估最小修复；其余域继续按原顺序深审/反证/去重。保留并发#181/#177/#179图形/导航、#176物理及所有其他会话的源码、索引、锁、工作树与回执；全领域收敛、真实产品门和性能门仍未完成，不自动合并。
