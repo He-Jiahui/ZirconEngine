@@ -1,14 +1,13 @@
 //! Test the ECS sprite's world coordinates at the vertex and product-pixel boundaries.
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use crate::asset::{AssetLoadState, AssetUri, ProjectAssetManager, TextureAsset};
 use crate::core::framework::render::{
     CorePipelineKind, ProjectionMode, RenderCameraClearColor, RenderCaptureSource,
     RenderExtractContext, RenderExtractProducer, RenderFrameExtract, RenderFramework,
     RenderPipelineHandle, RenderSpriteAtlasRegion, RenderViewportDescriptor,
-    RenderWorldSnapshotHandle, SceneViewportExtractRequest, SpriteExtract,
+    SceneViewportExtractRequest, SpriteExtract,
 };
-use crate::core::framework::scene::WorldHandle;
 use crate::core::math::{Quat, Transform, UVec2, Vec2, Vec3, Vec4};
 use crate::core::resource::{
     ResourceHandle, ResourceId, ResourceKind, ResourceRecord, TextureMarker,
@@ -17,7 +16,7 @@ use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::graphics::WgpuRenderFramework;
 use crate::scene::components::{CameraComponent, NodeKind, Sprite2dComponent};
-use crate::scene::{LevelMetadata, LevelSystem, World};
+use crate::scene::{DefaultLevelManager, LevelMetadata, World};
 
 use super::{build_sprite_vertices, prepare_sprite_draw_batches, SpriteVertex};
 
@@ -85,13 +84,10 @@ fn sprite_frame(scale_x: f32, image: ResourceHandle<TextureMarker>) -> RenderFra
         (scene_matrix.x_axis.dot(scene_matrix.y_axis) - (1.0 - scale_x * scale_x) * 0.5).abs()
             < 1.0e-5
     );
-    let level = LevelSystem::new(
-        WorldHandle::new(79),
-        Arc::new(Mutex::new(world)),
-        LevelMetadata::default(),
-    );
+    let source_world = world.render_world_snapshot_handle();
+    let level = DefaultLevelManager::default().create_level(world, LevelMetadata::default());
     let extract = level.build_render_frame_extract(&RenderExtractContext::new(
-        RenderWorldSnapshotHandle::new(79),
+        source_world,
         SceneViewportExtractRequest {
             active_camera_override: Some(camera),
             viewport_size: Some(SIZE),
