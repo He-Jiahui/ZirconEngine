@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174 和旧恢复归属 #175，当前共 **24 个问题 Draft**；同 PR 回归/修复的最新范围见第8节，第7节保留第二轮快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175 和Capture #178，当前共 **25 个问题 Draft**；同 PR 回归/修复的最新范围见第9节，第7/8节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -164,3 +164,17 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 | [#175 旧备份错属主](https://github.com/He-Jiahui/ZirconEngine/pull/175) | 新独立[六点问题定义](<https://github.com/He-Jiahui/ZirconEngine/blob/175cea6727bbe3c12224129c7455fb8a0010cfbf/docs/plans/unreal-alignment/io-recovery-exact-owner.md>)：缺失短config.json时，另一较长源leaf的staging或backup在单候选下被旧prefix+union角色判定采纳；Foundation先移动后JSON。同属主合同明确，独立反证通过。 | 仅1MD，尚无该问题实际RED或生产修复，与159长名/v2 namespace分开。UE精确Name/目录备份仅身份处理对照，不是相同自动恢复或原测试迁移。 |
 
 #161工具层18GREEN和#171 source-only状态不变。当前文本/无障碍/本地化深审只保留#174有证据缺陷，不把缺高级功能当bug；其他未深入或局部域继续。并发导航[#173](https://github.com/He-Jiahui/ZirconEngine/pull/173)为Recast烘焙继承shear丢失，已按实际正文/owner文件去重，与174/175无关，留原会话；不接管#146/#158/#170/#172。下轮仍在各原PR先真实RED、可行评估、最小fix和相同GREEN，不自动合并或降低产品门。
+
+
+## 9. 第四轮当前状态：2026-11-18
+
+**25个独立问题Draft +1个目录Draft，均未合并。** 原始8CSV/目录计数及第7/8节时间点保留；本节覆盖第8节中#175尚未测试的旧状态。以下单元数按各PR独立输入记录，不相加为全引擎通过数量。
+
+| PR | 同PR实际推进 | 明确限制 |
+|---|---|---|
+| [#175 旧备份归属](https://github.com/He-Jiahui/ZirconEngine/pull/175) | [当前阶段](<https://github.com/He-Jiahui/ZirconEngine/blob/97d360ff915c9d5415fae5b1abbe7b2c6185244e/docs/plans/unreal-alignment/io-recovery-exact-owner.md>)：在其e893独立基线先补7案，真实Windows **3FAIL/4PASS**；实际staging与故障保留backup都被移错目标，混合候选误歧义。可行评估后只改2个I/O owner的精确完整前缀/whole numeric suffix，旧形状与数字拼写规则不变；原7字节不变，加1合法含marker的owner。整个atomic组 **29PASS/0FAIL/1原性能Ignored**，原失败全转绿；独立最终复核Scoped PASS。 | 原target/同目录/typecheck/歧义/平台移动和同步不变，无API/ABI/wire/配置/CI改动；不叠入159。没有实际Foundation启动/系统崩溃/Unix/两PR集成或性能验收。 |
+| [#178 同步截图归属](https://github.com/He-Jiahui/ZirconEngine/pull/178) | 新独立[六点问题定义](<https://github.com/He-Jiahui/ZirconEngine/blob/fa87f9e4086cccf1470b076dd51b3d2e5dcc2337/docs/plans/unreal-alignment/viewport-capture-owner.md>)：已创建未提交A、B实际成功离屏渲染，公共同步A读回无owner检查地回退renderer-last并污染A缓存；随后A直接poll可见错帧。合同/公共submit与capture链、UE同receiver纹理/MediaIO OnTick源绑定、独立源码反证通过。 | 仅1MD；没有新增测试或GPU实测、没有修复。既有HDR双视口是控制而非本例原测；本例为源码派生。动态ABI/mailbox是另一入口，未声称常规App PNG/Play/UI/媒体或XR产品受影响。 |
+
+媒体/XR/虚拟制作有界深审还核对真实still-image importer、resident音频播放及单帧捕获的owner/准入；在已检first-party当前路径中没有建立timed video/图像序列播放、媒体设备/录制/流传输、XR pose/compositor/action、LiveLink/拍摄同步生产路径。缺功能只保留边界记录，不当缺陷或新增架构PR，不宣称覆盖所有外部providers/平台。现有UE媒体/XR/虚拟制作原测试来源已定位，但没有运行或迁移那些无ZE对应的测试。
+
+#159的Windows71PASS/1原perfIgnored与#161工具18GREEN不变；#174/171仍source-only。已核对并发[#177](https://github.com/He-Jiahui/ZirconEngine/pull/177)的Sprite2D仿射顶点正文/owner为另会话，与同步capture来源无关；保留#176Physics及此前全部外部工作。所有后续仍独立问题先Draft、同PR真实RED、可行评估、最小fix/相同GREEN；未达产品门不合并。
