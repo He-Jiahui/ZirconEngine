@@ -7,7 +7,9 @@ use zircon_runtime::core::framework::navigation::{
     NavAgentTickReport, NavMeshAgentDescriptor, NavPathQuery, NavPathStatus,
     NavigationAgentDebugState, NavigationDebugCapture, NavigationError,
 };
-use zircon_runtime::core::math::{try_affine_inverse, NumericPolicy, Real, Transform, Vec3};
+use zircon_runtime::core::math::{
+    try_affine_inverse, Mat4, NumericPolicy, Quat, Real, Transform, Vec3,
+};
 use zircon_runtime::scene::{SceneError, SceneResult, World};
 
 use super::agent_motion::{
@@ -204,25 +206,22 @@ pub(crate) fn tick_world_agents_legacy(
             manager.clear_agent_velocity(entity);
             continue;
         }
-        let next = current + displacement;
-        let parent_for_position_only = if agent.update_rotation {
-            None
-        } else {
-            world.parent_of(entity)
+        let direction = displacement.normalize_or_zero();
+        let updated = Transform {
+            translation: current + displacement,
+            rotation: if agent.update_rotation && direction.length_squared() > Real::EPSILON {
+                rotate_toward_movement(transform.rotation, direction, &agent, dt_seconds)
+            } else {
+                transform.rotation
+            },
+            ..transform
         };
-        let result = if let Some(parent) = parent_for_position_only {
-            write_parented_agent_position(world, entity, parent, next)
+        let result = if let Some(parent) = world.parent_of(entity) {
+            let facing_changed = agent.update_rotation
+                && updated.rotation != transform.rotation
+                && updated.rotation != -transform.rotation;
+            write_parented_agent_step(world, entity, parent, updated, facing_changed)
         } else {
-            let direction = displacement.normalize_or_zero();
-            let updated = Transform {
-                translation: next,
-                rotation: if agent.update_rotation && direction.length_squared() > Real::EPSILON {
-                    rotate_toward_movement(transform.rotation, direction, &agent, dt_seconds)
-                } else {
-                    transform.rotation
-                },
-                ..transform
-            };
             world.update_transform(entity, updated)
         };
         match result {
@@ -252,21 +251,18 @@ pub(crate) fn tick_world_agents_legacy(
     Ok(report)
 }
 
-fn write_parented_agent_position(
+fn write_parented_agent_step(
     world: &mut World,
     entity: u64,
     parent: u64,
-    world_position: Vec3,
+    requested_world: Transform,
+    facing_changed: bool,
 ) -> SceneResult<bool> {
     let parent_world = world
         .world_matrix(parent)
         .ok_or(SceneError::MissingParent {
             child: entity,
             parent,
-        })?;
-    let local_from_world =
-        try_affine_inverse(parent_world, NumericPolicy::STRICT).map_err(|error| {
-            SceneError::Message(format!("cannot invert navigation parent {parent}: {error}"))
         })?;
     let local = world
         .local_transform(entity)
@@ -275,15 +271,58 @@ fn write_parented_agent_position(
             entity,
             component: "LocalTransform",
         })?;
-    // This is a position-only request. Keep the authored basis rather than
-    // round-tripping the lossy world TRS, even under an inherited shear.
+    let rotation = if !facing_changed {
+        // A point-only move keeps the authored basis, including inherited shear.
+        local.rotation
+    } else if let Some(parent_rotation) =
+        proper_uniform_rotation(parent_world).filter(|_| local.scale.min_element() > 0.0)
+    {
+        (parent_rotation.conjugate() * requested_world.rotation).normalize()
+    } else {
+        // Active turns with a nonsimilarity parent or signed child scale follow
+        // the prior path until their world-heading/writeback policy is qualified.
+        return world.update_transform(entity, requested_world);
+    };
+    let local_from_world =
+        try_affine_inverse(parent_world, NumericPolicy::STRICT).map_err(|error| {
+            SceneError::Message(format!("cannot invert navigation parent {parent}: {error}"))
+        })?;
     world.update_transform(
         entity,
         Transform {
-            translation: local_from_world.transform_point3(world_position),
+            translation: local_from_world.transform_point3(requested_world.translation),
+            rotation,
             ..local
         },
     )
+}
+
+fn proper_uniform_rotation(parent_world: Mat4) -> Option<Quat> {
+    let x = parent_world.x_axis.truncate();
+    let length = x.length();
+    if !length.is_finite() || length <= 0.0 {
+        return None;
+    }
+    let x = x / length;
+    let y = parent_world.y_axis.truncate() / length;
+    let z = parent_world.z_axis.truncate() / length;
+    // After dividing by a single positive scale the full linear part must be
+    // an orthonormal, proper rotation. Never decompose a sheared parent to turn.
+    const BASIS_TOLERANCE: Real = 1.0e-5;
+    if !Vec3::new(x.length_squared(), y.length_squared(), z.length_squared())
+        .abs_diff_eq(Vec3::ONE, BASIS_TOLERANCE)
+        || !Vec3::new(x.dot(y), y.dot(z), z.dot(x)).abs_diff_eq(Vec3::ZERO, BASIS_TOLERANCE)
+        || x.cross(y).dot(z) <= 0.0
+    {
+        return None;
+    }
+    let rotation = Mat4::from_cols(
+        x.extend(0.0),
+        y.extend(0.0),
+        z.extend(0.0),
+        Vec3::ZERO.extend(1.0),
+    );
+    Some(Quat::from_mat4(&rotation).normalize())
 }
 
 fn apply_direct_traversal_position(
