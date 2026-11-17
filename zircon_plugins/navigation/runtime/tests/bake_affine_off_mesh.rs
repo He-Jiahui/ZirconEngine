@@ -4,7 +4,9 @@
 mod test_support;
 
 use zircon_plugin_navigation_recast::RecastTileCache;
-use zircon_plugin_navigation_runtime::{navigation_component_descriptors, DefaultNavigationManager};
+use zircon_plugin_navigation_runtime::{
+    navigation_component_descriptors, DefaultNavigationManager,
+};
 use zircon_runtime::core::framework::navigation::{
     NavMeshBakeRequest, NavMeshLinkCapacity, NavMeshOffMeshBridgeDescriptor,
     NavMeshOffMeshLinkDescriptor, NavMeshSurfaceDescriptor, NavMeshUseGeometry, NavPathQuery,
@@ -170,7 +172,14 @@ fn witness(label: &str, scale_x: f32, kind: Witness) {
         assert!(native_landing_gap(local.points.last().unwrap().position, to) < 0.30);
         assert!(local.points.iter().all(|p| p.off_mesh_link_id.is_none()));
     }
-    let across = query.find_path(&NavPathQuery::new(start.to_array(), end.to_array()));
+    // Start/end off the portals so Detour emits the link-entry corner and ID.
+    // Starting exactly on the first portal allows the funnel to skip it.
+    let approach = start + Vec3::Z * 0.8;
+    let departure = end + Vec3::Z * 0.8;
+    let across = query.find_path(&NavPathQuery::new(
+        approach.to_array(),
+        departure.to_array(),
+    ));
     let crossed_ids: Vec<_> = across
         .points
         .iter()
@@ -231,8 +240,8 @@ fn witness(label: &str, scale_x: f32, kind: Witness) {
     );
     assert_eq!(across.status, NavPathStatus::Complete);
     assert!(across.points.len() >= 2);
-    assert!(native_landing_gap(across.points.first().unwrap().position, start) < 0.30);
-    assert!(native_landing_gap(across.points.last().unwrap().position, end) < 0.30);
+    assert!(native_landing_gap(across.points.first().unwrap().position, approach) < 0.30);
+    assert!(native_landing_gap(across.points.last().unwrap().position, departure) < 0.30);
     assert!(
         !crossed_ids.is_empty()
             && crossed_ids
