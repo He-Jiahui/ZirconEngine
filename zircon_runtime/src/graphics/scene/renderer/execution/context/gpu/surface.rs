@@ -168,7 +168,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             resources,
             resource_resolver,
             depth_resource_name,
-            RenderGraphResourceAccessKind::Read,
+            RenderGraphResourceAccessKind::Write,
         )?;
         let render_region = self.render_region_for_write_resource(color_resource_name);
         let sprite_renderer = self.sprite_renderer.ok_or_else(|| {
