@@ -9,7 +9,7 @@ use zircon_plugin_navigation_runtime::{
     navigation_component_descriptors, DefaultNavigationManager,
 };
 use zircon_runtime::core::framework::navigation::{
-    NavAvoidanceQuality, NavLinkTraversalMode, NavMeshAgentDescriptor, NavMeshHandle,
+    NavAvoidanceQuality, NavLinkTraversalMode, NavMeshAgentDescriptor, NavMeshAsset, NavMeshHandle,
     NavMeshObstacleDescriptor, NavPathQuery, NavPathStatus, NavigationManager,
     OffMeshTraverseEvent, OffMeshTraverseEventKind, NAV_MESH_AGENT_COMPONENT_TYPE,
     NAV_MESH_OBSTACLE_COMPONENT_TYPE,
@@ -73,8 +73,7 @@ fn manual_link_remains_explicit_with_live_carving() {
     let manager = test_support::navigation_manager();
     let mut world = world();
     let owner = spawn(&mut world, Vec3::ZERO);
-    let mut asset = support::two_island_navmesh(true);
-    asset.off_mesh_links[0].owner_entity = owner;
+    let mut asset = two_island_quads(owner);
     asset.off_mesh_links[0].traversal_mode = NavLinkTraversalMode::Manual;
     let handle = manager.load_nav_mesh(asset).unwrap();
     add_carver(&mut world);
@@ -167,18 +166,33 @@ fn assert_explicit_link(manager: &DefaultNavigationManager, handle: NavMeshHandl
     assert!(path.length > 7.9 && path.visited_nodes >= 3);
     assert!((Vec3::from_array(path.points.first().unwrap().position) - START).length() < 1e-4);
     assert!((Vec3::from_array(path.points.last().unwrap().position) - GOAL).length() < 1e-4);
-    assert!(path
-        .points
-        .iter()
-        .any(|p| p.off_mesh_link_id == Some(1) && p.flags.iter().any(|f| f == "off_mesh_link")));
+    assert!(
+        path.points
+            .iter()
+            .any(|p| p.off_mesh_link_id == Some(1) && p.flags.iter().any(|f| f == "off_mesh_link")),
+        "the explicit forward control must identify the actual link: {path:?}"
+    );
+}
+
+fn two_island_quads(owner: EntityId) -> NavMeshAsset {
+    let mut asset = support::two_island_navmesh(true);
+    // Preserve the actual triangle inputs and link, but marshal each convex island
+    // as one polygon so the explicit ordinary control matches the native two-quad case.
+    let mut left = asset.polygons[0].clone();
+    let mut right = asset.polygons[2].clone();
+    left.index_count = 6;
+    right.index_count = 6;
+    asset.polygons = vec![left, right];
+    asset.tiles[0].polygon_count = 2;
+    asset.off_mesh_links[0].owner_entity = owner;
+    asset
 }
 
 fn observe_order(order: &str, carved: bool, first_allow: bool) -> [Trace; 2] {
     let manager = test_support::navigation_manager();
     let mut world = world();
     let owner = spawn(&mut world, Vec3::ZERO);
-    let mut asset = support::two_island_navmesh(true);
-    asset.off_mesh_links[0].owner_entity = owner;
+    let asset = two_island_quads(owner);
     let handle = manager.load_nav_mesh(asset).unwrap();
     let carver = carved.then(|| add_carver(&mut world));
     assert_explicit_link(&manager, handle);
