@@ -135,15 +135,66 @@ fn mesh_asset_mikktspace_preserves_mirrored_uv_handedness() {
         virtual_geometry: None,
     };
 
+    let expected = [[0.0, 1.0, 0.0, -1.0]; 3];
+    let mut authored = mesh.clone();
+    authored.attributes.insert(
+        MESH_ATTRIBUTE_TANGENT.to_string(),
+        MeshAttributeValues::Float32x4(expected.to_vec()),
+    );
+    assert!(!authored.try_generate_missing_tangents().unwrap());
     assert!(mesh.try_generate_missing_tangents().unwrap());
 
+    // UE's LocalVertexFactory rebuilds B by cross product and sign. Compare
+    // the resulting direction, not UE's stored sign under its other winding.
+    use crate::core::math::Vec3;
+    let authored = authored.to_model_primitive().unwrap();
+    let generated = mesh.to_model_primitive().unwrap();
+    let positions = mesh.positions().unwrap();
+    // The first edge increases only v by one: dP/dv = P1 - P0 = +X.
+    let d_p_d_v = Vec3::from_array(positions[1]) - Vec3::from_array(positions[0]);
+    let rebuild_bitangent =
+        |normal, [x, y, z, w]| Vec3::from_array(normal).cross(Vec3::new(x, y, z)) * w;
+    assert_eq!(generated.vertices.len(), authored.vertices.len());
+    for (generated, authored) in generated.vertices.iter().zip(&authored.vertices) {
+        assert_eq!(
+            rebuild_bitangent(authored.normal, authored.tangent),
+            d_p_d_v
+        );
+        let actual = rebuild_bitangent(generated.normal, generated.tangent);
+        assert!(
+            (actual - d_p_d_v).length() < 1.0e-5,
+            "generated mirrored UV frame reverses the authored +V direction: {actual:?} vs {d_p_d_v:?}"
+        );
+    }
     assert_tangents_approx(
-        mesh.attributes
-            .get(MESH_ATTRIBUTE_TANGENT)
-            .unwrap()
+        mesh.attributes[MESH_ATTRIBUTE_TANGENT]
             .as_float32x4()
             .unwrap(),
-        &[[0.0, 1.0, 0.0, -1.0]; 3],
+        &expected,
+    );
+}
+
+#[test]
+fn mesh_asset_mikktspace_keeps_the_default_for_degenerate_uvs() {
+    let mut attributes = quad_indexed_attributes();
+    attributes.insert(
+        MESH_ATTRIBUTE_UV0.to_string(),
+        MeshAttributeValues::Float32x2(vec![[0.0; 2]; 4]),
+    );
+    let mut mesh = MeshAsset::new(
+        AssetUri::parse("res://meshes/degenerate-uv-tangents.zmesh").unwrap(),
+        RenderMeshTopology::TriangleList,
+        attributes,
+        Some(MeshIndices::U16(vec![0, 1, 2, 0, 2, 3])),
+    )
+    .unwrap();
+
+    assert!(mesh.try_generate_missing_tangents().unwrap());
+    assert_tangents_approx(
+        mesh.attributes[MESH_ATTRIBUTE_TANGENT]
+            .as_float32x4()
+            .unwrap(),
+        &[[1.0, 0.0, 0.0, 1.0]; 4],
     );
 }
 

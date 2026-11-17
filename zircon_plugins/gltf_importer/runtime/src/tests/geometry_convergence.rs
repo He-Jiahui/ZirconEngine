@@ -73,6 +73,13 @@ fn stable_importer_uses_normal_texture_effective_uv_for_mikktspace() {
             tangent[0] * tangent[0] + tangent[1] * tangent[1] + tangent[2] * tangent[2];
         assert!(tangent_length_squared > 0.9);
         assert!(tangent.iter().all(|component| component.is_finite()));
+        // Effective UV1 has +U along +X and +V along +Y. The generated
+        // flat +Z normal and +X tangent must reconstruct +Y, not -Y.
+        assert_eq!(
+            *tangent,
+            [1.0, 0.0, 0.0, 1.0],
+            "normal-mapped glTF must preserve the effective UV1 basis orientation"
+        );
     }
 
     let _ = fs::remove_dir_all(root);
