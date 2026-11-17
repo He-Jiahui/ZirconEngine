@@ -5,7 +5,7 @@ use crate::asset::{AssetLoadState, AssetUri, ProjectAssetManager, TextureAsset};
 use crate::core::framework::render::{
     CorePipelineKind, ProjectionMode, RenderCameraClearColor, RenderCaptureSource,
     RenderExtractContext, RenderExtractProducer, RenderFrameExtract, RenderFramework,
-    RenderPipelineHandle, RenderQualityProfile, RenderSpriteAtlasRegion, RenderViewportDescriptor,
+    RenderPipelineHandle, RenderSpriteAtlasRegion, RenderViewportDescriptor,
     RenderWorldSnapshotHandle, SceneViewportExtractRequest, SpriteExtract,
 };
 use crate::core::framework::scene::WorldHandle;
@@ -256,26 +256,24 @@ fn sprite_world_affine_gpu_keeps_center_and_rasterizes_the_shear_fringe() {
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(SIZE))
         .unwrap();
-    framework
-        .set_quality_profile(
-            viewport,
-            RenderQualityProfile::new("sprite-core2d-affine")
-                .with_pipeline_asset(RenderPipelineHandle::new(3)),
-        )
-        .unwrap();
+    // Let the first real World extract select its Core2D pipeline, rather
+    // than applying a pipeline override before any camera has been submitted.
     let backend = framework
         .query_graphics_debugger_status()
         .unwrap()
         .backend_name;
     let mut sheared_fringe = (0, 0);
+    let mut last_capture_generation = None;
     for scale_x in [1.0, 2.0] {
         framework
             .submit_frame_extract(viewport, sprite_frame(scale_x, texture.resource_handle()))
             .unwrap();
         let captured = framework
-            .capture_frame(viewport)
+            .capture_frame_if_newer(viewport, last_capture_generation)
             .unwrap()
-            .expect("offscreen GPU readback");
+            .expect("fresh offscreen GPU readback after the current submission");
+        last_capture_generation = Some(captured.generation);
+        assert!(framework.first_device_fault().is_none());
         assert_eq!(
             captured.capture_report.source,
             RenderCaptureSource::FrameworkOffscreen
@@ -283,6 +281,7 @@ fn sprite_world_affine_gpu_keeps_center_and_rasterizes_the_shear_fringe() {
         assert_eq!((captured.width, captured.height), (SIZE.x, SIZE.y));
         assert_eq!(captured.rgba.len(), (SIZE.x * SIZE.y * 4) as usize);
         let stats = framework.query_stats().unwrap();
+        assert_eq!(stats.last_pipeline, Some(RenderPipelineHandle::new(3)));
         let adapter = stats
             .device_diagnostics
             .as_ref()
