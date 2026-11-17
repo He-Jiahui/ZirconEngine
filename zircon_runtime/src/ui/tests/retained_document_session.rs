@@ -1,5 +1,12 @@
 //! 文本会话按表面实例和文档版本持有历史；重绑定、输入法预编辑和安全文本需维持独立撤销边界。
 
+use std::ops::Range;
+
+use zircon_runtime_interface::ui::{
+    dispatch::UiInputDispatchResult,
+    text::{UiTextChangedRanges, UiTextEditKind, UiTextEditReceipt},
+};
+
 use super::*;
 
 fn text_edit_receipt(
@@ -226,4 +233,153 @@ fn input_manager_secure_text_edits_form_a_history_barrier() {
     assert!(unavailable.widget_events.is_empty());
     assert!(unavailable.diagnostics.secure_text_redacted);
     assert_eq!(text_attr(&surface, "content"), "secre");
+}
+
+#[test]
+fn input_manager_grapheme_join_preserves_exact_insert_delta() {
+    let mut surface = text_input_surface("e", 1);
+    surface.focus_node(UiNodeId::new(2)).unwrap();
+    let mut manager = UiInputManager::default();
+
+    // Byte 1 is still a UTF-8 boundary, but the new grapheme spans bytes 0..3.
+    let result = dispatch_text_with_manager(&mut manager, &mut surface, "\u{0301}");
+    let receipt = assert_retained_text_change(&surface, &result, b"e\xCC\x81", 3);
+    assert_edit_delta(receipt, UiTextEditKind::Insert, (0, 1), 1..1, 1..3);
+}
+
+#[test]
+fn input_manager_grapheme_join_undo_redo_replays_only_the_mark() {
+    let mut surface = text_input_surface("e", 1);
+    surface.focus_node(UiNodeId::new(2)).unwrap();
+    let mut manager = UiInputManager::default();
+
+    let insert = dispatch_text_with_manager(&mut manager, &mut surface, "\u{0301}");
+    let insert = assert_retained_text_change(&surface, &insert, b"e\xCC\x81", 3);
+    assert_edit_delta(insert, UiTextEditKind::Insert, (0, 1), 1..1, 1..3);
+
+    let undo = dispatch_key_with_manager_control(&mut manager, &mut surface, "z", 90);
+    let undo = assert_retained_text_change(&surface, &undo, b"e", 1);
+    assert_eq!(undo.document_id, insert.document_id);
+    assert_edit_delta(undo, UiTextEditKind::Undo, (1, 2), 1..3, 1..1);
+
+    let redo = dispatch_key_with_manager_control_shift(&mut manager, &mut surface, "z", 90);
+    let redo = assert_retained_text_change(&surface, &redo, b"e\xCC\x81", 3);
+    assert_eq!(redo.document_id, insert.document_id);
+    assert_edit_delta(redo, UiTextEditKind::Redo, (2, 3), 1..1, 1..3);
+}
+
+#[test]
+fn input_manager_grapheme_insert_controls_preserve_exact_bytes() {
+    let cluster = combining_acute_cluster();
+    for (initial, payload, expected, old, new) in [
+        ("e", "x", &b"ex"[..], 1..1, 1..2),
+        ("", cluster, &b"e\xCC\x81"[..], 0..0, 0..3),
+    ] {
+        let mut surface = text_input_surface(initial, initial.len());
+        surface.focus_node(UiNodeId::new(2)).unwrap();
+        let mut manager = UiInputManager::default();
+
+        let result = dispatch_text_with_manager(&mut manager, &mut surface, payload);
+        let receipt = assert_retained_text_change(&surface, &result, expected, new.end);
+        assert_edit_delta(receipt, UiTextEditKind::Insert, (0, 1), old, new);
+    }
+}
+
+#[test]
+fn input_manager_grapheme_backspace_deletes_the_whole_cluster() {
+    let mut surface = text_input_surface(combining_acute_cluster(), 3);
+    surface.focus_node(UiNodeId::new(2)).unwrap();
+    let mut manager = UiInputManager::default();
+
+    let result = dispatch_key_with_manager(&mut manager, &mut surface, "Backspace", 8);
+    let receipt = assert_retained_text_change(&surface, &result, b"", 0);
+    assert_edit_delta(receipt, UiTextEditKind::Delete, (0, 1), 0..3, 0..0);
+}
+
+fn dispatch_text_with_manager(
+    manager: &mut UiInputManager,
+    surface: &mut UiSurface,
+    text: &str,
+) -> UiInputDispatchResult {
+    manager
+        .dispatch_input_event(
+            surface,
+            UiInputEvent::Text(UiTextInputEvent {
+                metadata: UiInputEventMetadata::new(
+                    UiInputTimestamp::from_micros(10),
+                    UiInputSequence::new(1),
+                ),
+                text: text.to_string(),
+            }),
+        )
+        .unwrap()
+}
+
+fn assert_retained_text_change<'a>(
+    surface: &UiSurface,
+    result: &'a UiInputDispatchResult,
+    expected: &[u8],
+    caret: u32,
+) -> &'a UiTextEditReceipt {
+    let value = text_attr(surface, "content");
+    assert_eq!(
+        value.as_bytes(),
+        expected,
+        "retained content is {value:?}; dispatch notes: {:?}",
+        result.diagnostics.notes
+    );
+    for property in ["caret_offset", "selection_anchor", "selection_focus"] {
+        assert_eq!(int_attr(surface, property), i64::from(caret), "{property}");
+    }
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert!(
+        !result
+            .diagnostics
+            .notes
+            .iter()
+            .any(|note| note.starts_with("text_state_transaction_rejected:")),
+        "dispatch notes: {:?}",
+        result.diagnostics.notes
+    );
+
+    assert_eq!(result.widget_events.len(), 1);
+    let receipt = text_edit_receipt(result);
+    receipt.validate().unwrap();
+    assert_eq!(receipt.node_id, UiNodeId::new(2));
+    assert_eq!(receipt.selection.anchor_byte, caret);
+    assert_eq!(receipt.selection.focus_byte, caret);
+
+    assert_eq!(result.component_events.len(), 1);
+    let change = &result.component_events[0];
+    assert_eq!(change.target, receipt.node_id);
+    assert!(change.delivered);
+    assert_eq!(
+        change.event,
+        UiComponentEvent::ValueChanged {
+            property: "content".to_string(),
+            value: UiValue::String(value),
+        }
+    );
+    receipt
+}
+
+fn assert_edit_delta(
+    receipt: &UiTextEditReceipt,
+    kind: UiTextEditKind,
+    revisions: (u64, u64),
+    old: Range<u32>,
+    new: Range<u32>,
+) {
+    assert_eq!(receipt.kind, kind);
+    assert_eq!(
+        (receipt.previous_revision.get(), receipt.revision.get()),
+        revisions
+    );
+    assert_eq!(
+        receipt.changed,
+        UiTextChangedRanges {
+            old: UiTextByteRange::new(old.start, old.end),
+            new: UiTextByteRange::new(new.start, new.end),
+        }
+    );
 }

@@ -1,6 +1,6 @@
 # [Text/UI] 对照 Unreal：不应丢弃接续前一字素的已准入文本输入
 
-**状态：独立问题 Draft 研究稿，仅源码论证。** 未写入测试或引擎代码，未执行 ZE/UE 测试、构建、GUI 或原生输入实测；没有行为 RED/GREEN。ZE 引用固定在独立基线 [`e89349ca51b4e9d024c194cd3bdf645bd25b6c37`](https://github.com/He-Jiahui/ZirconEngine/tree/e89349ca51b4e9d024c194cd3bdf645bd25b6c37)。UE 是本机参考树，[Build.version:1–10](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Build/Build.version#L1-L10>) 声明 `6.0.0 / BranchName UE5 / CL 0`，提交未知。本机研究稿和 UE 源路径不是 GitHub 可直接读取的证据；仅列路径、符号、行号和文件指纹，不公开 Epic 源码正文。
+**初始问题定义阶段：独立 Draft，仅源码论证。** 该原阶段尚未写测试或引擎代码；后续已补4条原harness回归及两次编译尝试，详见第7节。至今仍没有本问题的行为 RED/GREEN、GUI 或原生输入实测，也没有文本生产修复。ZE 引用固定在独立基线 [`e89349ca51b4e9d024c194cd3bdf645bd25b6c37`](https://github.com/He-Jiahui/ZirconEngine/tree/e89349ca51b4e9d024c194cd3bdf645bd25b6c37)。UE 是本机参考树，[Build.version:1–10](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Build/Build.version#L1-L10>) 声明 `6.0.0 / BranchName UE5 / CL 0`，提交未知。本机研究稿和 UE 源路径不是 GitHub 可直接读取的证据；仅列路径、符号、行号和文件指纹，不公开 Epic 源码正文。
 
 ## 1. 不一致：合法插入能改变原有字素边界
 
@@ -58,3 +58,26 @@ UE 的 `FSlateEditableTextLayout` 与 `FTextLayout` 以 widget、行模型和 `F
 | ZE [text_document_session/history.rs](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/ui/dispatch/input_manager/text_document_session/history.rs#L86-L133>) | `e6de925c5ae63572f6b5f7b4b6a1b9d095bee1d9f0db6d46ee90df9cc578d84a` |
 | ZE [interface/ui/text.rs](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime_interface/src/ui/text.rs#L91-L155>) | `1ac1bf8d6832a45365ae6e3d6ddf3186872d2b6832e8e802bd3b4af92c055961` |
 | ZE [retained_document_session.rs](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/ui/tests/retained_document_session.rs#L86-L118>) | `f68ca207b8168a7dc9ddd857b69656e8cb901856833b929034d808d0ee0ce74d` |
+
+
+## 7. 同 PR 回归推进：2026-11-18（尚未取得行为 RED）
+
+初始独立问题 Draft 已先发布。本阶段[本 PR 的回归增量](https://github.com/He-Jiahui/ZirconEngine/pull/174/files)只扩展现有 retained-document-session harness，生产代码、manifest/lock、其他问题的夹具均未改。
+
+- 中性 `UiInputManager::dispatch_input_event(UiInputEvent::Text)` 只派发 U+0301；先核对已持有值的原始 `65 CC 81` 与 caret/折叠选区byte3，再查事件，不会用空事件下标panic冒充缺陷。要求一次 ValueChanged、一次 TextEditChange，Insert精确old1..1/new1..3、revision0→1。
+- 独立重复该插入前置后，要求同DocumentID的Undo仅移除组合符（1..3→1..1、revision1→2）及Redo原字节恢复（1..1→1..3、2→3）。不是Backspace，也不把改动扩大成整字素Replace。
+- 两个独立控制：ASCII末尾插入/向空字段一次插入完整分解字素；预置完整分解字素上的Backspace删除整个0..3。上述4条均为ZE源码派生，不冒称UE组合接缝原测、原生CtrlV/OS键盘或IME产品实测。
+
+### 已实际执行，但没有测试运行
+
+统一声明：Windows x64/MSVC、Rust/Cargo1.94.1；仅包zircon_runtime，默认features关闭、--lib、test profile，规范入口固定debug0/incrementalfalse、locked/offline、jobs1/test-threads1。只过滤新增4案；不跑workspace/allfeatures/GUI/GPU。编译、Cargo home、build/cache/temp物理均在F:/cargo-targets规范共享池，未复制缓存/配置、修改TLS或服务。
+
+```text
+test -p zircon_runtime --no-default-features --features ui --lib ui::tests::widget_text_input_keyboard::retained_document_session::input_manager_grapheme_ --locked --offline --jobs 1 -- --test-threads 1
+test -p zircon_runtime --no-default-features --features native-host,ui --lib ui::tests::widget_text_input_keyboard::retained_document_session::input_manager_grapheme_ --locked --offline --jobs 1 -- --test-threads 1
+```
+
+1. ui最小模块选择实际到达libtest编译；已有Scene/Project/Plugin测试未相应feature-gate，而其被引用定义在native-host之后，报436个编译错误。4案执行数0；**这是harness feature前置，不是行为RED**。本机[回执](<F:/cargo-targets/zircon-local/agent-cargo-receipts/ze-ue-174-red-1/receipt.json>) SHA256为`ac0dfc211708462da83b3f96b8ea214cd922bfc9202ff1ab4adff79447229ccf`。
+2. 源码核对所需gate后仅补native-host。实际消除前述缺项，但既有[模型夹具:305–315](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/graphics/scene/resources/tests/model_geometry_resolution.rs#L305-L315>)临时registry guard的借用，触发单个E0716，仍未生成可运行的4案结果；执行数0，**仍不是RED**。此项已有独立[#137](https://github.com/He-Jiahui/ZirconEngine/pull/137)，没有复制/夹带其修复、临时屏蔽测试或造新runner。本机[回执](<F:/cargo-targets/zircon-local/agent-cargo-receipts/ze-ue-174-red-native-2/receipt.json>) SHA256为`58055ac1db6b56c850b3cd79985aa93d6cc2d4175b64ace6262370f4f4fc7fd5`。
+
+两次运行的6份相关源码/测试/manifest/lock输入前后哈希未变。回执只证明本地命令及失败，不是封存产品证据。**因此本阶段只交付测试与真实前置记录，不提交文本生产改法。** 先解决独立libtest前置，再用相同4案实际取得内容/回执失败，之后才重新评估最小验证器修复并用同一oracle转GREEN；UTF8精确差量与最终EGC交互状态仍分别验证，真实产品验收另保留。不合并。
