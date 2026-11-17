@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175 和Capture #178，当前共 **25 个问题 Draft**；同 PR 回归/修复的最新范围见第9节，第7/8节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，当前共 **26 个问题 Draft**；第五轮最新范围见第10节，第7/8/9节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -178,3 +178,17 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 媒体/XR/虚拟制作有界深审还核对真实still-image importer、resident音频播放及单帧捕获的owner/准入；在已检first-party当前路径中没有建立timed video/图像序列播放、媒体设备/录制/流传输、XR pose/compositor/action、LiveLink/拍摄同步生产路径。缺功能只保留边界记录，不当缺陷或新增架构PR，不宣称覆盖所有外部providers/平台。现有UE媒体/XR/虚拟制作原测试来源已定位，但没有运行或迁移那些无ZE对应的测试。
 
 #159的Windows71PASS/1原perfIgnored与#161工具18GREEN不变；#174/171仍source-only。已核对并发[#177](https://github.com/He-Jiahui/ZirconEngine/pull/177)的Sprite2D仿射顶点正文/owner为另会话，与同步capture来源无关；保留#176Physics及此前全部外部工作。所有后续仍独立问题先Draft、同PR真实RED、可行评估、最小fix/相同GREEN；未达产品门不合并。
+
+
+## 10. 第五轮当前状态：2026-11-18
+
+**26个独立问题Draft +1个目录Draft，全部未合并。** 原8CSV身份、全部冻结目录计数、旧阶段原始回执保留；本节覆盖第9节中#174尚未写测试及issue总数的旧快照。编译失败、源码反证、真实单元GREEN和产品验收分别列，不互相替代。
+
+| PR | 本阶段已交付 | 尚未完成 / 前置 |
+|---|---|---|
+| [#174 Text精确Insert](https://github.com/He-Jiahui/ZirconEngine/pull/174) | 在既有harness补4案：UiInputManager仅U0301派发的原始bytes/caret与Insert old1..1/new1..3；同DocUndo/Redo；ASCII/空字段完整分解字素控制；整EGCBackspace。测试源码独立复核通过，仅测试+问题MD两文件，未改文本生产、manifest/lock。 | 两次实际lib编译均未进入4案：最小ui的既有Scene/Project/Plugin测试缺native-host引用，436错误；仅补native-host后剩已独立[#137](https://github.com/He-Jiahui/ZirconEngine/pull/137)的模型夹具E0716。**0执行、没有行为RED/GREEN**；不复制/夹带137、屏蔽模块或造runner，不因源码推导先提交fix。 |
+| [#180 经典纹理缓存准入](https://github.com/He-Jiahui/ZirconEngine/pull/180) | 新独立[六点问题定义](<https://github.com/He-Jiahui/ZirconEngine/blob/5beaf53043d0a9f838936bbf3cdee52bd22680d4/docs/plans/unreal-alignment/texture-cache-active-version.md>)：同UUID的PNG经独立Removed→Added，新的active载荷与hash已变但数字revision可同1，prepared-texture快路仍误命中旧GPU对象。源码/原watcher调度/现有Gpu ensure门与UE owner/相邻原测，独立复核通过；仅1MD。 | 无新增测试/GPU执行或fix。**范围限缓存准入；撤回默认Core2D成功错色说法。** 并发独立[#179](https://github.com/He-Jiahui/ZirconEngine/pull/179)实际DX12在光栅前因depth Read声明失败，后续产品texel受该前置门约束；首个计划是现有原GPU fixture实际binding对象oracle，不用CPUkey/ready统计代替。两问题不叠栈修复。 |
+
+资产异步/cook/registry深审还追了真实原生PNG准入、project watcher prepare/publish、资源commit与新载荷identity、Web Raw Fetch、semantic streaming pendingqueue/owner边界以及UE async package/DDC/cook/registry owner。没有把只追到队列的语义产品路线宣称为已接通，没有因缺功能登记第二个问题。UE原测来源明确区分包/texture邻近控制与ZE双watcher缓存准入/texel的源码派生回归；没有宣称测试已移植或运行。
+
+既有独立#159Windows Resource71PASS/1原perfIgnored、#175独立旧备份atomic29PASS/1原perfIgnored、#161工具18PASS范围和源输入不变；不将重叠控制累计成全引擎通过数。#178Capture、#171Notify及其他问题按各自当前Draft阶段继续。保留并发#177/#179图形、#176物理及全部导航/其他会话的源码、锁和回执。全领域收敛与产品门仍未完成，不自动合并。
