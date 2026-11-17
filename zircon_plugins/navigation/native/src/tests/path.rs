@@ -170,6 +170,8 @@ fn require_link_at_first_portal(
     let mut both_directions = true;
     for (direction, start, destination) in [("forward", left, right), ("reverse", right, left)] {
         let ordinary = query_native(&NavPathQuery::new(start, destination));
+        println!("NATIVE_FIRST_PORTAL_INTERIOR label={label} direction={direction} corridor={} length={} points={:?}",
+            ordinary.visited_nodes, ordinary.length, ordinary.points);
         assert_eq!(ordinary.status, NavPathStatus::Complete);
         assert!(ordinary.visited_nodes >= 3 && ordinary.length > 6.0);
         let attached = ordinary.points.iter().find(|point| {
