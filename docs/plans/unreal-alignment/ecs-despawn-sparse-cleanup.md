@@ -1,12 +1,12 @@
 # 组件/ECS 生命周期 · EC-01：despawn 回调新增的 SparseSet 组件不在旧清理列表内
 
-> 取证说明：UE 的本机路径与文件 SHA256 是用户提供参考树的依据；本轮 D: 审计快照/工作记录仅本地保存，不随本 PR 发布，也不冒充 GitHub 可读证据。UE/ZE 测试均未在本轮执行。
+> 取证说明：UE 本机路径与 SHA256 固定参考树；本地记录不随 PR 发布，不冒充 GitHub 可读证据。§1–6 保留首次源码调查；§7 记录后续 ZE 原生回归与修复阶段。UE 测试仍未执行。
 
 **原问题定义在 §1–6；独立 Draft #167 已发布，同一 PR 的回归推进见 §7。先真实 RED，再评估生产修复。**
 
 - 本地审计 ZE `cb495bb1c952a24c86f4513b8099bc4942c3a87d`；ZE 链接使用 lead 指定、已核对引擎目录零差异的发布基线 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`，避免未发布提交的失效链接。
 - 本地 UE [Build.version:2–9](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Build/Build.version#L2-L9>) 是 **6.0.0，BranchName UE5**；SHA256 `3dcd8b6654872d013f2b00aa5f0ef1e0db89d4e8627ce820554675a27f228ea6`。不是猜测的 UE5.7。
-- **最高置信结论是源码级 storage/lifetime 缺陷**：回调前冻结的 component IDs 被当成回调后的完整 sparse 清理列表。没有运行 Cargo、ZE/UE 测试、脚本产品或性能测试；下面的具体终态是源码推导，仍需真实回归执行确认。
+- **首次调查阶段的结论是源码级 storage/lifetime 缺陷**：回调前冻结的 component IDs 被当成回调后的完整 sparse 清理列表。此时尚未运行 Cargo 或 ZE/UE 测试，下面终态为当时源码推导；后续 ZE 实测与保留的验收边界见 §7。
 - 不把 UE UObject 与 Rust ECS 布局不同、UE 全局禁止 processing 中结构修改而 ZE 允许回调写 World，本身当成缺陷。真正缺陷是：**ZE 已返回 Ok 的组件插入，其值在实体注销后仍留在 owned sparse storage，公开组件计数与活实体数脱节。**
 
 ## 1. 和 Unreal 哪里不一致：精确位置与可达调用链
@@ -137,7 +137,7 @@ UE 的实际路径同时有 processing 期间的同步结构 mutation 检查、b
 
 ## 7. 同一 Draft 的回归推进
 
-**当前：5条源码派生回归已准备并经独立源码复核；尚未编译/执行，没有行为 RED/GREEN 或生产修复。**
+**本问题实际闭环：原5案 2 PASS / 3 FAIL → 单 owner 当前集合/原代际绑定窄修 → 原5同字节 + 新3代际控制共 8 PASS / 0 FAIL / 0 ignored。扩展 observer 31/2、identity 37/1，3条未修改旧源码守卫仍失败，不能称整组 GREEN。保持 Draft，不合并。**
 
 在 [原 observer harness](../../../zircon_runtime/src/scene/tests/ecs_observers_messages.rs#L1519-L1520) 仅加薄挂载，原1,517行测试和 imports 不变；[190行子模块](../../../zircon_runtime/src/scene/tests/ecs_late_sparse.rs#L1-L190) 放全部5案，不建立新 runner 或 ECS 架构。各 observer 使用安全 retained constructor、显式 `()` state 与非捕获回调；payload 走现有 retained-owner 计量，Drop 计数器在真实 component 内。
 
@@ -151,4 +151,37 @@ UE 的实际路径同时有 processing 期间的同步结构 mutation 检查、b
 
 外部同步回执只在 callback 内插入成功且读回之后记录；漏调、错目标或提前拒绝都不能通过。没有手动清理、storage loop 复制、私有谓词替代或放宽为“插入成功/失败都可”。这些新测试来自 ZE accepted-write 契约和 UE Mass 当前拥有集合释放语义，**不是 §6 邻近 UE 原测试的逐字移植**；UE 原测试未执行。
 
-下一步候选是现成 `zircon_runtime --lib` CPU harness，关闭 defaults，明确 `core-min,native-host`，过滤 `scene::tests::ecs_observers_messages::late_sparse_despawn::cpu167_`。该选择不启用 Graphics/UI/Script，也没有把整个 Runtime 已启用的其他 test modules 从编译中隐藏；任何编译/依赖前置失败都不是本缺陷 RED。原实现实际失败后才允许评估最小 cleanup 修改，observer 通知、owner/plan/identity、其他 storage/实体的边界仍须保留。
+首次实际执行采用现成 `zircon_runtime --lib` CPU harness，关闭 defaults，明确 `core-min,native-host`，过滤 `scene::tests::ecs_observers_messages::late_sparse_despawn::cpu167_`。它不启用 Graphics/UI/Script，也没有隐藏其他已准入 test modules；编译/依赖前置错误不算 RED。本次在原实现真实失败之后才评估 cleanup 修改，实际后续结果与失败守卫保留如下。
+
+
+### 原实现实际 RED 与单 owner 候选（2026-11-18）
+
+原 `zircon_runtime` CPU libtest 实际编译并执行所选5案：**2 PASS / 3 FAIL / 0 ignored / 7775 filtered**。Remove、Despawn 两案均已成功接纳 `Ok(None)` 插入、同实体读回且记录准确回执；实体消失且 stale get 为 None 后，公开 count 仍为 **1（期望0）**，在测试63行失败。Drop 案也接纳拥有值，但在177行观察 target Drop **0（期望1）**；World 析构之后的终态未在这次失败处到达，不能据源码补写为实测。预先有行与 callback 替换的 survivor 两案通过。命令回执 SHA256：`29090e6d632a67ae7478dd2887ea66ec805fbe93b0406d433704441743d85cf3`；相关18份输入运行前后一致，回执不代表封闭进程树或产品验收。
+
+独立评估要求候选在 [同一清理 owner](../../../zircon_runtime/src/scene/world/hierarchy.rs#L10-L101) 保留通知快照，读取**回调后的当前 signature**作为拥有值清理列表，同时在 child orphan 之前绑定原 `InternalEntity`。每次原 World/plan guard 通过后立即核对同 stable ID 仍是原 index/generation；若消失或被替代，使用已有 `MissingEntity`，不得把新一代当原删除目标。原通知、World/plan 错误优先级、table/archetype/hierarchy/observer/camera/identity 后续顺序保留，不扫描全部 storage，不循环通知 late component，不新增准入架构、公开 API/错误变体、ABI 或 schema。
+
+另在 [既有 identity harness](../../../zircon_runtime/src/scene/tests/ecs_identity_storage.rs#L854-L855) 薄挂载 [3条代际控制](../../../zircon_runtime/src/scene/tests/ecs_despawn_identity.rs#L183-L230)：通过安全显式 retained state/真实恢复预算、one-shot observer 与公开 `remove_entity` / `insert_node_record`，分别在 Remove、child Hierarchy Replace、Despawn 回调恢复**同 stable ID / 不同 generation**；要求旧目标 typed `MissingEntity`，替代实体 record/table/sparse/count 完整，且不继续下一个 outer bucket。这3案已在候选上实际全部通过，但未在原实现上执行，不能冒称它们也取得过 baseline RED。它们没有改动原5条 oracle 或原旧测试正文。
+
+后续确实执行了同 `core-min,native-host` CPU profile 的 observer、identity 两个既有前缀，并用 `cpu167_` 聚焦复核8案；结果不伪装全绿，见下表。未执行的其他 libtests 只是编译准入，不声称所有 callback、UE/其他 OS、产品或性能通过。
+
+
+### 实际 scoped GREEN 与保留的旧守卫失败
+
+| 真正执行的过滤器（同一 CPU feature/profile） | 实际结果 | command receipt SHA256 |
+|---|---|---|
+| `scene::tests::ecs_observers_messages::late_sparse_despawn::cpu167_`（修复前） | **2 PASS / 3 FAIL / 0 ignored / 7775 filtered** | `29090e6d632a67ae7478dd2887ea66ec805fbe93b0406d433704441743d85cf3` |
+| `scene::tests::ecs_observers_messages::`（修复后扩展） | **31 PASS / 2 FAIL / 0 ignored / 7750 filtered**，原5全部通过；不能称整组 GREEN | `8fea9033968efebace77d797181df42ad4319702a95d2544094ed4cba381b7e2` |
+| `scene::tests::ecs_identity_storage::`（修复后扩展） | **37 PASS / 1 FAIL / 0 ignored / 7745 filtered**，3新代际控制及两旧 despawn 成本守卫通过；不能称整组 GREEN | `ecb8287a3f55a3f79db6343ff5bf7da6e92cad0b72412e7dd7cc5a134b629a26` |
+| `cpu167_`（修复后聚焦确认，无 skip） | **8 PASS / 0 FAIL / 0 ignored / 7775 filtered**；原5 + 新3，无其他匹配 | `f64580f9ade25843df92dd35af03a21619f800e4218f5956be92f860c9c4932f` |
+
+四次 payload 都是既有 `zircon_runtime --no-default-features --features core-min,native-host --lib`，`--locked --offline --jobs 1 -- --test-threads 1`；只换表中执行 filter。Windows x64/MSVC、Rust1.94.1，普通 test profile debug=0/incremental=false。使用规范本地 wrapper 显式绑定 owned工作树、Python3.12.14 与 F盘既有 cache/target，所有编译/cache/temp 在 drive-root cargo-targets 下；不启用 Graphics/UI/Script，不隐藏其他准入 libtests，不跑 UE/产品。前18/后20个选定源/夹具/manifest/lock 输入运行前后分别一致；不是整个进程/源码闭包封印。两组重复包含聚焦案，不能相加成总通过数。
+
+扩展组的3项失败完整保留，未改 guard 或 `--skip`：
+
+1. [batch writer 守卫](../../../zircon_runtime/src/scene/tests/ecs_observers_messages.rs#L471-L485) 要求一个 LF-only 多行字符串；实际 Windows CRLF 的 [queue 输入](../../../zircon_runtime/src/scene/ecs/events/queue.rs) 不匹配。该输入与 `e893` 规范化字节相同，基线 LF Git blob 命中字符串，CRLF 输入不命中。
+2. [immutable bucket 守卫](../../../zircon_runtime/src/scene/tests/ecs_observers_messages.rs#L434-L463) 仍要求旧 `Fn(&mut World, &ComponentLifecycleEvent) + Send + Sync` 文本；它消费的6份 observer 源与 `e893` 规范化一致，基线和当前 retained callback 源都无该字面量。
+3. [locator 守卫](../../../zircon_runtime/src/scene/tests/ecs_identity_storage/component_storage.rs#L137-L155) 先在已委托 locator 叶模块的入口文件要求过时字段字面量；该旧字面量在当前实现中并不存在。原测试139行已有 `CR-R02-runtime_ecs_identity_storage-0001` 注释；测试及 sparse 输入均与 `e893` 规范化一致。**此旧案后续 slot-generation 行为断言未到达，不能补写成 PASS。** 新3案的同 ID/新代际行为是真正独立执行通过的。
+
+这是直接输入相同及纯字符串谓词的源码反证，不是实际重跑过宽基线的声明。旧 parent 正文、3项 guard 和它们消费的源码未因本修复改动；不在 #167 顺带修复测试基础设施，不把窄 GREEN 升格为整个 ECS/Runtime 通过。
+
+实际保持了 accepted late-write 的释放守恒和原目标绑定；Drop 案在删除返回时 **target/survivor 1/0**，World 释放后 **1/1** 真正通过；3代际案验证替代实体的 record/table/sparse/count 保留及不继续后续 outer bucket。现有 World/plan cancellation 与通知顺序控制也通过。其他 OS、所有 callback 组合/异常、UE原测试、App/editor产品、性能以及上述3个旧守卫的完整验收仍不在本 scoped GREEN 内。所有PR保持Draft，未合并。
