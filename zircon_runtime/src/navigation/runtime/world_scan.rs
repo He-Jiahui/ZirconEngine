@@ -298,15 +298,13 @@ pub(super) fn collect_navigation_world_projection(world: &World) -> NavigationWo
         let Ok(obstacle) = NavMeshObstacleDescriptor::deserialize(value) else {
             continue;
         };
-        let Some(transform) = world
-            .world_transform(entity)
-            .or_else(|| world.node_record(entity).map(|node| node.transform))
+        let Some(matrix) = world
+            .world_matrix(entity)
+            .or_else(|| world.node_record(entity).map(|node| node.transform.matrix()))
         else {
             continue;
         };
-        let center = transform
-            .matrix()
-            .transform_point3(Vec3::from_array(obstacle.center));
+        let center = matrix.transform_point3(Vec3::from_array(obstacle.center));
         let radius = match obstacle.shape {
             NavMeshObstacleShape::Box => {
                 let size = Vec3::from_array(obstacle.size).abs();
