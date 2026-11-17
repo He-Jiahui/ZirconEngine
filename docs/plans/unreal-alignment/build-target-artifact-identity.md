@@ -1,10 +1,10 @@
 # BUILD-01：显式 target 的产物查找丢失身份，可能复制旧 host／另一 target 的同名文件
 
-> 取证说明：UE 的本机路径与文件 SHA256 是用户提供参考树的依据；本轮 D: 审计快照/工作记录仅本地保存，不随本 PR 发布，也不冒充 GitHub 可读证据。UE/ZE 测试均未在本轮执行。
+> 取证说明：UE 的本机路径与文件 SHA256 是用户提供参考树的依据；本轮 D: 审计快照/工作记录仅本地保存，不随本 PR 发布，也不冒充 GitHub 可读证据。以下六点保留创建 Draft 时的只读基线；当时未执行 UE/ZE 测试。后续同 PR 实施与实测见文末，工具 unittest 不等于产品验收。
 
 ## 1. 差异：两边路径、符号与调用链
 
-**结论：一条确定的独立实现缺陷；不是要求 ZE 复制 UE 架构。** 已完成目录盘点后才评估本问题，目录数量不作为行为审计证据。本报告不含修复、不执行 Cargo/UBT/引擎测试、不修改引擎或 Git，不声称发生过实际发布事故。
+**结论：一条确定的独立实现缺陷；不是要求 ZE 复制 UE 架构。** 已完成目录盘点后才评估本问题，目录数量不作为行为审计证据。原始调查阶段不含修复、未执行 Cargo/UBT/引擎测试或修改引擎/Git；后续阶段在本 PR 追加，不声称发生过实际发布事故。
 
 ZE 原任务指定只读 `cb495bb1c952a24c86f4513b8099bc4942c3a87d`；lead 要求正式固定 blob 引用采用 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`。**本问题两边同时存在**：`find_artifact` 的 AST 完全相同。本次使用绑定的 Python **3.12.14**，按 `ast.dump(fn, include_attributes=False)` 的 UTF-8 字节计算，SHA256 为 `69809f2338b721684a19a7ebcbcef0e440cf5edf9ee29b98ed706e78b3fee78b`；该 AST 序列化散列不保证跨 Python 版本相同，应优先用末尾固定 blob 原字节 SHA256 核对。两次函数级复现分别从两个 commit 的 Git blob 在内存提取；不是拿本地工作区代替固定版本。e893 的历史 `main` 仍含 Jenkins 转发入口，本报告没有执行该历史 CLI，也不以函数复现声称它已实际完成 staging；本问题与入口退役差异独立。
 
@@ -55,12 +55,12 @@ UE 的 `BuildProduct` / `BuildManifest` / `TargetReceipt` 是构建与打包数�
 
 ## 6. 具体 ZE 改法草案、测试迁移表及证据身份
 
-**草案，尚未实施：**
+**创建 Draft 时的原始草案（后续同 PR 阶段已实施，见文末）：**
 
 1. 给原 `find_artifact` 增加显式 target 参数，由 `copy_artifact` 和 native plugin 调用点传入既有 `effective_target_triple`。有 target 时只在对应 `<target_dir>/<T>/<profile>` 的允许位置查找；不得先选 flat，也不得扫描其他 triple 来兜底。找不到请求目标则报错。
 2. 无显式 target 时保留既有 host flat 布局的正常用法；与修复无关的符号、发布命名和缓存复用不改。不要用“每次删光共享 target”掩盖选择错误。
 3. staging 的 `profile_candidates` 在显式 target 下也限定同一 target，防止同一身份丢失链条被 provenance 的 legacy fallback 重新接受。无需新增全局产物架构。
-4. 回归放入现有 Python 工具测试 owner。下面名字带“拟新增”的都不是既有 UE/ZE 测试名。本次禁止写引擎/测试文件，因此只交草案和内存复现，不交修复或伪造 GREEN。
+4. 回归放入现有 Python 工具测试 owner。下面名字带“拟新增”的都不是既有 UE/ZE 测试名。原调查委派限只读，因此当时只交草案和内存复现；该历史阶段不禁止后续已授权的同 PR 回归/修复，也不将内存推演当成 GREEN。
 
 **原测试搜索范围：**已 glob/grep [UnrealBuildTool.Tests](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/UnrealBuildTool.Tests>)、[EpicGames.Build.Tests](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/Shared/EpicGames.Build.Tests>)、[EpicGames.BuildGraph.Tests](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/Shared/EpicGames.BuildGraph.Tests>)、[AutomationTool.Tests](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/AutomationTool.Tests>) 中的 CSharp 文件，关键词为 `MakeBinaryPaths / BuildProducts / TargetReceipt / CompileTask / artifact / receipt / manifest / output`。没有找到直接覆盖“共享 Cargo 输出树中旧 host 与显式 triple 同名文件竞争”的 UE 原测试；这不是对 UE 全仓测试的不存在证明。
 
@@ -73,7 +73,7 @@ UE 的 `BuildProduct` / `BuildManifest` / `TargetReceipt` 是构建与打包数�
 | **源码推导，非迁移；无直接 UE 原测试** | 无显式 target，仅 flat host | 应保持旧 host 布局；内存对照已正确 | 同一现有 orchestration 测试 owner，拟新增 targetless 兼容性用例。 |
 | **源码推导，非迁移；无直接 UE 原测试**。[staging source candidates:153–180](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/tools/build/zircon_build_staging_manifest.py#L153-L180>) | 显式 T、新 T 文件与 staged 旧 host 字节不符，但旧 host 字节匹配 | 不允许以 legacy hash match 证明请求 T 的来源；当前联合内存验证接受了旧来源 | 现有 [test_manifest_binds_staged_files_to_sources_and_hashes:11–89](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/tools/tests/test_zircon_build_staging_manifest.py#L11-L89>) 仅覆盖 flat；拟补 target 约束用例。 |
 
-现有测试只读审查，没有运行这些测试套件：所读部分工具测试会创建真实临时目录，超出本次仅允许 research 报告输出的范围。内存复现只执行从固定 blob 选取的原函数 AST，路径/内容/复制操作全是虚拟对象；没有导入构建工具、调用 Cargo 或接触发布目录。独立只读复核再次确认两基线的选择、copy/sidecar 和 provenance 结果一致；未发现清理或 ABI 层能推翻本问题的上游不变量，仍保留“不等于真实 PE／完整产品发布验收”的限制。
+创建 Draft 时现有测试仅做只读审查，没有运行这些测试套件：所读部分工具测试会创建真实临时目录，超出本次仅允许 research 报告输出的范围。内存复现只执行从固定 blob 选取的原函数 AST，路径/内容/复制操作全是虚拟对象；没有导入构建工具、调用 Cargo 或接触发布目录。独立只读复核再次确认两基线的选择、copy/sidecar 和 provenance 结果一致；未发现清理或 ABI 层能推翻本问题的上游不变量，仍保留“不等于真实 PE／完整产品发布验收”的限制。
 
 **UE 源文件 SHA256（仅元数据，供本机复核）：**
 
@@ -90,3 +90,45 @@ UE 的 `BuildProduct` / `BuildManifest` / `TargetReceipt` 是构建与打包数�
 | [PackageGraphTests.cs](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/AutomationTool.Tests/Oplog/PackageGraphTests.cs>) | `40a93124cfcadd290c88f46bb27bc7fb0bc3d7f845aa5391b6e84fe3e58aa6fc` |
 
 **ZE 固定 blob SHA256：**主构建文件 e893 为 `38c70befc02ec23b18e461345a22208cbf17cf6ab52efba3747abaf9de8aef35`，cb 为 `b81044950db5e3d0ff850ee2ff3aaf3ff8da048d900e9fb9061894593a210857`。整体文件差异来自入口退役与输出路径处理等本地提交，但本问题函数 AST 相同；并非将 cb 已修复问题重提。e893/cb 的 staging owner 相同，SHA256 `93ec10729671f5e6588b6d37e54ffb2ee0e42fea479d6feeef289b5389f64d1d`；BuildConfig 相同，SHA256 `692c73bd2fc1b1743a5dba3976dc5b25fc6f03eef2249328ef3173e5418ed06a`。
+
+
+## 后续实施与实测：2026-11-17
+
+按问题定义→现有 harness回归→真实原实现RED→可行评估→最小修改→相同用例GREEN推进。未移植不存在的UE同例测试；以下是依UE target→manifest约束推导的ZE工具回归。
+
+### 真正RED及排除的前置失败
+
+首轮因稀疏工作树未物化ZUI跨包校验依赖而出现3个Import ERROR；当时没有进入行为断言，**不算RED**。补入5个既有tracked模块，Git blob与原PR/e893一致，未造stub、未改生产或测试内容。
+
+随后原生产版本上实际运行6案：**4个断言FAIL、2个对照PASS、0ERROR，exit1**：
+
+| 原实现行为失败 | 观察 |
+|---|---|
+| 显式标准T与旧flat并存 | 实际复制 `(flat-dll,flat-pdb)`，而非请求的selected pair |
+| 请求T产物缺失 | 没有预期SystemExit，仍能取旧输出；不failclosed |
+| native plugin直调 | 无flat时选排序优先的U pair，不是T pair；只mock run_cargo，复制和符号字节为真实普通文件 |
+| staging来源 | 显式T却接受staged旧flat字节的来源 |
+
+无显式T的legacy flat对照、精确T的manifest路径/sha256对照通过。不是依赖新增函数签名得到TypeError，实际调用既有config/copy/native/provenance链。
+
+### 最小修复及边界
+
+- 仅修改既有两Python owner：构建selector/callers与staging来源候选；runtime/preview/editor的copy与native plugin直调均传既有effective_target_triple。
+- 显式T只在其invocation-root/T/profile内查找；不存在就拒绝，不回退flat/另一T。manifest也只接受对应来源，不靠恰好相同hash给错误T背书。
+- None原flat-first及原sorted scan、manifest的原flat候选行为保留。复制、相邻符号放置、产品发布别名、清单格式、CLI/Cargo参数、ABI、CI及已退役入口不变。
+- helper在lookup侧拒绝路径型/父穿越target，按未被重定向的预期profile检查resolved source，拒绝T→U或根外路径；manifest还约束其artifact root位于configured targets_root。新增两个已有class中的控制覆盖slash/backslash路径及mock resolve模拟junction，不要求Windows创建链接特权。
+- 当前契约是标准Rust triple；不把历史basename扫描的偶然命中当成custom JSON target spec支持，不猜JSON stem、不改CLI parser。此补丁不保证同一T内的本次编译新鲜度、任意feature闭包或恶意并发文件替换，也不新增全局receipt架构。
+
+### 实际GREEN与验收范围
+
+在Windows、本机绑定Python3.12.14上，以-B -X utf8、全新D:/cargo-targets/zircon-local下本任务独占临时目录运行已有两个模块：**18案全部PASS、exit0**，其中包括原6案、2个新增guard和10个既有兼容控制；运行前后四个生产/测试文件sha256一致。8个聚焦case包含在18案内，不虚称另跑一遍独立8案。
+
+```powershell
+& '<bundled-python3.12.14>' -B -X utf8 -m unittest -v `
+  tools.tests.test_zircon_build_runtime_orchestration `
+  tools.tests.test_zircon_build_staging_manifest
+```
+
+原始命令回执与完整日志保留本机：[真实RED日志](<D:/cargo-targets/zircon-local/ze-ue-build-identity-20261117-unittest-ea29e6bf45d54f17a2a9c4804daaaab3/unittest.log>)、[GREEN18日志](<D:/cargo-targets/zircon-local/ze-ue-build-identity-20261117-unittest-a3f717dc342e43879770b40bd636eba1/unittest.log>)，不是GitHub托管附件。
+
+**这里只证明工具层的选择/复制/符号/来源hash合同，不是Cargo实际编译、UBT、真实PE/ABI、引擎启动、产品staging或发布验收。** 模拟DLL/PDB是marker bytes，从未冒作可加载二进制。无引擎编译产物/符号包可作为本轮发行交付；仍需另行运行真实产品门。PR保持Draft，不合并。
