@@ -10,7 +10,7 @@ use crate::core::framework::navigation::{
     NAV_MESH_OBSTACLE_COMPONENT_TYPE,
 };
 use crate::core::framework::scene::ComponentPropertyPath;
-use crate::core::math::{Real, Transform, Vec3};
+use crate::core::math::{Quat, Real, Transform, Vec3};
 use crate::navigation::NavRepathBudget;
 use crate::scene::components::NodeKind;
 use crate::scene::World;
@@ -593,6 +593,136 @@ fn with_tick_deadline(label: &'static str, run: impl FnOnce() + Send + 'static) 
             panic!("tick fixture worker disconnected before sending its result");
         }
     }
+}
+
+#[test]
+fn rigid_offset_obstacle_steers_from_its_true_center() {
+    observe_affine_obstacle_steering("rigid", None);
+}
+
+#[test]
+fn sheared_x_offset_obstacle_steers_from_its_true_center() {
+    observe_affine_obstacle_steering("shear_x", Some(Vec3::X));
+}
+
+#[test]
+fn sheared_z_offset_obstacle_steers_from_its_true_center() {
+    observe_affine_obstacle_steering("shear_z", Some(Vec3::Z));
+}
+
+fn observe_affine_obstacle_steering(label: &'static str, shear_axis: Option<Vec3>) {
+    with_tick_deadline(label, move || {
+        let manager = loaded_flat_navigation();
+        let mut world = World::empty();
+        let start = -Vec3::X;
+        let destination = Vec3::X * 4.0;
+        let agent = spawn_test_agent(&mut world, start, destination);
+        let path = manager
+            .find_path(NavPathQuery::new(start.to_array(), destination.to_array()))
+            .unwrap();
+        assert_eq!(path.status, NavPathStatus::Complete);
+        assert!((path.length - 5.0).abs() < 1e-4);
+        assert!(
+            (Vec3::from_array(path.points.last().unwrap().position) - destination).length() < 1e-4
+        );
+        assert_eq!(manager.lock_state().repath_queries, 0);
+
+        let obstacle = world.spawn_node(NodeKind::Empty).unwrap();
+        let local = shear_axis.unwrap_or(Vec3::X) * 16.0;
+        let column_dot = if let Some(axis) = shear_axis {
+            let parent = world.spawn_node(NodeKind::Empty).unwrap();
+            world
+                .update_transform(
+                    parent,
+                    Transform {
+                        scale: Vec3::new(0.25, 1.0, 4.0),
+                        ..Transform::default()
+                    },
+                )
+                .unwrap();
+            assert!(world.set_parent_checked(obstacle, Some(parent)).unwrap());
+            let d = 16.0 * std::f32::consts::FRAC_1_SQRT_2;
+            // Scalar 45-degree result, compensated before the parent scale.
+            let z = if axis == Vec3::X { d } else { -d };
+            world
+                .update_transform(
+                    obstacle,
+                    Transform {
+                        translation: Vec3::new(-d, 0.0, z),
+                        rotation: Quat::from_rotation_y(std::f32::consts::FRAC_PI_4),
+                        ..Transform::default()
+                    },
+                )
+                .unwrap();
+            -7.96875
+        } else {
+            world
+                .update_transform(obstacle, Transform::from_translation(-local))
+                .unwrap();
+            0.0
+        };
+        let matrix = world.world_matrix(obstacle).unwrap();
+        assert!((matrix.x_axis.dot(matrix.z_axis) - column_dot).abs() < 1e-4);
+        assert!(matrix.transform_point3(local).length() < 1e-4);
+        let mut descriptor = NavMeshObstacleDescriptor {
+            shape: NavMeshObstacleShape::Box,
+            center: local.to_array(),
+            size: [0.7, 2.0, 0.7],
+            avoidance_enabled: false,
+            carve: false,
+            ..NavMeshObstacleDescriptor::default()
+        };
+        // Advance one live agent without resets: the warm phase checks reuse;
+        // subsequent edits change only the obstacle flag, not the route or pose.
+        let phases = ["off", "warm", "on", "off_again"];
+        let mut positions = [start.x; 5];
+        for (step, edit) in [Some(false), None, Some(true), Some(false)]
+            .into_iter()
+            .enumerate()
+        {
+            if let Some(enabled) = edit {
+                descriptor.avoidance_enabled = enabled;
+                let generation = world.world_generation();
+                world
+                    .set_dynamic_component(
+                        obstacle,
+                        NAV_MESH_OBSTACLE_COMPONENT_TYPE,
+                        serde_json::to_value(&descriptor).unwrap(),
+                    )
+                    .unwrap();
+                assert_ne!(world.world_generation(), generation);
+            }
+            let report = manager.tick_world_agent(&mut world, agent, 0.1).unwrap();
+            let position = world.world_matrix(agent).unwrap().w_axis.truncate();
+            positions[step + 1] = position.x;
+            let state = manager.lock_state();
+            let projection = state
+                .navigation_projection
+                .as_ref()
+                .expect("actual retained projection");
+            println!("BUILTIN_AFFINE_AVOID label={label} phase={} x={} builds={} rows={} queries={} center_gap={}",
+                phases[step], position.x, state.navigation_projection_builds,
+                state.navigation_projection_component_rows, state.repath_queries,
+                projection.obstacles[0].center.length());
+            assert_eq!(report.scanned_agents, 1);
+            assert_eq!(report.moved_agents, 1);
+            assert_eq!(report.blocked_agents, 0);
+            assert!(position.y.abs() < 1e-5 && position.z.abs() < 1e-5);
+            assert!((position.x - positions[step]).abs() > 0.15);
+            assert_eq!(state.repath_queries, 1);
+            let builds = [1, 1, 2, 3][step];
+            assert_eq!(state.navigation_projection_builds, builds);
+            assert_eq!(state.navigation_projection_component_rows, 2 * builds);
+            assert_eq!(projection.generation, world.world_generation());
+            assert_eq!(projection.obstacles.len(), 1);
+        }
+        assert!((positions[1] + 0.8).abs() < 1e-4 && (positions[2] + 0.6).abs() < 1e-4);
+        assert!(
+            positions[3] < positions[2] - 0.15,
+            "enabled steering must move away from the actual affine obstacle center: {positions:?}"
+        );
+        assert!(positions[4] > positions[3] + 0.15 && (positions[4] - positions[2]).abs() < 1e-4);
+    });
 }
 
 #[test]
