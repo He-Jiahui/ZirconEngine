@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171，当前共 **22 个问题 Draft**；同 PR 回归/修复的最新范围见第7节。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174 和旧恢复归属 #175，当前共 **24 个问题 Draft**；同 PR 回归/修复的最新范围见第8节，第7节保留第二轮快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -44,7 +44,7 @@ CSV 标志口径：`is_template` 只识别精确 `Templates` 路径段，SoundCu
 
 ## 3. 首轮已建立的21个独立问题Draft（发布时快照）
 
-所有 PR 独立基于同一 main 基线，不把另一个问题的实现栈进来。下表固定链接和状态只指首轮问题定义快照，后续 #159/#161 状态已在第7节更新；不是RED/GREEN或产品验收。
+所有 PR 独立基于同一 main 基线，不把另一个问题的实现栈进来。下表固定链接和状态只指首轮问题定义快照，后续 #159/#161 状态见第7节历史与第8节当前更新；不是RED/GREEN或产品验收。
 
 | Draft | 问题 | 六点与对照测试内容 |
 |---|---|---|
@@ -138,7 +138,7 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 本轮文档级核验：规则源文件 2766 项 SHA256、领域 owner 154 项 SHA256、计数/模板/路径集合交叉核对及所有问题的六点/源链接/行范围/声明指纹检查；Git 最终 diff 与远端 PR head/file 范围逐一核验。这些仅是文档/来源证据，不是引擎测试。
 
 
-## 7. 后续波次：2026-11-17（仍无合并或整体验收）
+## 7. 第二轮波次快照：2026-11-17（此时状态，后续见第8节）
 
 此表记录首轮创建后真正发生的范围变化，不重写原始发布/目录指纹回执。8份CSV和2766规则、40领域计数均不变；它们的review/test字段是首轮快照，不是实时运行状态。
 
@@ -150,4 +150,17 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 
 深审推进不代表Montage整套能力、所有通知模式或其他未审领域通过；文本/媒体/XR/更多布局与导入烘焙等局部/目录域仍须继续。其余首轮问题仍按各自同PR补回归、真实RED、可行评估和最小fix推进。
 
-并发原有导航 [#170](https://github.com/He-Jiahui/ZirconEngine/pull/170) 为独立facing-yaw符号问题，与本轮Notify和 #146/#158 均不同；留原会话跟踪，未重复建PR。**当前22个本任务问题Draft +1个目录Draft均不因窄单元GREEN自动变Ready/合并；产品门、运行窗口/设备门和性能门不降低。**
+并发原有导航 [#170](https://github.com/He-Jiahui/ZirconEngine/pull/170) 为独立facing-yaw符号问题，与本轮Notify和 #146/#158 均不同；留原会话跟踪，未重复建PR。**第二轮记录22个本任务问题Draft +1个目录Draft均不因窄单元GREEN自动变Ready/合并；产品门、运行窗口/设备门和性能门不降低。**
+
+
+## 8. 第三轮当前状态：2026-11-17
+
+**24个独立问题Draft +1个目录Draft；均未合并。** 原始8份CSV/40域和2766规则集合指纹仍冻结不变，目录数量不当行为审计通过。本节覆盖第7节中IO当时的前置失败状态，不抹掉当时回执。
+
+| PR | 实际进展 | 验收边界 |
+|---|---|---|
+| [#159 原子长名](https://github.com/He-Jiahui/ZirconEngine/pull/159) | [当前修复/回归记录](<https://github.com/He-Jiahui/ZirconEngine/blob/5e6555df3ed914a6249fc20e52b0e5537081a4b3/docs/plans/unreal-alignment/io-atomic-sibling-names.md>)：合规F盘缓存原地复用后，原实现6条长名真实FAIL/21控制PASS；可行评估后4-owner最小命名/识别修复，原6不弱化，atomic48PASS+1原perfIgnored、durable23PASS。路径复核发现新test名超80/128，缩短且原字节保留，相关23重跑通过；独立最终代码复核Scoped PASS。 | 原target/同目录/排他/checked序号/平台原语/同步/wire未改；v2精确角色/owner与窄journal-staging分类。只Windows Resource单测，未测Unix/断电/真实Foundation产品保存/性能；23复跑不重复累加。旧短名归属未夹带。 |
+| [#174 文本接续字素](https://github.com/He-Jiahui/ZirconEngine/pull/174) | 新独立[六点问题定义](<https://github.com/He-Jiahui/ZirconEngine/blob/90d0342a9a9d94d85f9fe066877f9ca9d83d9fe1/docs/plans/unreal-alignment/text-combining-edit-intent.md>)：focused可写TextInput的e后提交U+0301，合法UTF8 Insert差量被当成新EGC光标边界而拒绝。路由、精确delta/Undo合同与独立反证已核；保持byte delta与interaction grapheme分离。 | 仅1MD，未写或运行该问题测试，未修生产。Slate原ASCII插入是控制，接缝与Undo/Redo为源码派生；不声称原生按键序列/特定IME或CtrlV已实测。 |
+| [#175 旧备份错属主](https://github.com/He-Jiahui/ZirconEngine/pull/175) | 新独立[六点问题定义](<https://github.com/He-Jiahui/ZirconEngine/blob/175cea6727bbe3c12224129c7455fb8a0010cfbf/docs/plans/unreal-alignment/io-recovery-exact-owner.md>)：缺失短config.json时，另一较长源leaf的staging或backup在单候选下被旧prefix+union角色判定采纳；Foundation先移动后JSON。同属主合同明确，独立反证通过。 | 仅1MD，尚无该问题实际RED或生产修复，与159长名/v2 namespace分开。UE精确Name/目录备份仅身份处理对照，不是相同自动恢复或原测试迁移。 |
+
+#161工具层18GREEN和#171 source-only状态不变。当前文本/无障碍/本地化深审只保留#174有证据缺陷，不把缺高级功能当bug；其他未深入或局部域继续。并发导航[#173](https://github.com/He-Jiahui/ZirconEngine/pull/173)为Recast烘焙继承shear丢失，已按实际正文/owner文件去重，与174/175无关，留原会话；不接管#146/#158/#170/#172。下轮仍在各原PR先真实RED、可行评估、最小fix和相同GREEN，不自动合并或降低产品门。
