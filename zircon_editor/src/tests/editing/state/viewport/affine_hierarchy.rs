@@ -1,6 +1,7 @@
+use std::fs;
 use std::sync::Arc;
 
-use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
+use zircon_runtime::asset::{AssetManager, AssetUri, ProjectAssetManager, ProjectManifest};
 use zircon_runtime::core::framework::render::{
     RenderFrameExtract, RenderFramework, RenderQualityProfile, RenderViewportDescriptor,
 };
@@ -74,8 +75,23 @@ fn live_editor_viewport_draws_child_affine_silhouette_offscreen() {
             );
         }
     }
-    let (asset_runtime, assets) =
-        editor_render_asset_access(Arc::new(ProjectAssetManager::default()));
+    // Runtime is a normal dependency here, so its cfg(test) project-less
+    // constructor does not apply. Use a fresh project without authoring assets.
+    let project_root =
+        std::env::temp_dir().join(format!("zr-editor-affine-{}", uuid::Uuid::new_v4()));
+    fs::create_dir(&project_root).unwrap();
+    ProjectManifest::new(
+        "Editor Affine Viewport Fixture",
+        AssetUri::parse("res://scenes/unused.zrscene.json").unwrap(),
+        1,
+    )
+    .save(project_root.join("zircon-project.toml"))
+    .unwrap();
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(project_root.to_str().expect("fixture project path"))
+        .expect("activate an isolated project for the offscreen renderer");
+    let (asset_runtime, assets) = editor_render_asset_access(asset_manager);
     let framework =
         WgpuRenderFramework::new(assets, asset_runtime.task_graph().worker_pool().clone())
             .expect("hardware offscreen renderer");
