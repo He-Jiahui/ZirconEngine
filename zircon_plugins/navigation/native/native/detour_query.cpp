@@ -34,7 +34,7 @@ constexpr std::uint32_t ZR_NAV_DETOUR_ERROR = 0;
 constexpr std::uint32_t ZR_NAV_DETOUR_OK = 1;
 constexpr std::uint32_t ZR_NAV_DETOUR_UNSUPPORTED_OR_NO_PATH = 2;
 constexpr std::uint8_t ZR_NAV_AREA_WALKABLE = 1;
-constexpr unsigned short ZR_NAV_DETOUR_NULL_VERTEX = 0xffffu;
+constexpr unsigned short ZR_NAV_DETOUR_NULL_INDEX = 0xffffu;
 constexpr int ZR_NAV_DETOUR_MAX_VERTS_PER_POLYGON = DT_VERTS_PER_POLYGON;
 constexpr int ZR_NAV_DETOUR_MAX_PATH = 512;
 constexpr int ZR_NAV_DETOUR_MAX_STRAIGHT_PATH = 512;
@@ -411,7 +411,9 @@ bool build_detour_polys(
     }
 
     const int nvp = ZR_NAV_DETOUR_MAX_VERTS_PER_POLYGON;
-    detour_polys->assign(static_cast<std::size_t>(polygon_count) * nvp * 2, 0);
+    // Both unused vertex slots and unmatched neighbor slots use the Detour null index.
+    // Zero in the neighbor half refers to the first polygon, not a border.
+    detour_polys->assign(static_cast<std::size_t>(polygon_count) * nvp * 2, ZR_NAV_DETOUR_NULL_INDEX);
     poly_flags->assign(polygon_count, 0);
     poly_areas->assign(polygon_count, ZR_NAV_AREA_WALKABLE);
     std::vector<std::vector<std::uint32_t>> polygon_vertices;
@@ -423,9 +425,6 @@ bool build_detour_polys(
             return false;
         }
         const std::size_t polygon_offset = static_cast<std::size_t>(polygon_index) * nvp * 2;
-        for (int vertex_index = 0; vertex_index < nvp; ++vertex_index) {
-            (*detour_polys)[polygon_offset + vertex_index] = ZR_NAV_DETOUR_NULL_VERTEX;
-        }
         for (std::size_t vertex_index = 0; vertex_index < unique_vertices.size(); ++vertex_index) {
             (*detour_polys)[polygon_offset + vertex_index] = static_cast<unsigned short>(unique_vertices[vertex_index]);
         }
