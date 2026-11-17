@@ -2,11 +2,11 @@
 
 ## 1. 本轮阶段与边界
 
-本轮完成的是用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171，当前共 **22 个问题 Draft**；同 PR 回归/修复的最新范围见第7节。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
-- **21 个问题 PR 此时均只新增各自 Markdown；本总览只新增 Markdown/CSV 元数据。引擎修复、Rust 等价测试、Cargo/UBT、GPU/产品运行均未在本轮执行。** 构建选取函数的纯内存见证、四元数独立算术和文件系统只读元数据探针不是引擎回归通过。
+- **首轮21个问题PR刚发布时均只新增各自Markdown；此时的文档级回执冻结保存，不作为后续禁止测试/修复的条件。本总览仍仅Markdown/CSV元数据；初始阶段未改引擎或执行Rust等价测试/Cargo/UBT/GPU/产品。** 构建选取函数的纯内存见证、四元数独立算术和文件系统只读元数据探针不是引擎回归通过。
 - 不发明替代架构；Prefab 保持 Unity 思路，仅属性覆盖/预设参考 Blueprint。报告不是修复授权依据的替代品，后续仍回原 UE 源复核。
 
 ## 2. 源身份与完整目录口径
@@ -36,15 +36,15 @@ CSV 标志口径：`is_template` 只识别精确 `Templates` 路径段，SoundCu
 | [module-rules.csv](<module-rules.csv>) | 2588 条规则路径/类别/class/模板/平台/测试标志与 SHA256 |
 | [target-rules.csv](<target-rules.csv>) | 178 条目标规则与 SHA256 |
 | [module-categories.csv](<module-categories.csv>) | 112 行分类与零值统计 |
-| [domain-map.csv](<domain-map.csv>) | 40 域 UE/ZE owner、当前审查状态、PR、未查清边界 |
+| [domain-map.csv](<domain-map.csv>) | 40 域 UE/ZE owner、首轮限定审查状态、PR、未查清边界 |
 | [ue-owner-evidence.csv](<ue-owner-evidence.csv>) | 154 条领域–UE owner 关联证据（119 个不同 UE owner / 源路径，含 SHA256） |
 | [ue-test-modules.csv](<ue-test-modules.csv>) | 414 条测试指示规则，非已通过/已迁移数量 |
 | [ue-test-source-candidates.csv](<ue-test-source-candidates.csv>) | 2677 个命名/Tests 目录 C++ 候选，23 个无最近祖先规则 |
 | [ue-csharp-projects.csv](<ue-csharp-projects.csv>) | 162 个 CSharp 项目，39 个测试指示项目 |
 
-## 3. 已建立的 21 个独立问题 Draft
+## 3. 首轮已建立的21个独立问题Draft（发布时快照）
 
-所有 PR 独立基于同一 main 基线，不把另一个问题的实现栈进来。下表状态只指问题定义，不等于 RED/GREEN 或产品验收。
+所有 PR 独立基于同一 main 基线，不把另一个问题的实现栈进来。下表固定链接和状态只指首轮问题定义快照，后续 #159/#161 状态已在第7节更新；不是RED/GREEN或产品验收。
 
 | Draft | 问题 | 六点与对照测试内容 |
 |---|---|---|
@@ -74,7 +74,7 @@ CSV 标志口径：`is_template` 只识别精确 `Templates` 路径段，SoundCu
 
 “无新缺陷”仅表示这轮读到的限定契约未证实新独立问题，不代表模块全部正确；“目录映射”不是行为审计。多个领域指向同一问题时只计一个 Draft。
 
-CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；本轮限定结论以 `review_status` / `review_note` 为准，不将初盘状态误认成当前行为通过。
+CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮限定结论以其 `review_status` / `review_note` 为准，第7节记录后续状态；不将任一目录/审查快照误认成当前行为通过。
 
 | 领域 | 本轮状态 | PR/依据 |
 |---|---|---|
@@ -136,3 +136,18 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；本轮
 5. 当前只授权问题 Draft 与本任务后续流程，不因目录盘点/本地命令通过自动合并、改 CI 或接受未清问题。源代码、索引、他人工作树/未提交内容保持保护。
 
 本轮文档级核验：规则源文件 2766 项 SHA256、领域 owner 154 项 SHA256、计数/模板/路径集合交叉核对及所有问题的六点/源链接/行范围/声明指纹检查；Git 最终 diff 与远端 PR head/file 范围逐一核验。这些仅是文档/来源证据，不是引擎测试。
+
+
+## 7. 后续波次：2026-11-17（仍无合并或整体验收）
+
+此表记录首轮创建后真正发生的范围变化，不重写原始发布/目录指纹回执。8份CSV和2766规则、40领域计数均不变；它们的review/test字段是首轮快照，不是实时运行状态。
+
+| 同一问题PR / 新独立PR | 当前进度 | 已验证与明确未验证 |
+|---|---|---|
+| [#161 Build](https://github.com/He-Jiahui/ZirconEngine/pull/161) | 原实现6案：4个行为断言FAIL、2控制PASS、0ERROR；可行评估后最小fix；已有2个Python模块18案全PASS；独立最终代码复核Scoped PASS | [当前记录与修改](<https://github.com/He-Jiahui/ZirconEngine/blob/f7ae575c8e016dcaaa60c6df27d3b0a081eb015b/docs/plans/unreal-alignment/build-target-artifact-identity.md>)。仅selector/callers与provenance绑定既有显式T、None兼容、8个聚焦case及既有控制。首轮稀疏Import ERROR不是RED；模拟DLL/PDB非真实PE。没有Cargo/UBT/真实产品发布验收，保持Draft。 |
+| [#159 Core IO](https://github.com/He-Jiahui/ZirconEngine/pull/159) | 已在原zr_resource lib harness补6条源码派生回归代码；3次Cargo在索引/依赖前置退出101；**未编译或执行单测，无行为RED，无生产修复** | [当前记录与6条测试](<https://github.com/He-Jiahui/ZirconEngine/blob/6166e2c9911bc979104bb63a398664dc62dd6cd0/docs/plans/unreal-alignment/io-atomic-sibling-names.md>)。目录/缓存探针不当作测试PASS；hash命名不能串恢复、journal orphan删除分类及Windows ReplaceFileW自身名字仍是可行门。 |
+| [#171 Animation/Notify](https://github.com/He-Jiahui/ZirconEngine/pull/171) | 第22个独立问题Draft，新增只读Montage/Slot/通知打断深审和双重反证 | [六点及精确见证](<https://github.com/He-Jiahui/ZirconEngine/blob/5cb8d1b1bbedc4b6f837019d9cc9dac7ca0b017e/docs/plans/unreal-alignment/animation-interrupt-notify-once.md>)：root A→B被B→C打断重扫B窗口，layer已有正确起点可复用。UE标准blend单node单次Update防重复，不是全局同名notify消重；AI最终记录可能合并，不声称伤害/感知翻倍。源码派生回归仍未新增/执行，不把缺Montage能力当bug。 |
+
+深审推进不代表Montage整套能力、所有通知模式或其他未审领域通过；文本/媒体/XR/更多布局与导入烘焙等局部/目录域仍须继续。其余首轮问题仍按各自同PR补回归、真实RED、可行评估和最小fix推进。
+
+并发原有导航 [#170](https://github.com/He-Jiahui/ZirconEngine/pull/170) 为独立facing-yaw符号问题，与本轮Notify和 #146/#158 均不同；留原会话跟踪，未重复建PR。**当前22个本任务问题Draft +1个目录Draft均不因窄单元GREEN自动变Ready/合并；产品门、运行窗口/设备门和性能门不降低。**
