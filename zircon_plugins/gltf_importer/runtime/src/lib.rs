@@ -186,30 +186,22 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
             }
             mesh_asset.morph_targets = morph_targets;
             mesh_asset.skin = mesh_skins.get(&mesh.index()).cloned();
-            if tangents_missing {
-                if let Some(uv_attribute) = normal_tangent_uv_attribute {
-                    mesh_asset.attributes.remove(MESH_ATTRIBUTE_TANGENT);
-                    mesh_asset
-                        .try_generate_missing_tangents_for_uv(uv_attribute)
-                        .map_err(|error| {
-                            AssetImportError::Parse(format!(
-                                "generate glTF MikkTSpace tangents for {primitive_label}: {error}"
-                            ))
-                        })?;
-                }
-            }
-            mesh_asset
-                .try_rebuild_morph_tangent_frames_for_uv(
+            let tangent_frames = if let Some(uv_attribute) =
+                normal_tangent_uv_attribute.filter(|_| tangents_missing)
+            {
+                mesh_asset.attributes.remove(MESH_ATTRIBUTE_TANGENT);
+                mesh_asset.try_generate_missing_tangents_and_morph_frames_for_uv(
+                    uv_attribute,
                     normals_missing,
-                    tangents_missing
-                        .then_some(normal_tangent_uv_attribute)
-                        .flatten(),
                 )
-                .map_err(|error| {
-                    AssetImportError::Parse(format!(
-                        "rebuild glTF morph tangent frames for {primitive_label}: {error}"
-                    ))
-                })?;
+            } else {
+                mesh_asset.try_rebuild_morph_tangent_frames_for_uv(normals_missing, None)
+            };
+            tangent_frames.map_err(|error| {
+                AssetImportError::Parse(format!(
+                    "build glTF tangent frames for {primitive_label}: {error}"
+                ))
+            })?;
             cook_mesh_asset_derived_data(
                 &mut mesh_asset,
                 mesh_name,

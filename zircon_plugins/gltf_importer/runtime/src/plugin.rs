@@ -16,8 +16,8 @@ use crate::{
 
 pub const GLTF_IMPORTER_DIST_CRATE_NAME: &str = "zircon_plugin_gltf_importer_dist";
 pub const GLTF_IMPORTER_DIST_RUNTIME_ENTRY: &str = NATIVE_RUNTIME_ENTRY.name();
-// Increment when the root/subasset graph changes independently of decoded textures.
-const GLTF_IMPORTER_OUTPUT_SCHEMA_VERSION: u32 = 2;
+// Increment when generated subassets change independently of decoded textures.
+const GLTF_IMPORTER_OUTPUT_SCHEMA_VERSION: u32 = 3;
 const GLTF_IMPORTER_VERSION: u32 =
     GLTF_IMPORTER_OUTPUT_SCHEMA_VERSION + DECODED_RGBA8_TEXTURE_BUILD_VERSION;
 

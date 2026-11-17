@@ -13,6 +13,9 @@ use crate::asset::{
 };
 use crate::core::framework::render::RenderMeshTopology;
 
+#[path = "tangent_generation/provenance.rs"]
+mod provenance;
+
 #[test]
 fn mesh_asset_generates_missing_tangents_for_unindexed_triangle_list() {
     let mut mesh = MeshAsset {
