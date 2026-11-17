@@ -1,6 +1,6 @@
 # Windows 配置恢复可能误用另一目标的暂存文件或备份
 
-**状态：独立 Draft 候选，仅源码取证。** ZE 引用固定在 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`，与本轮审阅的相关规范树代码等价；UE 参考为本机 [Build.version:2–9](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Build/Build.version#L2-L9>) 声明的 6.0.0、BranchName `UE5`、CL 0，源码提交未知。UE 链接是本机取证锚点，非公开可读源码。下文的两个场景是源码推导，不是已运行的测试或产品复现。本问题只涉及现有短文件名的旧版恢复候选判定，**与 #159 的长文件名暂存命名边界独立**；不需先合入或修改 #159。未发布、未执行 Cargo/Git/远端操作、未修改引擎或测试。
+**初始问题定义阶段：独立 Draft，仅源码取证；后续同PR实施/实测见文末。** ZE 引用固定在 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`，与本轮审阅的相关规范树代码等价；UE 参考为本机 [Build.version:2–9](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Build/Build.version#L2-L9>) 声明的 6.0.0、BranchName `UE5`、CL 0，源码提交未知。UE 链接是本机取证锚点，非公开可读源码。下文的两个场景是源码推导，不是已运行的测试或产品复现。本问题只涉及现有短文件名的旧版恢复候选判定，**与 #159 的长文件名暂存命名边界独立**；不需先合入或修改 #159。该原始调查阶段未执行Cargo或修改引擎/测试；之后已先发布独立#175，再按同PR流程推进。
 
 ## 1. 两边的实际入口
 
@@ -36,7 +36,7 @@ ZE [旧生成规则:20–44](<https://github.com/He-Jiahui/ZirconEngine/blob/e89
 | [ConfigContext.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Private/Misc/ConfigContext.cpp>) | `74cfc53410cd527313c7c996d43695b31a47f705d8ea886c8a6b6e377c0c1ee6` |
 | [FileTest.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Tests/Misc/FileTest.cpp>) | `32423bef2cee04e38b032938490190bf3597ce0b281b0216e60850a1a62a418e` |
 
-## 4. Rust 最小改法（未实施）
+## 4. 创建 Draft 时的 Rust 最小改法（历史方案）
 
 只改 `zr_resource` 的 Windows 旧名 backup 归属判定。对现有精确 `.<leaf>.zr-backup-` 前缀，检查去掉它之后的**整个**余串必须恰为原数字 `PID-sequence` 形状：非空 ASCII 十进制 PID，恰一个分隔符，非空且可解析为 `NonZeroU64` 的十进制序号，不允许额外 marker、字符或后缀。首选复用现有尾部校验，不另行收紧旧 PID 的数值范围/规范化，也不要求 PID 是当前进程。这样既不接受 A 的 staging，也不接受 B 的较长 leaf。通用形状识别仍可供资产过滤，不把它当作 Windows 恢复归属凭证。
 
@@ -52,3 +52,36 @@ UE 是 `FConfigContext`/`FConfigFile` 的 C++ 配置层比较；ZE 是 Foundatio
 - **UE 邻近测试，不是同例原测：** 本地 Core/Tests、Core/Private 的 `*Test*.cpp` 与 EditorConfig/Private/Tests 检索 wrapper、config backup/recovery、`SaveSourceToBackupFile`/`ProcessSourceAndCheckAgainstBackup`，未定位等价的错源自动恢复用例。[FileTest — FFileCompetingCaseDirectoriesTest:323–349](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Tests/Misc/FileTest.cpp#L323-L349>) 以不同内容区分实际读到的文件，适合作为精确字节断言的参考；它测试大小写路径解析，不是备份扫描。[FFileAppendTest:95–175](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Tests/Misc/FileTest.cpp#L95-L175>) 验证普通写入与覆盖，也不是该恢复原测。
 - **先独立复核、去重、发布 Draft，再取得 RED。** 在现有 atomic-file lib harness 新增仅 Windows 运行的恢复用例，利用其 [test_root:333–347](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/crates/zr_resource/src/io/atomic_file/tests/mod.rs#L333-L347>) 下分别布置 §2 A/B，先确认目标真实缺失且候选可读、字节准确。对真实恢复入口分别要求 `Ok(false)`、原目标仍缺失、错源文件精确路径与字节不变。两个错例必须分开，否则原代码会先报多候选歧义，掩盖单候选错恢复。正对照用一份精确合法备份，验证恢复到原名并只消耗该文件；保留多真候选歧义、非普通候选及已有目标的不变控制。
 - **验证门：** 授权后先运行原生产实现上的 `zr_resource` lib 定向 Windows 测试（默认 features 禁用、无额外 features、合规盘根 `cargo-targets`，仅相应测试过滤），确认两条失败来自错误移动／归属，不是 fixture 环境或编译。之后才窄修并用同一回归及既有控制验证；可另选 Foundation startup 作产品接线证据，但不是首个 RED 的前置。不引入新 harness，不把未运行的源码推导宣称为实际损坏或修复通过。
+
+
+## 后续实施与原生实测：2026-11-18
+
+此阶段在原#175/e893独立分支推进，不叠入#159的长名/v2命名修复；原六点作为基线证据保留。
+
+### 先真实RED，不改生产
+
+只在现有Resource atomic-file harness的Windows模块新增7案。错源staging由实际stage_atomic_write产生并保留pending holder；错源backup由实际atomic_write_with_fault(ParentSync)在发布后同步故障中保留，并核对真实注入文案、另一目标已发布字节和备份旧字节。两个singleton各在独立目录，真实文件形状、唯一候选及字节先核对，不能靠把两者放一起触发歧义伪装通过。
+
+原生产上实际编译并运行：**3条断言FAIL、4条控制PASS、0ignored**。两条singleton都实际返回Ok(true)，把FOREIGN JSON字节移到请求的config.json并消耗候选；混合真/错候选实际报InvalidData(2backup candidates)。失败源于实际错误移动/归属，不是API、编译或fixture错误。真备份、真歧义、已存在目标、无效数字控制通过。
+
+### 可行评估后的最小修复
+
+- 只改pathing与Windows recovery两个既有I/O owner：提取原数字尾校验；扫描时先剥离整个精确目标backup前缀，再验证**整个**余串，拒绝另一owner/角色嵌入的marker残段。
+- 通用形状识别条件不变，仍可忽略合法staging/backup；PID仍是非空ASCII数字，不限制u32范围、不要求当前进程、不强制规范化；NonZeroU64序号仍接受既有前导零写法。没有把#159的严格v2 nonce规则倒灌进v1。
+- 完整目标/同父目录、普通文件gate、零/单/多候选语义、实际MoveFileExW/sync、大小写精确比较和历史fallback不变。不添加公开接口、wire、ABI、依赖、配置gate、删除授权或架构。
+- 原7案字节/断言保持不变，仅再追加合法owner自身含.zr-backup-文本的正向控制。新文件按80/128 UTF16路径规则落在原harness，不造新runner。
+
+### 相同回归与既有控制GREEN
+
+Windows x64/MSVC、Rust/Cargo1.94.1，zr_resource默认features关闭、无额外features、--lib，test profile，locked/offline、jobs1/test-threads1；先owner定向RED，修复后扩大到同包atomic_file组以覆盖既有提交/失败清理/并发/同步控制。
+
+```text
+test -p zr_resource --no-default-features --lib io::atomic_file::tests::owner:: --locked --offline --jobs 1 -- --test-threads 1
+test -p zr_resource --no-default-features --lib io::atomic_file:: --locked --offline --jobs 1 -- --test-threads 1
+```
+
+后一次实际结果 **29PASS、0FAIL、1条既有managed-release性能测试IGNORED**，其中原7+新增1共8个owner用例全部PASS。原始控制与修复运行输入均记录SHA且运行中未变。
+
+使用规范local-cargo入口、登记D任务工作树和F:/cargo-targets/zircon-local/cache共享池；全部编译、Cargo home、build、sccache、临时文件物理留在盘根F:/cargo-targets，不复制配置/缓存或改网络策略。本机回执：[原生产RED](<F:/cargo-targets/zircon-local/agent-cargo-receipts/ze-ue-175-red-1/receipt.json>)、[atomic GREEN](<F:/cargo-targets/zircon-local/agent-cargo-receipts/ze-ue-175-green-1/receipt.json>)，不是GitHub托管附件或封存产品验收。
+
+**这里只验证Windows Resource I/O的真实文件/故障注入与候选归属。** 没有运行Foundation产品启动/配置保存、系统崩溃或断电、Unix、真实UE测试/全引擎或性能验收；也不声称解决大小写/非Unicode别名认证、恶意伪造同名文件或#159合入后的集成冲突。保留独立Draft，不自动合并。

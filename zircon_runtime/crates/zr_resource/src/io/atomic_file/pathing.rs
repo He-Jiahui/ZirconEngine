@@ -56,15 +56,20 @@ pub fn is_atomic_write_transaction_path(path: &Path) -> bool {
         let Some((_, suffix)) = file_name.rsplit_once(marker) else {
             return false;
         };
-        let Some((process_id, sequence)) = suffix.split_once('-') else {
-            return false;
-        };
-        !process_id.is_empty()
-            && !sequence.is_empty()
-            && process_id.bytes().all(|byte| byte.is_ascii_digit())
-            && sequence.bytes().all(|byte| byte.is_ascii_digit())
-            && sequence.parse::<NonZeroU64>().is_ok()
+        is_legacy_numeric_suffix(suffix)
     })
+}
+
+pub(super) fn is_legacy_numeric_suffix(suffix: &str) -> bool {
+    let Some((process_id, sequence)) = suffix.split_once('-') else {
+        return false;
+    };
+    // 旧 PID 只校验数字拼写，不校验数值或进程身份。
+    !process_id.is_empty()
+        && !sequence.is_empty()
+        && process_id.bytes().all(|byte| byte.is_ascii_digit())
+        && sequence.bytes().all(|byte| byte.is_ascii_digit())
+        && sequence.parse::<NonZeroU64>().is_ok()
 }
 
 #[cfg(test)]

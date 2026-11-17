@@ -6,7 +6,7 @@ use super::{path_entry, PathEntry};
 #[cfg(windows)]
 use super::directory::sync_parent_directory;
 #[cfg(windows)]
-use super::pathing::{is_atomic_write_transaction_path, target_file_name};
+use super::pathing::{is_legacy_numeric_suffix, target_file_name};
 #[cfg(windows)]
 use std::fs;
 #[cfg(windows)]
@@ -54,8 +54,8 @@ fn recover_missing_target_from_backup_platform(path: &Path) -> io::Result<bool> 
         let reserved_backup = candidate
             .file_name()
             .and_then(|name| name.to_str())
-            .is_some_and(|name| name.starts_with(&prefix))
-            && is_atomic_write_transaction_path(&candidate);
+            .and_then(|name| name.strip_prefix(&prefix))
+            .is_some_and(is_legacy_numeric_suffix);
         if !reserved_backup {
             continue;
         }
