@@ -131,3 +131,16 @@ fn atomic_long_leaf_replace_fault_restores_the_original_target() {
     assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn atomic_long_leaf_new_publication_rejects_existing_without_replacing_original() {
+    let (root, target) = existing_long_leaf("atomic_long_leaf_new_existing", &ascii_leaf());
+
+    let error = atomic_write_new(&target, b"must not replace")
+        .expect_err("the bounded staging name must not weaken no-clobber publication");
+
+    assert_eq!(error.kind(), std::io::ErrorKind::AlreadyExists);
+    assert_eq!(fs::read(&target).unwrap(), b"original generation");
+    assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
+    fs::remove_dir_all(root).unwrap();
+}

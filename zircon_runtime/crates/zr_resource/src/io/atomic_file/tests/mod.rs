@@ -1,3 +1,5 @@
+#[cfg(windows)]
+mod compact_recovery;
 #[cfg(any(windows, unix))]
 mod long_names;
 

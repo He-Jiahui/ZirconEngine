@@ -15,6 +15,9 @@ use super::*;
 
 #[path = "../../../recovery/tests/artifact_cleanup.rs"]
 mod artifact_cleanup;
+#[cfg(any(windows, unix))]
+#[path = "orphans.rs"]
+mod compact_journal_orphans;
 
 const TEST_TRANSACTION_ID: &str =
     "0000000000000000000000000000000000000000000000000000000000000000-1-1";

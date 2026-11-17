@@ -9,6 +9,7 @@ use super::validation::{
     ensure_regular_file, operation, validate_journals, validate_regular_directory,
 };
 use super::{RecoveryMode, RecoveryPolicy};
+use crate::io::atomic_file::is_compact_journal_staging_path;
 use crate::io::is_atomic_write_transaction_path;
 
 pub(super) struct PendingTransactions {
@@ -89,6 +90,11 @@ pub(super) fn load_pending_transactions(
 }
 
 fn is_atomic_intent_orphan(path: &Path) -> bool {
+    if is_compact_journal_staging_path(path) {
+        return true;
+    }
+    // Keep the legacy class predicate intact; generic compact artifacts must not acquire
+    // orphan cleanup authority merely because the public shape recognizer accepts them.
     if !is_atomic_write_transaction_path(path) {
         return false;
     }
