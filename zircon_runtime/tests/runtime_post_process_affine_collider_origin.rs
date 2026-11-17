@@ -5,10 +5,13 @@
 #[path = "support/project_asset_runtime.rs"]
 mod project_asset_runtime;
 
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use project_asset_runtime::ProjectAssetTestRuntime;
-use zircon_runtime::asset::ProjectAssetManager;
+use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
+use zircon_runtime::asset::{AssetManager, AssetUri, ProjectAssetManager};
 use zircon_runtime::core::framework::render::{
     CapturedFrame, CorePipelineKind, RenderCameraClearColor, RenderCaptureSource,
     RenderExtractContext, RenderExtractProducer, RenderFrameExtract, RenderFramework,
@@ -175,7 +178,9 @@ impl VolumeLevel {
             },
         );
         let extract = self.level.build_render_frame_extract(&context);
-        assert_eq!(extract.world, world_id);
+        // The input identifies the World. The producer stamps its current generation.
+        let generation = self.level.with_world(World::world_generation);
+        assert_eq!(extract.world, world_id.with_generation(generation));
         if let Some(changes) = &extract.geometry.scene_changes {
             assert_eq!(changes.world().raw(), world_id.raw());
         }
@@ -243,7 +248,7 @@ fn level_volume_cpu_resolves_affine_center_and_vignette() {
 #[test]
 fn level_volume_gpu_reads_fresh_affine_vignette_pixels() {
     let scene = VolumeLevel::new();
-    let asset_runtime = ProjectAssetTestRuntime::new(Arc::new(ProjectAssetManager::default()));
+    let asset_runtime = opened_gpu_project();
     let gpu =
         WgpuRenderFramework::new(asset_runtime.access(), asset_runtime.worker_pool()).unwrap();
     let viewport = gpu
@@ -294,6 +299,55 @@ fn level_volume_gpu_reads_fresh_affine_vignette_pixels() {
         "sheared affine collider center must darken final-frame corners like the rigid center"
     );
     assert_eq!(shear.2, rigid.2);
+}
+
+fn opened_gpu_project() -> ProjectAssetTestRuntime {
+    // The production constructor needs a real project for the pipeline cache.
+    // This directory only owns test assets/caches; the live scene still comes from Level.
+    let output = std::env::var_os("ZIRCON_TEST_OUTPUT_ROOT")
+        .or_else(|| std::env::var_os("CARGO_TARGET_DIR"))
+        .map(PathBuf::from)
+        .expect("set the native validation output root");
+    let output = output
+        .canonicalize()
+        .expect("physical validation output root");
+    #[cfg(windows)]
+    {
+        let physical = output.to_string_lossy().to_ascii_lowercase();
+        let physical = physical.strip_prefix(r"\\?\").unwrap_or(&physical);
+        assert!(
+            [
+                r"d:\cargo-targets",
+                r"e:\cargo-targets",
+                r"f:\cargo-targets"
+            ]
+            .iter()
+            .any(|allowed| Path::new(physical).starts_with(allowed)),
+            "the project and GPU compilation cache must stay in the physical Cargo pool"
+        );
+    }
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let root = output.join(format!(
+        "post-volume-affine-{}-{unique}",
+        std::process::id()
+    ));
+    std::fs::create_dir(&root).expect("create a unique isolated GPU fixture project");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
+    let scene_uri = AssetUri::parse("res://scenes/post_volume_affine.scene.toml").unwrap();
+    ProjectManifest::new("PostVolumeAffineFixture", scene_uri, 1)
+        .save(paths.manifest_path())
+        .unwrap();
+    let manager = Arc::new(ProjectAssetManager::default());
+    manager
+        .open_project(root.to_str().unwrap())
+        .expect("open the isolated renderer project");
+    ProjectAssetTestRuntime::new(manager)
 }
 
 fn assert_post_executed(stats: &RenderStats) {
