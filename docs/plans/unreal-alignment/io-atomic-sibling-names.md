@@ -2,7 +2,7 @@
 
 > 取证说明：UE 的本机路径与文件 SHA256 是用户提供参考树的依据；本轮 D: 审计快照/工作记录仅本地保存，不随本 PR 发布，也不冒充 GitHub 可读证据。UE/ZE 测试均未在本轮执行。
 
-**状态：独立 Draft 候选，仅源码审查。** ZE 引用基线 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`，只读本地 HEAD `cb495bb1c952a24c86f4513b8099bc4942c3a87d` 的相关产品路径无差异。UE 为 [本机 Build.version:2–9](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Build/Build.version#L2-L9>) 声明的 6.0.0、BranchName `UE5`、CL 0；源码提交未知。**未运行 UE/ZE 测试或产品，未调用 Cargo、未改引擎/索引/远端。**
+**初始调查状态（创建 Draft 时）：仅源码审查；后续回归状态见文末。** ZE 引用基线 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`，只读本地 HEAD `cb495bb1c952a24c86f4513b8099bc4942c3a87d` 的相关产品路径无差异。UE 为 [本机 Build.version:2–9](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Build/Build.version#L2-L9>) 声明的 6.0.0、BranchName `UE5`、CL 0；源码提交未知。**未运行 UE/ZE 测试或产品，未调用 Cargo、未改引擎/索引/远端。**
 
 ## 1. 与 UE 不一致（两边可达路径）。
 
@@ -46,3 +46,48 @@ UE 是 `FConfigCacheIni`/`IFileManager` 原生 C++；ZE 是 `Path`/`io::Result` 
 | [FileManagerGeneric.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Private/HAL/FileManagerGeneric.cpp>) | `d40fd61f1a2121dfc671d7a2de89b0f0feb2ac2ba4c1733ef443776de5ae0caf` |
 | [WindowsPlatformFile.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Private/Windows/WindowsPlatformFile.cpp>) | `b961e22f4713df6692246ca5fca3bb6d8c7d8eee51f6f15af911931a20f10165` |
 | [FileTest.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Tests/Misc/FileTest.cpp>) | `32423bef2cee04e38b032938490190bf3597ce0b281b0216e60850a1a62a418e` |
+
+
+## 后续回归阶段：2026-11-17（测试前置尚未通过）
+
+已在原 `zr_resource` lib harness 新增 6 个源码派生用例，未新建 runner、未改生产实现。[测试子模块](<https://github.com/He-Jiahui/ZirconEngine/blob/audit/ue-io-temp-name-20261117/zircon_runtime/crates/zr_resource/src/io/atomic_file/tests/long_names.rs>)、[原 harness 接线](<https://github.com/He-Jiahui/ZirconEngine/blob/audit/ue-io-temp-name-20261117/zircon_runtime/crates/zr_resource/src/io/atomic_file/tests/mod.rs>)只增加对应覆盖：
+
+| 用例 | 期望/控制，尚未运行 |
+|---|---|
+| 排他新建 | 普通写读先证明卷能接受255-byte最终leaf，再删除本例已知目标，走 `atomic_write_new/commit_new`，精确原名发布且无旁产物 |
+| 普通缺失目标 | 同样的合法性preflight，走 `atomic_write_with_fault(None)/commit` 的 Missing 分支，不能把前一条当此分支验收 |
+| 已有目标替换 | 完整255-ASCII leaf保留，新字节发布、旧staging/backup清理；必须真实经过Windows平台原语 |
+| 非ASCII | 5个crab emoji +230 ASCII +.json，255 UTF8 byte /245 UTF16单元，不能截断或改写原目标名 |
+| Write fault | 必须实际达到既有 injected write错误，不接受提前命名错误；原字节与只剩目标的控制 |
+| Windows ReplaceAfterBackup fault | 必须达到既有恢复文案、原字节和无残留，不把提前命名失败冒当正确恢复 |
+
+每例沿用现有 `test_root`；FS preflight自身失败属于环境/fixture前置，不是原子写行为RED。测试新增/格式检查与源码反证不是已执行的引擎用例。
+
+### 实际命令与失败分类
+
+Windows x64/MSVC、Rust/Cargo 1.94.1；唯一选择包 `zr_resource`、关闭default features、空features、library tests，过滤 `io::atomic_file::`，test profile、jobs=1、test-threads=1。调用规范树的 local Cargo wrapper，`-RepoRoot`明确指向本问题登记工作树；target/build/Cargo home/cache/temporary均被物理路径校验限制在 `D:/cargo-targets/zircon-local/a/win32/6d2edd3f58711542/`。未选择workspace/all-features、未编译runtime/editor/plugin目标、未更新lockfile。
+
+| 实际尝试 | 退出及原因 | 可宣称范围 |
+|---|---|---|
+| red-1 / offline | 101：新cache缺 `image` 索引，Cargo解析全root workspace metadata时停止 | 尚未编译/执行lib tests，不是RED |
+| red-2 / online | 101：crates.io多次low-speed timeout，最终缺 `pulp-wasm-simd-flag` | 尚未编译/执行lib tests，不是RED |
+| red-3 / offline | 101：只读Cargo info补齐上述单一元数据后，仍缺 `reborrow` 索引 | 尚未编译/执行lib tests，不是RED |
+
+局部命令回执与完整stderr仅本机保存，未上传完整cache或凭证；可从 `D:/cargo-targets/zircon-local/agent-cargo-receipts/ze-ue-159-red-{1,2,3}/receipt.json` 对照确切argv、时间、日志指纹及实际根进程退出。该普通回执明确不是source closure/immutable seal、process-tree、compiler-artifact或产品验收证明。metadata探针成功也不是编译/测试PASS。
+
+```powershell
+$cargoArgs = @('test','-p','zr_resource','--no-default-features','--lib',
+  'io::atomic_file::','--locked','--offline','--jobs','1','--','--test-threads','1')
+# 先准备x64 MSVC与1.94.1 PATH；规范local-cargo -RepoRoot明确指定此问题工作树，
+# BuildRoot为盘根D:/cargo-targets；每次新的ReceiptDirectory，保留已结束历史。
+# online尝试仅去掉--offline，其他选择相同。所有真实回归仍待依赖前置满足后运行。
+```
+
+### 实施可行门（尚未批准生产修改）
+
+UE的短前缀思想只解决预算，不能直接把完整leaf替换成裸hash后宣布完成：
+
+- [Windows缺失目标恢复](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/crates/zr_resource/src/io/atomic_file/recovery.rs#L31-L60>) 按原目标prefix匹配backup。若hash token仍复用旧grammar，短用户leaf可恰等于token导致串匹配；需要可判别namespace及scheme-aware源绑定，不扩大恢复授权。
+- [durable discovery](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/crates/zr_resource/src/io/transaction/recovery/discovery.rs#L91-L103>) 不只识别临时名，还以marker前 `.zrjournal` 后缀分类待清理orphan。不能给普通artifact伪造此后缀或让真正journal变unsupported，也不能把名称形状当任意文件的删除授权。合法32-byte tag的最坏journal leaf216再加staging44可达260；“所有journal永远不超限”不成立，必须有边界控制。
+- [既有ReplaceFileW临时名观察](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/asset/replace_file_meta_temp.rs#L3-L16>) 表明平台可能有自身的 `~RF...TMP`。自有名变短后，255 leaf替换仍须真实运行；不预先改平台原语、取消原子性或照搬UE异目录/先删后移。
+- 保持同目录、完整实际target、排他创建、序号终止耗尽及既有短名/失败清理合同；先真实RED与可行评审，再最小修复、同输入GREEN，产品保存链仍单独验收。

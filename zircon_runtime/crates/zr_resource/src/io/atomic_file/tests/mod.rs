@@ -1,3 +1,6 @@
+#[cfg(any(windows, unix))]
+mod long_names;
+
 use std::fs;
 use std::path::Path;
 use std::sync::{Arc, Barrier};
