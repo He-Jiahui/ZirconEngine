@@ -1515,3 +1515,6 @@ mod public_lifecycle_owner {
         assert_eq!(systems.load(Ordering::SeqCst), 1);
     }
 }
+
+#[path = "ecs_late_sparse.rs"]
+mod late_sparse_despawn;

@@ -2,7 +2,7 @@
 
 > 取证说明：UE 的本机路径与文件 SHA256 是用户提供参考树的依据；本轮 D: 审计快照/工作记录仅本地保存，不随本 PR 发布，也不冒充 GitHub 可读证据。UE/ZE 测试均未在本轮执行。
 
-**处置建议：一条独立 Draft 候选，先问题记录，再等价测试，最后评估修复。**
+**原问题定义在 §1–6；独立 Draft #167 已发布，同一 PR 的回归推进见 §7。先真实 RED，再评估生产修复。**
 
 - 本地审计 ZE `cb495bb1c952a24c86f4513b8099bc4942c3a87d`；ZE 链接使用 lead 指定、已核对引擎目录零差异的发布基线 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`，避免未发布提交的失效链接。
 - 本地 UE [Build.version:2–9](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Build/Build.version#L2-L9>) 是 **6.0.0，BranchName UE5**；SHA256 `3dcd8b6654872d013f2b00aa5f0ef1e0db89d4e8627ce820554675a27f228ea6`。不是猜测的 UE5.7。
@@ -94,7 +94,7 @@ UE 的实际路径同时有 processing 期间的同步结构 mutation 检查、b
 
 ## 6. ZE 具体改法：仅草案与等价测试表
 
-**不得先改引擎验证猜测。** 建议一个独立问题 Draft，随后先补测试；本次没有建 Draft、提交、推送或改测试/生产代码。
+**不得先改引擎验证猜测。** 原问题定义阶段只建议独立 Draft，未改测试/生产；后续已建立 #167，§7 如实区分准备、实际执行与修复阶段。
 
 候选最小修复落在 Z1：把回调前 IDs 明确当 notification snapshot；完成最后一个 callback 的 owner/plan 检查后，重新验证目标 identity，从**当前 signature**得到 cleanup IDs，再传给现成 Z7。现有 table row、observer、dynamic component、camera 和 identity 清理顺序先保持不变。late component 的 Remove/Despawn 通知是否也应发出是待评审契约，不能通过不受控“循环发回调直到没有组件”掩盖；若要求完整通知，应先决定准入/延期政策再修。
 
@@ -133,3 +133,22 @@ UE 的实际路径同时有 processing 期间的同步结构 mutation 检查、b
 ### 去重
 
 只计 **EC-01 一条**。本次已读的 [PR snapshot](<D:/CodexData/worktrees/ze-ue-audit-20261117/reports/ue-module-audit-20261117/github-pr-snapshot.json>) 中 [PR131](<https://github.com/He-Jiahui/ZirconEngine/pull/131>) 是 ECS 调度阶段等价测试；当前 [unreal stage contracts](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/scene/tests/ecs_schedule/unreal_stage_contract.rs#L1-L23>) 也明确在测 stage admission/order，不是销毁 sparse cleanup。既有 owner/plan replacement 测试防护有效，本例保持同 owner/plan，所以不重报这批已处理问题。与 PR145/135/144 均无共同故障 owner。领域覆盖另见 [组件覆盖记录](<D:/CodexData/worktrees/ze-ue-audit-20261117/reports/ue-module-audit-20261117/research/components-coverage.md>)。
+
+
+## 7. 同一 Draft 的回归推进
+
+**当前：5条源码派生回归已准备并经独立源码复核；尚未编译/执行，没有行为 RED/GREEN 或生产修复。**
+
+在 [原 observer harness](../../../zircon_runtime/src/scene/tests/ecs_observers_messages.rs#L1519-L1520) 仅加薄挂载，原1,517行测试和 imports 不变；[190行子模块](../../../zircon_runtime/src/scene/tests/ecs_late_sparse.rs#L1-L190) 放全部5案，不建立新 runner 或 ECS 架构。各 observer 使用安全 retained constructor、显式 `()` state 与非捕获回调；payload 走现有 retained-owner 计量，Drop 计数器在真实 component 内。
+
+| case | 必须观察的行为 oracle |
+|---|---|
+| `cpu167_despawn_cleans_up_sparse_added_by_remove_observer` | 目标原无 LateSparse；Health Remove callback 的插入确为 `Ok(None)`，立即同实体读回后记录实际 kind/target；删除返回后实体已不存在且 typed get 为 None，**公开 sparse count 必须0**。 |
+| `cpu167_despawn_cleans_up_sparse_added_by_despawn_observer` | 独立 World，仅 Despawn observer，重复相同插入/回执/计数 oracle，不与 Remove 两次写混在一案。 |
+| `cpu167_despawn_preserves_survivor_with_preexisting_sparse` | 原有同类型两行，删除目标后仍保留 survivor 的身份和值；count **2→1→0**，最后才删除 survivor。 |
+| `cpu167_despawn_cleans_up_sparse_replaced_by_remove_observer` | 原有行被 callback 替换，必须 `Ok(Some(old))` 且读回新值；删除只清目标，不清 survivor，count1。 |
+| `cpu167_despawn_drops_callback_added_sparse_once` | 接纳真实 owning payload；删除返回时 target/survivor Drop **1/0**，World 最终释放后 **1/1**；不能仅让 stale get 返回 None 来伪造清理。 |
+
+外部同步回执只在 callback 内插入成功且读回之后记录；漏调、错目标或提前拒绝都不能通过。没有手动清理、storage loop 复制、私有谓词替代或放宽为“插入成功/失败都可”。这些新测试来自 ZE accepted-write 契约和 UE Mass 当前拥有集合释放语义，**不是 §6 邻近 UE 原测试的逐字移植**；UE 原测试未执行。
+
+下一步候选是现成 `zircon_runtime --lib` CPU harness，关闭 defaults，明确 `core-min,native-host`，过滤 `scene::tests::ecs_observers_messages::late_sparse_despawn::cpu167_`。该选择不启用 Graphics/UI/Script，也没有把整个 Runtime 已启用的其他 test modules 从编译中隐藏；任何编译/依赖前置失败都不是本缺陷 RED。原实现实际失败后才允许评估最小 cleanup 修改，observer 通知、owner/plan/identity、其他 storage/实体的边界仍须保留。
