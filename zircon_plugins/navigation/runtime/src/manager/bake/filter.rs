@@ -93,12 +93,8 @@ fn node_inside_surface_volume(
     surface: &NavMeshSurfaceDescriptor,
 ) -> bool {
     let center = surface_entity
-        .and_then(|entity| world.world_transform(entity))
-        .map(|transform| {
-            transform
-                .matrix()
-                .transform_point3(Vec3::from_array(surface.volume_center))
-        })
+        .and_then(|entity| world.world_matrix(entity))
+        .map(|matrix| matrix.transform_point3(Vec3::from_array(surface.volume_center)))
         .unwrap_or_else(|| Vec3::from_array(surface.volume_center));
     let half_size = Vec3::from_array(surface.volume_size).abs() * 0.5;
     let position = world
