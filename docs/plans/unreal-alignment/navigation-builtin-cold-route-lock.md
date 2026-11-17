@@ -1,6 +1,6 @@
 # Built-in navigation: release the route-cache guard before a cold query
 
-**Draft — frozen native cold-tick RED, production unchanged.** Base `main@e89349ca51b4e9d024c194cd3bdf645bd25b6c37`. The problem-only note was published first. Independent of #182's TileCache obstacle-center patch and #158's plugin module admission. UE citations refer to the actual local `dev/UnrealEngine` tree.
+**Draft — frozen native cold-tick RED → GREEN.** Base `main@e89349ca51b4e9d024c194cd3bdf645bd25b6c37`. The problem-only note was published first. Independent of #182's TileCache obstacle-center patch and #158's plugin module admission. UE citations refer to the actual local `dev/UnrealEngine` tree.
 
 1. **Difference.** In the [built-in agent tick](../../../zircon_runtime/src/navigation/runtime.rs#L354-L377), the cache check calls `self.lock_state()` directly in the Rust `if let` condition. Its `None` branch tries to select navmesh data by taking the same guard again. UE `Engine/Source/Runtime/NavigationSystem/Private/NavigationSystem.cpp:1887–1936` resolves missing query nav data and dispatches the query; a cold/default-data route is expected to return.
 2. **Observed symptom, separate from #182 affine results.** The preceding native Windows investigation passed its rigid plugin TileCache case, but the initial rigid built-in steering control never completed before the 180-second native process deadline. No built-in affine or steering assertion ran. The dedicated baseline must localize the failure after a successful flat path and actual tick entry; the previous attempt did not record this stage boundary.
@@ -12,3 +12,9 @@
 ## Real native baseline (no production change)
 
 Windows/MSVC, `zircon_runtime --lib`, defaults off, feature `navigation`, test profile, locked/offline. Baseline `b3014eb545057ea4ed0081b19ab08af2302b78b9` changes only the problem note and [fixed tests](../../../zircon_runtime/src/navigation/runtime/tests/cases.rs). **1 passed / 2 failed, native libtest exit 101**, no external process timeout in these bounded tests. Both independent queries confirm `Complete`, eight-unit flat length and correct endpoints with a fresh agent and zero cached agent queries. Both record entry to the first tick and hit the 8-second test-only deadline without returning (targeted and batch). The already-arrived control completes path and tick, remains unmoved, and records zero repath queries. The prior steering timeout was not counted as a transform or avoidance RED.
+
+## Matched candidate
+
+The only implementation edit [ends the cache lookup statement before the miss branch](../../../zircon_runtime/src/navigation/runtime.rs#L357-L375). The resulting `Option<Vec3>` is owned; its existing mutex guard is gone before mesh selection. This makes the cold query reachable as in the UE flow above, while keeping ZE's existing snapshot, query budget and route cache. No components, transforms, runtime deadline, ABI or registry changes.
+
+Candidate `1d2f91c8e2e06ac62bb073f9a9c92e65ae2c06a2`, same frozen tests: **1/3 → 3/3**. Both targeted and full ticks advance `x=−4 → −3.8 → −3.6`; the first tick records one repath query and the next still has one. The arrived control remains green. Three unchanged supporting unit tests also pass: immutable mesh snapshot boundary, round-robin repath budget, and existing targeted rigid avoidance. These results clear the cold-tick blocker for a separate built-in affine-center regression; they do not measure that fix or #158 hosted admission.
