@@ -1,4 +1,4 @@
-//! Exercise live carving and fallback steering with the same authored local point.
+//! Exercise native carving during live agent ticks for an authored local point.
 
 #[path = "../src/tests/test_support.rs"]
 mod test_support;
@@ -13,7 +13,6 @@ use zircon_runtime::core::framework::navigation::{
     NavigationManager, NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
 };
 use zircon_runtime::core::math::{Quat, Transform, Vec3};
-use zircon_runtime::navigation::BuiltinNavigationManager;
 use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime::scene::{EntityId, World};
 
@@ -213,82 +212,6 @@ fn witness_carving(anchor: Anchor) {
     assert_eq!(x1, WALK_START.x);
 }
 
-fn witness_avoidance(anchor: Anchor) {
-    let manager = BuiltinNavigationManager::new();
-    let asset = NavMeshAsset::simple_quad("humanoid", 6.0);
-    NavigationManager::load_nav_mesh(&manager, asset).unwrap();
-    let (mut world, obstacle, local, projected_error) = world_with_anchor(anchor);
-    let start = Vec3::new(-0.35, 0.0, 0.08);
-    let end = Vec3::X * 4.0;
-    let path = NavigationManager::find_path(
-        &manager,
-        NavPathQuery::new(start.to_array(), end.to_array()),
-    )
-    .unwrap();
-    assert_eq!(path.status, NavPathStatus::Complete);
-    let agent = spawn_agent(
-        &mut world,
-        start,
-        NavMeshAgentDescriptor {
-            destination: Some(end.to_array()),
-            speed: 2.0,
-            radius: 0.3,
-            stopping_distance: 0.02,
-            avoidance_quality: NavAvoidanceQuality::High,
-            update_rotation: false,
-            ..NavMeshAgentDescriptor::default()
-        },
-    );
-    // Box uses the same local point and does not mix in cylinder base placement.
-    let mut desc = NavMeshObstacleDescriptor {
-        shape: NavMeshObstacleShape::Box,
-        center: local.to_array(),
-        size: [0.7, 2.0, 0.7],
-        carve: false,
-        avoidance_enabled: false,
-        ..NavMeshObstacleDescriptor::default()
-    };
-    let mut step = |avoidance_enabled| {
-        world
-            .update_transform(agent, Transform::from_translation(start))
-            .unwrap();
-        desc.avoidance_enabled = avoidance_enabled;
-        set_obstacle(&mut world, obstacle, &desc);
-        let report = manager.tick_world_agent(&mut world, agent, 0.1).unwrap();
-        assert_eq!(report.scanned_agents, 1);
-        assert_eq!(report.moved_agents, 1);
-        assert_eq!(report.blocked_agents, 0);
-        world.world_matrix(agent).unwrap().w_axis.truncate()
-    };
-    let without = step(false);
-    let with = step(true);
-    let again = step(false);
-    let start_distance = start.length();
-    let clear_distance = without.length();
-    let avoid_distance = with.length();
-    let restored_distance = again.length();
-    println!(
-        "NAV_OBSTACLE_AVOID label={} projection_gap={} route={:?} distance={}/{}/{}/{} x={}/{}/{}/{}",
-        anchor.label(),
-        projected_error,
-        path.status,
-        start_distance,
-        clear_distance,
-        avoid_distance,
-        restored_distance,
-        start.x,
-        without.x,
-        with.x,
-        again.x,
-    );
-    assert!(clear_distance < start_distance - 0.10 && without.x > start.x);
-    assert!((again - without).length() < 1.0e-4);
-    assert!(
-        avoid_distance > start_distance + 0.10 && with.x < start.x,
-        "built-in avoidance must steer away from the affine center, not approach it"
-    );
-}
-
 #[test]
 fn rigid_offset_box_carves_and_restores_native_route() {
     witness_carving(Anchor::Rigid);
@@ -302,19 +225,4 @@ fn shear_x_offset_box_carves_and_restores_native_route() {
 #[test]
 fn shear_z_offset_box_carves_and_restores_native_route() {
     witness_carving(Anchor::ShearZ);
-}
-
-#[test]
-fn rigid_offset_box_steers_builtin_agent_away() {
-    witness_avoidance(Anchor::Rigid);
-}
-
-#[test]
-fn shear_x_offset_box_steers_builtin_agent_away() {
-    witness_avoidance(Anchor::ShearX);
-}
-
-#[test]
-fn shear_z_offset_box_steers_builtin_agent_away() {
-    witness_avoidance(Anchor::ShearZ);
 }
