@@ -16,7 +16,19 @@
 3. **Cause.** A solitary collapsed triangle cannot obtain tangent space from a neighbor; the Mikk callback returns no basis. The local candidate preserves the fallback `+1` but changes the valid mirrored endpoint to `−1`. The existing ZE [guard](../../../zircon_runtime/src/asset/assets/mesh/tangents.rs#L111-L134) compares those as if both were computed results. UE's XYZ displacement cannot author a second sign.
 4. **Rust test and proposed approach.** The original [admission probes](../../../zircon_runtime/src/asset/tests/assets/mesh/tangent_generation.rs#L382-L455) stay unchanged. The [stable importer regression](../../../zircon_plugins/gltf_importer/runtime/tests/generated_tangent_contract.rs#L92-L200) also checks the authored +Z normals, mirrored UV Jacobian and resulting `cross(N,T)*w` at the healthy endpoint. Keep temporary `Some`/`None` provenance until all target constraints are checked. An uncomputed generated base sign can take the unanimous valid target sign; a valid or authored base is fixed. Do not infer provenance from the fallback's numeric value.
 5. **Interface/ECS boundary.** Keep one base sign and morph `xyz` only; no shader, asset/ABI, ECS or Prefab change. Two viable target signs that differ on a shared output vertex cannot be encoded. The two-target fixture varies which triangle is healthy and uses opposite UV determinants, rather than flipping only position winding with identical UVs.
-6. **Gate.** The unchanged stable integration produced three wrong healthy directions. The two-opposite-target test reached the importer but reported a premature `target=0, vertex=0`; the regression requires the second valid target's `target=1, vertex=0` conflict, so arbitrary early errors or removing all conflicts are not success. All six frozen integration cases were behavioral RED on the old input. Keep the first candidate unpublished; the final candidate must pass the importer controls and independently observe direction on real GPU geometry. The offscreen lit diagnostic reached DX12 but did not distinguish its signed controls; it is not a direction result or GPU acceptance.
+6. **Gate.** The unchanged stable integration produced three wrong healthy directions. The two-opposite-target test reached the importer but reported a premature `target=0, vertex=0`; the regression requires the second valid target's `target=1, vertex=0` conflict, so arbitrary early errors or removing all conflicts are not success. All six frozen integration cases were behavioral RED on the old input. Keep the first candidate unpublished; the final candidate must pass the importer controls and independently observe direction on real GPU geometry. The old frame now has an independent hardware direction witness below; the earlier lit diagnostic did not distinguish its controls and is not evidence.
+
+## Old production GPU observation
+
+The [frozen readback](../../../zircon_runtime/src/graphics/tests/meshes/morph/generated_orientation.rs) imported the same expanded glTF, set morph weight 1, and sampled the production Deferred G-buffer on an NVIDIA RTX 3060 Laptop GPU (DX12, discrete hardware). The test-only project binds the built-in standard PBR shader; it does not modify the input normal map, mesh/morph streams, production material code or GPU morph shader. A readback pass transfers existing shader-readable albedo and normal pixels. Albedo confirms actual raster coverage; the world-normal X byte is not an output lighting measurement.
+
+| Same covered pixels (780) | Production normal X byte | Meets positive-V basis |
+| --- | --- | --- |
+| Authored sign-only `w=-1` control | 204 | 780 / 780 |
+| Opposite sign-only `w=+1` control | 51 | 0 / 780 |
+| Unchanged imported output, tested locally at `f15d90c44` | 51 | 0 / 780 |
+
+The native libtest exited 101 specifically at the wrong-direction assertion. Earlier captures with unqualified material, brightness controls, or a refused direct copy from pooled albedo are not counted. No Unreal binary or packaged editor was executed. Candidate verification remains independent.
 
 ## Executed local verification (before adding the morph probes)
 
