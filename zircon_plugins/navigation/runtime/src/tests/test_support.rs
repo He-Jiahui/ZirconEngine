@@ -2,9 +2,9 @@ use std::ops::Deref;
 
 use zircon_runtime::asset::{
     module_descriptor as asset_module_descriptor, project_asset_manager_handle,
-    ProjectAssetManagerAccess, ASSET_MODULE_NAME,
+    ProjectAssetManager, ProjectAssetManagerAccess, ASSET_MODULE_NAME,
 };
-use zircon_runtime::core::runtime::{CoreRuntime, TasksModule};
+use zircon_runtime::core::runtime::{CoreRuntime, ServiceCallGuard, TasksModule};
 use zircon_runtime::engine_module::EngineModule;
 use zircon_runtime::scene::{DefaultLevelManager, LevelMetadata, LevelSystem, World};
 
@@ -14,6 +14,18 @@ use crate::DefaultNavigationManager;
 pub(crate) struct TestNavigationManager {
     manager: DefaultNavigationManager,
     _runtime: CoreRuntime,
+}
+
+impl TestNavigationManager {
+    #[allow(dead_code)] // Only integration tests that publish an input asset need this view.
+    pub(crate) fn project_assets(&self) -> ServiceCallGuard<ProjectAssetManager> {
+        let core = self._runtime.handle();
+        let handle =
+            project_asset_manager_handle(&core).expect("test project asset manager handle");
+        ProjectAssetManagerAccess::new(core, handle)
+            .resolve()
+            .expect("test project asset manager access")
+    }
 }
 
 impl Deref for TestNavigationManager {
