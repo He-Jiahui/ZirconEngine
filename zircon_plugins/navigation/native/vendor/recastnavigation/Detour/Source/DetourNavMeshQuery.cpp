@@ -1854,7 +1854,7 @@ dtStatus dtNavMeshQuery::findStraightPath(const float* startPos, const float* en
 			
 			if (i+1 < pathSize)
 			{
-				unsigned char fromType; // fromType is ignored.
+				unsigned char fromType;
 
 				// Next portal.
 				if (dtStatusFailed(getPortalPoints(path[i], path[i+1], left, right, fromType, toType)))
@@ -1890,7 +1890,17 @@ dtStatus dtNavMeshQuery::findStraightPath(const float* startPos, const float* en
 				{
 					float t;
 					if (dtDistancePtSegSqr2D(portalApex, left, right, t) < dtSqr(0.001f))
+					{
+						if (fromType == DT_POLYTYPE_GROUND && toType == DT_POLYTYPE_OFFMESH_CONNECTION &&
+							dtVequal(left, right) && dtVequal(portalApex, left))
+						{
+							// The entry is already represented by the start vertex; preserve both flags.
+							appendVertex(portalApex, DT_STRAIGHTPATH_START | DT_STRAIGHTPATH_OFFMESH_CONNECTION, path[i+1],
+										 straightPath, straightPathFlags, straightPathRefs,
+										 straightPathCount, maxStraightPath);
+						}
 						continue;
+					}
 				}
 			}
 			else
