@@ -1,0 +1,97 @@
+# Draft 调查：基础姿态混合的独立四元数规范化会选错共同半球
+
+状态：**问题定义 Draft；源码反例高置信；尚无 ZE/UE 运行结果。** 调查成稿时仅完成只读源码核对；本问题提交只新增文档，没有改引擎、补测试或运行 Cargo。Draft 创建状态以 GitHub 及发布回执为准。
+
+ZE 只读工作副本 HEAD 为 `cb495bb1c952a24c86f4513b8099bc4942c3a87d`；按 lead 更正，所有 ZE 链接固定到已发布基线 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`。已用只读 `git diff --name-only e893… cb495… -- zircon_runtime zircon_plugins zircon_editor zircon_runtime_interface` 核对这四个源码树无提交差异，并核对本问题相关路径无工作副本修改。保留他人的脏技能。UE 为本地 6.0.0 / BranchName UE5，见 [Build.version:1–10](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Build/Build.version#L1-L10>)；以下 UE 内容仅短符号描述，不复制实现。
+
+## 1. 两边差异、路径/行号/符号及可达调用
+
+**ZE 问题点不是未实现高级动画节点，而是现有 Base 混合的旋转算术。**
+
+| ZE 实证点 | 短描述 |
+| --- | --- |
+| [runtime_system.rs:23–61](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/runtime_system.rs#L23-L61>) | `register_runtime_system` 将 `animation.evaluate` 注册到 PostUpdate，执行 `run_animation_runtime_system` → `tick_animation_world`。这是插件生产调度入口，不是孤立数学工具。 |
+| [parameter_apply.rs:420–481](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/evaluation/pipeline/parameter_apply.rs#L420-L481>)、[tick.rs:228–247](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs#L228-L247>) | 已启用 graph 的 `AnimationGraphPlayerComponent` 加骨架组件可生成 `PendingGraphPoseSample`，然后进入 `resolve_graph_pose_requests_with_demand`。 |
+| [graph_evaluate.rs:34–77](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/evaluation/pipeline/graph_evaluate.rs#L34-L77>)、[134–195](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/evaluation/pipeline/graph_evaluate.rs#L134-L195>) | 采样有效 clip 贡献；Base 贡献汇入 `blend_graph_base_poses`。 |
+| [pose_blend.rs:63–141](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_blend.rs#L63-L141>)、[154–178](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_blend.rs#L154-L178>) | 每骨骼归一有效权重后，对每个输入分别调用 `canonical_rotation`：取绝对值最大分量，若其为负就整体取反；将结果直接线性求和后 normalize。**它没有比较输入与共同参考/累加器的点积。** |
+| [channel_validation.rs:81–114](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/evaluation/channel_validation.rs#L81-L114>)、[channel_sample.rs:21–28](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/evaluation/clip_evaluator/channel_sample.rs#L21-L28>)、[sample.rs:278–304](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/evaluation/clip_evaluator/sample.rs#L278-L304>) | 第 2 节反例使用有限、单位、非零四元数和单键通道，可以通过已有校验；单键返回原值，旋转采样只归一长度，不会提前修复共同半球。 |
+| [tick.rs:400–425](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs#L400-L425>)、[pose_apply.rs:13–51](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_apply.rs#L13-L51>) | 混合结果进入姿态快照；能解析到后代节点时还会写回局部 Transform。因此不是仅 UI 显示值差异。 |
+
+UE 对应生产链：[`FAnimNode_MultiWayBlend::Evaluate_AnyThread`:112–168](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/AnimGraphRuntime/Private/AnimNodes/AnimNode_MultiWayBlend.cpp#L112-L168>) → [`FAnimationRuntime::BlendPosesTogether`:364–383](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/Animation/AnimationRuntime.cpp#L364-L383>) → [`BlendTransform<Accumulate>`:57–62](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Engine/Public/AnimationRuntime.h#L57-L62>) → [`TTransform::AccumulateWithShortestRotation`:976–998](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Math/TransformNonVectorized.h#L976-L998>)。后者按 incoming 与当前 accumulator 的点积选加/减，结果再统一归一化；[vectorized 对应入口:1060–1068](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Math/TransformVectorized.h#L1060-L1068>) 使用 shortest-path quaternion accumulation。这里只把非 ISPC 路径作为数值对照，没有声称执行过 UE SIMD/ISPC。
+
+模块边界也已核对：[Engine.Build.cs:140–163](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Engine/Engine.Build.cs#L140-L163>) 私有依赖 AnimationCore；[229–243](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Engine/Engine.Build.cs#L229-L243>) 动态列出 AnimGraphRuntime/MovieScene/Tracks；[AnimGraphRuntime.Build.cs:10–24](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/AnimGraphRuntime/AnimGraphRuntime.Build.cs#L10-L24>) 公共依赖 Engine/AnimationCore；[AnimationCore.Build.cs:9–21](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/AnimationCore/AnimationCore.Build.cs#L9-L21>) 是更低层数学/骨权重模块，不应把上述 Engine 姿态混合误归到它。
+
+本文件引用 UE 文件的 SHA256（字节级标识；不将受限实现搬入 ZE）：
+
+| UE 文件 | SHA256 |
+| --- | --- |
+| [Build.version](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Build/Build.version>) | `3dcd8b6654872d013f2b00aa5f0ef1e0db89d4e8627ce820554675a27f228ea6` |
+| [Engine.Build.cs](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Engine/Engine.Build.cs>) | `1c6a698c731ca203fc9648a53c13bcc3768fae1fb91cd9ec658a3abfa962e212` |
+| [AnimationCore.Build.cs](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/AnimationCore/AnimationCore.Build.cs>) | `862eccc11e90f86f164a662a106418d2527467a51acf5126a44b47b6b761bb54` |
+| [AnimGraphRuntime.Build.cs](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/AnimGraphRuntime/AnimGraphRuntime.Build.cs>) | `252b91593a1966a0e2d0697a89c7901d575411afe14dd95b7bf83ad351286e61` |
+| [AnimNode_MultiWayBlend.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/AnimGraphRuntime/Private/AnimNodes/AnimNode_MultiWayBlend.cpp>) | `f209e1399e3461bb1c8e14be0ade86717c678ab23915b4d23784c775a0e20c19` |
+| [AnimationRuntime.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/Animation/AnimationRuntime.cpp>) | `34c8a0c17a16e0fb3f22944072d862a5c00a20d29ec9a723fa22172357b63b65` |
+| [AnimationRuntime.h](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Engine/Public/AnimationRuntime.h>) | `0a042e3ff1c5b56c394b868bbef39a49010406b0a483a84a947eaeb7b0398381` |
+| [TransformNonVectorized.h](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Math/TransformNonVectorized.h>) | `79d02e1d40ca7a95b1e81562f39849a10f867053af674547e2b33da234d7800b` |
+| [TransformVectorized.h](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Math/TransformVectorized.h>) | `e788f59596803558db4dc7585ef36e08791e7c645c8fe48c54bd2a345b00f219` |
+| [UnrealMathTest.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Tests/Math/UnrealMathTest.cpp>) | `f0276a149caab14a3cdae4f873e7fb151b701696c1e72022407bb8d6d2101cbe` |
+| [TestHarnessAdapter.h](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Tests/TestHarnessAdapter.h>) | `36a8b1a845d187176ba75336e5bb7354502a549059d4e7291b992a86920e5a51` |
+| [LowLevelTestAdapter.h](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Misc/LowLevelTestAdapter.h>) | `49ac1a309de93d00f5a4e5e949dfcce795a7ffe1efa5e905694f849b4d65d8c7` |
+
+## 2. 有界实际影响
+
+最小合法 fixture：一个骨骼、两个单键常量旋转 clip、Base Blend 权重各 0.5，无 mask/additive/IK，translation=0、scale=1。四元数均按 ZE `xyzw`：
+
+| 项 | 由现有源码直接推出的值，不是执行回执 |
+| --- | --- |
+| 输入 | `qa=(0.8,-0.6,0,0)`，`qb=(0.6,-0.8,0,0)`；两者长度 1、点积 0.96。 |
+| 正确同半球中点 | `normalize(qa+qb)=(1/√2,-1/√2,0,0)`；两输入相差约 32.52°，中点应距各输入约 16.26°。50/50 时 normalized-linear 与 shortest slerp 的中点一致，不涉及两种插值曲线之争。 |
+| 当前 canonical 后 | `qa` 保持，`qb` 因最大绝对分量 y 为负而取反；二者点积变为 -0.96。 |
+| 当前输出 | `normalize((qa-qb)/2)=(1/√2,1/√2,0,0)`。它与正确中点的绝对点积为 0，代表 **180° 姿态误差**，不是 `q`/`-q` 的等价符号差。 |
+| 几何可观测量 | 正确中点把局部 X 轴转到 -Y，当前结果转到 +Y。任何挂在该骨骼下、非轴对称的节点都可能明显翻转。 |
+
+范围限于走该 helper 的基础姿态多输入混合，例如已启用图播放器；共用 `blend_weighted_poses` 的状态图/嵌套图也需回归，但本 Draft 不据此再开问题。单 clip 未混合、普通通道 slerp、PoseBuffer 的 `shortest_slerp` 不因这个反例自动判错。不声称 GPU 蒙皮产品可达、不声称全部动画都有该错误，也不声称已在编辑器中重现。最小实例已足以显示现有算法违反近邻旋转混合，而不要求新增任何高级功能。
+
+## 3. 根因及 UE 的解决方式
+
+`canonical_rotation` 能让**同一个旋转**的 `q` 与 `-q` 使用同一数值代表，但不能保证**不同近邻旋转**仍落在同一半球：绝对值最大分量从 x 切换到 y 且其符号不同就会发生不连续。把每个输入独立 canonical 再相加，混淆了“唯一符号代表”与“相对共同参考的最短弧”。最终 normalize 只能修长度，不能恢复已选错的弧。
+
+UE 的 `AccumulateWithShortestRotation` 是相对当前累加器进行符号调整，`BlendPosesTogether` 末尾归一。对于第 2 节两输入，无论先放哪一个，点积为正，后一个都不会被反向，因此得到正确的共同半球中点。
+
+ZE 已有 [PoseBuffer blend.rs:149–153](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/evaluation/pose_buffer/blend.rs#L149-L153>) 也先按 dot 纠正相对符号；这里是旁证，不是要求把多输入 normalized-linear 混合改成多次 slerp。
+
+## 4. Rust 如何沿用 UE 逻辑
+
+可以沿用的核心是不变量：**骨骼旋转贡献在加权求和前必须相对共同参考/累加器选同半球，再对最终结果 normalize**。无需移植 UE C++、SIMD 布局或对象模型。
+
+不能机械照搬的地方是 ZE 已承诺输入重排稳定：[既有 masked blend 计划:9–24](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/docs/plans/optimize/zircon_runtime/08c-p1-11-masked-blend.md#L9-L24>) 明确要求重排及 `q/-q` 数值结果稳定。UE 相对变化中的 accumulator 选择符号，对一般三输入以上不自动满足任意重排不变；不能为通过两输入反例而悄悄删除这个合同。
+
+拟评估的 Rust 方案：逐骨骼先过滤 mask/非法权重，确定稳定参考贡献；其余输入先根据与参考的 dot 调整符号，再进行确定顺序的 weighted sum，最终才做一次符号 canonical（如仍需要数值代表唯一）及 normalize。若采用严格 UE 累加器方案，则必须将 source-slot 顺序设为明确合同并证明不破坏当前重排要求；两方案的多输入边界要在测试阶段确定。现有 [compiled_graph/evaluate.rs:73–84](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/evaluation/compiled_graph/evaluate.rs#L73-L84>) 已按稳定贡献 key 排序，可复用其顺序来源，但 `GraphWeightedPose` 目前未保存此身份，不能假设任意调用者都自动有相同次序。
+
+## 5. ECS / ABI / 数据结构差异
+
+- UE 通过 AnimNode / `FCompactPose` / `FTransform` 求值；ZE 是实体上的播放器组件，插件 PostUpdate 系统消费资源快照，再发布 immutable pose snapshot。需保持 world replacement epoch 及 event admission/defer 的既有事务路径，不要将纠正 quaternion 符号扩成调度重构。
+- [AnimationPoseOutput:8–11](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/core/framework/animation/pose_output.rs#L8-L11>) 是带骨名/局部 Transform 的序列化 Rust DTO；[AnimationPoseBone:5–9](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/core/framework/animation/pose_bone.rs#L5-L9>) 不是 UE compact-pose 内存布局。四元数反例和 dot 规则与坐标系左右手、Euler 顺序无关，移植测试时仍不能把 UE Rotator 欧拉值不加核对地当作 ZE 欧拉输入。
+- [GraphWeightedPose:12–18](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_blend.rs#L12-L18>) 及混合 helper 是插件内部 Rust 类型/函数；本问题原则上不要求新增稳定 ABI 字段、修改资源 schema 或提高 [插件 ABI v3](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/plugin.rs#L18-L24>)。若为了稳定参考选择新增 source key，应先留在内部贡献记录，不能把 `Vec`、ECS World 或 UE 对象跨动态边界传递。
+- 保留每骨骼 mask 后的权重归一、零/负/非有限权重过滤、translation/scale 既有语义。不要把本修复与骨架路径身份、逆绑定矩阵、GPU 蒙皮实现或高级 Pose Library 混在同一 Draft。
+
+## 6. 具体 ZE 修改草案、测试迁移表与可行门
+
+**顺序仍为：本问题六点文档独立 Draft → 同一 Draft 补等价/回归单测并实测 RED → 再评估窄修复；本轮不执行后两步。**
+
+拟修改 owner：只在 [pose_blend.rs 的 Base rotation accumulation:100–178](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_blend.rs#L100-L178>) 引入共同半球选择，把逐输入 canonical 从数值求和路径移出；必要时通过内部贡献身份稳定参考/顺序。不要改变 additive 分支或全局通道插值。测试首先落现有 [pipeline/tests/pose_blend.rs](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/evaluation/pipeline/tests/pose_blend.rs>)，再用已有 [physics_tick.rs:378–430](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/tests/physics_tick.rs#L378-L430>) 的真实 Level tick 图混合 harness 加生产路径 witness。
+
+| 分类 / UE 已有测试名与定位 | 输入 / 期望 | ZE 现有落点 / 限制 |
+| --- | --- | --- |
+| **优先列出已有 UE 测试，但不是此缺陷直接迁移**：`FVectorRegisterAbstractionTest` / `System.Core.Math.Vector Register Abstraction Test`，[UnrealMathTest.cpp:2357](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Tests/Math/UnrealMathTest.cpp#L2357>)，内部 `TestQuatLerp` 子例 [3652–3721](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Tests/Math/UnrealMathTest.cpp#L3652-L3721>)。 | float 输入由两组 Rotator `(300,-45,0)` / `(10,270,30)` 构造，alpha=±0.25；double 对照 `(30,45,0)` / `(10,-270,-130)`，alpha=±0.25。期望 quaternion Lerp 特化、Slerp 与旧参考 slerp 在 `1e-6` 内一致，覆盖正/负 raw dot。 | 可为已有 [animation_compiled_evaluator_contract.rs:532–546](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/tests/animation_compiled_evaluator_contract.rs#L532-L546>) 的 clip quaternion 插值控制扩充输入；必须先按轴/旋转序映射成等价 quaternion。**不能将 UE 的 slerp 期望直接套到任意 alpha 的 normalized-linear 多姿态混合上，也不声称该测试已检测 canonical seam。** |
+| **源码推导，非 UE 测试迁移**：未找到相同 seam 的 UE 自动化测试。 | 单骨骼 qa/qb 如第 2 节、0.5/0.5，期望与 `(1/√2,-1/√2,0,0)` 旋转等价、输出有限单位；同时比较旋转后的 X 轴应为 -Y，而非仅比较 quaternion 分量。 | [pipeline/tests/pose_blend.rs:10–94](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/evaluation/pipeline/tests/pose_blend.rs#L10-L94>)；增加正序、逆序、分别替换 q/-q、mask 排除无效首贡献、第三贡献稳定性。保留现有归一/非法权重/重排/符号对照。 |
+| **源码推导，非 UE 测试迁移**：生产入口 witness。 | 一骨架、两个单键常量旋转 clip、Blend 参数 0.5、GraphPlayer playing，tick 0 秒已足够采样。快照旋转应与正确中点等价；若建命名子节点，则局部 X 方向同样应为 -Y。 | [physics_tick.rs:378–430](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/tests/physics_tick.rs#L378-L430>) 已有 `level_tick_blends_animation_graph_clip_pose_weights` 只验 translation；复用注册资源/播放器/真实 tick 入口，不以独立数学脚本替代产品链。 |
+
+搜索边界如实记录：已搜索 UE `Runtime/Engine/Private/Animation` 及 `Runtime/Engine/Private/Tests`、`Runtime/AnimGraphRuntime`、`Runtime/AnimationCore/Private/Tests`、`Runtime/Core/Tests/Math`、`Editor/AnimGraph`、`Editor/AnimationBlueprintEditor` 的 `IMPLEMENT_*TEST` / `TEST_CASE*` 及 blend/pose/quat/shortest 相关符号；AnimationCore 的 BoneWeights tests 是顶点骨权重，不是姿态 quaternion oracle，Engine 中找到的动画 ISPC codec tests 也不是 Base mixer seam 测试。`TEST_CASE_NAMED` 的自动化适配依据 [TestHarnessAdapter.h:12–16](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Tests/TestHarnessAdapter.h#L12-L16>)、[LowLevelTestAdapter.h:55–118](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Misc/LowLevelTestAdapter.h#L55-L118>)。未穷尽全部 UE 插件/外部测试库，因此只说“本次范围未找到”，不说 UE 没有测试。
+
+可行门与依赖：
+
+1. **Draft 门**：已核对当前开放 PR #135–145、近期已合测试 #131–134 和本地相关动画计划/历史；未发现本问题的独立 Draft。不将该范围冒充全部历史 PR 正文穷尽。近期 [PR 快照](<D:/CodexData/worktrees/ze-ue-audit-20261117/reports/ue-module-audit-20261117/github-pr-snapshot.json>) 仅 #131–145。既有 masked blend 计划描述的是已修的全局权重衰减，此处是不同根因、不同旋转 witness；Pose Library 大计划仅提到 hemisphere/order 政策，没有这条反例。
+2. **测试门**：尚未编译或运行上述 ZE/UE 测试；需在独立 Draft 内先补测试并实测原码 RED。后续最小包是 `zircon_plugin_animation_runtime`；其 [manifest:9–22](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/Cargo.toml#L9-L22>) 引入 runtime animation/physics-contracts，真实 tick harness 还依赖 physics 插件。精确 features/targets/profile 必须由后续执行者重新声明，本轮没有 Cargo 命令或通过回执。
+3. **修复可行门**：共同半球的局部算术修正可行性高，但多输入确定性与 tie/near-zero accumulator 处置尚未设计验证。不得仅用两输入 PASS 宣告修复完成；需保留 08C P1-11 的 reorder 数值合同，覆盖 masks、q/-q、近 seam、小权重和三输入 permutations，再决定最小生产 diff。
+4. **验收边界**：本轮未启动 UE 二进制、ZE Runtime/Editor、GPU 或渲染截图；无法宣称 GPU 蒙皮、可视化抖动幅度、性能或跨平台已验收。调度/ABI/资源格式不变的推断仍要在最终 diff 中复核。
