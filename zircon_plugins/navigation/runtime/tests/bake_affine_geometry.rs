@@ -14,7 +14,7 @@ use zircon_runtime::core::framework::navigation::{
 };
 use zircon_runtime::core::math::{Quat, Transform, Vec2, Vec3};
 use zircon_runtime::core::resource::{
-    MeshMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
+    MeshMarker, ResourceHandle, ResourceId, ResourceKind, ResourceLease, ResourceRecord,
 };
 use zircon_runtime::scene::components::{ColliderComponent, ColliderShape, MeshRenderer, NodeKind};
 use zircon_runtime::scene::{EntityId, World};
@@ -33,7 +33,7 @@ fn attach_render_floor(
     manager: &test_support::TestNavigationManager,
     world: &mut World,
     floor: EntityId,
-) {
+) -> ResourceLease<MeshAsset> {
     let locator = AssetUri::parse("mem://nav-affine-test/top-quad.zmesh").unwrap();
     let id = ResourceId::from_locator(&locator);
     let vertices = [
@@ -66,6 +66,7 @@ fn attach_render_floor(
     };
     world.insert(floor, renderer).unwrap();
     assert!(world.collider(floor).is_none());
+    lease
 }
 
 fn point_on_top(x: f32, z: f32, scale_x: f32) -> Vec3 {
@@ -160,7 +161,9 @@ fn require_baked_world_footprint(source: NavMeshUseGeometry, scale_x: f32) {
     } else {
         assert!(xz_dot.abs() < 1.0e-5);
     }
-    match source {
+    // A handle alone does not pin a memory resource. Retain the authoring
+    // lease until the production bake has acquired its own typed lease.
+    let _resident_mesh = match source {
         NavMeshUseGeometry::PhysicsColliders => {
             world
                 .set_collider(
@@ -173,9 +176,10 @@ fn require_baked_world_footprint(source: NavMeshUseGeometry, scale_x: f32) {
                 )
                 .unwrap();
             assert!(world.get::<MeshRenderer>(floor).is_none());
+            None
         }
-        NavMeshUseGeometry::RenderMeshes => attach_render_floor(&manager, &mut world, floor),
-    }
+        NavMeshUseGeometry::RenderMeshes => Some(attach_render_floor(&manager, &mut world, floor)),
+    };
     let (_level_owner, level) = test_support::level_from_world(world);
     let report = manager
         .bake_surface(
