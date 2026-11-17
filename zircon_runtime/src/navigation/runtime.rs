@@ -358,14 +358,16 @@ impl BuiltinNavigationManager {
             self.lock_state().clear_repath_route(entity);
             return AgentTickOutcome::Handled;
         }
-        let path_target = if let Some(target) = self.lock_state().cached_repath_target(
+        // Release the route-cache guard before a miss locks the same state for the mesh.
+        let cached_target = self.lock_state().cached_repath_target(
             entity,
             current,
             destination,
             &agent.agent_type,
             agent.area_mask,
             stopping_distance,
-        ) {
+        );
+        let path_target = if let Some(target) = cached_target {
             target
         } else {
             let mesh = self.lock_state().selected_mesh_snapshot(None);
