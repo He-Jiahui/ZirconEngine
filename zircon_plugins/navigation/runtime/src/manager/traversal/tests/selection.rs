@@ -15,7 +15,7 @@ fn distant_link_is_not_selected_before_preceding_corner() {
     path.points[1].off_mesh_link_id = Some(7);
     path.points[2].off_mesh_link_id = None;
     assert_eq!(
-        select_upcoming_link(&asset, &path).map(|link| link.id),
+        select_upcoming_link(&asset, &path).map(|(link, _)| link.id),
         Some(7)
     );
 }

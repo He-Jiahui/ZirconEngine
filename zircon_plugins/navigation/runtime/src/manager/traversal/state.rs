@@ -29,6 +29,7 @@ impl OffMeshTraversalRuntime {
         agent_entity: u64,
         nav_mesh: NavMeshHandle,
         link: &NavMeshLinkAsset,
+        marked_entry: Vec3,
         current: Vec3,
     ) -> Option<Vec3> {
         if let Some(active) = self.active.get(&agent_entity) {
@@ -36,8 +37,27 @@ impl OffMeshTraversalRuntime {
         }
         let start = Vec3::from_array(link.start);
         let end = Vec3::from_array(link.end);
-        let reverse =
-            link.bidirectional && current.distance_squared(end) < current.distance_squared(start);
+        let reverse = link.bidirectional && {
+            // Detour snaps a portal within its XZ attachment radius; height can also change.
+            // Only substitute path direction when the selected marker identifies exactly one side.
+            // Match the radius floor used by the native off-mesh connection adapter.
+            let radius = if link.width.is_finite() {
+                link.width.max(0.05)
+            } else {
+                0.05
+            };
+            let matches = |endpoint: Vec3| {
+                let dx = marked_entry.x - endpoint.x;
+                let dz = marked_entry.z - endpoint.z;
+                marked_entry.is_finite() && dx * dx + dz * dz <= radius * radius
+            };
+            match (matches(start), matches(end)) {
+                (true, false) => false,
+                (false, true) => true,
+                // Retain legacy behavior for indistinguishable or missing attachment evidence.
+                _ => current.distance_squared(end) < current.distance_squared(start),
+            }
+        };
         let (start, end) = if reverse { (end, start) } else { (start, end) };
         if start.distance_squared(end) <= Real::EPSILON {
             return None;
