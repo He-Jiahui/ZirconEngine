@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，当前共 **26 个问题 Draft**；第六轮最新范围见第11节，第7/8/9/10节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，当前共 **26 个问题 Draft**；第七轮最新范围见第12节，第7/8/9/10/11节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -208,3 +208,19 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 #155通过选择真正所属插件叶包，让Runtime仅构建为依赖库而非其libtest，合法避开无关图形测试闭包；没有抽取mini-runner、复制夹具或弱化oracle。首轮来源中的UE TcpMessaging与邻近原测归因不变，UE测试未执行。
 
 #159的71个Windows Resource结果、#175的29个独立atomic结果和#161的18个模拟artifact工具结果保持各自范围，控制可能重叠，不作全引擎累加。下一步优先在#167原PR取得真实CPU RED，再独立评估最小修复；其余域继续按原顺序深审/反证/去重。保留并发#181/#177/#179图形/导航、#176物理及所有其他会话的源码、索引、锁、工作树与回执；全领域收敛、真实产品门和性能门仍未完成，不自动合并。
+
+
+## 12. 第七轮当前状态：2026-11-18
+
+仍是 **26个独立问题 Draft + 1个目录 Draft，0合并**。§11 中 #167 的未执行状态是当时快照；本轮只推进原 PR，不把一个清理 owner 的修复升格成整个 ECS/Runtime 或全引擎验收。8份 CSV、2766条规则/测试目录身份与集合指纹冻结不变。
+
+| 原问题 / 工作项 | 本轮实际推进 | 限定与未通过项 |
+|---|---|---|
+| [#167 Components/ECS](https://github.com/He-Jiahui/ZirconEngine/pull/167) | [同一PR已发布阶段](<https://github.com/He-Jiahui/ZirconEngine/blob/21ba7619bc7844e738e7fc8c32436b776d6e62bf/docs/plans/unreal-alignment/ecs-despawn-sparse-cleanup.md#L138-L187>)：既有 Runtime CPU 原5案实际 **2PASS/3FAIL**，成功接纳 Remove/Despawn 插入后 sparse count仍1、拥有值Drop仍0。独立可行复核后仅改 hierarchy owner：通知快照不作最终拥有集合，读取当前 signature 清理；child orphan 前绑定原 InternalEntity，3处原 World/plan guard 之后核对原代际，沿用 MissingEntity 不重指替代实体。原5测试字节不变，新增3安全公开同ID/新代际恢复控制；实际 `cpu167_` **8PASS/0FAIL/0ignored/7775filtered**。最终独立 Scoped PASS。 | 仅 Windows MSVC1.94.1、`core-min,native-host`、既有 lib harness；20选定输入运行前后不变，不是完整源码/进程封印。未启用 Graphics/UI/Script，不改 public API/ABI/schema/feature/manifest/lock，不扫描全 storage、不循环 replay late 通知。不是 UE 原测逐字迁移/执行、所有 callback/OS/产品/性能验收，保持 Draft。 |
+| #167 扩展既有控制 | observer 前缀 **31PASS/2FAIL**，identity 前缀 **37PASS/1FAIL**；通知/World-plan控制、两条旧 despawn 成本守卫及新3代际案都实际通过。 | **两组明确 NOT GREEN**。3条未修改源码字符串守卫失败：CRLF多行匹配、已过时 Fn 回调文本、旧 sparse locator 字段文本。消费输入与 e893 规范化一致，是直接源码反证而非已运行宽基线的证明；旧 locator 案后续运行断言未到达。无 skip/gate/弱化，保留所有非零回执，不在本修复夹带处理。聚焦8与宽组重叠，不累加为全域通过数。 |
+| [#156 Audio](https://github.com/He-Jiahui/ZirconEngine/pull/156) | 只读复核确认真实 `audio_importer.wav` registry handler 到 SoundAsset IEEE32 decode，合法float32 WAV可成功保留NaN；明确真实 owning leaf 是 `zircon_plugin_audio_importer_runtime`，不是 metadata wrapper。 | 仅 source/readiness，**0编译/执行/行为RED/fix**。UE ordinary factory 的成功float32路径转PCM16，但不能宣称UE全局拒绝NaN输入或某个精确输出样本；未找到同输入 exact UE 原测。既有 libtests 即使过滤 WAV也编译OGG include fixture：E参考树有、owned D无，不复制/overlay/屏蔽/另造runner求过；这是下一步真实前置，不是 Graphics137或glTF142的问题。 |
+| [#160 Memory](https://github.com/He-Jiahui/ZirconEngine/pull/160) / [#174 Text](https://github.com/He-Jiahui/ZirconEngine/pull/174) / [#180 Texture](https://github.com/He-Jiahui/ZirconEngine/pull/180) | 各自上一阶段保持：Memory静态 feature/readiness；Text4条已补但0执行；Texture经典缓存准入仍仅源码问题。 | profiling-memory测试闭包、独立137模型夹具和179默认Core2D产品前置均未旁路、复制、叠栈或伪造通过。没有扩大成全Runtime UI/GPU libtests重跑或其他问题生产修复。 |
+
+#167 通过真实 owning CPU feature closure 编译原 Runtime unit harness；不是提取 mini-runner/验证副本，也没有把旧测试编译闭包裁掉。原5保留 count/Drop/存活实体的强 oracle；新增3只证明原目标代际围栏与已接纳替代实体保留，不许把新控制倒写成原实现已经取得过 RED。
+
+#155原4同字节GREEN、net叶包56PASS/4原release性能Ignored；#159Windows Resource71、#175独立atomic29、#161模拟artifact工具18的范围不变。各 PR 的产品/OS/性能门仍独立，不能累加结果形成全引擎通过。保留并发#186/#185/#183/#182/#181导航、#184/#177/#179图形、#176物理及其他会话的源/索引/工作树/锁/回执；下一轮继续各原PR的事实调查、等价测试和有界修复，所有Draft不自动合并。
