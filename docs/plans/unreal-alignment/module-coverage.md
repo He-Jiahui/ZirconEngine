@@ -5,7 +5,7 @@
 本轮完成的是用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
-- 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、真实生产可达链、既有测试落点及未执行门。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
+- 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
 - **21 个问题 PR 此时均只新增各自 Markdown；本总览只新增 Markdown/CSV 元数据。引擎修复、Rust 等价测试、Cargo/UBT、GPU/产品运行均未在本轮执行。** 构建选取函数的纯内存见证、四元数独立算术和文件系统只读元数据探针不是引擎回归通过。
 - 不发明替代架构；Prefab 保持 Unity 思路，仅属性覆盖/预设参考 Blueprint。报告不是修复授权依据的替代品，后续仍回原 UE 源复核。
 
@@ -29,13 +29,15 @@
 
 目录所有 2766 条 Build/Target 的 `path + NUL + sha256 + LF` 排序集合指纹：`a87fc4061f8ba7c0fbe78cc9484f45725ac49191edbe0a5de04b261f510de820`。本地不存在 Engine/Restricted、Engine/Source/ThirdParty；VisionOS 10 条 ThirdParty 覆写已列，不能推断上游没有第三方库。
 
+CSV 标志口径：`is_template` 只识别精确 `Templates` 路径段，SoundCueTemplates 插件不算模板；`is_platform_extension` 表示 Platforms 路径归属，不表示 25 条都是派生覆写或独立模块；`is_external` 只记录规则内直接赋值 `ModuleType.External` 的词法证据，不计算继承后的有效 Type，false 不能反推不是第三方或 External。
+
 | 完整可检索目录文件 | 内容 |
 |---|---|
 | [module-rules.csv](<module-rules.csv>) | 2588 条规则路径/类别/class/模板/平台/测试标志与 SHA256 |
 | [target-rules.csv](<target-rules.csv>) | 178 条目标规则与 SHA256 |
 | [module-categories.csv](<module-categories.csv>) | 112 行分类与零值统计 |
 | [domain-map.csv](<domain-map.csv>) | 40 域 UE/ZE owner、当前审查状态、PR、未查清边界 |
-| [ue-owner-evidence.csv](<ue-owner-evidence.csv>) | 154 条领域 owner 定位证据（精确规则/项目路径及 SHA256） |
+| [ue-owner-evidence.csv](<ue-owner-evidence.csv>) | 154 条领域–UE owner 关联证据（119 个不同 UE owner / 源路径，含 SHA256） |
 | [ue-test-modules.csv](<ue-test-modules.csv>) | 414 条测试指示规则，非已通过/已迁移数量 |
 | [ue-test-source-candidates.csv](<ue-test-source-candidates.csv>) | 2677 个命名/Tests 目录 C++ 候选，23 个无最近祖先规则 |
 | [ue-csharp-projects.csv](<ue-csharp-projects.csv>) | 162 个 CSharp 项目，39 个测试指示项目 |
@@ -71,6 +73,8 @@
 ## 4. 全领域覆盖与未提新 PR 的原因
 
 “无新缺陷”仅表示这轮读到的限定契约未证实新独立问题，不代表模块全部正确；“目录映射”不是行为审计。多个领域指向同一问题时只计一个 Draft。
+
+CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；本轮限定结论以 `review_status` / `review_note` 为准，不将初盘状态误认成当前行为通过。
 
 | 领域 | 本轮状态 | PR/依据 |
 |---|---|---|
