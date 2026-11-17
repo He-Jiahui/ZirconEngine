@@ -152,8 +152,9 @@ fn mesh_asset_mikktspace_preserves_mirrored_uv_handedness() {
     let positions = mesh.positions().unwrap();
     // The first edge increases only v by one: dP/dv = P1 - P0 = +X.
     let d_p_d_v = Vec3::from_array(positions[1]) - Vec3::from_array(positions[0]);
-    let rebuild_bitangent =
-        |normal, [x, y, z, w]| Vec3::from_array(normal).cross(Vec3::new(x, y, z)) * w;
+    let rebuild_bitangent = |normal: [f32; 3], [x, y, z, w]: [f32; 4]| {
+        Vec3::from_array(normal).cross(Vec3::new(x, y, z)) * w
+    };
     assert_eq!(generated.vertices.len(), authored.vertices.len());
     for (generated, authored) in generated.vertices.iter().zip(&authored.vertices) {
         assert_eq!(
