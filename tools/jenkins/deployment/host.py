@@ -6,6 +6,16 @@ This process owns the NativeJob handles.  It is a lifecycle supervisor only:
 it accepts start/stop/reconcile commands from files and never schedules builds.
 """
 
+# Retired public workflow: stop before legacy imports or state access.
+if __name__ == "__main__":
+    import sys as _retired_sys
+    from pathlib import Path as _RetiredPath
+    _retired_sys.dont_write_bytecode = True
+    _retired_sys.path.insert(0, str(_RetiredPath(__file__).absolute().parents[3]))
+    from tools.jenkins.retirement import retired_cli as _retired_cli
+    raise SystemExit(_retired_cli())
+
+
 import argparse
 import json
 import os

@@ -17,10 +17,8 @@ $repository = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..\..'))
 if (-not $ArtifactRoot) {
     $ArtifactRoot = Join-Path 'E:\cargo-targets\zircon-local\penpot' ('validation-' + [guid]::NewGuid().ToString('N'))
 }
-$python = Join-Path $repository '.jenkins\runtime\python\python.exe'
-if (-not (Test-Path -LiteralPath $python)) {
-    $python = (Get-Command python -ErrorAction Stop).Source
-}
+. (Join-Path $repository 'tools\dev\agent-cargo-common.ps1')
+$python = Resolve-AgentPython
 $stageArguments = @('-B', '-X', 'utf8', (Join-Path $PSScriptRoot 'stage-workspace.py'), '--artifact-root', $ArtifactRoot)
 if ($CacheSource) { $stageArguments += @('--cache-source', $CacheSource) }
 $stageOutput = @(& $python @stageArguments)

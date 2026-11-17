@@ -29,11 +29,11 @@ doc_type: workflow-reference
 
 ```powershell
 # 只渲染命令；不产生通过证据
-.\tools\dev\local-cargo.ps1 -DryRun check -p zircon_runtime --locked
+.\tools\dev\local-cargo.ps1 -DryRun check -p zircon_runtime --no-default-features --features core-min --lib --locked
 
 # 到达相应编译批次后运行
-.\tools\dev\local-cargo.ps1 check -p zircon_runtime --locked
-.\tools\dev\local-cargo.ps1 test -p zircon_runtime --lib <focused-filter> --locked
+.\tools\dev\local-cargo.ps1 check -p zircon_runtime --no-default-features --features core-min --lib --locked
+.\tools\dev\local-cargo.ps1 test -p zircon_runtime --no-default-features --features core-min --lib <focused-filter> --locked
 ```
 
 保留 `--locked`、真实筛选与 feature 设置。release 使用 `--release`，profiling 使用工作区的 `--profile profiling`。ignored 测试必须有明确的测试目标或筛选。旧 `validate-matrix.ps1` 的 export/profile/convention 参数属于迁移资料，所需命令应从当前 CI 和实际测试 owner 组合，不重启旧协调器执行它们。
@@ -46,11 +46,11 @@ Windows PowerShell 是默认环境。WSL 仅用于具体的 Linux 专属失败�
 
 ## 异步请求和接受边界
 
-独立 Jenkins 协调器遵循 [jenkins-coordination 技能](https://github.com/He-Jiahui/ZirconEngine/blob/main/.codex/skills/jenkins-coordination/SKILL.md)。先核验当前启用记录、`functionalTestsAllowed` 和实际证据，再在任务授权内运行功能测试或提交有边界的命令。已经激活的唯一入口约束继续适用，不能绕开它使用独立命令。
+Agent 按[直接开发管理标准](https://github.com/He-Jiahui/ZirconEngine/blob/main/docs/tools/agent-artifact-management.md)在任务 worktree 运行授权的本地生成与验证。普通本地回执只记录实际命令与观察到的根进程结果，不证明进程树终止、输入封存或产品产物来源。
 
-提交后保存原请求 ID；客户端超时或终端无输出时先核对该请求，避免重复提交。按真实阶段记录状态、stdout/stderr、退出码、timing 与 artifact digest。源码交接使用补丁和哈希，agent 不自行创建源码快照或备份；必要验证源码由独立协调器准备。
+异步执行保存原 job/request 身份；客户端超时或终端无输出时先核对原操作，避免重复执行。按真实阶段记录状态、stdout/stderr、退出码、timing 与 artifact digest。使用任务规范 worktree 及精确补丁/哈希，保留外来修改和原生锁，不另造源码快照或备份。
 
-本地命令通过只证明该命令和对应源码范围。dry run、pending 回执、历史票据与本地退出码都不授予 Jenkins、全工作区、里程碑或生产迁移接受。产品、截图、真实设备或编辑器 host 验证在改变这些输出的边界单独完成，不以策略测试模拟替代。
+本地命令通过只证明该命令和对应源码范围。dry run、pending 回执和历史票据均不是当前通过证据，窄命令成功也不授予全工作区、里程碑或产品接受。历史 Jenkins 接受状态保留原样。产品、截图、真实设备或编辑器 host 验证在改变这些输出的边界单独完成，不以策略测试模拟替代。
 
 ## CI 和证据
 

@@ -5,11 +5,23 @@ does not import the retired pilot runtime.
 """
 from pathlib import Path
 
-from .spec import DeploymentSpec, load_spec
-from .paths import DeploymentPaths, resolve_paths
-from .spec import JenkinsError
+def __getattr__(name):
+    """Keep package CLI startup independent of legacy deployment libraries."""
+    from importlib import import_module
+    if name in {"DeploymentSpec", "load_spec", "JenkinsError"}:
+        module = import_module(".spec", __name__)
+    elif name in {"DeploymentPaths", "resolve_paths"}:
+        module = import_module(".paths", __name__)
+    else:
+        raise AttributeError(name)
+    value = getattr(module, name)
+    globals()[name] = value
+    return value
 
 def handle(action, payload, state, repo_root, *, domain="deployment"):
+    load_spec = globals().get("load_spec") or __getattr__("load_spec")
+    resolve_paths = globals().get("resolve_paths") or __getattr__("resolve_paths")
+    JenkinsError = globals().get("JenkinsError") or __getattr__("JenkinsError")
     spec = load_spec(payload.get("spec", repo_root / ".jenkins" / "deployment-spec.json"))
     paths = resolve_paths(spec, payload.get("buildRoot"))
     if action == "register-acceptance-checkout":

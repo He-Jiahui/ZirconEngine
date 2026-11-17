@@ -2,7 +2,7 @@
 
 ## Independent local Cargo
 
-The coordinator and its managed matrix/ticket/commit workflows are retired. No registration or lease is required. Jenkins owns normal execution; these local commands require an explicit user-authorized local exception. Before every compilation-capable command, announce its modules, packages, features, targets/test filters, profile, exact command and coverage reason under [the build declaration](guide.md#declare-every-build). The local wrapper validates physical output/cache/temporary paths and the 35 GiB free-space reserve:
+Run these local commands directly from the task worktree within the task authorization. Before every compilation-capable command, announce its modules, packages, features, targets/test filters, profile, exact command and coverage reason under [the build declaration](guide.md#declare-every-build). The local wrapper validates physical output/cache/temporary paths and the 35 GiB free-space reserve:
 
 ```powershell
 .\tools\dev\local-cargo.ps1 check -p zircon_runtime --no-default-features --features core-min --lib --locked
@@ -13,7 +13,7 @@ The coordinator and its managed matrix/ticket/commit workflows are retired. No r
 
 Choose scope with `docs/testing-and-validation/milestone-validation-policy.md`: no routine slice compile; minimal package/feature checks and focused tests at a milestone. Explicit `--workspace` or package-set builds called for by the current task or owning validation documentation are allowed under [declared gates](../../../../docs/testing-and-validation/milestone-validation-policy.md#declared-workspace-and-package-set-gates). Blind `--all`, `--all-features`, `--all-targets`, implicit root-wide selections and undeclared all-package loops/matrices remain prohibited unless the user explicitly authorizes that scope. John's full local Windows/MSVC U09 regression also follows [the U09 exception](../../../../docs/testing-and-validation/milestone-validation-policy.md#authorized-windowsmsvc-u09-regression). Ordinary wave/release and root manifest/lockfile/toolchain changes still require explicitly scoped affected modules. Inspect dependencies when the necessary ordinary scope is unclear.
 
-These are command examples, not evidence that the commands were run. A dry run or zero exit code does not grant milestone/Jenkins acceptance; retain actual logs, source identity, required review and failure resolution.
+These are command examples, not evidence that the commands were run. A dry run supplies no passing validation; a real zero exit code covers only its exact command/source scope, not broader milestone or product acceptance. Retain actual logs, source identity, required review and failure resolution; do not rewrite historical acceptance.
 
 ## Profiles, features and test filters
 

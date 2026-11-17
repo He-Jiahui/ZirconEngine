@@ -1,5 +1,13 @@
-"""Ordinary Jenkins management client. Submission is never build acceptance."""
+"""Historical Jenkins management library; the public workflow CLI is retired."""
 from __future__ import annotations
+
+# Retired public command: exit before importing historical execution owners.
+if __name__ == "__main__":
+    import sys as _sys
+    from pathlib import Path as _Path
+    _sys.path.insert(0, str(_Path(__file__).resolve().parents[2]))
+    from tools.jenkins.retirement import retired_cli as _retired_cli
+    raise SystemExit(_retired_cli())
 
 import argparse
 import contextlib
@@ -1304,56 +1312,13 @@ def cargo_entry(repo, arguments, *, identity_file=None, target_dir=None, build_r
                     query_only=query_only, dry_run=dry_run)
 
 
+
+
 def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
-    commands = parser.add_subparsers(dest="command", required=True)
-    for command in ("cargo", "submit", "capability"):
-        sub = commands.add_parser(command)
-        sub.add_argument("--repo-root", required=True)
-        if command == "cargo":
-            sub.add_argument("--identity-file")
-            sub.add_argument("--target-dir")
-            sub.add_argument("--build-root")
-            sub.add_argument("--runtime-profile")
-            sub.add_argument("--unlocked", action="store_true")
-            sub.add_argument("--query-only", action="store_true")
-            sub.add_argument("--dry-run", action="store_true")
-            sub.add_argument("cargo_args", nargs=argparse.REMAINDER,
-                             help="Scoped Cargo argv; --profile test is supported only with cargo test")
-        elif command == "submit":
-            sub.add_argument("--input-file", required=True)
-            sub.add_argument("--resume-original", action="store_true")
-            for name in ("session-id", "request-id", "operation-id", "action"):
-                sub.add_argument("--" + name, required=True)
-            sub.add_argument("--query-only", action="store_true")
-    args = parser.parse_args(argv)
-    try:
-        if args.command == "capability":
-            context = capability(args.repo_root, public_transport=True)
-            result = {"status": "ready", "verificationMode": "public-transport", "nativeLifecycleVerified": False,
-                      "ordinaryEntry": CAPABILITY,
-                      "managedWorktree": context["config"].get("managedWorktree"),
-                      "driverDigest": context["config"]["driverDigest"],
-                      "runtimeOperationId": context["config"]["runtimeOperationId"],
-                      "formalAcceptance": False, "m8Accepted": False}
-        elif args.command == "cargo":
-            values = args.cargo_args[1:] if args.cargo_args[:1] == ["--"] else args.cargo_args
-            result = cargo_entry(args.repo_root, values, identity_file=args.identity_file,
-                                 target_dir=args.target_dir, build_root=args.build_root,
-                                 runtime_profile=args.runtime_profile, unlocked=args.unlocked,
-                                 query_only=args.query_only, dry_run=args.dry_run)
-        else:
-            payload, _raw = document(args.input_file)
-            identity = {"sessionId": args.session_id, "requestId": args.request_id,
-                        "operationId": args.operation_id, "action": args.action}
-            result = dispatch(args.repo_root, payload, identity=identity, query_only=args.query_only,
-                              resume_original=args.resume_original)
-        print(encoded(result).decode())
-        return 2 if result["status"] == "pending" else 0
-    except Exception as error:
-        print(encoded({"status": "pending", "reasonCode": getattr(error, "code", "ordinary_entry_unproven"),
-                       "message": str(error), "formalAcceptance": False, "m8Accepted": False}).decode())
-        return 2
+    # Direct-script execution also works without an installed runtime/capsule.
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+    from tools.jenkins.retirement import retired_cli
+    return retired_cli()
 
 
 if __name__ == "__main__":

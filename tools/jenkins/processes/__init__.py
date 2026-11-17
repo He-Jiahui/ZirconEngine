@@ -6,9 +6,7 @@ execution boundary; non-Windows callers get a small subprocess fallback for
 unit tests and development tooling.
 """
 
-from .identity import ProcessIdentity, current_identity, identity_matches, process_alive
-from .job import NativeJob, ManagedProcess, TerminationProof
-from .registry import NativeJobRecord, ProcessRegistry
+# Public exports stay lazy so module CLIs can retire before loading native owners.
 
 __all__ = [
     "ManagedProcess",
@@ -26,9 +24,18 @@ __all__ = [
 ]
 
 def __getattr__(name):
-    """Load the owner host lazily to keep primitive process imports acyclic."""
-    if name in {"ExecutionHost", "HostIdentity", "request_cancel"}:
-        from .execution_host import ExecutionHost, HostIdentity, request_cancel
-        return {"ExecutionHost": ExecutionHost, "HostIdentity": HostIdentity,
-                "request_cancel": request_cancel}[name]
-    raise AttributeError(name)
+    """Preserve native library exports without loading them for CLI startup."""
+    from importlib import import_module
+    if name in {"ProcessIdentity", "current_identity", "identity_matches", "process_alive"}:
+        module = import_module(".identity", __name__)
+    elif name in {"NativeJob", "ManagedProcess", "TerminationProof"}:
+        module = import_module(".job", __name__)
+    elif name in {"NativeJobRecord", "ProcessRegistry"}:
+        module = import_module(".registry", __name__)
+    elif name in {"ExecutionHost", "HostIdentity", "request_cancel"}:
+        module = import_module(".execution_host", __name__)
+    else:
+        raise AttributeError(name)
+    value = getattr(module, name)
+    globals()[name] = value
+    return value

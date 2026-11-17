@@ -21,7 +21,7 @@ Each class below recurs in the repository's own `BUG: [CR-...]` markers. When a 
 
 - **Trigger:** `unsafe` blocks or impls, FFI, a public function taking `*const`/`*mut`.
 - **Rule:** A safe `pub fn` does not dereference a caller's raw pointer. Make it `unsafe fn` with a `/// # Safety` section, or take a reference or a validated handle. Every new `unsafe` block or impl carries a `// SAFETY:` comment naming the invariant it relies on.
-- **Test:** safe wrappers reject null pointers or invalid handles; exercise unsafe entry points only with inputs satisfying their safety contract. Never dereference a fabricated dangling pointer as a regression fixture. Run Miri on the affected module when Jenkins offers it.
+- **Test:** safe wrappers reject null pointers or invalid handles; exercise unsafe entry points only with inputs satisfying their safety contract. Never dereference a fabricated dangling pointer as a regression fixture. Run Miri on the affected module when a supported, explicitly scoped local environment is available; record unavailable coverage explicitly.
 - **Evidence:** `CR-R02-public_sdk_reflect-0001` and `-0002` (`zircon_plugins/plugin_sdk/src/native.rs`).
 - **Guard:** `rust.safe-fn-raw-pointer`, `rust.unsafe-without-safety`, `rust.unsafe-fn-safety-doc`. Patch mode checks added unsafe uses and changed public parameter lists; pointer-typed callback parameters and returns do not count as caller-owned raw pointers.
 

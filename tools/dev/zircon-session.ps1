@@ -18,5 +18,5 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-[Console]::Error.WriteLine('The local Zircon Session coordinator is retired. Service startup, leases, validation, integration and worker commands are disabled. Jenkins migration acceptance is pending.')
+[Console]::Error.WriteLine('The local Zircon Session coordinator is retired. Service startup, leases, validation, integration and worker commands are disabled. Use the independent local development tools; historical data is unchanged.')
 exit 3

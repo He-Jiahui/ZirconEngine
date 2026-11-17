@@ -1,5 +1,6 @@
 """Exercise independent snapshot, asset merge, CRT, and BuildSet assembly."""
 import json
+import os
 from pathlib import Path
 import struct
 import tempfile
@@ -23,7 +24,7 @@ def synthetic_pe(*, dll):
 
 class IndependentEditorTests(unittest.TestCase):
     def test_snapshot_copies_untracked_and_sibling_dependency(self):
-        with tempfile.TemporaryDirectory() as folder:
+        with tempfile.TemporaryDirectory(dir=(r'E:\cargo-targets\zircon-local' if os.name == 'nt' else None)) as folder:
             root = Path(folder)
             source = root / 'checkout'
             (source / 'app').mkdir(parents=True)
@@ -41,7 +42,7 @@ class IndependentEditorTests(unittest.TestCase):
             self.assertTrue(owner.dependency_closure(frozen, inventory))
 
     def test_identical_asset_merge_and_conflict_rejection(self):
-        with tempfile.TemporaryDirectory() as folder:
+        with tempfile.TemporaryDirectory(dir=(r'E:\cargo-targets\zircon-local' if os.name == 'nt' else None)) as folder:
             root = Path(folder)
             for name in ('zircon_runtime', 'zircon_editor'):
                 assets = root / 'source' / name / 'assets'
@@ -53,7 +54,7 @@ class IndependentEditorTests(unittest.TestCase):
                 owner.copy_assets(root / 'source', root / 'bad', False)
 
     def test_crt_requires_x64_pe_and_microsoft_signature(self):
-        with tempfile.TemporaryDirectory() as folder:
+        with tempfile.TemporaryDirectory(dir=(r'E:\cargo-targets\zircon-local' if os.name == 'nt' else None)) as folder:
             root = Path(folder)
             redist, stage = root / 'redist', root / 'stage'
             redist.mkdir()
@@ -68,7 +69,7 @@ class IndependentEditorTests(unittest.TestCase):
                 owner.copy_crt(redist, stage, Path('powershell.exe'))
 
     def test_mock_build_generates_actual_buildset_and_separates_evidence(self):
-        with tempfile.TemporaryDirectory() as folder:
+        with tempfile.TemporaryDirectory(dir=(r'E:\cargo-targets\zircon-local' if os.name == 'nt' else None)) as folder:
             root = Path(folder)
             repo, target, bundle = root / 'repo', root / 'target', root / 'bundle'
             repo.mkdir()
@@ -83,6 +84,8 @@ class IndependentEditorTests(unittest.TestCase):
                 (fonts / name).write_text(f'source = "{payload}"\nfamily = "Synthetic"\n', encoding='utf-8')
                 (fonts / payload).write_bytes(b'synthetic packaged font')
             def run(command, **kwargs):
+                self.assertNotIn('-IndependentPreview', command)
+                self.assertNotIn('-JenkinsIdentityFile', command)
                 if command[-1] == '--help':
                     return SimpleNamespace(returncode=0, stdout=b'Usage: zircon_editor', stderr=b'')
                 name = 'zircon_runtime.dll' if 'rustc' in command else 'zircon_editor.exe'
@@ -93,12 +96,15 @@ class IndependentEditorTests(unittest.TestCase):
                 kwargs['stdout'].write(('\n'.join(json.dumps(row) for row in rows) + '\n').encode())
                 return SimpleNamespace(returncode=0)
             with patch.object(owner.local_cargo, 'free_bytes', return_value=100 * 1024**3), \
-                    patch('tools.jenkins.frontend.sole_entry_enforced', return_value=False), \
+                    patch('tools.jenkins.frontend.sole_entry_enforced', side_effect=AssertionError('retired gate accessed')), \
+                    patch('tools.build.editor_startup_smoke.run_startup_smoke', return_value={'status': 'fixture-only', 'first_frame_verified': False}) as startup, \
+                    patch.dict(owner.os.environ, {'ZIRCON_JENKINS_IDENTITY_FILE': 'must-not-be-read'}), \
                     patch.object(runtime_manifest.platform, 'machine', return_value='AMD64'), \
                     patch.object(runtime_manifest, '_load_interface_spec', return_value={'family': 'synthetic-fixture'}), \
                     patch.object(runtime_manifest, '_load_payload_schema_set_digest', return_value='a' * 64), \
                     patch.object(owner.subprocess, 'run', side_effect=run), patch.object(owner, 'copy_crt', return_value={}):
                 self.assertEqual(0, owner.main(['--repo-root', str(repo), '--target-dir', str(target), '--output-directory', str(bundle)]))
+            startup.assert_called_once()  # Packaging fixture, not a real GUI/first-frame acceptance.
             manifest = json.loads((bundle / 'zircon_runtime.dll.manifest.json').read_bytes())
             self.assertEqual(owner.sha(bundle / 'zircon_runtime.dll'), manifest['artifact']['sha256'])
             self.assertEqual(owner.sha(bundle / 'zircon_editor.exe'), manifest['host_artifacts'][0]['sha256'])

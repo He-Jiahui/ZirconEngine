@@ -7,12 +7,12 @@
 ```
 tools/
   build/          构建脚本：编辑器打包、引擎/Hub/插件构建
-  dev/            本地开发入口：Cargo 命令、开发会话、快速构建别名
+  dev/            本地开发入口：Cargo 命令、快速构建别名
   audits/         规范与质量检查：约定检查、源码审计、插件结构审计
   docs/           Wiki 源校验、导航钩子与网站构建
-  setup/          安装与注册：Jenkins 托盘登录启动项、Codex session hook
-  jenkins/        Jenkins 全部实现：执行引擎、托盘(tray/)、封存输入(pilot/)、
-                  Gap 缺口追踪(gap/)、独立启动器(launcher/)
+  setup/          安装辅助脚本（含保留的历史入口）
+  jenkins/        历史实现和仍被使用的无服务辅助库
+  jenkins-management/ 历史管理实现
   analysis/       数据分析与验证：性能(performance/)、性能采集(profiling/)、
                   验证批次(validation/)、视觉检查(visual/)
   maintenance/    维护工具：清理旧 target、Windows 路径解析模块
@@ -26,15 +26,18 @@ tools/
 
 ## 常用入口
 
+在任务 worktree 使用原生 Git、生成脚本和独立本地验证。任务与动作授权见[直接开发管理标准](../docs/tools/agent-artifact-management.md)，物理输出、35 GiB、原生锁见[编译存储规则](../docs/tools/build-storage-policy.md)。
+
 | 用途 | 入口 |
 | --- | --- |
 | 本地 Cargo 命令 | `dev/local-cargo.ps1` 或 `dev/local_cargo.py` |
 | 编辑器构建与打包 | `build/build-editor.ps1` |
 | 引擎/Hub/插件构建 | `build/zircon_build.py` |
 | 仓库规范检查 | `audits/check-conventions.ps1` |
-| Jenkins 托盘启动 | `jenkins/zircon-jenkins-start.py` 或打包后的 `dist/zircon-jenkins.exe` |
-| Jenkins Gap 工作流 | `python -m tools.jenkins.gap <command>` |
-| 构建状态仪表盘 | `python tools/jenkins/dashboard.py --open` |
+| 最小模块验证 | `dev/dev-module-build.ps1 -Package <package>` |
+| 只读产物盘点 | `python -B -m tools.dev.artifact_inventory` |
+
+旧部署与运维命令仅作[历史资料](../.jenkins/README.md)，不执行或重放；保留配置、凭据、状态及回执。
 
 ## 约定
 

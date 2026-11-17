@@ -1,5 +1,7 @@
 # 普通本地提交的持久队列
 
+> **历史流程，不执行。** 下文保留旧规则、命令和回执含义，不作为当前开发、提交、安装或调度指令。当前使用 [Agent 直接开发管理标准](agent-artifact-management.md)；原数据与验收状态不变。
+
 用户已授权 Jenkins 对明确选定的任务文件执行本地提交。完成范围审阅的任务可通过 `tools/dev/jenkins_commit.py submit` 或通用入口 `tools/dev/submit-jenkins-management.ps1 -Action commit-checkout` 交付。入口复用实际 checkout，不创建工作树或源码副本，不要求整树哈希、逐会话授权或旧 formal flow 验收。文件写权限、活动读取和原生 Git 锁继续生效；产品验证如实记录。
 
 请求只列本任务已准备好的文件，例如：

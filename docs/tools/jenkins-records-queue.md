@@ -1,5 +1,7 @@
 # Jenkins records 收件与待办队列
 
+> **历史流程，不执行。** 下文保留旧规则、命令和回执含义，不作为当前开发、提交、安装或调度指令。当前使用 [Agent 直接开发管理标准](agent-artifact-management.md)；原数据与验收状态不变。
+
 `tools/jenkins-management/records_queue.py` 是固定本机 Jenkins 的交接入口。
 它复用已安装管理入口的完整能力、driver、runtime 和健康校验，不替换管理
 capsule、不修改旧协调器，也不执行任意交接命令。使用前执行 `install`，其

@@ -486,7 +486,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument('--storage-mode', choices=['reuse', 'compact', 'diagnostic'], default='reuse')
     parser.add_argument('--source-snapshot', type=Path)
     parser.add_argument('--source-snapshot-digest')
-    parser.add_argument('--jenkins-identity-file', type=Path)
+    parser.add_argument('--jenkins-identity-file', type=Path, help=argparse.SUPPRESS)
     parser.add_argument('--jobs', type=int, default=2)
     parser.add_argument('--ephemeral', action='store_true')
     parser.add_argument('--skip-smoke-test', action='store_true')
@@ -494,21 +494,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument('--prepare-source-snapshot', type=Path)
     args = parser.parse_args(argv)
     try:
+        if args.jenkins_identity_file is not None:
+            raise ValueError('Jenkins workflow is retired; omit --jenkins-identity-file for direct execution')
         if os.name != 'nt':
             raise ValueError('Editor bundles require Windows')
         if args.jobs < 1:
             raise ValueError('Jobs must be positive')
         repo = ordinary(args.repo_root).resolve()
-        if args.jenkins_identity_file:
-            os.environ['ZIRCON_JENKINS_IDENTITY_FILE'] = str(args.jenkins_identity_file.resolve())
         if args.storage_mode != 'reuse':
             raise ValueError('Editor builds support storage mode reuse; compact and diagnostic have no supported executor')
         if args.prepare_source_snapshot:
             print(json.dumps(prepare_snapshot(repo, args.prepare_source_snapshot)))
             return 0
-        from tools.jenkins.frontend import sole_entry_enforced
-        if sole_entry_enforced(repo):
-            raise ValueError('Jenkins sole-entry gate is active; this independent preview will not dispatch a service')
         if bool(args.source_snapshot) != bool(args.source_snapshot_digest):
             raise ValueError('SourceSnapshot and SourceSnapshotDigest must be paired')
         source = ordinary(args.source_snapshot).resolve() if args.source_snapshot else repo
@@ -547,9 +544,7 @@ def main(argv: list[str] | None = None) -> int:
                 raise ValueError('Source changed before package build')
             invocation = [str(shell), '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
                           '-File', str(repo / 'tools/dev/local-cargo.ps1'), '-RepoRoot', str(source),
-                          '-TargetDir', str(target), '-PythonInterpreter', sys.executable, '-IndependentPreview']
-            if args.jenkins_identity_file:
-                invocation += ['-JenkinsIdentityFile', str(args.jenkins_identity_file)]
+                          '-TargetDir', str(target), '-PythonInterpreter', sys.executable]
             invocation += command
             with (evidence / f'cargo-{index}.log').open('wb') as log:
                 completed = subprocess.run(invocation, env=environment, stdout=log, stderr=subprocess.STDOUT,

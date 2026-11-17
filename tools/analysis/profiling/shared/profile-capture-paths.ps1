@@ -1,3 +1,5 @@
+. (Join-Path $PSScriptRoot '..\..\..\dev\agent-cargo-common.ps1')
+
 function ConvertTo-ZirconProfileSessionBasename {
     param(
         [Parameter(Mandatory = $true)]
@@ -183,11 +185,8 @@ function Resolve-ZirconProfileOutputRoot {
     }
     Assert-ZirconProfilePathContainsNoReparsePoint -Root $profileRoot -Candidate $Path
 
-    # The interpreter is anchored to this source file, never to caller-controlled output data.
-    $pythonPath = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..\..\.jenkins\runtime\python\python.exe'))
-    if (-not (Test-Path -LiteralPath $pythonPath -PathType Leaf)) {
-        throw "Profile output validation requires the repository bundled Python: $pythonPath"
-    }
+    # Use the general interpreter selected by ZIRCON_PYTHON/PATH, never an output payload.
+    $pythonPath = Resolve-AgentPython
     $physicalPolicy = @'
 from pathlib import Path
 import json
