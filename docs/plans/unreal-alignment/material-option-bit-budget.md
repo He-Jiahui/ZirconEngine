@@ -170,3 +170,19 @@ ZE 自身既有 [32 位上限/超限 import 诊断合同:165](<https://github.co
 [ue-rendercore-build]: <E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/RenderCore/RenderCore.Build.cs#L18-L26>
 [ue-baking-build]: <E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Developer/MaterialBaking/MaterialBaking.Build.cs#L9-L24>
 [ue-baking-test]: <E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Developer/MaterialBaking/Private/Tests/ExportMaterialProxyTest.cpp#L24-L66>
+
+## 7. 真实注册导入器、磁盘载荷与重开：原版 2 过 3 败
+
+[仅测试提交 `658212a20bf1d7e41813a3dd916baeae90e7e83f`](https://github.com/He-Jiahui/ZirconEngine/blob/658212a20bf1d7e41813a3dd916baeae90e7e83f/zircon_runtime/src/asset/tests/project/zmeta.rs) 与[测试实现](https://github.com/He-Jiahui/ZirconEngine/blob/658212a20bf1d7e41813a3dd916baeae90e7e83f/zircon_runtime/src/asset/tests/project/zmeta/option_budget.rs)。真实文件系统工程，内置 `zircon.builtin.shader.zshader_package` 导入合法 Surface WGSL；实际 `ProjectManager::scan_and_import`、`ArtifactStore::read`、材质值编码及 `definition_values_for_bits`。Windows x64/MSVC、Rust 1.94.1、test profile，`test -p zircon_runtime --no-default-features --features target-server --lib material_budget_ --locked --offline --jobs 1 -- --test-threads 1 --show-output`。5 个用例：**2 过、3 败**，0 忽略，7,889 过滤。
+
+| 真实输入/操作 | 原版结果 |
+|---|---|
+| 30 个 bool + 3 值 enum，总宽 32 | `off/uv/triplanar` → bits `0 / 0x40000000 / 0x80000000` → `ZR_OPT_DETAIL_MODE=0/1/2`，通过。Compute 与 Fullscreen 作者文档各自接受 33 个 bool 的解析正控也通过。 |
+| 31 个 bool + 同 enum，总宽 33 | Source 和预览均 `Ready`，有制品、诊断空；bits `0 / 0x80000000 / 0`，实际定义 **0/1/0**，不是 0/1/2。 |
+| 编码一个真实 cache：保留旧的 32 位派生表，只给原始 `options` 加回一个 bool | 当前二进制 Shader chunk 可完整读取；解码再生出 33 位表并再次把 2 读成 0。不是损坏压缩头或凭空模拟 cache miss。 |
+| 保持磁盘 `.zshader` 为可表达的 32 位版本，仅换入上述旧式载荷，另开一个 ProjectManager 并全扫 | 根仍是 `Ready`，table 仍为33，chunk 内容散列不变；未用合法源修复。 |
+
+两例各生成的失配载荷均为 3,359 原始字节、1 个 chunk、内容散列 `ec112b8f85b657de98d825e7936592ff257c34ad1daa41de4756ac0d488d5616`。未构造 32 位移位 panic，不跑整个渲染器、预热 CLI/GPU、UE；验到的是实际要交给变体的值，而不是着色后的屏幕颜色。该三项行为失败与 RenderCore 的编译期排列数量上限无等量迁移关系。
+
+
+38 项选定输入；实际回执 SHA-256 `d5594c3d3c190c39d6aea29900dfab28158c6c25278666cd306a1074547c21e2`，stdout `9bf54256b00510afa16152fd5967aef5345ca1facd5316d3b024359e91b9e8a7`，stderr `4d5149857669912a653dfa1a63468b6db541e0b0f5d277e49bd650c82278f1ae`。
