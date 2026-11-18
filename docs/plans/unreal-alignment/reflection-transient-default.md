@@ -1,8 +1,8 @@
 # 反射序列化：DynamicScene 无法恢复带已声明默认值的非持久 VM 组件字段
 
-> 取证说明：UE 的本机路径与文件 SHA256 是用户提供参考树的依据；本轮 D: 审计快照/工作记录仅本地保存，不随本 PR 发布，也不冒充 GitHub 可读证据。UE/ZE 测试均未在本轮执行。
+> 取证说明：UE 的本机路径与文件 SHA256 是用户提供参考树的依据；本轮 D: 审计快照/工作记录仅本地保存，不随本 PR 发布，也不冒充 GitHub 可读证据。第 1–6 节保留初次调查及测试计划；当时未运行 UE/ZE 测试。后续 ZE 原生实测见第 7 节，未执行 UE 测试。
 
-**结论：独立 Draft 候选，路径与最小反例的源码证据高置信，未实跑。** 是既有 [Runtime63 RSR-P1-037](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/docs/plans/optimize/zircon_runtime/63-runtime-scene-reflection-type-schema-registry-dynamic-component-property-address-inspection-artifact-subscription-editor.md#L254-L264) / [Runtime99l](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/docs/plans/optimize/zircon_runtime/99l-runtime-scene-reflection-type-schema-registry-dynamic-component-property-address-inspection-artifact-subscription-editor.md#L245-L254) “完整字段集合与默认值”下的可复核子项：**同 schema、字段明确不入存档且有合法默认值**，不要求新增 optional/redirect/unknown 字段版本政策。和脚本 `onStart` 不是同一问题。
+**当前状态：已在原生 Runtime 复现，同一 Draft 已补测试；这一提交不改引擎实现。** 首次调查结论如下： 是既有 [Runtime63 RSR-P1-037](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/docs/plans/optimize/zircon_runtime/63-runtime-scene-reflection-type-schema-registry-dynamic-component-property-address-inspection-artifact-subscription-editor.md#L254-L264) / [Runtime99l](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/docs/plans/optimize/zircon_runtime/99l-runtime-scene-reflection-type-schema-registry-dynamic-component-property-address-inspection-artifact-subscription-editor.md#L245-L254) “完整字段集合与默认值”下的可复核子项：**同 schema、字段明确不入存档且有合法默认值**，不要求新增 optional/redirect/unknown 字段版本政策。和脚本 `onStart` 不是同一问题。
 
 ZE 本地 `cb495bb1c952a24c86f4513b8099bc4942c3a87d`；与 Draft 固定 blob 基线 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37` 在 5 个引擎目录无差异。UE 为本机 [Build.version:1–10](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Build/Build.version#L1-L10>) 的 `6.0.0 / BranchName UE5`；下列 UE 定位为该检出，SHA-256 见末表。
 
@@ -71,3 +71,24 @@ UE 的实体是已分配/初始化的 UObject/UStruct 存储，`FProperty` 给 s
 | [Engine/Source/Runtime/CoreUObject/Private/UObject/Property.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/CoreUObject/Private/UObject/Property.cpp>) | `356ae0aa811b501525132186b0dd7fad03a771fd8abbc89748da8f6ff4997631` |
 | [Engine/Source/Runtime/CoreUObject/Private/UObject/UObjectGlobals.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/CoreUObject/Private/UObject/UObjectGlobals.cpp>) | `5cea26e1bb14ceb29edd6017e58b9c133f61eae07ac3058e1d054991fa4020da` |
 | [Engine/Source/Runtime/CoreUObject/Tests/UObject/PropertyStateTrackingTest.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/CoreUObject/Tests/UObject/PropertyStateTrackingTest.cpp>) | `f740941e51b82994f4915742fd583bd70b987adf9bec492667080b1829bc769f` |
+
+## 7. Windows 原生基线：存档已正确省略字段，恢复却拒绝整个实例
+
+[测试提交](https://github.com/He-Jiahui/ZirconEngine/commit/ce0d141f1cdd173b56ca6198fe515082244fe9dc)只在[现有 VM 反射库测试](../../../zircon_runtime/src/scene/reflect/tests/vm_type_backing.rs#L16-L17)挂载了 [6 个用例](../../../zircon_runtime/src/scene/reflect/tests/vm_transient.rs#L14-L162)。原引擎与原错误类型未改。聚焦运行 **4 通过、2 失败、0 忽略、7775 过滤**，退出 101。两处失败不是同一种证据：
+
+| 观察 | 原实现实测 |
+|---|---|
+| [版本化场景往返与恢复](../../../zircon_runtime/src/scene/reflect/tests/vm_transient.rs#L15-L50) | 源实例 `{saved:7,scratch:99}` 已写入；解码后，组件实例只含 `saved` 的稳定 ID 和值 `7`，描述符仍有 `scratch`。在同一 schema 已注册、另有哨兵实体的目标上，`spawn_into` 报 `WorldMutation(Reflect(UnknownField { type_path: "probe.Component.Scratch", field_name: "scratch" }))`。未到达目标值应为 `42` 的断言。**这就是本 PR 的行为缺陷。** |
+| [补值必须计入有限目标预算](../../../zircon_runtime/src/scene/reflect/tests/vm_transient.rs#L114-L162) | 同一个目标、同样两个源实体，版本化文档分别缺 0、1、2 个 `scratch`；在相同 1 MiB 有限额度下，目标快照估算都是 **5814 字节**，递增断言失败。当前引擎还没有展开默认值；此案约束拟议修复不能免费展开，不是第二个 UE 缺陷，也不是内存耗尽复现。 |
+| [严格写入及事务失败](../../../zircon_runtime/src/scene/reflect/tests/vm_transient.rs#L52-L96) | 直接给 World 写残缺 VM 对象仍报 `scratch` 缺失；第二行缺**有声明默认**的持久 `saved`，仍报 `saved` 缺失，两行均未发布；非持久字段无默认也仍拒绝。各自的原值哨兵保持不变。三案通过。 |
+| [只有存档描述符的目标](../../../zircon_runtime/src/scene/reflect/tests/vm_transient.rs#L98-L112) | 没有注册 VM schema 时，同一类型的兼容路径可以写入 `{saved:7}`，没有推断或补出 `scratch`。通过。 |
+
+**下一步的实现边界。** 归档值继续由稳定 ID 定位并使用原实体映射。仅在隔离预检、[原严格 setter](../../../zircon_runtime/src/scene/world/dynamic_components.rs#L224-L240)之前，依据目标 World 的 VM backing 和实际字段表，给“缺席、非持久、有显式默认”三者同时成立的字段赋目标默认；不要改导出、普通写入或未注册描述符的行为。需先在[目标快照计量](../../../zircon_runtime/src/scene/dynamic/scene/spawn/transaction.rs#L264-L288)按每个实例计入要展开的字段，再交给现有[异步预约](../../../zircon_runtime/src/scene/dynamic/asset_reload/stage_task.rs#L98-L110)。这是既有估算口径，不是字节精确的堆或 RSS 上限。
+
+测试选择命令（本地 wrapper 另指定工作树 manifest 与 F 盘产物目录）：
+
+```text
+cargo test -p zircon_runtime --no-default-features --features core-min,native-host --lib reflect163_ --locked --offline --jobs 1 -- --test-threads 1
+```
+
+Windows x64/MSVC，Rust 1.94.1，test profile `debug=0, incremental=false`；native-host 含 asset-types，未启用 Script/Graphics/UI。命令回执 SHA-256：`dc9879542650a3799ff58963cf70ea53ac76ad6a110b10763e85d7f56f541da7`。运行前后核对 34 项选定输入，不代表完整源码或进程封印。UE `TrackInitializedProperties` 的已有测试是 initialized/delta 条件下对**已有目标值**的观察，不是 `CPF_Transient` 或 ZE VM restore 的直接移植。未运行真实脚本后端、Play、全套 Runtime、UE 或跨平台产品验收。
