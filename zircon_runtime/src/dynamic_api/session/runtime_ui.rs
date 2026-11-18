@@ -465,3 +465,7 @@ fn runtime_surface_node_id_projection(surface_index: usize) -> UiRenderNodeIdPro
 #[cfg(test)]
 #[path = "runtime_ui/tests/cases.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "runtime_ui/tests/menu_owner.rs"]
+mod menu_owner_tests;
