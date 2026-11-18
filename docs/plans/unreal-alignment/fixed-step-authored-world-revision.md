@@ -1,6 +1,6 @@
 # Registered fixed-step writeback rejects a same-World transform revision
 
-**Problem-only Draft.** Source compared at ZE `main@e89349ca51b4e9d024c194cd3bdf645bd25b6c37`. Observed with the exact [#198](https://github.com/He-Jiahui/ZirconEngine/pull/198) producer and when adding the exact [#145](https://github.com/He-Jiahui/ZirconEngine/pull/145) writeback (see below). An isolated unchanged-main run, with new frozen tests, is pending. No production/test changes or proposed implementation in this Draft yet.
+**Draft — measured unchanged-main RED.** Production is exactly ZE `main@e89349ca51b4e9d024c194cd3bdf645bd25b6c37`; only the problem note and frozen test cases are added. Earlier observations with [#198](https://github.com/He-Jiahui/ZirconEngine/pull/198) and [#145](https://github.com/He-Jiahui/ZirconEngine/pull/145) are separate from the isolated main result.
 
 ## Difference and consequence
 
@@ -12,8 +12,13 @@ In real registered ZE/Jolt tests, one root Dynamic sphere (no parent, shear, col
 
 `dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/PhysicsEngine/Experimental/PhysScene_Chaos.cpp:2542–2565` reads the dirty particle world pose, compares without scale and queues related component work. `:2767–2778` calls `MoveComponent` with a world delta/rotation and `MOVECOMP_SkipPhysicsMove`. `dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/Components/SceneComponent.cpp:3293–3346` owns conversion into relative location/rotation and updates component state. This is source evidence for the writeback and feedback boundary, not an Unreal execution claim, a ZE time-token policy, or a reason to copy `FTransform` over ZE's full affine parent chain.
 
-## Evidence before a fix
+## Exact-main baseline execution
 
-- Freeze an isolated exact-main registered root case and a no-motion control in the smallest existing test target. Record the actual typed failure, native/scene pose, replacement/schedule identity and time debt distinctly; run identical fixtures after any fix. On success require two accumulating physical steps on the same native handle, normal authored revision/dirty publication and correct time commits. Include legitimate same-instance mutation and real replacement or stage-error controls, so a fixed-step cannot commit to a retired World or consume debt on error.
-- Preserve pending mutation effects, active step identity, rollback/clock contracts, genuine replacement and schedule fences, and normal ECS authored values. Do not suppress content revisions or globally relax fixed-step checks to pass a physics test.
-- No #145/#198 integration, shear translation change, #141 tangent/geometry change, editor gate bypass, workflow change or merge in this problem-only Draft.
+Frozen `0ae0a691e1c53c669c8767852051645565592ec8`, Windows/MSVC Rust 1.94.1 `test`, default features off, two existing `--lib` targets, `--locked --offline --jobs 1`. Actual compile succeeded for both; direct test processes returned `101` with no ignored tests or timeout.
+
+| Test scope | Baseline | Actual observation |
+|---|---:|---|
+| [Linked Jolt, registered root](../../../zircon_plugins/physics/runtime/src/manager/tests/fixed_step_revision.rs), `zircon_plugin_physics_runtime`, `backend-jolt,zircon_runtime/native-host,zircon_runtime/physics-contracts` | **1/3** | On each moving fixture, the same active native handle and actual local scene moved `(2,-1,3) → (3,-.5,3)` before `FixedPostUpdate` returned original generation **7→8**, zero committed time, debt **15.625/31.25 ms**. The resting `Simulate` control commits two genuine solver steps, unchanged revision and zero debt. Clock abort did not roll back the observed native or authored point. |
+| [Scene scheduling and controls](../../../zircon_runtime/src/scene/tests/ecs_schedule/fixed_update/world_revision.rs), `zircon_runtime`, `native-host` | **12/13** | The same-World non-physics writer reached all three callbacks of step 1, authored `x=1` (revision **4→5**) and left **20 ms** debt at zero committed steps. Schedule-only replacement with unchanged revision/epoch still rejects, as does a staged Level reset that advances epoch while retaining the same plan Arc. Both retry on the next zero-delta outer frame. True World replacement, ordinary staged callback outside the fixed loop, explicit failure/panic and debt/receipt controls, stale content publication and pinned schedule checks also pass. |
+
+Next run exactly these fixtures after a narrow fix. Preserve authored revision and derived refresh, genuine World or schedule replacement and Level reset fences, and the active clock's settlement rules. A resolved same-instance mutation must not globally relax generation checks used for stale publication. The [local UE end-physics completion](../../../dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/PhysicsEngine/PhysLevel.cpp#L263-L295) likewise completes/synchronizes before the next tick group; not a numerical or ZE transactional oracle. No #145/#198 integration, shear translation change, #141 tangent/geometry work, editor gate bypass, hosted workflow change or merge.
