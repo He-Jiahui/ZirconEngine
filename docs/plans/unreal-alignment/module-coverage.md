@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第18轮新增 #215、#216、#217，目前共 **37 个问题 Draft**。最新实证见第22节；第7–21节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第19轮新增 #219，目前共 **38 个问题 Draft**。最新实证见第23节；第7–22节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -358,3 +358,16 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 **解释计数。** 新 SDK 两个前置若以同一个动画测试可执行文件作观察，它们是不同的失败位置，不叠加为动画通知的复现次数。源级正常传播与失败控制分列，UE 原测只按各自已核对的主机、文本或插件边界引用，未移植运行。保留 Unity 式 Prefab，不在本轮改动。
 
 累计 **37 个独立问题 Draft + 1 个目录 Draft，零合并**。八份不可变模块/目标/领域/测试定位 CSV 与原来的 Git blobs 完全一致，2,588 个模块规则 + 178 个目标规则仍不是行为通过数。
+
+## 23. 菜单译文、测试宿主与数组层源的缓存身份（第19轮）
+
+| 原 PR | 本轮进展及边界 |
+|---|---|
+| [#215](https://github.com/He-Jiahui/ZirconEngine/pull/215) · [证据](https://github.com/He-Jiahui/ZirconEngine/blob/cc8e45d861618ed5975034f91e5e9189c483db2f/docs/plans/unreal-alignment/editor-file-menu-locale.md#L43-L53) | 真实挂载的工作台实跑：同一可点击 File 标题 File → 文件 → File；同一弹窗叶按语言正常 Open Scene... → 打开场景... → Open Scene...。原版末尾断言失败 → 同一回归修后通过；仅接入一个已有文字键。 |
+| [#216](https://github.com/He-Jiahui/ZirconEngine/pull/216) · [证据](https://github.com/He-Jiahui/ZirconEngine/blob/733b90396a6fdd9a09efbdcf97adac18f0e6808c/docs/plans/unreal-alignment/sdk-default-module-dependencies.md#L47-L59) | 同一六个 SDK 主用例 2 过 4 败 → 6 过 0 败；同一产物再执行仅选 Foundation 或仅选 Asset 的两项，1 过 1 败 → 2 过 0 败。默认宿主真实推进一个固定步，未选择的根不会被补入。这里只澄清两个互不重叠的运行过滤器，没有改生产或测试。 |
+| [#217](https://github.com/He-Jiahui/ZirconEngine/pull/217) · [证据](https://github.com/He-Jiahui/ZirconEngine/blob/d2f91601adc4b7854f5a573ef618d7690f8823d8/docs/plans/unreal-alignment/sdk-linked-host-dependency.md#L39-L48) | 同一个 SDK、未改的原四案 3 过 1 败 → 4 过 0 败；另在新入口实测 3 过 0 败。不把未选根登记进去，真正缺失仍拒绝，旧 extra module 及跨宿主排序语义保留。没有在 #217 叠跑 #216 或 #214。 |
+| [#219](https://github.com/He-Jiahui/ZirconEngine/pull/219) · [证据](https://github.com/He-Jiahui/ZirconEngine/blob/2f206a7dafba042a40263661ec8fe51080d45d2d/docs/plans/unreal-alignment/texture-array-source-refresh.md#L43-L52) | 已实证普通改色导致同一个父数组动作键对应两个不同内容摘要：旧工程全量重扫从磁盘读到绿/红，独立无制品新工程读到绿/蓝。独立 PNG 自身确实已更新，两工程最终三份作者输入逐一字节相同。尚未改生产。 |
+
+外部平台模块还核对了 UBT External 的 Win64 选库和 ZE 的 dist 命名：Cargo 允许单设库名，但没有查到 ZE 已承诺这一布局；因此未为自定义 DLL 名创建问题 PR。不把本地源码读取或旧工厂已加载数组刷新等价为 UE 全工程冷重开通过。
+
+累计 **38 个独立问题 Draft + 1 个总索引，均未合并**。2,588 个模块规则、178 个目标规则及八份 CSV 是冻结目录，不是行为通过数。[#214](https://github.com/He-Jiahui/ZirconEngine/pull/214) 原动画四例仍要等宿主依赖约束真正在其原输入上解除；独立 SDK 的局部通过数不代替动画帧。
