@@ -2,8 +2,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::asset::{MeshAsset, ModelPrimitiveAsset};
-use crate::core::framework::animation::AnimationPoseOutput;
-use crate::core::framework::animation::AnimationSkeletonAsset;
+use crate::core::framework::animation::{
+    AnimationPoseOutput, AnimationSkeletonAsset, AnimationSkeletonBoneAsset,
+};
 use crate::core::math::{Mat4, Transform, Vec3};
 use crate::graphics::scene::scene_renderer::mesh::skinning::SkinnedMeshJointPaletteStorage;
 
@@ -165,9 +166,7 @@ fn skin_owned_model_primitive_with_palette(
     }
 }
 
-fn bind_transform(
-    bone: &crate::core::framework::animation::AnimationSkeletonBoneAsset,
-) -> Transform {
+fn bind_transform(bone: &AnimationSkeletonBoneAsset) -> Transform {
     Transform {
         translation: Vec3::from_array(bone.local_translation),
         rotation: crate::core::math::Quat::from_array(bone.local_rotation).normalize(),
@@ -184,14 +183,33 @@ fn build_joint_matrices(
         .iter()
         .map(|bone| (bone.name.as_str(), bone.local_transform))
         .collect::<HashMap<_, _>>();
-    let mut bind_worlds = Vec::with_capacity(skeleton.bones.len());
-    let mut posed_worlds = Vec::with_capacity(skeleton.bones.len());
-    for (index, bone) in skeleton.bones.iter().enumerate() {
+    let local_transforms = |bone: &AnimationSkeletonBoneAsset| {
         let bind_local = bind_transform(bone);
         let posed_local = pose_by_name
             .get(bone.name.as_str())
             .copied()
             .unwrap_or(bind_local);
+        (bind_local, posed_local)
+    };
+    let mut bind_worlds = Vec::with_capacity(skeleton.bones.len());
+    let mut posed_worlds = Vec::with_capacity(skeleton.bones.len());
+    for (index, bone) in skeleton.bones.iter().enumerate() {
+        if let Some(parent) = bone.parent_index {
+            match usize::try_from(parent) {
+                Ok(slot) if slot < index => {}
+                Ok(slot) if slot < skeleton.bones.len() => {
+                    complete_unordered_worlds(
+                        &skeleton.bones,
+                        &mut bind_worlds,
+                        &mut posed_worlds,
+                        &local_transforms,
+                    )?;
+                    break;
+                }
+                _ => return Err(missing_parent_error(bone, index, parent)),
+            }
+        }
+        let (bind_local, posed_local) = local_transforms(bone);
         bind_worlds.push(compose_world_matrix(
             &bind_worlds,
             bone,
@@ -213,7 +231,7 @@ fn build_joint_matrices(
 
 fn compose_world_matrix(
     worlds: &[Mat4],
-    bone: &crate::core::framework::animation::AnimationSkeletonBoneAsset,
+    bone: &AnimationSkeletonBoneAsset,
     index: usize,
     local_matrix: Mat4,
 ) -> Result<Mat4, String> {
@@ -222,16 +240,83 @@ fn compose_world_matrix(
             worlds
                 .get(parent as usize)
                 .copied()
-                .ok_or_else(|| {
-                    format!(
-                        "bone '{}' at index {index} references missing parent {parent}",
-                        bone.name
-                    )
-                })
+                .ok_or_else(|| missing_parent_error(bone, index, parent))
                 .map(|parent_world| parent_world * local_matrix)
         })
         .transpose()
         .map(|world| world.unwrap_or(local_matrix))
+}
+
+fn missing_parent_error(bone: &AnimationSkeletonBoneAsset, index: usize, parent: u32) -> String {
+    format!(
+        "bone '{}' at index {index} references missing parent {parent}",
+        bone.name
+    )
+}
+
+#[cold]
+fn complete_unordered_worlds(
+    bones: &[AnimationSkeletonBoneAsset],
+    bind_worlds: &mut Vec<Mat4>,
+    posed_worlds: &mut Vec<Mat4>,
+    local_transforms: impl Fn(&AnimationSkeletonBoneAsset) -> (Transform, Transform),
+) -> Result<(), String> {
+    #[repr(u8)]
+    #[derive(Clone, Copy)]
+    enum VisitState {
+        Unseen,
+        Active,
+        Done,
+    }
+
+    // Both buffers already have capacity for the whole skeleton. Keep the evaluated prefix.
+    let first_unbuilt = bind_worlds.len();
+    bind_worlds.resize(bones.len(), Mat4::IDENTITY);
+    posed_worlds.resize(bones.len(), Mat4::IDENTITY);
+    let mut states = vec![VisitState::Unseen; bones.len()];
+    states[..first_unbuilt].fill(VisitState::Done);
+    let mut path = Vec::new();
+
+    for start in first_unbuilt..bones.len() {
+        let mut current = start;
+        loop {
+            match states[current] {
+                VisitState::Done => break,
+                VisitState::Active => {
+                    return Err(format!(
+                        "bone '{}' at index {current} is in a parent cycle",
+                        bones[current].name
+                    ));
+                }
+                VisitState::Unseen => {}
+            }
+            states[current] = VisitState::Active;
+            path.push(current);
+            let bone = &bones[current];
+            let Some(parent) = bone.parent_index else {
+                break;
+            };
+            current = usize::try_from(parent)
+                .ok()
+                .filter(|&slot| slot < bones.len())
+                .ok_or_else(|| missing_parent_error(bone, current, parent))?;
+        }
+
+        // Unwind parent before child. Only Done slots, never placeholders, may be read as parents.
+        while let Some(index) = path.pop() {
+            let bone = &bones[index];
+            if let Some(parent) = bone.parent_index {
+                debug_assert!(matches!(states[parent as usize], VisitState::Done));
+            }
+            let (bind_local, posed_local) = local_transforms(bone);
+            bind_worlds[index] =
+                compose_world_matrix(bind_worlds, bone, index, bind_local.matrix())?;
+            posed_worlds[index] =
+                compose_world_matrix(posed_worlds, bone, index, posed_local.matrix())?;
+            states[index] = VisitState::Done;
+        }
+    }
+    Ok(())
 }
 
 fn skin_vertex(
