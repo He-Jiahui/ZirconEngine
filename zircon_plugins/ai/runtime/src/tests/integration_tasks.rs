@@ -500,3 +500,6 @@ fn running_script_task_abort_preserves_another_navigation_destination() {
     assert_eq!(aborted.status, AiDecisionStatus::Idle);
     assert_eq!(nav_target(&world, entity), Some(destination));
 }
+
+#[path = "time_limit_abort.rs"]
+mod time_limit_abort;
