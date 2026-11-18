@@ -10,7 +10,7 @@ use thiserror::Error;
 /// abort 后重试可沿用同一身份，不能仅凭取得此值断言该步已提交。
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct SimulationTickId {
-    /// 发放待提交步时由调用方捕获的 World 代际。
+    /// 签发时的 World 内容修订快照，是令牌的组成，不是提交时的实时身份校验。
     world_generation: u64,
     /// 发放时固定时钟的配置代际，不是采样来源版本。
     fixed_epoch: u64,
@@ -99,7 +99,16 @@ pub(crate) enum WorldFixedStepError {
     /// `submitted` 没有对应的活动步，亦包括重复结算。
     #[error("fixed step {submitted:?} has no active transaction")]
     NoActiveStep { submitted: SimulationTickId },
-    /// Level 提交时捕获的 `expected` 与当前 World 的 `actual` 不同。
+    /// 固定步绑定的逻辑 World 或排程已不再生效。
+    #[error("World or schedule was replaced during the active fixed step")]
+    ExecutionReplaced,
+    /// Level 的重置边界变更，即使排程仍相同也须拒绝旧固定步。
+    #[error(
+        "World replacement epoch changed during fixed step: expected {expected}, found {actual}"
+    )]
+    ReplacementEpochChanged { expected: u64, actual: u64 },
+    /// 不经过排程的直接测试入口仍使用严格的内容修订前置条件。
+    #[cfg(test)]
     #[error("World generation changed during fixed step: expected {expected}, found {actual}")]
     WorldGenerationChanged { expected: u64, actual: u64 },
 }
