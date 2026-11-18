@@ -29,3 +29,9 @@ ZE 源码：[SDK 公开的默认根](https://github.com/He-Jiahui/ZirconEngine/b
 ## 6. 分离控制及准入
 
 最小隔离 witness 可在现有 SDK 测试模块内用测试 consumer 的 **真实声明边到 canonical Foundation**、真实 ConfigManager 依赖，而不是新引 Physics dev-dependency：现有旧 builder 配 `[Foundation]`、不装 Scene plan（仅此隔离探针，没有 Scene/Asset，绝不是 #214 配置）会同样在 catalog gate 失败，须实际取得该独立回执；正式 linked 模式再验证实际 manager、World 路径及 production graph 顺序，刻意声明一个缺失的真实所需 provider 时仍拒绝（不期待固定 production 基座能按请求剔除 Foundation）。保留现有 SDK module 原测作为兼容对照，并另由动画既有 owner 选择新模式、保 D11，重跑同二进制的新旧控制。若要求**无选择的旧默认 API**同样无损地支持任意 host 边，尚无可签 SDK-local 通改；先记录独立阻塞，不开跨 Runtime 的泛用排序修复，也不夹入 SDK-BASE 或 #214。这一张的限定修法和测试仅为候选。
+
+## 7. 原版：真实公开入口的行为记录
+
+[host_order 的测试原文](https://github.com/He-Jiahui/ZirconEngine/blob/cee9fe8e27e8ab95978812bbf0a982cef2cf9a6d/zircon_plugins/plugin_sdk/tests/host_order.rs)。同一 consumer 报告分别交给 `base=[]`、`base=[Foundation]` 的 SDK；只关闭不存在的 Scene plan，不手工装 Core、不让目录跳过 fatal。另有独立产品完整图冻结与真实配置哨兵、零报告和逆序双插件兼容正控。没有借用 #216 的 kernel 修复。若目录错误提前返回，无法据此声称该次 Foundation 已经激活。
+
+**3 过、1 败。** 只编译 `zircon_plugin_sdk` 对应集成目标，关闭默认特性、显式 runtime，`test` profile，Windows x64/MSVC 1.94.1。用同一编译的测试程序实际执行 `host_order_ --ignored --test-threads 1 --show-output`，非 `--no-run` 通过数。编译回执 `5658050722237d62eb4c6d38b43f491c5d2082a2fa768f1da8b2465d9107dfd9`，可执行文件 SHA-256 `bbc39ea65243bda676229d483597ae10f4b4df3da200d0ba77467d9c98ab2181`，实际测试回执 `326bdec026737c6f4861b865644cb1b2b601b442784a5fdcea3d08350896551c`，stdout `fb2a109ca229c1e64b6be55912eb4abff36b719531db4d5b0407f7b844947746`。UE 原测未运行。
