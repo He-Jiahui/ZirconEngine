@@ -146,7 +146,36 @@ fn loop_notify_resume_adjacent_times_are_not_ties() {
 
 #[test]
 fn loop_notify_resume_default_cap_splits_a_tie_group() {
+    use std::hash::{DefaultHasher, Hash, Hasher};
+
     const TRACKS: usize = 20;
+    type ExactKey<'a> = (u64, u32, u32, &'a str, Option<&'a str>, Option<&'a str>);
+
+    fn exact_key(e: &Event) -> ExactKey<'_> {
+        let (playback, name, payload) = event_key(e);
+        (
+            e.entity,
+            e.clip_time_seconds.to_bits(),
+            playback,
+            name,
+            payload,
+            e.target_id.as_deref(),
+        )
+    }
+
+    fn first_difference(a: &[ExactKey<'_>], b: &[ExactKey<'_>]) -> Option<usize> {
+        a.iter()
+            .zip(b)
+            .position(|(a, b)| a != b)
+            .or_else(|| (a.len() != b.len()).then_some(a.len().min(b.len())))
+    }
+
+    fn footprint(keys: &[ExactKey<'_>]) -> u64 {
+        let mut hash = DefaultHasher::new();
+        keys.hash(&mut hash);
+        hash.finish()
+    }
+
     let names: [String; TRACKS] = std::array::from_fn(|i| format!("point-{i:02}"));
     let tracks = names
         .iter()
@@ -154,28 +183,77 @@ fn loop_notify_resume_default_cap_splits_a_tie_group() {
         .map(|name| event_track(name, POINT, None));
     let clip = clip(PERIOD, tracks.collect());
     let ranges = [[0.0, 0.1], [0.1, 0.0]];
-    let observed = ranges.map(|range| pages("partial-tie", &clip, range, Limits::default(), 4));
-    let forward: [Real; 5] = [0.01, 0.03, 0.05, 0.07, 0.09];
-    let mut reverse = forward;
-    reverse.reverse();
-    for (batches, nominal) in observed.into_iter().zip([forward, reverse]) {
-        assert_pages(&batches, &[64, 36]);
-        let all: Vec<_> = events(&batches).collect();
-        for (group, time) in all.chunks_exact(TRACKS).zip(nominal) {
-            let bits = group[0].playback_time_seconds.to_bits();
-            assert!(
-                bits.abs_diff(time.to_bits()) <= 2,
-                "{bits:08x} is not near {time}"
-            );
-            for (e, name) in group.iter().zip(&names) {
-                assert_eq!(e.entity, ENTITY);
-                assert_eq!(e.clip_time_seconds, POINT);
-                assert_eq!(event_key(e), (bits, name.as_str(), None));
-            }
-        }
+    // Legacy fresh seeds, then four f32 adds/subtracts. The reverse trajectory
+    // is not the forward array reversed, nor the nearest f32 to each nominal time.
+    let anchors = [
+        [
+            0x3c23_d70a,
+            0x3cf5_c28f,
+            0x3d4c_cccc,
+            0x3d8f_5c28,
+            0x3db8_51ea,
+        ],
+        [
+            0x3db8_51eb,
+            0x3d8f_5c28,
+            0x3d4c_cccb,
+            0x3cf5_c28c,
+            0x3c23_d704,
+        ],
+    ];
+    let observed = ranges.map(|range @ [from, to]| {
+        let single = sample_clip_events_budgeted(
+            &clip,
+            ENTITY,
+            from,
+            to,
+            true,
+            None,
+            Limits {
+                max_events: 5 * TRACKS + 1,
+                ..Limits::default()
+            },
+        );
+        let batches = pages("partial-tie", &clip, range, Limits::default(), 4);
+        (single, batches)
+    });
+    let compared = [0, 1].map(|i| {
+        let [from, to] = ranges[i];
+        let anchor = anchors[i];
+        let (single, batches) = &observed[i];
+        // Exactly five occurrences of each name, ordered by time and then name.
+        let expected: Vec<ExactKey<'_>> = anchor.into_iter().flat_map(|tick| {
+            names.iter().map(move |name| (ENTITY, POINT.to_bits(), tick, name.as_str(), None, None))
+        }).collect();
+        let fresh: Vec<_> = single.events.iter().map(exact_key).collect();
+        let paged: Vec<_> = events(batches).map(exact_key).collect();
+        let ticks: Vec<_> = fresh.chunks(TRACKS).map(|group| group[0].2).collect();
+        let counts: Vec<_> = batches.iter().map(|page| page.events.len()).collect();
+        let fresh_diff = first_difference(&fresh, &expected);
+        let paged_diff = first_difference(&paged, &fresh);
+        eprintln!(
+            "CLIP_PARTIAL_REFERENCE {from}->{to} anchor={anchor:08x?} anchor_hash={:016x} observed_unpaged_count={} observed_unpaged_bits={ticks:08x?} observed_unpaged_hash={:016x} unpaged_exhausted={} unpaged_next={:x?} unpaged_first_diff={fresh_diff:?} actual={:x?} anchor_item={:x?}",
+            footprint(&expected), fresh.len(), footprint(&fresh), single.budget_exhausted,
+            single.next_cursor.as_ref().map(key), fresh_diff.and_then(|j| fresh.get(j)), fresh_diff.and_then(|j| expected.get(j)),
+        );
+        eprintln!(
+            "CLIP_PARTIAL_REFERENCE {from}->{to} observed_pages={counts:?} paged_count={} paged_hash={:016x} paged_first_diff={paged_diff:?} paged={:x?} unpaged={:x?}",
+            paged.len(), footprint(&paged), paged_diff.and_then(|j| paged.get(j)), paged_diff.and_then(|j| fresh.get(j)),
+        );
+        (expected, fresh, paged)
+    });
+
+    // Both real fresh references are checked before a known-RED page can panic.
+    for ((single, _), (expected, fresh, _)) in observed.iter().zip(&compared) {
+        assert!(single.next_cursor.is_none() && !single.budget_exhausted);
+        assert_eq!(fresh.len(), 5 * TRACKS);
+        assert_eq!(fresh, expected, "legacy one-shot trajectory and tie order");
+    }
+    for (i, ((_, batches), (_, fresh, paged))) in observed.iter().zip(&compared).enumerate() {
+        assert_pages(batches, &[64, 36]);
+        assert_eq!(paged, fresh, "fixed range must replay every event exactly");
         let cursor = batches[0].next_cursor.as_ref().map(key);
-        let cut = all[63].playback_time_seconds.to_bits();
-        assert_eq!(cursor, Some((cut, Some("point-03"), 16)));
+        assert_eq!(cursor, Some((anchors[i][3], Some("point-03"), 16)));
         assert!(batches[0].budget_exhausted && !batches[1].budget_exhausted);
     }
 }
