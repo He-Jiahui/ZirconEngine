@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，当前共 **26 个问题 Draft**；最新进展见第13节（AI 行为树）；第7–12节保留此前各轮快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，当前共 **26 个问题 Draft**；最新进展见第14节（反射存档）；第7–13节保留此前各轮快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -239,3 +239,24 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 下一项 [#163 Reflection](https://github.com/He-Jiahui/ZirconEngine/pull/163) 已定位[既有 World 注册/反射测试入口](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/scene/reflect/tests/vm_type_backing.rs#L16-L55)：可在源和目标 World 明确注册同一 schema，检查快照排除非持久字段且恢复使用声明默认值，不需伪造脚本 VM 或加载图形模块。**尚未写入或运行该回归，也未修复 #163。**
 
 仍是 26 个独立问题 Draft 加本目录 Draft，未合并。8 份目录 CSV 保持原始内容；#167 两个扩展组的3条旧失败及其他问题的验收边界未变。
+
+## 14. 反射存档：保留省略语义，在目标构造默认值（2026-11-18）
+
+[#163 Reflection / DynamicScene](https://github.com/He-Jiahui/ZirconEngine/pull/163) 已在原 Draft 发布修复。源实例的非持久值 `scratch=99` 正确地没有写入场景；原实现恢复到已注册同一 schema 的 World 时，却因 `scratch` 缺席拒绝整个对象。现在恢复为 `{saved:7,scratch:42}`，其中 `42` 来自目标声明。缺持久字段或无明确默认仍应失败；只有普通描述符的场景不推断 VM 默认。补值前按每个实例计入目标快照预算，充分有限额度与 `usize::MAX` 对同一输入返回相同估算。[修复、UE 对照边界和原生结果](https://github.com/He-Jiahui/ZirconEngine/blob/b7f6130d3fa06d2f81253895fc13fe5ad5d42f52/docs/plans/unreal-alignment/reflection-transient-default.md#L75-L119)
+
+| Windows x64/MSVC，Runtime `core-min,native-host` | 原实现（过 / 败 / 忽略） | 修复后（过 / 败 / 忽略） |
+|---|---:|---:|
+| 原 6 条反射与预算用例，测试文件不变 | 4 / 2 / 0 | **6 / 0 / 0** |
+| Prepared 组，包含第 7 条“限额不改变估算，显式值不被覆盖”控制 | 2 / 2 / 0 | **3 / 1 / 0** |
+| 场景事务组 | 23 / 1 / 1 | **23 / 1 / 1** |
+| 热重载字节预算组 | 3 / 1 / 1 | **3 / 1 / 1** |
+| World 暂存组 | 未单独复跑 | **1 / 0 / 0** |
+
+独立终审只签收 **7 条目标用例**。3 个相邻非零组的 **34** 个同名用例逐项配对，唯一变化是第 7 条转绿；两处过期目标的错误类型与断言不符、一处队列未报告帧预算耗尽，在原实现都可用相同输入复现相同断言。2 项既有性能忽略不变。未因此另开无据问题；没有运行全 Runtime、UE 原测、脚本 Play 或产品验收。
+
+后续两个领域目前只有源码准备，没有测试或修复进展：
+
+- [#157 项目 / Editor](https://github.com/He-Jiahui/ZirconEngine/pull/157)：须区分真实工程 `scan_and_import` 成功、[资源目录投影](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/src/ui/host/assets/manager/project_sync/tests/mod.rs#L68-L77)与 picker/authority 打开；手填 `kind=Scene` 的列表不是导入成功的证据。Editor 测试会引入 Runtime `target-editor-host`，不是无图形依赖的 parser 测试。
+- [#165 时间轴](https://github.com/He-Jiahui/ZirconEngine/pull/165)：[真实 Level 帧夹具](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/tests/runtime_helpers.rs#L109-L144) 要求特定 D 盘工作目录和 smoke 临时区，与本轮使用的本地构建环境不同。不能把暂停序列的请求计数代替真实帧属性写回，更不能跳过夹具伪称跑通。
+
+本审计仍有 **26 个问题 Draft + 1 个目录 Draft，0 合并**；8 份目录 CSV 未变。
