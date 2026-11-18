@@ -9,7 +9,7 @@ use zircon_runtime::core::framework::{
     },
     scene::physics::PhysicsMaterialMetadata,
 };
-use zircon_runtime::core::math::Real;
+use zircon_runtime::core::math::{Real, Transform};
 
 use crate::backend::{
     BodyCommand, BodyDesc, BodyHandle, ConstraintDesc, ConstraintHandle, JoltPhysicsBackend,
@@ -268,19 +268,25 @@ impl JoltManagedWorld {
             .into_iter()
             .filter_map(|(handle, body)| Some((*handles.get(&handle)?, body)))
             .collect::<HashMap<_, _>>();
+        // last_body still describes this synchronization's input frame until body readback.
+        for collider in &mut sync.colliders {
+            if let (Some(active), Some(record)) = (
+                active.get(&collider.entity),
+                self.entities.get_mut(&collider.entity),
+            ) {
+                collider.transform = collider_after_body_motion(
+                    collider.transform,
+                    record.last_body.transform,
+                    active.transform,
+                );
+                record.last_collider.transform = collider.transform;
+            }
+        }
         for body in &mut sync.bodies {
             if let Some(active) = active.get(&body.entity) {
                 *body = active.clone();
                 if let Some(record) = self.entities.get_mut(&body.entity) {
                     record.last_body = active.clone();
-                }
-            }
-        }
-        for collider in &mut sync.colliders {
-            if let Some(active) = active.get(&collider.entity) {
-                collider.transform = active.transform;
-                if let Some(record) = self.entities.get_mut(&collider.entity) {
-                    record.last_collider.transform = active.transform;
                 }
             }
         }
@@ -316,6 +322,41 @@ impl JoltManagedWorld {
             self.entities.get(&entity).map(|record| record.body)
         })?;
         Ok((desc.body_a, desc.body_b))
+    }
+}
+
+fn collider_after_body_motion(
+    collider: Transform,
+    before: Transform,
+    after: Transform,
+) -> Transform {
+    if before.translation == after.translation
+        && (before.rotation == after.rotation || before.rotation == -after.rotation)
+    {
+        return collider;
+    }
+    if [before.rotation, after.rotation]
+        .into_iter()
+        .any(|rotation| {
+            let length_squared = rotation.length_squared();
+            !length_squared.is_finite() || length_squared <= Real::EPSILON
+        })
+    {
+        return collider;
+    }
+    // The native body frame is rigid; projected collider scale is not part of that delta.
+    let rotation_delta = after.rotation.normalize() * before.rotation.normalize().conjugate();
+    let translation =
+        after.translation + rotation_delta * (collider.translation - before.translation);
+    let rotation = rotation_delta * collider.rotation;
+    if translation.is_finite() && rotation.is_finite() {
+        Transform {
+            translation,
+            rotation,
+            ..collider
+        }
+    } else {
+        collider
     }
 }
 
