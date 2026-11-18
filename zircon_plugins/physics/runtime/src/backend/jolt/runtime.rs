@@ -132,6 +132,29 @@ impl JoltPhysicsBackend {
         Some((record.desc.body.body_type, ccd_mode, sleep_policy))
     }
 
+    // Test-only raw native observation, including static/inactive bodies. Mutate only a clone.
+    #[cfg(test)]
+    pub(crate) fn debug_native_body_state(&self, body: BodyHandle) -> Option<PhysicsBodySyncState> {
+        let mut record = self.bodies.get(body)?.clone();
+        unsafe { read_native_body_state(self.body_interface(), &mut record) };
+        Some(record.desc.body)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn debug_native_center_of_mass(
+        &self,
+        body: BodyHandle,
+    ) -> Option<zircon_runtime::core::math::Vec3> {
+        let record = self.bodies.get(body)?;
+        let center = unsafe {
+            joltc_sys::JPC_BodyInterface_GetCenterOfMassPosition(
+                self.body_interface(),
+                record.native_id,
+            )
+        };
+        Some(zircon_translation(center))
+    }
+
     fn body_interface(&self) -> *mut joltc_sys::JPC_BodyInterface {
         unsafe { JPC_PhysicsSystem_GetBodyInterface(self.native.physics_system) }
     }
