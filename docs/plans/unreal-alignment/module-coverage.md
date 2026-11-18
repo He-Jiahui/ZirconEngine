@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，当前共 **26 个问题 Draft**；最新进展见第15节（工程与编辑器场景）；第7–14节保留此前各轮快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第12轮新增注册目录可见性 #202 和打开诊断 #201，当前共 **28 个问题 Draft**；最新进展见第16节；第7–15节保留此前各轮快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -270,3 +270,20 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 [#148 工具栏裁剪](https://github.com/He-Jiahui/ZirconEngine/pull/148) 另有源码边界澄清：普通主窗 Scene 若由 [Workbench 接管](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/src/ui/contract/pointer/routing/panes/entry/local/document.rs#L18-L47)，并不经过有疑问的 native toolbar 路由。接下来应单独验证未被接管的 pane 或分离窗口，不能把手造矩形当成产品点击；本轮没有跑 #148。
 
 本轮重新搜索本机 UE 整棵参考树：**2588 个 Build 规则、178 个 Target 规则**的完整路径集及文件 SHA 与冻结目录逐项相同；另复核 154 个领域–UE 源码关联指纹。仍是 **26 个问题 Draft + 1 个目录 Draft，0 合并**。8 份 CSV 未改；40 个领域的目录映射不是全部模块通过行为验收。
+
+## 16. Editor 资产：先区分目录缺行与完成状态误报（2026-11-18）
+
+| 独立 Draft | 在共同引擎基线确认的事实 | 下一判据 |
+|---|---|---|
+| [#202 注册 Editor 的初次目录缺少目标](https://github.com/He-Jiahui/ZirconEngine/pull/202) | 三条未改引擎的原生 Editor libtest 命令：直接投影 5 过；已有真实宿主 UI `.zui` 与 Animation `.zranim` 各 1 败，均在查目标 locator 时失败，尚未分发打开动作。两个失败自身**没有打印目录总行数或 Runtime Ready**。 | 同一批实际源：对齐 active Runtime 输入、注册 Editor 代、订阅、当次 open 日志及至多一次真实 refresh；不造行、不等到绿。只有证据指向某个分支才修。 |
+| [#201 未发布目录代也会报告打开完成](https://github.com/He-Jiahui/ZirconEngine/pull/201) | 独立的 producer/consumer 差异：给 formatter 健康 Runtime 统计、持久 settings、Editor revision/epoch 均为零，源码仍产出 `completed`；同一日志的正式门会拒绝零代。`completed` 的存活探针只是进度，不是最终验收。 | 单独验证 0/0、一个身份为零，以及**已发布的空目录**，保留原有失败/设置/转义控制。不要把模板专用最少四行变成通用分类，不改公开格式或刷新服务。 |
+
+[#202 六点与原生回执摘要](https://github.com/He-Jiahui/ZirconEngine/blob/1cb02ef435239e4a5f627e1874d5e0aa558799d8/docs/plans/unreal-alignment/editor-initial-catalog-visibility.md)、[#201 六点与原测迁移边界](https://github.com/He-Jiahui/ZirconEngine/blob/8c4ce2d4b59d1a26f05caf10fbd83e7830348bab/docs/plans/unreal-alignment/project-open-catalog-status.md)。在两个初始 Draft 中，各自只新增本问题的一份 Markdown；与调查并行执行的是基线既有的 7 个原生回归，不是两个新测试套件都通过。两问题不随 [#157](https://github.com/He-Jiahui/ZirconEngine/pull/157) 的场景后缀修复更改：那里实测三条 Scene 为 Ready、同一 Editor 管理器刷新前后均是初始空代，才有零行证据。普通 Shader IDE 生成物位于工程 cache、同字节不重写，不能由此认定 watcher 自激。窗口首帧、完整 staged F1/F5、持久或最终空表，以及究竟哪一个提交分支失效仍未证。
+
+**全域既有测试线索再校验。** 重新打开清单内 2,677 个 UE C++ 测试候选文件，记录逐文件 SHA-256；排序 `path + NUL + SHA256 + LF` 摘要 `c996e2b667f12d77cd5577593860d439dd07e473bd13ceba5c0e640b89b8ecf4`。按 11 个常见注册/测试宏做词法分流：1,363 个文件至少一个匹配不在所识别的字面 `#if 0` / `#elif 0` 分支，14 个文件的匹配全部在该类分支（例如 TEDS `ValidateState`），1,300 个未匹配这 11 种宏。数字是**文件数**，不是已注册、已执行或通过的用例数；词表是行首的 SIMPLE/COMPLEX 和两种 CUSTOM `IMPLEMENT_*_AUTOMATION_TEST`、`BEGIN_DEFINE_SPEC`、`DEFINE_SPEC`、`TEST_CLASS_WITH_FLAGS`、`TEST_CLASS`、`TEST_CASE`、`TEST_CASE_NAMED`、`GTEST_TEST`。这不是 C++ 预处理或全树用例发现：其他配置条件、宏和清单外源码另查。
+
+**#201 消费端对照：** 实调已有 `Get-MvpEditorProjectOpenEvidence`，输入人工构造的诊断文本，8 组均符合预期：2 组接受、6 组拒绝，含两种单零、双零、有效 starter、已发布但此模板零行及最后一条记录选取。既未调用 Rust producer，也未启动 staged Editor；不是产品通过。
+
+**同 PR 后续原生实证。** [#202 冻结测试与结果](https://github.com/He-Jiahui/ZirconEngine/blob/1deb8f48423a8d764c920f0dd6e8b2568fd18100/docs/plans/unreal-alignment/editor-initial-catalog-visibility.md)：冻结回归实际 0过1败，exit 101：真实小写 Scene/Ready、605字节制品解码与直接索引通过，注册 Editor 初读及一次显式刷新均为 0 行/零代。同一 activation 的 Runtime 序号 12→19，旧 token 从 Current 变为 Superseded，watch 对账提交计数 9→16；具体内部拒绝分支和 OS 触发源仍未证。原 .zui 的 importer 实测不在该宿主中，实际 opener 已 degraded，并非 #201 的误报现场。无生产修复或窗口验收。
+
+公开调查数更新为 **28 个独立问题 Draft + 1 个目录 Draft；本任务未合并**。全模块目录仍为 2,588 个 Build 规则、178 个 Target 规则及 40 域映射；8 份 CSV 内容未变。既有 [#134](https://github.com/He-Jiahui/ZirconEngine/pull/134) 的 Runtime 注册/读取等价控制不重复迁移，未把 UE 的内存对象查询说成 ZE 已有启动时序验收。
