@@ -98,3 +98,11 @@
 
 
 完整 test target `touch_cancel_public`：Windows x64/MSVC 1.94.1，`zircon_plugin_ui_document_importer_runtime`、defaults off、`zircon_runtime/dynamic-api`、`test` profile，先编译唯一集成目标，再运行 Cargo 指出的该二进制。真实结果 **2 过、2 败**；编译回执 `05ce5480bd21c815098a313427ce60d4ff4a31d384507c3e58f20493b4d1f78c`、exe SHA-256 `da9017a2b1dfd42c9629129afb14e808cb6ae0fa052befbbdcdb709573124fe4`、执行回执 `5bceecebd37fdff1c762c571076d883c5f5450c40954e188cce6fd6c2a410a29`、stdout `ef055b507796923f001193d5c4adc181034a9634400e2da69af0ded82d44332c`。夹具、配置、日志分别在物理测试根中，不使用用户工程；测试默认为显式运行。公开 linked 会话（无 OS 真机设备，不是屏幕或 Winit 事件泵验收）。
+
+## 8. 同一回归修后配对
+
+[同一版本的独立集成测试](https://github.com/He-Jiahui/ZirconEngine/blob/7c579a183e117fe78a97ff616ea9bf8a8e1f60aa/zircon_plugins/ui_document_importer/runtime/tests/touch_cancel_public.rs)。在没有 `.zui` 根的真实工程中，PostUpdate 的同一 World 只在 bootstrap 建立后备菜单和初始控制槽。正式 ABI 收到指头 17 的 Started、CursorLeft、Cancelled；校验过的物理录制中没有 Ended，终态活动指已清。两种菜单取消后的实际命令分别是 **`none`** 和 **`none`**。真正 Ended 的同点正控能发出 start / retry；按钮外和同指重用对照均通过。
+
+
+
+完整 test target `touch_cancel_public`：Windows x64/MSVC 1.94.1，`zircon_plugin_ui_document_importer_runtime`、defaults off、`zircon_runtime/dynamic-api`、`test` profile，先编译唯一集成目标，再运行 Cargo 指出的该二进制。真实结果 **4 过、0 败**；编译回执 `9d1651755386727f91cdcf95ca3f8b5d5763c60f6db26cc486b1e1afde01cb12`、exe SHA-256 `e75ec50d5d731236fced1eebb4955a716d464ffee71717aea7583192546786a9`、执行回执 `204a2ebe60aaa4e87bccc6c35bec1747757f84fdb339f9061f3be43794ad639e`、stdout `f6ff5aa7a148d8750dc76e6ce54b9b4177e96b6439a34b7964c01c642b74b535`。夹具、配置、日志分别在物理测试根中，不使用用户工程；测试默认为显式运行。公开 linked 会话（无 OS 真机设备，不是屏幕或 Winit 事件泵验收）。
