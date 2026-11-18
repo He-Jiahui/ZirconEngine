@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第13轮新增复合资产源时间 #204，当前共 **29 个问题 Draft**；最新进展见第17节；第7–16节保留此前各轮快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，当前共 **29 个问题 Draft**。第14轮的资产、音频及 Editor 观测见第18节；第7–17节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -298,3 +298,13 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 | [#202 注册 Editor 首目录](https://github.com/He-Jiahui/ZirconEngine/pull/202) | 上轮同 root/activation 的 12→19、7 次 reconciliation、Ready Scene 与未初始化 Editor 快照仍是原证据，这次没有覆盖或推翻它。 | #204 不证明是哪条文件事件、哪一代变化或内部拒绝造成此次观察；不能改 fence 去消红。 |
 
 [诊断配对源码与回执](https://github.com/He-Jiahui/ZirconEngine/blob/bdb937bf2e964fb4aaa826266f6230072da4c05e/docs/plans/unreal-alignment/project-open-catalog-status.md) · [动画冻结回归、实际轴向与候选反证](https://github.com/He-Jiahui/ZirconEngine/blob/8a0dcbab4f6d4fcadae56445e7149fbf557d69b3/docs/plans/unreal-alignment/animation-blend-hemisphere.md) · [复合时间的六点与 UE 原测/同路径无写入验证门](https://github.com/He-Jiahui/ZirconEngine/blob/c8af83b8c5465f3e108c3848ea39f1ab7e81aaed/docs/plans/unreal-alignment/compound-sidecar-source-time.md)。全模块规则仍是 2,588 个 Build + 178 个 Target、40 个领域；2,677 个 UE 测试候选文件不等于运行用例数，8 份 CSV 均未改。**29 个独立问题 Draft + 1 个目录 Draft；本任务未合并。**
+
+## 18. 实测：资产无变更全扫、WAV 非有限样本与 Editor 首目录（2026-11-18）
+
+| 原 Draft | 本轮验证 | 修复边界 |
+|---|---|---|
+| [#204 复合资产源时间](https://github.com/He-Jiahui/ZirconEngine/pull/204) | 真实 Runtime 全扫 **3 过 1 败**。首扫后不写输入、不启 watcher；同一根的三份解码制品与两个成员不变，第二扫却将首扫自己写出的文件时间记为源时间，输入代 **13→14**，仅一条 `Modified`。两份落盘描述符只有时间字段不同。 | 成员/描述符显式 touch 均有通过的正控，不能靠忽略描述符取绿；保时也须覆盖故障恢复和真实外部操作。 |
+| [#156 WAV 导入](https://github.com/He-Jiahui/ZirconEngine/pull/156) | 真实公共 parser 与注册导入器 **4 过 2 败**，合法 mono 和 stereo 都成功产出保留原位型的 NaN。参考树自带 libsndfile 在文件/虚读两个入口均保留该位型；不是 UE Factory 运行。 | 首次离线缺 `symphonia 0.5.5` 未启动测试，未作 RED；锁定依赖就位后才有上述结果。静音/满幅替换或明确拒绝、已有缓存的升级语义仍需确定，不以任意报错代替。 |
+| [#202 注册 Editor 首目录](https://github.com/He-Jiahui/ZirconEngine/pull/202) | 单例 0 过 1 败；同 root/activation，输入代 11→17、1 Modified，两端内容仅两处 mtime 槽位不同。Editor 两端行数 0 / 0。 唯一净变行是 `res://shaders/pbr_shader`，不是 `.zui`。 | 观察的是显式刷新前后两个端点的**净变化**，不是每个 watch 批次或内部 token 决策；不能仅凭 #204 的独立全扫例给真实打开归因。 |
+
+[资产两扫、物理文件与正控](https://github.com/He-Jiahui/ZirconEngine/blob/2213793438bbc772d0aa35c1645b31d7a3f9b753/docs/plans/unreal-alignment/compound-sidecar-source-time.md) · [WAV 逐位输出与依赖/组件证据](https://github.com/He-Jiahui/ZirconEngine/blob/1e74ec6b674d0d7c04d5ee7f1b29c8e55ed03e96/docs/plans/unreal-alignment/wav-finite-pcm.md) · [Editor 原见证与新端点结果](https://github.com/He-Jiahui/ZirconEngine/blob/e892e0545b20b84e374e6a1a31a37216cb84772a/docs/plans/unreal-alignment/editor-initial-catalog-visibility.md)。本轮都在已有独立 Draft 上补测试与证据，没有改生产或验收脚本；[上轮 #201 的日志修复](https://github.com/He-Jiahui/ZirconEngine/pull/201)仍与 #202 分开。**29 个问题 Draft + 1 个目录 Draft，本任务未合并。** 全域枚举（2,588 个 Build、178 个 Target、40 个领域）及 8 个 CSV 均未改变；枚举不是行为通过数。
