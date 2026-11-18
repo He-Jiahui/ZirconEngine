@@ -31,3 +31,17 @@
 复用 [生产插件夹具的首次过渡/逐帧订阅:385–524](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/tests/physics_tick/clip_events.rs#L385-L524>)，先验证 paused/resume 的唯一 `run_mid` 总数 1；冻结策略逐帧是 `[0,0,1]`，正常不暂停 `[0,1,0]`，完成后才暂停再恢复 `[0,1,0,0]`。另测多帧保持、首次正常双端点与 defer 回滚。计划用 `zircon_plugin_animation_runtime --no-default-features --features native-host --test physics_tick` 的定向 test profile，未执行。
 
 UE 补充源身份（SHA-256）：`Engine/Source/Runtime/Engine/Private/Components/SkeletalMeshComponent.cpp` = `e1926cb602881d192763fa9ab1bd4a735a5893e5eb2accdba05a7baf43b02cff`；`Engine/Source/Runtime/Engine/Private/Animation/AnimNode_StateMachine.cpp` = `8dca0f41f0378ad8858f193d69cc8a4fdf43139c8114d20842c67d16ef8c161b`。文档不包含 Epic 源码。
+
+## 7. 真实插件夹具：四案编译成功，尚未到达第一帧
+
+[tests-only `d45b121315dea0e638202f2fd5c0423d48b9e139`](https://github.com/He-Jiahui/ZirconEngine/blob/d45b121315dea0e638202f2fd5c0423d48b9e139/zircon_plugins/animation/runtime/tests/physics_tick/paused_event.rs) 只新增四项逐帧见证及原 `physics_tick` 目标的一行测试挂载。输入是同一真实 Level 的公开播放器 setter `true / false / true`；两条各自独立订阅的事件流、根时钟、过渡表和待处理队列应在每帧输出。另设始终播放、淡化结束后才暂停、连续暂停四个 World 帧时刻中的两个帧等正反控制。下表把真实失败位置和**未执行到的行为**分开。
+
+| 同一可执行文件 / 真实入口 | 观测 | 到达动画帧？ |
+|---|---|---|
+| 新增 `pause_fade_notify_` 四案 | **0 过 4 败**，全部在[原 SDK/插件夹具:10–19](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/tests/runtime_helpers.rs#L10-L19) 建立宿主处因 `physics.runtime: FoundationModule` 缺依赖而提前返回。 | 否，0 条帧 trace。 |
+| 既有 `state_machine_transition_emits_from_and_to_graph_clip_events` | **0 过 1 败**，未改 fixture 与新增用例是同一个目录错误。 | 否。 |
+| 既有 `level_tick_without_animation_plugin_does_not_advance_sequence_players` | **0 过 1 败**，走[不加载插件的原夹具:35–44](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/tests/runtime_helpers.rs#L35-L44)后在安装 World 扩展计划时报告 `AssetModule` 缺 `TasksModule`，不是上一行的错误。 | 否。 |
+
+这是实际 Windows x64/MSVC Rust 1.94.1 的 `zircon_plugin_animation_runtime --no-default-features --features native-host --test physics_tick --no-run --profile test --locked --jobs 1 --message-format=json`。锁定依赖在全新的物理 D 盘任务池编译；按 Cargo 返回的唯一目标、包号、源和实际字节确认 exe，再在三次单独进程隔离 smoke/TEMP/config/log 中执行，没有改动物理路径保护。没有启 Jolt、运行编辑器、设备或 UE。构建回执 `d539e805ebd8097ee76c01b87d7db4d7383cdef57d221c242458bf1e73581b93`；可执行文件 SHA-256 `34370b4764899c45496db49d67371f61e7ee52d5cd233ada896ac5a8f6a53a2b`；三次执行回执按表序 `e5cb191b5f6712b78469bb480ada4c0234b8d29f7f8f47ade86cf948e6fd2d43`、`019de66ba625c13cc9627cc0c37cb90b4e8cd46d314fbe8997b293a7658dd8f9`、`ddcaa1ca7ce99a2739dc671d75c106b487db914cbc4c2950f44df11abdcadc67`。
+
+**这不是该动画行为的 RED，也没有 GREEN。** 现有 `TestRuntime` 的基础模块组合、插件目录排序是独立的前置；不在此 PR 偷加假 Foundation、清 fatal 或替换既有 SDK 测试。对候选还有两条独立约束：正常 playing 的组件随 bundle 迁移不应重启淡化；同一机器资产热更新删除过渡端点时，不得让旧过渡永久复活。没有原帧证据之前，本 PR 不改生产。
