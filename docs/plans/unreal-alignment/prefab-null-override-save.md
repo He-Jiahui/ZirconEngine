@@ -44,3 +44,14 @@ UE 是本机提供的 `6.0.0 / UE5 / CL 0` 参考树，无可证的上游提交�
 - `Engine/Source/Runtime/CoreUObject/Private/UObject/PropertyOptional.cpp`：`da60a3a406d12ff98867e4974ebfe5ab82568de3ec3fdd6c4934202087a42a90`。
 - `Engine/Source/Runtime/CoreUObject/Tests/UObject/SubobjectInstancingTest.cpp`：`d1e32adb99792a360d10e5031747791cf4a148e2b39ddb8a6fbcaaa55cb7dd02`。
 - `Engine/Source/Runtime/CoreUObject/Tests/OptionalPropertyTest.cpp`：`cee11a35f4d0e7756de2a1e1af9604d16f77abe7d1012bf085ca29d4c83e574d`。
+
+## 7. 原生注册 Prefab、正式 Scene 源保存与重复重开
+
+[仅测试 `e0709b78aa4c24cd0d885435d845bc8f01ca8d1d`](https://github.com/He-Jiahui/ZirconEngine/blob/e0709b78aa4c24cd0d885435d845bc8f01ca8d1d/zircon_runtime/src/scene/world/project_io/tests/prefab_save.rs)。真实注册 `Hero` 源 Prefab，验证 `Root/Weapon`、`Joint.connected_entity=100` 及项目解析的 UUID/path；普通 `World::load_scene_document` 读取小写 `.scene.toml` 的物理字节和 revision；`World::save_scene_to_project` 使用相同正式 writer 及受保护的文件事务。所有输入在测试专有临时目录，不改用户工程。Windows x64/MSVC，Rust 1.94.1，`test -p zircon_runtime --no-default-features --features native-host --lib prefab_override_save_ --locked --offline --jobs 1 -- --test-threads 1 --show-output`；**2 例，0 过 2 败**，7,775 过滤。
+
+- **同一 Prefab，四种源表示。** 无覆盖行、数值 `100`、字符串 `"null"` 均通过真实的两次 durable 保存、两次从源重开及完整 Scene 比较。缺 `value` 的输入能打开，World 中仍有 1 行、值 `Some(Null)`，原 revision 匹配。到普通 Save 才返回 `project document TOML serialization failed: unsupported unit type`；在报告失败前已逐字节核实源文件与提交前相同。
+- **混排的多个实例。** 三个实例分别有 `[3,0,2]` 条覆盖。读取并逐行查清数字、Null、字符串、另一个 Null 和 bool 的具体来源/顺序后，原版 Save 也在此报相同序列化错误；没有把一条 `None` fixture 直接塞入被测 writer。
+
+这证明阻断保存，不是提交了损坏的新文件。未触发 Editor 菜单或测 dirty history，没有展开模板、应用覆盖、运行 UE 或声称所有 JSON 值都有 TOML 表示。
+
+30 个选定源/清单；原生回执 `3e32e4037d52eb4a4dd6e2ddfe130ec41df4e138a9b4eb3521d478e6039df669`、stdout `521b9a195aa16521cdeb06c57c316c539cec3ba798a1ac4f4769e06f005a0a12`、stderr `9eb88004f54b5d0899ae2726321d145ef8c4019846fc8e2e04834dae7ace0025`。
