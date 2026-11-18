@@ -1,9 +1,10 @@
 use std::collections::{BTreeSet, HashMap};
 
-use zircon_runtime_interface::reflect::{ReflectError, ReflectedValue};
+use serde_json::{Map, Value};
+use zircon_runtime_interface::reflect::{ReflectError, ReflectFieldInfo, ReflectedValue};
 
 use crate::scene::components::NodeRecord;
-use crate::scene::reflect::validate_reflected_field_values;
+use crate::scene::reflect::{json_value_from_reflected, validate_reflected_field_values};
 use crate::scene::{ecs::ChangeTick, EntityId, World};
 
 use super::super::DynamicScene;
@@ -273,6 +274,12 @@ pub(crate) fn capture_compiled_scene_spawn_preflight(
     let mut preflight = target.dynamic_scene_preflight_world(affected_type_paths);
     insert_preflight_parent_context(target, &mut preflight, &plan.records)?;
     let base_estimated_bytes = preflight.estimate_dynamic_scene_preflight_bytes(limit_bytes)?;
+    let base_estimated_bytes = estimate_vm_restore_defaults(
+        &preflight,
+        &plan.component_writes,
+        base_estimated_bytes,
+        limit_bytes,
+    )?;
     let estimated_bytes = stage_compiled_resource_writes_bounded(
         target,
         &mut preflight,
@@ -286,6 +293,28 @@ pub(crate) fn capture_compiled_scene_spawn_preflight(
         estimated_bytes
     );
     Ok((preflight, estimated_bytes))
+}
+
+fn estimate_vm_restore_defaults(
+    preflight: &World,
+    writes: &[CompiledComponentWrite],
+    base_estimated_bytes: usize,
+    limit_bytes: usize,
+) -> Result<usize, DynamicSceneError> {
+    let defaults = writes
+        .iter()
+        .filter_map(|write| match &write.kind {
+            CompiledComponentWriteKind::Plugin { type_path, value } => {
+                Some((type_path, value.as_object()?))
+            }
+            CompiledComponentWriteKind::Reflected { .. } => None,
+        })
+        .flat_map(move |(type_path, object)| {
+            sparse_vm_schema_fields(preflight, type_path, object.len())
+                .iter()
+                .filter_map(move |field| missing_vm_default(field, object))
+        });
+    World::account_dynamic_scene_preflight_defaults(base_estimated_bytes, limit_bytes, defaults)
 }
 
 /// Runs every fallible reflected write against the captured preflight World.
@@ -684,7 +713,21 @@ fn apply_component_writes(
     );
     for write in writes {
         match write.kind {
-            CompiledComponentWriteKind::Plugin { type_path, value } => {
+            CompiledComponentWriteKind::Plugin {
+                type_path,
+                mut value,
+            } => {
+                if let Some(object) = value.as_object_mut() {
+                    for field in sparse_vm_schema_fields(world, &type_path, object.len()) {
+                        if let Some((name, default)) = missing_vm_default(field, object) {
+                            // The value comes from the target schema, not the source remap.
+                            object.insert(
+                                name.to_owned(),
+                                json_value_from_reflected(default.clone())?,
+                            );
+                        }
+                    }
+                }
                 world.set_dynamic_component(write.entity, type_path, value)?;
             }
             CompiledComponentWriteKind::Reflected { adapter, writes } => {
@@ -695,6 +738,32 @@ fn apply_component_writes(
         }
     }
     Ok(())
+}
+
+fn sparse_vm_schema_fields<'world>(
+    world: &'world World,
+    type_path: &str,
+    object_len: usize,
+) -> &'world [ReflectFieldInfo] {
+    if !world.is_vm_dynamic_type_path(type_path) {
+        return &[];
+    }
+    // Compiled VM objects already contain only distinct, canonical schema keys.
+    match world.type_registry().registration(type_path) {
+        Ok(registration) if object_len < registration.type_info.fields.len() => {
+            &registration.type_info.fields
+        }
+        _ => &[],
+    }
+}
+
+fn missing_vm_default<'field>(
+    field: &'field ReflectFieldInfo,
+    object: &Map<String, Value>,
+) -> Option<(&'field str, &'field ReflectedValue)> {
+    let default = field.default_value.as_ref()?;
+    (!field.serializable && !object.contains_key(field.name.as_str()))
+        .then_some((field.name.as_str(), default))
 }
 
 fn remapped_entity(
