@@ -32,8 +32,23 @@ use crate::ui::host::{
     module::EDITOR_MANAGER_NAME, project_access::percent_encode_diagnostic_token, EditorManager,
 };
 
+#[cfg(feature = "profiling")]
+#[path = "catalog_profile.rs"]
+mod catalog_profile;
+
 const STARTER: &str = "res://scenes/main.scene.toml";
 const OPEN_MARKER: &str = "editor_project_open ";
+
+#[cfg(feature = "profiling")]
+#[test]
+#[ignore = "requires an isolated exact single-thread profile run"]
+fn editor202_profile_first_catalog_phases() {
+    assert!(
+        catalog_profile::dedicated_test_process(),
+        "[profile not collected] run only the exact ignored editor202_profile_first_catalog_phases test with --exact --ignored --test-threads 1 --show-output"
+    );
+    editor202_project_open_publishes_initial_catalog_and_log();
+}
 
 #[test]
 fn editor202_project_open_publishes_initial_catalog_and_log() {
@@ -72,11 +87,23 @@ fn editor202_project_open_publishes_initial_catalog_and_log() {
     assert_eq!(editor().catalog_snapshot().catalog_revision, 0);
     let watch_closed = runtime().asset_watch_diagnostics();
 
+    #[cfg(feature = "profiling")]
+    let mut phase_capture = None;
+    #[cfg(feature = "profiling")]
+    let mut open_phase = None;
     let mut ui_source = None;
     let initial = harness.open_project_with_assets("z202p", |assets| {
         write_ui_asset_open_route_asset(assets);
         ui_source = Some(assets.source_path(UI_ASSET_LOCATOR));
+        #[cfg(feature = "profiling")]
+        {
+            // The template and .zui are in place; the registered Editor open follows synchronously.
+            phase_capture = catalog_profile::Capture::start(&_profile.root);
+            open_phase = phase_capture.as_ref().and_then(|c| c.enter("open"));
+        }
     });
+    #[cfg(feature = "profiling")]
+    drop(open_phase);
     // The opener stores the line before installing the project file sink. Freeze it before refreshing.
     let open_logs = logs
         .snapshot(&filter)
@@ -94,7 +121,17 @@ fn editor202_project_open_publishes_initial_catalog_and_log() {
     let old_token = opened.as_ref().map(|(_, token)| token);
     let current_before = old_token.map(|token| runtime().check_project_generation(token));
 
+    #[cfg(feature = "profiling")]
+    let refresh_phase = phase_capture
+        .as_ref()
+        .and_then(|c| c.enter("explicit_refresh"));
     let refresh_result = editor().refresh_from_runtime_project(); // Exactly one explicit refresh.
+    #[cfg(feature = "profiling")]
+    drop(refresh_phase);
+    #[cfg(feature = "profiling")]
+    if let Some(capture) = phase_capture.as_mut() {
+        capture.stop();
+    }
     let current_after = old_token.map(|token| runtime().check_project_generation(token));
     let refreshed = runtime()
         .current_project_generation_snapshot()
@@ -149,6 +186,11 @@ fn editor202_project_open_publishes_initial_catalog_and_log() {
             record.sequence(),
             record.entry().message()
         );
+    }
+
+    #[cfg(feature = "profiling")]
+    if let Some(capture) = phase_capture {
+        capture.report();
     }
 
     // Report absence before the original fixture expectations; never reopen a project to sample it.
