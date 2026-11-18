@@ -79,3 +79,11 @@ Windows x64/MSVC、Rust 1.94.1，RTX 3060 Laptop GPU / DX12，`test -p zircon_ru
 | 后置骨架，同 pose（原版） | 3 | **1 / 0 / 1** | **96、96；0、0；0** |
 
 主见证只在末尾 `legal [Child,Root] must skin ...` 失败：不是“整项没画”，而是**真的画了一项，但回到绑定状态**。两种排列的顶点 influences 与逆绑定矩阵已按各自的原槽重映射；同一设备、视口、材质、姿态和 fresh generation。30 个选定源与配置复核，回执 SHA-256 `421031b287f2ff192c2d36b06b652cd154ff745db40fee4d7b9b20c396f45613`，stdout `0248754a536affdbdd4e968b8c761c5c49577f00543706d4a39096c5279535fe`（1,678 B）。此处证明 CPU 蒙皮与随后硬件绘制，不是双骨 GPU shader 通过，不改 [#135](https://github.com/He-Jiahui/ZirconEngine/pull/135) 调用者或 [#137](https://github.com/He-Jiahui/ZirconEngine/pull/137) 夹具。
+
+## 9. 修复与配对结果：父依赖先算，矩阵仍写回原槽
+
+[生产候选 `6f4a253160152b75c6ae243267eec823b4ce2ea2`](https://github.com/He-Jiahui/ZirconEngine/blob/6f4a253160152b75c6ae243267eec823b4ce2ea2/zircon_runtime/src/graphics/scene/renderer/mesh/build/skinning.rs) 相对上一份基线证据只改 renderer 的私有蒙皮矩阵构造。父先骨架继续顺序填充两份矩阵缓冲；第一次遇到有效的后置父槽时，保留已经算好的前缀，用显式栈和三态标记父链，先解父再回填子。绑定/姿态矩阵按**输入槽**而非遍历顺序写回，仍使用列向量的 `parent * local` 和 `posed_world * inverse(bind_world)`。不对资源排序或重写 vertex influences，不改同名 pose 选择、GPU ABI、importer、Editor 或 shader。真正的越界仍拒绝；不能把合法未求值的父槽当作“找不到”，也不能读占位的 identity 充数。
+
+**同命令、同测试字节、同设备，仅原生产实现不同。** `d306c99f8b638729db754d63e117ea5c7133a8fc1ab17662c9f702dd0476b871`（测试文件 SHA-256），两次都选 `later_parent_slot_preserves_cpu_fallback_draw`，均 1 个用例实跑、另 1 个过滤。基线 **0 过 1 败**；修后 **1 过 0 败，exit 0**。刚体帧仍是 `(1,0,1)`、绑定两窗各 96 像素；父先正控仍是 `(1,1,0)`、姿态两窗各 96。唯一改变的是 **child-first** 第三帧：原来 `(1,0,1)`、绑定位置；现在 `(1,1,0)`、姿态两窗各 96，绑定窗及其它区域均零。各帧三种 GPU 蒙皮计数均零，故此证据是 CPU 蒙皮后经真实 GPU 光栅化的配对修复。
+
+回执 SHA-256：原版 `421031b287f2ff192c2d36b06b652cd154ff745db40fee4d7b9b20c396f45613`；修后 `c7cfb89c6ed95a89189b44a08a68dde57230a14d4dff01e2763e36c6720e5620`，修后 stdout `6e7e21e6bbbb0764a582bd8600e066c6ccdc752261cc9779ce242ee583f53072`，stderr `3dc1c33368144474007db33c01584b8de55881dcd3e7cdacc0b5171c4087fd47`。两边 30 项选定源码/清单，仅上述生产文件变化，两次独占工程不同以免误读旧帧。额外对小森林及各排列、越界/环和 4,096 槽深链的独立数学检查属于算法对照，不是原生 UE 或实际性能测量。§7 的双骨 GPU 通路有独立着色器前置；未重新产出该通路的通过证据，未执行整个 graphics libtest、性能验收或 UE 产品。本 PR 仍为 Draft。
