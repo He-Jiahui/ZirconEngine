@@ -756,3 +756,226 @@ fn jolt_direct_trait_rejects_nonfinite_command_batches_before_any_mutation() {
         assert!(state.transform.scale.is_finite());
     }
 }
+
+#[test]
+fn native_offset_floor_stops_sphere_at_authored_center() {
+    let row = native_point_probe("offset", NativePointPlacement::Offset);
+    assert!(
+        row.correct(),
+        "native solver must honor the authored collider center: {row:?}"
+    );
+}
+
+#[test]
+fn native_rotated_offset_floor_stops_sphere_at_authored_center() {
+    let row = native_point_probe("rotated", NativePointPlacement::RotatedOffset);
+    assert!(
+        row.correct(),
+        "native solver must resolve the collider center in the body frame: {row:?}"
+    );
+}
+
+#[test]
+fn native_zero_offset_floor_keeps_existing_response() {
+    let row = native_point_probe("zero", NativePointPlacement::Zero);
+    assert!(
+        row.correct(),
+        "zero-offset native floor must retain its response: {row:?}"
+    );
+}
+
+#[test]
+fn native_translated_body_floor_keeps_existing_response() {
+    let row = native_point_probe("translated", NativePointPlacement::Translated);
+    assert!(
+        row.correct(),
+        "translated native body must retain its response: {row:?}"
+    );
+}
+
+#[derive(Clone, Copy)]
+enum NativePointPlacement {
+    Offset,
+    RotatedOffset,
+    Zero,
+    Translated,
+}
+
+#[derive(Debug)]
+struct NativePointRow {
+    target_y: f32,
+    other_y: f32,
+    target_vy: f32,
+    other_vy: f32,
+    target_tail_range: f32,
+}
+
+impl NativePointRow {
+    fn correct(&self) -> bool {
+        (self.target_y - 0.25).abs() < 0.06
+            && self.other_y < -25.0
+            && self.target_vy.abs() < 0.1
+            && self.other_vy < -20.0
+            && self.target_tail_range < 0.02
+    }
+}
+
+fn native_point_probe(label: &str, placement: NativePointPlacement) -> NativePointRow {
+    use zircon_runtime::core::math::Quat;
+    const STEPS: usize = 180;
+    let mut backend = JoltPhysicsBackend::new(PhysicsSettings::default())
+        .expect("initialize real native Jolt world, without a fallback");
+    assert_eq!(backend.name(), "jolt");
+    let material = PhysicsMaterialMetadata {
+        restitution: 0.0,
+        ..PhysicsMaterialMetadata::default()
+    };
+    let floor_geometry = PhysicsColliderShape::Box {
+        half_extents: [0.5; 3],
+    };
+    let ball_geometry = PhysicsColliderShape::Sphere { radius: 0.25 };
+    let floor_shape = backend
+        .create_shape(&floor_geometry, &material)
+        .expect("native floor geometry");
+    let ball_shape = backend
+        .create_shape(&ball_geometry, &material)
+        .expect("shared native sphere geometry");
+    let (body_origin, rotation, center, other) = match placement {
+        NativePointPlacement::Offset => (
+            Vec3::new(0.0, -0.5, 0.0),
+            Quat::IDENTITY,
+            Vec3::new(8.0, -0.5, 0.0),
+            Vec3::ZERO,
+        ),
+        NativePointPlacement::RotatedOffset => (
+            Vec3::new(3.0, -0.5, 4.0),
+            Quat::from_rotation_y(std::f32::consts::FRAC_PI_2),
+            Vec3::new(3.0, -0.5, -4.0),
+            Vec3::new(3.0, 0.0, 4.0),
+        ),
+        NativePointPlacement::Zero => (
+            Vec3::new(0.0, -0.5, 0.0),
+            Quat::IDENTITY,
+            Vec3::new(0.0, -0.5, 0.0),
+            Vec3::X * 8.0,
+        ),
+        NativePointPlacement::Translated => (
+            Vec3::new(8.0, -0.5, 0.0),
+            Quat::IDENTITY,
+            Vec3::new(8.0, -0.5, 0.0),
+            Vec3::ZERO,
+        ),
+    };
+    let world = WorldHandle::new(890);
+    let mut floor = body_desc(
+        world,
+        8900,
+        floor_shape,
+        floor_geometry,
+        PhysicsBodyType::Static,
+        -0.5,
+    );
+    floor.body.transform.translation = body_origin;
+    floor.body.transform.rotation = rotation;
+    floor.collider.transform.translation = center;
+    floor.collider.transform.rotation = rotation;
+    let original_floor = floor.clone();
+    let floor_handle = backend
+        .create_body(&floor)
+        .expect("native static body with separate collider center");
+    assert_eq!(floor, original_floor);
+    let starts = [
+        Vec3::new(center.x, 2.0, center.z),
+        Vec3::new(other.x, 2.0, other.z),
+    ];
+    assert!(starts[0].distance(starts[1]) > 7.9);
+    let mut handles = Vec::new();
+    for (index, start) in starts.iter().copied().enumerate() {
+        let mut ball = body_desc(
+            world,
+            8901 + index as u64,
+            ball_shape,
+            ball_geometry.clone(),
+            PhysicsBodyType::Dynamic,
+            2.0,
+        );
+        ball.body.transform.translation = start;
+        ball.collider.transform = ball.body.transform;
+        ball.body.sleep_policy = PhysicsSleepPolicy::Never;
+        ball.body.linear_damping = 0.0;
+        ball.body.angular_damping = 0.0;
+        let handle = backend.create_body(&ball).expect("native dynamic sphere");
+        assert_eq!(
+            backend.debug_body_runtime_policy(handle).unwrap().2,
+            PhysicsSleepPolicy::Never
+        );
+        handles.push(handle);
+    }
+    assert!(
+        backend.destroy_shape(ball_shape).is_err(),
+        "shared shape stays referenced by both bodies"
+    );
+    let mut active = Vec::new();
+    backend.read_active_states(&mut active);
+    for (handle, start) in handles.iter().zip(starts) {
+        let state = active
+            .iter()
+            .find_map(|(h, s)| (h == handle).then_some(s))
+            .expect("new sphere is natively active");
+        assert!(state.transform.translation.distance(start) < 1e-5);
+    }
+    let mut heights = [Vec::new(), Vec::new()];
+    let mut velocities = [Vec::new(), Vec::new()];
+    for _ in 0..STEPS {
+        backend
+            .step(FIXED_STEP_SECONDS)
+            .expect("actual JPC native physics update");
+        active.clear();
+        backend.read_active_states(&mut active);
+        for index in 0..2 {
+            let state = active
+                .iter()
+                .find_map(|(h, s)| (*h == handles[index]).then_some(s))
+                .expect("NeverSleep native sphere must produce every sampled state");
+            let p = state.transform.translation;
+            assert!(p.is_finite() && state.linear_velocity.iter().all(|v| v.is_finite()));
+            assert!((p.x - starts[index].x).abs() < 0.02 && (p.z - starts[index].z).abs() < 0.02);
+            assert_eq!(state.body_type, PhysicsBodyType::Dynamic);
+            heights[index].push(p.y);
+            velocities[index].push(state.linear_velocity[1]);
+        }
+    }
+    for ys in &heights {
+        assert_eq!(ys.len(), STEPS);
+        assert!(
+            ys[0] < 2.0 && ys[0] > 1.9 && ys[29] < 1.0 && ys[29] > 0.3,
+            "actual initial free-fall, not a canned rest pose"
+        );
+    }
+    let tail = &heights[0][STEPS - 30..];
+    let low = tail.iter().copied().fold(f32::INFINITY, f32::min);
+    let high = tail.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+    let row = NativePointRow {
+        target_y: heights[0][STEPS - 1],
+        other_y: heights[1][STEPS - 1],
+        target_vy: velocities[0][STEPS - 1],
+        other_vy: velocities[1][STEPS - 1],
+        target_tail_range: high - low,
+    };
+    println!("NATIVE_POINT label={label} target_y={} other_y={} target_vy={} other_vy={} target_tail={} initial_y={} early_y={} frames={} native=true commands=0 constraints=0 events_used=false", row.target_y, row.other_y, row.target_vy, row.other_vy, row.target_tail_range, heights[0][0], heights[0][29], STEPS);
+    for handle in handles {
+        backend
+            .destroy_body(handle)
+            .expect("release both dynamic references");
+    }
+    backend
+        .destroy_body(floor_handle)
+        .expect("release floor body");
+    backend
+        .destroy_shape(ball_shape)
+        .expect("release shared sphere shape after both bodies");
+    backend
+        .destroy_shape(floor_shape)
+        .expect("release original floor shape");
+    row
+}
