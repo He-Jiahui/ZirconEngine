@@ -772,3 +772,6 @@ fn loop_notify_resume_split_frames_and_exact_period_controls() {
         assert_eq!(lengths, expected);
     }
 }
+
+#[path = "clip_event_pages.rs"]
+mod pages;
