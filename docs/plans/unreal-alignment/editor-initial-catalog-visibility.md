@@ -68,3 +68,21 @@ UE 对照是进程级 registry 的包/对象路径查询及 game-thread 通知�
 1. 在同一真实、隔离的工程 activation 上，于开项前订阅 Runtime 与 Editor 的[实际变更流](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/src/ui/retained/app/host_lifecycle/startup/resources/events.rs#L19-L53)。在磁盘预置合法小写 Scene 与非 Scene 正控，只正常开项一次，使用已有事件消费路径。做一次有界的关联观测：核对精确 source/locator、Runtime `Ready` 与 catalog-input，记录 refresh 的 root/activation/token、终端分支、真实 `CatalogChanged` 与对应可读快照；无匹配交付则保留超时和各层证据。仅在同 activation 的 token 变化与实际 watch commit 对齐后，才归因该写手。
 2. 若只缺夹具中的真实事件交付，修夹具，不改生产；若证实生产在同一 activation 丢了首代交付，才在现有注册宿主的发布或消费边界修复所证路径。保留过时/跨 activation 拒绝与不变代不重发；不靠重开、sleep、轮询/刷新循环、强扫、捏造目录行或绕过 fence 取得通过。
 3. 后续先补上述真实交付回归与精确匹配正负控，再用相同用例验证修复；产品另跑原 staged create 的 F1，核同一次早期日志、呈现/捕获与进程清退。UE 对照仅是源码与测试设计依据，不报 UE 执行或通过。
+
+## 7. 同一真实工程的首次打开与一次刷新：原生 RED（2026-11-18）
+
+[测试提交 `194aa86f31fa276d58c80214cd0f6da7e3645e30`](https://github.com/He-Jiahui/ZirconEngine/commit/194aa86f31fa276d58c80214cd0f6da7e3645e30) 仅接入一个回归；原引擎、已有两个工具打开用例均不改。主机是 Windows x64/MSVC，Rust 1.94.1；`test -p zircon_editor --no-default-features --lib ::editor202_ --locked --offline --jobs 1 -- --test-threads 1 --show-output`。按名字子串选中**恰一例**，实际 **0 过、1 败、0 忽略、10,540 过滤，exit 101**。不是编译失败或静态推演。[一次开项、订阅和取样](https://github.com/He-Jiahui/ZirconEngine/blob/194aa86f31fa276d58c80214cd0f6da7e3645e30/zircon_editor/src/tests/editor_event/runtime/first_catalog.rs#L34-L174) 走真实 RenderableEmpty 创建、原 `.zui` writer、同一 Core 的注册服务，使用隔离用户目录。两个订阅在开项前建立，随后只额外调用一次生产 refresh；这与原来两个工具测试的惰性解析顺序不同，不把这几次运行当成完全相同的时序。
+
+| 同一次执行中的观察点 | 实际观察 |
+|---|---|
+| Runtime 发布与源 | 收到 8 条 `Added`，含 `res://scenes/main.scene.toml` 和 `res://ui/menu.zui`；该次有界读取 `error=None, pending=0`。`Added` 不是 Ready、也不是 Editor 的 `CatalogChanged`。 |
+| 标准小写场景正控 | 物理源、Runtime registry 和其不可变 catalog input 的路径/类型/状态对齐。`Scene/Ready`，制品实际解码为 `ImportedAsset::Scene`（raw 605 字节）。两个已取 Runtime 快照的[直接 Editor 索引](https://github.com/He-Jiahui/ZirconEngine/blob/194aa86f31fa276d58c80214cd0f6da7e3645e30/zircon_editor/src/tests/editor_event/runtime/first_catalog.rs#L231-L293) 均按该 URI 解析到同一资产 UUID。 |
+| 同一 activation；旧 token 与 watch 计数 | 同一工程根、同一 activation；Runtime 输入序号 **12 → 19**。显式 refresh 前旧 token 是 `Current`，之后 `Superseded { newer_same_project_generation: true }`。watch 计数按 `(batch,reconciliation,committed,failed)`：开项前 `(0,0,0,0)`，显式 refresh 前 `(9,9,9,0)`，之后 `(16,16,16,0)`；refresh 自身返回 `Ok(())`。这里是**取样区间**的观测，不是逐事件逐提交的一一对应。 |
+| 注册 Editor 与实际打开日志 | 首读和显式 refresh 后均为 `root="", revision=0, epoch=0, rows=0`；两个读取窗口中均没读到 `CatalogChanged`。同次 opener 的真实内存日志 sequence=1：`result=degraded`，registry 为 8 项/7 Ready/1 failed/1 diagnostic，Editor 三个数字为 0，`settings_source=persisted-v1`。不是 [#201](https://github.com/He-Jiahui/ZirconEngine/pull/201) 所定义的健康 Runtime 却误标 `completed` 的现场。 |
+| UI 是另一个前置 | 真实 `.zui` 路径可解析，实际 importer 报 `UnsupportedFormat`（没有已注册的 `.zui` 导入器）；Runtime 有 `Data/Error` 行、无 artifact，有 catalog input。**不能把它算成 Ready UI 行的投影失败或已验证的工具路由**。本案不插入 mock 或为通过断言临时注册插件。 |
+
+首先失败的是[首个已注册目录须属于本工程且已初始化](https://github.com/He-Jiahui/ZirconEngine/blob/194aa86f31fa276d58c80214cd0f6da7e3645e30/zircon_editor/src/tests/editor_event/runtime/first_catalog.rs#L328-L338)，不是 Scene 解析、默认场景加载、UI 导入器或后续工具操作。由此，在有真实 `Added` 和可解码小写 Scene 的前提下，**未发布首代可以复现**。外部已取 token 确实过期；未观测 `sync_from_project` 内部拿到的 token 及终端分支，也没有触发 reconciliation 的原始 OS 事件/路径。尚不能断言 7 次 watch commit 就是 7 次内部 fence 拒绝、某特定生成文件触发自激、目录永久为空或真实窗口有相同表现。
+
+**下一步只补这一缺口：** 在同一开项的 open/显式 refresh 两段，获取已有 profiling 的实际 publish/superseded 分支；再将 scoped watcher 的事件种类、路径/无路径、overflow/错误与确切提交关联。保留同一 activation、旧代拒绝和标准 Scene oracle；不增加重试或用「没有等足」解释。不对本次源码未确认的写手做生产修复。真正的首帧及 staged F1/F5 仍是独立门。
+
+本次普通命令回执 SHA-256 `42556af829fd1ceebe13fcfcb0e16ec370dcf3be015041d2691cccd6c3fdf8b6`；stdout 3,026 字节 `4aed4923614050eafd48d80f9ebebe2e47c2146b6f81d6a361bdd2cf0a2c7b5d`，stderr 992,263 字节 `abcd48d14b92e66f5a9f744e7e52ff2ae6048bf355380dbbbce0ecd3c0b9e1c4`。49 项选定输入运行前后复核，并非全源码或进程树的形式化封存。没有 UE、GUI、全包或产品验收结果。
