@@ -1,8 +1,8 @@
-# AI / 行为树独立 Draft 材料：TimeLimit 超时未撤销仍运行的子任务
+# AI / 行为树：TimeLimit 超时必须撤销仍运行的子任务
 
-> 取证说明：UE 的本机路径与文件 SHA256 是用户提供参考树的依据；本轮 D: 审计快照/工作记录仅本地保存，不随本 PR 发布，也不冒充 GitHub 可读证据。UE/ZE 测试均未在本轮执行。
+> [Draft #162](https://github.com/He-Jiahui/ZirconEngine/pull/162) 的 §1–6 保留最初的六点调查；§7 记录后续原生运行。UE 引用来自本机参考树，文件指纹见 §3，未执行 UE 测试。D: 的审计快照仅本地保存，不作为 GitHub 可读证据。
 
-状态：**仅调查，未创建 PR，未改引擎或测试，UE/ZE 测试及 Cargo 均未运行**。这是旧账 **AI-P1-020** 的源码重核，不是新发现；只讨论 TimeLimit，不夹带 Parallel、owner revoke 或 MoveTo 真正清空 optional destination 的其它问题。
+本条重核已有 **AI-P1-020**。范围是限时子树的同步撤销，不改变 Parallel、owner revoke、导航目的地的存储表示，也不引入 UE 异步撤销确认。
 
 ## 1. 两边差异、精确符号与可达性
 
@@ -19,7 +19,7 @@ ZE 规范树读取点为 `cb495bb1c952a24c86f4513b8099bc4942c3a87d`；只读比�
 
 ## 2. 有界真实影响与可证伪输入
 
-可用现成 DTO 组成 `TimeLimit(1.0s) -> MoveTo(target=[9,0,0])`，不使用静态 `task_result` 旁路。令真实 World 的 agent 当前位置为原点，导航事件通道存在，但两次 tick 均没有 Arrived / NoPath 反馈，也没有 Blackboard observer、树替换或显式停用：
+可用现成 DTO 组成 `TimeLimit(1.0s) -> MoveTo(target=[9,0,0])`，不提供会绕过宿主的显式 `result` 参数。令真实 World 的 agent 当前位置为原点，导航事件通道存在，但两次 tick 均没有 Arrived / NoPath 反馈，也没有 Blackboard observer、树替换或显式停用：
 
 | 输入阶段 | 从现有源码推导的状态（不是运行回执） |
 |---|---|
@@ -66,7 +66,7 @@ ZE 的 `on_abort`/宿主 `abort` 当前返回 `()`，因此这只能对齐同步
 
 ## 6. 具体 ZE 草案、既有 UE 测试迁移表与去重
 
-**顺序仍是先本问题六点 Draft、再同范围等价回归、最后可行修复；本轮只完成调查材料。** 后续最小改法是在 `evaluate_time_limit` 的超时分支：结束短暂的 state 可变借用，保存/重置装饰器 elapsed，调用 child 的现有 `abort_subtree`，再返回 Failed；不改变普通 child 成功/失败的通路，也不修改 Parallel、revoke、通用导航 setter 或 ABI。
+**以下是问题 Draft 首发时的测试与修复计划，不是运行记录。** 当时建议的最小改法是在 `evaluate_time_limit` 的超时分支：结束短暂的 state 可变借用，保存/重置装饰器 elapsed，调用 child 的现有 `abort_subtree`，再返回 Failed；不改变普通 child 成功/失败的通路，也不修改 Parallel、revoke、通用导航 setter 或 ABI。
 
 | UE 路径 / 行 / 测试名 | 原输入 | 原预期 | ZE 既有测试落点与迁移限制 |
 |---|---|---|---|
@@ -75,4 +75,21 @@ ZE 的 `on_abort`/宿主 `abort` 当前返回 `()`，因此这只能对齐同步
 | [BTTest.cpp:1454–1499](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Developer/AITestSuite/Private/Tests/BTTest.cpp#L1454-L1499>) `FAITest_BTRequestExecutionOnTimerBasedLatentAbortFinished` | 首 task 执行 6 ticks，3 ticks 时 TimeLimit 请求撤销，撤销需 2 ticks；外层 13 ticks 保险阈值。 | `[FirstTaskStartExecute, FirstTaskStartAbort, FirstTaskFinishAbort, SecondTaskExecute]`，没有正常完成日志。 | [observer_abort.rs:30–45,233](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/ai/runtime/src/tests/observer_abort.rs#L30-L233>) 已有 abort-aware external runtime，可移植“撤销先于 fallback”的同步子契约；ZE 不支持 latent abort 返回值，完整 2-tick ack 场景暂不可等价迁移，不能据缺该功能再报缺陷。 |
 | **未发现原 UE 测试：源码推导契约，非迁移** | 用 TimeLimit 包住真实 World-host MoveTo，0.4+0.6s 无导航反馈，再进入无导航写入的 fallback；另用 abort-aware external runtime 检查次数与重入新状态。 | 超时调用 child 撤销恰好一次；旧目标不再保持 `[9,0,0]`；fallback 副作用前已有撤销；inactive/succeeded child 不误撤销。 | [integration_tasks.rs:100–134](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/ai/runtime/src/tests/integration_tasks.rs#L100-L134>) 已有真实宿主 `move_to_abort_clears_pending_navigation_target`，可组合 TimeLimit，不另造假 task-result fixture。搜索范围为 Runtime/AIModule 的 BehaviorTree 源与 Developer/AITestSuite 全部 C++，查询 `TimeLimit`、`MoveTo`、`AbortTask`；AITestSuite 未命中 MoveTo 测试，不声称全 UE 无此测试。 |
 
-去重：旧 [08f 审查 P1-9:149–151](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/docs/plans/optimize/zircon_runtime/08f-ai-behavior-tree-blackboard-perception-runtime-review.md#L149-L151>) 同时列 TimeLimit/Parallel/revoke；旧 [AI-P1-020:249–256](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/docs/plans/optimize/zircon_runtime/100-runtime-ai-behavior-tree-blackboard-perception-eqs-state-tree-smart-object-task-navigation-network-save-scalability-editor.md#L249-L256>) 单列 TimeLimit。本稿只重核这一个子项，旧文档不是新源码证据。所读 [15 项 PR 元数据快照](<D:/CodexData/worktrees/ze-ue-audit-20261117/reports/ue-module-audit-20261117/github-pr-snapshot.json>) 未见 AI 同题，不代表扫描了所有历史 PR。领域模块、owner、已有测试及未知覆盖另见 [AI 覆盖记录](<D:/CodexData/worktrees/ze-ue-audit-20261117/reports/ue-module-audit-20261117/research/ai-domain-coverage.md>)。**所有拟迁移/回归均未编写、未运行。**
+去重：旧 [08f 审查 P1-9:149–151](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/docs/plans/optimize/zircon_runtime/08f-ai-behavior-tree-blackboard-perception-runtime-review.md#L149-L151>) 同时列 TimeLimit/Parallel/revoke；旧 [AI-P1-020:249–256](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/docs/plans/optimize/zircon_runtime/100-runtime-ai-behavior-tree-blackboard-perception-eqs-state-tree-smart-object-task-navigation-network-save-scalability-editor.md#L249-L256>) 单列 TimeLimit。本稿只重核这一个子项，旧文档不是新源码证据。所读 [15 项 PR 元数据快照](<D:/CodexData/worktrees/ze-ue-audit-20261117/reports/ue-module-audit-20261117/github-pr-snapshot.json>) 未见 AI 同题，不代表扫描了所有历史 PR。领域模块、owner、已有测试及未知覆盖另见 [AI 覆盖记录](<D:/CodexData/worktrees/ze-ue-audit-20261117/reports/ue-module-audit-20261117/research/ai-domain-coverage.md>)。**上述是首发时计划。后续实际测试与未覆盖项如下。**
+
+## 7. Windows 原生回归：观察到的不是单纯的 `Failed`
+
+测试挂在[既有 AI 插件的集成任务测试](../../../zircon_plugins/ai/runtime/src/tests/integration_tasks.rs#L504-L505)；原 502 行未改。[4 个用例](../../../zircon_plugins/ai/runtime/src/tests/time_limit_abort.rs#L23-L135)使用同一任务、同一 agent 与两次可精确表示的 `0.5s`，期限 `1s`。没有改树、主动停树，或在观察导航目标之前补 tick。原实现构建后确实运行到以下断言：
+
+| 见证 | 原实现结果 | 区分的行为 |
+|---|---|---|
+| 真实 MoveTo，无导航反馈 | **失败**：首 tick 确实获取 `[9,0,0]`；到期已返回 `Failed`，目标却仍为 `[9,0,0]`，不是 agent 的当前位置 `[2,0,1]` | 用真实 World 属性观察现有宿主的清理效果；不把 `None`、无路径事件或下一帧清理当成通过 |
+| 正在运行的 external → Selector 后备任务 | **失败**：超时 tick 日志为 `child tick (running) → fallback tick`，中间没有 `child abort` | 检查同 tick 顺序、恰好一次撤销；后续同树重入须产生新子任务实例，原实现因前一断言失败未到重入断言 |
+| 嵌套的静态占位 MoveTo | **通过**：`TimeLimit → Sequence → MoveTo(result="running", target=…)` 不调用宿主，其他系统的目标 `[3,4,5]` 在到期前后均保留 | `result` 是合法参数，不等于该节点取得了导航目标；直接把所有 active 集成节点都发给 host.abort 会破坏此约束 |
+| 到期 tick 自然完成的 external | **通过**：曾处于 Running 的子任务在该 tick 自然 `Succeeded`，仅记录完成，不调用 `on_abort` | 保留先求值子任务的语义；到期数值本身不能撤销已终止任务 |
+
+前两项不是 UE 原测试的逐字移植。外部任务用例移植了 [UE 定时撤销原测](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Developer/AITestSuite/Private/Tests/BTTest.cpp#L1454-L1499>) 中“撤销后才运行后备任务”的同步子契约；目的地观察则是 ZE 的源码派生回归。邻近的 [UE 嵌套 parallel 用例](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Developer/AITestSuite/Private/Tests/BTTest.cpp#L3019-L3070>) 观察哪些任务开始执行，不证明这里移植了 Parallel 或 UE 的 latent abort 确认。
+
+**修复边界。** [到期分支](../../../zircon_plugins/ai/runtime/src/behavior_tree/executor.rs#L777-L795)保持先求值，只有子任务仍 `Running` 且到达期限才清计时、同步撤销该 child 子树，再向父节点返回 `Failed`。[共享撤销入口](../../../zircon_plugins/ai/runtime/src/behavior_tree/executor/abort.rs#L143-L202)保留节点状态重置、活跃子树递归和外部回调，只在派发集成 `host.abort` 时使用与[执行入口](../../../zircon_plugins/ai/runtime/src/behavior_tree/executor/integration.rs#L24-L35)相同的 `result` 准入规则。这也使观察者抢占、切树、停树不会为静态占位误派发宿主撤销；真实集成任务仍须清理。没有改变公开接口、ECS 更新顺序、导航 setter、ABI 或插件 feature。
+
+**候选实测。** 4条回归的两个测试文件与修复前逐字节相同，聚焦运行 **4 通过 / 0 失败 / 0 忽略**。放开名称过滤后，同一 AI 插件的 235 个库用例为 **182 通过 / 10 失败 / 43 忽略**；4条新用例均通过。全库没有通过，不能将其称为 GREEN。先保留两个版本和所有失败日志，再用相同工作树/工具链运行测试提交的完整基线，以区分旧失败与候选回归。
