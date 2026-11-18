@@ -309,11 +309,38 @@ fn update_world_position(
     entity: u64,
     position: Vec3,
 ) -> GameplayHostResult<bool> {
-    let mut world_matrix = world
-        .world_matrix(entity)
-        .ok_or_else(|| GameplayHostError::missing_entity("update transform for", entity))?;
-    world_matrix.w_axis = position.extend(1.0);
-    update_world_matrix(world, entity, world_matrix)
+    if world.world_matrix(entity).is_none() {
+        return Err(GameplayHostError::missing_entity(
+            "update transform for",
+            entity,
+        ));
+    }
+
+    let translation = if let Some(parent) = world.parent_of(entity) {
+        let parent_matrix =
+            world
+                .world_matrix(parent)
+                .ok_or(crate::scene::SceneError::MissingParent {
+                    child: entity,
+                    parent,
+                })?;
+        let inverse = try_affine_inverse(parent_matrix, NumericPolicy::STRICT)
+            .map_err(|_| GameplayHostError::NonInvertibleParentTransform { entity, parent })?;
+        let translation = (inverse * position.extend(1.0)).truncate();
+        if !translation.is_finite() {
+            return Err(GameplayHostError::NonRepresentableParentTransform { entity, parent });
+        }
+        translation
+    } else {
+        position
+    };
+
+    // Preserve the authored basis without choosing a different signed TRS decomposition.
+    // A default here only delegates diagnostics: World checks mutability before
+    // the required component and never creates a missing LocalTransform.
+    let mut local = world.local_transform(entity).unwrap_or_default();
+    local.translation = translation;
+    Ok(world.update_transform(entity, local)?)
 }
 
 fn update_world_matrix(

@@ -407,3 +407,7 @@ fn float_parameter(name: impl Into<String>) -> ScriptHostParameterDescriptor {
 #[cfg(test)]
 #[path = "gameplay_host/tests/cases.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "gameplay_host/tests/point_authority.rs"]
+mod point_authority;
