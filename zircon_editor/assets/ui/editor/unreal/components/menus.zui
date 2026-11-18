@@ -39,7 +39,7 @@ layout = { width = { stretch = "Fixed" }, height = { stretch = "Stretch" } }
 component = "Button"
 classes = ["unreal-control", "unreal-menu-control"]
 control_id = "MenuSlot0"
-props = { input_hoverable = true, input_clickable = true, input_focusable = true, input_interactive = true, line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", text = "File", tooltip = "File", button_variant = "text" }
+props = { input_hoverable = true, input_clickable = true, input_focusable = true, input_interactive = true, line_height_ratio = 1.2, font_weight = 400, font_size = 13.333333, font_family = "Roboto", text = { text_key = "menu.file.label", table = "editor", fallback = "File" }, tooltip = "File", button_variant = "text" }
 layout = { width = { stretch = "Fixed" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
 events = [{ id = "UnrealMenu/File", event = "Click", route = "workbench.unreal.menu.file.open" }]
 
