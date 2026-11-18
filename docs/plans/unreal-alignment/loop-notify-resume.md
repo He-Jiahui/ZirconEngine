@@ -129,3 +129,19 @@ UE 传 instance/slot 与 `FAnimNotifyEventReference`；ZE 的 [clip 资产点 DT
 | 0.1→0 | `3db851eb 3d8f5c28 3d4ccccb 3cf5c28c 3c23d704` | `64+20` | `Some(64)` |
 
 同 §10 选项实际 **3 过 10 败**，失败仍是多/漏/播放位置错误；原有 16 窗口结果不变。修前配对回执 `756400b0b1ea5993469cc15b2f31fca83f9491783487845096229dd634bb9cb3`、stdout `a827af5885cec2a36b6d49a380a3a88171c7a5c0dac3161c8d508fb809d871b2`；不与不同版本测试拼出 GREEN。
+
+## 12. 修复：续页只挑选原轨迹的下一条，不由游标重新生成一条轨迹
+
+[生产采样器 `34b821903e51c0a0223cfbb077318f2c1c6c97b3`](https://github.com/He-Jiahui/ZirconEngine/blob/34b821903e51c0a0223cfbb077318f2c1c6c97b3/zircon_runtime/src/animation/clip_event.rs)、[私有 seek/step](https://github.com/He-Jiahui/ZirconEngine/blob/34b821903e51c0a0223cfbb077318f2c1c6c97b3/zircon_runtime/src/animation/clip_event/occurrence.rs)。fresh 和非循环沿用原逻辑；已经延期的循环范围从**同一个范围的原始首点**依据旧的单精度步进定位。队列、公有游标、通知排序及预算策略未变。相同时间仍按名称和轨下标接续。加速只在均匀浮点间距的指数带内部跳跃；边界、停止和溢出用真正的原生单步，不大范围枚举所有过往事件。
+
+同 §11 的原命令、同 13 个已提交用例、三份黑盒测试逐字节相同，**3 过 10 败 → 13 过 0 败**。16 个窗口的整条有序事件流都逐位等于原单批和固定锚点；原版偏离的九个窗口已无首差。另一个既有 20 轨用例正放 `64+40` 和倒放 `64+20` 都恢复为 `64+36`。真实 Level 单 range `64+16`，第三帧无重复，既有小帧、同名 tie、相邻 ULP、字节/跨度/oversized 均保留。极端窗口中没有复活在原范围本来就不存在或已停止的轨。
+
+另外对同一生产提交运行私有 `--lib loop_occurrence_locator_` 3 例，**3 过 0 败**（同包、特性、test profile 与离线锁文件）。两个长距离方向单次定位的原生步进调用记录如下（测试计数、不是毫秒或设备性能）：
+
+- `LOOP_OCCURRENCE_LOCATOR_STEPS_V1 seed=3f800000 cursor=4b800000 reverse=false steps=92`
+- `LOOP_OCCURRENCE_LOCATOR_STEPS_V1 seed=4b800000 cursor=00000000 reverse=true steps=93`
+
+黑盒回执修前 `756400b0b1ea5993469cc15b2f31fca83f9491783487845096229dd634bb9cb3`、修后 `3c59e46ef1d2176ea7f32e4ea28360093d9c2cbe7b56afcfd648c3eae53ed1bd`，补充成本回执 `e02fc3f965500b45268e703b34bc1b524ee9d4e02f3bd02ff61e4c7ca1225fea`。本修复保证同一 clip、同一给定范围分页不改变旧单批轨迹；不重新定义数学循环次数、不同帧范围的拼接，或解决极大绝对时间上一个空 span 自身不前进的问题。未运行完整动画插件/UE 或设备性能门。
+
+
+补充原采样器全模块 `--lib animation::clip_event::`（同提交/特性/配置）：**26 过、0 败、2 个按仓库标记忽略**，包括原正反接缝、非循环、相同时间续页、预算及 heap 比较次数。未执行受管的 release 性能基准。回执 `98fa8601461a617b1341b26f2c28b0cc47faef0b71a1d3b4ae24dbfedf44e7e4`。
