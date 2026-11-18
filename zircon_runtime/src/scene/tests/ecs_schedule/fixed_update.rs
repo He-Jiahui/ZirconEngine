@@ -12,6 +12,9 @@ use crate::scene::{
     create_default_level, FixedStepFailurePhase, SystemStage, SystemTickContext, World,
 };
 
+#[path = "fixed_update/world_revision.rs"]
+mod world_revision;
+
 #[test]
 fn level_tick_repeats_fixed_loop_stages_for_drained_fixed_steps() {
     let (runtime, level, events) = fixed_update_fixture();

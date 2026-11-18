@@ -2,6 +2,9 @@ use super::*;
 use zircon_runtime::core::framework::physics::{
     PhysicsBodyType, PhysicsColliderShape, PhysicsJointType,
 };
+#[path = "fixed_step_revision.rs"]
+mod fixed_step_revision;
+
 use zircon_runtime::core::math::Transform;
 
 #[test]
