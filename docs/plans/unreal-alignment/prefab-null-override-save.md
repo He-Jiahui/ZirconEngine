@@ -55,3 +55,13 @@ UE 是本机提供的 `6.0.0 / UE5 / CL 0` 参考树，无可证的上游提交�
 这证明阻断保存，不是提交了损坏的新文件。未触发 Editor 菜单或测 dirty history，没有展开模板、应用覆盖、运行 UE 或声称所有 JSON 值都有 TOML 表示。
 
 30 个选定源/清单；原生回执 `3e32e4037d52eb4a4dd6e2ddfe130ec41df4e138a9b4eb3521d478e6039df669`、stdout `521b9a195aa16521cdeb06c57c316c539cec3ba798a1ac4f4769e06f005a0a12`、stderr `9eb88004f54b5d0899ae2726321d145ef8c4019846fc8e2e04834dae7ace0025`。
+
+## 8. 仅修项目 Scene 文本 writer：保行、保顺序，只省缺省值的键
+
+[修复 `318b4b3ca9521a9c4fb228e7733f2ab520a56686`](https://github.com/He-Jiahui/ZirconEngine/blob/318b4b3ca9521a9c4fb228e7733f2ab520a56686/zircon_runtime/src/asset/assets/project_document/scene.rs) 相对修前证据只改一个生产文件；不改变 `PrefabPropertyOverrideAsset` 的公共 Serde wire。先让 Scene 的其它字段沿用既有编码，将含顶层 Null 的实例覆盖按原实体位置放回：仍是一条完整的路径记录，只省去该行的 `value`；非空行仍用原编码。不写字符串哨兵，不重新解释为 Apply、Clear 或删除，不改变持久引用、ECS sidecar 或文件事务。
+
+原样复跑 §7 的两个用例：**0 过 2 败 → 2 过 0 败**，修前修后 `prefab_override_save_` 命令一致。实际读写/两轮重开四种源表示皆保持原义；目标场景落盘确实有该行且无 `value` 键，源 revision 对应新文件，不可能靠 no-op Save 过例。三个实例的 `[3,0,2]` 条混合记录在磁盘上按原值有无、路径与顺序核过，重开后完整 DTO 相同。
+
+测试叶工作字节 SHA-256 `44e7984287131145f0e3d624a54c227f236d34e49fbbd7a150a9f6752b0746b2` 未变。旧回执 `3e32e4037d52eb4a4dd6e2ddfe130ec41df4e138a9b4eb3521d478e6039df669`。这不是 Editor 窗口、交互/dirty、完整 Prefab 展开、嵌套数组内 Null 或 UE 运行验收。
+
+30 个选定源/清单；原生回执 `e4e8ca23b7f6d66e15fcddf7a367de5b4d12309a8ac58cd0fbb864e206c8650f`、stdout `cf34da152e4c55757c86e809bb1cad372e6751acb01afa42e54a56719ce3944a`、stderr `7d22b4d32d79969cd470d1942f37e76bd0e530e00ad4378fab631789d1595999`。
