@@ -1,0 +1,29 @@
+# [Editor/Localization] File 菜单入口应随 Editor Language 切换
+
+基线 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`。跟踪已发货的 `menu.file.label`。本报告是源码调查而非语言切换的运行录像。
+
+## 1. 用户路径
+
+普通桌面 Level Editor 打开项目；Edit → Editor Settings → Editor / Language → Editor Language，由 `en` 改受支持的 `zh-CN`，等正常刷新、关设置后点顶栏 File。该设置是 [User 热切 enum](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/src/core/settings/defaults.rs#L118-L136>)，不需重启。
+
+## 2. 预期与固定源码结果
+
+同一挂载的 File 入口应由 `File` 变 `文件`；实际源码仍给按钮 `File`，该 popup 的 `file.scene.open` 已可显示 `打开场景...`。两份键都已发货（[en](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/assets/i18n/en.toml#L25-L71>)、[zh-CN](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/assets/i18n/zh-CN.toml#L25-L71>)）；不是请求补译文。仅源码见证，尚未运行 GUI、取得 RED/GREEN 或修复。
+
+## 3. ZE 断点
+
+[生产模型解析根](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/src/core/commands/menu.rs#L24-L55>)；[挂载模板按钮](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/assets/ui/editor/unreal/components/menus.zui#L38-L44>) 是 literal，实际 [Bridge:59–101](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/src/ui/retained/dispatch/templates/workbench/main_menu_items.rs#L59-L101>) 消费命令叶及 trigger 可见/禁用，不投影根标签。[实际绘制](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/src/ui/retained/contract/workbench/overlay/componentized.rs#L383-L397>) 取同一 authored 节点，非另一路 legacy model。
+
+## 4. UE 相邻控制，不等价
+
+本机 `6.0.0 / UE5 / CL 0`、revision unknown。`Engine/Source/Runtime/Core/Tests/Internationalization/KeysCultureTest.cpp:48,63–111,130–141`（`FKeysCultureTest` / `Development::System::Core::Misc::KeysCulture`，SHA-256 `6c97d6c64438e961bd89fab9625ea8d1f24ae30cb540b9cbddd0be377d35f040`）证明同一文本对象按已有译文刷新，缺译文走 native fallback；不测实际 File 控件。`Engine/Source/Developer/ToolMenus/Private/Tests/ToolMenusTestUtilities.spec.cpp:10,49–75,197–227`（`System.ToolMenus.TestUtilities` / `Should match the exact entries`，SHA-256 `e0548bc3f2c9ce13f17475b4664c5ce4a10a51385b7bdfe30e241088fe199d7f`）只测菜单结构，不切语言。这两组均是本机已有的 UE 测试源码，未运行或移植。
+
+作为实际编辑器生产对照，`FMainMenu::RegisterMainMenu` 在 `Engine/Source/Editor/MainFrame/Private/Menus/MainMenu.cpp:432–461` 分开稳定 File ID 与可本地化显示字符串（SHA-256 `92b103c0f67656480908097446bea9e2feb9999b065ea44778b3e9aa983dba20`）。这里既不转载 UE 源码，也不声称测试过它的窗口。
+
+## 5. 回归
+
+借[真实菜单路由与 enablement 用例](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/src/ui/retained/dispatch/workbench/tests/main_menu_items.rs#L8-L107>)，验证同一可见 `MenuSlot0` 在 `en→zh-CN→en` 产生 `File→文件→File`；现有已本地化叶作正控，稳定 action、popup、快捷键、启用态都不变。只接通该键到已发货消费者，不要求新增语言、伪本地化或屏幕阅读器协议。
+
+## 6. 独立
+
+[#174](<https://github.com/He-Jiahui/ZirconEngine/pull/174>) 是文本输入字素编辑；[#212](<https://github.com/He-Jiahui/ZirconEngine/pull/212>) 是不可见 Runtime 回退菜单的命令；[#213](<https://github.com/He-Jiahui/ZirconEngine/pull/213>) 是 Runtime 触摸取消。本例是普通可见 Editor 控件的显示标签，不改输入语义或运行时。 不改 ECS、ABI、持久设置格式或 action ID。本轮独立调查在共同 main 上起草，后续行为回归与修复只能追加在本主题原 PR。
