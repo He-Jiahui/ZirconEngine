@@ -130,6 +130,67 @@ fn project_open_diagnostic_marks_fallback_settings_as_degraded() {
 }
 
 #[test]
+fn project_open_diagnostic_marks_unpublished_catalog_as_degraded() {
+    assert_project_open_catalog_diagnostic(4, (0, 0, 0), "degraded");
+}
+
+// The two partial identities below are defensive inputs, not normal published snapshots.
+#[test]
+fn project_open_diagnostic_marks_zero_catalog_revision_as_degraded() {
+    assert_project_open_catalog_diagnostic(4, (0, 9, 4), "degraded");
+}
+
+#[test]
+fn project_open_diagnostic_marks_zero_catalog_publish_epoch_as_degraded() {
+    assert_project_open_catalog_diagnostic(4, (3, 0, 4), "degraded");
+}
+
+#[test]
+fn project_open_diagnostic_marks_published_empty_catalog_as_completed() {
+    assert_project_open_catalog_diagnostic(0, (3, 9, 0), "completed");
+}
+
+#[track_caller]
+fn assert_project_open_catalog_diagnostic(
+    registry_asset_count: usize,
+    (catalog_revision, publish_epoch, rows): (u64, u64, usize),
+    expected_result: &str,
+) {
+    let diagnostic = project_opened_diagnostic(
+        Path::new(r"C:\F1 Project"),
+        "F1 Save",
+        1,
+        "res://scenes/main.scene.toml",
+        registry_asset_count,
+        registry_asset_count,
+        0,
+        0,
+        catalog_revision,
+        publish_epoch,
+        rows,
+        "persisted-v1",
+    );
+
+    let expected: &[&str] = &[
+        "editor_project_open",
+        &format!("result={expected_result}"),
+        "project_root=C%3A%5CF1%20Project",
+        "manifest_identity=F1%20Save%40v1",
+        "scene_uri=res%3A%2F%2Fscenes%2Fmain.scene.toml",
+        &format!("registry_asset_count={registry_asset_count}"),
+        &format!("registry_ready_asset_count={registry_asset_count}"),
+        "registry_failed_asset_count=0",
+        "registry_diagnostic_count=0",
+        &format!("project_generation={catalog_revision}"),
+        &format!("project_generation_publish_epoch={publish_epoch}"),
+        &format!("catalog_asset_count={rows}"),
+        "settings_source=persisted-v1",
+    ];
+    let actual: Vec<_> = diagnostic.split_ascii_whitespace().collect();
+    assert_eq!(actual.as_slice(), expected);
+}
+
+#[test]
 fn post_persist_save_sync_failure_is_diagnostic_only() {
     let logs = EditorLogService::default();
     assert_eq!(
