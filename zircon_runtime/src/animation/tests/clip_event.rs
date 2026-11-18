@@ -775,3 +775,6 @@ fn loop_notify_resume_split_frames_and_exact_period_controls() {
 
 #[path = "clip_event_pages.rs"]
 mod pages;
+
+#[path = "clip_event_oracle.rs"]
+mod oracle;
