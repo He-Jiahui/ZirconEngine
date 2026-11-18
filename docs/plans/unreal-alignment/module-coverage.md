@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第12轮新增注册目录可见性 #202 和打开诊断 #201，当前共 **28 个问题 Draft**；最新进展见第16节；第7–15节保留此前各轮快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第13轮新增复合资产源时间 #204，当前共 **29 个问题 Draft**；最新进展见第17节；第7–16节保留此前各轮快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -287,3 +287,14 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 **同 PR 后续原生实证。** [#202 冻结测试与结果](https://github.com/He-Jiahui/ZirconEngine/blob/1deb8f48423a8d764c920f0dd6e8b2568fd18100/docs/plans/unreal-alignment/editor-initial-catalog-visibility.md)：冻结回归实际 0过1败，exit 101：真实小写 Scene/Ready、605字节制品解码与直接索引通过，注册 Editor 初读及一次显式刷新均为 0 行/零代。同一 activation 的 Runtime 序号 12→19，旧 token 从 Current 变为 Superseded，watch 对账提交计数 9→16；具体内部拒绝分支和 OS 触发源仍未证。原 .zui 的 importer 实测不在该宿主中，实际 opener 已 degraded，并非 #201 的误报现场。无生产修复或窗口验收。
 
 公开调查数更新为 **28 个独立问题 Draft + 1 个目录 Draft；本任务未合并**。全模块目录仍为 2,588 个 Build 规则、178 个 Target 规则及 40 域映射；8 份 CSV 内容未变。既有 [#134](https://github.com/He-Jiahui/ZirconEngine/pull/134) 的 Runtime 注册/读取等价控制不重复迁移，未把 UE 的内存对象查询说成 ZE 已有启动时序验收。
+
+## 17. 诊断误报已窄修；动画短弧取得真实 RED；复合源时间单列（2026-11-18）
+
+| 领域、原 Draft | 本轮证据 | 尚未证明或仍需做什么 |
+|---|---|---|
+| [#201 项目打开日志](https://github.com/He-Jiahui/ZirconEngine/pull/201) | 原生产 formatter 的 9 个 Rust 用例 **6 过 3 败 → 同 9 案全过**。三份原失败日志 13 token 各只错 `result`；候选另有 2 个各不重名的既有 GUI startup action / 精确文案控制均过。 | 只改私有分类，双非零也不等于证明当前 activation；不保证已构建/运行 staged GUI 或 F1/F5。 |
+| [#147 动画 Base 混合](https://github.com/He-Jiahui/ZirconEngine/pull/147) | 真 `blend_graph_base_poses` 叶子：原 4 案保留，另 6 案，共 **6 过 4 败**。跨符号缝的近邻没有得到实际短弧中点；同一旋转 q/−q 和广角重排保护不能替代此回归。 | 不用“首项锚”破坏顺序不变性，也不为转绿引入最大权重换锚的可见跳变。另需处理可接受的跨帧/广角策略与真正的 Level 采样，未改动画生产。 |
+| [#204 复合资产生成写回与源时间](https://github.com/He-Jiahui/ZirconEngine/pull/204) | **新增独立调查，只有文档**。同一 compound 描述符既供源 mtime 采样又接收生成结果；本机同参数 Windows 文件替换后目标使用 staging 的 last-write time，不保留原值。UE 已核 `FAutoReimportSimpleModifyTest` 的真实缓存/源变更，不是 ZE 自写回直接复现。 | 不宣称引擎已 RED。下步用一个最小真实 compound Shader，两次同步全扫，首次后不写、不 sleep、不启 watcher；保普通 source touch、真实作者/成员变更正控。 |
+| [#202 注册 Editor 首目录](https://github.com/He-Jiahui/ZirconEngine/pull/202) | 上轮同 root/activation 的 12→19、7 次 reconciliation、Ready Scene 与未初始化 Editor 快照仍是原证据，这次没有覆盖或推翻它。 | #204 不证明是哪条文件事件、哪一代变化或内部拒绝造成此次观察；不能改 fence 去消红。 |
+
+[诊断配对源码与回执](https://github.com/He-Jiahui/ZirconEngine/blob/bdb937bf2e964fb4aaa826266f6230072da4c05e/docs/plans/unreal-alignment/project-open-catalog-status.md) · [动画冻结回归、实际轴向与候选反证](https://github.com/He-Jiahui/ZirconEngine/blob/8a0dcbab4f6d4fcadae56445e7149fbf557d69b3/docs/plans/unreal-alignment/animation-blend-hemisphere.md) · [复合时间的六点与 UE 原测/同路径无写入验证门](https://github.com/He-Jiahui/ZirconEngine/blob/c8af83b8c5465f3e108c3848ea39f1ab7e81aaed/docs/plans/unreal-alignment/compound-sidecar-source-time.md)。全模块规则仍是 2,588 个 Build + 178 个 Target、40 个领域；2,677 个 UE 测试候选文件不等于运行用例数，8 份 CSV 均未改。**29 个独立问题 Draft + 1 个目录 Draft；本任务未合并。**
