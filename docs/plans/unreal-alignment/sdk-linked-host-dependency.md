@@ -35,3 +35,14 @@ ZE 源码：[SDK 公开的默认根](https://github.com/He-Jiahui/ZirconEngine/b
 [host_order 的测试原文](https://github.com/He-Jiahui/ZirconEngine/blob/cee9fe8e27e8ab95978812bbf0a982cef2cf9a6d/zircon_plugins/plugin_sdk/tests/host_order.rs)。同一 consumer 报告分别交给 `base=[]`、`base=[Foundation]` 的 SDK；只关闭不存在的 Scene plan，不手工装 Core、不让目录跳过 fatal。另有独立产品完整图冻结与真实配置哨兵、零报告和逆序双插件兼容正控。没有借用 #216 的 kernel 修复。若目录错误提前返回，无法据此声称该次 Foundation 已经激活。
 
 **3 过、1 败。** 只编译 `zircon_plugin_sdk` 对应集成目标，关闭默认特性、显式 runtime，`test` profile，Windows x64/MSVC 1.94.1。用同一编译的测试程序实际执行 `host_order_ --ignored --test-threads 1 --show-output`，非 `--no-run` 通过数。编译回执 `5658050722237d62eb4c6d38b43f491c5d2082a2fa768f1da8b2465d9107dfd9`，可执行文件 SHA-256 `bbc39ea65243bda676229d483597ae10f4b4df3da200d0ba77467d9c98ab2181`，实际测试回执 `326bdec026737c6f4861b865644cb1b2b601b442784a5fdcea3d08350896551c`，stdout `fb2a109ca229c1e64b6be55912eb4abff36b719531db4d5b0407f7b844947746`。UE 原测未运行。
+
+## 8. 已登记宿主的实际描述符参与排序
+
+[修复提交](https://github.com/He-Jiahui/ZirconEngine/commit/7371657e19d9d98dda82e41c953cb8418d59df5f)把同一个 Core 已登记模块的只读快照交给新的 Rust 目录入口；没有冻结、激活、补注册或伪造宿主节点。清单行与实际宿主同名直接按稳定输入顺序拒绝。原严格排序器仍判断未知提供者、环和初始化层级。只加入插件实际能到达的宿主依赖，排序输出和 registry 仍只投影本次插件；非清单模块仍按旧规则合并。原 `runtime_extensions()`、产品项目 target 路线与 C ABI 不变。[SDK 接线](https://github.com/He-Jiahui/ZirconEngine/blob/7371657e19d9d98dda82e41c953cb8418d59df5f/zircon_plugins/plugin_sdk/src/test.rs)。
+
+| 实际运行 | 结果 |
+|---|---|
+| 字节完全相同的四个 SDK 用例，修前和修后 | **3 过 1 败 → 4 过 0 败**。真正无 Foundation 仍拒绝；同一 consumer 依赖实际登记的 Foundation 能激活，并从真的 ConfigManager 读取夹具值。逆序两报告与旧额外服务、零报告均保留。 |
+| [新增入口资格对照](https://github.com/He-Jiahui/ZirconEngine/blob/9afefde5c75fc42731bd44e0fcc9f73b27017652/zircon_plugins/plugin_sdk/tests/host_order.rs) | **3 过 0 败**。孤立同名拒绝且首错按报告行序，缺 Tasks 的 Asset 只阻断可达报告，同一 Core 查询后还可登记 `TasksModule`；在真实宿主桥上传递顺序正确，混合依赖环和晚初始化层级均拒绝。这里是新增 Rust 接口的资格测试，原代码没有这个接口，不拿这三项制造原版失败。 |
+
+严格资格追加前后生产源码完全相同。配对四例编译 `7bdaa1d7c3a8438485f8e3d2e9213ca2bbf22f6bc9e041bbaa8650a2f2e8bf14`、执行 `fc64d777dc15dbedd78448567abf5c461b54af56d4e505cbd2c7364c30f4a311`；额外三例编译 `d8f8505b21b8e2f5fb898e06be99f9714e1ae55bce0991abfa0b4de41dfba283`、执行 `5bf04e72fe864dc3d780c86c565167b11b98a9953a748b0ad58cacfdb5b80492`。均来自物理 E 上单独的 `zircon_plugin_sdk --no-default-features --features runtime --test host_order`、Windows x64/MSVC 1.94.1 `test` profile、`--ignored --test-threads 1 --show-output`。同名与可达性严格性由真实输入判定，没有略过 catalog 的 fatal。本 PR 仅覆盖宿主感知的注册报告，不表示合并了 [#216](https://github.com/He-Jiahui/ZirconEngine/pull/216) 或跑过 [#214](https://github.com/He-Jiahui/ZirconEngine/pull/214) 的第一帧。
