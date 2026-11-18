@@ -157,3 +157,20 @@ UAudioComponent::Play -> PlayInternal -> AudioDevice::AddNewActiveSound
 **UE 参照：实测的是哪个组件。** 参考树自带 x64 `libsndfile-1.2.2`（SHA-256 `4e3bd2de8e1485110eaebef8e1239471f73d608773831c323bf528e05645655e`）。用相同格式和位型的两个缓冲区（文件 SHA-256 `43126fd051965c37a6016927007abf7f8b9d7cc6cfad11a03f657c5d8988a040`、`54faa736fb66686b26bd8f30c1fcbce8f7f33d9698354cf3bea163ce76a4c191`），实际 `sf_read_float` 在文件及 `sf_open_virtual` 两种打开方式下均保留正/负 qNaN；虚拟输入用本次独立的有界内存回调。独立的 writer 实验对**提供的有限** −1/+1 写出 PCM16 −32767/+32767，**不是**把上述 NaN 经 UE 导入后的样值。源码定位（`Engine/Source/Runtime/AudioMixer/Private/SoundFileIO/`）：`SoundFileIO.cpp:55–80,130–148` 实例化 data reader 与转换；`SoundFileIOManagerImpl.cpp:99–129,167–182,1162–1176,1302–1312,1645–1655,1740–1747` 指向真实 virtual data reader、相同库入口及 writer。相邻的 `839–849` 是另一 reader，不能用它声称执行过 `FSoundDataReader`。未启动 `UnrealEditor`、`USoundFactory`、UE 自己的回调或 `FMath::Clamp`，未移植 UE 的精确替换数值。
 
 **修复门**：此冻结组检验既有**成功导入**时必须给出有限、归一化的 PCM，不钉死替换为静音或满幅；错误分支不能用任意 `Err` 来“通过”。若政策选拒绝坏样本，应先明确 typed error 与注册导入的对应映射，再核公开错误枚举的兼容性。若选择修正成功路径，还需按是否包含老资产决定只针对 WAV 的 importer 版本/已持久化缓存重导门。本 PR 暂保留真实 RED，不改音频样值政策、其它 codec、缓存格式或后端；上述测试和独立 DLL 对照不是设备、staged product、UE 完整导入或旧缓存验收。
+
+## 8. 真实 v1 缓存：冷进程能否在不调用 WAV parser 时重新发布非有限 PCM？
+
+[独立历史采样 `1444613fb38c4ba1b5862e57d2ad0c8f7a276c1e`](https://github.com/He-Jiahui/ZirconEngine/blob/1444613fb38c4ba1b5862e57d2ad0c8f7a276c1e/zircon_plugins/audio_importer/runtime/tests/wav_old_cache.rs)，与先前原 parser/注册 handler 的 6 项回归分开。只选择插件 `zircon_plugin_audio_importer_runtime`、无默认/额外插件特性，Windows x64/MSVC 1.94.1 `test` profile，`--test wav_old_cache wav156_ --locked --offline --jobs 1 -- --ignored --test-threads 1 --show-output`。两项父测试均已执行通过；两个不同的 fresh 子进程也各完成自己的具名阶段。原 6 个要求有限的用例没有改成接受 NaN。这里显式 opt-in，只为研究旧构建；通过表示**观察到了风险**，不是音频缺陷修复。
+
+| 同一对 70 B IEEE float WAV（三帧、单声道、8 kHz） | NaN 样本 | 有限正控 |
+|---|---|---|
+| 唯一变化的中间槽，读回位型 | `7fc00000` | `3e000000` |
+| 源 SHA-256 | `43126fd051965c37a6016927007abf7f8b9d7cc6cfad11a03f657c5d8988a040` | `19befa7552971eab18bec758118997ac3e43a25a28963cca3249ae4ab3282e63` |
+| 此次 A 工程真实资产 UUID | `a058c33e-1926-470e-9346-f6e35d184384` | `d7877475-0144-45ae-ae15-91ae27d4c0ec` |
+| A 工程旧 v1 产物 payload BLAKE3 | `dd028e9395c617cd243fba3e968a7f88d5739c10e284c0b27138fa4dba9faed9` | `28ebf29a7561431b78da3bf6cff47f081a9898e1edde5e0f19f4c66c64d58521` |
+
+- **A（同一份真实旧磁盘产物）**：物理源→正式注册的 `audio_importer.wav@1` 首扫，每源调用 **1** 次；同一管理器再全扫，每源 **0** 次；退出该管理器，fresh 子进程先按 `.zmeta` 里实际 `lib://` locator 解码，然后新建管理器、全扫，每源仍 **0**，并从 `res://` 读回同样两条 Sound。逐项核对 UUID、动作 key、源 mtime、sidecar/manifest 完整字节和三槽位型。这不是‘路径还在所以大概命中’。
+- **B（留存）**：另一个工程由同一 v1 插件独立首扫，生成不同的一对 UUID；原物理源、sidecar、manifest、chunk 和来源清单均保留，尚未交给任何候选打开。不把今天重新生成的新产物冒充后续老数据。
+- **C（版本字段控制，不是 v2 实现）**：fresh 子进程先能直接读到原 v1 旧数据；只将观察委托对外版本字段 `1→2`，真实解析仍委托相同 v1 handler，随后的全扫每源 **1** 次；源、mtime、UUID、locator、设置、重建后 payload 保持，动作 key 确实改变（NaN 源 `blake3:ea8f73d260b0fb46045dc2f51fd4238596ef345465ce6521e20dbf7f93dca54b` → `blake3:a48ba90201ff3385bade6b8b52020f67248b169ebff15721c585c9459f19746e`）。因此只改 parser 但沿用旧缓存可能不触及已发布资产；这个一次性对照不替代真实版本迁移、直接强制读旧 locator 的策略或听觉验收。
+
+原生回执 `510bf6fab11bb46aab013c22f3ed6a089b5d942e22544b98e64a3f49f2c5ccc9`、stdout `fb76dd96c47659ea97f8f036ec7c031c3db186769d8e98d7d4ec5ec93a0e9b0d`。本 PR 仍**未选择**拒绝非有限输入还是在某一层规范化，也未改生产 parser、缓存 key、设备混音或 UE。
