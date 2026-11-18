@@ -104,3 +104,18 @@ UE 对照是进程级 registry 的包/对象路径查询及 game-thread 通知�
 这里验证的是**两个端点的净变化**；不等于收到每一笔 OS 通知、抓到每次 generation 的内容或看到 Editor 内部丢弃候选的分支。即使 locator 与 [#204](https://github.com/He-Jiahui/ZirconEngine/pull/204) 的复合描述符机制相符，也不将另一独立工程的 writer 归到本次开项目；不削弱 fence，不从 `Ok(())` 推导已发布。
 
 原生回执 `4b90c106146871242fd104742787a1d8e82fb546f1d55fdaf94737226ba76d48`；stdout `1f184fd312163d6d8cd79aeec62bbe21158607db08021d79abfd067da218ba04`（3,968 B）、stderr `506a51c4799e2c32b2c47b0a929c6dcd9dcde0f718d383bb829b14efcb3507a8`（992,262 B），51 项选定输入复核（覆盖上一见证的 49 项）。未执行 UE、GUI 首帧或 F1/F5 验收；没有产品修复。
+
+## 9. 真实打开与显式刷新各自走到哪个发布分支（2026-11-18）
+
+[tests-only `912a692ddf10bed69f1b97684e1e1b93315b0aa6`](https://github.com/He-Jiahui/ZirconEngine/blob/912a692ddf10bed69f1b97684e1e1b93315b0aa6/zircon_editor/src/tests/editor_event/runtime/first_catalog.rs) 与[同源观察实现](https://github.com/He-Jiahui/ZirconEngine/blob/912a692ddf10bed69f1b97684e1e1b93315b0aa6/zircon_editor/src/tests/editor_event/runtime/catalog_profile.rs)保留原回归的全部断言。新增独立、默认忽略的诊断入口复用同一个正常回归；只有完整测试名、`--exact --ignored --test-threads 1` 及输出选项同时满足才可启动本进程 recorder。无需自定义环境、增加刷新或关闭 watcher，不动普通用例、生产及已有 profiler。`-p zircon_editor --no-default-features --features profiling --lib`，Windows x64/MSVC、Rust 1.94.1、`test` profile，已运行 **0 过、1 败、0 忽略、10,555 过滤**，exit `101`。原行为判定：`[open catalog] no initialized generation for the created project`。
+
+| 阶段 | 调用范围（本 capture 的 µs） | 实际终端证据 |
+|---|---|---|
+| 打开工程 | frame `0`，caller span `1` → 同步 span `20`；同步时间 `466596–1833952` | 源序号 `3`，`runtime_project_generation_superseded_count=1` @ `1833848`，rebase `0`；`runtime_token_superseded` |
+| 一次显式 refresh | frame `1`，caller span `117` → 同步 span `118`；同步时间 `2123319–3513109` | 源序号 `10`，`runtime_project_generation_superseded_count=1` @ `3513018`，rebase `0`；`runtime_token_superseded` |
+
+两次调用都命中[真实 Runtime 代令牌拒绝分支](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/src/ui/host/assets/manager/project_sync/sync_from_project.rs#L311-L322)，不是仅以测试在外面检查到旧 token 失效来猜。该次末次尝试没有进入 Editor publication callback。仍不据此推导有效 shader 文件通知是谁写的。 本次独立的显式刷新端点：输入序号 `10→16`，add/remove/modify/rename=`[0, 0, 1, 0]`。净变的既有行：`res://shaders/pbr_shader`。双时钟遮罩结果：`true`（不是内部 writer 的身份）。
+
+已注册 Editor 两端 `(revision,epoch,rows)`：`(0, 0, 0)` / `(0, 0, 0)`，可见 `CatalogChanged` 序号 `[]` / `[]`。观测核对同一 recorder session、丢样/容量、由同一调用线程进入的 frame/span 父链、唯一重叠的同步与生产 counter 时间。counter 自身不带 thread ID；其它工作线程的重合 span 只列为未归属，不用于判定触发原因。并行调度及 profiling 会影响时序，不声称每次都会复现相同序号。
+
+回执 `bd2116a088db9b0fceb76364dd1358e1fcc0371c4bc92a1f45773c2954dd6fcf`，stdout `719107d8d5fec2324d20e9be19fe407c06ed36a9799e21d9075cb4b623ceb860`（7,660 B），stderr `09e21d41e1fddcf5f2366fce4e7f836701ee0fea19387c38d13eaefc4fc2bc46`（948,752 B），57 项选定源码与清单。此为单实例 Editor 服务调用观测，不是 GUI 首帧或整个工程打开产品验收。保持发布 fence；若考虑重试或合并刷新，须另证同项目新代与项目更换的差别、正向成功发布与不会持续重试等情形。
