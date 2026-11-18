@@ -65,3 +65,17 @@ UE 的引用骨架 index 与源 glTF ordinal 可不同，由导入 remap、分�
 3. 轮到**父骨在前**的健康对照，提交就返回 `error proxy MeshPass(Base) pipeline admission failed for variant MeshPipelineVariantId(8): source_validation_failed`；没有该帧的成功回读，后置父骨帧还没执行。第二次总结果 0 过 1 败，exit 101，回执 SHA-256 `4287d4c34239140aa5b7ec141c0f2b295737e7d5d20ced818f9565e8ae6ec932`。错误标签不足以指认具体 WGSL 绑定或给 [#137](https://github.com/He-Jiahui/ZirconEngine/pull/137) 归因。
 
 保留这个两骨 GPU 变体测试和原始失败，不静默跳过、替换 shader、放松正控或把其失败算作本问题 RED。下一门可以另在引擎正常支持的 CPU 蒙皮路径上隔离同一父索引顺序；如果仍用 GPU 光栅化，须明确区分“CPU 计算顶点”和“GPU 画出并读回”。本阶段没有改产品代码。
+
+## 8. 正式 CPU 蒙皮回退 + DX12 光栅化：后置父骨在第三帧复现
+
+[测试提交 `74339c5a712d801e97415ac083974b49ddb8503b`](https://github.com/He-Jiahui/ZirconEngine/blob/74339c5a712d801e97415ac083974b49ddb8503b/zircon_runtime/tests/runtime_skeleton_parent_slots.rs) 保留 §7 的双骨测试，另外选 `later_parent_slot_preserves_cpu_fallback_draw`。在独占真实活动工程内，分别给两种原始槽序等价的骨架增加 255 个合法、未加权的骨槽。257 个矩阵超过[当前 GPU 调色板上限 256](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/graphics/scene/mesh/skinning/joint_palette_storage.rs#L5-L29)，选用正式 CPU 变形与动态网格上传，再经真 DX12/RHI 绘制及回读。没有替换 shader、伪造 buffer、跳过断言或改变光栅窗/阈值。
+
+Windows x64/MSVC、Rust 1.94.1，RTX 3060 Laptop GPU / DX12，`test -p zircon_runtime --no-default-features --features native-host,graphics --test runtime_skeleton_parent_slots later_parent_slot_preserves_cpu_fallback_draw --locked --offline --jobs 1 -- --exact --test-threads 1 --show-output`。原生产确实提交并读回 3 帧，1 个测试 **0 过 1 败**、1 过滤（双骨 GPU 用例），exit 101。每帧 GPU 蒙皮候选 / palette upload / GPU 蒙皮 draw 均为 0。
+
+| 实际回读 | 代 | 总 / 蒙皮 / 普通 prepared draw | 命中像素：绑定 Root、Child；姿态 Root、Child；其它 |
+|---|---:|---|---|
+| 后置骨架，无 pose | 1 | 1 / 0 / 1 | 96、96；0、0；0 |
+| 等价父先骨架，有 pose（正控） | 2 | 1 / 1 / 0 | 0、0；96、96；0 |
+| 后置骨架，同 pose（原版） | 3 | **1 / 0 / 1** | **96、96；0、0；0** |
+
+主见证只在末尾 `legal [Child,Root] must skin ...` 失败：不是“整项没画”，而是**真的画了一项，但回到绑定状态**。两种排列的顶点 influences 与逆绑定矩阵已按各自的原槽重映射；同一设备、视口、材质、姿态和 fresh generation。30 个选定源与配置复核，回执 SHA-256 `421031b287f2ff192c2d36b06b652cd154ff745db40fee4d7b9b20c396f45613`，stdout `0248754a536affdbdd4e968b8c761c5c49577f00543706d4a39096c5279535fe`（1,678 B）。此处证明 CPU 蒙皮与随后硬件绘制，不是双骨 GPU shader 通过，不改 [#135](https://github.com/He-Jiahui/ZirconEngine/pull/135) 调用者或 [#137](https://github.com/He-Jiahui/ZirconEngine/pull/137) 夹具。
