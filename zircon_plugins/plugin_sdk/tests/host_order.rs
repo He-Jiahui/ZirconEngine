@@ -424,3 +424,252 @@ impl Drop for ManagedConfig {
         fs::remove_dir_all(self.0.operation_path()).expect("remove only this owned fixture");
     }
 }
+
+mod strict_host {
+    use zircon_runtime::core::{CoreRuntime, TasksModule, TASKS_MODULE_NAME};
+    use zircon_runtime::engine_module::EngineModule;
+    use zircon_runtime::plugin::RuntimeExtensionCatalogReport;
+    use zircon_runtime::{asset, foundation};
+
+    use super::*;
+
+    #[test]
+    #[ignore = "requires explicit host-sort candidate qualification and the managed fixture"]
+    fn sdk_host_strict_projects_only_reached_host_prerequisites() {
+        let fixture = ManagedConfig::new("strict_host_slice");
+        let runtime = CoreRuntime::new();
+        let host = runtime.handle();
+        let catalog_for = |provider: &str| {
+            let plugin = descriptor(
+                CONSUMER_PACKAGE,
+                ModuleDescriptor::new(CONSUMER_MODULE, "SDK strict host consumer")
+                    .with_module_dependency(ModuleDependencySpec::named(provider)),
+            );
+            RuntimePluginCatalog::from_registration_reports([registration(&plugin)], [])
+        };
+        let via_foundation = catalog_for(FOUNDATION_MODULE_NAME);
+        let via_asset = catalog_for(ASSET_MODULE_NAME);
+        let missing_foundation = || CoreError::MissingModuleDependency {
+            module: CONSUMER_MODULE.to_owned(),
+            dependency: FOUNDATION_MODULE_NAME.to_owned(),
+        };
+        assert_order_failure(
+            &via_foundation.runtime_extensions_for_registered_host(&host),
+            missing_foundation(),
+        );
+
+        let mut foundation_descriptor = foundation::module_descriptor();
+        foundation::bind_config_file_path(&mut foundation_descriptor, fixture.path()).unwrap();
+        runtime.register_module(foundation_descriptor).unwrap();
+        runtime.register_module(asset::module_descriptor()).unwrap();
+
+        assert_order_success(
+            &via_foundation.runtime_extensions_for_registered_host(&host),
+            &[CONSUMER_MODULE],
+        );
+        assert_order_failure(&via_foundation.runtime_extensions(), missing_foundation());
+        let reached = via_asset.runtime_extensions_for_registered_host(&host);
+        println!(
+            "SDK_HOST_STRICT_V1 slice reached={:?}",
+            reached.fatal_diagnostics
+        );
+        assert_order_failure(
+            &reached,
+            CoreError::MissingModuleDependency {
+                module: ASSET_MODULE_NAME.to_owned(),
+                dependency: TASKS_MODULE_NAME.to_owned(),
+            },
+        );
+
+        // The three snapshots above may not freeze this Core, even when they fail.
+        runtime
+            .register_module(TasksModule.descriptor())
+            .expect("the same Core must still accept the real Tasks provider");
+        assert_order_success(
+            &via_asset.runtime_extensions_for_registered_host(&host),
+            &[CONSUMER_MODULE],
+        );
+        assert_order_failure(
+            &via_asset.runtime_extensions(),
+            CoreError::MissingModuleDependency {
+                module: CONSUMER_MODULE.to_owned(),
+                dependency: ASSET_MODULE_NAME.to_owned(),
+            },
+        );
+        // Resolve only after all registration/ordering probes; resolving can activate Foundation.
+        let value = read_fixture_config(&host).unwrap();
+        assert_eq!(value, json!("strict_host_slice"));
+        println!("SDK_HOST_STRICT_V1 slice late_tasks=registered fixture_config={value}");
+    }
+
+    #[test]
+    #[ignore = "requires explicit host-sort candidate qualification"]
+    fn sdk_host_strict_rejects_isolated_host_name_collisions() {
+        let runtime = CoreRuntime::new();
+        let host = runtime.handle();
+        let consumer = descriptor(
+            CONSUMER_PACKAGE,
+            ModuleDescriptor::new(CONSUMER_MODULE, "SDK strict host collision consumer"),
+        );
+        let provider = descriptor(
+            PROVIDER_PACKAGE,
+            ModuleDescriptor::new(PROVIDER_MODULE, "SDK strict host collision provider"),
+        );
+        let consumer_report = registration(&consumer);
+        let provider_report = registration(&provider);
+        let isolated =
+            RuntimePluginCatalog::from_registration_reports([provider_report.clone()], []);
+        assert_order_success(
+            &isolated.runtime_extensions_for_registered_host(&host),
+            &[PROVIDER_MODULE],
+        );
+        runtime
+            .register_module(consumer.module_descriptor().clone())
+            .unwrap();
+        runtime
+            .register_module(provider.module_descriptor().clone())
+            .unwrap();
+
+        let result = isolated.runtime_extensions_for_registered_host(&host);
+        println!(
+            "SDK_HOST_STRICT_V1 collision isolated={:?}",
+            result.fatal_diagnostics
+        );
+        assert_order_failure(
+            &result,
+            CoreError::DuplicateModule(PROVIDER_MODULE.to_owned()),
+        );
+        assert_order_success(&isolated.runtime_extensions(), &[PROVIDER_MODULE]);
+
+        // Neither name has any incoming edge. The first report, not name or Core order, wins.
+        for (reports, names) in [
+            (
+                [provider_report.clone(), consumer_report.clone()],
+                [PROVIDER_MODULE, CONSUMER_MODULE],
+            ),
+            (
+                [consumer_report, provider_report],
+                [CONSUMER_MODULE, PROVIDER_MODULE],
+            ),
+        ] {
+            let catalog = RuntimePluginCatalog::from_registration_reports(reports, []);
+            assert_order_success(&catalog.runtime_extensions(), &names);
+            let result = catalog.runtime_extensions_for_registered_host(&host);
+            println!(
+                "SDK_HOST_STRICT_V1 collision reports={names:?} fatal={:?}",
+                result.fatal_diagnostics
+            );
+            assert_order_failure(&result, CoreError::DuplicateModule(names[0].to_owned()));
+        }
+        runtime
+            .register_module(foundation::module_descriptor())
+            .expect("a duplicate report may not freeze the Core");
+    }
+
+    fn assert_order_success(report: &RuntimeExtensionCatalogReport, names: &[&str]) {
+        assert!(report.registry.is_finalized());
+        assert!(report.diagnostics.is_empty(), "{:?}", report.diagnostics);
+        assert!(
+            report.fatal_diagnostics.is_empty(),
+            "{:?}",
+            report.fatal_diagnostics
+        );
+        let actual = report
+            .registry
+            .modules()
+            .iter()
+            .map(|module| module.name.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(actual.as_slice(), names);
+    }
+
+    fn assert_order_failure(report: &RuntimeExtensionCatalogReport, cause: CoreError) {
+        let expected = [format!("runtime plugin module descriptor ordering failed: {cause}")];
+        assert_eq!(report.fatal_diagnostics.as_slice(), &expected[..]);
+        assert_eq!(report.diagnostics.as_slice(), &expected[..]);
+        assert!(report.registry.is_finalized());
+        assert!(report.registry.modules().is_empty());
+    }
+
+    #[test]
+    #[ignore = "requires explicit host-sort candidate qualification"]
+    fn sdk_host_strict_bridge_preserves_order_cycle_and_init_level() {
+        const BRIDGE_MODULE: &str = "SdkOrderBridgeHost";
+        let project_through_bridge = |consumer_level, closes_cycle| {
+            let runtime = CoreRuntime::new();
+            runtime
+                .register_module(
+                    ModuleDescriptor::new(BRIDGE_MODULE, "SDK strict host bridge")
+                        .with_init_level(InitLevel::Post)
+                        .with_module_dependency(ModuleDependencySpec::named(PROVIDER_MODULE)),
+                )
+                .expect("commit the host bridge before contributing either report");
+
+            let consumer_module =
+                ModuleDescriptor::new(CONSUMER_MODULE, "SDK strict bridge consumer")
+                    .with_init_level(consumer_level)
+                    .with_module_dependency(ModuleDependencySpec::named(BRIDGE_MODULE));
+            // The shared `descriptor` helper fixes Post; preserve the early level in this probe.
+            let consumer = RuntimePluginDescriptor::builder(
+                CONSUMER_PACKAGE,
+                consumer_module.description.clone(),
+                RuntimePluginId::new(CONSUMER_PACKAGE),
+                format!("zircon_plugin_{CONSUMER_PACKAGE}_runtime"),
+            )
+            .with_target_modes([TARGET])
+            .with_capability(format!("runtime.plugin.{CONSUMER_PACKAGE}"))
+            .with_required_by_default(true)
+            .with_module_descriptor(consumer_module)
+            .build();
+            let mut provider_module =
+                ModuleDescriptor::new(PROVIDER_MODULE, "SDK strict bridge provider");
+            if closes_cycle {
+                provider_module = provider_module
+                    .with_module_dependency(ModuleDependencySpec::named(CONSUMER_MODULE));
+            }
+            let provider = descriptor(PROVIDER_PACKAGE, provider_module);
+            RuntimePluginCatalog::from_registration_reports(
+                [registration(&consumer), registration(&provider)],
+                [],
+            )
+            .runtime_extensions_for_registered_host(&runtime.handle())
+        };
+
+        // Both input and lexical order put the consumer first; only the host bridge orders it last.
+        let ordered = project_through_bridge(InitLevel::Post, false);
+        println!(
+            "SDK_HOST_STRICT_V1 bridge modules={:?}",
+            ordered
+                .registry
+                .modules()
+                .iter()
+                .map(|module| module.name.as_str())
+                .collect::<Vec<_>>()
+        );
+        assert_order_success(&ordered, &[PROVIDER_MODULE, CONSUMER_MODULE]);
+
+        let cycle = project_through_bridge(InitLevel::Post, true);
+        println!("SDK_HOST_STRICT_V1 bridge cycle={:?}", cycle.fatal_diagnostics);
+        assert_order_failure(
+            &cycle,
+            CoreError::ModuleDependencyCycle {
+                path: [CONSUMER_MODULE, BRIDGE_MODULE, PROVIDER_MODULE, CONSUMER_MODULE]
+                    .into_iter()
+                    .map(String::from)
+                    .collect(),
+            },
+        );
+
+        let late = project_through_bridge(InitLevel::Services, false);
+        println!("SDK_HOST_STRICT_V1 bridge late={:?}", late.fatal_diagnostics);
+        assert_order_failure(
+            &late,
+            CoreError::ModuleInitLevelViolation {
+                module: CONSUMER_MODULE.to_owned(),
+                module_level: InitLevel::Services.as_str().to_owned(),
+                dependency: BRIDGE_MODULE.to_owned(),
+                dependency_level: InitLevel::Post.as_str().to_owned(),
+            },
+        );
+    }
+}
