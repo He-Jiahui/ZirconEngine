@@ -346,6 +346,18 @@ fn existing_scene_source_path(
     Ok(source_path)
 }
 
+/// Matches the importer's ASCII suffix rule without rewriting the source locator.
+pub(crate) fn has_project_scene_suffix(path: &str) -> bool {
+    const SCENE_SUFFIX: &[u8] = b".scene.toml";
+    let bytes = path.as_bytes();
+    let Some(start) = bytes.len().checked_sub(SCENE_SUFFIX.len()) else {
+        return false;
+    };
+    bytes
+        .get(start..)
+        .is_some_and(|suffix| suffix.eq_ignore_ascii_case(SCENE_SUFFIX))
+}
+
 fn validate_scene_uri(scene_uri: &AssetUri) -> Result<(), ProjectAuthorityError> {
     if scene_uri.scheme() != ResourceScheme::Res {
         return Err(ProjectAuthorityError::SceneTarget {
@@ -353,7 +365,7 @@ fn validate_scene_uri(scene_uri: &AssetUri) -> Result<(), ProjectAuthorityError>
             reason: "scene assets must use a project-owned res:// URI",
         });
     }
-    if !scene_uri.path().ends_with(".scene.toml") {
+    if !has_project_scene_suffix(scene_uri.path()) {
         return Err(ProjectAuthorityError::SceneTarget {
             uri: scene_uri.to_string(),
             reason: "scene asset URI must end in .scene.toml",

@@ -45,6 +45,7 @@ pub use project_preflight::{
 pub use project_probe::ProjectProbe;
 pub use recent_project_entry::RecentProjectEntry;
 pub use recent_project_validation::RecentProjectValidation;
+pub(crate) use scene_document::has_project_scene_suffix;
 pub use scene_document::{ProjectSceneDocument, SceneCreateRequest, SceneOpenRequest};
 pub use scene_load_job::ProjectSceneLoadTicket;
 pub use zircon_runtime_interface::project::{
