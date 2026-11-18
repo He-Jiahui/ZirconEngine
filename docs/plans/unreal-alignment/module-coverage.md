@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，当前共 **26 个问题 Draft**；最新进展见第14节（反射存档）；第7–13节保留此前各轮快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，当前共 **26 个问题 Draft**；最新进展见第15节（工程与编辑器场景）；第7–14节保留此前各轮快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -260,3 +260,13 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 - [#165 时间轴](https://github.com/He-Jiahui/ZirconEngine/pull/165)：[真实 Level 帧夹具](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/tests/runtime_helpers.rs#L109-L144) 要求特定 D 盘工作目录和 smoke 临时区，与本轮使用的本地构建环境不同。不能把暂停序列的请求计数代替真实帧属性写回，更不能跳过夹具伪称跑通。
 
 本审计仍有 **26 个问题 Draft + 1 个目录 Draft，0 合并**；8 份目录 CSV 未变。
+
+## 15. 项目与编辑器：区分场景导入、目录发布和按原名打开（2026-11-18）
+
+[#157](https://github.com/He-Jiahui/ZirconEngine/pull/157) 的[首次原生测试](https://github.com/He-Jiahui/ZirconEngine/blob/5d2f18ec35bab25a93c836992262a4093a000b8a/docs/plans/unreal-alignment/project-scene-suffix-case.md#L82-L94)证实了差异：同一工程中，小写、混合和全大写文件名的三个 Scene 都 `Ready`，按原 URI 能从磁盘解码出三个不同的标记。Editor 却只肯打开小写源，对另两项报 `SceneTarget`。受控 Open 列表也漏行，Create 请求拒绝混合后缀。首次粗筛另命中旧 Inspector 容量用例：完整为 3 过 / 4 败 / 1 忽略，而不是“4 个后缀缺陷”。真实宿主夹具的第四个失败当时连小写行都未观察到，并非该后缀断言。
+
+[修复和完整回归结果](https://github.com/He-Jiahui/ZirconEngine/blob/7657c511d41cf261f4c78f5cd226bdd373a9090b/docs/plans/unreal-alignment/project-scene-suffix-case.md#L96-L111)：只在 Editor 共用完整 ASCII 后缀判断，不更改 URI 拼写、kind 或文件保护。加强真实宿主前置后，旧引擎与候选用同一精确五案：**1 过 4 败 → 4 过 1 败**。真实场景打开、受控 Open 和 Create 三项由红转绿，负控保持。工程文档组 7/7、显式保存控制 1/1、选择器组 12/13；候选四组按完整名称去重后 21 项、20 过 1 败。余下的是同一真实宿主前置：Runtime 三条精确 `Ready`，但 Editor 初次读取及一次正常刷新后仍是空目录。未验证窗口可见、全部 Editor 或 UE，也没有为尚未定位根因的目录现象另开问题。
+
+[#148 工具栏裁剪](https://github.com/He-Jiahui/ZirconEngine/pull/148) 另有源码边界澄清：普通主窗 Scene 若由 [Workbench 接管](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/src/ui/contract/pointer/routing/panes/entry/local/document.rs#L18-L47)，并不经过有疑问的 native toolbar 路由。接下来应单独验证未被接管的 pane 或分离窗口，不能把手造矩形当成产品点击；本轮没有跑 #148。
+
+本轮重新搜索本机 UE 整棵参考树：**2588 个 Build 规则、178 个 Target 规则**的完整路径集及文件 SHA 与冻结目录逐项相同；另复核 154 个领域–UE 源码关联指纹。仍是 **26 个问题 Draft + 1 个目录 Draft，0 合并**。8 份 CSV 未改；40 个领域的目录映射不是全部模块通过行为验收。
