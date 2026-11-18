@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第17轮新增 #212、#213、#214，目前共 **34 个问题 Draft**。最新实证见第21节；第7–20节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第18轮新增 #215、#216、#217，目前共 **37 个问题 Draft**。最新实证见第22节；第7–21节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -343,3 +343,18 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 **本轮还核对了没有一一对应关系的领域。** UE 的 Media 播放/时钟、OpenXR 会话、LiveLink 和 VCam 有各自的正式入口。现有 UE 原测如 `System.Media.Assets.Playlist` 验列表边界，`OpenXRRenderModel.Loader.SuccessPath` 用替身验证模型加载，`System.Engine.Animation.LiveLink.Interpolation` 用两帧验证插值；都不是硬件验收。ZE 的[普通相机投影及无效 FOV 原测](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/src/scene/viewport/tests/projection.rs#L3-L35)、[本地声音的 pause/seek](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/core/framework/sound/manager/playback.rs#L7-L32)和首帧 PNG 不能替代上述合同。没有以缺少高级功能为由开 PR，nDisplay/Takes 仍是目录级。Montage 的 section/slot 也不能直接等同于 ZE 已有的 clip、状态机或属性 Timeline；对照到的具体行为应按各自的生产者和消费者追踪，而不是新建一个“补完整个 Montage”的缺陷。
 
 累计 **34 个独立问题 Draft + 1 个总索引 Draft，零合并**。本轮没有改动八份冻结目录 CSV；2,588 个模块规则、178 个目标规则是枚举规模，并非已跑相同数量的行为测试。
+
+## 22. 原生触摸取消、关卡菜单翻译与插件测试宿主（第18轮）
+
+| 独立 PR | 此次实际证据与范围 |
+|---|---|
+| [#212](https://github.com/He-Jiahui/ZirconEngine/pull/212) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/85785b76766ae5ed3b07fe4105366e556715fa1d/docs/plans/unreal-alignment/hidden-fallback-menu.md#L61-L67) | 同一回归 **1过2败 → 3过0败**。已导入的真实 authored HUD 和输入命令的 CPU 对照 3 过、0 败。原版独立 WGPU 首帧进程在 15 分钟上限内没有返回已核验的 framebuffer；这是受限中止，不计作通过或断言失败。没有通过旧按钮/新 HUD 像素前置，不据此认定可见画面。修后只复跑 CPU；没有复用旧 GPU 作为修后结果。 GPU 原执行回执 `81cf649bd0b54a026a8de949d34718cac2af682ac8b6ba26351c09bb456fc229`。 |
+| [#213](https://github.com/He-Jiahui/ZirconEngine/pull/213) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/735170f0ae9786eaceaf9b3830edf86fa8f5ecda/docs/plans/unreal-alignment/menu-touch-cancel.md#L102-L108) | 同一回归 **2过2败 → 4过0败**。公开 Runtime 触摸输入：4 过、0 败。实际 Cancelled、没有 Ended；开始与重试槽分别为 none / none，物理对应与真正 Ended、外点和同指重用均已验证。同一测试字节与命令下配对修复。 |
+| [#214](https://github.com/He-Jiahui/ZirconEngine/pull/214) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/6d81e87ed8047a53b2133dae41f5c0f046890969/docs/plans/unreal-alignment/paused-transition-event-replay.md#L35-L47) | 四项原生状态机回归已提交并实际编译启动，但全部在插件 SDK 建宿主时退出，0 帧、没有通知行为 RED。对同一可执行文件另跑两个仓库原用例，分别定位 physics.runtime 缺 FoundationModule 与无插件栈 AssetModule 缺 TasksModule；不混作动画失败，未改生产。 |
+| [#215](https://github.com/He-Jiahui/ZirconEngine/pull/215) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/07b6ae1711fb8c2e24b774ed1f1a14c86f377bd9/docs/plans/unreal-alignment/editor-file-menu-locale.md#L1-L29) | 在默认组件化关卡编辑器中，命令模型和弹窗叶已消费中文翻译，File 入口本身没有。首个提交仅是六点调查；不把已有字典或者原模板上的 literal 当作实际窗口测试。 |
+| [#216](https://github.com/He-Jiahui/ZirconEngine/pull/216) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/6a685dee74b10d8334288a8457235d8d6378998f/docs/plans/unreal-alignment/sdk-default-module-dependencies.md#L1-L31) | 零额外插件的仓库原控制在安装 World 扩展时实报 AssetModule 缺 TasksModule；源码还显示 Scene 要 Time，后者并未作为此次首错误被触发。仅测试 SDK，未误报产品启动。 |
+| [#217](https://github.com/He-Jiahui/ZirconEngine/pull/217) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/7d84fb42e1178348cce265d6f26adbdf1c63ae8d/docs/plans/unreal-alignment/sdk-linked-host-dependency.md#L1-L31) | 真实 Foundation 已登记，但 SDK 的 plugin-only 顺序验证看不到它；未改的双插件控制在第一帧前失败。生产的宿主感知组合是另一条图；不能关掉验证或抹掉旧注册 API 的兼容义务。 |
+
+**解释计数。** 新 SDK 两个前置若以同一个动画测试可执行文件作观察，它们是不同的失败位置，不叠加为动画通知的复现次数。源级正常传播与失败控制分列，UE 原测只按各自已核对的主机、文本或插件边界引用，未移植运行。保留 Unity 式 Prefab，不在本轮改动。
+
+累计 **37 个独立问题 Draft + 1 个目录 Draft，零合并**。八份不可变模块/目标/领域/测试定位 CSV 与原来的 Git blobs 完全一致，2,588 个模块规则 + 178 个目标规则仍不是行为通过数。
