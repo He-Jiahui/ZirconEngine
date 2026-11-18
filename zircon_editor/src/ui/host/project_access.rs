@@ -423,7 +423,8 @@ fn project_opened_diagnostic(
         registry_ready_asset_count,
         registry_failed_asset_count,
         settings_source,
-    );
+    ) || project_generation == 0
+        || project_generation_publish_epoch == 0;
     let settings_source = percent_encode_diagnostic_token(settings_source);
     let result = if is_degraded { "degraded" } else { "completed" };
     format!(
