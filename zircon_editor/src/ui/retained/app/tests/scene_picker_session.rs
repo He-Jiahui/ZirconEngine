@@ -407,7 +407,12 @@ fn editor157_picker_submits_case_preserved_scene_locators_from_live_catalog() {
     use crate::tests::editor_event::support::{
         env_lock, EnvironmentVariableRestoreGuard, EventRuntimeHarness,
     };
-    use zircon_runtime::asset::SceneAsset;
+    use crate::ui::host::editor_asset_manager::editor_asset_manager_handle;
+    use zircon_runtime::asset::{
+        project::ProjectPaths, project_asset_manager_handle, AssetUri, SceneAsset,
+    };
+    use zircon_runtime::core::manager::resolve_manager_service;
+    use zircon_runtime_interface::resource::ResourceState;
 
     let _environment = env_lock().lock().unwrap();
     let _profile = EnvironmentVariableRestoreGuard::capture("USERPROFILE");
@@ -422,20 +427,96 @@ fn editor157_picker_submits_case_preserved_scene_locators_from_live_catalog() {
     }
     .to_project_toml_string(|_| unreachable!("an empty scene has no project references"))
     .unwrap();
-    let catalog = harness.open_project_with_assets("editor157-picker-project", |assets| {
+    let mut written_sources = Vec::with_capacity(locators.len());
+    let initial_catalog = harness.open_project_with_assets("editor157-picker-project", |assets| {
         let source_path = assets.source_path(locators[0]);
         // Keep post-Ready recent-project writeback inside the same owned fixture.
         let fixture_root = source_path.ancestors().nth(3).unwrap();
         std::env::set_var("USERPROFILE", fixture_root);
         for locator in locators {
-            std::fs::write(assets.source_path(locator), &source).unwrap();
+            let path = assets.source_path(locator);
+            assert!(path.starts_with(fixture_root), "{locator}: {path:?}");
+            std::fs::write(&path, &source).unwrap();
+            let path = ProjectPaths::resolve_existing_path(path).unwrap();
+            assert_eq!(
+                path.file_name().and_then(|name| name.to_str()),
+                locator.rsplit('/').next(),
+                "physical spelling for {locator}: {path:?}"
+            );
+            assert_eq!(std::fs::read(&path).unwrap().as_slice(), source.as_bytes());
+            written_sources.push((locator, path));
         }
     });
 
+    let core = harness.core.handle();
+    let runtime_assets =
+        resolve_manager_service(&core, project_asset_manager_handle(&core).unwrap())
+            .expect("resolve the active project asset manager");
+    let (project, _) = runtime_assets
+        .current_project_generation_snapshot()
+        .expect("the fixture must retain its active Runtime project")
+        .into_parts();
+    drop(runtime_assets);
+    let runtime_input = project.catalog_input_generation();
+    let mut runtime_locators = project
+        .registry()
+        .values()
+        .map(|record| record.primary_locator().to_string())
+        .collect::<Vec<_>>();
+    runtime_locators.sort_unstable();
+    for (locator, path) in written_sources {
+        assert!(
+            path.starts_with(project.paths().root()),
+            "{locator}: {path:?} is not in {:?}",
+            project.paths().root()
+        );
+        let uri = AssetUri::parse(locator).unwrap();
+        assert_eq!(
+            project.project_uri_for_source_path(&path).unwrap(),
+            uri,
+            "{path:?}"
+        );
+        let record = project.registry().get_by_locator(&uri).unwrap_or_else(|| {
+            panic!(
+                "live Runtime generation {} at {:?} lacks exact locator {locator} for {path:?}; registry: {runtime_locators:?}",
+                runtime_input.sequence(),
+                project.paths().root()
+            )
+        });
+        assert_eq!(record.primary_locator().to_string(), locator);
+        assert_eq!(record.kind, ResourceKind::Scene, "{locator}");
+        assert_eq!(record.state, ResourceState::Ready, "{locator}: {record:?}");
+        let input = runtime_input.record(record.id()).unwrap_or_else(|| {
+            panic!("ready Runtime record {locator} has no committed catalog input: {record:?}")
+        });
+        assert_eq!(input.resource(), record);
+        assert_eq!(input.source_path(), path);
+    }
+
+    // The retained workspace normally refreshes the registered projection again after open.
+    let editor_assets = resolve_manager_service(&core, editor_asset_manager_handle(&core).unwrap())
+        .expect("resolve the registered EditorAssetManager");
+    editor_assets
+        .refresh_from_runtime_project()
+        .expect("refresh the Editor catalog from the active Runtime project");
+    let catalog = editor_assets.catalog_snapshot();
+    drop(editor_assets);
     for locator in locators {
-        let row = catalog
-            .asset_by_locator(locator)
-            .unwrap_or_else(|| panic!("live editor catalog lost exact locator {locator}"));
+        let row = catalog.asset_by_locator(locator).unwrap_or_else(|| {
+            let published = catalog.assets.iter().map(|row| row.locator.as_str()).collect::<Vec<_>>();
+            panic!(
+                "live editor catalog lost exact locator {locator}; initial root {:?}, revision {}, epoch {}, {} rows; refreshed root {:?}, revision {}, epoch {}, rows {:?}; Runtime generation {}",
+                initial_catalog.project_root,
+                initial_catalog.catalog_revision,
+                initial_catalog.publish_epoch,
+                initial_catalog.assets.len(),
+                catalog.project_root,
+                catalog.catalog_revision,
+                catalog.publish_epoch,
+                published,
+                runtime_input.sequence()
+            )
+        });
         assert_eq!(row.locator, locator);
         assert_eq!(row.kind, ResourceKind::Scene, "{locator}");
         assert_eq!(row.preview_state, PreviewState::Ready, "{locator}: {row:?}");
