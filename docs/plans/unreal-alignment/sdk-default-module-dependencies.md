@@ -43,3 +43,17 @@ UE 加载进程与目标选中模块；ZE 保留 per-Core engine task graph、�
 | 既有自定义模块/manager 转移、既有默认 Level tick | 两项也在建宿主时失败，未把“文件名/模块名存在”计通过。 |
 
 主过滤 **2 过、4 败**。从同一产物另用 `sdk_base_selected_` 分开运行两个不重叠的选择性控制：**1 过、1 败**。仅选 Foundation 时，原始配置哨兵确实只在激活后出现，两个 kernel 均未被偷偷登记。仅选 Asset 的控制在原版仍缺相应 Tasks，未到后续 manager 与 dormant 断言。 另组回执 `3c59ed28da75db719450d7bf398cb71279e080db28ee6ba50108fd847319805e`。仅提交回归；本身已有的单测一起运行。 Windows x64/MSVC 1.94.1、`test` profile，`zircon_plugin_sdk --no-default-features --features runtime --lib`，唯一过滤 `test_runtime_builder_ --test-threads 1 --show-output`。绑定编译回执 `10c36e4eb621ff0dbdda59419903d56e89376bfc95a1651794b4dd0e78f4abfa`、实际可执行文件 SHA-256 `43de818551831e4df68a3c9641881e0759a35d708e3b3eba26680a52ecc5d3b4`、执行回执 `79c6f34add313cf6fc114b9b9864706becded591c065d9daf6c55a83d0f838a1` 及 stdout `1a65aa4da5820a340d145e431f9dd89e3ee4dbbb0cc3a25604bb721dad62eade`。不代表带宿主依赖的插件排序 [#217](https://github.com/He-Jiahui/ZirconEngine/pull/217) 已修，更不代表 [#214](https://github.com/He-Jiahui/ZirconEngine/pull/214) 已推进动画帧。
+
+## 8. 同一真实 SDK 宿主修后配对
+
+[实际执行的四个新用例及两个未改原例](https://github.com/He-Jiahui/ZirconEngine/blob/d17ac41552d16a68f3c68739e876660cae9bb943/zircon_plugins/plugin_sdk/src/tests/test.rs)。四个新用例分别从默认、故意漏选 Asset、完全省略 base、只登记而不激活四种配置建真 Core。夹具继续要求原物理 E 盘，并使用独占配置目录；没有替换为模拟的模块、服务或时钟。
+
+| 入口 | 本次原生结果 |
+|---|---|
+| 默认三根、无任何插件报告 | 通过：解析真实 ProjectAssetManager，创建并 tick 原 Level 31.25ms，固定步实际提交 1 次。 |
+| 显式选择 `[Foundation, Scene]`，故意不选 Asset | 通过：仍准确拒绝 `SceneModule → AssetModule`，不会偷偷补用户省略的根。 |
+| 不登记任何 base，不请求 Scene 扩展 | 通过：Core 对五个名字都报告未登记。 |
+| 只登记、不安装 Scene 扩展且不显式激活 | 通过：五项都保持 Registered，不把 providers 隐式启动。 |
+| 既有自定义模块/manager 转移、既有默认 Level tick | 两项均通过；保留原声明外的附加模块及服务。 |
+
+主过滤 **6 过、0 败**。从同一产物另用 `sdk_base_selected_` 分开运行两个不重叠的选择性控制：**2 过、0 败**。仅选 Foundation 时，原始配置哨兵确实只在激活后出现，两个 kernel 均未被偷偷登记。仅选 Asset 时，只有 Tasks 随之注册，Time 和 Scene 仍缺席；关闭激活保持 Registered。 另组回执 `cf9d34db6906dfc8ce6ccd9cb16010efb802615fdf28482fc7542fc44f53e64c`。只按实际根选择注册真实 Tasks 或 Time；三项公开根、配置寿命、activation flags、Core 决定的依赖顺序不变。活跃宿主的停止预检分别返回真实 dependent；它是拒绝停止的证据，不声称调用对所有配置均无副作用。 Windows x64/MSVC 1.94.1、`test` profile，`zircon_plugin_sdk --no-default-features --features runtime --lib`，唯一过滤 `test_runtime_builder_ --test-threads 1 --show-output`。绑定编译回执 `2304403315b628cf898244890e7c1e9c53dde4e151441e583166dde96374270b`、实际可执行文件 SHA-256 `4f161c028b0c6cf2dfc68d1891efaf90a0525f1c95263e7875143496f4299446`、执行回执 `009ba3b818ea8815a3a00217aa5706a583abb9574027d2d585000e72bd9765d9` 及 stdout `7586c20a70de3d4e5bc54bd162114015ebb298b63d50d76972abd4c575880c2f`。不代表带宿主依赖的插件排序 [#217](https://github.com/He-Jiahui/ZirconEngine/pull/217) 已修，更不代表 [#214](https://github.com/He-Jiahui/ZirconEngine/pull/214) 已推进动画帧。
