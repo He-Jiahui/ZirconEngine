@@ -33,3 +33,18 @@
 - **真实 UE 原测参照（源码已核，未执行）：** `Engine/Plugins/Tests/CQTest/Source/CQTestTests/Private/Helpers/CQTestAssetHelperTests.cpp:27–41,132–143,168–179` 的 `FindAssets_WithFilter_ReturnsAssetArray` 和 `FindAssetPackageByName_WrongPackagePath_ReturnsNullOpt` 在实际 Editor AssetTools 创建并通知 registry 后，检验正确包查询恰得一项有效对象、错误包无结果；测试辅助 `Engine/Source/Developer/CQTest/Private/Helpers/CQTestAssetHelper.cpp:13–31,96–101` 在加载中可同步搜索。两文件 SHA-256 `764cf587bfb5462d9c416f69b2a0739b0fd26e97d25a3eb0b2200f65bf0df567` 和 `a02260f755b389fc11b81085b57476e43b9bd0feaf74ee90109e08cdb17ae0e3`。这些不是 UE 对 ZE 诊断字符串的断言；没有看到可以逐字迁移的该类 UE 测试。
 - **ZE 新增，非 UE 原测：** 在[已有 production formatter 单测组](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/src/ui/host/tests/project_access.rs#L13-L130) 固定参数，只改变代身份或行数。验证 0/0 及任一身份为 0 均退化；两者非零且 0 行仍可完成。保留原有成功、导入失败、未全 Ready、设置 fallback、Windows 路径转义。校验完整结果 token 与原始数字，不能依靠名字或字符串源扫描。
 - **同 PR 顺序：** 先提交测试及原生产实际 RED；独立核实施改不影响共享谓词与现有正式拒绝条件，再只改 formatter，重跑同一组冻结用例。若需证明具体项目在 staged Editor 的真实日志或消费者效果，另用标准创建/重开产品门；此局部修正不能让缺行的目录回归变绿，也不能代替首帧及收尾证据。
+
+## 7. Rust 生产者：原实现实际输出（2026-11-18）
+
+[纯测试提交 `1fb3a09f8380ba81a89cb199fdeef739843e64fe`](https://github.com/He-Jiahui/ZirconEngine/blob/1fb3a09f8380ba81a89cb199fdeef739843e64fe/zircon_editor/src/ui/host/tests/project_access.rs#L132-L191) 直接调用原 Rust `project_opened_diagnostic`，不调用 PowerShell，不读模拟结果。Windows x64/MSVC，Rust 1.94.1；`test -p zircon_editor --no-default-features --lib ::project_open_diagnostic_ --locked --offline --jobs 1 -- --test-threads 1`。原有 5 案加 4 个新案，共 **6 过、3 败、0 忽略、10,535 过滤；exit 101**。
+
+| Runtime 资产 / Ready / 失败 | Editor revision / epoch / 行 | 原生成器实际 `result` | 期望 |
+|---|---|---|---|
+| 4 / 4 / 0 | 0 / 0 / 0 | `completed` | `degraded` |
+| 4 / 4 / 0 | 0 / 9 / 4 | `completed` | `degraded` |
+| 4 / 4 / 0 | 3 / 0 / 4 | `completed` | `degraded` |
+| 0 / 0 / 0 | 3 / 9 / 0 | `completed` | `completed` |
+
+三份失败的输出向量各有 13 个 token，**唯一差异是 `result`**；真实代数值、行数、Runtime 计数、设置来源和编码后的路径等均一致。两个单零是防御性输入，不称它们是正常发布现场。旧的成功、Windows 路径、失败导入、未全 Ready、设置 fallback 均通过。[#202](https://github.com/He-Jiahui/ZirconEngine/pull/202) 的现场原本已 `degraded`，不用于填补这三个 RED；8 组 PowerShell 消费端对照也不是本次结果。
+
+回执 `54607124af706f11b99520e0f3d709c1a4503aec33e0a8507f7d074dc11ee101`、stdout `89b86c49233b05fa23f7f0b02cf4e99e55d9e356a511bc18e5f9e96c39941a6f`（5,005 字节）、stderr `bf3c8e440202d523f3a2b6d9abb4ba3f960f6007d1bcf9cf290a4591496b5959`（992,262 字节）。测试文件 SHA-256 `07ec0ed5b8ffd255fadf330b949945b6fa5f3efac6e9299cfc1d6bc0f09795cf`，18 项选定输入复核，非整包/产品验收。此阶段只加测试和证据，未改生产。
