@@ -943,8 +943,8 @@ fn array_source_generated_publication_keeps_old_generation_on_missing_layer() {
     assert_eq!(fs::read(&sidecar).unwrap(), sidecar_bytes);
     assert_eq!(fs::read(&registry).unwrap(), registry_bytes);
     assert_eq!(
-        manager.current_project_generation_snapshot().unwrap().token(),
-        generation.token()
+        manager.current_project_generation_snapshot().unwrap().into_parts().1,
+        generation.into_parts().1
     );
     assert_eq!(read_bakes(&manager, "generated-rollback"), built);
 }
