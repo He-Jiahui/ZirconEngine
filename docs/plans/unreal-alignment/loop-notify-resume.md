@@ -52,3 +52,18 @@ UE 传 instance/slot 与 `FAnimNotifyEventReference`；ZE 的 [clip 资产点 DT
 [prior]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/docs/plans/optimize/zircon_runtime/08c-animation-runtime-review.md#L186-L190
 [leaf]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/animation/tests/clip_event.rs#L16-L56
 [plugin_test]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/tests/physics_tick/clip_events.rs#L2-L138
+
+## 7. 原生 Runtime：默认 64 条预算把 80 个通知变成了 96 个（2026-11-18）
+
+[原版生产 + 仅测试提交 `ff910246d8418d0bd4d22a747864385576b3fbda`](https://github.com/He-Jiahui/ZirconEngine/blob/ff910246d8418d0bd4d22a747864385576b3fbda/zircon_runtime/src/animation/tests/clip_event.rs)。Windows x64/MSVC、Rust 1.94.1，`test -p zircon_runtime --no-default-features --features animation,native-host --lib loop_notify_resume_ --locked --offline --jobs 1 -- --test-threads 1 --show-output`。实际执行 **3 案，1 过、2 败、0 忽略、7,871 过滤，exit 101**。两处都是数量/逐名次数断言，不是夹具、类型或链接失败。
+
+| 原版观察 | 实际输出 | 应有输出 |
+|---|---|---|
+| 同一 clip、预算 128，一次采样 | 80 个点、每个名字 5 次 | 80 |
+| 默认预算 64，首帧终点 0.1，复用第一次返回的原游标 | 首批 64；末点 `0x3d8f5c28`；续页首个相同 occurrence 被算成 `0x3d8f5c29`，续出 32，共 **96** | 64 + 16 |
+| 独立真实 `LevelSystem`，一次 admit，使用 resident clip 的 `ProjectAnimationClipEventSampler` | 三次 drain **64 / 32 / 0**，每个名字 6 次；第一次后 backlog=1，第二次后为0 | 64 / 16 / 0，每名 5 次 |
+| 对照 | 同总跨度但分两帧，48+32；精确二进制片长 1/32，同样预算 64+16。两组每名均 5 次 | 各 80 |
+
+`.09375` 的 ZE 采样器变体也实际打印了同样的重复，仍按 §3 的不同 UE 循环上限解释，不能拿它宣称 UE 对同输入一定发 80。这里原生验证了 ZE 的 sampler / queue，并未把模型当作引擎证明；也没有启动 UE、Editor 游戏世界、插件 `PostUpdate`、AI 或声音消费者。现存插件整链夹具要求特定 smoke 和临时目录布局；本次不替换或放松这些检查。下一步先证明修复能同时保住同刻不同轨、极近但合法的两个点、计数/字节分页、正反向与大播放时间的有限进度，再改 sampler；没有动公共游标或播放资产。
+
+22 项选定来源和清单，原生回执 `f42fdf4c9a2a0f45b32a119139eda58f76fe8c5a964b30165aa156aaef94a394`；stdout `555cae1944af4ef75dc1db49cee5ebed80a553108e42f273cfff15b3a5158a4c`（2,673 B），stderr `34b538aca3094cf489426d31ac2772fc0895c4cd34627b9177ea89e4a10f57e5`（283,762 B）。
