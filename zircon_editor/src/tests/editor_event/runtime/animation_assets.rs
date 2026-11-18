@@ -7,6 +7,9 @@ use zircon_runtime::core::framework::animation::{
     AnimationGraphAsset, AnimationSequenceAsset, AnimationStateAsset, AnimationStateMachineAsset,
 };
 
+#[path = "first_catalog.rs"]
+mod first_catalog;
+
 const SEQUENCE_LOCATOR: &str = "res://animation/hero.sequence.zranim";
 const GRAPH_LOCATOR: &str = "res://animation/hero.graph.zranim";
 const STATE_MACHINE_LOCATOR: &str = "res://animation/hero.state_machine.zranim";
