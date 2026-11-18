@@ -111,3 +111,22 @@ c9a7e5db685aea573f99f2c5f7d84c8711c17e0282f05a29f8cb6e1e6d4b1f46  Engine/Source/
 [file-revision]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/crates/zr_resource/src/io/source_revision.rs#L124-L136
 [restart-test]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/asset/tests/project/manager/restore_failure_migration.rs#L5-L78
 [action-test]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/asset/project/manager/tests/metadata_build_identity.rs#L89-L154
+
+## 7. 同一管理器的两次真实全扫（2026-11-18）
+
+[测试提交 `a2212b6b3a2a3742d5db3c415a5d8f4a00a48668`](https://github.com/He-Jiahui/ZirconEngine/blob/a2212b6b3a2a3742d5db3c415a5d8f4a00a48668/zircon_runtime/src/asset/tests/project/zmeta/compound_time.rs#L309-L422) 保持生产源不变，用一个新建的内建 include Shader 包、一个描述符及两个成员，直接运行同一个 `ProjectManager` 的两次同步全扫。无 watcher、sleep、重开或两扫间人工 touch。Windows x64/MSVC、Rust 1.94.1，`test -p zircon_runtime --no-default-features --features target-server --lib ::compound_source_time_ --locked --offline --jobs 1 -- --test-threads 1 --show-output`。实际执行 **4 案，3 过 1 败、0 忽略、7,889 过滤，exit 101**；失败在主见证最后的 `COMPOUND_SOURCE_TIME_WRITEBACK` 断言，不是编译、模板或导入失败。
+
+| 观测项 | 首次全扫提交后 | 无输入修改的第二次全扫提交后 |
+|---|---:|---:|
+| 磁盘 `.zmeta` 自身 last-write（Unix ms） | 1795003240515 | 1795003240662 |
+| 两个实际成员的 mtime（Unix ms） | 均 946684800000 | 均 946684800000 |
+| 已保存的 `source_mtime_unix_ms` 和目录行时钟 | 均 946684800000 | **均 1795003240515，即上一次生成写回的物理时间** |
+| Runtime 输入代序号 | 13 | 14；不同 `Arc`，同一根恰一条 `Modified`，无增删改名、项目元数据未变 |
+
+两次扫描返回成功；同一个根 UUID `ca352d0f-dc56-4e8f-9030-1cc20aa72400`，成员字节不变，根与两子资产 Ready；真实解码的三个 payload、资源记录、根 artifact manifest 的文件身份及内容都不变。保留夹具的已落盘描述符与日志一致，1,376→1,377 字节；将前一份中**仅**上述时间值改成后一值，可逐字节得到后一份，SHA-256 分别为 `83f0ece74016bbf1d644df7b2d39218e025a403b73d9115e2e7bdd9f1611ee2c` 和 `6344090005bcbc3235a2dd6695427ea4f7880cfcf10d2fd35527604d5ec6eab0`。
+
+**三个独立正控均通过。** 作者标签单改、recipe 改动以及同 mtime 下 WGSL 内容变化由一案分步验证；另外两案分别纯 touch 一个成员、纯 touch 描述符本身（其字节不变，时间足以超过其余输入）。显式全扫能观测两种真实外部触碰。它们与主例中「两扫之间没有作者写入」不是同一种操作。
+
+**为什么未改生产。** 直接忽略描述符 mtime 会误吞上述已测的合法显式 touch，[Runtime 目录契约也要求源 touch 可见](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/docs/plans/zircon_runtime/runtime/04/failure-2026-07-23-project-catalog-input-generation.md#L33-L49)。只在正常发布后强行调回时间也不足：[修订匹配](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/crates/zr_resource/src/io/source_revision.rs#L20-L35) 核身份、摘要、长度，不核原始 mtime；[回滚/恢复](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/crates/zr_resource/src/io/transaction/commit.rs#L264-L306) 会重新暂存备份字节。下一步须在生成写入的确切边界区分自己的写回与真实作者操作，并验证冲突、失败恢复、全扫与 targeted；不改变普通文件或通用写入默认，也不声称库能为非协作外部 writer 提供原子 CAS。
+
+原生命令回执 SHA-256 `4cbaf94e2eb7470d249a7283c1dce469d6f57de0d6024e2bb30440398dc1e823`。37 项选定源与配置复核，非全源码封存。这是 Runtime 微型工程的真实证据，不是 UE 测试执行、[Editor #202](https://github.com/He-Jiahui/ZirconEngine/pull/202) 的内部事件归因或产品验收。
