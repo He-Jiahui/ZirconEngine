@@ -29,3 +29,17 @@ UE 加载进程与目标选中模块；ZE 保留 per-Core engine task graph、�
 ## 6. 最窄后续门
 
 独立文档 Draft 后在原 SDK 单测宿主加一个无 registration/feature 的默认 build → typed asset manager → default level → 非零真 tick（检查 `world_time()` 推进），检查三 roots 与真实 Kernels 可用；保持既有 `test_runtime_builder_*` 两原例，另做显式缺 Asset 的 fail-closed 负控，不通过关掉计划重播。SDK 单包 `--manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sdk --no-default-features --features runtime --lib --locked` + 精确 `test_runtime_builder_` 过滤/测试 profile，遵守该 fixture 物理 E 根；须先声明独立构建并保留原生回执。已有 scene-only 原回执是启动 RED；直接独立 SDK 原测还未在此 pin 实跑。这里既不是 [#137](https://github.com/He-Jiahui/ZirconEngine/pull/137) 的编译错误，也不是 [#214](https://github.com/He-Jiahui/ZirconEngine/pull/214) 的状态机通知问题。
+
+## 7. 测试 SDK 自有入口：首次行为实证
+
+[实际执行的四个新用例及两个未改原例](https://github.com/He-Jiahui/ZirconEngine/blob/93c5ed9e18af02627638dc9a31e3a679c8dd3d87/zircon_plugins/plugin_sdk/src/tests/test.rs)。四个新用例分别从默认、故意漏选 Asset、完全省略 base、只登记而不激活四种配置建真 Core。夹具继续要求原物理 E 盘，并使用独占配置目录；没有替换为模拟的模块、服务或时钟。
+
+| 入口 | 本次原生结果 |
+|---|---|
+| 默认三根、无任何插件报告 | 失败：在安装 World 扩展时，正式依赖图报告 `AssetModule → TasksModule` 缺失，尚未到 World 帧。 |
+| 显式选择 `[Foundation, Scene]`，故意不选 Asset | 通过：仍准确拒绝 `SceneModule → AssetModule`，不会偷偷补用户省略的根。 |
+| 不登记任何 base，不请求 Scene 扩展 | 通过：Core 对五个名字都报告未登记。 |
+| 只登记、不安装 Scene 扩展且不显式激活 | 失败：第一次冻结这个未激活的依赖图时亦报缺少 Tasks。 |
+| 既有自定义模块/manager 转移、既有默认 Level tick | 两项也在建宿主时失败，未把“文件名/模块名存在”计通过。 |
+
+主过滤 **2 过、4 败**。从同一产物另用 `sdk_base_selected_` 分开运行两个不重叠的选择性控制：**1 过、1 败**。仅选 Foundation 时，原始配置哨兵确实只在激活后出现，两个 kernel 均未被偷偷登记。仅选 Asset 的控制在原版仍缺相应 Tasks，未到后续 manager 与 dormant 断言。 另组回执 `3c59ed28da75db719450d7bf398cb71279e080db28ee6ba50108fd847319805e`。仅提交回归；本身已有的单测一起运行。 Windows x64/MSVC 1.94.1、`test` profile，`zircon_plugin_sdk --no-default-features --features runtime --lib`，唯一过滤 `test_runtime_builder_ --test-threads 1 --show-output`。绑定编译回执 `10c36e4eb621ff0dbdda59419903d56e89376bfc95a1651794b4dd0e78f4abfa`、实际可执行文件 SHA-256 `43de818551831e4df68a3c9641881e0759a35d708e3b3eba26680a52ecc5d3b4`、执行回执 `79c6f34add313cf6fc114b9b9864706becded591c065d9daf6c55a83d0f838a1` 及 stdout `1a65aa4da5820a340d145e431f9dd89e3ee4dbbb0cc3a25604bb721dad62eade`。不代表带宿主依赖的插件排序 [#217](https://github.com/He-Jiahui/ZirconEngine/pull/217) 已修，更不代表 [#214](https://github.com/He-Jiahui/ZirconEngine/pull/214) 已推进动画帧。
