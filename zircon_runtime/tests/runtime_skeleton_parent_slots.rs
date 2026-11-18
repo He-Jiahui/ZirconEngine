@@ -36,16 +36,27 @@ mod support;
 
 const SIZE: UVec2 = UVec2::new(192, 192);
 const ENTITY: u64 = 164;
+// The real renderer supports at most 256 GPU palette matrices, then uses CPU geometry.
+const CPU_FALLBACK_BONES: usize = 257;
 // Orthographic X in [8, 20], 16 px per unit. Order: Root/Child bind, Root/Child posed.
 const PROBE_COLUMNS: [usize; 4] = [32, 48, 96, 144];
 
 #[test]
 fn later_parent_slot_preserves_direct_mesh_skinning() {
+    check_direct_mesh_skinning(false);
+}
+
+#[test]
+fn later_parent_slot_preserves_cpu_fallback_draw() {
+    check_direct_mesh_skinning(true);
+}
+
+fn check_direct_mesh_skinning(cpu_fallback: bool) {
     let assets = Arc::new(ProjectAssetManager::default());
     open_fixture_project(&assets);
     let material = register_unlit_material(&assets);
-    let (ordered_mesh, ordered_skeleton) = register_skin(&assets, false);
-    let (late_mesh, late_skeleton) = register_skin(&assets, true);
+    let (ordered_mesh, ordered_skeleton) = register_skin(&assets, false, cpu_fallback);
+    let (late_mesh, late_skeleton) = register_skin(&assets, true, cpu_fallback);
     let pose = Arc::new(AnimationPoseOutput {
         source: AnimationPoseSource::Clip,
         active_state: None,
@@ -131,6 +142,21 @@ fn later_parent_slot_preserves_direct_mesh_skinning() {
             stats.last_mesh_skinned_palette_upload_count,
             stats.last_mesh_skinned_gpu_skinning_draw_count,
         );
+        if cpu_fallback {
+            assert_eq!(
+                [
+                    stats.last_mesh_skinned_gpu_source_candidate_count,
+                    stats.last_mesh_skinned_palette_upload_count,
+                    stats.last_mesh_skinned_gpu_skinning_draw_count,
+                ],
+                [0, 0, 0],
+                "{label}: the oversized palette must not select GPU skinning",
+            );
+            assert_eq!(
+                stats.last_mesh_dynamic_geometry_draw_count, stats.last_mesh_skinned_draw_count,
+                "{label}: a CPU-skinned draw must use deformed dynamic geometry",
+            );
+        }
         (generation, draws, pixels)
     };
 
@@ -269,7 +295,11 @@ fn register_unlit_material(assets: &ProjectAssetManager) -> ResourceId {
     id
 }
 
-fn register_skin(assets: &ProjectAssetManager, child_first: bool) -> (ResourceId, ResourceId) {
+fn register_skin(
+    assets: &ProjectAssetManager,
+    child_first: bool,
+    cpu_fallback: bool,
+) -> (ResourceId, ResourceId) {
     let (tag, root_slot, child_slot) = if child_first {
         ("late", 1_u16, 0_u16)
     } else {
@@ -284,7 +314,7 @@ fn register_skin(assets: &ProjectAssetManager, child_first: bool) -> (ResourceId
     };
     let root = bone("Root", None, 10.0);
     let child = bone("Child", Some(u32::from(root_slot)), 1.0);
-    let skeleton = AnimationSkeletonAsset {
+    let mut skeleton = AnimationSkeletonAsset {
         name: Some("Skeleton164".into()),
         bones: if child_first {
             vec![child, root]
@@ -292,6 +322,17 @@ fn register_skin(assets: &ProjectAssetManager, child_first: bool) -> (ResourceId
             vec![root, child]
         },
     };
+    if cpu_fallback {
+        // Keep both weighted slots unchanged. The other valid bones are unweighted Root children.
+        skeleton.bones.extend((2..CPU_FALLBACK_BONES).map(|slot| {
+            bone(
+                &format!("Unweighted{slot}"),
+                Some(u32::from(root_slot)),
+                0.0,
+            )
+        }));
+        assert_eq!(skeleton.bones.len(), CPU_FALLBACK_BONES);
+    }
     let bytes = skeleton
         .to_bytes()
         .expect("both parent slot orders are valid assets");
@@ -364,6 +405,9 @@ fn register_skin(assets: &ProjectAssetManager, child_first: bool) -> (ResourceId
         Mat4::from_translation(Vec3::new(-10.0, 0.0, 0.0)).to_cols_array_2d();
     inverse_bind_matrices[usize::from(child_slot)] =
         Mat4::from_translation(Vec3::new(-11.0, 0.0, 0.0)).to_cols_array_2d();
+    // The extra children have zero bind-local translation, hence the same inverse bind as Root.
+    let root_inverse_bind = inverse_bind_matrices[usize::from(root_slot)];
+    inverse_bind_matrices.resize(skeleton.bones.len(), root_inverse_bind);
     mesh.skin = Some(MeshSkinAsset {
         inverse_bind_matrices,
     });
