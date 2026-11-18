@@ -65,3 +65,22 @@ factory `a8e302ed7c83e2639862831f32d31b255efacda188b1e26404e3fcbf8ab879e2`；arr
 | 生成新主清单、再发布缺一张正常图的清单 | 通过。成功回执匹配实际提交字节，失败不会替换上一代的源、sidecar、注册表和制品。 |
 
 这些都是 CPU 项目的生产缓存计数或真实 `res://` / `lib://` 读回。原档只读，两种构建各自使用新目录；不改旧 `.zmeta` 伪造命中。profiling 组构建回执 `5a35fc938d310d094eef4c899eb29065a924907b1c3b2e2049c63fa7d8b5d1c8`，同根/列表/纵切执行 `cd7a7adb60524b115a22df6af34eb46169dd8c96f91a983083bb6d7c15834c7f`；匹配旧构建的实际迁移执行 `6a430bf46fb09cee72790be18bbf40ca92a56ef1a6a61ee1db319ed0a37f9c8e`。本提交仅回归与证据。
+
+## 10. 配对修复：只捕获当前清单的源图，动作键和解码共享字节
+
+[候选实现](https://github.com/He-Jiahui/ZirconEngine/commit/c2f6c57e2eec72e67fd2627fcd9b2c33d6b3ddd0) · [不变的回归](https://github.com/He-Jiahui/ZirconEngine/blob/c2f6c57e2eec72e67fd2627fcd9b2c33d6b3ddd0/zircon_plugins/texture_importer/runtime/tests/array_layer_refresh.rs)。项目宿主从注册表中一次选定可用的 Rust handler；只有单文件项目源可以根据本次捕获的主字节声明正常相对的伴随文件。计算输入身份和实际解码消费同一份受预算约束的捕获；相同 PNG 可占多个槽而只读一次。权威快照缺项明确失败，不回落到当前磁盘；未提供权威快照的直接调用仍使用旧路径。纹理插件不反向进入 Runtime，也不更改 Native C ABI、资源格式或项目清单。
+
+| 配对实测 | 修前 | 修后 |
+|---|---|---|
+| 同一注册插件，启 profiling 的六例 | 1 过 5 败（旧工程迁移只在源指纹断言失败） | **6 过 0 败** |
+| 同一无附加特性构建，改色和旧项目迁移两案 | 0 过 2 败 | **2 过 0 败** |
+| 同根关项、只改一张 PNG 再开：三行 | 2 恢复 / 1 导入，父仍绿/红 | **1 恢复 / 2 导入**，父绿/蓝 |
+| 未改任何文件的重开 | 3 恢复 / 0 导入 | **3 恢复 / 0 导入**，没有靠禁用缓存通过 |
+
+真实旧项目中，父资产 UUID `7ac12ab0-e996-4aa6-8ccc-895778b09fe3` 保持不变，源指纹 `afcc013aa509c9f0` → `3f34c7b995467429`，动作键 `blake3:f94d446e36680144ecbf3f28c4deae2968913c5eeec0e8d1de42f266a219771c` → `blake3:1543f7e0639ad0cf1ac69d88eb841daf1a1686c0b41a3057905f239ddb749676`，正确制品内容 `f3f4a3c5c9f2cf9d2bc262d77f168f5c88787e39caf1fbed113c2045af227609`，下一次无改动扫描仍相同。另核数组顺序、重复槽、移除/新增成员、纵切权威快照，以及失败的生成源不会替换上一成功代。完整独占数据集来自旧版本实际运行，未修改原档或伪造旧 metadata。
+
+辅助验证独立计数：Runtime (`native-host`，无 Graphics) **4/4**：`captured_auxiliary_source_borrows_bytes_and_rejects_authoritative_misses`、`function_importer_auxiliary_discovery_is_opt_in_for_the_selected_provider`、`declared_sources_use_current_supplied_bytes_and_do_not_fill_a_complete_snapshot_from_disk`、`repeated_auxiliary_slots_only_charge_one_companion_to_the_snapshot_budget`。这四项分别检查借用/权威缺项、实际被选 handler、已给定来源的闭合快照及 65,537 个重复槽只占一个物理文件预算。原纹理插件整套 libtest 被两份本 PR 未改过的测试阻断：KTX1 两处把被同名值遮蔽的 helper 当函数调用，mipgen 有 21 处把 `(纹理, 诊断)` 当作纹理。该次实际编译 exit 101，没有 EXE；原直接清单、六面顺序和二进制 Cubemap **三项 0 执行**，不计通过或行为失败，也未借其他 PR 修复测试文件。另在同一个 Runtime 程序中运行 **4/4** 原有检查：复合源快照、生成主源无复制、glTF 外部源变动及 glTF 项目累计预算；不把相邻测试个数计成新问题。
+
+可核对的 native receipt SHA-256：六案编译 `4a53908b38c42476fa20ea5a8edff85a57301813640db4d52ea69a4168463558`、同根与清单用例执行 `0bdade3f38e90e388d56f50902d3a4a514326c78451dfceecb8e64671b3029f3`、同构建旧工程迁移执行 `668021d5fa49cb0b226b493622bda1e580f49bf9c702e6d9a6275c6af067f0af`；Runtime 合同构建 `ddcd4a2c72889fe08da1449bf85862362d072b2b3612ed194fddfe17c7df89cb`，插件旧用例构建 `4c165b2a34fcc008b5a60d09be3a66b688926a50d7d150101b1c23845ad6e8a3`。各执行按 Cargo 发出的具体二进制校验，不把 `--no-run` 当通过。
+
+本 PR 只处理全量扫描/重开和明确导入的纹理数组。它不让单张 PNG 的 watcher 自动重新导入所有父资产，不承诺不同源间一次全盘原子快照，也没有将相同支持扩到所有 Native 插件、Cubemap 热重导、GPU 上传、编辑器预览或 UE 原测试。缺少 provider 时不替其发现新源，也不跳过原缓存匹配门。保持 Draft。
