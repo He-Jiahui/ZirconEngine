@@ -1,8 +1,8 @@
 # 项目打开/保存：已导入 Scene 的大小写后缀被打开边界拒绝
 
-> 取证说明：UE 的本机路径与文件 SHA256 是用户提供参考树的依据；本轮 D: 审计快照/工作记录仅本地保存，不随本 PR 发布，也不冒充 GitHub 可读证据。UE/ZE 测试均未在本轮执行。
+> 当前状态：已在 Windows 原生测试复现并修复两处后缀校验。精确 5 案由 **1 过 4 败 → 4 过 1 败**；真实宿主目录前置仍失败，不能宣称从窗口可见、整个 Editor 已通过。第 7–8 节给出结果；下列六点保留原始调查时的判断。UE 的本机路径与文件 SHA256 只标识参考树，未执行 UE；私有运行日志不随 PR 发布。
 
-- 裁决：**一条源码可证、未运行的窄缺陷草案**，建议优先级 P2；不是架构差异或缺失能力。仅调查，尚未创建 Draft PR、补测试或修改引擎。
+- 初版裁决（历史）：一条源码可证的窄缺陷，建议优先级 P2；不是架构差异或缺失能力。当时只完成调查，尚无 Draft PR、测试或引擎改动。
 - 本地只读基线：`cb495bb1c952a24c86f4513b8099bc4942c3a87d`。按 lead 核定，ZE 引用使用已公开祖先 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`；只读 `git diff --exit-code e893… -- zircon_runtime zircon_editor zircon_runtime_interface zircon_plugins/prefab_tools` 无差异。本地后续流程退役与外来技能修改没有夹带。
 - UE 身份：[Build.version:1–10](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Build/Build.version#L1-L10>) 是 6.0.0、BranchName UE5、Changelist 0；不推断发布版或提交身份。
 
@@ -89,6 +89,23 @@ UE map 是 UObject/UPackage；ZE 是保留大小写的 AssetUri + 项目 catalog
 | [受控目录 → Open 请求](../../../zircon_editor/src/ui/retained/app/tests/scene_picker_session.rs#L311-L335) | 小写保留原 URI；目录行虽是 `Scene`，混合、全大写和长文件名却被漏列。受控行不是导入证据。 |
 | [Create 请求](../../../zircon_editor/src/ui/retained/app/tests/scene_picker_session.rs#L391-L402) | 小写通过；`res://Levels/É.ScEnE.ToMl` 在构造请求时被后缀校验拒绝。没有在此用例中创建或保存文件。 |
 | [负控](../../../zircon_editor/src/ui/retained/app/tests/scene_picker_session.rs#L338-L389) | 通过：不同资源类型、备份、label、非项目 URI、短路径及 UTF-8 边界均不能被选作完整场景。 |
-| [真实宿主目录 → Open](../../../zircon_editor/src/ui/retained/app/tests/scene_picker_session.rs#L404-L449) | **未到后缀断言。** 工程打开后，夹具取得的目录连 `res://Levels/Cobalt.scene.toml` 都没有，在查小写原 locator 时失败。不能称作第四个后缀复现，也不能声称真实宿主 picker 已经验证。 |
+| [首次真实宿主目录 → Open](https://github.com/He-Jiahui/ZirconEngine/blob/5d2f18ec35bab25a93c836992262a4093a000b8a/zircon_editor/src/ui/retained/app/tests/scene_picker_session.rs#L404-L449) | **未到后缀断言。** 工程打开后，夹具取得的目录连 `res://Levels/Cobalt.scene.toml` 都没有，在查小写原 locator 时失败。不能称作第四个后缀复现，也不能声称真实宿主 picker 已经验证。 |
 
 Windows x64/MSVC，Rust 1.94.1，`cargo test -p zircon_editor --no-default-features --lib editor157_ --locked --offline --jobs 1 -- --test-threads 1`，`test` profile。该过滤词还命中既有 Inspector 的 3 案：2 过、1 性能忽略。完整输出 **3 过 / 4 败 / 1 忽略 / 10537 过滤，exit 101**；其中新增 5 案为 **1 过 / 4 败**，后者仅 3 项证明后缀行为，1 项是目录前置。原生命令回执 SHA-256：`f546f55b27516f93cd0b0ae6df839491f18f24c4dc3019a31aa54fa113485c42`。未运行全 Editor、用户窗口、UE 或跨平台产品测试。
+
+## 8. 修复与同一组回归：后缀行为已纠正，宿主目录仍未通过
+
+[第二次测试基线](https://github.com/He-Jiahui/ZirconEngine/commit/cc0f798f3deb59f37db91fabd982286b02edf80e)未改引擎，只加强了[真实宿主用例的前置及诊断](../../../zircon_editor/src/ui/retained/app/tests/scene_picker_session.rs#L430-L529)：核实三个物理文件的拼写与内容、同一活动 Runtime 的三个精确 `Ready` 记录及其目录输入，然后对注册的 Editor 服务做一次正常刷新。其余四案和共享的选择/提交断言保持原样。
+
+[生产提交](https://github.com/He-Jiahui/ZirconEngine/commit/c5109c91f49ce02fe9eb9fe805f51c9ca5bde542)仅修改 Editor 内部：[ProjectAuthority 的完整后缀比较](../../../zircon_editor/src/core/project/scene_document.rs#L349-L380)按字节安全截取末尾，只对 ASCII `.scene.toml` 忽略大小写；[picker](../../../zircon_editor/src/ui/retained/app/scene_picker_session.rs#L309-L320)复用同一判定。文件名与目录名不作转换。`res://`、无 label、kind、文件保护与提交票据未放松；其余改动只是一处 crate-private 导出。没有改导入器、目录发布、保存格式、ABI 或 ECS。
+
+| 实测范围（通过 / 失败 / 忽略） | 原引擎 | 修复后 |
+|---|---:|---:|
+| 相同 5 案，精确过滤 `::editor157_` | **1 / 4 / 0** | **4 / 1 / 0** |
+| 既有 picker 测试模块（含 4 项新增用例） | 未整组复跑 | **12 / 1 / 0** |
+| 既有工程场景文档模块（含 1 项新增用例） | 未整组复跑 | **7 / 0 / 0** |
+| 显式保存不覆盖 manifest 默认场景 | 未单独复跑 | **1 / 0 / 0** |
+
+- **3 项由失败转为通过**：同一真实工程三种拼写的场景均可按原名从源读出正确标记；受控目录可保留大小写提交 Open 请求；Create 可构造混合或全大写目标请求。1 项拒绝条件在两侧均通过。显式保存控制验证目标隔离，不等于已经做过大写路径的窗口 Save As。
+- **第 5 项仍失败，未忽略。** 精确对照两侧均于[同一查小写行断言](../../../zircon_editor/src/ui/retained/app/tests/scene_picker_session.rs#L496-L529)失败：活动 Runtime 的三条输入已就绪（两次均观察到 generation 12），Editor 初次读取及刷新后的快照均为空 root、revision 0、epoch 0、0 行。候选的 picker 整组又命中同一断言，该次 Runtime generation 10。用例都未走到 live picker 的后缀判断；没有从这些观测确定目录为何未发布，也不重试到绿。宿主的正常[打开时刷新](../../../zircon_editor/src/ui/host/project_access.rs#L21-L39)与[事件刷新](../../../zircon_editor/src/ui/retained/app/assets/refresh.rs#L106-L119)仍应独立调查。
+- 准确的配对命令为 `cargo test -p zircon_editor --no-default-features --lib ::editor157_ --locked --offline --jobs 1 -- --test-threads 1`。工作树、工具链、特性、输入测试字节相同；两侧均完成 5 案、10540 项被过滤，均 **exit 101**。两个原生回执 SHA-256 分别为 `d3297ce981f7b19ea025e8327f87fbae70609931db50c549e7a62df0eacf7244`、`a4b99aa9d37222450839a93a19493371ad6b85deea77a1dc3f07af853c9140f0`。四次候选运行之间有重叠；按完整用例名去重，共 21 个不同用例：20 过、1 败。**本次只确认后缀行为及负控，不是整个 Editor、跨 OS、UE 或产品验收。**
