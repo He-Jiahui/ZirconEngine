@@ -86,3 +86,21 @@ UE 对照是进程级 registry 的包/对象路径查询及 game-thread 通知�
 **下一步只补这一缺口：** 在同一开项的 open/显式 refresh 两段，获取已有 profiling 的实际 publish/superseded 分支；再将 scoped watcher 的事件种类、路径/无路径、overflow/错误与确切提交关联。保留同一 activation、旧代拒绝和标准 Scene oracle；不增加重试或用「没有等足」解释。不对本次源码未确认的写手做生产修复。真正的首帧及 staged F1/F5 仍是独立门。
 
 本次普通命令回执 SHA-256 `42556af829fd1ceebe13fcfcb0e16ec370dcf3be015041d2691cccd6c3fdf8b6`；stdout 3,026 字节 `4aed4923614050eafd48d80f9ebebe2e47c2146b6f81d6a361bdd2cf0a2c7b5d`，stderr 992,263 字节 `abcd48d14b92e66f5a9f744e7e52ff2ae6048bf355380dbbbce0ecd3c0b9e1c4`。49 项选定输入运行前后复核，并非全源码或进程树的形式化封存。没有 UE、GUI、全包或产品验收结果。
+
+## 8. 同一显式刷新前后：真实 Runtime 输入的净差分（2026-11-18）
+
+[仅加观测的测试提交 `e385c60c5b6a37fcedd27b8676263f9eb0995cc0`](https://github.com/He-Jiahui/ZirconEngine/blob/e385c60c5b6a37fcedd27b8676263f9eb0995cc0/zircon_editor/src/tests/editor_event/runtime/first_catalog.rs)：原 402 行全部按原序保留，仍只有一次显式 refresh；复用已有的前后 Runtime 项目/令牌/输入快照，用原 fixture 的 operation root 核身份。原用例照常创建全新的 RenderableEmpty 工程；新增观测不另建工程，也不额外刷新、重开、等待、模拟日志或修改生产。Windows x64/MSVC，Rust 1.94.1，`test -p zircon_editor --no-default-features --lib ::editor202_ --locked --offline --jobs 1 -- --test-threads 1 --show-output`，实际 **0 过 / 1 败、0 忽略、10,540 过滤**，exit 101。原行为门结果：`[open catalog] no initialized generation for the created project`。
+
+**本次观察：** 同 root/activation，输入代 11→17、1 Modified，两端内容仅两处 mtime 槽位不同。原外取 token `Some(Current)->Some(Superseded { newer_same_project_generation: true })`，same activation `Some(true)`，watch `(batch,reconcile,commit,failed)` 在 closed/open/refreshed 的三份快照为 `[(0, 0, 0, 0), (8, 8, 8, 0), (15, 15, 14, 0)]`，显式 refresh 返回 `Ok(())`。已注册 Editor 前/后 `(revision, epoch, rows)` 分别为 `(0, 0, 0)` / `(0, 0, 0)`，观测到的两段 `CatalogChanged` revisions `[]` / `[]`。
+
+报告的 Runtime `delta_since`：added/removed/modified/renamed 分别为 0/0/1/0；manifest 与 package registry 均未变化。唯一变动的 shader 根 ID 是 `22da033c-63f7-874d-82ae-d29472fe0540`。真实打开日志仍为 `degraded`（8 个资产，7 Ready、1 Error）；小写 Starter Scene 制品解码为 605 B，两端同一 UUID。`.zui` 在本 headless 组成中仍为 `UnsupportedFormat`；它不是这两个端点之间发生净变化的那一行。
+
+| 变化记录 | 端点中不同的字段 | 只忽略行 / 只忽略 meta / 同时忽略两时钟后行是否相等 |
+|---|---|---|
+| `modified` `res://shaders/pbr_shader` → `res://shaders/pbr_shader` | `source_mtime_unix_ms` 1795005919449 → 1795005920824；`meta.source_mtime_unix_ms` 1795005919449 → 1795005920824 | false / false / true |
+
+独立按全部 ID 和全部记录/项目字段比较。`single_mtime_only=not_a_single_mtime_field`、`both_mtime_slots_explain_net_diff=true`。在这两份不可变快照之间，单独抹掉其中一个槽仍不等；两槽一起抹掉，其余所有输入才相等。
+
+这里验证的是**两个端点的净变化**；不等于收到每一笔 OS 通知、抓到每次 generation 的内容或看到 Editor 内部丢弃候选的分支。即使 locator 与 [#204](https://github.com/He-Jiahui/ZirconEngine/pull/204) 的复合描述符机制相符，也不将另一独立工程的 writer 归到本次开项目；不削弱 fence，不从 `Ok(())` 推导已发布。
+
+原生回执 `4b90c106146871242fd104742787a1d8e82fb546f1d55fdaf94737226ba76d48`；stdout `1f184fd312163d6d8cd79aeec62bbe21158607db08021d79abfd067da218ba04`（3,968 B）、stderr `506a51c4799e2c32b2c47b0a929c6dcd9dcde0f718d383bb829b14efcb3507a8`（992,262 B），51 项选定输入复核（覆盖上一见证的 49 项）。未执行 UE、GUI 首帧或 F1/F5 验收；没有产品修复。
