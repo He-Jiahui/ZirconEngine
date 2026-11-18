@@ -41,3 +41,11 @@ UE 参考指纹（SHA-256，仅列文件身份和上述行号，不发布 Epic �
 - `Engine/Source/Runtime/SlateCore/Private/Input/HittestGrid.cpp`：`e1df5b8781a9584b1f625830a0f4d98359238cf49acf0508551ab519ae6c2c77`。
 - `Engine/Source/Runtime/Slate/Private/Framework/Application/SlateApplication.cpp`：`06f96167fd20bde540b7f60629b53c8cfbddd3ae4b7d93368b9bc4f9f45cfe99`。
 - `Engine/Plugins/Tests/AutomationDriverTests/Source/AutomationDriverTests/Private/AutomationDriver.spec.cpp`：`62a0e0a384be81fae4e10ec29925fd6058332fe850842daed0aa853163422da6`。
+
+## 7. 四个真实 Session 回归已提交；当前编译前置不属于 UI
+
+[tests-only `336f492231e3bed4e2f8b76773020a702413fb53`](https://github.com/He-Jiahui/ZirconEngine/blob/336f492231e3bed4e2f8b76773020a702413fb53/zircon_runtime/src/dynamic_api/session/runtime_ui/tests/menu_owner.rs)。四例用生产 `RuntimeDynamicSession` / Level。在同一实体写入真实 `gameplay.menu_state` 与 `gameplay.control_state` 后，从真正提交的 fallback quad 获取中心坐标，不用硬编码直接触发动作。两个 HUD 用例经生产 `.zui` 解析和 retained 编译器构建 Text/Ignore；测试只代替项目导入入口，并不证明 standalone 已加载工程。它们检查独占项目 UI 的实际提交、该点在已发布输入目录的零候选、焦点/捕获、物理鼠标按放与 World 里的命令。另两例保留可见菜单与界外操作/相机拖放。真实产品还须让当前 World 接纳这两个游戏组件并注册 `.zui` importer，单给原样例附上一个 UI 根不是完整准入证明。
+
+已实际调用 Windows x64/MSVC Rust 1.94.1、`test` profile：`-p zircon_runtime --no-default-features --features dynamic-api,input-mouse --lib fallback_menu_owner_ --locked --offline --jobs 1 -- --test-threads 1 --show-output`。Cargo exit **101**，在整个 Runtime 库测试编译时止于未修改的[图形模型夹具:305–315](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/graphics/scene/resources/tests/model_geometry_resolution.rs#L305-L315)，`E0716: temporary value dropped while borrowed`。上面借用从临时 registry 得到的记录，稍后比较时 registry 已失效。该文件在共同 main、此次 tests-only commit 和实际工作文件是同一 blob `b8c738dae9ec9fa9a40abb41f3cbd7dae96c6723`；实际 stderr 只报这一项编译错误。原生回执 `d83af5f78e07ba2a79684939c7e312a46f5705619a01f030e64e6e3255b0c92f`，stdout 为 **0 字节**：**四个用例均未开始**。这不是隐藏按钮行为的 RED，也不是对候选修复的 GREEN。
+
+这项构建前置已有独立 [#137](https://github.com/He-Jiahui/ZirconEngine/pull/137)，没有合入、复制、临时替换该修复或屏蔽相关测试；本 PR 只增加测试及测试挂载和该说明。下一个有效门是可编的原 owning 基线，或以 Runtime 作为普通库、通过正式 linked 会话在公开 integration target 验证真实 HUD 与命令。两种门的证据范围必须分别标明；不改 MouseUp 合同或触摸取消 [#213](https://github.com/He-Jiahui/ZirconEngine/pull/213)。
