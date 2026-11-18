@@ -156,12 +156,16 @@ impl Drop for Capture {
 }
 
 pub(super) fn dedicated_test_process() -> bool {
+    exact_test_process(TEST)
+}
+
+pub(super) fn exact_test_process(test: &str) -> bool {
     let mut args = std::env::args_os().skip(1);
     let (mut filter, mut exact, mut ignored, mut serial, mut output) =
         (false, false, false, false, false);
     while let Some(arg) = args.next() {
         match arg.to_str() {
-            Some(TEST) if !filter => filter = true,
+            Some(arg) if arg == test && !filter => filter = true,
             Some("--exact") if !exact => exact = true,
             Some("--ignored") if !ignored => ignored = true,
             Some("--test-threads=1") if !serial => serial = true,

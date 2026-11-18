@@ -36,6 +36,10 @@ use crate::ui::host::{
 #[path = "catalog_profile.rs"]
 mod catalog_profile;
 
+#[cfg(all(feature = "profiling", any(unix, windows)))]
+#[path = "catalog_writer.rs"]
+mod catalog_writer;
+
 const STARTER: &str = "res://scenes/main.scene.toml";
 const OPEN_MARKER: &str = "editor_project_open ";
 
