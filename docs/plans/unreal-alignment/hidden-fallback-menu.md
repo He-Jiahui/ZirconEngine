@@ -49,3 +49,11 @@ UE 参考指纹（SHA-256，仅列文件身份和上述行号，不发布 Epic �
 已实际调用 Windows x64/MSVC Rust 1.94.1、`test` profile：`-p zircon_runtime --no-default-features --features dynamic-api,input-mouse --lib fallback_menu_owner_ --locked --offline --jobs 1 -- --test-threads 1 --show-output`。Cargo exit **101**，在整个 Runtime 库测试编译时止于未修改的[图形模型夹具:305–315](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/graphics/scene/resources/tests/model_geometry_resolution.rs#L305-L315)，`E0716: temporary value dropped while borrowed`。上面借用从临时 registry 得到的记录，稍后比较时 registry 已失效。该文件在共同 main、此次 tests-only commit 和实际工作文件是同一 blob `b8c738dae9ec9fa9a40abb41f3cbd7dae96c6723`；实际 stderr 只报这一项编译错误。原生回执 `d83af5f78e07ba2a79684939c7e312a46f5705619a01f030e64e6e3255b0c92f`，stdout 为 **0 字节**：**四个用例均未开始**。这不是隐藏按钮行为的 RED，也不是对候选修复的 GREEN。
 
 这项构建前置已有独立 [#137](https://github.com/He-Jiahui/ZirconEngine/pull/137)，没有合入、复制、临时替换该修复或屏蔽相关测试；本 PR 只增加测试及测试挂载和该说明。下一个有效门是可编的原 owning 基线，或以 Runtime 作为普通库、通过正式 linked 会话在公开 integration target 验证真实 HUD 与命令。两种门的证据范围必须分别标明；不改 MouseUp 合同或触摸取消 [#213](https://github.com/He-Jiahui/ZirconEngine/pull/213)。
+
+## 8. 公开 Runtime 入口实测
+
+[同一版本的独立集成测试](https://github.com/He-Jiahui/ZirconEngine/blob/024df17925229c22e1dbfb9f7f5562381ab9c968/zircon_plugins/ui_document_importer/runtime/tests/hud_menu_public.rs)。通过实际已注册的 UI document importer 读取工程 `.zui`，正式 V8 a11y snapshot 证项目树已加载且保持原身份；鼠标按放都由真实 owner 录制，随后从原实体读取控制槽。无根同点 Start/Retry 与界外控制通过。两个有效项目 HUD 用例都跨过 admission、指针和 owner 正控后，才在旧按钮命令不应变更处失败。
+
+原版独立 WGPU 首帧进程在 15 分钟上限内没有返回已核验的 framebuffer；这是受限中止，不计作通过或断言失败。没有通过旧按钮/新 HUD 像素前置，不据此认定可见画面。 GPU 原执行回执 `81cf649bd0b54a026a8de949d34718cac2af682ac8b6ba26351c09bb456fc229`。
+
+完整 test target `hud_menu_public`：Windows x64/MSVC 1.94.1，`zircon_plugin_ui_document_importer_runtime`、defaults off、`zircon_runtime/dynamic-api`、`test` profile，先编译唯一集成目标，再运行 Cargo 指出的该二进制。真实结果 **1 过、2 败**；编译回执 `82e25476b4d1d4e5b5b488197796558ce2ffec057b8fd90ab4a9eb6ae11cf3e8`、exe SHA-256 `3db93298ebc74302e044a56ec982f3d90566e21b0c40465b664dbc172bb88058`、执行回执 `a8c2c5e0e53440b9f562633f10fed29dab1402fee7dd34ed74b4d0e30c0aac54`、stdout `eae0967ab5642911c8acd860ee19c3510b5e350a7a90968e2a0291677ce8f517`。夹具、配置、日志分别在物理测试根中，不使用用户工程；测试默认为显式运行。公开 linked 会话（无 OS 真机设备，不是屏幕或 Winit 事件泵验收）。
