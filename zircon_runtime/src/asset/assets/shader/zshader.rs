@@ -12,6 +12,8 @@ use crate::core::framework::render::{
     ShaderResourceDescriptor,
 };
 
+use super::property_layout::validate_material_option_bit_budget;
+
 pub type ZShaderV2Result<T> = std::result::Result<T, ZShaderV2Error>;
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
@@ -56,7 +58,7 @@ impl ZShaderDocumentV2 {
         let table = zshader_v2_table(document)?;
         let kind = zshader_v2_kind(&table)?;
         validate_zshader_v2_version(&table)?;
-        match kind {
+        let document = match kind {
             ShaderAssetKind::Module => Err(ZShaderV2Error::UnsupportedKind {
                 kind: kind.token().to_string(),
             }),
@@ -94,7 +96,17 @@ impl ZShaderDocumentV2 {
                 )?;
                 Ok(Self::Fullscreen(document))
             }
+        }?;
+        if kind.participates_in_material_variants() {
+            validate_material_option_bit_budget(
+                document
+                    .options()
+                    .iter()
+                    .map(|option| (option.name.as_str(), option.kind.as_str(), &option.editor)),
+            )
+            .map_err(|message| ZShaderV2Error::Toml { message })?;
         }
+        Ok(document)
     }
 
     pub const fn kind(&self) -> ShaderAssetKind {
@@ -433,6 +445,16 @@ impl From<&ZShaderTextureSlotDocument> for ShaderTextureSlotAsset {
             st: slot.st,
             editor: slot.editor.clone(),
         }
+    }
+}
+
+impl ShaderOptionAsset {
+    pub(in crate::asset) fn validate_material_bit_budget(options: &[Self]) -> Result<(), String> {
+        validate_material_option_bit_budget(
+            options
+                .iter()
+                .map(|option| (option.name.as_str(), option.kind.as_str(), &option.editor)),
+        )
     }
 }
 
