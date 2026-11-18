@@ -308,7 +308,8 @@ impl CoreHandle {
         lock_poison_recovered(&self.inner.runtime_module_lifecycle_observer)
     }
 
-    fn registered_module_descriptors(&self) -> Vec<ModuleDescriptor> {
+    /// Snapshots committed declarations without freezing the graph or changing lifecycle state.
+    pub(crate) fn registered_module_descriptors(&self) -> Vec<ModuleDescriptor> {
         let modules = self.lock_modules();
         modules
             .values()

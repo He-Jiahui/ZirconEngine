@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
-use crate::core::{sort_module_activation_order, CoreError};
+use crate::core::{sort_module_activation_order, CoreError, ModuleDescriptor};
 use crate::plugin::{
-    PluginModuleKind, PluginModuleManifest, RuntimePlugin, RuntimePluginDescriptor,
-    RuntimePluginRegistrationReport,
+    PluginModuleKind, RuntimePlugin, RuntimePluginDescriptor, RuntimePluginRegistrationReport,
 };
 
 pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn order_runtime_plugins<'a>(
@@ -45,25 +44,14 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn order_runtime_p
         .collect())
 }
 
-pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn order_runtime_plugin_registration_reports(
-    registrations: &[RuntimePluginRegistrationReport],
-) -> Result<Vec<&RuntimePluginRegistrationReport>, CoreError> {
-    order_runtime_plugin_registration_report_refs(registrations.iter().collect())
-}
-
-pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn order_runtime_plugin_registration_report_refs(
-    registrations: Vec<&RuntimePluginRegistrationReport>,
-) -> Result<Vec<&RuntimePluginRegistrationReport>, CoreError> {
-    order_runtime_plugin_registration_report_refs_with_module_filter(registrations, |module| {
-        module.kind == PluginModuleKind::Runtime
-    })
-}
-
-// 先展开符合目标的运行时模块并按模块依赖排序，再按首次出现的注册行去重；无匹配模块的注册行保留在尾部原顺序。
-fn order_runtime_plugin_registration_report_refs_with_module_filter(
-    registrations: Vec<&RuntimePluginRegistrationReport>,
-    module_filter: impl Fn(&PluginModuleManifest) -> bool,
-) -> Result<Vec<&RuntimePluginRegistrationReport>, CoreError> {
+// Sort runtime manifest rows, then take each report once at its first row.
+// Reports without runtime rows keep their original order at the end.
+pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn order_runtime_plugin_registration_reports<
+    'report,
+>(
+    registrations: &'report [RuntimePluginRegistrationReport],
+    host_descriptors: &[ModuleDescriptor],
+) -> Result<Vec<&'report RuntimePluginRegistrationReport>, CoreError> {
     let mut registration_indices = Vec::new();
     let mut module_descriptors = Vec::new();
     for (registration_index, registration) in registrations.iter().enumerate() {
@@ -71,27 +59,30 @@ fn order_runtime_plugin_registration_report_refs_with_module_filter(
             .package_manifest
             .modules
             .iter()
-            .filter(|module| module_filter(module))
+            .filter(|module| module.kind == PluginModuleKind::Runtime)
         {
             registration_indices.push(registration_index);
             module_descriptors.push(module.module_descriptor());
         }
     }
     if module_descriptors.is_empty() {
-        return Ok(registrations);
+        return Ok(registrations.iter().collect());
     }
 
+    let report_module_count = module_descriptors.len();
+    append_reached_host_modules(&mut module_descriptors, host_descriptors)?;
     let module_names = sort_module_activation_order(&module_descriptors)?;
-    let by_name = module_descriptors
+    let by_name = module_descriptors[..report_module_count]
         .iter()
-        .enumerate()
-        .map(|(module_index, descriptor)| (descriptor.name.as_str(), module_index))
+        .zip(registration_indices)
+        .map(|(descriptor, registration_index)| (descriptor.name.as_str(), registration_index))
         .collect::<HashMap<_, _>>();
     let mut ordered_registration_indices = Vec::with_capacity(registrations.len());
     let mut registration_seen = vec![false; registrations.len()];
     for module_name in module_names {
-        let module_index = by_name[&module_name.as_str()];
-        let registration_index = registration_indices[module_index];
+        let Some(&registration_index) = by_name.get(module_name.as_str()) else {
+            continue; // A host descriptor is an ordering input, never a report contribution.
+        };
         if !registration_seen[registration_index] {
             registration_seen[registration_index] = true;
             ordered_registration_indices.push(registration_index);
@@ -104,8 +95,50 @@ fn order_runtime_plugin_registration_report_refs_with_module_filter(
 
     Ok(ordered_registration_indices
         .into_iter()
-        .map(|registration_index| registrations[registration_index])
+        .map(|registration_index| &registrations[registration_index])
         .collect())
+}
+
+fn append_reached_host_modules(
+    module_descriptors: &mut Vec<ModuleDescriptor>,
+    host_descriptors: &[ModuleDescriptor],
+) -> Result<(), CoreError> {
+    if host_descriptors.is_empty() {
+        return Ok(());
+    }
+    let mut candidates = host_descriptors
+        .iter()
+        .map(|descriptor| (descriptor.name.as_str(), descriptor))
+        .collect::<HashMap<_, _>>();
+    // Ownership is independent of reachability. Reject in manifest row order,
+    // without adding the unrelated host descriptors or their dependency edges.
+    if let Some(collision) = module_descriptors
+        .iter()
+        .find(|descriptor| candidates.contains_key(descriptor.name.as_str()))
+    {
+        return Err(CoreError::DuplicateModule(collision.name.clone()));
+    }
+    let report_module_count = module_descriptors.len();
+    let mut pending = module_descriptors.iter().collect::<Vec<_>>();
+    let mut next = 0;
+    // Visit only the host closure reached from report rows, in declaration order.
+    // Leave all edges intact for the existing strict sorter (including cycles).
+    while let Some(descriptor) = pending.get(next).copied() {
+        pending.extend(
+            descriptor
+                .module_dependencies
+                .iter()
+                .filter_map(|dependency| candidates.remove(dependency.module_name.as_str())),
+        );
+        next += 1;
+    }
+    let reached = pending
+        .into_iter()
+        .skip(report_module_count)
+        .cloned()
+        .collect::<Vec<_>>();
+    module_descriptors.extend(reached);
+    Ok(())
 }
 
 #[cfg(test)]
