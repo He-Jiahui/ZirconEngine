@@ -4,6 +4,10 @@ use std::{
 };
 
 use zircon_runtime::asset::artifact::ArtifactStore;
+use zircon_runtime::asset::pipeline::manager::ProjectAssetGenerationToken;
+use zircon_runtime::asset::project::{
+    AssetMetaDocument, ProjectCatalogInputGeneration, ProjectCatalogInputRecord,
+};
 use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
 use zircon_runtime::asset::watch::AssetChangeKind;
 use zircon_runtime::asset::{
@@ -147,6 +151,14 @@ fn editor202_project_open_publishes_initial_catalog_and_log() {
         );
     }
 
+    // Report absence before the original fixture expectations; never reopen a project to sample it.
+    if opened.is_none() || refreshed.is_none() || ui_source.is_none() {
+        eprintln!(
+            "editor202 input_delta attribution=not_attributable reason=missing_endpoint before={} after={} fixture={}",
+            opened.is_some(), refreshed.is_some(), ui_source.is_some()
+        );
+    }
+
     let (project, token) = opened.expect("[fixture input] no Runtime project after open");
     let (latest, latest_token) =
         refreshed.expect("[fixture input] no Runtime project after refresh");
@@ -155,6 +167,8 @@ fn editor202_project_open_publishes_initial_catalog_and_log() {
         .ancestors()
         .nth(3)
         .expect("<root>/assets/ui/menu.zui");
+    // Compare exactly the same operation path as the existing assertions, not its display spelling.
+    report_catalog_input_delta((&project, &token), (&latest, &latest_token), root);
     assert!(ui_source.is_file(), "[fixture input] missing physical .zui");
     assert!(
         same_activation == Some(true)
@@ -398,5 +412,238 @@ impl Drop for IsolatedProfile {
         if fs::canonicalize(&self.root).ok().as_deref() == Some(self.root.as_path()) {
             let _ = fs::remove_dir_all(&self.root);
         }
+    }
+}
+
+fn report_catalog_input_delta(
+    (before_project, before_token): (&ProjectManager, &ProjectAssetGenerationToken),
+    (after_project, after_token): (&ProjectManager, &ProjectAssetGenerationToken),
+    fixture_root: &Path,
+) {
+    let previous = before_project.catalog_input_generation();
+    let current = after_project.catalog_input_generation();
+    let roots = [
+        before_project.paths().root(),
+        before_token.project_root(),
+        previous.project_root(),
+        after_project.paths().root(),
+        after_token.project_root(),
+        current.project_root(),
+    ];
+    let same_root = roots.iter().all(|root| *root == roots[0]);
+    let fixture_root_matches = fixture_root == roots[0];
+    let same_activation = before_token.activation_identity() == after_token.activation_identity()
+        && before_project.activation_identity() == before_token.activation_identity()
+        && after_project.activation_identity() == after_token.activation_identity();
+    let sequences = (previous.sequence(), current.sequence());
+    if !same_root || !fixture_root_matches || !same_activation {
+        eprintln!("editor202 input_delta attribution=not_attributable reason=project_identity seq={sequences:?} \
+            same_root={same_root} fixture_root_matches={fixture_root_matches} same_activation={same_activation} \
+            roots[before_manager,token,input,after_manager,token,input]={roots:?} fixture_root={fixture_root:?}");
+        return;
+    }
+
+    let delta = current.delta_since(&previous);
+    let manifest_changed = previous.manifest() != current.manifest();
+    let package_assets_changed = previous.package_assets() != current.package_assets();
+    let counts = [
+        delta.added.len(),
+        delta.removed.len(),
+        delta.modified.len(),
+        delta.renamed.len(),
+    ];
+    let exact = catalog_contents_equal(&previous, &current, |a, b| a == b);
+    let [ignore_source, ignore_meta, ignore_both] =
+        [MtimeSlots::Row, MtimeSlots::Meta, MtimeSlots::Both].map(|slots| {
+            catalog_contents_equal(&previous, &current, |a, b| {
+                input_equal_except_mtime(a, b, slots)
+            })
+        });
+    // If dropping only timestamps makes the packets equal, the remaining raw differences
+    // must be modifications of retained IDs at the same locators, not topology changes.
+    let mtime_shape_agrees = !ignore_both
+        || counts
+            == [
+                0,
+                0,
+                previous
+                    .records()
+                    .filter(|old| current.record(old.resource().id()) != Some(*old))
+                    .count(),
+                0,
+            ];
+    let summary_agrees = exact == delta.is_unchanged()
+        && delta.project_metadata_changed == (manifest_changed || package_assets_changed)
+        && mtime_shape_agrees;
+    let single_mtime_only = match (summary_agrees, exact, ignore_source, ignore_meta) {
+        (false, _, _, _) => "unresolved_delta_summary_disagrees",
+        (true, true, _, _) => "no_net_change",
+        (true, false, true, false) => "source_mtime_unix_ms",
+        (true, false, false, true) => "meta.source_mtime_unix_ms",
+        _ => "not_a_single_mtime_field",
+    };
+    let both_mtime_slots_explain_net_diff =
+        summary_agrees && !exact && !ignore_source && !ignore_meta && ignore_both;
+    eprintln!("editor202 input_delta endpoints=before_after_explicit_refresh_attempt root={:?} \
+        same_activation=true seq={sequences:?} counts[added,removed,modified,renamed]={counts:?} \
+        project_metadata_changed={} manifest_changed={manifest_changed} package_assets_changed={package_assets_changed}",
+        roots[0], delta.project_metadata_changed);
+    eprintln!(
+        "editor202 input_delta mtime_equal[exact,ignore_row,ignore_meta,ignore_both]={:?} \
+        delta_summary_agrees={summary_agrees} single_mtime_only={single_mtime_only} \
+        both_mtime_slots_explain_net_diff={both_mtime_slots_explain_net_diff}",
+        [exact, ignore_source, ignore_meta, ignore_both]
+    );
+    report_changed_field("manifest", previous.manifest(), current.manifest());
+    report_changed_field(
+        "package_assets",
+        previous.package_assets(),
+        current.package_assets(),
+    );
+    for (kind, records) in [("added", &delta.added), ("removed", &delta.removed)] {
+        for row in records {
+            let resource = row.resource();
+            eprintln!(
+                "editor202 input_delta {kind} id={} locator={} origin={:?} row={row:?}",
+                resource.id(),
+                resource.primary_locator(),
+                input_origin(row)
+            );
+        }
+    }
+    for row in &delta.modified {
+        if let Some(old) = previous.record(row.resource().id()) {
+            report_changed_input("modified", old, row);
+        } else {
+            eprintln!("editor202 input_delta attribution=not_attributable reason=missing_modified_predecessor id={} locator={}",
+                row.resource().id(), row.resource().primary_locator());
+        }
+    }
+    for rename in &delta.renamed {
+        report_changed_input("renamed", &rename.previous, &rename.current);
+    }
+}
+
+// Compare the complete endpoint content by ID, not the rows selected by delta_since.
+fn catalog_contents_equal(
+    previous: &ProjectCatalogInputGeneration,
+    current: &ProjectCatalogInputGeneration,
+    same_record: impl Fn(&ProjectCatalogInputRecord, &ProjectCatalogInputRecord) -> bool,
+) -> bool {
+    previous.project_root() == current.project_root()
+        && previous.manifest() == current.manifest()
+        && previous.package_assets() == current.package_assets()
+        && previous.records().count() == current.records().count()
+        && previous.records().all(|old| {
+            current
+                .record(old.resource().id())
+                .is_some_and(|new| same_record(old, new))
+        })
+}
+
+#[derive(Clone, Copy)]
+enum MtimeSlots {
+    Row,
+    Meta,
+    Both,
+}
+
+fn input_equal_except_mtime(
+    a: &ProjectCatalogInputRecord,
+    b: &ProjectCatalogInputRecord,
+    ignore: MtimeSlots,
+) -> bool {
+    // Account for every stored field at the pinned revision except the requested slot(s).
+    a.resource() == b.resource()
+        && a.source_path() == b.source_path()
+        && a.meta_path() == b.meta_path()
+        && a.artifact_reference_revision() == b.artifact_reference_revision()
+        && a.direct_references() == b.direct_references()
+        && a.reference_repairs() == b.reference_repairs()
+        && (matches!(ignore, MtimeSlots::Row | MtimeSlots::Both)
+            || a.source_mtime_unix_ms() == b.source_mtime_unix_ms())
+        && match ignore {
+            MtimeSlots::Row => a.meta() == b.meta(),
+            MtimeSlots::Meta | MtimeSlots::Both => {
+                meta_without_source_mtime(a) == meta_without_source_mtime(b)
+            }
+        }
+}
+
+fn meta_without_source_mtime(row: &ProjectCatalogInputRecord) -> AssetMetaDocument {
+    let mut meta = row.meta().clone();
+    meta.source_mtime_unix_ms = 0;
+    meta
+}
+
+fn input_origin(
+    row: &ProjectCatalogInputRecord,
+) -> (
+    zircon_runtime_interface::resource::ResourceScheme,
+    Option<&str>,
+    &Path,
+    &Path,
+) {
+    let locator = row.resource().primary_locator();
+    (
+        locator.scheme(),
+        locator.package_id(),
+        row.source_path(),
+        row.meta_path(),
+    )
+}
+
+fn report_changed_input(
+    kind: &str,
+    old: &ProjectCatalogInputRecord,
+    new: &ProjectCatalogInputRecord,
+) {
+    let mtime_equal = [MtimeSlots::Row, MtimeSlots::Meta, MtimeSlots::Both]
+        .map(|slots| input_equal_except_mtime(old, new, slots));
+    eprintln!("editor202 input_delta {kind} id={} locator={} -> {} mtime_equal[ignore_row,ignore_meta,ignore_both]={mtime_equal:?}",
+        new.resource().id(), old.resource().primary_locator(), new.resource().primary_locator());
+    report_changed_field(
+        "source_mtime_unix_ms",
+        &old.source_mtime_unix_ms(),
+        &new.source_mtime_unix_ms(),
+    );
+    report_changed_field(
+        "meta.source_mtime_unix_ms",
+        &old.meta().source_mtime_unix_ms,
+        &new.meta().source_mtime_unix_ms,
+    );
+    report_changed_field("resource", old.resource(), new.resource());
+    report_changed_field(
+        "reference.direct",
+        old.direct_references(),
+        new.direct_references(),
+    );
+    report_changed_field(
+        "reference.repairs",
+        old.reference_repairs(),
+        new.reference_repairs(),
+    );
+    report_changed_field(
+        "reference.artifact_revision",
+        &old.artifact_reference_revision(),
+        &new.artifact_reference_revision(),
+    );
+    report_changed_field(
+        "origin(scheme,pkg,source_path,meta_path)",
+        &input_origin(old),
+        &input_origin(new),
+    );
+    if old.meta() != new.meta() {
+        report_changed_field(
+            "meta(other; mtime elided)",
+            &meta_without_source_mtime(old),
+            &meta_without_source_mtime(new),
+        );
+    }
+}
+
+fn report_changed_field<T: std::fmt::Debug + PartialEq + ?Sized>(field: &str, old: &T, new: &T) {
+    if old != new {
+        eprintln!("editor202 input_delta field={field} before={old:?} after={new:?}");
     }
 }
