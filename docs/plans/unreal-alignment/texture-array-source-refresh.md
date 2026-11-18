@@ -39,3 +39,14 @@ factory `a8e302ed7c83e2639862831f32d31b255efacda188b1e26404e3fcbf8ab879e2`；arr
 [array_layer_refresh 的测试原文](https://github.com/He-Jiahui/ZirconEngine/blob/eb023fb1f421f3c339680f54448e538dc901f813/zircon_plugins/texture_importer/runtime/tests/array_layer_refresh.rs)。测试经首方 `plugin_registration` 安装 image/array handler，在独占目录新建暖、冷两个工程，通过 `AssetManager::open_project` 和显式 `reimport_all` 执行。初扫与未更改再扫、输入 PNG、原图重新烘出新色、持久 UUID、未改层、顺序、实际 `res://` 与 `lib://` 内容、冷工程均在主断言之前通过。只改 `a.png` 红→蓝，清单 `sources = ["b.png", "a.png"]` 保持原字节。旧工程内数组 `00ff00ff ff0000ff`，初始就有新 PNG 的独立工程 `00ff00ff 0000ffff`。不使用后台 watcher 作为触发条件，也没有把在旧根 reopen 冒称本次冷对照。源码审查没有找到在恢复前执行的插件源发现钩子；不在 Runtime 写死本插件格式，不删除缓存或移植整套 DDC。本提交不改生产。
 
 **0 过、1 败。** 只编译 `zircon_plugin_texture_importer_runtime` 对应集成目标，关闭默认特性、无额外 feature，`test` profile，Windows x64/MSVC 1.94.1。用同一编译的测试程序实际执行 `array_layer_source_ --ignored --test-threads 1 --show-output`，非 `--no-run` 通过数。编译回执 `073aa29460f2f128cc9948388a693df7d5ea860d8c0892db08aea60d0e88c4df`，可执行文件 SHA-256 `2dc39e2c4a37fe300dd49a697710b8922e7facd1d28b238cfb7a6349f4e5c49c`，实际测试回执 `866c662ce77b307b9233822989928992a33a8abf292f84aaee4d28dfad59198d`，stdout `eae103e2a0c5dce0e93d5979a47438056d756a14cc31719591f372ae5951a96f`。UE 原测未运行。
+
+## 8. 同一动作键对应了两份不同的层像素
+
+测试退出后保留了暖工程与独立冷工程的六个真实容器及其 sidecar。复核了同一执行的原始 stdout 与盘上文件：两个工程最终的两张 PNG 和数组清单内容逐一相同；各自拥有自己的项目/资产 UUID，不靠跨工程 UUID 判定。
+
+| 真实数组记录 | 源指纹 | 动作键（BLAKE3，省略前缀） | 读出的内容摘要 | 两层 RGBA（绿在前） |
+|---|---|---|---|---|
+| 初始暖扫、无变更再扫及替换 PNG 后的暖扫 | `afcc013aa509c9f0` | `f94d446e36680144ecbf3f28c4deae2968913c5eeec0e8d1de42f266a219771c` | `9eb34ac8507f00ce2f4e9136bb07add9744ca9c38becd6720d06d30a28412673` | `00ff00ff ff0000ff` |
+| 先放入蓝色 PNG、从无制品开始的新工程 | `afcc013aa509c9f0` | `f94d446e36680144ecbf3f28c4deae2968913c5eeec0e8d1de42f266a219771c` | `f3f4a3c5c9f2cf9d2bc262d77f168f5c88787e39caf1fbed113c2045af227609` | `00ff00ff 0000ffff` |
+
+暖工程改色 PNG 自己已经变蓝，且源指纹、动作键和制品摘要均改变。**父数组的动作键没变，但冷工程按新 PNG 生成了不同内容**，这才是缺失输入的证据，而不仅仅是预览没刷新。表中摘要来自真实 artifact inventory，并非容器文件的通用 SHA-256。没有测试 GPU 或修改引擎。
