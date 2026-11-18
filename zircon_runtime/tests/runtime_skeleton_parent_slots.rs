@@ -3,8 +3,11 @@
 //! Check that evaluation order does not change the joint slots read by a drawn mesh.
 
 use std::collections::BTreeMap;
+use std::io::Write as _;
 use std::sync::Arc;
 
+use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
+use zircon_runtime::asset::AssetManager;
 use zircon_runtime::asset::{
     AssetReference, AssetUri, MaterialAsset, MeshAsset, MeshAttributeValues, MeshIndices,
     MeshSkinAsset, ProjectAssetManager, ZMaterialDocument, MESH_ATTRIBUTE_JOINT_INDEX,
@@ -39,6 +42,7 @@ const PROBE_COLUMNS: [usize; 4] = [32, 48, 96, 144];
 #[test]
 fn later_parent_slot_preserves_direct_mesh_skinning() {
     let assets = Arc::new(ProjectAssetManager::default());
+    open_fixture_project(&assets);
     let material = register_unlit_material(&assets);
     let (ordered_mesh, ordered_skeleton) = register_skin(&assets, false);
     let (late_mesh, late_skeleton) = register_skin(&assets, true);
@@ -177,6 +181,61 @@ fn has_coverage(pixels: [usize; 5], expected: [bool; 5]) -> bool {
             }
         },
     )
+}
+
+fn open_fixture_project(assets: &ProjectAssetManager) {
+    // The native launcher binds TEMP/TMPDIR to the physically admitted volume.
+    let temp_var = if cfg!(windows) { "TEMP" } else { "TMPDIR" };
+    let temp = std::env::var_os(temp_var)
+        .filter(|path| !path.is_empty())
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(std::env::temp_dir);
+    assert!(temp.is_absolute(), "fixture temp root must be absolute");
+    let parent = ProjectPaths::resolve_existing(temp).expect("resolve fixture temp root");
+    let scene = AssetUri::parse("res://scenes/unused.zscene").unwrap();
+    // This test submits frame DTOs directly; it never loads the default scene.
+    let manifest = ProjectManifest::new("Skeleton164DrawFixture", scene, 1);
+    let guid = manifest.project_guid;
+    let path = parent.operation_path().join(format!("s164-{guid}"));
+    std::fs::create_dir(&path).expect("reserve an exclusive skeleton164 project directory");
+    let root = ProjectPaths::resolve_existing(&path).expect("resolve new project root");
+    assert_eq!(
+        root.operation_path(),
+        path.as_path(),
+        "fixture root was redirected"
+    );
+    println!(
+        "skeleton164 fixture root={} project_guid={guid}",
+        root.display_path().display()
+    );
+    // Keep this uniquely owned project, its marker, and its caches for failure inspection.
+    let mut marker = std::fs::File::create_new(root.operation_path().join(".skeleton164-owner"))
+        .expect("reserve the skeleton164 fixture marker");
+    writeln!(marker, "runtime_skeleton_parent_slots\nproject_guid={guid}")
+        .expect("write the skeleton164 fixture marker");
+    drop(marker);
+
+    let paths = ProjectPaths::from_resolved_root(&root);
+    let mut document = std::fs::File::create_new(paths.manifest_path())
+        .expect("reserve the skeleton164 project manifest");
+    document
+        .write_all(
+            &manifest
+                .to_current_format_bytes()
+                .expect("encode project manifest"),
+        )
+        .expect("write project manifest");
+    drop(document);
+
+    let project = ProjectManager::open_resolved(&root).expect("open the fixture project");
+    assets
+        .open_prepared_project(project)
+        .expect("activate the fixture project before inserting render assets");
+    let active = assets
+        .current_project_manager()
+        .expect("fixture project is active");
+    assert_eq!(active.paths().root(), root.operation_path());
+    assert_eq!(active.manifest().project_guid, guid);
 }
 
 fn register_unlit_material(assets: &ProjectAssetManager) -> ResourceId {
