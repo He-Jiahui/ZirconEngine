@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，当前共 **29 个问题 Draft**。第14轮的资产、音频及 Editor 观测见第18节；第7–17节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第15轮新增独立问题 #207，目前共 **30 个问题 Draft**。最新原生证据见第19节，第7–18节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -308,3 +308,13 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 | [#202 注册 Editor 首目录](https://github.com/He-Jiahui/ZirconEngine/pull/202) | 单例 0 过 1 败；同 root/activation，输入代 11→17、1 Modified，两端内容仅两处 mtime 槽位不同。Editor 两端行数 0 / 0。 唯一净变行是 `res://shaders/pbr_shader`，不是 `.zui`。 | 观察的是显式刷新前后两个端点的**净变化**，不是每个 watch 批次或内部 token 决策；不能仅凭 #204 的独立全扫例给真实打开归因。 |
 
 [资产两扫、物理文件与正控](https://github.com/He-Jiahui/ZirconEngine/blob/2213793438bbc772d0aa35c1645b31d7a3f9b753/docs/plans/unreal-alignment/compound-sidecar-source-time.md) · [WAV 逐位输出与依赖/组件证据](https://github.com/He-Jiahui/ZirconEngine/blob/1e74ec6b674d0d7c04d5ee7f1b29c8e55ed03e96/docs/plans/unreal-alignment/wav-finite-pcm.md) · [Editor 原见证与新端点结果](https://github.com/He-Jiahui/ZirconEngine/blob/e892e0545b20b84e374e6a1a31a37216cb84772a/docs/plans/unreal-alignment/editor-initial-catalog-visibility.md)。本轮都在已有独立 Draft 上补测试与证据，没有改生产或验收脚本；[上轮 #201 的日志修复](https://github.com/He-Jiahui/ZirconEngine/pull/201)仍与 #202 分开。**29 个问题 Draft + 1 个目录 Draft，本任务未合并。** 全域枚举（2,588 个 Build、178 个 Target、40 个领域）及 8 个 CSV 均未改变；枚举不是行为通过数。
+
+## 19. 动画通知预算、骨架绘制及 Editor 提交分支（2026-11-18）
+
+| 问题 | 已有证据 | 未涵盖 |
+|---|---|---|
+| 新 [#207 循环点通知](https://github.com/He-Jiahui/ZirconEngine/pull/207) | 没有打断迁移，仅一个区间。无分页为 80；默认 64 条预算，真实采样器与 LevelSystem 队列都交付 **64+32=96**。实跑 1 过 2 败；短帧/精确周期的控制各为 80。 | UE 普通 Sequence 与 Montage 的区间扫描是源码参照；未运行 UE 或整套动画插件。与 [#171](https://github.com/He-Jiahui/ZirconEngine/pull/171) 的重复生产区间分开。 |
+| 原 [#164 骨骼后置父槽](https://github.com/He-Jiahui/ZirconEngine/pull/164) | 257 骨的真实 CPU 蒙皮、DX12 光栅读回：原版父骨在前可画、后置父骨退化为绑定姿态；只修父依赖求值后，同一三帧 0 过 1 败 → 1 过 0 败。 | 两骨 GPU 蒙皮的 Base 错误代理仍在源校验失败；CPU 变形后用 GPU 绘制不等于 GPU 蒙皮通过，未宣称性能或全 renderer 验收。 |
+| 原 [#202 注册首目录](https://github.com/He-Jiahui/ZirconEngine/pull/202) | 专用分段观测 0 过 1 败。首次打开拿源版本 **3**、唯一显式刷新拿 **10**；两次都命中 Runtime 令牌过期的真实拒绝分支，没有发布 Editor 目录。 | 同一刷新前后 10→16，仅一条 shader 的两处时钟有净变化；没有逐批证实是谁写入，也不放松提交身份检查。 |
+
+[通知的原生位型与次数](https://github.com/He-Jiahui/ZirconEngine/blob/a7e7a21b2abbeeaf21fedd9659c33987b5887cfe/docs/plans/unreal-alignment/loop-notify-resume.md) · [骨架三帧与不同管线边界](https://github.com/He-Jiahui/ZirconEngine/blob/67553e62febec21be5b7c6ca044bd34f057e1291/docs/plans/unreal-alignment/skeleton-parent-slot-order.md) · [Editor 两个同步 span 的原生样本](https://github.com/He-Jiahui/ZirconEngine/blob/6e25d20e8140059583981a47ddf3fb43bdaffe12/docs/plans/unreal-alignment/editor-initial-catalog-visibility.md)。本轮只在 #164 的私有蒙皮矩阵求值上改生产；其余均为调查/测试。 现有 **30 个独立问题 Draft + 1 个目录 Draft**，本任务无合并；2,588 个 Build、178 个 Target、40 个领域和 8 个冻结 CSV 不变，不能把目录数量当作产品通过数。
