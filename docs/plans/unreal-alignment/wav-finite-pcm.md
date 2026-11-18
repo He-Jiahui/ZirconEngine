@@ -141,3 +141,19 @@ UAudioComponent::Play -> PlayInternal -> AudioDevice::AddNewActiveSound
 | [AudioMixerBridgeRegistrationTest](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/AudioMixer/Private/Tests/AudioMixerBridgeRegistrationTest.cpp>) | a2b8c28d6d0edf52b1f3f21785da377ce003c4f7bc4e20ece20b449259458826 |
 | [DelayTests](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/SignalProcessing/Tests/DelayTests.cpp>) | dfefbe32f26064b4b5509390b5304942b3beaf0e18cb508b7354e07cf44a9b05 |
 | [UnrealMathTest](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Tests/Math/UnrealMathTest.cpp>) | f0276a149caab14a3cdae4f873e7fb151b701696c1e72022407bb8d6d2101cbe |
+
+## 7. 实际注册的 WAV 导入器与参考库组件对照（2026-11-18）
+
+[独立公共回归 `7075e428c8f4bd787bd483233052c82d5e682b32`](https://github.com/He-Jiahui/ZirconEngine/blob/7075e428c8f4bd787bd483233052c82d5e682b32/zircon_plugins/audio_importer/runtime/tests/wav_finite.rs) 在同包 Cargo integration target 内用正式 `plugin_registration()` 注册、按 `.wav` 选中 `audio_importer.wav`，调用真实 `AssetImporter::import_context`，并与同字节的公共 `SoundAsset::from_wav_bytes` 对照。两个合法 IEEE32 WAV 均为 8 kHz、三帧、正确的 WAVEFORMATEX/fact/data；不用设备、外部 OGG 或伪造注册表。Windows x64/MSVC，Rust 1.94.1，`test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_audio_importer_runtime --no-default-features --test wav_finite wav156_ --locked --jobs 1 -- --test-threads 1 --show-output`。**6 案：4 过、2 败、0 忽略、0 过滤，exit 101**。
+
+| 原始输入和触点 | 公共 parser / 已注册 importer 的实际结果 |
+|---|---|
+| mono 第 2 样本（文件 70 B） | 两路都成功，均保留 `0x7fc00000`；前后样本及 shape 正确，未满足有限契约 |
+| stereo 第 2 帧右声道（文件 82 B） | 两路都成功，均保留 `0xffc00000`；其余五个交错样本原位，未满足有限契约 |
+| 四个控制 | 有限 float（含正负零与最小 subnormal 位型）、现有 overrange / ±Inf 饱和、正常 PCM16、半个 stereo frame 的明确 `DataFrameAlignment → AssetImportError::Parse` 均通过 |
+
+**不是把环境错误当 RED。** 初次 `--locked --offline` 因缓存缺锁定的 `symphonia 0.5.5` 在测试启动前退出 101（stdout 0 B，回执 `e273a1d303807d905a588bb166961ad311a4808213fc5de397c657c3814ba479`）。其后仅允许 Cargo 通过已有 registry 在原缓存取得锁定依赖，未改源码/依赖/夹具/代理/TLS；上表来自后一次真正运行的测试。测试文件 SHA-256 `b87c8179e5fcb883d850bdaed3b34485e6ce8a036d6e7d7e999f6ac677cb1dd7`，15 项选定源码/清单前后复核；原生回执 `979108594b0d7110113227e31974c41c93010448e625348fc6b1b80a6f827b37`，stdout `403dab99b5a6a5782d9023d213b2a626acf32ad076defa9bb4560e3dcf560bee`（2,849 B），stderr `c95326b69ff9a83854c7dafe3406432aa6d3228f240466aa09093a5ec5db97dc`（264,560 B）。旧 `--lib` 的 OGG 是编译期外部夹具；未复制、跳过或声称已通过整包测试。
+
+**UE 参照：实测的是哪个组件。** 参考树自带 x64 `libsndfile-1.2.2`（SHA-256 `4e3bd2de8e1485110eaebef8e1239471f73d608773831c323bf528e05645655e`）。用相同格式和位型的两个缓冲区（文件 SHA-256 `43126fd051965c37a6016927007abf7f8b9d7cc6cfad11a03f657c5d8988a040`、`54faa736fb66686b26bd8f30c1fcbce8f7f33d9698354cf3bea163ce76a4c191`），实际 `sf_read_float` 在文件及 `sf_open_virtual` 两种打开方式下均保留正/负 qNaN；虚拟输入用本次独立的有界内存回调。独立的 writer 实验对**提供的有限** −1/+1 写出 PCM16 −32767/+32767，**不是**把上述 NaN 经 UE 导入后的样值。源码定位（`Engine/Source/Runtime/AudioMixer/Private/SoundFileIO/`）：`SoundFileIO.cpp:55–80,130–148` 实例化 data reader 与转换；`SoundFileIOManagerImpl.cpp:99–129,167–182,1162–1176,1302–1312,1645–1655,1740–1747` 指向真实 virtual data reader、相同库入口及 writer。相邻的 `839–849` 是另一 reader，不能用它声称执行过 `FSoundDataReader`。未启动 `UnrealEditor`、`USoundFactory`、UE 自己的回调或 `FMath::Clamp`，未移植 UE 的精确替换数值。
+
+**修复门**：此冻结组检验既有**成功导入**时必须给出有限、归一化的 PCM，不钉死替换为静音或满幅；错误分支不能用任意 `Err` 来“通过”。若政策选拒绝坏样本，应先明确 typed error 与注册导入的对应映射，再核公开错误枚举的兼容性。若选择修正成功路径，还需按是否包含老资产决定只针对 WAV 的 importer 版本/已持久化缓存重导门。本 PR 暂保留真实 RED，不改音频样值政策、其它 codec、缓存格式或后端；上述测试和独立 DLL 对照不是设备、staged product、UE 完整导入或旧缓存验收。
