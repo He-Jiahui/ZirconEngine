@@ -8,6 +8,9 @@ use crate::core::math::Real;
 use crate::scene::EntityId;
 use std::collections::BinaryHeap;
 
+#[path = "clip_event/occurrence.rs"]
+mod occurrence;
+
 pub struct ProjectAnimationClipEventSampler<'a> {
     asset_manager: &'a ProjectAssetManager,
 }
@@ -135,20 +138,54 @@ fn sample_clip_events_budgeted(
     } else {
         (range_cursor + limits.max_playback_span_seconds).min(range_to)
     };
+    // A resumed loop must start from the original range's fresh seed, not
+    // reconstruct a new phase from the cursor or this page's end. The Level
+    // sampler also receives a cursor on a fresh request.
+    let loop_start = (looping && (range_cursor != range_from || cursor.last_event.is_some()))
+        .then(|| AnimationClipEventSamplingCursor::at_range_start(range_from));
+    let (seed_cursor, seed_end) = match &loop_start {
+        Some(start) => (start, range_to),
+        None => (&cursor, batch_end),
+    };
     let mut candidates = clip
         .event_tracks
         .iter()
         .enumerate()
         .filter_map(|(track_index, track)| {
-            event_candidate(
+            let mut candidate = event_candidate(
                 track,
                 track_index,
                 duration_seconds,
                 looping,
                 reverse,
-                &cursor,
-                batch_end,
-            )
+                seed_cursor,
+                seed_end,
+            )?;
+            if loop_start.is_some() {
+                let time = occurrence::seek(
+                    candidate.playback_time_seconds,
+                    duration_seconds,
+                    range_cursor,
+                    reverse,
+                )?;
+                // The seek is inclusive. On an already consumed equal-time key,
+                // only one native step can produce this track's next candidate.
+                candidate.playback_time_seconds =
+                    if event_is_after_cursor(time, track, track_index, &cursor, reverse) {
+                        time
+                    } else {
+                        occurrence::step(time, duration_seconds, reverse)?
+                    };
+                if !playback_time_is_within_batch(
+                    candidate.playback_time_seconds,
+                    range_cursor,
+                    batch_end,
+                    reverse,
+                ) {
+                    return None;
+                }
+            }
+            Some(candidate)
         })
         .collect::<BinaryHeap<_>>();
     let mut batch = AnimationClipEventSamplingBatch {
@@ -201,17 +238,9 @@ fn sample_clip_events_budgeted(
         };
 
         if looping {
-            let next_playback_time = if reverse {
-                candidate.playback_time_seconds - duration_seconds
-            } else {
-                candidate.playback_time_seconds + duration_seconds
-            };
-            let advances = if reverse {
-                next_playback_time < candidate.playback_time_seconds
-            } else {
-                next_playback_time > candidate.playback_time_seconds
-            };
-            if next_playback_time.is_finite() && advances {
+            if let Some(next_playback_time) =
+                occurrence::step(candidate.playback_time_seconds, duration_seconds, reverse)
+            {
                 candidates.push(EventCandidate {
                     playback_time_seconds: next_playback_time,
                     ..candidate
