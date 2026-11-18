@@ -253,6 +253,7 @@ fn collider_after_rigid_teleport(
         || before.scale != target.scale
         || !before.rotation.is_normalized()
         || !target.rotation.is_normalized()
+        || !collider.rotation.is_normalized()
     {
         return target;
     }
