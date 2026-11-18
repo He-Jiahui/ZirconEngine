@@ -222,10 +222,11 @@ pub(super) fn apply_commands_to_sync(
                 body.angular_velocity = velocity;
             }
             PhysicsBodyCommand::Teleport { transform, .. } => {
-                body.transform = transform;
                 if let Some(collider_index) = collider_indices.get(&body.entity).copied() {
-                    sync.colliders[collider_index].transform = transform;
+                    let collider = &mut sync.colliders[collider_index].transform;
+                    *collider = collider_after_rigid_teleport(*collider, body.transform, transform);
                 }
+                body.transform = transform;
             }
             PhysicsBodyCommand::SetBodyType { body_type, .. } => {
                 body.body_type = body_type;
@@ -238,6 +239,39 @@ pub(super) fn apply_commands_to_sync(
             }
             PhysicsBodyCommand::ApplyForce { .. } | PhysicsBodyCommand::ApplyImpulse { .. } => {}
         }
+    }
+}
+
+#[cfg(feature = "backend-jolt")]
+fn collider_after_rigid_teleport(
+    collider: Transform,
+    before: Transform,
+    target: Transform,
+) -> Transform {
+    // A scale-changing command is not a rigid move; keep its existing snapshot policy.
+    if collider == before
+        || before.scale != target.scale
+        || !before.rotation.is_normalized()
+        || !target.rotation.is_normalized()
+    {
+        return target;
+    }
+    if before.translation == target.translation
+        && (before.rotation == target.rotation || before.rotation == -target.rotation)
+    {
+        return collider;
+    }
+    let rotation_delta = target.rotation.normalize() * before.rotation.normalize().conjugate();
+    let moved = Transform {
+        translation: target.translation
+            + rotation_delta * (collider.translation - before.translation),
+        rotation: rotation_delta * collider.rotation,
+        ..collider
+    };
+    if transform_is_finite(moved) {
+        moved
+    } else {
+        target
     }
 }
 
