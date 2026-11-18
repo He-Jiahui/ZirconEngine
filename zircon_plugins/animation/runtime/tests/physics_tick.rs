@@ -324,6 +324,7 @@ fn level_tick_applies_loaded_animation_sequences_to_world_properties() {
 }
 
 include!("physics_tick/clip_events.rs");
+include!("physics_tick/paused_event.rs");
 
 #[test]
 fn level_tick_without_animation_plugin_does_not_advance_sequence_players() {
