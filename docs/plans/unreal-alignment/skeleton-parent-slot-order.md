@@ -55,3 +55,13 @@ UE 的引用骨架 index 与源 glTF ordinal 可不同，由导入 remap、分�
 
 2. **门依赖。** 后续获授权后先宣告 scoped 验证：workspace `zircon_runtime --lib`、默认 features 关闭、`native-host,graphics`、默认 test profile、精确新旧同 owner filters；如测实际绘制，同一选择追加明确的 WGPU 产品用例并记录设备/后端与实际 RED→GREEN。就给定快照，[#137](https://github.com/He-Jiahui/ZirconEngine/pull/137) 的现有 E0716 会先阻断这个 libtest 配置（待在实际测试基线上复核）；测试要使用受控的可编译基础，注明任何测试专用前置，**不能把 #137 修复并入本 Draft 或把编译失败当本缺陷 RED**。不要求合并 [#135](https://github.com/He-Jiahui/ZirconEngine/pull/135)/[#144](https://github.com/He-Jiahui/ZirconEngine/pull/144)。记录实际聚焦单测、非测试包检查和所需产品结果后，才评估修复是否可行、可否离开 Draft；现有 `editor-compile-gate` 不绕过。
 3. **去重 / 置信。** 已读本轮 [GitHub PR 快照](<D:/CodexData/worktrees/ze-ue-audit-20261117/reports/ue-module-audit-20261117/github-pr-snapshot.json#L1-L152>) #131–#145（SHA256 `b374ee7808d92536d2680a200de47479f5a458015f568562465b209c0ab0ef30`）：#135/#144 改世界仿射与可见性/视口矩阵，#139 改模型资源夹具，#140/#141/#143 是切线与法线 oracle/生成/夹具，#142 是 glTF 插件测试 API 断裂，均不是已接纳 skeleton 的调色板父槽顺序；#137 只为前置。快照外 PR 未查。源码置信高：有被接受的无环 typed 资产、精确失败语句和可达绘制回退；产品复现、性能与修复可行性均未实测。
+
+## 7. 真设备三帧门的前置结果：一帧已读回，不是后置父骨行为 RED
+
+同一 Windows x64/MSVC、Rust 1.94.1、RTX 3060 Laptop GPU / DX12。仅执行 `test -p zircon_runtime --no-default-features --features native-host,graphics --test runtime_skeleton_parent_slots later_parent_slot_preserves_direct_mesh_skinning --locked --offline --jobs 1 -- --exact --test-threads 1 --show-output`；不编入与本问题无关的 graphics unit-test 夹具。
+
+1. [首次测试提交](https://github.com/He-Jiahui/ZirconEngine/commit/277912958abca4ec475e2d9e8c90d97bd5fb5613) 已编译、链接、枚举到 DX12 设备；生产 rlib 的 renderer 要求活动工程，不能沿用库测专用的 cwd fallback。首例在构造失败，未提交任何帧；回执 SHA-256 `7b392452a142e0abad5caaf9656f270e84de544618f266fa52c3d59cf5a4979a`。
+2. [仅补正式工程生命周期的 `d8e9b4ec820f8eac080272116b40def6cfc9c4e7`](https://github.com/He-Jiahui/ZirconEngine/blob/d8e9b4ec820f8eac080272116b40def6cfc9c4e7/zircon_runtime/tests/runtime_skeleton_parent_slots.rs)：用独占的实际目录和正常 `open_prepared_project` 激活一份新 manifest，再注册同样的材质、骨架、网格。原三帧变换、槽重排、像素阈值、断言不变。无姿态刚体帧成功，generation=1，(总绘制, 蒙皮, prepared) = **(1,0,1)**；192×192 回读在绑定 Root/Child 两窗各 **96 像素**，姿态两窗和其它区域均 0。设备确实绘制了两个三角形。
+3. 轮到**父骨在前**的健康对照，提交就返回 `error proxy MeshPass(Base) pipeline admission failed for variant MeshPipelineVariantId(8): source_validation_failed`；没有该帧的成功回读，后置父骨帧还没执行。第二次总结果 0 过 1 败，exit 101，回执 SHA-256 `4287d4c34239140aa5b7ec141c0f2b295737e7d5d20ced818f9565e8ae6ec932`。错误标签不足以指认具体 WGSL 绑定或给 [#137](https://github.com/He-Jiahui/ZirconEngine/pull/137) 归因。
+
+保留这个两骨 GPU 变体测试和原始失败，不静默跳过、替换 shader、放松正控或把其失败算作本问题 RED。下一门可以另在引擎正常支持的 CPU 蒙皮路径上隔离同一父索引顺序；如果仍用 GPU 光栅化，须明确区分“CPU 计算顶点”和“GPU 画出并读回”。本阶段没有改产品代码。
