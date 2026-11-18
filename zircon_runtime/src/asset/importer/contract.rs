@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use std::fmt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
@@ -208,7 +208,29 @@ impl AssetImportContext {
         self
     }
 
-    pub(crate) fn source_file_snapshot(&self, path: &std::path::Path) -> Option<&[u8]> {
+    /// Borrows captured bytes for a companion at its joined lexical path.
+    ///
+    /// Resolve the declared path against the primary source's parent without
+    /// opening the file. Only non-authoritative contexts can return `Ok(None)`.
+    /// A missing authoritative entry is an error; do not fall back to disk.
+    pub fn captured_auxiliary_source(
+        &self,
+        resolved_path: &Path,
+    ) -> Result<Option<&[u8]>, AssetImportError> {
+        if !self.has_source_file_snapshots() {
+            return Ok(None);
+        }
+        self.source_file_snapshot(resolved_path)
+            .map(Some)
+            .ok_or_else(|| {
+                AssetImportError::Parse(format!(
+                    "required auxiliary source {} was not captured",
+                    crate::asset::project::ProjectPaths::display_path(resolved_path).display()
+                ))
+            })
+    }
+
+    pub(crate) fn source_file_snapshot(&self, path: &Path) -> Option<&[u8]> {
         self.source_file_snapshots
             .get(path)
             .or_else(|| {
@@ -232,7 +254,7 @@ impl AssetImportContext {
         self.source_file_snapshots_authoritative
     }
 
-    pub(crate) fn source_file_snapshot_paths(&self) -> impl Iterator<Item = &std::path::Path> {
+    pub(crate) fn source_file_snapshot_paths(&self) -> impl Iterator<Item = &Path> {
         self.source_file_snapshots.keys().map(PathBuf::as_path)
     }
 
@@ -428,13 +450,34 @@ pub trait AssetImporterHandler: fmt::Debug + Send + Sync {
         AssetImporterCapabilityStatus::Available
     }
 
+    /// Discovers companion paths from captured `primary` bytes without reading files.
+    ///
+    /// Before keying a single-file project source, the host may ask only its
+    /// selected, available Rust handler. Return ordinary paths relative to the
+    /// parent of `source_path`; do not declare the already captured primary file.
+    /// Preserve slot order and repeated paths. The host counts only unique
+    /// companion captures toward the file budget.
+    ///
+    /// The default declares no companions. Direct imports and compound sources
+    /// do not rely on this hook. It is not part of the Native v3 C ABI.
+    fn auxiliary_source_paths(
+        &self,
+        _source_path: &Path,
+        _primary: &[u8],
+    ) -> Result<Vec<PathBuf>, AssetImportError> {
+        Ok(Vec::new())
+    }
+
     fn import(&self, context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError>;
 }
+
+type AuxiliarySourcePathsFn = fn(&Path, &[u8]) -> Result<Vec<PathBuf>, AssetImportError>;
 
 #[derive(Clone)]
 pub struct FunctionAssetImporter {
     descriptor: AssetImporterDescriptor,
     import_fn: fn(&AssetImportContext) -> Result<AssetImportOutcome, AssetImportError>,
+    auxiliary_source_paths_fn: Option<AuxiliarySourcePathsFn>,
 }
 
 impl FunctionAssetImporter {
@@ -445,7 +488,18 @@ impl FunctionAssetImporter {
         Self {
             descriptor,
             import_fn,
+            auxiliary_source_paths_fn: None,
         }
+    }
+
+    /// Opts this adapter into [`AssetImporterHandler::auxiliary_source_paths`]
+    /// without changing its import function.
+    pub fn with_auxiliary_source_paths(
+        mut self,
+        discover: fn(&Path, &[u8]) -> Result<Vec<PathBuf>, AssetImportError>,
+    ) -> Self {
+        self.auxiliary_source_paths_fn = Some(discover);
+        self
     }
 }
 
@@ -461,6 +515,17 @@ impl fmt::Debug for FunctionAssetImporter {
 impl AssetImporterHandler for FunctionAssetImporter {
     fn descriptor(&self) -> &AssetImporterDescriptor {
         &self.descriptor
+    }
+
+    fn auxiliary_source_paths(
+        &self,
+        source_path: &Path,
+        primary: &[u8],
+    ) -> Result<Vec<PathBuf>, AssetImportError> {
+        match self.auxiliary_source_paths_fn {
+            Some(discover) => discover(source_path, primary),
+            None => Ok(Vec::new()),
+        }
     }
 
     fn import(&self, context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {

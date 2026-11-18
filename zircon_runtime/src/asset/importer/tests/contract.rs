@@ -1,5 +1,7 @@
+use std::sync::Arc;
+
 use super::*;
-use crate::asset::importer::AssetImportRecipeValue;
+use crate::asset::importer::{AssetImportRecipeValue, AssetImporterRegistry};
 
 #[test]
 fn source_str_borrows_the_context_utf8_buffer() {
@@ -106,4 +108,75 @@ fn context_rejects_a_build_identity_for_different_settings() {
     );
 
     let _ = context_with_settings(context_settings).with_build_identity(identity);
+}
+
+#[test]
+fn captured_auxiliary_source_borrows_bytes_and_rejects_authoritative_misses() {
+    let context = context_with_settings(toml::Table::new());
+    let path = context.source_path.with_file_name("layer.png");
+    assert_eq!(context.captured_auxiliary_source(&path).unwrap(), None);
+
+    let empty_capture = context.clone().with_source_file_snapshots(BTreeMap::new());
+    assert!(matches!(
+        empty_capture.captured_auxiliary_source(&path),
+        Err(AssetImportError::Parse(message)) if message.contains("layer.png")
+    ));
+
+    let bytes = vec![1, 2, 3];
+    let bytes_ptr = bytes.as_ptr();
+    let capture = context.with_source_file_snapshots(BTreeMap::from([(path.clone(), bytes)]));
+    let captured = capture.captured_auxiliary_source(&path).unwrap().unwrap();
+    assert_eq!(captured, &[1, 2, 3]);
+    assert_eq!(captured.as_ptr(), bytes_ptr);
+    assert!(capture
+        .captured_auxiliary_source(&path.with_file_name("other.png"))
+        .is_err());
+}
+
+#[test]
+fn function_importer_auxiliary_discovery_is_opt_in_for_the_selected_provider() {
+    let path = Path::new("assets/manifest.ztest");
+    let importer = FunctionAssetImporter::new(
+        AssetImporterDescriptor::new("test.available", "test", AssetKind::Data, 1)
+            .with_source_extensions(["ztest"]),
+        |_| panic!("source discovery must not import"),
+    );
+    assert!(importer
+        .auxiliary_source_paths(path, b"manifest")
+        .unwrap()
+        .is_empty());
+    let importer = importer.with_auxiliary_source_paths(|source_path, primary| {
+        assert_eq!(source_path, Path::new("assets/manifest.ztest"));
+        if primary == b"manifest" {
+            Ok(vec![PathBuf::from("layer.png")])
+        } else {
+            Err(AssetImportError::Parse("invalid test manifest".into()))
+        }
+    });
+
+    let mut registry = AssetImporterRegistry::default();
+    registry
+        .register(DiagnosticOnlyAssetImporter::new(
+            AssetImporterDescriptor::new("test.diagnostic", "test", AssetKind::Data, 1)
+                .with_source_extensions(["ztest"])
+                .with_priority(1),
+            "test backend is unavailable",
+        ))
+        .unwrap();
+    let (diagnostic, available) = registry.select_with_availability(path).unwrap();
+    assert!(!available);
+    assert!(Arc::ptr_eq(&diagnostic, &registry.select(path).unwrap()));
+
+    registry.register(importer).unwrap();
+    let (selected, available) = registry.select_with_availability(path).unwrap();
+    assert!(available);
+    assert!(Arc::ptr_eq(&selected, &registry.select(path).unwrap()));
+    assert_eq!(
+        selected.auxiliary_source_paths(path, b"manifest").unwrap(),
+        vec![PathBuf::from("layer.png")]
+    );
+    assert!(matches!(
+        selected.auxiliary_source_paths(path, b"invalid"),
+        Err(AssetImportError::Parse(message)) if message == "invalid test manifest"
+    ));
 }

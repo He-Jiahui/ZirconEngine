@@ -1,3 +1,5 @@
+use std::path::{Path, PathBuf};
+
 use image::RgbaImage;
 use serde::Deserialize;
 use zircon_runtime::asset::{
@@ -6,7 +8,10 @@ use zircon_runtime::asset::{
 };
 
 use crate::importers::{apply_texture_import_settings, texture_import_outcome};
-use crate::manifest_source::{decode_manifest_image, DecodedManifestImage};
+use crate::manifest_source::{
+    decode_manifest_image_bytes, read_manifest_image, resolve_manifest_source,
+    validated_relative_source, DecodedManifestImage,
+};
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -18,16 +23,71 @@ struct TextureArrayManifest {
     row_height: Option<u32>,
 }
 
+enum TextureArraySources {
+    Files(Vec<String>),
+    Sliced {
+        source: String,
+        layout: TextureArrayLayout,
+    },
+}
+
+fn parse_array_manifest(
+    source_path: &Path,
+    source_bytes: &[u8],
+) -> Result<TextureArraySources, AssetImportError> {
+    let text =
+        std::str::from_utf8(source_bytes).map_err(|_| AssetImportError::SourceTextDecode {
+            path: source_path.to_owned(),
+            source: String::from_utf8(source_bytes.to_vec())
+                .expect_err("the borrowed UTF-8 check already rejected these bytes"),
+        })?;
+    let manifest: TextureArrayManifest = toml::from_str(text).map_err(|error| {
+        AssetImportError::Parse(format!(
+            "parse texture array manifest {}: {error}",
+            source_path.display()
+        ))
+    })?;
+    match (
+        manifest.sources.is_empty(),
+        manifest.source,
+        manifest.row_count,
+        manifest.row_height,
+    ) {
+        (false, None, None, None) => Ok(TextureArraySources::Files(manifest.sources)),
+        (true, Some(source), Some(rows), None) => Ok(TextureArraySources::Sliced {
+            source,
+            layout: TextureArrayLayout::RowCount { rows },
+        }),
+        (true, Some(source), None, Some(pixels)) => Ok(TextureArraySources::Sliced {
+            source,
+            layout: TextureArrayLayout::RowHeight { pixels },
+        }),
+        _ => Err(AssetImportError::Parse(
+            "texture array manifest must set either `sources` or one `source` with exactly one of `row_count`/`row_height`"
+                .to_string(),
+        )),
+    }
+}
+
+pub(crate) fn texture_array_auxiliary_source_paths(
+    source_path: &Path,
+    source_bytes: &[u8],
+) -> Result<Vec<PathBuf>, AssetImportError> {
+    let manifest = parse_array_manifest(source_path, source_bytes)?;
+    let sources = match &manifest {
+        TextureArraySources::Files(sources) => sources.as_slice(),
+        TextureArraySources::Sliced { source, .. } => std::slice::from_ref(source),
+    };
+    sources
+        .iter()
+        .map(|source| validated_relative_source(source).map(Path::to_path_buf))
+        .collect()
+}
+
 pub fn import_texture_array_manifest(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
-    let manifest: TextureArrayManifest =
-        toml::from_str(&context.source_text()?).map_err(|error| {
-            AssetImportError::Parse(format!(
-                "parse texture array manifest {}: {error}",
-                context.source_path.display()
-            ))
-        })?;
+    let manifest = parse_array_manifest(&context.source_path, &context.source_bytes)?;
     let (layer_sources, layers) = resolved_layers(context, manifest)?;
     let asset = Texture2DArrayAsset {
         uri: context.uri.clone(),
@@ -47,14 +107,13 @@ pub fn import_texture_array_manifest(
 
 fn resolved_layers(
     context: &AssetImportContext,
-    manifest: TextureArrayManifest,
+    manifest: TextureArraySources,
 ) -> Result<(Vec<TextureArrayLayerSource>, Vec<TextureAsset>), AssetImportError> {
-    match (manifest.sources.is_empty(), manifest.source) {
-        (false, None) if manifest.row_count.is_none() && manifest.row_height.is_none() => {
-            let decoded = manifest
-                .sources
+    match manifest {
+        TextureArraySources::Files(sources) => {
+            let decoded = sources
                 .iter()
-                .map(|source| decode_manifest_image(context, source))
+                .map(|source| decode_array_image(context, source))
                 .collect::<Result<Vec<_>, _>>()?;
             let sources = decoded
                 .iter()
@@ -66,39 +125,44 @@ fn resolved_layers(
                 .collect::<Vec<_>>();
             Ok((sources, layers))
         }
-        (true, Some(source)) if manifest.row_count.is_some() ^ manifest.row_height.is_some() => {
-            let decoded = decode_manifest_image(context, &source)?;
-            sliced_layers(decoded, manifest.row_count, manifest.row_height)
+        TextureArraySources::Sliced { source, layout } => {
+            sliced_layers(decode_array_image(context, &source)?, layout)
         }
-        _ => Err(AssetImportError::Parse(
-            "texture array manifest must set either `sources` or one `source` with exactly one of `row_count`/`row_height`"
-                .to_string(),
-        )),
+    }
+}
+
+fn decode_array_image(
+    context: &AssetImportContext,
+    source: &str,
+) -> Result<DecodedManifestImage, AssetImportError> {
+    let resolved = resolve_manifest_source(context, source)?;
+    match context.captured_auxiliary_source(&resolved.path)? {
+        Some(bytes) => decode_manifest_image_bytes(resolved, bytes),
+        // Only direct callers without an authoritative capture may read from disk.
+        None => read_manifest_image(resolved),
     }
 }
 
 fn sliced_layers(
     source: DecodedManifestImage,
-    row_count: Option<u32>,
-    row_height: Option<u32>,
+    layout: TextureArrayLayout,
 ) -> Result<(Vec<TextureArrayLayerSource>, Vec<TextureAsset>), AssetImportError> {
-    if source.rgba.width() == 0 || source.rgba.height() == 0 {
+    let image_height = source.rgba.height();
+    if source.rgba.width() == 0 || image_height == 0 {
         return Err(AssetImportError::Parse(
             "texture array slice source dimensions must be greater than zero".to_string(),
         ));
     }
-    let (layout, layer_height) = match (row_count, row_height) {
-        (Some(count), None) if count > 0 && source.rgba.height() % count == 0 => (
-            TextureArrayLayout::RowCount { rows: count },
-            source.rgba.height() / count,
-        ),
-        (None, Some(height)) if height > 0 && source.rgba.height() % height == 0 => {
-            (TextureArrayLayout::RowHeight { pixels: height }, height)
+    let layer_height = match layout {
+        TextureArrayLayout::RowCount { rows } if rows > 0 && image_height % rows == 0 => {
+            image_height / rows
+        }
+        TextureArrayLayout::RowHeight { pixels } if pixels > 0 && image_height % pixels == 0 => {
+            pixels
         }
         _ => {
             return Err(AssetImportError::Parse(format!(
-                "texture array slice must evenly divide image height {}",
-                source.rgba.height()
+                "texture array slice must evenly divide image height {image_height}"
             )));
         }
     };

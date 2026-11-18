@@ -1,10 +1,11 @@
 use std::fs;
 use std::path::Path;
+use std::sync::Arc;
 
 use super::AssetImporter;
 use crate::asset::{
     asset_kind_for_imported_asset, AssetImportContext, AssetImportError, AssetImportOutcome,
-    AssetImporterDescriptor, AssetUri, ImportedAsset,
+    AssetImporterDescriptor, AssetImporterHandler, AssetUri, ImportedAsset,
 };
 
 impl AssetImporter {
@@ -61,12 +62,20 @@ impl AssetImporter {
         &self,
         context: &AssetImportContext,
     ) -> Result<AssetImportOutcome, AssetImportError> {
+        self.import_context_with_selection(context, || self.registry().select(&context.source_path))
+    }
+
+    pub(crate) fn import_context_with_selection(
+        &self,
+        context: &AssetImportContext,
+        select: impl FnOnce() -> Result<Arc<dyn AssetImporterHandler>, AssetImportError>,
+    ) -> Result<AssetImportOutcome, AssetImportError> {
         if requires_project_resolver(&context.source_path) && !context.has_project_resolver() {
             return Err(AssetImportError::ProjectContextRequired {
                 path: context.source_path.clone(),
             });
         }
-        let importer = self.registry().select(&context.source_path)?;
+        let importer = select()?;
         let outcome = importer.import(context)?;
         let descriptor = importer.descriptor();
         if outcome.entries.is_empty() {

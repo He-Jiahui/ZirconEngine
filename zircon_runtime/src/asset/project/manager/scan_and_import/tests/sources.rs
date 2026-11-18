@@ -1,5 +1,7 @@
 use std::fs;
 
+use crate::asset::{AssetImportContext, AssetImportOutcome, AssetImporterDescriptor, AssetKind};
+
 use super::*;
 
 #[test]
@@ -184,4 +186,110 @@ fn gltf_generation_snapshot_digest_tracks_auxiliary_only_changes() {
         )
     );
     let _ = fs::remove_dir_all(root);
+}
+
+#[derive(Debug)]
+struct DeclaredSources(AssetImporterDescriptor, Vec<PathBuf>);
+
+impl AssetImporterHandler for DeclaredSources {
+    fn descriptor(&self) -> &AssetImporterDescriptor {
+        &self.0
+    }
+
+    fn auxiliary_source_paths(
+        &self,
+        _source_path: &Path,
+        primary: &[u8],
+    ) -> Result<Vec<PathBuf>, AssetImportError> {
+        assert_eq!(primary, b"supplied primary");
+        Ok(self.1.clone())
+    }
+
+    fn import(&self, _: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
+        unreachable!("snapshot discovery does not execute the importer")
+    }
+}
+
+#[test]
+fn declared_sources_use_current_supplied_bytes_and_do_not_fill_a_complete_snapshot_from_disk() {
+    let temp = std::env::temp_dir().join(format!(
+        "zircon-declared-sources-{}-{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    fs::create_dir_all(temp.join("manifests/layers")).unwrap();
+    let root = ProjectPaths::resolve_existing_path(&temp).unwrap();
+    let parent = root.join("manifests");
+    let supplied_path = parent.join("layers").join("tile.bin");
+    let disk_only_path = parent.join("layers").join("other.bin");
+    fs::write(&supplied_path, b"earlier disk version").unwrap();
+    fs::write(&disk_only_path, b"ordinary on-disk input").unwrap();
+    let mut source = AssetImportSource {
+        asset_root: root,
+        path: parent.join("source.fixture"),
+        uri: AssetUri::parse("res://manifests/source.fixture").unwrap(),
+        meta_path: parent.join("source.fixture.zmeta"),
+        unit: AssetSourceUnit::Single,
+        included_files: Vec::new(),
+        included_paths: Vec::new(),
+        compound_root: None,
+        source_snapshot: None,
+        snapshot_complete: false,
+    }
+    .with_source_snapshot(AssetImportSourceSnapshot {
+        source_bytes: b"supplied primary".to_vec(),
+        source_mtime_unix_ms: 23,
+        source_file_snapshots: BTreeMap::from([(supplied_path.clone(), b"current".to_vec())]),
+    });
+    let mut handler = DeclaredSources(
+        AssetImporterDescriptor::new("fixture", "fixture", AssetKind::Data, 1),
+        vec!["./layers/tile.bin".into(), "layers/./tile.bin".into()],
+    );
+    #[cfg(windows)]
+    handler.1.push("LAYERS/TILE.BIN".into());
+    snapshot_handler_auxiliary_sources(&mut source, Some(&handler), true).unwrap();
+    let admitted = source.source_file_snapshots();
+    assert_eq!(admitted.len(), 1);
+    assert_eq!(admitted[&supplied_path].as_slice(), b"current");
+    assert_eq!(source_mtime_unix_ms_for_import(&source).unwrap(), 23);
+
+    handler.1.push("./source.fixture".into());
+    let error = snapshot_handler_auxiliary_sources(&mut source, Some(&handler), true)
+        .expect_err("the primary source is not a companion input");
+    assert!(
+        error.to_string().contains("names the primary source"),
+        "{error}"
+    );
+    assert_eq!(source.source_file_snapshots(), admitted);
+    let _ = handler.1.pop();
+
+    handler.1.push("layers/other.bin".into());
+    let error = snapshot_handler_auxiliary_sources(&mut source, Some(&handler), true)
+        .expect_err("a complete transaction snapshot cannot acquire a missing input from disk");
+    assert!(error.to_string().contains("other.bin"), "{error}");
+    assert_eq!(source.source_file_snapshots(), admitted);
+
+    handler.1.push("layers/missing.bin".into());
+    let error = snapshot_handler_auxiliary_sources(&mut source, Some(&handler), false)
+        .expect_err("a missing input must discard additions captured during this attempt");
+    assert!(error.to_string().contains("missing.bin"), "{error}");
+    assert_eq!(source.source_file_snapshots(), admitted);
+    let _ = handler.1.pop();
+    handler.1.push("./layers/./other.bin".into());
+    #[cfg(windows)]
+    handler.1.push("LAYERS/OTHER.BIN".into());
+
+    // When only the primary/existing inputs were supplied, finish the capture using the resolver.
+    snapshot_handler_auxiliary_sources(&mut source, Some(&handler), false).unwrap();
+    let captured = source.source_file_snapshots();
+    assert_eq!(captured.len(), 2);
+    assert_eq!(captured[&supplied_path].as_slice(), b"current");
+    assert_eq!(
+        captured[&disk_only_path].as_slice(),
+        b"ordinary on-disk input"
+    );
+    fs::remove_dir_all(temp).unwrap();
 }
