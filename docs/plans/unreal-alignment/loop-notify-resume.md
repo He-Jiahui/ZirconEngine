@@ -99,3 +99,20 @@ UE 传 instance/slot 与 `FAnimNotifyEventReference`；ZE 的 [clip 资产点 DT
 按时间和同刻身份区分 `(播放位置, 名称, track index)`，同名不同 payload 仍为不同轨；不以只比较总数代替。`len=0` 的 span 跨页不等于范围已耗尽；对 `bbbb` 的超限独发也不能记为丢事件。输出中跑到的两向行为不表示同一失败用例的所有后续断言均执行。此组只锁正常可区分范围上的 owner 合同；极大绝对时间的碰撞策略、完整插件 PostUpdate、UE、设备与性能未运行。不动公共游标或生产。23 项有限来源/清单，原始回执 `b8dec8fb56b682d12b05b8d94420c46b3a690bdfa8e34f9d6bbfd77a2f568491`，stdout `b0c761e55b0d3c233f927c9e3508eb66de1d4c299715944d62f181b5f8a0e6c6`；不是精简的标量模拟。
 
 **下一步候选，而非这次已修。** 固定原范围、同一 clip，可尝试从每轨原来的起点恢复它不分页时的实际 `f32(t±周期)` 序列，按位定位续页，而不是重新反除圈号或把相邻值当作相等。只在同一指数带的严格内点跳过已消费项；跨二次幂边界、半格奇偶调整或不再前进时用原单步。反向已有反例：`0x4a800003→0x4a800002→0x4a800001` 后实际为 `0x4a7fffff`，不能继续整数等差猜 `0x4a800000`。独立 Python 模型在345个场景、19,784个查询与逐步参照位值相同，但它不是 Rust 实现、不是性能或插件验收。后续应把此 oracle 与定位成本上界加到实际采样器；不声称处理相邻的不同范围、空时间跨度不前进或初始浮点 seed 偏离理想数学圈的问题。
+
+## 10. 同一固定范围：独立位型、单次通过与真实游标续页
+
+[tests-only `fc68f3d7a568025580a18011a7ebe07b7784dfa5`](https://github.com/He-Jiahui/ZirconEngine/blob/fc68f3d7a568025580a18011a7ebe07b7784dfa5/zircon_runtime/src/animation/tests/clip_event_oracle.rs) 在 §9 的 7 例之外加 6 个公开行为用例（16 个窗口）。单批、分页都调用同一真实 Runtime sampler，后续页只用上一页实际返回的游标；另有固定的位型/轨道身份/位置锚点。比较包括实体、事件名、payload、target、片内及播放时刻的 binary32 位型和顺序；不是按 epsilon 或计数放行。Windows x64/MSVC、Rust 1.94.1 `test` profile；同一拥有者 `-p zircon_runtime --no-default-features --features animation,native-host --lib loop_notify_resume_ --locked --offline --jobs 1 -- --test-threads 1 --show-output`。
+
+实跑 **13 例，3 过、10 败，7,871 过滤**。16 个不绑定预算的单批都符合独立锚点；9 个有界分页窗口偏离。仅有数量是不够的，例如倒放末项和跨二次幂时两侧条数相同但时间已变：
+
+| 窗口 | 一次应有 | 实际分页 | 实际播放位型 | 不分页锚点 |
+|---|---:|---:|---|---|
+| `decimal-count-forward` | 5 | 6 | `3c23d70a 3cf5c28f 3d4ccccc 3d8f5c28 3d8f5c29 3db851ec` | `3c23d70a 3cf5c28f 3d4ccccc 3d8f5c28 3db851ea` |
+| `decimal-count-reverse` | 5 | 5 | `3db851eb 3d8f5c28 3d4ccccb 3cf5c28c 3c23d70a` | `3db851eb 3d8f5c28 3d4ccccb 3cf5c28c 3c23d704` |
+| `binade-reverse` | 5 | 5 | `4a800003 4a800002 4a800001 4a800000 4a7ffffd` | `4a800003 4a800002 4a800001 4a7fffff 4a7ffffc` |
+| `rounded-stop-reverse` | 1 | 2 | `4a800004 4a800002` | `4a800004` |
+| `seed-overflow-reverse` | 0 | 1 | `7ec00000` | `∅` |
+| `seed-finite-fresh-control` | 1 | 1 | `7ec00000` | `7ec00000` |
+
+原 `LevelSystem` 队列仍交付 `64+32` 而非 `64+16`。原始范围中首 seed 溢出无点，后来较小的空页游标不应复活它；作为独立**新**范围的尾窗则本来就可有点。这个区别不是跨范围修复要求。24 个选定来源/清单，回执 `3f3e01f1decb84d2fa37cabac979134b34eb65068862ed2f22e2681f1d354303`、stdout `76a1537efe939d7f79516d08969aff8db2932d97e72fab350c728300905e9151`。
