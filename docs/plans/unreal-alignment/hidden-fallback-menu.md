@@ -57,3 +57,11 @@ UE 参考指纹（SHA-256，仅列文件身份和上述行号，不发布 Epic �
 原版独立 WGPU 首帧进程在 15 分钟上限内没有返回已核验的 framebuffer；这是受限中止，不计作通过或断言失败。没有通过旧按钮/新 HUD 像素前置，不据此认定可见画面。 GPU 原执行回执 `81cf649bd0b54a026a8de949d34718cac2af682ac8b6ba26351c09bb456fc229`。
 
 完整 test target `hud_menu_public`：Windows x64/MSVC 1.94.1，`zircon_plugin_ui_document_importer_runtime`、defaults off、`zircon_runtime/dynamic-api`、`test` profile，先编译唯一集成目标，再运行 Cargo 指出的该二进制。真实结果 **1 过、2 败**；编译回执 `82e25476b4d1d4e5b5b488197796558ce2ffec057b8fd90ab4a9eb6ae11cf3e8`、exe SHA-256 `3db93298ebc74302e044a56ec982f3d90566e21b0c40465b664dbc172bb88058`、执行回执 `a8c2c5e0e53440b9f562633f10fed29dab1402fee7dd34ed74b4d0e30c0aac54`、stdout `eae0967ab5642911c8acd860ee19c3510b5e350a7a90968e2a0291677ce8f517`。夹具、配置、日志分别在物理测试根中，不使用用户工程；测试默认为显式运行。公开 linked 会话（无 OS 真机设备，不是屏幕或 Winit 事件泵验收）。
+
+## 9. 同一回归修后配对
+
+[同一版本的独立集成测试](https://github.com/He-Jiahui/ZirconEngine/blob/fe3563ae299455ebff6254c59a700a96386ada44/zircon_plugins/ui_document_importer/runtime/tests/hud_menu_public.rs)。通过实际已注册的 UI document importer 读取工程 `.zui`，正式 V8 a11y snapshot 证项目树已加载且保持原身份；鼠标按放都由真实 owner 录制，随后从原实体读取控制槽。无根同点 Start/Retry 与界外控制通过。项目 HUD 拥有该位置时同点不再写旧菜单命令。 原版两个有根工程在同点分别把 `none@1` 变为 `start_game@2` / `retry_game@2`；修后两者均为 `none@1`。无项目 UI 根的两个正控仍正常触发。仅改变开/关后备命中查询的条件，不改变输入日志、可见菜单松开触发或 #213 的取消分支。
+
+原版独立 WGPU 首帧进程在 15 分钟上限内没有返回已核验的 framebuffer；这是受限中止，不计作通过或断言失败。没有通过旧按钮/新 HUD 像素前置，不据此认定可见画面。修后只复跑 CPU；没有复用旧 GPU 作为修后结果。 GPU 原执行回执 `81cf649bd0b54a026a8de949d34718cac2af682ac8b6ba26351c09bb456fc229`。
+
+完整 test target `hud_menu_public`：Windows x64/MSVC 1.94.1，`zircon_plugin_ui_document_importer_runtime`、defaults off、`zircon_runtime/dynamic-api`、`test` profile，先编译唯一集成目标，再运行 Cargo 指出的该二进制。真实结果 **3 过、0 败**；编译回执 `bfbbfc2df5004ffc06c21fcfab98dae23ee3ab93245d7af307111612b8ee8ac9`、exe SHA-256 `71e4740d335c6c697c9844d511a01a871bef46cc5da1a4bf708497a2a7c9a5a6`、执行回执 `b0992571abfba4f845ae406e90bfc6508961a1d3276482265ca6e900d61e040b`、stdout `27a2f61885c3032733fc86bd1ac360626c293efd7a84fd7d51df0637c644b4c8`。夹具、配置、日志分别在物理测试根中，不使用用户工程；测试默认为显式运行。公开 linked 会话（无 OS 真机设备，不是屏幕或 Winit 事件泵验收）。
