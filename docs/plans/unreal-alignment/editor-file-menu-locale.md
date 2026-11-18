@@ -39,3 +39,15 @@
 | 命中路由、快捷键和可用性 | 三次均为 `workbench.unreal.menu.file.open`、`Ctrl+O`、可用 |
 
 仅在最后的三阶段标题断言失败；中文阶段命令根模型与弹窗叶都已翻译，只有真实可点击的顶栏文字仍然是 File。尚未在本提交修改生产。 Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib`（无额外 feature）、`test` profile；单独运行 `file_menu_locale_`，**0 过、1 败**。子进程未设置资产根 override，实际 exe 旁没有 `assets`，按生产 dev-root 规则从对应提交的规范 Editor asset 根读取菜单。原生构建回执 `7bfa969b150100b75275853e4f4845ee6794cc16b1eec1e3072d459668022170`；实际执行 `a9a03d611a546cbcfbda2be2580dcdba82b015e9a491f4a15a315942345a892b`；stdout `1b90bd5c363d9a34d6f1ddb4a86f792ed4054de6e1aa8d08d0148935d8e88a6e`。没有覆盖 OS 辅助技术、Locale 国际化全量、设备绘制或 UE 原测。
+
+## 8. 修复：复用菜单已有的翻译条目
+
+[实跑提交 `41e96aaec1fff213fa7fc9185c7edaf120c26517` 的同一回归](https://github.com/He-Jiahui/ZirconEngine/blob/41e96aaec1fff213fa7fc9185c7edaf120c26517/zircon_editor/src/ui/retained/dispatch/workbench/tests/main_menu_items.rs)。通过实际的启动文档加载器创建一个组件化工作台；在同一个已挂载 bridge 上，把 User 语言从英文切成中文再清回英文。每次先解析原 command model，把同一节点提交为 native host presentation，再从实际已提交的可见节点命中 File、分发 Click 并检查同一弹窗。结论不是从读取 TOML 推测的，也没有打开操作系统窗口或做像素 OCR。
+
+| 已提交或真实解析的内容 | 英文 → 中文 → 英文 |
+|---|---|
+| 已发布的 File 触发器 | `File → 文件 → File` |
+| 同一弹窗命令 `file.scene.open` | `Open Scene... → 打开场景... → Open Scene...` |
+| 命中路由、快捷键和可用性 | 三次均为 `workbench.unreal.menu.file.open`、`Ctrl+O`、可用 |
+
+同一测试修后通过。只把实际 `MenuSlot0.text` 绑定到现有 `menu.file.label` 并保留英文 fallback；没有改 tooltip、ID、其它菜单、翻译表或 i18n 总线。 Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib`（无额外 feature）、`test` profile；单独运行 `file_menu_locale_`，**1 过、0 败**。子进程未设置资产根 override，实际 exe 旁没有 `assets`，按生产 dev-root 规则从对应提交的规范 Editor asset 根读取菜单。原生构建回执 `c7345e9bd8c8aa6484730e7f17228b41183adcfccb8383a516efe484845b45f1`；实际执行 `90c86db6021c906e858fcde73b74a6ce254a257d702f2736769b11cbbee9fd2e`；stdout `ea4ca2b980e4c9a5f42aac2489b986e29299293428dc41f00a5fd664a0c6a613`。没有覆盖 OS 辅助技术、Locale 国际化全量、设备绘制或 UE 原测。
