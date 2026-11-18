@@ -1,8 +1,8 @@
 # 反射序列化：DynamicScene 无法恢复带已声明默认值的非持久 VM 组件字段
 
-> 取证说明：UE 的本机路径与文件 SHA256 是用户提供参考树的依据；本轮 D: 审计快照/工作记录仅本地保存，不随本 PR 发布，也不冒充 GitHub 可读证据。第 1–6 节保留初次调查及测试计划；当时未运行 UE/ZE 测试。后续 ZE 原生实测见第 7 节，未执行 UE 测试。
+> 取证说明：UE 的本机路径与文件 SHA256 是用户提供参考树的依据；本轮 D: 审计快照/工作记录仅本地保存，不随本 PR 发布，也不冒充 GitHub 可读证据。第 1–6 节保留初次调查及测试计划；当时未运行 UE/ZE 测试。ZE 原实现的原生结果见第 7 节，修复和配对结果见第 8 节；未执行 UE 测试。
 
-**当前状态：已在原生 Runtime 复现，同一 Draft 已补测试；这一提交不改引擎实现。** 首次调查结论如下： 是既有 [Runtime63 RSR-P1-037](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/docs/plans/optimize/zircon_runtime/63-runtime-scene-reflection-type-schema-registry-dynamic-component-property-address-inspection-artifact-subscription-editor.md#L254-L264) / [Runtime99l](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/docs/plans/optimize/zircon_runtime/99l-runtime-scene-reflection-type-schema-registry-dynamic-component-property-address-inspection-artifact-subscription-editor.md#L245-L254) “完整字段集合与默认值”下的可复核子项：**同 schema、字段明确不入存档且有合法默认值**，不要求新增 optional/redirect/unknown 字段版本政策。和脚本 `onStart` 不是同一问题。
+**当前状态：已在原 Draft 修复。原 6 条回归和 1 条补充控制均通过；3 个相邻用例在原实现与候选上仍以相同断言失败，不是全库通过。** 首次调查结论如下： 是既有 [Runtime63 RSR-P1-037](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/docs/plans/optimize/zircon_runtime/63-runtime-scene-reflection-type-schema-registry-dynamic-component-property-address-inspection-artifact-subscription-editor.md#L254-L264) / [Runtime99l](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/docs/plans/optimize/zircon_runtime/99l-runtime-scene-reflection-type-schema-registry-dynamic-component-property-address-inspection-artifact-subscription-editor.md#L245-L254) “完整字段集合与默认值”下的可复核子项：**同 schema、字段明确不入存档且有合法默认值**，不要求新增 optional/redirect/unknown 字段版本政策。和脚本 `onStart` 不是同一问题。
 
 ZE 本地 `cb495bb1c952a24c86f4513b8099bc4942c3a87d`；与 Draft 固定 blob 基线 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37` 在 5 个引擎目录无差异。UE 为本机 [Build.version:1–10](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Build/Build.version#L1-L10>) 的 `6.0.0 / BranchName UE5`；下列 UE 定位为该检出，SHA-256 见末表。
 
@@ -83,7 +83,7 @@ UE 的实体是已分配/初始化的 UObject/UStruct 存储，`FProperty` 给 s
 | [严格写入及事务失败](../../../zircon_runtime/src/scene/reflect/tests/vm_transient.rs#L52-L96) | 直接给 World 写残缺 VM 对象仍报 `scratch` 缺失；第二行缺**有声明默认**的持久 `saved`，仍报 `saved` 缺失，两行均未发布；非持久字段无默认也仍拒绝。各自的原值哨兵保持不变。三案通过。 |
 | [只有存档描述符的目标](../../../zircon_runtime/src/scene/reflect/tests/vm_transient.rs#L98-L112) | 没有注册 VM schema 时，同一类型的兼容路径可以写入 `{saved:7}`，没有推断或补出 `scratch`。通过。 |
 
-**下一步的实现边界。** 归档值继续由稳定 ID 定位并使用原实体映射。仅在隔离预检、[原严格 setter](../../../zircon_runtime/src/scene/world/dynamic_components.rs#L224-L240)之前，依据目标 World 的 VM backing 和实际字段表，给“缺席、非持久、有显式默认”三者同时成立的字段赋目标默认；不要改导出、普通写入或未注册描述符的行为。需先在[目标快照计量](../../../zircon_runtime/src/scene/dynamic/scene/spawn/transaction.rs#L264-L288)按每个实例计入要展开的字段，再交给现有[异步预约](../../../zircon_runtime/src/scene/dynamic/asset_reload/stage_task.rs#L98-L110)。这是既有估算口径，不是字节精确的堆或 RSS 上限。
+**取得基线后的修复约束**（实现与结果见第 8 节）。 归档值继续由稳定 ID 定位并使用原实体映射。仅在隔离预检、[原严格 setter](../../../zircon_runtime/src/scene/world/dynamic_components.rs#L224-L240)之前，依据目标 World 的 VM backing 和实际字段表，给“缺席、非持久、有显式默认”三者同时成立的字段赋目标默认；不要改导出、普通写入或未注册描述符的行为。需先在[目标快照计量](../../../zircon_runtime/src/scene/dynamic/scene/spawn/transaction.rs#L264-L288)按每个实例计入要展开的字段，再交给现有[异步预约](../../../zircon_runtime/src/scene/dynamic/asset_reload/stage_task.rs#L98-L110)。这是既有估算口径，不是字节精确的堆或 RSS 上限。
 
 测试选择命令（本地 wrapper 另指定工作树 manifest 与 F 盘产物目录）：
 
@@ -92,3 +92,28 @@ cargo test -p zircon_runtime --no-default-features --features core-min,native-ho
 ```
 
 Windows x64/MSVC，Rust 1.94.1，test profile `debug=0, incremental=false`；native-host 含 asset-types，未启用 Script/Graphics/UI。命令回执 SHA-256：`dc9879542650a3799ff58963cf70ea53ac76ad6a110b10763e85d7f56f541da7`。运行前后核对 34 项选定输入，不代表完整源码或进程封印。UE `TrackInitializedProperties` 的已有测试是 initialized/delta 条件下对**已有目标值**的观察，不是 `CPF_Transient` 或 ZE VM restore 的直接移植。未运行真实脚本后端、Play、全套 Runtime、UE 或跨平台产品验收。
+
+## 8. 修复结果：存档仍然稀疏，目标实例恢复完整
+
+[修复提交](https://github.com/He-Jiahui/ZirconEngine/commit/cab70397ffb6d8012ca1158a493aa23534a43cc4)只改了场景恢复的两处实现。源实例的 `scratch=99` 仍然不入档；[原来的同一组测试](../../../zircon_runtime/src/scene/reflect/tests/vm_transient.rs#L15-L50)现在读到新实体的 `{saved:7,scratch:42}`，源值和目标原实体的哨兵值均未改变。
+
+- **在哪补值。** [隔离预检写入](../../../zircon_runtime/src/scene/dynamic/scene/spawn/transaction.rs#L715-L766)先确认规范类型路径确属目标 World 的 VM 动态组件。只给实际缺席、声明为非持久、且有显式默认的键补值，再交给原严格 writer。已存字段不覆盖，源实体引用仍按原路径重映射；目标默认不经源实体 remap。普通插件描述符不推断 VM 默认。没有修改导出、格式、ABI、ECS 发布顺序或模块 features。
+- **何时计费。** [目标快照准备](../../../zircon_runtime/src/scene/dynamic/scene/spawn/transaction.rs#L274-L318)按每个待写实例使用同一筛选规则；[有界字节计数器](../../../zircon_runtime/src/scene/world/staging_snapshot.rs#L44-L78)以借用的字段名与声明值计算紧凑序列化字节数 ×2，不为计量先克隆/展开默认值。该增量进入已有目标快照估算，先通过预算检查，再在预检中构造实际 JSON。不同的充分额度（包括 `usize::MAX`）不会改变相同输入的估算。这是可执行的估算准入，不是对堆分配或 RSS 的精确界限。
+- **第 7 条控制在另一个含 4 案的 Prepared 过滤组中运行。** [Prepared 测试](../../../zircon_runtime/src/scene/dynamic/spawn_task/tests/prepared.rs#L127-L219)使用字符串默认 `"target"`：缺省时必须有非零增量且 MAX 与 1 MiB 估算相同；若 Prepared 输入显式携带 `"stored"`，按无默认值的额度也能暂存并提交，实际读回仍是 `"stored"`（此补充案不再做版本化文本往返）。它并非原 `reflect163_` 六案之一。在含全部 7 案、仍为原引擎的[对照提交](https://github.com/He-Jiahui/ZirconEngine/commit/62808619ad8cc263d7cf19544168d09a5ace567c)中，该用例实际败于“重建必须占用目标预算”；候选通过。曾考虑按 MAX 略过计量，但审查时已去掉，该中间方案没有运行过。
+
+| 原生库测试过滤范围 | 原实现（过 / 败 / 忽略） | 候选（过 / 败 / 忽略） |
+|---|---:|---:|
+| `reflect163_` 原 6 个用例 | 4 / 2 / 0 | **6 / 0 / 0** |
+| `scene::dynamic_scene::spawn_task::prepared::tests::`（含第 7 案） | 2 / 2 / 0 | **3 / 1 / 0** |
+| `scene::dynamic_scene::scene::spawn::transaction::tests::` | 23 / 1 / 1 | **23 / 1 / 1** |
+| `scene::tests::dynamic_scene_asset_reload::byte_budgets::` | 3 / 1 / 1 | **3 / 1 / 1** |
+| `scene::world::staging_snapshot::tests::` | 未单独复跑 | **1 / 0 / 0** |
+
+使用第 7 节同一包、features、test profile、工具链、工作树和 F 盘目标目录，表中每个过滤器分别运行，不按筛选范围冒充完整 Runtime。候选与原实现的 3 个非零相邻组共 **34 个同名用例**；逐名对照，唯一状态变化是上述第 7 案失败转为通过。2 个既有忽略均同名、同原因。下列 3 个失败也分别在原实现重现，位置和断言内容相同：
+
+1. [准备态过期目标](../../../zircon_runtime/src/scene/dynamic/spawn_task/tests/prepared.rs#L30-L47)与[编译后目标代际变化](../../../zircon_runtime/src/scene/dynamic/scene/spawn/transaction/tests/cases.rs#L109-L138)都拒绝了过期操作；实际错误是组件目录代际 `0 → 7`，断言要求 World 代际 `0 → 1`。两条都未改。
+2. [热重载帧预算](../../../zircon_runtime/src/scene/tests/dynamic_scene_asset_reload/byte_budgets.rs#L222-L248)期望 `first_commit.apply.apply_budget_exhausted` 为真，两边都在第 239 行失败。同组[暂存预约按实际目标字节收缩并归零](../../../zircon_runtime/src/scene/tests/dynamic_scene_asset_reload/byte_budgets.rs#L253-L301)的独立控制在两边均通过；这并不证明所有异步调度都正确。
+
+聚焦候选回执 SHA-256：`ef040496e8d1d8882cdb8e869d35e644add49d97ea4ed88f76307edc78a3c8c2`。3 组配对回执前缀（原实现 → 候选）：Prepared `af3703249215 → 6328032e9d8b`；事务 `46ad5268dce7 → b4a8b824060d`；队列 `6fd2909b417d → 01f60025bd3d`。目标修复和负控可独立重现，未屏蔽或修补相邻错误，仍保留 Draft；不据此外推整个引擎、UE 原测、真实 VM/Play、各平台及性能验收。
+
+发布前核对了当时全部 65 个 open PR 的文件列表（含分页）。[#199](https://github.com/He-Jiahui/ZirconEngine/pull/199) 处理同一 World 内固定步物理写回与变换修订的关系，不是本问题的版本化存档恢复。相邻测试的 3 次相同失败也不自动算作 3 个新引擎缺陷；需先另行确认错误优先级和异步就绪约定。
