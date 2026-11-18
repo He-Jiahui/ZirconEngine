@@ -27,3 +27,15 @@
 ## 6. 独立
 
 [#174](<https://github.com/He-Jiahui/ZirconEngine/pull/174>) 是文本输入字素编辑；[#212](<https://github.com/He-Jiahui/ZirconEngine/pull/212>) 是不可见 Runtime 回退菜单的命令；[#213](<https://github.com/He-Jiahui/ZirconEngine/pull/213>) 是 Runtime 触摸取消。本例是普通可见 Editor 控件的显示标签，不改输入语义或运行时。 不改 ECS、ABI、持久设置格式或 action ID。本轮独立调查在共同 main 上起草，后续行为回归与修复只能追加在本主题原 PR。
+
+## 7. 原有工作台：真实标题与弹窗命令的对照
+
+[实跑提交 `8ffe8c73df5210e9e9f18f2fefe26f498e2529c0` 的同一回归](https://github.com/He-Jiahui/ZirconEngine/blob/8ffe8c73df5210e9e9f18f2fefe26f498e2529c0/zircon_editor/src/ui/retained/dispatch/workbench/tests/main_menu_items.rs)。通过实际的启动文档加载器创建一个组件化工作台；在同一个已挂载 bridge 上，把 User 语言从英文切成中文再清回英文。每次先解析原 command model，把同一节点提交为 native host presentation，再从实际已提交的可见节点命中 File、分发 Click 并检查同一弹窗。结论不是从读取 TOML 推测的，也没有打开操作系统窗口或做像素 OCR。
+
+| 已提交或真实解析的内容 | 英文 → 中文 → 英文 |
+|---|---|
+| 已发布的 File 触发器 | `File → File → File` |
+| 同一弹窗命令 `file.scene.open` | `Open Scene... → 打开场景... → Open Scene...` |
+| 命中路由、快捷键和可用性 | 三次均为 `workbench.unreal.menu.file.open`、`Ctrl+O`、可用 |
+
+仅在最后的三阶段标题断言失败；中文阶段命令根模型与弹窗叶都已翻译，只有真实可点击的顶栏文字仍然是 File。尚未在本提交修改生产。 Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib`（无额外 feature）、`test` profile；单独运行 `file_menu_locale_`，**0 过、1 败**。子进程未设置资产根 override，实际 exe 旁没有 `assets`，按生产 dev-root 规则从对应提交的规范 Editor asset 根读取菜单。原生构建回执 `7bfa969b150100b75275853e4f4845ee6794cc16b1eec1e3072d459668022170`；实际执行 `a9a03d611a546cbcfbda2be2580dcdba82b015e9a491f4a15a315942345a892b`；stdout `1b90bd5c363d9a34d6f1ddb4a86f792ed4054de6e1aa8d08d0148935d8e88a6e`。没有覆盖 OS 辅助技术、Locale 国际化全量、设备绘制或 UE 原测。
