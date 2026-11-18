@@ -6,7 +6,9 @@ mod support;
 mod test_support;
 
 use zircon_plugin_navigation_recast::{RecastNavigationObstacle, RecastTileCache};
-use zircon_plugin_navigation_runtime::navigation_component_descriptors;
+use zircon_plugin_navigation_runtime::{
+    navigation_component_descriptors, DefaultNavigationManager,
+};
 use zircon_runtime::core::framework::navigation::{
     NavAvoidanceQuality, NavMeshAgentDescriptor, NavMeshAsset, NavMeshHandle,
     NavMeshObstacleDescriptor, NavPathQuery, NavPathResult, NavPathStatus, NavigationManager,
@@ -113,7 +115,7 @@ impl Fixture {
             world.register_component_type(descriptor).unwrap();
         }
         world.register_event::<OffMeshTraverseEvent>();
-        let owner = spawn(&mut world, Transform::IDENTITY);
+        let owner = spawn(&mut world, Transform::identity());
         let mut asset = support::two_island_navmesh(true);
         // Keep the original indices but represent each convex island as one polygon.
         let [mut left, mut right] = [asset.polygons[0].clone(), asset.polygons[2].clone()];
@@ -148,14 +150,14 @@ impl Fixture {
                     &mut world,
                     Transform {
                         scale: Vec3::new(2.0, 1.0, 1.0),
-                        ..Transform::IDENTITY
+                        ..Transform::identity()
                     },
                 );
                 let p = spawn(
                     &mut world,
                     Transform {
                         rotation: Quat::from_rotation_y(std::f32::consts::FRAC_PI_4),
-                        ..Transform::IDENTITY
+                        ..Transform::identity()
                     },
                 );
                 world.set_parent_checked(p, Some(g)).unwrap();
