@@ -78,3 +78,17 @@ UE map 是 UObject/UPackage；ZE 是保留大小写的 AssetUri + 项目 catalog
 | [PackageName.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/CoreUObject/Private/Misc/PackageName.cpp>) | `B9BD03BFDBBD0CD78FDB9F12E38A7E4FA789DA548E30ACF6C94A77D3AECFF2A7` |
 | [PackagePath.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/CoreUObject/Private/Misc/PackagePath.cpp>) | `154953D54E649B5DCF1B5D2515C5C4837CD0AA39758FB28747513B61694129CF` |
 | [PackagePathTest.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/CoreUObject/Private/Misc/PackagePathTest.cpp>) | `B85AD0E7BC8D3DBDAB69BF11F4DD8C1A486EA28172A82D16F662E032772B73A9` |
+
+## 7. 首次原生复现：导入成功，Editor 拒绝（2026-11-18）
+
+以上第 1–6 节保留问题 Draft 初版。本节在原实现 `029b2fbea00c3daa1e2c028aab79a14eeba0a0e9` 上只追加 5 个用例，没有生产改动。本机重新核过 10/10 份 UE 源文件。UE 原测验证标准 `.umap` 和伪后缀；大写是从分类源码推导的 ZE 变体，不是 UE 实跑。UE 的 Editor 打开流程还可从包名重新构造标准后缀，不据此承诺所有文件系统的大小写别名。
+
+| 用例 | 在原实现上实际走到的位置 |
+|---|---|
+| [真实项目导入 → typed open](../../../zircon_editor/src/core/project/tests/scene_document.rs#L260-L354) | 三个不同文件名各有一个不同标记。一轮扫描后三个原 URI 均为 `Scene`、`Ready`，磁盘产物可解码并读出各自标记；小写从同一源打开并读回正确 World。`MiXeD.ScEnE.ToMl`、`UPPER.SCENE.TOML` 都得到 `SceneTarget { reason: "scene asset URI must end in .scene.toml" }`。有效源字节的备份及带 label 的 URI 均被拒绝。 |
+| [受控目录 → Open 请求](../../../zircon_editor/src/ui/retained/app/tests/scene_picker_session.rs#L311-L335) | 小写保留原 URI；目录行虽是 `Scene`，混合、全大写和长文件名却被漏列。受控行不是导入证据。 |
+| [Create 请求](../../../zircon_editor/src/ui/retained/app/tests/scene_picker_session.rs#L391-L402) | 小写通过；`res://Levels/É.ScEnE.ToMl` 在构造请求时被后缀校验拒绝。没有在此用例中创建或保存文件。 |
+| [负控](../../../zircon_editor/src/ui/retained/app/tests/scene_picker_session.rs#L338-L389) | 通过：不同资源类型、备份、label、非项目 URI、短路径及 UTF-8 边界均不能被选作完整场景。 |
+| [真实宿主目录 → Open](../../../zircon_editor/src/ui/retained/app/tests/scene_picker_session.rs#L404-L449) | **未到后缀断言。** 工程打开后，夹具取得的目录连 `res://Levels/Cobalt.scene.toml` 都没有，在查小写原 locator 时失败。不能称作第四个后缀复现，也不能声称真实宿主 picker 已经验证。 |
+
+Windows x64/MSVC，Rust 1.94.1，`cargo test -p zircon_editor --no-default-features --lib editor157_ --locked --offline --jobs 1 -- --test-threads 1`，`test` profile。该过滤词还命中既有 Inspector 的 3 案：2 过、1 性能忽略。完整输出 **3 过 / 4 败 / 1 忽略 / 10537 过滤，exit 101**；其中新增 5 案为 **1 过 / 4 败**，后者仅 3 项证明后缀行为，1 项是目录前置。原生命令回执 SHA-256：`f546f55b27516f93cd0b0ae6df839491f18f24c4dc3019a31aa54fa113485c42`。未运行全 Editor、用户窗口、UE 或跨平台产品测试。
