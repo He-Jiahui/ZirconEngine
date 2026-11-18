@@ -20,6 +20,9 @@ fn owned_projection_preserves_nested_payloads() {
     assert_eq!(points, &[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]);
 }
 
+#[path = "rigid_frame.rs"]
+mod rigid_frame;
+
 #[test]
 fn typed_world_sync_ignores_ten_thousand_inert_entities() {
     use zircon_runtime::scene::{components::RigidBodyComponent, NodeKind};
