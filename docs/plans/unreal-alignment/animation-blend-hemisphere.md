@@ -95,3 +95,29 @@ ZE 已有 [PoseBuffer blend.rs:149–153](<https://github.com/He-Jiahui/ZirconEn
 2. **测试门**：尚未编译或运行上述 ZE/UE 测试；需在独立 Draft 内先补测试并实测原码 RED。后续最小包是 `zircon_plugin_animation_runtime`；其 [manifest:9–22](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/Cargo.toml#L9-L22>) 引入 runtime animation/physics-contracts，真实 tick harness 还依赖 physics 插件。精确 features/targets/profile 必须由后续执行者重新声明，本轮没有 Cargo 命令或通过回执。
 3. **修复可行门**：共同半球的局部算术修正可行性高，但多输入确定性与 tie/near-zero accumulator 处置尚未设计验证。不得仅用两输入 PASS 宣告修复完成；需保留 08C P1-11 的 reorder 数值合同，覆盖 masks、q/-q、近 seam、小权重和三输入 permutations，再决定最小生产 diff。
 4. **验收边界**：本轮未启动 UE 二进制、ZE Runtime/Editor、GPU 或渲染截图；无法宣称 GPU 蒙皮、可视化抖动幅度、性能或跨平台已验收。调度/ABI/资源格式不变的推断仍要在最终 diff 中复核。
+
+## 7. 原实现的 Base 叶子原生回归（2026-11-18）
+
+[仅追加回归的提交 `0613b6f19d508671c1c7e53bc123f98771008126`](https://github.com/He-Jiahui/ZirconEngine/blob/0613b6f19d508671c1c7e53bc123f98771008126/zircon_plugins/animation/runtime/src/evaluation/pipeline/tests/pose_blend.rs)。Windows x64/MSVC，Rust 1.94.1，插件独立 workspace 的 `test` profile，`test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_animation_runtime --no-default-features --features native-host --lib pose_blend::tests:: --locked --offline --jobs 1 -- --test-threads 1`。运行的是 `blend_graph_base_poses` 的内建 libtest，未构建整个插件工作区或运行 Level/GPU/UE。
+
+原有四案不改且均通过；新增六案逐名测试结果：
+
+| 用例（`anim147_` 后缀） | 区分什么 | 实际 |
+|---|---|---|
+| `equal_weight_seam_uses_shortest_midpoint` | 两项近邻跨规范符号缝；独立物理中点 | 失败 |
+| `leg_mask_excludes_first_anchor_and_rescales_applied_weights` | 排掉未选首骨，按腿骨的有效权重归一（含平移和缩放控制） | 失败 |
+| `invalid_first_weight_cannot_anchor_rotation` | 非法权重不应成为腿骨方向参考 | 失败 |
+| `equivalent_quaternion_signs_preserve_physical_rotation` | 同一旋转的 q/−q，两个顺序 | 通过 |
+| `adjacent_rotations_preserve_orientation_across_orders_and_signs` | 三个近邻、6 排列与 8 个独立正负号的物理等价 | 失败 |
+| `wide_rotations_preserve_orientation_across_orders_and_signs` | 广角两套权重（含等权），不预设绝对角，仅比较物理朝向 | 通过 |
+
+**总计 6 过、4 败、0 忽略、112 过滤，退出 101。** 失败用例在第一个不满足的断言停止，不谎称它后面的排列、另组输入或权重档位已经执行。原始输出首个实际误差：
+
+- `adjacent_rotations_preserve_orientation_across_orders_and_signs`：`([0, 1, 2], 0): abs(dot)=0.99984777; rotated X=Vec3(-0.034894228, -0.99939114, 0.0), expected Vec3(-0.0, -1.0, -0.0)`。
+- `equal_weight_seam_uses_shortest_midpoint`：`("Z seam", 0): abs(dot)=0; rotated X=Vec3(0.0, 0.99999994, 0.0), expected Vec3(-0.0, -1.0, -0.0)`。
+- `invalid_first_weight_cannot_anchor_rotation`：`0.0: abs(dot)=0; rotated X=Vec3(0.0, 0.99999994, 0.0), expected Vec3(-0.0, -1.0, -0.0)`。
+- `leg_mask_excludes_first_anchor_and_rescales_applied_weights`：`0.25: abs(dot)=0; rotated X=Vec3(0.0, 0.99999994, 0.0), expected Vec3(-0.0, -1.0, -0.0)`。
+
+实际 Windows 工作树（CRLF）测试源 SHA-256 `5271548a88503729344d33ffd253c94632a29f76e2f76adddc34b85731a91af5`，Git blob 按 LF 的 SHA-256 `b9edf5f4ff998e39231f128a51ee1629c5e679e696558529f007a1845bd926d1`；换行归一后源码一致。回执 `1b569bf98d8f236a7addd4a358925b6d095adc56d7612703174f83cd40c506d4`，stdout `d8ba8287bdf1c188cf4444eaceaf2e405c2aad0318baf4e4a7ef2b056e745a7d`（3,452 B），stderr `e2a8a644a75896a9c5b5ab2af85df71e55a20efb727c61980aedba6504e3d326`（269,786 B）；17 项选取输入复核。UE `UnrealMathTest.cpp:3652–3721` 的 `TestQuatLerp` 中 float 旋转的输入是正 RawCosom，double 旋转的输入是负 RawCosom，±alpha 与 dot 正负是两回事。它只校验双输入插值，不是这些 Base 多输入 oracle，未执行 UE。
+
+**暂不提交生产修复。** 第一有效输入作锚会引入与重排有关的大误差；取每骨最大权重（含确定平局）也不能仅凭这十案宣告可用：在同一组 `−170°/0°/+170°`、外侧权重由 `(1+2^-15, 1-2^-15)` 互换、中间固定 1 的独立标量设计检查中，该拟议策略前后物理方向相隔约 **106.611°**，而原逐项规范在此特定比较仅约 0.000489°。这些数**不是引擎实测**，也没有为所有广角规定某个 UE 角。下一门是确定可接受的共同半球策略，并用同组冻结测试、广角权重交叉/正交换号与真实 Level 图采样验证；不改 additive、ABI、平移缩放或现有无贡献回退。
