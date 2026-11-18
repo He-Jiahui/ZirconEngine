@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第15轮新增 #207，第16轮新增 #210，目前共 **31 个问题 Draft**。最新原生证据见第20节，第7–19节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第17轮新增 #212、#213、#214，目前共 **34 个问题 Draft**。最新实证见第21节；第7–20节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -329,3 +329,17 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 | [#202](https://github.com/He-Jiahui/ZirconEngine/pull/202) · [证据](https://github.com/He-Jiahui/ZirconEngine/blob/d8a50d923ee4f6e8a48e34f88f5fa7c6374c0d53/docs/plans/unreal-alignment/editor-initial-catalog-visibility.md) Editor 资产 | 首扫与无编辑对账均改写复合描述符，Shader IDE 生成前后三个源文件不变。独立对照未复现“完整目录仅两处 mtime 变化”的组合条件，并未识别其它具体字段。正常打开留下 14 个描述符版本，13/13 对是上个物理时间进入下个持久时间；14 份事务日志只有 intent 而无 target committed 帧。不能用这些样本确定逐次 watcher 或 fence 写手。 | 区分无 watcher 的独立对照、正常打开的实际文件事务与测试的外部端点，不将原始文件通知虚构为 Runtime 消费的具体批次或 fence 的 current token。 |
 
 累计 **31 个独立问题 Draft + 1 个总索引 Draft，零合并**。八份冻结的 UE 模块、目标、领域及测试定位 CSV 未变。新问题先从共同 main 只提交调查，再在原独立 PR 追加回归；已修的行为不代表整套模块或产品验收。
+
+## 21. 分页通知逐位修复、旧音频缓存及两种菜单输入错误（第17轮）
+
+| 独立 PR | 本轮可复核的结果 | 没有声称的覆盖 |
+|---|---|---|
+| [#207](https://github.com/He-Jiahui/ZirconEngine/pull/207) · [证据](https://github.com/He-Jiahui/ZirconEngine/blob/df8ff07ecbe8d94eb01006ebd735c11d205d3c4c/docs/plans/unreal-alignment/loop-notify-resume.md#L133-L147) 动画 | 原版 13 案 3 过 10 败。第一次候选 12 过 1 败，暴露测试把倒放当十进制等间距。用**未修** 20 轨实际单批核定两向各 100 条和每个位型后，同一份严格 13 案 **3 过 10 败 → 13 过 0 败**。正放 `104→100`，倒放 `84→100`；真实 Level `64+32→64+16`。约 1,677 万次距离的两方向各用 **92/93** 次原生步进调用；整个采样器 `26` 过、`2` 个受管用例忽略。 | 只修同一稳定范围的有界分页；不改变原种子、数学圈数或独立帧拼接，不是完整插件与 release 性能验收。 |
+| [#156](https://github.com/He-Jiahui/ZirconEngine/pull/156) · [证据](https://github.com/He-Jiahui/ZirconEngine/blob/b2f0070ef62e94c9c18ced4b797ca4acce650e12/docs/plans/unreal-alignment/wav-finite-pcm.md#L161-L176) 音频 | 真实 v1 WAV 插件在两个源上首次各导入 **1** 次；同 PM 再扫及新进程冷重开各 **0** 次，`lib://`/`res://` 均从同一真产物读回 qNaN (`7fc00000`) 与有限对照。另一份独立工程只变测试委托描述符版本即每源重导 **1** 次、动作 key 改变。保留了未交给任何候选的第二份 v1 工程。 | 两项显式历史采样通过是确认风险；并未制定非有限 PCM 的处置/迁移政策、修 parser 或测试声卡。 |
+| [#212](https://github.com/He-Jiahui/ZirconEngine/pull/212) · [证据](https://github.com/He-Jiahui/ZirconEngine/blob/58160a049ba93aac49abb63f7d825fe30e452a93/docs/plans/unreal-alignment/hidden-fallback-menu.md#L45-L51) 新 · 不可见的后备按钮 | 已在最小 owning libtest 提交四个 Runtime 见证：可见 Start/Retry、被项目 HUD 替代后的两种按钮、界外和相机输入。实跑构建止于独立 #137 的图形测试 E0716，四案均未执行；没有 UI 行为 RED/GREEN、没有生产修复。 | 区分提交 UI 与实际设备画面，不改变可见按钮的 MouseUp 策略。 |
+| [#213](https://github.com/He-Jiahui/ZirconEngine/pull/213) · [证据](https://github.com/He-Jiahui/ZirconEngine/blob/1a6b8aca6843dc7a819eeece9894b1372a8da47f/docs/plans/unreal-alignment/menu-touch-cancel.md) 新 · 触摸取消 | 与上一项相反，此处按钮确实可见。Wayland/Winit 的同指取消能以原坐标进入 Runtime，被正确记为 Cancelled 后却按一次完成点击写游戏命令。初稿只含六点调查。 | UE 本机移动实现有合并为 Ended 的反例；不声称所有平台或硬件已跑。 |
+| [#214](https://github.com/He-Jiahui/ZirconEngine/pull/214) · [证据](https://github.com/He-Jiahui/ZirconEngine/blob/0ddc9092b2f8df6c0e56640f3075cc60e169475b/docs/plans/unreal-alignment/paused-transition-event-replay.md) 新 · 暂停帧淡化完成 | A→B 未中断；暂停时根时钟冻结，淡化却按世界 dt 完成。恢复后同一非循环 B 通知窗口可再次提交。建立有限源码见证，尚未把预测算作原生红例。 | 与 #171 的中断同帧重提、#207 的单范围分页不同；不把正常双时钟相位差或缺少 Montage 功能当作本问题。 |
+
+**本轮还核对了没有一一对应关系的领域。** UE 的 Media 播放/时钟、OpenXR 会话、LiveLink 和 VCam 有各自的正式入口。现有 UE 原测如 `System.Media.Assets.Playlist` 验列表边界，`OpenXRRenderModel.Loader.SuccessPath` 用替身验证模型加载，`System.Engine.Animation.LiveLink.Interpolation` 用两帧验证插值；都不是硬件验收。ZE 的[普通相机投影及无效 FOV 原测](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/src/scene/viewport/tests/projection.rs#L3-L35)、[本地声音的 pause/seek](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/core/framework/sound/manager/playback.rs#L7-L32)和首帧 PNG 不能替代上述合同。没有以缺少高级功能为由开 PR，nDisplay/Takes 仍是目录级。Montage 的 section/slot 也不能直接等同于 ZE 已有的 clip、状态机或属性 Timeline；对照到的具体行为应按各自的生产者和消费者追踪，而不是新建一个“补完整个 Montage”的缺陷。
+
+累计 **34 个独立问题 Draft + 1 个总索引 Draft，零合并**。本轮没有改动八份冻结目录 CSV；2,588 个模块规则、178 个目标规则是枚举规模，并非已跑相同数量的行为测试。
