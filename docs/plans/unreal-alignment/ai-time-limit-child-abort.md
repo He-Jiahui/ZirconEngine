@@ -79,7 +79,7 @@ ZE 的 `on_abort`/宿主 `abort` 当前返回 `()`，因此这只能对齐同步
 
 ## 7. Windows 原生回归：观察到的不是单纯的 `Failed`
 
-测试挂在[既有 AI 插件的集成任务测试](../../../zircon_plugins/ai/runtime/src/tests/integration_tasks.rs#L504-L505)；原 502 行未改。[4 个用例](../../../zircon_plugins/ai/runtime/src/tests/time_limit_abort.rs#L23-L135)使用同一任务、同一 agent 与两次可精确表示的 `0.5s`，期限 `1s`。没有改树、主动停树，或在观察导航目标之前补 tick。原实现构建后确实运行到以下断言：
+测试挂在[既有 AI 插件的集成任务测试](../../../zircon_plugins/ai/runtime/src/tests/integration_tasks.rs#L504-L505)；原 502 行未改。[4 个用例](../../../zircon_plugins/ai/runtime/src/tests/time_limit_abort.rs#L23-L135)各自保持树和 agent 不变，以两次可精确表示的 `0.5s` 到达 `1s` 期限。没有改树、主动停树，或在观察导航目标之前补 tick。原实现构建后确实运行到以下断言：
 
 | 见证 | 原实现结果 | 区分的行为 |
 |---|---|---|
@@ -92,4 +92,29 @@ ZE 的 `on_abort`/宿主 `abort` 当前返回 `()`，因此这只能对齐同步
 
 **修复边界。** [到期分支](../../../zircon_plugins/ai/runtime/src/behavior_tree/executor.rs#L777-L795)保持先求值，只有子任务仍 `Running` 且到达期限才清计时、同步撤销该 child 子树，再向父节点返回 `Failed`。[共享撤销入口](../../../zircon_plugins/ai/runtime/src/behavior_tree/executor/abort.rs#L143-L202)保留节点状态重置、活跃子树递归和外部回调，只在派发集成 `host.abort` 时使用与[执行入口](../../../zircon_plugins/ai/runtime/src/behavior_tree/executor/integration.rs#L24-L35)相同的 `result` 准入规则。这也使观察者抢占、切树、停树不会为静态占位误派发宿主撤销；真实集成任务仍须清理。没有改变公开接口、ECS 更新顺序、导航 setter、ABI 或插件 feature。
 
-**候选实测。** 4条回归的两个测试文件与修复前逐字节相同，聚焦运行 **4 通过 / 0 失败 / 0 忽略**。放开名称过滤后，同一 AI 插件的 235 个库用例为 **182 通过 / 10 失败 / 43 忽略**；4条新用例均通过。全库没有通过，不能将其称为 GREEN。先保留两个版本和所有失败日志，再用相同工作树/工具链运行测试提交的完整基线，以区分旧失败与候选回归。
+### 验证结果与范围
+
+**4 条回归全部通过；整个 AI 插件库仍有 10 条失败。** 两个测试文件在修复前后逐字节相同。对 235 个库用例逐名配对，只有本问题的两个失败转为通过：MoveTo 当帧恢复当前位置；外部子任务恰好撤销一次，先于后备任务，下次同树执行以新实例开始。另两条对照始终通过。
+
+| 原生执行（同一工作树、工具链和 features） | 通过 | 失败 | 忽略 | 过滤 | 命令回执 SHA-256 |
+|---|---:|---:|---:|---:|---|
+| 原实现，`bt162_` | 2 | 2 | 0 | 231 | `1ee6e708026ad8219283c577124fdf2c2ce0f6741d964a3a92e84748b0dbe8e9` |
+| 修复后，`bt162_` | 4 | 0 | 0 | 231 | `e3203c5be87a38b9ce82e51ebc33532739cfa401380128dfbf0776c7171b49fd` |
+| 修复后，全库 | 182 | 10 | 43 | 0 | `46afe1ab994a4af2ac4883c1a3dc15c890d065db11ae6590bdc07cb662ff9250` |
+| 切回相同测试、原生产实现，全库 | 180 | 12 | 43 | 0 | `be85149a82e3e327d81868d1877a61e853d94b8243d1ede38e80fdb7d8e86006` |
+
+对照使用本 PR 的[测试提交](https://github.com/He-Jiahui/ZirconEngine/commit/462f602d37e2c557bd0eed567af6e22507937023)和[修复提交](https://github.com/He-Jiahui/ZirconEngine/commit/80f64ff52b98aed7fcd151d6e871807b365709f1)。比较两份真正执行的全库日志：同一组 10 项在同一断言位置报告相同的错误和实际/期望值（不计线程号和回溯提示），43 项同名且均为既有 release 性能忽略，没有新失败或新增跳过。两次全库命令都以 101 退出。
+
+- 3 项是[随机选择权重](../../../zircon_plugins/ai/runtime/src/behavior_tree/tests/random_selector_weights.rs#L52)、[节点状态查找](../../../zircon_plugins/ai/runtime/src/behavior_tree/tests/node_state_allocation.rs#L17)、[黑板同步](../../../zircon_plugins/ai/runtime/src/blackboard/tests/store_performance_tests.rs#L82)的源码断言。
+- 3 项在模块准入处即失败：两条[感知系统用例](../../../zircon_plugins/ai/runtime/src/tests/perception_runtime.rs#L788-L823)和[巡逻场景](../../../zircon_plugins/ai/runtime/src/tests/scenarios/patrol_detect_chase.rs#L34-L39)均报告 SceneModule 缺 AssetModule。
+- 其余 4 项分别是[效果事件个数](../../../zircon_plugins/ai/runtime/src/behavior_tree/nodes/tests/integration_ai_effect.rs#L131-L145)、[事件清单](../../../zircon_plugins/ai/runtime/src/tests/registration.rs#L245)、[注册桥描述符](../../../zircon_plugins/ai/runtime/src/tests/registration.rs#L358)和[撤销所有者时的等待](../../../zircon_plugins/ai/runtime/src/tests/registration.rs#L438)。这些失败未在本 PR 中修补或屏蔽；相同失败不等于已解释各自根因。
+
+本机 Windows x64/MSVC、Rust 1.94.1，test profile `debug=0, incremental=false`。测试选择命令如下；本地 wrapper 另将 manifest 解析为绝对路径，并指定 F 盘的 target、构建与缓存目录。
+
+```text
+cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_ai_runtime --no-default-features --lib --locked --offline --jobs 1 -- --test-threads 1
+```
+
+聚焦运行仅在 `--lib` 后增加 `bt162_`。AI 插件无自身 feature；其 Runtime 依赖启用 `native-host` 和 `ai/net/physics/sound-contracts`，不是在运行 Runtime 自身的 libtests、导航求路或真实脚本后端。每次运行前后复核 20 项选定输入；这不是完整进程/源码封印。UE 原测未执行，未覆盖所有 OS、异步撤销、性能或完整 App/ECS 产品启动。
+
+本轮复查的 [#192](https://github.com/He-Jiahui/ZirconEngine/pull/192) 处理导航反馈过早报到达，[#193](https://github.com/He-Jiahui/ZirconEngine/pull/193) 处理感知查询计数；均与“无导航反馈时，TimeLimit 超时但未撤销子任务”不同。本问题继续留在原 Draft，不另开重复 PR，不合并。
