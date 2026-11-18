@@ -66,9 +66,10 @@ pub(super) fn registration(state: &'static str, inbox: &Inbox) -> RuntimePluginR
             "gameplay",
             "Public touch fixture",
             RuntimePluginId::new("gameplay"),
-            "zircon_fixture_touch_cancel",
+            "zircon_plugin_gameplay_touch_fixture",
         )
         .with_target_modes([RuntimeTargetMode::ClientRuntime])
+        .with_capability("runtime.gameplay.touch_fixture")
         .build(),
         state,
         inbox: Arc::clone(inbox),
