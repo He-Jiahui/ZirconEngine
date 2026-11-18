@@ -13,6 +13,9 @@ use crate::scene::{NodeKind, SceneError, World};
 
 use super::VmTypeBacking;
 
+#[path = "vm_transient.rs"]
+mod transient;
+
 #[test]
 fn vm_type_round_trips_as_dynamic_component() {
     let mut world = World::empty();
