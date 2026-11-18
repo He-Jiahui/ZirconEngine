@@ -50,3 +50,18 @@ factory `a8e302ed7c83e2639862831f32d31b255efacda188b1e26404e3fcbf8ab879e2`；arr
 | 先放入蓝色 PNG、从无制品开始的新工程 | `afcc013aa509c9f0` | `f94d446e36680144ecbf3f28c4deae2968913c5eeec0e8d1de42f266a219771c` | `f3f4a3c5c9f2cf9d2bc262d77f168f5c88787e39caf1fbed113c2045af227609` | `00ff00ff 0000ffff` |
 
 暖工程改色 PNG 自己已经变蓝，且源指纹、动作键和制品摘要均改变。**父数组的动作键没变，但冷工程按新 PNG 生成了不同内容**，这才是缺失输入的证据，而不仅仅是预览没刷新。表中摘要来自真实 artifact inventory，并非容器文件的通用 SHA-256。没有测试 GPU 或修改引擎。
+
+## 9. 修前：同一磁盘项目、列表变更、纵切和真实旧制品
+
+[实际测试输入](https://github.com/He-Jiahui/ZirconEngine/blob/354361c8777dc86bfaa5d4f466d8811086ee9040/zircon_plugins/texture_importer/runtime/tests/array_layer_refresh.rs)保留原 288 行回归，并新增五案。首个 observer 尝试误用了不存在的 getter 而未生成程序；改为读官方 `into_parts().1`，仍比对完整代际标记，未改引擎或断言。Windows x64/MSVC 1.94.1，单个 `zircon_plugin_texture_importer_runtime --no-default-features --features zircon_runtime/profiling --test array_layer_refresh` 测试产物。六项实际 **1 过、5 败**，其中一项失败的原因与其余不同：
+
+| 实际输入 | 未修观测 |
+|---|---|
+| 原热工程改色、独立空缓存工程 | 已改 PNG 单图是蓝，热数组仍绿/红，独立冷工程是绿/蓝。 |
+| 同一项目关闭并重开 | 未改时所有三项都恢复，零重新导入；关项后只将 PNG 从红改蓝再开，实际 **2 恢复 / 1 导入**，父数组错误保留绿/红。 |
+| 列表换序、加入新层/删除旧层 | 清单本身更改时能更新；不再引用的图单独改色不应打破父缓存。随后只改新加入的 `c.png` 时父层仍旧，失败落在实际层 RGBA。 |
+| 一张 PNG 纵切，已捕获字节与当前磁盘不同 | 真注册 handler 却用当前磁盘的新色，忽略本次捕获的原色。 |
+| 旧版本实际产生的 15 文件项目副本 | profiling 改变了编译身份，所以原版在此配置已顺带重烘为绿/蓝；失败在**父源指纹没变**，不把它列为错误颜色。另用当初制品的无附加特性配置重开同样的独占副本：旧 action、源指纹、digest、绿/红像素均原样留下，才是实际的陈旧像素。两个无特性用例 **0 过 2 败**，不计为额外问题。
+| 生成新主清单、再发布缺一张正常图的清单 | 通过。成功回执匹配实际提交字节，失败不会替换上一代的源、sidecar、注册表和制品。 |
+
+这些都是 CPU 项目的生产缓存计数或真实 `res://` / `lib://` 读回。原档只读，两种构建各自使用新目录；不改旧 `.zmeta` 伪造命中。profiling 组构建回执 `5a35fc938d310d094eef4c899eb29065a924907b1c3b2e2049c63fa7d8b5d1c8`，同根/列表/纵切执行 `cd7a7adb60524b115a22df6af34eb46169dd8c96f91a983083bb6d7c15834c7f`；匹配旧构建的实际迁移执行 `6a430bf46fb09cee72790be18bbf40ca92a56ef1a6a61ee1db319ed0a37f9c8e`。本提交仅回归与证据。
