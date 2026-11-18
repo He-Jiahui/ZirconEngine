@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第15轮新增独立问题 #207，目前共 **30 个问题 Draft**。最新原生证据见第19节，第7–18节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第15轮新增 #207，第16轮新增 #210，目前共 **31 个问题 Draft**。最新原生证据见第20节，第7–19节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -318,3 +318,14 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 | 原 [#202 注册首目录](https://github.com/He-Jiahui/ZirconEngine/pull/202) | 专用分段观测 0 过 1 败。首次打开拿源版本 **3**、唯一显式刷新拿 **10**；两次都命中 Runtime 令牌过期的真实拒绝分支，没有发布 Editor 目录。 | 同一刷新前后 10→16，仅一条 shader 的两处时钟有净变化；没有逐批证实是谁写入，也不放松提交身份检查。 |
 
 [通知的原生位型与次数](https://github.com/He-Jiahui/ZirconEngine/blob/a7e7a21b2abbeeaf21fedd9659c33987b5887cfe/docs/plans/unreal-alignment/loop-notify-resume.md) · [骨架三帧与不同管线边界](https://github.com/He-Jiahui/ZirconEngine/blob/67553e62febec21be5b7c6ca044bd34f057e1291/docs/plans/unreal-alignment/skeleton-parent-slot-order.md) · [Editor 两个同步 span 的原生样本](https://github.com/He-Jiahui/ZirconEngine/blob/6e25d20e8140059583981a47ddf3fb43bdaffe12/docs/plans/unreal-alignment/editor-initial-catalog-visibility.md)。本轮只在 #164 的私有蒙皮矩阵求值上改生产；其余均为调查/测试。 现有 **30 个独立问题 Draft + 1 个目录 Draft**，本任务无合并；2,588 个 Build、178 个 Target、40 个领域和 8 个冻结 CSV 不变，不能把目录数量当作产品通过数。
+
+## 20. 材质准入、Prefab 保存、动画续页和 Editor 文件事务（第16轮）
+
+| 原问题 | 本轮实证 | 范围 |
+|---|---|---|
+| [#152](https://github.com/He-Jiahui/ZirconEngine/pull/152) · [证据](https://github.com/He-Jiahui/ZirconEngine/blob/aa68636392c8bbd993f4e198621a094ce08df591/docs/plans/unreal-alignment/material-option-bit-budget.md) 材质 | 32 位边界能保留枚举值 2；33 位作者声明与旧缓存均不再把 2 别名为 0，同一份坏缓存载荷（解压后 3,359 B）在重开后由合法源重建。**2 过 3 败 → 5 过 0 败**。 | Surface 文本导入/持久读回；不改 ABI，不是全部 typed 构造、warm prewarm 或 GPU。 |
+| [#210](https://github.com/He-Jiahui/ZirconEngine/pull/210) · [证据](https://github.com/He-Jiahui/ZirconEngine/blob/96b98b9edb22bc017ac0b80b4b0873dadf81fcfd/docs/plans/unreal-alignment/prefab-null-override-save.md) 新 Prefab/Scene | 普通场景文本已修：两个原生用例从 0 过 2 败变为 2 过 0 败。现有空值覆盖行保留两条路径，只省 `value`；三实例混排没有串行。 | Unity 风格不变；不是 Apply、Revert、嵌套任意 JSON、UE 或窗口操作验收。 |
+| [#207](https://github.com/He-Jiahui/ZirconEngine/pull/207) · [证据](https://github.com/He-Jiahui/ZirconEngine/blob/12acadade50649f9925a396fe1fa0fc351788488/docs/plans/unreal-alignment/loop-notify-resume.md) 动画 | 同一 filter 扩为 7 案，实际 3 过 4 败。20 轨、同一百毫秒正反向区间，每轨五次；0→0.1 实发104；0.1→0 实发84。另有相邻表示值及字节/span 预算正控。 | 未改生产采样器；未把全插件或极端时刻新语义算成通过。 |
+| [#202](https://github.com/He-Jiahui/ZirconEngine/pull/202) · [证据](https://github.com/He-Jiahui/ZirconEngine/blob/d8a50d923ee4f6e8a48e34f88f5fa7c6374c0d53/docs/plans/unreal-alignment/editor-initial-catalog-visibility.md) Editor 资产 | 首扫与无编辑对账均改写复合描述符，Shader IDE 生成前后三个源文件不变。独立对照未复现“完整目录仅两处 mtime 变化”的组合条件，并未识别其它具体字段。正常打开留下 14 个描述符版本，13/13 对是上个物理时间进入下个持久时间；14 份事务日志只有 intent 而无 target committed 帧。不能用这些样本确定逐次 watcher 或 fence 写手。 | 区分无 watcher 的独立对照、正常打开的实际文件事务与测试的外部端点，不将原始文件通知虚构为 Runtime 消费的具体批次或 fence 的 current token。 |
+
+累计 **31 个独立问题 Draft + 1 个总索引 Draft，零合并**。八份冻结的 UE 模块、目标、领域及测试定位 CSV 未变。新问题先从共同 main 只提交调查，再在原独立 PR 追加回归；已修的行为不代表整套模块或产品验收。
