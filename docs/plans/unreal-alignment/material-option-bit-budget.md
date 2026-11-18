@@ -186,3 +186,13 @@ ZE 自身既有 [32 位上限/超限 import 诊断合同:165](<https://github.co
 
 
 38 项选定输入；实际回执 SHA-256 `d5594c3d3c190c39d6aea29900dfab28158c6c25278666cd306a1074547c21e2`，stdout `9bf54256b00510afa16152fd5967aef5345ca1facd5316d3b024359e91b9e8a7`，stderr `4d5149857669912a653dfa1a63468b6db541e0b0f5d277e49bd650c82278f1ae`。
+
+## 8. 修复：在 Surface 作者入口和持久载荷读回时验证同一位预算
+
+[生产修复 `02b6afc0e0e84924e4a0cb3902146b45fcde13ec`](https://github.com/He-Jiahui/ZirconEngine/blob/02b6afc0e0e84924e4a0cb3902146b45fcde13ec/zircon_runtime/src/asset/assets/shader/zshader.rs) 只在会失败并能给出诊断的入口检查原始 Surface `options`。校验与布局生成共用原有 option kind、枚举拆分及位宽计算；超过 `u32::BITS` 报首个越界名字、累计位数和上限。缓存读回先检查声明，再生成材质数据，不能信任序列化里看似合法的 `total_bits`。未扩大变体键、改变缓存格式或向 GPU ABI 加字段。
+
+复跑 §7 的相同五案，测试文件和命令不变，**2 过 3 败 → 5 过 0 败**。恰好 32 位保留 `0x80000000 → enum 2`；不参与 Surface 材质变体的 Compute/Fullscreen 原文仍可解析。33 位 Surface 返回 `Error`，不发布根制品，诊断命名 `detail_mode` 及所需 33 / 上限 32；恢复同一份 3,359 B `ec112b8f85b657de98d825e7936592ff257c34ad1daa41de4756ac0d488d5616` 磁盘载荷时，直接读取得到对应的预算错误。保持作者源合法后重开工程，同一 locator 的错误载荷被重导，新的 root 内容散列 `d24823352d4efa71d238bd7c1d39e96a257c15bb1f7baea66fc13f2d2f914bd2`，32 位与 3 个值均复原。
+
+本修复不把公开的 infallible Rust 构造器或直接赋值改为新 ABI；绕开正常导入与持久读回自行捏造的表不在保证内。冷 prewarm 从同一作者解析入口可获得诊断是源码结论；本轮没有运行 CLI、warm inventory、设备端 shader 或 UE，不称整个材质系统已验收。
+
+38 项选定输入；实际回执 SHA-256 `7fefbc54bd75ee12a9d227b9b9a2f98d02cd7d2afbe6f0bb5a4904a985e3e130`，stdout `6a30f40fb25468141080568348a72198b4489979fdb5edfdd6819c51eb6053b8`，stderr `82385cb84b3d685fdda503246c3a5738b75b619c9468d21621fd76b93f8a5b78`。
