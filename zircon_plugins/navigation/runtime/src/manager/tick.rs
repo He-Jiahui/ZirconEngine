@@ -253,17 +253,25 @@ fn apply_direct_traversal_position(
     report: &mut NavAgentTickReport,
 ) -> bool {
     let displacement = direct.position - transform.translation;
-    let direction = displacement.normalize_or_zero();
-    let updated = Transform {
-        translation: direct.position,
-        rotation: if agent.update_rotation && direction.length_squared() > Real::EPSILON {
-            rotate_toward_movement(transform.rotation, direction, agent, dt_seconds)
-        } else {
-            transform.rotation
-        },
-        ..transform
+    let write_result = match world.parent_of(entity) {
+        Some(parent) if !agent.update_rotation => {
+            write_parented_direct_point(world, entity, parent, direct.position)
+        }
+        _ => {
+            let direction = displacement.normalize_or_zero();
+            let updated = Transform {
+                translation: direct.position,
+                rotation: if agent.update_rotation && direction.length_squared() > Real::EPSILON {
+                    rotate_toward_movement(transform.rotation, direction, agent, dt_seconds)
+                } else {
+                    transform.rotation
+                },
+                ..transform
+            };
+            world.update_transform(entity, updated)
+        }
     };
-    let write_succeeded = match world.update_transform(entity, updated) {
+    let write_succeeded = match write_result {
         Ok(true) => {
             manager.record_agent_velocity(entity, realized_velocity(displacement, dt_seconds));
             report.moved_agents += 1;
@@ -284,6 +292,37 @@ fn apply_direct_traversal_position(
         manager.clear_agent_velocity(entity);
     }
     write_succeeded
+}
+
+fn write_parented_direct_point(
+    world: &mut World,
+    entity: u64,
+    parent: u64,
+    point: Vec3,
+) -> zircon_runtime::scene::SceneResult<bool> {
+    use zircon_runtime::core::math::{try_affine_inverse, NumericPolicy};
+    use zircon_runtime::scene::SceneError;
+
+    let parent_world = world
+        .world_matrix(parent)
+        .ok_or(SceneError::MissingParent {
+            child: entity,
+            parent,
+        })?;
+    let mut local = world
+        .local_transform(entity)
+        .ok_or(SceneError::MissingRequiredComponent {
+            operation: "traverse navigation link",
+            entity,
+            component: "LocalTransform",
+        })?;
+    let local_from_world =
+        try_affine_inverse(parent_world, NumericPolicy::STRICT).map_err(|error| {
+            SceneError::Message(format!("cannot invert off-mesh parent {parent}: {error}"))
+        })?;
+    // Only change the authored point; decomposing world TRS would change the inherited basis.
+    local.translation = local_from_world.transform_point3(point);
+    world.update_transform(entity, local)
 }
 
 fn publish_traversal_event(
