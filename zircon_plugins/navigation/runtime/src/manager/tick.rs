@@ -157,7 +157,10 @@ pub(crate) fn tick_world_agents_legacy(
         let distance = delta.length();
         if distance <= agent.stopping_distance {
             manager.clear_agent_velocity(entity);
-            report.arrived_agents.push((entity, destination.to_array()));
+            // A steering target can be an intermediate waypoint or off-mesh entry.
+            if current.distance(destination) <= agent.stopping_distance {
+                report.arrived_agents.push((entity, destination.to_array()));
+            }
             continue;
         }
         let velocity = next_agent_velocity(
