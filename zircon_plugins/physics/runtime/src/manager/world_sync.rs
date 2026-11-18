@@ -41,8 +41,14 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
             .unwrap_or_default();
 
         if let Some(rigid_body) = world.rigid_body(entity) {
-            if transform_is_finite(entity_transform) && rigid_body_sync_input_is_finite(&rigid_body)
+            let body_transform = if transform_is_finite(entity_transform)
+                && rigid_body_sync_input_is_finite(&rigid_body)
             {
+                rigid_body_transform(world, entity, entity_transform)
+            } else {
+                None
+            };
+            if let Some(transform) = body_transform {
                 sync.bodies.push(PhysicsBodySyncState {
                     entity,
                     body_type: match rigid_body.body_type {
@@ -50,7 +56,7 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
                         RigidBodyType::Dynamic => PhysicsBodyType::Dynamic,
                         RigidBodyType::Kinematic => PhysicsBodyType::Kinematic,
                     },
-                    transform: entity_transform,
+                    transform,
                     mass: rigid_body.mass,
                     mass_properties: rigid_body.mass_properties,
                     linear_velocity: rigid_body.linear_velocity.to_array(),
@@ -127,6 +133,92 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
     }
 
     sync
+}
+
+fn rigid_body_transform(world: &World, entity: u64, projected: Transform) -> Option<Transform> {
+    use zircon_runtime::core::math::{Mat4, Quat, Vec4};
+
+    let projected_is_unit = (projected.rotation.length_squared() - 1.0).abs() <= 2e-6;
+    let Some(matrix) = world.world_matrix(entity) else {
+        return projected_is_unit.then_some(projected);
+    };
+    if !matrix.is_finite() {
+        return None;
+    }
+    let mut axes =
+        [matrix.x_axis, matrix.y_axis, matrix.z_axis].map(|axis| axis.truncate().as_dvec3());
+    let max = axes
+        .map(|axis| axis.abs().max_element())
+        .into_iter()
+        .fold(0.0, f64::max);
+    if max == 0.0 {
+        return None;
+    }
+    axes = axes.map(|axis| axis / max);
+    let [x, y, z] = axes;
+    let det = x.dot(y.cross(z));
+    let [lx, ly, lz] = axes.map(|axis| axis.length());
+    if det.abs() <= 32.0 * f64::EPSILON * lx * ly * lz
+        || (det < 0.0) != projected.scale.x.is_sign_negative()
+    {
+        return None;
+    }
+    let orthogonal = x.dot(y).abs() <= 1e-6 * lx * ly
+        && y.dot(z).abs() <= 1e-6 * ly * lz
+        && z.dot(x).abs() <= 1e-6 * lz * lx;
+    if orthogonal && projected_is_unit {
+        return Some(projected);
+    }
+    // Keep the existing signed-X convention; only the proper rotation leaves this boundary.
+    if det < 0.0 {
+        axes[0] = -axes[0];
+    }
+    // Scaled Newton polar iteration on the linear block. Cross products are the columns of
+    // the inverse transpose up to det. Widen before iterating so thin real frames survive.
+    for _ in 0..24 {
+        let [x, y, z] = axes;
+        let cofactors = [y.cross(z), z.cross(x), x.cross(y)];
+        let det = x.dot(cofactors[0]);
+        if !det.is_finite() || det <= 0.0 {
+            return None;
+        }
+        let inverse_t = cofactors.map(|c| c / det);
+        let norm_squared = axes.map(|a| a.length_squared()).into_iter().sum::<f64>();
+        let inverse_norm_squared = inverse_t
+            .map(|a| a.length_squared())
+            .into_iter()
+            .sum::<f64>();
+        let gain = (inverse_norm_squared / norm_squared).sqrt().sqrt();
+        if !gain.is_finite() || gain <= 0.0 {
+            return None;
+        }
+        for (axis, inverse) in axes.iter_mut().zip(inverse_t) {
+            *axis = (*axis * gain + inverse / gain) * 0.5;
+        }
+        let [x, y, z] = axes;
+        let gram_error = [
+            x.length_squared() - 1.0,
+            y.length_squared() - 1.0,
+            z.length_squared() - 1.0,
+            x.dot(y),
+            y.dot(z),
+            z.dot(x),
+        ];
+        if gram_error.into_iter().all(|e| e.abs() <= 1e-10) && x.dot(y.cross(z)) > 0.0 {
+            let rigid = Mat4::from_cols(
+                x.as_vec3().extend(0.0),
+                y.as_vec3().extend(0.0),
+                z.as_vec3().extend(0.0),
+                Vec4::W,
+            );
+            let rotation = Quat::from_mat4(&rigid).normalize();
+            return ((rotation.length_squared() - 1.0).abs() <= 2e-6).then_some(Transform {
+                rotation,
+                ..projected
+            });
+        }
+    }
+    None
 }
 
 fn world_sync_projection_capacities(
