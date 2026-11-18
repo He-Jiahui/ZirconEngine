@@ -573,14 +573,20 @@ impl RuntimeDynamicSession {
         ZrStatus::ok()
     }
 
+    fn fallback_menu_action_at_cursor(&self) -> Option<super::menu::RuntimeMenuAction> {
+        // Project UI replaces the fallback menu even when it does not handle this event.
+        if !self.runtime_ui.is_empty() {
+            return None;
+        }
+        let viewport_size = self.camera_controller.viewport_size();
+        self.level
+            .with_world(|world| runtime_session_menu_action_at(world, viewport_size, self.cursor))
+    }
+
     fn handle_pressed(&mut self, button: u32) {
         match button {
             ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1 => {
-                let viewport_size = self.camera_controller.viewport_size();
-                let menu_hit = self.level.with_world(|world| {
-                    runtime_session_menu_action_at(world, viewport_size, self.cursor).is_some()
-                });
-                if !menu_hit {
+                if self.fallback_menu_action_at_cursor().is_none() {
                     self.camera_controller.left_pressed(self.cursor);
                 }
             }
@@ -593,10 +599,7 @@ impl RuntimeDynamicSession {
     fn handle_released(&mut self, button: u32) {
         match button {
             ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1 => {
-                let viewport_size = self.camera_controller.viewport_size();
-                if let Some(action) = self.level.with_world(|world| {
-                    runtime_session_menu_action_at(world, viewport_size, self.cursor)
-                }) {
+                if let Some(action) = self.fallback_menu_action_at_cursor() {
                     self.level
                         .with_world_mut(|world| write_runtime_menu_action(world, action));
                 }
