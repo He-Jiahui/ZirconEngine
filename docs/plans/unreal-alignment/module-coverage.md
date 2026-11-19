@@ -1,8 +1,8 @@
-# Unreal ↔ ZirconEngine 全模块对照：目录、独立 Draft 与测试推进总览
+# Unreal 与 ZirconEngine 模块审查总目录
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第26轮实测见第30节，累计 **50 个问题 Draft**。第7–29节记录此前各轮的源码与执行结果。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮清点 30 个原列领域和 10 个补充领域。截至第27轮，累计 **53 个问题 Draft**。第31节列出本轮实测，第7–30节保留前轮结果。下文首轮表格与 CSV 保留原始清点。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -454,3 +454,20 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 | [#237](https://github.com/He-Jiahui/ZirconEngine/pull/237) · [源码与验证](https://github.com/He-Jiahui/ZirconEngine/blob/eed698b826a8f89d448a156a30b18ee65be5f46e/docs/plans/unreal-alignment/animation-portable-libtests.md#L54) | 关闭动画包默认特性时，原先阻断库测试构建的 18 条诊断已消除。使用仓库现有的 `tests::` 筛选，实际通过 89 项。显式开启 `native-host` 后，注册、物理同步后的求值顺序和分发清单三项原测试全部通过。 |
 
 本次核对 50 个问题及测试维护 Draft 和 1 个总索引。8 份 UE 模块目录继续指向相同的 Git 对象。
+
+## 31. Web 输入、WebGPU 构建与产品启动（第27轮）
+
+| 草稿与证据 | 实测结果 |
+|---|---|
+| [#151](https://github.com/He-Jiahui/ZirconEngine/pull/151) · [`89fe5c00`](https://github.com/He-Jiahui/ZirconEngine/blob/89fe5c004285ec32d68b9aa2992a888c19166a97/docs/plans/unreal-alignment/web-key-release-pairing.md#L156) | 先松 Shift 再松 `a`，游戏释放原来的 `A`，UI 保留实际字符。Windows 回归从 3/6 到 6/6；Chrome 157 逐帧检查从 17/24 到 24/24。 |
+| [#238](https://github.com/He-Jiahui/ZirconEngine/pull/238) · [`0c0dfa84`](https://github.com/He-Jiahui/ZirconEngine/blob/0c0dfa8451d94ea9edd0726470534063134face7/docs/plans/unreal-alignment/web-canvas-focus-release.md#L71) | 同页切焦当帧释放原画布键盘，继续按住的鼠标左键保持原状态。Chrome 157 焦点回归从 13/21 到 21/21，回焦后的按键产生新的按下边沿。 |
+| [#239](https://github.com/He-Jiahui/ZirconEngine/pull/239) · [`233f17f0`](https://github.com/He-Jiahui/ZirconEngine/blob/233f17f0e6a14c05a7a8dd620e99acd03cefb1d6/docs/plans/unreal-alignment/webgpu-canvas-format-build.md#L76) | 独立草稿上的 `zircon_app` Web 库构建退出 101，Canvas 交换链格式赋值处报 `E0594`。Wasm 分支改用可写描述符，适配器报告的格式顺序保持原样。相同 Web 库构建退出 0，已核验 JavaScript 与 Wasm 绑定产物。Chrome 的 `WebEngine.load` 返回 `ModuleGraphFrozen`，未呈现帧。同一适配器的 WebGPU 对照以 `bgra8unorm` 取得 64×64 纹理并完成提交。 |
+| [#240](https://github.com/He-Jiahui/ZirconEngine/pull/240) · [`e7683efa`](https://github.com/He-Jiahui/ZirconEngine/blob/e7683efa1adc2d704718f2184ce7008a53779bed/docs/plans/unreal-alignment/web-module-registration-order.md#L94) | 合法空目录从 `ModuleGraphFrozen` 推进到缺少启动场景诊断，错平台仍按预期拒绝。Chrome 回归从 1/2 到 2/2；修订后的产品同时使用 #239 的构建修复。HTTP 已交付场景 JSON 和 8 个资产响应；该场景的 `WebEngine.load` 返回 `Source(ProjectAssetUnavailable)`，未呈现帧。独立 WebGPU 对照仍能提交。 |
+
+[#151](https://github.com/He-Jiahui/ZirconEngine/pull/151) 和 [#238](https://github.com/He-Jiahui/ZirconEngine/pull/238) 在同一 `zircon_app/Cargo.toml` 登记各自的示例，共用 `browser/frame.rs`、`mod.rs` 和 `open.rs`。组合时须解决 `browser/input.rs` 的 3 处冲突。解决后的本地组合源码在 Chrome 157 达到 **21/21** 帧预期，并通过 **3** 组受信键盘序列。持续聚焦时松键释放原 `A`，切焦回来后新按的 `a` 得到自己的按下边沿。两个草稿各自保留独立提交。
+
+[#239](https://github.com/He-Jiahui/ZirconEngine/pull/239) 与 [#235](https://github.com/He-Jiahui/ZirconEngine/pull/235) 仅共改 `surface_bootstrap.rs`。Git 自动合并得到 `b300b805cd9cd0c25e109e87bfb1edb83c7fc88f`，保留 DX12 测试跟踪和 Web 画布描述符修改。
+
+启动修订 [#240](https://github.com/He-Jiahui/ZirconEngine/pull/240) 与两个输入草稿仅共改 `browser/open.rs`。Git 分别自动合并为 `1158129c1a55bce0800c8860759204e32e960b05`，保留帧队列初始化和统一激活。
+
+累计 53 个问题 Draft 和 1 个总索引；8 份模块 CSV 保持原 Git 对象。
