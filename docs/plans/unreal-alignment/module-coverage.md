@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第24轮新增 #234、#235，目前共 **48 个问题 Draft**。最新实证见第28节；第7–27节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第25轮新增 #236，目前共 **49 个问题 Draft**。最新实证见第29节；第7–28节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -432,3 +432,14 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 | [#235](https://github.com/He-Jiahui/ZirconEngine/pull/235) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/d541af1d6738249445e6c0676559a2128b31502d/docs/plans/unreal-alignment/dx12-retired-frame-resize.md#L1-L41) | 正常 Windows DX12 resize：历史实包非零尺寸调整后退出 1，主线仍先 configure 才回收旧引用。历史邻近修复非主线祖先，两次历史 test blob 不同；本轮只有独立调查，没有在这份 Draft 上运行 GPU，未移入私有补丁。 |
 
 累计 **48 个问题及测试维护 Draft + 1 个总索引，零合并**。历史八份模块目录保持不变。公共 CPU 查询、真实资产驻留与桌面/GPU 产品、UE 原测的执行分别计，不把组件结果当成整个引擎验收。
+
+## 29. DX12 窗口对照、暂停序列及脚本激活回调（第25轮）
+
+| 独立 PR | 实测及尚未覆盖的边界 |
+|---|---|
+| [#149](https://github.com/He-Jiahui/ZirconEngine/pull/149) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/4a4269b938a32eb66953172033a81d16021825a7/docs/plans/unreal-alignment/script-start-projection.md#L125-L149) | 脚本的六个用例实测 6 过、0 败。只改 A 后，B 只执行 onUpdate。真正重装、同行改值再还原及不同 Core 的首帧也分别取得正确的启动次数。 |
+| [#165](https://github.com/He-Jiahui/ZirconEngine/pull/165) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/7bd76527b6b808747a7dc863a9172c112bd8f378/docs/plans/unreal-alignment/timeline-paused-binding.md#L212-L226) | 暂停序列现在记录实际加载的资源版本以及各播放器尚未成功写入的轨道。相同的 14 个正式帧场景由 5 过 9 败变为 14 个全过，两项投影缓存库测试也通过。 |
+| [#235](https://github.com/He-Jiahui/ZirconEngine/pull/235) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/60505c1da9e8a86d8a3826d46b966d52be4c8534/docs/plans/unreal-alignment/dx12-retired-frame-resize.md#L49-L61) | 真实非零窗口、WGPU 实例和 surface 均已建成；同一 EXE 在 60 秒和 180 秒均未完成兼容适配器选择。未到呈现或 resize，无本机重配 RED；没有提交推测性的引擎修复。 |
+| [#236](https://github.com/He-Jiahui/ZirconEngine/pull/236) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/da0f224b4ed0a9e768014708e6b9ab796ecdb261/docs/plans/unreal-alignment/rhi-profile-admission-order.md#L56-L70) | 提前校验已选适配器与调用方提供的 profile。相同测试由 2 过 1 败变为 3 过 0 败。不匹配时请求调用和首次轮询均为 0，匹配时各 1 次，结果及错误均原样交付。 |
+
+累计 **49 个问题及测试维护 Draft + 1 个总索引，零合并**。八份模块目录沿用已核验版本。
