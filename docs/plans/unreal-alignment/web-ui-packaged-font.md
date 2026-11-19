@@ -61,3 +61,23 @@ Web 建立 UI 时收集作者显式写下的字体 URI。项目目录登记了�
 [last]: <https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/text/font/fallback.rs#L475-L531>
 [text-tests]: <https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/text/tests/service.rs#L52-L116>
 [ui-test]: <https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/ui/surface/render/tests/font_dependencies.rs#L8-L25>
+
+## 7. 正常 WebEngine 入口的九组回归
+
+Chrome 157 的九组字体准入回归通过 7/9。未写字体的 HUD 和已预载自定义字体的 HUD 均因默认项目字体缺失而返回 ProjectAssetUnavailable。显式资源缺失、已登记但未预载、类型错误及坏 blob 均返回预期诊断。 本组使用固定输入差分目录。下表的渲染器请求次数来自产品对浏览器 WebGPU API 的实际调用。
+
+| 场景 | 渲染器请求适配器次数 | 字体准入断言 |
+|---|---:|---|
+| 只预载 HUD | 1 | 通过 |
+| HUD 使用默认样式 | 0 | 失败 |
+| 有效的项目默认覆盖 | 1 | 通过 |
+| 显式同名默认字体缺失 | 0 | 通过 |
+| 显式自定义字体缺失 | 0 | 通过 |
+| 自定义字体就绪，目录无默认覆盖 | 0 | 失败 |
+| 覆盖已登记、未预载 | 0 | 通过 |
+| URI 对应资源类型错误 | 0 | 通过 |
+| 已预载字体的 blob 哈希不符 | 0 | 通过 |
+
+每个用例结束时，监听器、引擎实例和已登记画布的计数均为零。页面提交为 `ec39dfc609c9fdac1487a91051d2843c104a8349`。[可复跑页面](https://github.com/He-Jiahui/ZirconEngine/blob/ec39dfc609c9fdac1487a91051d2843c104a8349/tools/validation/browser/web-font-policy.html)
+
+产品进入渲染器后返回 `Rhi(SurfaceUnavailable("no adapter compatible with the native surface satisfied selection policy: no adapter satisfied the declared selection policy"))`。本次呈现 0 帧。
