@@ -110,3 +110,27 @@ UE 文件 SHA256（仅短符号/路径说明，无 UE 实现段落复制）：
 同一编译产物 SHA-256 `217c03a06605eee4b60d574ce2a92616b258cfb32333fc7be07bbda4e72f0f3b` 的 6 个 `sequence_tick_` 用例实际执行，0 过 / 6 失败：**每个都先在隔离配置的临时目录字面等价检查停止**，没有一个进入 Core 或第一次动画 sample。没有把失败退出码当作 #165 行为证据。拟分别固定迟生、改名、共享资源及繁忙的另一条轨道；对照原有绑定、正播放和稳定暂停的独立写入不得被覆盖。泊在播放器 `playing=false`，不是让 World 虚拟时钟暂停后依然运行回调。
 
 修正原调查 §4 的一个候选：不能把全局目录代直接加给所有暂停玩家——一个无关实体出现就可能把已经绑定、被编辑的值重新覆盖。原下游 compile 的 `is_current_for` 有自己的失效域；一个编译产物可能被多个玩家共享，且当前 cache 会随本帧有请求的 asset 集合清理，故两者均需对照。UE `System.Engine.Sequencer.Capabilities.Invalidate`、`System.Engine.Sequencer.PartialEvaluation` 分别覆盖失效通知和明确排队后的分段评估，**不是**普通暂停运行时因新 Actor 自动求值的证明；Editor 的 ForceEvaluate 与空闲 Runtime 的排队门也不同。
+
+## 8. [实测失败] 实际 PostUpdate 的条件与取样
+
+修复的是夹具临时目录尾部的表示：重新确认系统返回的目录与显式 TEMP 是同一无别名的物理目录，配置必须位于其下。自启动真实 Core 起，全部行为断言与上次相同。此次六例均进入真实 Level 帧，带非零 delta；`playing=false` 的播放器时钟仍是 `0.5`，资源和 World 身份保持。初次已经存在的目标可采样到位移 X=2；正播放者在目标出现后也能写入，另一个繁忙资产不应使已绑定的静止轨覆写外部设置的 X=17。新增和改名后目标已能按路径解析，却没有入队，X 仍为 0（应为 2）。两位暂停玩家共用资产时，新帧仍只含另一个正播放实例的请求。
+
+本次 Git 输入 `06fbf4bdff659009063a21fe08394f171a1b3dff`；[实际回归用例](https://github.com/He-Jiahui/ZirconEngine/blob/06fbf4bdff659009063a21fe08394f171a1b3dff/zircon_plugins/animation/runtime/tests/sequence_tick.rs)，该输入的测试产物 SHA-256 `bdf5bf859ff3a0fd1ae42ce24e972214d5aa3c5843cf4a5635b1ad427b1721cf`。独立集成测试实际运行 **3 过 / 3 败**。
+
+| 冻结的用例 | 本次结果 |
+|---|---|
+| `sequence_tick_paused_keeps_bound_target_quiet` | 通过 |
+| `sequence_tick_paused_retries_renamed_target` | 失败 |
+| `sequence_tick_paused_retries_shared_asset_after_eviction` | 失败 |
+| `sequence_tick_paused_retries_spawned_target` | 失败 |
+| `sequence_tick_playing_retries_spawned_target` | 通过 |
+| `sequence_tick_samples_initial_paused_target` | 通过 |
+
+| 实际阶段（日志标记） | 本帧玩家 | 本帧序列请求 |
+|---|---:|---:|
+| `initial_bound` | 1 | 1 |
+| `after_rename` | 1 | 0 |
+| `shared_retries_after_eviction` | 3 | 1 |
+| `after_spawn` | 1 | 0 |
+
+这是 Windows 集成层经产品 portable 注册调用同一 PostUpdate 求值器、使用 native 资产管理器的结果；未跑真正的 Web 加载、原生插件扫描、桌面产品或 UE 原测。
