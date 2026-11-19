@@ -53,3 +53,11 @@ ZE 固定 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`。初次提交仅调查、�
 编译回执 `fe062feca2b7e6a6bf3fefb93adb2a5bdc7f6a43fce5d93e43516f643cce7f11`；执行回执 `e6f619b96ddce0bbf52a13e12d4424ac8d826a1497c797573bc1e8fe4c871328`，stdout `8171daf9c1ebf9e0d733218268804e0a879b338f511d983874b103aea0b1512e`。
 
 未改生产逻辑；没有把其它 PR 的修复叠上来。本阶段不是 UE、GPU 或 stock 桌面端到端验证。
+
+## 8. 无导入主窗可退出；另一例卡在提交真实模型之前
+
+[原样保留两条行为断言的冷启动测试](https://github.com/He-Jiahui/ZirconEngine/blob/74b4702ca61da912f18189d06cf804fb92dc1568/zircon_editor/src/ui/retained/app/tests/model_close.rs)不再把旧 World 装到新 generation。正式项目预检直接进入 retained 工作台，两例均核到同根项目、active Scene document 及同一 Edit World。**无导入对照通过**：原生 close callback → 正常 tick → 协调器 Closed、Jobs Quiescent、活动持有者释放、退出标记成立，而不是仅看到第一步的 KeepWindowShown。
+
+**导入例未到行为断言。** 状态行是 `Project opened: CloseModel`，其中 `project_generation=27 assets=7 ready=7 failed=0 registry_diagnostics=1`。这并不等于 Editor 已能按 URI 看见启动 Scene：夹具在「Editor 能取得 Scene 行、且没有待处理的 Scene reload」的联合门前用尽预算。这个结果本身不区分哪个谓词未满足，不能把所有原因归给 [#202](https://github.com/He-Jiahui/ZirconEngine/pull/202)。已留项目仍有 Ready 会话记录，注册表未出现目标 `close-triangle.obj`；没有提交测试 OBJ、也没有为此例调用原生关窗。不能宣称永久死锁、菜单不可用，或模型结果已由关闭所有者接收。
+
+Windows x64/MSVC 1.94.1；`zircon_editor --no-default-features --lib --profile test`，随后实际运行 `model_close_owner_ --ignored --test-threads 1 --show-output`。**1 过 / 1 败**；编译 `401262d49e19327f44b41dcb6072dbb8c16bc91a3f85de7be6bbee9dde192972`，执行 `f7db1c8f92e893d398a4845790ca9a7fc828652498102a4a0a56f813db626cc1`，stdout `ef241790d7fd553f963adc824308ccb6e9676203b6bac2b525a311b37ba1ebdf`。下一步分开采样真实注册目录和 reload，保留 watcher、权限、会话身份、工作线程及关闭断言；未取得同一终态任务的 READY/review 证据前不改生产。
