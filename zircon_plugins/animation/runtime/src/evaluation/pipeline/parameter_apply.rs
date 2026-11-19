@@ -3,11 +3,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use zircon_runtime::asset::{AssetId, ProjectAssetManager};
 use zircon_runtime::core::framework::animation::{
     AnimationClipAsset, AnimationGraphAsset, AnimationPlaybackSettings, AnimationPoseSource,
-    AnimationSequenceAsset, AnimationSkeletonAsset, AnimationStateMachineAsset,
+    AnimationSkeletonAsset, AnimationStateMachineAsset,
 };
 use zircon_runtime::core::math::Real;
 use zircon_runtime::core::resource::{
-    AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
+    AnimationClipMarker, AnimationGraphMarker, AnimationSkeletonMarker,
     AnimationStateMachineMarker, ResourceHandle,
 };
 use zircon_runtime::scene::components::{
@@ -23,6 +23,8 @@ use super::requests::{
     PendingGraphPoseSample, PendingPoseSample, PendingSequenceSample,
     PendingStateMachinePoseSample,
 };
+use super::sequences::{SequenceClockUpdate, SequenceObservation, SequenceOwner, SequencePlayback};
+use zircon_runtime::animation::CompiledAnimationSequence;
 
 #[cfg(test)]
 #[path = "../tests/parameter_apply_perf.rs"]
@@ -41,7 +43,7 @@ pub(super) struct AnimationEvaluationProjection {
     state_machine_players:
         Option<QueryState<(EntityId, Ref<'static, AnimationStateMachinePlayerComponent>)>>,
     clip_revisions: BTreeMap<EntityId, ClipProjectionRevision>,
-    sequence_revisions: BTreeMap<EntityId, SequenceProjectionRevision>,
+    pub(super) sequence_playback: SequencePlayback,
     graph_revisions: BTreeMap<EntityId, GraphProjectionRevision>,
     state_machine_revisions: BTreeMap<EntityId, StateMachineProjectionRevision>,
     stats: AnimationEvaluationProjectionStats,
@@ -57,12 +59,6 @@ struct SkeletonProjectionRevision {
 struct ClipProjectionRevision {
     player_change: ChangeTick,
     skeleton: Option<SkeletonProjectionRevision>,
-    asset_revision: Option<u64>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct SequenceProjectionRevision {
-    player_change: ChangeTick,
     asset_revision: Option<u64>,
 }
 
@@ -83,7 +79,6 @@ struct StateMachineProjectionRevision {
 #[derive(Debug, Default)]
 pub(super) struct AnimationProjectionRevisionStage {
     clip_revisions: Vec<(EntityId, ClipProjectionRevision)>,
-    sequence_revisions: Vec<(EntityId, SequenceProjectionRevision)>,
     graph_revisions: Vec<(EntityId, GraphProjectionRevision)>,
     state_machine_revisions: Vec<(EntityId, StateMachineProjectionRevision)>,
 }
@@ -91,7 +86,7 @@ pub(super) struct AnimationProjectionRevisionStage {
 pub(super) struct AnimationSceneTransaction {
     pub(super) scan: AnimationSceneScan,
     pub(super) clip_player_updates: Vec<(EntityId, AnimationPlayerComponent)>,
-    pub(super) sequence_player_updates: Vec<(EntityId, AnimationSequencePlayerComponent)>,
+    pub(super) sequence_player_updates: Vec<SequenceClockUpdate>,
     pub(super) revision_stage: AnimationProjectionRevisionStage,
 }
 
@@ -111,11 +106,6 @@ impl AnimationEvaluationProjection {
             deferred_entities,
         );
         commit_revision_entries(
-            &mut self.sequence_revisions,
-            stage.sequence_revisions,
-            deferred_entities,
-        );
-        commit_revision_entries(
             &mut self.graph_revisions,
             stage.graph_revisions,
             deferred_entities,
@@ -125,6 +115,12 @@ impl AnimationEvaluationProjection {
             stage.state_machine_revisions,
             deferred_entities,
         );
+    }
+
+    pub(super) fn sequence_world_is_current(&self, world: &World) -> bool {
+        self.sequence_players
+            .as_ref()
+            .is_some_and(|query| query.is_bound_to(world))
     }
 
     fn reset_for_world_if_needed(&mut self, world: &World) {
@@ -224,7 +220,6 @@ impl AnimationEvaluationProjection {
             delta_seconds,
             &mut scan,
             &mut sequence_player_updates,
-            &mut revision_stage,
         );
         self.scan_graph_players(
             world,
@@ -362,52 +357,56 @@ impl AnimationEvaluationProjection {
         assets: Option<&ProjectAssetManager>,
         delta_seconds: Real,
         scan: &mut AnimationSceneScan,
-        updates: &mut Vec<(EntityId, AnimationSequencePlayerComponent)>,
-        revision_stage: &mut AnimationProjectionRevisionStage,
+        updates: &mut Vec<SequenceClockUpdate>,
     ) {
         if !playback_settings.property_tracks {
-            self.sequence_revisions.clear();
+            self.sequence_playback = SequencePlayback::default();
             return;
         }
-        if self.sequence_players.is_none() {
-            self.sequence_players =
-                Some(world.query::<(EntityId, Ref<'static, AnimationSequencePlayerComponent>)>());
-        }
-
-        for (entity, player) in self
-            .sequence_players
-            .as_mut()
-            .expect("animation sequence player query is initialized")
-            .iter_cached(world)
-        {
+        let query = self.sequence_players.get_or_insert_with(|| {
+            world.query::<(EntityId, Ref<'static, AnimationSequencePlayerComponent>)>()
+        });
+        self.sequence_playback.begin_frame();
+        let mut observations = BTreeMap::new();
+        let mut observed_world = None;
+        let mut live = Vec::new();
+        let stamp = CompiledAnimationSequence::playback_binding_catalog(world);
+        for (entity, player) in query.iter_cached(world) {
             self.stats.sequence_player_candidate_count =
                 self.stats.sequence_player_candidate_count.saturating_add(1);
-            let sequence_id = player.sequence.id();
-            let revision = SequenceProjectionRevision {
-                player_change: player.last_changed(),
-                asset_revision: sequence_asset_revision(assets, sequence_id),
-            };
-            let should_sample =
-                player.playing || self.sequence_revisions.get(&entity) != Some(&revision);
-            revision_stage.sequence_revisions.push((entity, revision));
-            if !should_sample {
+            let Some(owner) = SequenceOwner::capture(world, entity, &player) else {
                 continue;
-            }
-
+            };
+            let sequence_id = player.sequence.id();
             let time_seconds = if player.playing {
                 (player.time_seconds + delta_seconds * player.playback_speed).max(0.0)
             } else {
                 player.time_seconds
             };
             if player.playing && time_seconds != player.time_seconds {
-                let mut updated = (*player).clone();
-                updated.time_seconds = time_seconds;
-                updates.push((entity, updated));
+                let mut next = (*player).clone();
+                next.time_seconds = time_seconds;
+                updates.push((entity, next, owner.clone()));
             }
+            live.push((entity, sequence_id, owner.added()));
+            let source = observations.entry(sequence_id).or_insert_with(|| {
+                if let Some(assets) = assets {
+                    let view = observed_world
+                        .get_or_insert_with(|| assets.resource_manager().projection_snapshot());
+                    SequenceObservation::read(view, sequence_id)
+                } else {
+                    SequenceObservation::default()
+                }
+            });
+            let Some(retry) = self.sequence_playback.select(entity, &owner, source, stamp) else {
+                continue;
+            };
             scan.sequences.push(PendingSequenceSample {
                 entity,
                 sequence_id,
-                asset_revision: revision.asset_revision,
+                source: source.clone(),
+                owner,
+                retry,
                 playing: player.playing,
                 playback_speed: player.playback_speed,
                 time_seconds,
@@ -415,6 +414,7 @@ impl AnimationEvaluationProjection {
             });
             self.stats.sequence_request_count = self.stats.sequence_request_count.saturating_add(1);
         }
+        self.sequence_playback.prune(live, &observations);
     }
 
     fn scan_graph_players(
@@ -629,15 +629,37 @@ pub(super) fn apply_clip_player_updates(
 pub(super) fn apply_sequence_player_updates(
     level: &LevelSystem,
     replacement_epoch: u64,
-    updates: Vec<(EntityId, AnimationSequencePlayerComponent)>,
+    updates: Vec<SequenceClockUpdate>,
 ) -> bool {
     level
         .with_world_mut_if_replacement_epoch(replacement_epoch, |world| {
-            for (entity, player) in updates {
-                let _ = world.set_animation_sequence_player(entity, Some(player));
+            if updates.is_empty() {
+                return true;
             }
+            let Some(pipeline) = world.get_resource_mut::<super::AnimationEvaluationPipeline>()
+            else {
+                return false;
+            };
+            let projection = pipeline.take_projection();
+            for (entity, player, owner) in updates {
+                if !projection.sequence_world_is_current(world) {
+                    return false;
+                }
+                if owner.is_current(world, entity) {
+                    let _ = world.set_animation_sequence_player(entity, Some(player));
+                }
+            }
+            if !projection.sequence_world_is_current(world) {
+                return false;
+            }
+            let Some(pipeline) = world.get_resource_mut::<super::AnimationEvaluationPipeline>()
+            else {
+                return false;
+            };
+            pipeline.restore_projection(projection);
+            true
         })
-        .is_some()
+        .unwrap_or(false)
 }
 
 fn clip_asset_revision(assets: Option<&ProjectAssetManager>, id: AssetId) -> Option<u64> {
@@ -659,17 +681,6 @@ fn clip_asset_revision_and_duration(
         Some(snapshot) => (Some(snapshot.revision()), Some(snapshot.duration_seconds)),
         None => (None, None),
     }
-}
-
-fn sequence_asset_revision(assets: Option<&ProjectAssetManager>, id: AssetId) -> Option<u64> {
-    assets.and_then(|assets| {
-        assets
-            .resource_manager()
-            .snapshot::<AnimationSequenceMarker, AnimationSequenceAsset>(ResourceHandle::<
-                AnimationSequenceMarker,
-            >::new(id))
-            .map(|snapshot| snapshot.revision())
-    })
 }
 
 fn graph_asset_revision(assets: Option<&ProjectAssetManager>, id: AssetId) -> Option<u64> {

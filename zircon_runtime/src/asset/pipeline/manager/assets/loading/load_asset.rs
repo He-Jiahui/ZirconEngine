@@ -3,9 +3,9 @@ use crate::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
     AnimationStateMachineMarker, DataMarker, FontMarker, MaterialGraphMarker, MaterialMarker,
     MeshMarker, ModelMarker, NavMeshMarker, NavigationSettingsMarker, PhysicsMaterialMarker,
-    PrefabMarker, ResourceHandle, ResourceSnapshot, SceneMarker, ShaderMarker, SoundMarker,
-    TerrainLayerStackMarker, TerrainMarker, TextureMarker, TileMapMarker, TileSetMarker,
-    UiLayoutMarker, UiStyleMarker, UiWidgetMarker,
+    PrefabMarker, ResourceActiveVersionKey, ResourceHandle, ResourceSnapshot, SceneMarker,
+    ShaderMarker, SoundMarker, TerrainLayerStackMarker, TerrainMarker, TextureMarker,
+    TileMapMarker, TileSetMarker, UiLayoutMarker, UiStyleMarker, UiWidgetMarker,
 };
 use crate::core::CoreError;
 
@@ -195,6 +195,37 @@ impl ProjectAssetManager {
             ResourceHandle::<AnimationSequenceMarker>::new(id),
             "animation sequence",
         )
+    }
+
+    /// An animation evaluator's read snapshot, not a residency lease. Cold requests use the
+    /// same native/portable residency policy as the original value-loading entry point.
+    #[doc(hidden)]
+    pub fn load_animation_sequence_playback_snapshot(
+        &self,
+        id: AssetId,
+    ) -> Result<
+        (
+            ResourceActiveVersionKey,
+            ResourceSnapshot<AnimationSequenceAsset>,
+        ),
+        CoreError,
+    > {
+        self.ensure_resident(id)?;
+        let resources = self.resource_manager();
+        let stale = || {
+            crate::asset::runtime::asset_error_message(format!(
+                "asset {id} has no current typed sequence payload"
+            ))
+        };
+        let key = resources
+            .projection_snapshot()
+            .active()
+            .key(id)
+            .ok_or_else(stale)?;
+        let source = resources
+            .snapshot_expected(ResourceHandle::<AnimationSequenceMarker>::new(id), &key)
+            .map_err(|_| stale())?;
+        Ok((key, source))
     }
 
     pub fn load_animation_graph_asset(
