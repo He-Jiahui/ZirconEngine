@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第23轮新增 #232、#233，目前共 **46 个问题 Draft**。最新实证见第27节；第7–26节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第24轮新增 #234、#235，目前共 **48 个问题 Draft**。最新实证见第28节；第7–27节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -421,3 +421,14 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 | [#233](https://github.com/He-Jiahui/ZirconEngine/pull/233) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/2c04b37fd2e23c08e206e6e0d6fc992b8f2f5ea8/docs/plans/unreal-alignment/native-ui-domain-dependency.md#L55-L68) | 已修正 Windows 的共享 cooked 资产编译依赖：同样的 `ui` 和 `graphics` 单特性、x64 MSVC `--lib` 都从 E0433 变为通过，未启用 native-host。未改锁文件、CI、codec 或虚拟目标配置；同一组 4 个 Build/依赖控制通过。 |
 
 累计 **46 个问题及测试维护 Draft + 1 个总索引，零合并**。历史八份模块目录保持不变。组件测试、实际写包、桌面/硬件和 UE 的原测分开计，不把任何一组结果当成整个引擎验收。
+
+## 28. 旋转扫掠、暂停绑定、响应式控件与 DX12 窗口调整（第24轮）
+
+| 独立 PR | 实测及尚未覆盖的边界 |
+|---|---|
+| [#165](https://github.com/He-Jiahui/ZirconEngine/pull/165) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/57740aa0160feeddc52e43996436c66eaad927bf/docs/plans/unreal-alignment/timeline-paused-binding.md#L166-L181) | 第九个真实磁盘用例已越过全部前置：同源、同 ID、同字节和修订号的 sequence 释放最后租约后重新驻留，active key 变了。暂停时刻不变，原 A 的外部编辑保留，新 B 没有按 t=0.5 采样；九例 4 过 5 败，未提交生产修复。 |
+| [#166](https://github.com/He-Jiahui/ZirconEngine/pull/166) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/6a887ccf6b13f5cd45a346f21a2d004b04080e1f/docs/plans/unreal-alignment/physics-rotated-box-bounds.md#L193-L234) | 已修正公共 CPU 正距离 Box 扫掠，旋转目标和旋转查询现在都在 2.65 命中，三组对应 Chaos 的输入均得到预期距离；20 个同一冻结用例全部通过。没有改变原生 Jolt、静止重叠或普通射线。 |
+| [#234](https://github.com/He-Jiahui/ZirconEngine/pull/234) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/e9a92788433102813d3227ed725cac150962f9ca/docs/plans/unreal-alignment/responsive-root-control-lookup.md#L54-L68) | 仅修正原测试的身份查找。未改的同一工作区夹具真正执行 640、900、1280 三个视口及后续样式断言，原测试与独立身份对照 2/2；无生产改动。 |
+| [#235](https://github.com/He-Jiahui/ZirconEngine/pull/235) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/d541af1d6738249445e6c0676559a2128b31502d/docs/plans/unreal-alignment/dx12-retired-frame-resize.md#L1-L41) | 正常 Windows DX12 resize：历史实包非零尺寸调整后退出 1，主线仍先 configure 才回收旧引用。历史邻近修复非主线祖先，两次历史 test blob 不同；本轮只有独立调查，没有在这份 Draft 上运行 GPU，未移入私有补丁。 |
+
+累计 **48 个问题及测试维护 Draft + 1 个总索引，零合并**。历史八份模块目录保持不变。公共 CPU 查询、真实资产驻留与桌面/GPU 产品、UE 原测的执行分别计，不把组件结果当成整个引擎验收。
