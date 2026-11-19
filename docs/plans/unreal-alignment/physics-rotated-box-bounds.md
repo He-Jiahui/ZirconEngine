@@ -189,3 +189,46 @@ UE `GJK.GJKRaycastTests → GJKSphereBoxSweep` 的普通球/Box、旋转移动 B
 | `rotated_sweep_ue_rotated_needle_keeps_contact_distance` | 失败 |
 
 此处仅提交等价回归及实际观测。原先可能修改共有 AABB 的设想也会影响静态 overlap、trigger 和 contact；后续只评估正距离 sweep 自身两端，非单位旋转、零程及不能表示的新范围均须保留原兼容边界。
+
+## 9. 限定修复后的同用例复验
+
+[本次实际编译的提交](https://github.com/He-Jiahui/ZirconEngine/commit/09d350686d7a239a2259d0739a6f0779a069d963) `09d350686d7a239a2259d0739a6f0779a069d963`。一个普通根实体挂球或 Box collider，`build_world_sync_state → PhysicsManager::sync_world → synchronized_world` 先验证实体、中心、缩放与朝向，再通过公共 `PhysicsQueryInterface::shape_cast` 询问。Builtin / QueryOnly，无刚体求解、剪切层级、Jolt FFI、UE 二进制或完整游戏启动。
+
+Windows x64 / MSVC，`zircon_plugin_physics_runtime`、`--no-default-features`、额外 package features 空，`--locked --offline --profile test --jobs 1 --test physics_rotated_box_query`。编译和执行证据分开：EXE SHA-256 `13f18716277359c8c8a186dc662022c31f2b77da093c753e159aa325c2605f4e`，实际执行回执 `0028391f563eb13cf3f0533cc5669def344de5119381238a7093f0b7aeb42b22`，唯一筛选 `rotated_sweep_ --test-threads 1 --show-output`。**20 过 / 0 败**，未忽略或过滤选中的用例。
+
+| 真实请求 | 实际结果（查询中心沿途的距离） | oracle |
+|---|---|---:|
+| right-angle target Box | 2.65 | 2.65 |
+| right-angle query Box, q | 2.65 | 2.65 |
+| right-angle query Box, -q | 2.65 | 2.65 |
+| 45-degree target Box | 1.309 | 1.30901 |
+| UE ordinary sphere against Box | 2 | 2 |
+| UE rotated Box against sphere | 2 | 2 |
+| UE rotated needle against sphere | 2 | 2 |
+
+UE `GJK.GJKRaycastTests → GJKSphereBoxSweep` 的普通球/Box、旋转移动 Box、旋转退化针形 Box 三组保留了几何、固定方向与命中距离；旋转组先把原来偏心的 Box 中心变换到世界。UE 的接触点不等于 ZE 命中位置，不移植 GJK 内部寻向、MTD、EPA 或宣称任意角度精确 TOI。另设 90° 两侧和 45° 的 ZE 反例；45° 的数值是保守代理入口而非精确表面接触。原有无旋转、距离不足、不存在的 World、排除实体、界外方向、零程及有限非单位 query 姿态用例分别列出。
+
+| 冻结测试 | 结果 |
+|---|---|
+| `rotated_sweep_control_entity_filter` | 通过 |
+| `rotated_sweep_control_finite_nonunit_query_rotation` | 通过 |
+| `rotated_sweep_control_identity_query_box` | 通过 |
+| `rotated_sweep_control_identity_target_box` | 通过 |
+| `rotated_sweep_control_oblique_short_and_off_axis` | 通过 |
+| `rotated_sweep_control_right_angle_outside_bounds` | 通过 |
+| `rotated_sweep_control_short_distance` | 通过 |
+| `rotated_sweep_control_unpublished_world` | 通过 |
+| `rotated_sweep_control_zero_distance_initial_overlap` | 通过 |
+| `rotated_sweep_edge_initial_overlap_keeps_legacy_center` | 通过 |
+| `rotated_sweep_edge_large_pair_does_not_drop_finite_hit` | 通过 |
+| `rotated_sweep_edge_local_scale_precedes_rotation` | 通过 |
+| `rotated_sweep_edge_tiny_positive_distance_is_not_zero` | 通过 |
+| `rotated_sweep_edge_zero_distance_preserves_legacy_proxy` | 通过 |
+| `rotated_sweep_oblique_target_box_keeps_bound` | 通过 |
+| `rotated_sweep_query_box_keeps_bound` | 通过 |
+| `rotated_sweep_target_box_keeps_bound` | 通过 |
+| `rotated_sweep_ue_ordinary_sphere_hits_box` | 通过 |
+| `rotated_sweep_ue_rotated_box_keeps_contact_distance` | 通过 |
+| `rotated_sweep_ue_rotated_needle_keeps_contact_distance` | 通过 |
+
+改动只限原 CPU 扫掠对 Box 的正距离范围。保持零程既有 fallback、初重叠短路、普通 ray/static overlap/contact/trigger 不变。不修改 Jolt adapter；其它后端若向同一公共 CPU 查询函数提供快照，同样会受此范围修正影响，未把它计作 Jolt 原生验收。
