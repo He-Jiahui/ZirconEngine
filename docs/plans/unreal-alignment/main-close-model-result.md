@@ -37,3 +37,19 @@ ZE 固定 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`。初次提交仅调查、�
 - `TasksTest.cpp`：`ea053c22aea351be0429279101ca3efc2ec6cb8fed4db69cb5b8b61609f8b7a9`
 - `InterchangeManager.cpp`：`03010245c202690106f6fdd4b88ff58d39bb63ca897a30fbd3078b5a6342c8bb`
 - `InterchangeTaskCompletion.cpp`：`f76564609370c37d0f578a2ac825bfb5e09c4276510176704c4b6264642fb430`
+
+## 7. 在原 owning Editor 宿主上的首次执行
+
+[固定的仅测试提交](https://github.com/He-Jiahui/ZirconEngine/blob/781eadc434b1ad1705ba245d2c9080ed457aa64e/zircon_editor/src/ui/retained/app/tests/model_close.rs)仅增加该问题的回归及挂载。Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib`，Rust 的 `test` profile（包内依赖需要 `target-editor-host`、`test-support`）。过滤 `model_close_owner_`，`--ignored --test-threads 1 --show-output`；专用物理项目、最近工程与用户设置，不借用实际用户状态。
+
+真实 retained libtest 两例：0 过、2 败。未观测到预设的错误行为签名。
+
+两例都在切换到新项目的 authoring scene 时遭到同一代际拒绝，尚未发起 OBJ 导入或主窗口关闭；不能把这两次失败当成关闭所有权问题的 RED。
+
+无导入对照和“导入已持久提交”主案分别创建独立 RenderableEmpty 输入，正式 `create_project_and_open` 成功返回，随后实际 `apply_startup_session` 返回 `the authoring scene belongs to gateway generation 1, but generation 2 is current`。两次失败位置相同。没有 `MODEL_CLOSE_OWNER_READY` 或 `MODEL_CLOSE_OWNER_UNEXPECTED_REVIEW`，也没有成功对照证明无导入时能正常退出。没有提前消费票据、关闭 watcher、删除代际检查或改用伪造的 Manager。
+
+这一结果指向项目初始会话与已在运行宿主的切换边界；不能由此认定默认桌面用户必定无法打开项目。后续须独立核准真正冷启动并已绑定文档的宿主，在相同存储、原生主窗回调和真实 worker 至少均到达后，再判断关闭缺陷及是否应该修生产。
+
+编译回执 `fe062feca2b7e6a6bf3fefb93adb2a5bdc7f6a43fce5d93e43516f643cce7f11`；执行回执 `e6f619b96ddce0bbf52a13e12d4424ac8d826a1497c797573bc1e8fe4c871328`，stdout `8171daf9c1ebf9e0d733218268804e0a879b338f511d983874b103aea0b1512e`。
+
+未改生产逻辑；没有把其它 PR 的修复叠上来。本阶段不是 UE、GPU 或 stock 桌面端到端验证。
