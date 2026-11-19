@@ -33,3 +33,11 @@ UE 将直接等待委托给单个 `FTask`。集合重载以输入任务为前置
 用例提交正常工作，观察到一个完成任务，随后执行三种等待。测试结束时检查任务状态并等待工作线程退出。
 
 在 Windows x64 的 `test` 配置下，`zircon_runtime` 运行定向用例，通过 0/1。测试提交为 `65278a7c5ae8997f08a1b0e6819b527a4ae6bc22`。[本次回归用例](https://github.com/He-Jiahui/ZirconEngine/blob/65278a7c5ae8997f08a1b0e6819b527a4ae6bc22/zircon_runtime/tests/runtime_task_node_allocation_performance.rs)
+
+## 8. 修复后的原生回归
+
+多成员分支现在独占向量和组合节点。单成员等待的实测分配由 4 次降到 0 次。空输入和直接等待均为 0 次，显式分配对照为 1 次。
+
+用例提交正常工作，观察到一个完成任务，随后执行三种等待。测试结束时检查任务状态并等待工作线程退出。
+
+在 Windows x64 的 `test` 配置下，`zircon_runtime` 运行定向用例，通过 1/1。测试提交为 `39ddf7deaa559337fe1a5b92059c021ba6758fa1`。[本次回归用例](https://github.com/He-Jiahui/ZirconEngine/blob/39ddf7deaa559337fe1a5b92059c021ba6758fa1/zircon_runtime/tests/runtime_task_node_allocation_performance.rs)
