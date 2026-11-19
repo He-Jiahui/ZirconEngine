@@ -49,14 +49,14 @@ impl BrowserEngine {
         let handle = core.handle();
         let input = resolve_manager_service(&handle, input_manager_handle(&handle).map_err(error)?)
             .map_err(error)?;
-        input.begin_frame();
-        self.input.drain(&mut self.frame_events);
-        for event in self.frame_events.drain(..) {
-            if let Some(ui) = &mut self.ui {
-                ui.input(&event, timestamp_ms)?;
-            }
-            input.submit_event(event);
-        }
+        let ui = &mut self.ui;
+        self.input
+            .submit_frame(&mut self.frame_events, &*input, |event| {
+                if let Some(ui) = ui {
+                    ui.input(event, timestamp_ms)?;
+                }
+                Ok(())
+            })?;
         drop(input);
         let snapshot = core.advance_time_by(Duration::from_secs_f64(delta / 1000.0), 4);
         let level = self

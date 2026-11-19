@@ -1,4 +1,4 @@
-use crate::core::framework::input::{InputButton, InputEvent};
+use crate::core::framework::input::{InputButton, InputEvent, InputManager};
 use std::collections::VecDeque;
 use std::sync::{
     atomic::{AtomicBool, AtomicU64, Ordering},
@@ -12,6 +12,15 @@ const INPUT_TEXT_BYTES: usize = 128;
 struct Queue {
     events: VecDeque<InputEvent>,
     omitted: u64,
+}
+#[derive(Default)]
+pub(crate) struct BrowserInputFrame {
+    events: Vec<InputEvent>,
+}
+impl BrowserInputFrame {
+    pub(crate) fn clear(&mut self) {
+        self.events.clear();
+    }
 }
 /// Browser callbacks retain this bounded ingress, never the engine or its World.
 pub struct BrowserInput {
@@ -106,7 +115,21 @@ impl BrowserInput {
             .events
             .clear();
     }
-    pub(crate) fn drain(&self, events: &mut Vec<InputEvent>) {
+    pub(crate) fn submit_frame(
+        &self,
+        frame: &mut BrowserInputFrame,
+        manager: &dyn InputManager,
+        mut visit_raw: impl FnMut(&InputEvent) -> Result<(), String>,
+    ) -> Result<(), String> {
+        manager.begin_frame();
+        self.drain(&mut frame.events);
+        for event in frame.events.drain(..) {
+            visit_raw(&event)?;
+            manager.submit_event(event);
+        }
+        Ok(())
+    }
+    fn drain(&self, events: &mut Vec<InputEvent>) {
         let mut queue = self.queue.lock().unwrap_or_else(|e| e.into_inner());
         events.clear();
         events.extend(queue.events.drain(..));
