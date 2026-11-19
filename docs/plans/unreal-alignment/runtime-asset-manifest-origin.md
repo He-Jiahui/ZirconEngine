@@ -40,3 +40,13 @@ Windows Runtime 的 shipping profile 规定 `asset_scope = "runtime"`。当运�
 测试以 Python 3.14.4 运行仓库中的 `unittest` 模块。两组分别生成 Runtime shipping ZIP，并打开归档核对载荷、清单内容与实际资源路径。其它输入包括双根合并、缺省范围、空范围和 Editor shipping 资源位置。六项对照覆盖已有的来源绑定、无来源诊断、生成与插件文件以及实际复制策略。
 
 本次运行固定为 `2d11af2215768f99a87d84cf35ed0cd18b605544`。[可复跑用例](https://github.com/He-Jiahui/ZirconEngine/blob/2d11af2215768f99a87d84cf35ed0cd18b605544/tools/tests/test_zircon_build_asset_manifest_origin.py)
+
+## 8. 修订后的 ZIP 清单
+
+Runtime 归档的同路径图标现记录为选中的 Runtime 来源。相同与不同字节的两案均通过，另有三项资源范围用例和六项既有清单与复制测试通过，总计 11/11。
+
+测试以 Python 3.14.4 运行仓库中的 `unittest` 模块。两组分别生成 Runtime shipping ZIP，并打开归档核对载荷、清单内容与实际资源路径。其它输入包括双根合并、缺省范围、空范围和 Editor shipping 资源位置。六项对照覆盖已有的来源绑定、无来源诊断、生成与插件文件以及实际复制策略。
+
+本次运行固定为 `94c95094dfe15c6fa69341809f17831474945531`。[可复跑用例](https://github.com/He-Jiahui/ZirconEngine/blob/94c95094dfe15c6fa69341809f17831474945531/tools/tests/test_zircon_build_asset_manifest_origin.py)
+
+另行执行了既有测试 `test_asset_staging_lives_in_asset_staging_owner`。它要求构建入口含有 `from .build.zircon_build_asset_staging import (`，在修前和修后均因这条字符串断言失败。相邻的 [#161](https://github.com/He-Jiahui/ZirconEngine/pull/161) 也编辑了清单文件，两份改动的三方文件合并成功。
