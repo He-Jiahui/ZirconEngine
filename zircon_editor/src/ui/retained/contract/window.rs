@@ -31,6 +31,8 @@ mod failure;
 mod first_present;
 #[path = "window/focus_observer.rs"]
 mod focus_observer;
+#[path = "window/game_rmb.rs"]
+mod game_rmb;
 #[path = "window/handle.rs"]
 mod handle;
 #[path = "window/hierarchy_pointer_route.rs"]
@@ -57,6 +59,7 @@ pub(super) mod toast_presentation;
 
 pub(crate) use first_present::FirstPresentNotificationError;
 pub(crate) use focus_observer::NativeWindowFocusObserverError;
+pub(in crate::ui::retained_host) use game_rmb::GameRmbInput;
 pub(crate) use handle::{HostWindowHandle, HostWindowSnapshot};
 pub(crate) use hierarchy_pointer_route::HierarchyPointerSource;
 pub(super) use palette_search_input::palette_search_focus_current;
@@ -69,6 +72,7 @@ pub(crate) fn primary_host_window_id() -> UiWindowId {
 pub(crate) struct UiHostWindow {
     _font_assets: Rc<zircon_runtime::ui::surface::UiHostFontAssets>,
     state: Rc<RefCell<HostContractState>>,
+    game_rmb_port: game_rmb::GameRmbPort,
     event_wake: event_wake::HostEventLoopWake,
     visual_asset_wake: event_wake::HostEventLoopWake,
     attention: attention::HostWindowAttention,

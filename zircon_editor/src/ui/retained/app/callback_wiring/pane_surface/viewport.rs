@@ -27,6 +27,20 @@ pub(super) fn wire_viewport_callbacks(
         },
     );
 
+    if ui.same_native_window(&host.borrow().ui) {
+        let weak = Rc::downgrade(host);
+        ui.on_game_rmb(move |input| {
+            let host = weak.upgrade()?;
+            if host.borrow().main_window_close_blocks_session_ui()
+                || host.borrow().runtime.pending_play_label().is_some()
+            {
+                return None;
+            }
+            let mut host = host.borrow_mut();
+            host.with_callback_source_window(None, |host| host.route_game_rmb(input))
+        });
+    }
+
     let weak = Rc::downgrade(host);
     let source_ui = ui.clone_strong();
     pane_surface_host.on_viewport_toolbar_pointer_clicked(

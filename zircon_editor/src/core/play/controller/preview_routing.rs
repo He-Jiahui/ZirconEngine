@@ -4,12 +4,12 @@ use zircon_runtime_interface::{
     ZR_RUNTIME_VIEWPORT_CAMERA_REQUEST_LIMIT_V1,
 };
 
-use crate::core::gateway::EditorRuntimeGatewayHandle;
+use crate::core::gateway::{EditorRuntimeGatewayHandle, GatewayError};
 
 use super::PlaySessionController;
 use crate::core::play::{
     PlayKind, PlayMode, PlayPreviewCaptureError, PlayPreviewFrame, PlayPreviewInputError,
-    PlaySimulateCameraError, WorldDomain,
+    PlayPreviewInputOwner, PlaySimulateCameraError, WorldDomain,
 };
 
 impl PlaySessionController {
@@ -94,6 +94,16 @@ impl PlaySessionController {
         &self,
         event: ZrRuntimeEventV1,
     ) -> Result<bool, PlayPreviewInputError> {
+        self.route_owned_preview_input(event, None)
+            .map(|owner| owner.is_some())
+    }
+
+    /// Returns the owner of this successful gateway call, or routes only to the supplied owner.
+    pub(crate) fn route_owned_preview_input(
+        &self,
+        event: ZrRuntimeEventV1,
+        expected: Option<&PlayPreviewInputOwner>,
+    ) -> Result<Option<PlayPreviewInputOwner>, PlayPreviewInputError> {
         let _transition = self
             .transition_gate
             .lock()
@@ -105,21 +115,30 @@ impl PlaySessionController {
                 kind: PlayKind::Play
             }
         ) {
-            return Ok(false);
+            return Ok(None);
         }
         let mode = mode.kind();
         let Some(WorldDomain::Play(instance)) = self.play_domain.attached_domain() else {
             return Err(PlayPreviewInputError::GatewayUnavailable { mode });
         };
+        if expected.is_some_and(|(owner, _)| *owner != instance) {
+            return Ok(None);
+        }
         let Some(play_gateway) = self.play_domain.gateway(instance) else {
             return Err(PlayPreviewInputError::GatewayUnavailable { mode });
         };
-        let gateway_identity = play_gateway.identity();
-        play_gateway
-            .handle_event_at_identity(&gateway_identity, event)
-            .map_err(PlayPreviewInputError::Dispatch)?;
-        zircon_runtime::profile_counter!("editor", "play.preview.input_routed_count", 1);
-        Ok(true)
+        let identity = match expected {
+            Some((_, identity)) => identity.clone(),
+            None => play_gateway.identity(),
+        };
+        match play_gateway.handle_event_at_identity(&identity, event) {
+            Ok(()) => {
+                zircon_runtime::profile_counter!("editor", "play.preview.input_routed_count", 1);
+                Ok(Some((instance, identity)))
+            }
+            Err(GatewayError::StaleGeneration { .. }) if expected.is_some() => Ok(None),
+            Err(error) => Err(PlayPreviewInputError::Dispatch(error)),
+        }
     }
 
     pub fn preview_input_active(&self) -> bool {

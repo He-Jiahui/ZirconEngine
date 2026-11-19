@@ -31,6 +31,7 @@ impl UiHostWindow {
                 DEFAULT_HOST_WINDOW_WIDTH,
                 DEFAULT_HOST_WINDOW_HEIGHT,
             )))),
+            game_rmb_port: Default::default(),
             event_wake,
             visual_asset_wake,
             attention,

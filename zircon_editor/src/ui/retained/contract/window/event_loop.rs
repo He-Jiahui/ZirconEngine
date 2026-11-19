@@ -50,6 +50,7 @@ pub(in crate::ui::retained_host::host_contract) struct UiHostWindowEventLoop {
     last_pointer_position: Option<(f32, f32)>,
     pending_idle_pointer_move: UiIdlePointerMoveMailbox,
     pressed_mouse_button_count: u8,
+    native_game_rmb_sequence: Option<zircon_runtime_interface::ui::dispatch::UiInputSequence>,
     pending_redraw: HostRedrawRequest,
     pending_surface_present_retry: HostRedrawRequest,
     pending_surface_present_retry_deadline: Option<Instant>,
@@ -80,6 +81,7 @@ impl UiHostWindowEventLoop {
             last_pointer_position: None,
             pending_idle_pointer_move: UiIdlePointerMoveMailbox::default(),
             pressed_mouse_button_count: 0,
+            native_game_rmb_sequence: None,
             pending_redraw: HostRedrawRequest::full_frame_for_scenario(
                 UiPerfScenario::Startup,
                 true,

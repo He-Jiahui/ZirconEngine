@@ -872,6 +872,7 @@ struct RetainedEditorHost {
 
 impl Drop for RetainedEditorHost {
     fn drop(&mut self) {
+        self.ui.disconnect_game_rmb();
         self.runtime.context().autosave().begin_shutdown();
         // Drop only retires local UI ownership. The explicit session coordinator owns remote
         // unwatch and preserves its `WorldSyncShutdownReceipt` for diagnostics.

@@ -1,9 +1,12 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
-use crate::core::gateway::GatewayError;
+use crate::core::gateway::{GatewayError, GatewaySessionIdentity};
 
-use super::PlayModeKind;
+use super::{PlayInstanceId, PlayModeKind};
+
+// Provenance from one synchronous input submission; this does not retain its runtime.
+pub(crate) type PlayPreviewInputOwner = (PlayInstanceId, GatewaySessionIdentity);
 
 #[derive(Debug)]
 pub enum PlayPreviewInputError {

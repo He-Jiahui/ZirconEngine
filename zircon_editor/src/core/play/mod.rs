@@ -72,6 +72,7 @@ pub use plugin_activation::{
 };
 pub use preview_frame::{PlayPreviewCaptureError, PlayPreviewFrame, PlayPreviewFrameIdentity};
 pub use preview_input::PlayPreviewInputError;
+pub(crate) use preview_input::PlayPreviewInputOwner;
 pub use process_backend::{ProcessPlayBackend, ProcessPlayBackendInstallError};
 pub use request::PlayStartRequest;
 pub use simulate_camera::PlaySimulateCameraError;

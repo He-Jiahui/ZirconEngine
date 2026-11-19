@@ -1,5 +1,5 @@
 use winit::dpi::PhysicalPosition;
-use winit::event::{DeviceId, PointerSource, WindowEvent};
+use winit::event::{ButtonSource, DeviceId, MouseButton, PointerSource, WindowEvent};
 use zircon_runtime::ui::platform_input::{translate_winit_modifiers, translate_winit_window_event};
 use zircon_runtime_interface::ui::{
     dispatch::{
@@ -23,6 +23,15 @@ impl UiHostWindowEventLoop {
         event: &WindowEvent,
     ) -> PlatformInputTranslation {
         let metadata = self.next_input_metadata();
+        // The shared translator can normalize a pen barrel button into Secondary as well.
+        self.native_game_rmb_sequence = matches!(
+            event,
+            WindowEvent::PointerButton {
+                button: ButtonSource::Mouse(MouseButton::Right),
+                ..
+            }
+        )
+        .then_some(metadata.sequence);
         self.translate_platform_input_event_with_metadata(metadata, event)
     }
 

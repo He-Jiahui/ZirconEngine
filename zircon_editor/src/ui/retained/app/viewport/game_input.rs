@@ -9,11 +9,26 @@ use zircon_runtime_interface::{
     ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1, ZR_RUNTIME_MOUSE_WHEEL_UNIT_LINE_V1,
 };
 
+use crate::core::play::PlayPreviewInputOwner;
+use crate::ui::retained_host::host_contract::GameRmbInput;
+
 use super::super::RetainedEditorHost;
 use super::pointer_mapping::map_viewport_pointer_event;
 
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn native_window_focus_lost(&mut self) {
+        self.native_window_focus_lost_from(true);
+    }
+
+    pub(in crate::ui::retained_host::app) fn native_window_focus_lost_from(
+        &mut self,
+        game_root: bool,
+    ) {
+        if game_root && self.retire_game_rmb_on_focus_loss() {
+            return;
+        }
+        // A different native window keeps the original focus notification, but it does not
+        // consume the root window's pairing record.
         if !self.runtime.play_preview_input_active()
             || !(match self.runtime.play_preview_view_focused() {
                 Ok(value) => value,
@@ -25,17 +40,80 @@ impl RetainedEditorHost {
         {
             return;
         }
-        self.route_play_preview_focus_lost();
+        self.send_play_preview_background();
     }
 
     pub(in crate::ui::retained_host::app) fn route_play_preview_focus_lost(&mut self) {
-        let event = ZrRuntimeEventV1::lifecycle(
+        if !self.retire_game_rmb_on_focus_loss() {
+            self.send_play_preview_background();
+        }
+    }
+
+    fn retire_game_rmb_on_focus_loss(&mut self) -> bool {
+        let Some(owner) = self.ui.take_game_rmb_owner() else {
+            return false;
+        };
+        match self
+            .runtime
+            .route_owned_play_preview_input(play_background_event(), Some(&owner))
+        {
+            Ok(owner) => owner.is_some(),
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                true // An uncertain delivery is not replayed to the current runtime.
+            }
+        }
+    }
+
+    fn send_play_preview_background(&mut self) {
+        if let Err(error) = self
+            .runtime
+            .route_play_preview_input(play_background_event())
+        {
+            self.set_status_line(error.to_string());
+        }
+    }
+
+    pub(in crate::ui::retained_host::app) fn route_game_rmb(
+        &mut self,
+        input: GameRmbInput<'_>,
+    ) -> Option<PlayPreviewInputOwner> {
+        self.use_committed_pointer_layout();
+        let (point, state, expected, inside) = match input {
+            GameRmbInput::Down(point) => {
+                self.focus_callback_source_window();
+                (point, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1, None, false)
+            }
+            GameRmbInput::Up {
+                point,
+                owner,
+                inside,
+            } => (
+                point,
+                ZR_RUNTIME_BUTTON_STATE_RELEASED_V1,
+                Some(owner),
+                inside,
+            ),
+        };
+        let event = ZrRuntimeEventV1::mouse_button(
             ZIRCON_RUNTIME_ABI_VERSION_V1,
             ZIRCON_RUNTIME_DEFAULT_VIEWPORT_HANDLE_V1,
-            ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1,
+            ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1,
+            state,
+            point.x,
+            point.y,
         );
-        if let Err(error) = self.runtime.route_play_preview_input(event) {
-            self.set_status_line(error.to_string());
+        match self.runtime.route_owned_play_preview_input(event, expected) {
+            Ok(owner) => {
+                if inside && owner.is_some() {
+                    self.focus_callback_source_window();
+                }
+                owner
+            }
+            Err(error) => {
+                self.set_status_line(error.to_string());
+                None
+            }
         }
     }
 
@@ -114,6 +192,14 @@ impl RetainedEditorHost {
             }
         }
     }
+}
+
+fn play_background_event() -> ZrRuntimeEventV1 {
+    ZrRuntimeEventV1::lifecycle(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZIRCON_RUNTIME_DEFAULT_VIEWPORT_HANDLE_V1,
+        ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1,
+    )
 }
 
 fn runtime_pointer_event(

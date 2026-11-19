@@ -1,6 +1,10 @@
 use super::support::*;
 use crate::core::play::{PlayKind, PlayModeKind, PlayStartRequest};
 
+#[cfg(windows)]
+#[path = "game_pointer.rs"]
+mod game_pointer;
+
 #[test]
 fn escape_without_game_focus_stops_play_and_respects_edit_mode_availability() {
     let _guard = lock_env();
