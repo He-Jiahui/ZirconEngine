@@ -51,3 +51,18 @@
 真实 manifest 的闭包测试与相邻 shipping、别名/排序、registry 原有控制：**3 过 / 1 败**。此外用原锁文件在同一树实跑 Cargo 目标依赖图：Windows `ui` 的直接 zstd=无，原 `native-host` 仍有；只开 UI 未引入 ZIP。`wasm32-unknown-unknown` 的 `cooked-assets` 正常依赖子树中没有 `zstd` 或 `zstd-sys`。这是 Cargo 解析器结果，不是 wasm32 构建、浏览器运行或解码测试。
 
 这不是远端 GitHub Actions 执行，不是 UI 帧、渲染器、资产数据或完整发布产品验收。
+
+## 8. 单个共享依赖边修复后的原命令复验
+
+生产与技术栈说明 `24ef2a5be7197f47b366fb8b54f5799c846f39e1`。唯一生产变化是 `cooked-assets` 复用现有非 wasm32 平台的 `dep:zstd`；保持同版本原有的 `native-host` 直连与纹理插件注册库，不改 `Cargo.lock`、CI、压缩算法、渲染工件格式或 UI 行为。测试文件与红测一致。
+
+同一 Windows x64、MSVC Rust 1.94.1、dev profile，两次各只有 `zircon_runtime` 的 `--lib`；关闭默认特性，CI 等价的显式目标 `x86_64-pc-windows-msvc`、同一个 `--locked`。分别调用，不以二者的并集掩盖配置缺失。
+
+| 唯一特性 | 状态码 | 实际结果 | 本地原始命令回执 SHA-256 |
+|---|---:|---|---|
+| `ui` | 0 | 通过，无编译错误 | `9edf1ab1bbc0f4f240b50d0f6714abb7dde75ecd3c14d99d7c2575356143081c` |
+| `graphics` | 0 | 通过，无编译错误 | `2831ff6e14f13d8e07d6bdd513bd2b9e6cf2f799776c648c252fbaa1b2838b45` |
+
+真实 manifest 的闭包测试与相邻 shipping、别名/排序、registry 原有控制：**4 过 / 0 败**。此外用原锁文件在同一树实跑 Cargo 目标依赖图：Windows `ui` 的直接 zstd=有，原 `native-host` 仍有；只开 UI 未引入 ZIP。`wasm32-unknown-unknown` 的 `cooked-assets` 正常依赖子树中没有 `zstd` 或 `zstd-sys`。这是 Cargo 解析器结果，不是 wasm32 构建、浏览器运行或解码测试。
+
+这不是远端 GitHub Actions 执行，不是 UI 帧、渲染器、资产数据或完整发布产品验收。
