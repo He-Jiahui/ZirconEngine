@@ -232,3 +232,110 @@ fn insert_hdr_control_lut(asset_manager: &ProjectAssetManager) -> ResourceHandle
         .expect("external 3D LUT insert");
     ResourceHandle::new(id)
 }
+
+#[test]
+fn render_product_post_internal_lut_handles_domain_boundary_and_missing_lookup() {
+    // The first two rows differ by exactly one binary16 step on red only.
+    // Green exposes discontinuities amplified by a valid strong gamma.
+    const GREEN: f32 = 1.0 - 1.0 / 2048.0;
+    const RED_SAMPLES: [f32; 3] = [1.0, 1.0 + 1.0 / 1024.0, 1.0 + 34.0 / 1024.0];
+    const MAX_CROSSING_JUMP: f32 = 0.035;
+    const DISPLAY_ABS: f32 = 0.007;
+
+    let server = WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default()))
+        .expect("HDR LUT boundary regression needs a WGPU device");
+    let startup = server.query_stats().unwrap();
+    let adapter = startup
+        .device_diagnostics
+        .as_ref()
+        .expect("actual adapter identity");
+    eprintln!("HDR boundary adapter={:?} type={} backend={} linear_abs: max_crossing_jump={MAX_CROSSING_JUMP}, display_abs={DISPLAY_ABS}", adapter.adapter_name, adapter.adapter_device_type, startup.capabilities.backend_name);
+    let extent = UVec2::new(32, 32);
+    let viewport = create_post_process_viewport_with_profile(
+        &server,
+        extent,
+        post_process_color_transform_profile("hdr-lut-domain-boundary")
+            .with_pipeline_asset(RenderPipelineAsset::DEFAULT_FORWARD_PLUS_HANDLE),
+    );
+    let read = |rgb: [f32; 3], ev_offset: Real, grading, stack| {
+        let [r, g, b] = rgb.map(|x| x as Real);
+        let mut extract = post_process_product_extract(extent, stack);
+        extract.post_process.preview.clear_color = Vec4::new(r, g, b, 1.0);
+        extract.post_process.color_grading = grading;
+        extract.post_process.exposure =
+            RenderExposureSettings::manual_ev100(DEFAULT_CAMERA_EXPOSURE_EV100 + ev_offset);
+        let (frame, stats) = submit_and_capture_post_process_product(&server, viewport, extract);
+        for pass in ["post.color-lut-bake", "post.uber", "post.output-transfer"] {
+            assert_graph_executor_executed(&stats, pass);
+        }
+        assert!(stats
+            .last_exposure_readback_report
+            .multiplier_within_epsilon(2.0_f32.powf(-ev_offset as f32), 0.0001));
+        let hdr = server
+            .capture_scene_color_hdr(viewport)
+            .unwrap()
+            .expect("linear HDR input readback");
+        assert_eq!(hdr.generation, frame.generation);
+        let src_center = ((hdr.height / 2) * hdr.width + hdr.width / 2) as usize;
+        let src = hdr.rgba16f[src_center];
+        assert_eq!(&src[..3], &rgb);
+        let at = (((frame.height / 2) * frame.width + frame.width / 2) * 4) as usize;
+        assert_eq!(frame.rgba[at + 3], 255);
+        let bytes = [frame.rgba[at], frame.rgba[at + 1], frame.rgba[at + 2]];
+        let display = bytes.map(hdr_capture_srgb8_to_linear);
+        eprintln!("HDR boundary src={src:?} exposure_ev_offset={ev_offset} srgb8={bytes:?} display_linear={display:?}");
+        (display, stats)
+    };
+
+    let grading = RenderColorGradingSettings {
+        gamma: 0.001,
+        ..Default::default()
+    };
+    let greens = RED_SAMPLES.map(|r| {
+        read(
+            [r, GREEN, 0.375],
+            0.0,
+            grading,
+            RenderPostProcessEffectStackSettings::default(),
+        )
+        .0[1]
+    });
+    let missing_stack = RenderPostProcessEffectStackSettings {
+        color_lookup: RenderColorLookupSettings {
+            texture: Some(ResourceHandle::new(ResourceId::from_stable_label(
+                "tests/hdr-lut/intentionally-missing",
+            ))),
+            intensity: 0.75,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let input = [2.0, 0.25, 0.5];
+    let (fallback, stats) = read(
+        input,
+        3.0,
+        RenderColorGradingSettings::default(),
+        missing_stack,
+    );
+    assert_eq!(stats.last_post_process_lut_request_count, 1);
+    assert_eq!(stats.last_post_process_lut_ready_count, 0);
+    assert_eq!(stats.last_post_process_lut_fallback_count, 1);
+    // At exposure 1/8, these inputs address LUT indices 16, 2, 4 on the
+    // production 64-entry system curve. Its linear RGBA8 texels are 41, 1, 3.
+    let fallback_expected = std::array::from_fn::<_, 3, _>(|i| {
+        (input[i] / 8.0) * 0.25 + ([41.0, 1.0, 3.0][i] / 255.0) * 0.75
+    });
+    let expected_green = GREEN.powf(1000.0);
+    eprintln!("HDR boundary R={RED_SAMPLES:?} G={greens:?} outside_expected_g={expected_green} missing_expected={fallback_expected:?}");
+    assert!(
+        (greens[1] - greens[0]).abs() <= MAX_CROSSING_JUMP,
+        "one binary16 step in red caused a visible discontinuity in green: {greens:?}"
+    );
+    assert!(
+        (greens[2] - expected_green).abs() <= DISPLAY_ABS,
+        "out-of-domain transform must not stay on the LUT edge: {greens:?}, expected {expected_green}"
+    );
+    for (actual, expected) in fallback.into_iter().zip(fallback_expected) {
+        assert!((actual - expected).abs() <= DISPLAY_ABS, "HDR path changed the missing user LUT fallback: read={fallback:?} expected={fallback_expected:?}");
+    }
+}
