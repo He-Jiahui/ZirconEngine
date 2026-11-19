@@ -73,3 +73,21 @@ Chrome 157.0.8103.52 在 Windows 上运行 ZE 的完整 Web 库。`WebEngine.loa
 本次运行的诊断：
 
 - `Rhi(SurfaceUnavailable("native surface sessions are unavailable for this build target"))`
+
+## 8. 接管后在原 Canvas 上的首次配置
+
+空场景和原始 HUD 场景均从首次配置前退出推进到在原 Canvas 上成功配置 bgra8unorm。修复前每例配置 0 次，修复后每例配置 1 次。Windows 设备能力及会话释放对照 7/7 通过。产品随后在准备系统纹理时发生 Wasm 运行错误，首帧仍待验证。
+
+同一个测试页面运行两份 `target-web` 产品。Chrome 157 返回 NVIDIA WebGPU 适配器和对应设备。修复后页面在这台设备和传入的 64×48 Canvas 上观测到 `configure` 成功返回，`getConfiguration()` 读出的活动设备与格式相符。两组场景读取同一批配对输入。
+
+| 可观察结果 | 空场景 | 预烘焙场景与文字 HUD |
+|---|---|---|
+| 修复前首次配置调用 | 0 | 0 |
+| 修复后成功配置 | 1 | 1 |
+| 首次配置的活动格式 | `bgra8unorm` | `bgra8unorm` |
+| 返回帧 | 0 | 0 |
+| 修复后关闭与资源释放 | 未取得引擎句柄 | 未取得引擎句柄 |
+
+首个活动配置出现后，两次运行都在系统纹理准备过程中记录到 `WebAssembly.RuntimeError`。原测试页等待最终 Promise 达到 65 秒上限。补充观测中，38 秒时该 Promise 仍在等待。修订后的页面能报告这一阶段已经完成的配置，并保留未知的关闭状态。视口二次配置、渲染提交和调整尺寸继续等待产品验收。
+
+Windows 主机以 `zr_rhi_wgpu --lib --no-default-features` 运行能力投影与 session teardown 两组回归。与 [#235](https://github.com/He-Jiahui/ZirconEngine/pull/235)、[#236](https://github.com/He-Jiahui/ZirconEngine/pull/236) 的两个相交文件通过三方 Git 文件合并。产品修复提交为 `784d8b6a50e0c134e1831f049debbd8ee1d8fd2d`，修前和修后采用的同一回归页面来自 `0880334302f5245f3bf121076f880b4108d8b0e4`。[回归页](https://github.com/He-Jiahui/ZirconEngine/blob/0880334302f5245f3bf121076f880b4108d8b0e4/tools/validation/browser/web-canvas-adoption.html)
