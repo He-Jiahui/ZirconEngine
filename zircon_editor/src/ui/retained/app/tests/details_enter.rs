@@ -2,6 +2,7 @@
 
 use super::super::support::*;
 use crate::core::editing::engine::{HistoryContextId, HistoryStatus};
+use crate::core::editor_event::EditorEventSource;
 use crate::core::gateway::{DetachedEditorRuntimeGateway, GatewaySessionIdentity};
 use crate::core::play::WorldDomain;
 use crate::core::project::{ProjectAuthority, ProjectTemplateId};
@@ -12,6 +13,7 @@ use zircon_runtime_interface::math::Transform;
 use zircon_runtime_interface::project::{
     ProjectLaunchIntent, ProjectLaunchProfile, ProjectLaunchSource,
 };
+use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 const X: &str = "WorkbenchTransformPositionX";
 const Y: &str = "WorkbenchTransformPositionY";
@@ -20,9 +22,11 @@ const REDO: &str = "workbench.history.redo";
 
 #[test]
 #[ignore = "requires an isolated physical Editor fixture and user profile"]
-fn details_enter_untouched_preserves_saved_precision_and_redo() {
+fn details_enter_static_cube_rejects_x_edit_without_history() {
     let _guard = lock_env();
-    exercise_untouched(DetailsFixture::new());
+    let f = DetailsFixture::static_cube();
+    f.assert_static_axis_rejected(X, "12.3456");
+    f.finish();
 }
 
 #[test]
@@ -60,28 +64,53 @@ fn exercise_untouched(f: DetailsFixture) {
     f.focus(Y); // Clicking the other axis changes focus, not document state.
     assert_eq!(f.observe(), (exact, before));
     f.focus(X);
+    let focus = host_context(&f.harness.root_ui).get_text_input_focus();
+    assert_eq!(focus.value_text.as_str(), "12.35");
+    assert_eq!(f.observe(), (exact, before));
     f.enter(); // No caret change or text input since pointer focus.
-    let after_enter = f.observe();
-    let displayed_after = f.axis(X).value_text;
-    let (_, disk_after) = f.read_saved_source();
+    assert_eq!(
+        f.observe(),
+        (exact, before),
+        "DETAILS_UNTOUCHED_ENTER_AUTHORING: exact X and its saved history before replay"
+    );
+    assert_eq!(f.axis(X).value_text.as_str(), "12.35");
+    assert_eq!(f.read_saved_source().1, saved_bytes);
+
+    // Selection and caret keys alone must not qualify as text edits either.
+    f.focus(X);
+    f.key(
+        Key::Character("a".into()),
+        KeyCode::KeyA,
+        None,
+        ModifiersState::CONTROL,
+    );
+    f.key(
+        Key::Named(NamedKey::ArrowRight),
+        KeyCode::ArrowRight,
+        None,
+        ModifiersState::empty(),
+    );
+    f.enter();
+    assert_eq!(
+        f.observe(),
+        (exact, before),
+        "caret movement is not authoring"
+    );
     f.harness.dispatch_menu_action(REDO);
     let (after_redo, history_after_redo) = f.observe();
-    assert_eq!(
-        (after_enter, after_redo, history_after_redo.top),
-        ((exact, before), moved, edited.top),
-        "untouched native Enter must preserve the exact X, clean checkpoint and Y redo branch"
-    );
-    assert_eq!(displayed_after.as_str(), "12.35");
-    assert_eq!(disk_after, saved_bytes);
+    assert_eq!((after_redo, history_after_redo.top), (moved, edited.top));
     f.harness.dispatch_menu_action(UNDO);
     f.finish();
 }
 
 #[test]
 #[ignore = "requires an isolated physical Editor fixture and user profile"]
-fn details_enter_explicitly_retyping_displayed_value_is_a_real_edit() {
+fn details_enter_static_cube_rejects_y_and_x_edits_without_history() {
     let _guard = lock_env();
-    exercise_explicit_retype(DetailsFixture::new());
+    let f = DetailsFixture::static_cube();
+    f.assert_static_axis_rejected(Y, "2.5436");
+    f.assert_static_axis_rejected(X, "12.3456");
+    f.finish();
 }
 
 #[test]
@@ -126,17 +155,17 @@ struct DetailsFixture {
 }
 
 impl DetailsFixture {
-    fn new() -> Self {
+    fn static_cube() -> Self {
         // RenderableEmpty's authored Cube is a project OBJ, not builtin://cube.
-        Self::for_node("Cube", NodeKind::Mesh, None)
+        Self::for_node("Cube", NodeKind::Mesh, Mobility::Static)
     }
 
     fn dynamic_camera() -> Self {
         // The normal editable control is another authored entity in the same template.
-        Self::for_node("Camera", NodeKind::Camera, Some(Mobility::Dynamic))
+        Self::for_node("Camera", NodeKind::Camera, Mobility::Dynamic)
     }
 
-    fn for_node(name: &str, kind: NodeKind, mobility: Option<Mobility>) -> Self {
+    fn for_node(name: &str, kind: NodeKind, mobility: Mobility) -> Self {
         let base = fs::canonicalize(
             std::env::var_os("ZIRCON_TEST_OUTPUT_ROOT").expect("an owned fixture root"),
         )
@@ -190,9 +219,7 @@ impl DetailsFixture {
                     let node = matches.next().expect("setup: authored template entity");
                     assert!(matches.next().is_none(), "setup: unique authored {name}");
                     assert_eq!(node.kind, kind);
-                    if let Some(expected) = mobility {
-                        assert_eq!(scene.mobility(node.id), Some(expected));
-                    }
+                    assert_eq!(scene.mobility(node.id), Some(mobility));
                     node.id
                 })
             };
@@ -235,6 +262,62 @@ impl DetailsFixture {
             .expect_with_world(|scene| scene.find_node(self.node).unwrap().transform);
         let history = state.transactions().history_status(self.history).unwrap();
         (transform, history)
+    }
+
+    fn assert_static_axis_rejected(&self, control: &str, value: &str) {
+        let (field, binding_path) = match control {
+            X => (
+                "transform.translation.x",
+                "Inspector/TransformPositionXCommit:onSubmit",
+            ),
+            Y => (
+                "transform.translation.y",
+                "Inspector/TransformPositionYCommit:onSubmit",
+            ),
+            _ => unreachable!("unqualified axis: {control}"),
+        };
+        let before = self.observe();
+        let before_journal = self.harness.host.borrow().runtime.journal();
+        let since = before_journal
+            .records()
+            .last()
+            .map_or(0, |record| record.sequence.0);
+        self.type_axis(control, value);
+        assert_eq!(
+            self.observe(),
+            before,
+            "Static transform and history must stay unchanged"
+        );
+
+        let journal = self.harness.host.borrow().runtime.journal();
+        let mut submits = journal.records().iter().filter(|record| {
+            record.sequence.0 > since && matches!(&record.event, EditorEvent::Inspector(_))
+        });
+        let record = submits
+            .next()
+            .expect("real Inspector Submit reached the Static veto");
+        assert!(submits.next().is_none());
+        assert_eq!(record.source, EditorEventSource::RetainedHost);
+        assert_eq!(record.binding_path.as_deref(), Some(binding_path));
+        let EditorEvent::Inspector(event) = &record.event else {
+            unreachable!("filtered Inspector record");
+        };
+        assert_eq!(event.subject_path, "entity://selected");
+        let [change] = event.changes.as_slice() else {
+            panic!("expected one submitted axis: {:?}", event.changes);
+        };
+        assert_eq!(change.field_id, field);
+        let typed = value.parse::<f32>().unwrap();
+        assert_eq!(change.value, UiBindingValue::Float(f64::from(typed)));
+        assert!(record.transaction_id.is_none());
+        assert!(
+            record
+                .result
+                .error
+                .as_deref()
+                .is_some_and(|error| error.contains("reflection edit failed")),
+            "expected the reflected Scene veto: {record:?}"
+        );
     }
 
     fn read_saved_source(&self) -> (f32, Vec<u8>) {
@@ -316,7 +399,10 @@ impl DetailsFixture {
         });
         let status = host.runtime.status_line();
         let journal = host.runtime.journal();
-        let latest = journal.records().last().map_or(0, |record| record.sequence.0);
+        let latest = journal
+            .records()
+            .last()
+            .map_or(0, |record| record.sequence.0);
         eprintln!(
             "R21_DETAILS_ENTER_FOCUS {phase} control={:?} kind={:?} value={:?} action={:?}->{:?} edit={:?}->{:?} commit={:?}->{:?} unreal={active_template:?}",
             focus.control_id,
@@ -337,7 +423,12 @@ impl DetailsFixture {
             selected.and_then(|id| {
                 scene.find_node(id).map(|node| {
                     let translation = node.transform.translation;
-                    (node.name, node.kind, scene.mobility(id), translation.to_array().map(f32::to_bits))
+                    (
+                        node.name,
+                        node.kind,
+                        scene.mobility(id),
+                        translation.to_array().map(f32::to_bits),
+                    )
                 })
             })
         });
@@ -353,7 +444,11 @@ impl DetailsFixture {
         );
         if let Some(since) = since {
             eprintln!("R21_DETAILS_ENTER_JOURNAL after_seq={since} newest={latest}");
-            for record in journal.records().iter().filter(|record| record.sequence.0 > since) {
+            for record in journal
+                .records()
+                .iter()
+                .filter(|record| record.sequence.0 > since)
+            {
                 eprintln!("R21_DETAILS_ENTER_RECORD {record:?}");
             }
         }
