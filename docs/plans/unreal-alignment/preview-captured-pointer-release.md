@@ -106,3 +106,25 @@ Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile t
 | `game_drag_release_outside_clip_reaches_original_play` | 0 过 / 1 败 | `435e61f49c61ef30103120b224ef59cf7d0fbc55bd4e2d4f361b7626ac8aa0e1` |
 | `game_pointer_owner_` | 1 过 / 3 败 | `10cddc60853998e419cd9724b4f349d670e93307a3eb506d666da534c8dea4d0` |
 | `game_pointer_adjacent_` | 1 过 / 1 败 | `9d0b79797cc849cbe9ea6a5c8a1ca18124a576184d1347847462ad45efe7be93` |
+
+## 10. 相同测试复验：只投给实际接纳原鼠标右键的 Play
+
+修复限同窗真实鼠标右键：原 Play 在视窗外恰好收到一次 release，回入不再空转；A 的旧松键不进 B，已观察到的非 Game Down 不凭空产生 Game 松键。没有先前可证明 Down 的正常窗内松键仍走原路。
+
+测试体、过滤器、工具链与 profile 均与前一组不变。将按下的归属绑定到首次接纳它的窗口/指针和 Play instance/Runtime gateway identity，释放时再次校验；替换/退休的会话不再通过当前位置命中收到陈旧尾部。场景的 authoring 相机、普通按键及现有失焦路径仍各自保有责任。
+
+另在未曾观察过该右键按下时，从同一窗内向 Game 派发未知来源的右键 Up，真实 release 仍会增加；这反证无条件丢弃全部窗内 Up 的取巧修法。
+
+层级面板是真正命中的相邻 pane，不是空白状态栏。同一鼠标松键现在由原 Game 接收一次，回入的 Move 不再旋转。测量区间未产生 IME Disable 或 Cursor 释放；随后在同一真实 Runtime 的正式 blur 对照能读到两种请求，用来区分正常松键与全局重置，不推论某个键保持按下。普通菜单实际打开但不遮挡测试坐标时，相同 Game 的新鼠标按下仍被接纳。另跑原 Play/SIE controller 行为和两项现有输入 ownership 保护，三项通过。
+
+生产候选首编只到 Rust 私有 `window` 模块错误（E0603），没有产生二进制。复验仅经 retained-host 的私有再导出去获取这个内部手势类型；没有公开窗口模块、改变运行时 ABI 或测试体。普通相邻面板的放开不是全会话 reset。若真正高优先级面板已接管事件、弹窗遮挡有歧义、游戏窗已分离或原坐标不可验证，不强行续报，也不声称这些情形已经结束拖动。
+
+这些是正常 retained 路由、构造的 Winit 输入与真实已链接相机/V8 会话结果。它们不是硬件鼠标捕获、staged DLL、GPU 呈现、左键 Slider 拖动或实际窗口管理器输入的验收。
+
+Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile test`，同一[受测提交](https://github.com/He-Jiahui/ZirconEngine/commit/8670536b4cd4fe1d7f991a83250fb74adb29bfec)和编译回执 `a6116a579805a89e6fcf79cc0e4433d8152f8e124ae7ceb4403e692522c178e6`。各次均显式 `--ignored --test-threads 1 --show-output`，独立项目和用户配置。
+
+| 过滤器 | 实际运行 | 执行回执 SHA-256 |
+|---|---|---|
+| `game_drag_release_outside_clip_reaches_original_play` | 1 过 / 0 败 | `e592802b3892e25637227fd240a821a716f132b5dcbd19559686b805e776f643` |
+| `game_pointer_owner_` | 4 过 / 0 败 | `4af1f0660d91f0b61178d3cfbd264d9ad8596c50f8ae30d19445565dcfe04e74` |
+| `game_pointer_adjacent_` | 2 过 / 0 败 | `bb8cfbfd5d1212eac4207f805d0fe0272ac5a573e1f15e6c0d7d27ee856211c7` |
