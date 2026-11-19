@@ -13,6 +13,8 @@ mod cache_invalidation;
 mod evaluation_diagnostics;
 #[path = "physics_tick/pause_guards.rs"]
 mod pause_guards;
+#[path = "physics_tick/pause_late_start.rs"]
+mod pause_late_start;
 #[path = "runtime_helpers.rs"]
 mod runtime_helpers;
 #[path = "state_machine_boundaries.rs"]
