@@ -24,15 +24,24 @@ const SECOND: &str = "stamp_probe_retry";
 
 #[test]
 fn compound_source_time_retry_keeps_touch_on_already_restored_descriptor() {
-    assert_retry_preserves_restored_author_file(false);
+    assert_retry_preserves_restored_author_file(false, false);
 }
 
 #[test]
 fn compound_source_time_retry_keeps_same_bytes_same_stamp_author_replacement() {
-    assert_retry_preserves_restored_author_file(true);
+    assert_retry_preserves_restored_author_file(true, false);
 }
 
-fn assert_retry_preserves_restored_author_file(replace_identical: bool) {
+#[cfg(windows)]
+#[test]
+fn compound_source_time_retry_keeps_journal_when_unchanged_target_cannot_sync() {
+    assert_retry_preserves_restored_author_file(true, true);
+}
+
+fn assert_retry_preserves_restored_author_file(
+    replace_identical: bool,
+    temporarily_deny_sync: bool,
+) {
     let fixture = Fixture::new(if replace_identical {
         "clock_retry_replace"
     } else {
@@ -178,6 +187,43 @@ fn assert_retry_preserves_restored_author_file(replace_identical: bool) {
     assert_eq!(SourceRevision::observe(restored).unwrap(), author_object);
     assert_eq!(modified(restored), author_time);
     assert_eq!(fs::read(restored).unwrap(), original[1]);
+
+    if temporarily_deny_sync {
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::OpenOptionsExt;
+            // Metadata/digest admission can still read; the real target barrier requires a
+            // writable handle and must fail without clearing this recovery journal.
+            let blocked = File::options()
+                .read(true)
+                .share_mode(0x5)
+                .open(restored)
+                .unwrap();
+            let error = ProjectManager::open(&fixture.root)
+                .expect_err("an unsynced recovery stays pending");
+            let AssetImportError::Io(io_error) = &error else {
+                panic!("{error}")
+            };
+            let fault = io_error
+                .get_ref()
+                .and_then(|e| e.downcast_ref::<DurableTransactionError>());
+            assert!(
+                matches!(fault, Some(DurableTransactionError::Operation {
+                phase: TransactionPhase::Recovery,
+                source,
+                ..
+            }) if source.raw_os_error()==Some(32)),
+                "{error}"
+            );
+            assert_eq!(fs::read_dir(&journal).unwrap().count(), 1);
+            assert_eq!(fs::read(restored).unwrap(), original[1]);
+            assert_eq!(modified(restored), author_time);
+            assert_eq!(SourceRevision::observe(restored).unwrap(), author_object);
+            drop(blocked);
+        }
+        #[cfg(not(windows))]
+        unreachable!("Windows sharing control is only selected on Windows");
+    }
 
     let mut reopened = ProjectManager::open(&fixture.root).unwrap_or_else(|error| {
         panic!("COMPOUND_SOURCE_TIME_REENTRY: old bytes no longer need rollback: {error}")
