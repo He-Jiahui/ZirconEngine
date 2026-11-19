@@ -134,3 +134,31 @@ UE 文件 SHA256（仅短符号/路径说明，无 UE 实现段落复制）：
 | `after_spawn` | 1 | 0 |
 
 这是 Windows 集成层经产品 portable 注册调用同一 PostUpdate 求值器、使用 native 资产管理器的结果；未跑真正的 Web 加载、原生插件扫描、桌面产品或 UE 原测。
+
+## 9. [实测失败] 实际 PostUpdate 的条件与取样
+
+前六例及其生产入口保持不变。增加的混合轨用正常 Ready 资源、独立的真实目标和暂停播放器，区分缺失轨第一次变得可写与已有轨仍须保持当前用户编辑。该控制限定 ZE 的不引入回归边界，不是断言所有 UE 轨道均如此。
+
+本次 Git 输入 `10b017713921ef346ddef9735ff27ccd4223dda6`；[实际回归用例](https://github.com/He-Jiahui/ZirconEngine/blob/10b017713921ef346ddef9735ff27ccd4223dda6/zircon_plugins/animation/runtime/tests/sequence_tick.rs)，该输入的测试产物 SHA-256 `08d56301497eb05385e178482fc95d1fd83353ae13987b245ca7fe6327b7b493`。独立集成测试实际运行 **4 过 / 4 败**。
+
+| 冻结的用例 | 本次结果 |
+|---|---|
+| `sequence_tick_mixed_explicit_seek_and_asset_revision_resample_all_tracks` | 通过 |
+| `sequence_tick_mixed_late_bindings_preserve_independent_edits` | 失败 |
+| `sequence_tick_paused_keeps_bound_target_quiet` | 通过 |
+| `sequence_tick_paused_retries_renamed_target` | 失败 |
+| `sequence_tick_paused_retries_shared_asset_after_eviction` | 失败 |
+| `sequence_tick_paused_retries_spawned_target` | 失败 |
+| `sequence_tick_playing_retries_spawned_target` | 通过 |
+| `sequence_tick_samples_initial_paused_target` | 通过 |
+
+| 实际阶段（日志标记） | 本帧玩家 | 本帧序列请求 |
+|---|---:|---:|
+| `initial_bound` | 1 | 1 |
+| `after_rename` | 1 | 0 |
+| `shared_retries_after_eviction` | 3 | 1 |
+| `after_spawn` | 1 | 0 |
+
+两份私有候选均未提交到生产。第一版不能保证扫描时记下的修订与随后取得的真实载荷成对；第二版在同内容、同修订的资源卸载又重驻留时会丢掉暂停实例仍待解决的绑定。后一种情况可以在两帧之间按正常资源生命周期发生，不要求制造竞态。这是针对候选的源码反证，不是本次用例运行过候选。下一道门是同一真实资源最后一个租约释放、按同修订重新装入并证实 active 身份变化，再新增目标；不应为此每帧重写已有轨或默认扩大热更新范围。
+
+这是 Windows 集成层经产品 portable 注册调用同一 PostUpdate 求值器、使用 native 资产管理器的结果；未跑真正的 Web 加载、原生插件扫描、桌面产品或 UE 原测。
