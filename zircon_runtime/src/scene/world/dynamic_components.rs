@@ -244,11 +244,28 @@ impl World {
         }
         components.insert(component_id.clone(), value);
         self.insert_dynamic_component_presence(entity, &component_id)?;
-        self.inspection_artifact_cache.mark_fields_dirty(entity);
-        self.advance_dynamic_component_generation(&component_id);
-        self.advance_world_generation();
-        self.invalidate_world_component_type(&component_id);
+        self.finish_dynamic_component_value_write(entity, &component_id);
         Ok(true)
+    }
+
+    fn finish_dynamic_component_value_write(&mut self, entity: EntityId, component_id: &str) {
+        #[cfg(feature = "script")]
+        if let (Some(internal), Some(id)) = (
+            self.internal_entity(entity),
+            self.component_registry
+                .registered_dynamic_component_id(component_id),
+        ) {
+            if let Some(presence) = self
+                .component_storage
+                .get_mut::<super::typed_api::DynamicComponentPresence>(id, internal)
+            {
+                presence.value_revision = presence.value_revision.saturating_add(1);
+            }
+        }
+        self.inspection_artifact_cache.mark_fields_dirty(entity);
+        self.advance_dynamic_component_generation(component_id);
+        self.advance_world_generation();
+        self.invalidate_world_component_type(component_id);
     }
 
     /// 借用实体上指定类型的 JSON；实体映射或组件缺席时均返回 `None`。
@@ -256,6 +273,30 @@ impl World {
     pub fn dynamic_component(&self, entity: EntityId, component_id: &str) -> Option<&Value> {
         let components = self.dynamic_components.get(&entity)?;
         components.get(component_id)
+    }
+
+    /// Proof that both the sparse instance and its payload survived since a prior read.
+    /// A detached entity can restore its original presence under a new internal identity.
+    #[cfg(feature = "script")]
+    pub(crate) fn dynamic_component_value_revision(
+        &self,
+        entity: EntityId,
+        component_id: &str,
+    ) -> Option<(
+        crate::scene::InternalEntity,
+        super::DynamicComponentCreationId,
+        u64,
+    )> {
+        let internal = self.internal_entity(entity)?;
+        let id = self
+            .component_registry
+            .registered_dynamic_component_id(component_id)?;
+        let presence = self
+            .component_storage
+            .get::<super::typed_api::DynamicComponentPresence>(id, internal)?;
+        // A saturated counter no longer witnesses that there was no write.
+        (presence.value_revision != u64::MAX)
+            .then(|| (internal, presence.creation.clone(), presence.value_revision))
     }
 
     /// 清空并填充指定动态类型的存活行，最后按稳定实体 ID 排序。
@@ -524,10 +565,7 @@ impl World {
                 .into());
             };
             *component = candidate;
-            self.inspection_artifact_cache.mark_fields_dirty(entity);
-            self.advance_dynamic_component_generation(component_id);
-            self.advance_world_generation();
-            self.invalidate_world_component_type(component_id);
+            self.finish_dynamic_component_value_write(entity, component_id);
             return Ok(true);
         }
         let components = self.dynamic_components.entry(entity).or_default();
@@ -544,10 +582,7 @@ impl World {
         }
         object.insert(property.to_string(), json_value);
         self.insert_dynamic_component_presence(entity, component_id)?;
-        self.inspection_artifact_cache.mark_fields_dirty(entity);
-        self.advance_dynamic_component_generation(component_id);
-        self.advance_world_generation();
-        self.invalidate_world_component_type(component_id);
+        self.finish_dynamic_component_value_write(entity, component_id);
         Ok(true)
     }
 

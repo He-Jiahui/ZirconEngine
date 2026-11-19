@@ -47,6 +47,9 @@ impl DynamicComponentCreationId {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(in crate::scene::world) struct DynamicComponentPresence {
     pub(in crate::scene::world) creation: DynamicComponentCreationId,
+    /// Per-instance payload version, not the ECS schedule change tick.
+    #[cfg(feature = "script")]
+    pub(in crate::scene::world) value_revision: u64,
 }
 
 zircon_runtime_interface::impl_retained_owner_v1!(DynamicComponentPresence { creation });

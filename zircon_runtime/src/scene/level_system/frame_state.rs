@@ -13,6 +13,10 @@ use crate::core::framework::animation::{
 use crate::core::math::Real;
 #[cfg(feature = "animation")]
 use crate::core::resource::ResourceId;
+#[cfg(feature = "script")]
+use crate::scene::script_binding_activation::{
+    ScriptBindingActivationRows, ScriptBindingProjectionOwner,
+};
 use crate::scene::EntityId;
 
 #[cfg(feature = "animation")]
@@ -262,6 +266,8 @@ impl AnimationPlaybackStateSnapshot {
 pub(super) struct ScriptRuntimeState {
     generation: u64,
     started_bindings: BTreeMap<EntityId, BTreeSet<Box<str>>>,
+    #[cfg(feature = "script")]
+    binding_activations: ScriptBindingActivationRows,
 }
 
 impl ScriptRuntimeState {
@@ -285,11 +291,41 @@ impl ScriptRuntimeState {
     pub(super) fn reset_after_world_replacement(&mut self) {
         self.generation = self.generation.saturating_add(1);
         self.started_bindings.clear();
+        #[cfg(feature = "script")]
+        self.binding_activations.clear();
     }
 
     #[cfg(test)]
     pub(super) fn generation(&self) -> u64 {
         self.generation
+    }
+}
+
+#[cfg(feature = "script")]
+impl super::LevelSystem {
+    /// Called by the script projection reader under the Level's World guard.
+    pub(crate) fn matches_script_binding_projection_owner(
+        &self,
+        owner: &ScriptBindingProjectionOwner,
+    ) -> bool {
+        owner.matches(&self.world_replacement_epoch)
+    }
+
+    /// Rebuild under World -> script state lock order. Neither guard reaches a VM callback.
+    /// Only a complete rebuild publishes a new activation table and its owner stamp.
+    pub(crate) fn rebuild_script_binding_projection<T, E>(
+        &self,
+        rebuild: impl FnOnce(
+            &ScriptBindingActivationRows,
+        ) -> Result<(T, ScriptBindingActivationRows), E>,
+    ) -> Result<(T, ScriptBindingProjectionOwner), E> {
+        let mut state = self.lock_script_state();
+        let (projection, rows) = rebuild(&state.binding_activations)?;
+        state.binding_activations = rows;
+        Ok((
+            projection,
+            ScriptBindingProjectionOwner::capture(&self.world_replacement_epoch),
+        ))
     }
 }
 
