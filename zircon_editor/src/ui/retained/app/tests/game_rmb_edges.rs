@@ -65,11 +65,14 @@ fn adjacent_authored_hierarchy_point(ui: &UiHostWindow) -> UiPoint {
     assert!(!presentation.host_shell.native_floating_window_mode);
     assert!(!presentation.close_prompt.visible && !presentation.asset_deletion_blocker.visible);
     assert!(!host_context(ui).host_popup_occludes_workbench_tooltip());
-    assert!(presentation
-        .host_scene_data
-        .floating_layer
-        .floating_windows
-        .is_empty());
+    assert_eq!(
+        presentation
+            .host_scene_data
+            .floating_layer
+            .floating_windows
+            .row_count(),
+        0
+    );
     let dock = presentation
         .host_scene_data
         .document_surfaces()
@@ -282,11 +285,14 @@ fn game_pointer_adjacent_open_menu_does_not_block_uncovered_game_right_down() {
                     !generation.dock_overflow_menu_state().open
                         && !generation.page_overflow_menu_state().open
                 );
-                assert!(presentation
-                    .host_scene_data
-                    .floating_layer
-                    .floating_windows
-                    .is_empty());
+                assert_eq!(
+                    presentation
+                        .host_scene_data
+                        .floating_layer
+                        .floating_windows
+                        .row_count(),
+                    0
+                );
                 // Match the live root-popup horizontal extent, not the menu's broader
                 // primary-dismiss/motion region. No submenu was opened by the header click.
                 let chrome = &presentation.host_scene_data.menu_chrome;
