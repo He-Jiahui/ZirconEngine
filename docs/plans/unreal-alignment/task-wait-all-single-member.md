@@ -25,3 +25,11 @@ UE 将直接等待委托给单个 `FTask`。集合重载以输入任务为前置
 ## 6. 定向回归与修复
 
 扩展现有原生集成测试中的分配计数器，仅测调用线程。用一次明确的分配检查计数器正在工作，并核对空输入与直接等待的分配次数。对已经完成的同一个句柄，单成员集合等待应与直接等待相同。实现可将向量收集与组合等待放入多成员分支。[集成测试目标](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/tests/runtime_task_node_allocation_performance.rs#L14-L74)
+
+## 7. 修复前的原生回归
+
+同一已完成任务上，调用线程的单成员等待分配了 4 次，直接等待和空切片各分配 0 次。显式分配对照记录 1 次。
+
+用例提交正常工作，观察到一个完成任务，随后执行三种等待。测试结束时检查任务状态并等待工作线程退出。
+
+在 Windows x64 的 `test` 配置下，`zircon_runtime` 运行定向用例，通过 0/1。测试提交为 `65278a7c5ae8997f08a1b0e6819b527a4ae6bc22`。[本次回归用例](https://github.com/He-Jiahui/ZirconEngine/blob/65278a7c5ae8997f08a1b0e6819b527a4ae6bc22/zircon_runtime/tests/runtime_task_node_allocation_performance.rs)
