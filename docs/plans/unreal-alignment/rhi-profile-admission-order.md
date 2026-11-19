@@ -38,3 +38,17 @@
 只在外部 profile 入口用 `self.adapter_facts()` 做前置比较，保留带两份 facts 的既有 `NativeContextAdapterMismatch`；通过后才进入共享请求。保留同步包装、真实 native 错误映射、同 generation 所有权、`WgpuRenderDevice::new` 后验校验和 `request_graphics_device_async` 按实际 device 构造 profile。不要为此重排 surface 选择、借用设备/队列语义或 resize；不扩大到全库源码守卫或换行策略。
 
 同一 Draft 后续用正常 Rust 配置做正负对照：[`RenderDeviceProfile::new`](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/crates/zr_rhi/src/device_profile.rs#L549-L570) 能接收独立的 [`RenderAdapterFacts`](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/crates/zr_rhi/src/device_profile.rs#L137-L171)，例如保留协商输入，仅让 profile 里的 adapter 名称来自另一份存档；用相同兼容表面配置和合法原生 descriptor。负例核对 `Err` 的 variant 和两份 facts，并验证该入口未进入真实设备请求边界；正例用独立 one-shot 实例验证匹配 profile 可进入一次正常请求并移交表面。若只断言错误类型，旧代码在 WGPU 请求成功后也能通过，因此需对请求边界做专用、只读观测；不靠延时、假 GPU、故意提交坏 descriptor 或制造驱动故障。只有观察到真实调用顺序后才计入行为配对结果；若设备或 surface 前置未达到，则只记录前置，不能把未运行的回归或旧字符串失败当成修复验收。
+
+## 7. 相同 profile 与不匹配 profile 的请求计数
+
+Windows x64/MSVC 实际编译 `da3e99d63a66c7c1e4243d98b82613bd2994a55c`，包 `zr_rhi_wgpu` 选 `--no-default-features --lib --profile test --locked --offline`。完整测试 EXE 以 `profile_request_ --test-threads 1 --show-output` 运行。固定三个具名用例均被匹配，实际退出 101。
+
+| 外部 profile 与请求结果 | 请求调用 / 首次轮询 | 已验证结果 |
+|---|---:|---|
+| 与选定适配器不匹配 | 1 / 1 | `NativeContextAdapterMismatch` 中的两份适配器资料逐项相等 |
+| 匹配，提供方成功 | 1 / 1 | 设备与队列的观测值以及原 profile 完整交付 |
+| 匹配，提供方返回错误 | 1 / 1 | `SurfaceUnavailable` 原错误透传 |
+
+该测试运行外部 profile 入口使用的同一个 Rust 调度函数，以立即可完成的提供方计数。公开入口传入已保留 adapter 的原生请求。Graphics 入口继续以协商设备的实际 limits 构造 profile。真实设备与表面的端到端运行另有前置。
+
+编译回执 `9e2b6a63a277ef2bce83c0bf38d8001a83687d3d7467a08a185015958d0e3d2b`，测试 EXE `d23e93818cc8fc6156d68237a874958dd9776b9a8cbc6993e7a90008152b3bbd`，实际执行回执 `f23e108ac395a2024e46de9fb9590a5933de0fe930c811408d30b27f34612263`。
