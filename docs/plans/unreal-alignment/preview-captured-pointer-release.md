@@ -59,3 +59,13 @@ UE 证据只支持**已经依捕获策略获得 capture 的支路**；`NoCapture
 | [SlateApplication.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Slate/Private/Framework/Application/SlateApplication.cpp>) | `06F96167FD20BDE540B7F60629B53C8CFBDDD3AE4B7D93368B9BC4F9F45CFE99` |
 | [SViewport.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Slate/Private/Widgets/SViewport.cpp>) | `BC45E9B12CFCD064E0983D22CF057431E0E9D92CACBE9A387DE74A66D34DB1A0` |
 | [AutomationDriver.spec.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Plugins/Tests/AutomationDriverTests/Source/AutomationDriverTests/Private/AutomationDriver.spec.cpp>) | `62A0E0A384BE81FAE4E10EC29925FD6058332FE850842DAED0AA853163422DA6` |
+
+## 7. 真实 Play 相机、同窗外部释放及独立会话观察
+
+测试在一份真实冷项目中启动已链接的 V8 minimal Play，经可见 Game pane 的裁剪几何，向同一 retained 宿主送构造的 Winit 指针事件；观察原游戏会话的 InputManager 原生计数、真实 Camera 姿态以及独立 Edit World。stdout 也列出了 DX12 和 RTX 3060 Laptop 适配器；这不证明已为本次 Game Surface 呈现正确画面。不是实际 OS 输入、打包 DLL、GPU 首帧或 Slider 的验收。
+
+在主案前，状态带普通交互及无主 Up 不得广播；窗内接纳的 RMB drag/Up 必须恰好释放一次并停止转动；失焦可清除 drag 而不凭空计鼠标 release。回到 Game 的 Move 也必须确实送到原 Play，不能以没发输入来制造“相机未动”。 实测原会话鼠标释放 `1→1`；诊断中回入指针移动 `6→7`，随后原 Play 相机姿态仍变化，Edit 相机保持原样。同一主窗 Game focus 未离开；原 Play 也按正常退出路径退休。
+
+真实 V8 Play 相机已进入右键旋转；同窗 Game 外释放时原会话的 release 计数不增加，回入后 Move 实际送达且仍转动。inside、无主输入和失焦对照先通过。没有把相机观测当作 authored Slider 或 OS 验收。 尚无本 PR 生产修复。
+
+Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile test`。实测输入 [同一测试版本](https://github.com/He-Jiahui/ZirconEngine/commit/8036cb85a46298834544b31c31b5978c948022ed)，编译回执 `ddd1b4829a83871a98558d9c3918145300cf5aaff88d9578f50c46bbd9a78414`，实际执行 `4be1290f0057735226bb773dd8f9650c2569a775f682cefb011c8e9ac0fe46dc`，stdout `708501ccdfed0cd6bc09e40bc1b2216463d812775302dbcc2fb28da0ebd64e37`。
