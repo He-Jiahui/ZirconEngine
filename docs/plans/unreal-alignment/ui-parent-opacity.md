@@ -72,3 +72,26 @@ UE 的 style 依靠进程内 widget 递归传参；ZE 要在 `zircon_runtime::ui
 | `parent_opacity_zero_removes_visual_contribution_but_not_picking` | 失败 |
 
 Windows x64/MSVC，`zircon_runtime` 的 `ui_parent_opacity` 集成测试。默认特性关闭，额外特性为 native-host, ui。`test` profile 以 `parent_opacity_` 筛选，实际 1 过、5 败。源码 `44cd2e885fc575d375378419b1b5f8e1a1a13973`，测试文件 Git blob `af2f8ac58b6ff52dc195aedae1a04753bed3036c`，EXE `1080ed2b4874559f2b6d89bcb8d2c29d4c2be1050063518151c8df4ea221093b`，执行回执 `57bb5e3f393c20e7a94642420b257198c7b0a449d76059b27c7e2d9539581e47`。
+
+## 8. 逐图元透明度与帧缓存发布
+
+同一份六例全部通过。两层 0.5 透明度下，局部透明度 0.8 的叶节点得到 0.2，随后绘制的兄弟节点保留 0.625。单独修改父节点后，工作区发布新的子节点绘制结果。
+
+| 公共绘制命令 | 实测 | 预期 |
+|---|---|---|
+| parent, direct child | `[0.5, 0.25]` | `[0.5, 0.25]` |
+| parent, middle, leaf, following sibling | `[0.5, 0.25, 0.2, 0.625]` | `[0.5, 0.25, 0.2, 0.625]` |
+| before parent-only update | `[1.0, 1.0, 0.8, 0.625]` | `[1.0, 1.0, 0.8, 0.625]` |
+| old frame remains immutable | `[1.0, 1.0, 0.8, 0.625]` | `[1.0, 1.0, 0.8, 0.625]` |
+| new parent/middle/leaf and unaffected sibling | `[0.5, 0.5, 0.4, 0.625]` | `[0.5, 0.5, 0.4, 0.625]` |
+
+| 用例 | 实测 |
+|---|---|
+| `parent_opacity_parent_only_update_republishes_descendant_paint` | 通过 |
+| `parent_opacity_preserves_style_alpha_and_fades_each_paint_once` | 通过 |
+| `parent_opacity_single_ancestor_multiplies_local_alpha_once` | 通过 |
+| `parent_opacity_two_ancestors_restore_the_following_sibling` | 通过 |
+| `parent_opacity_unset_and_explicit_one_are_identity` | 通过 |
+| `parent_opacity_zero_removes_visual_contribution_but_not_picking` | 通过 |
+
+Windows x64/MSVC，`zircon_runtime` 的 `ui_parent_opacity` 集成测试。默认特性关闭，额外特性为 native-host, ui。`test` profile 以 `parent_opacity_` 筛选，实际 6 过、0 败。源码 `22dea20622194a3f31b1b804a8eddf6bf905aa2f`，测试文件 Git blob `af2f8ac58b6ff52dc195aedae1a04753bed3036c`，EXE `a48c5e61c2ef8b27da83aa5dc0d16eb3bb0d31222a9f4e5b1624b35d6b803cf5`，执行回执 `79b4357dbc3b6c0cd3fbd8b3aabe9188e5891ea712bbe4119b927c15b3ed8171`。
