@@ -52,3 +52,19 @@ Windows x64/MSVC 实际编译 `da3e99d63a66c7c1e4243d98b82613bd2994a55c`，包 `
 该测试运行外部 profile 入口使用的同一个 Rust 调度函数，以立即可完成的提供方计数。公开入口传入已保留 adapter 的原生请求。Graphics 入口继续以协商设备的实际 limits 构造 profile。真实设备与表面的端到端运行另有前置。
 
 编译回执 `9e2b6a63a277ef2bce83c0bf38d8001a83687d3d7467a08a185015958d0e3d2b`，测试 EXE `d23e93818cc8fc6156d68237a874958dd9776b9a8cbc6993e7a90008152b3bbd`，实际执行回执 `f23e108ac395a2024e46de9fb9590a5933de0fe930c811408d30b27f34612263`。
+
+## 8. 校验外部 profile 后再请求设备
+
+Windows x64/MSVC 实际编译 `207c3909d3a11d8edf05bb0a2044321ed5450b84`，包 `zr_rhi_wgpu` 选 `--no-default-features --lib --profile test --locked --offline`。完整测试 EXE 以 `profile_request_ --test-threads 1 --show-output` 运行。固定三个具名用例均被匹配，实际退出 0。
+
+| 外部 profile 与请求结果 | 请求调用 / 首次轮询 | 已验证结果 |
+|---|---:|---|
+| 与选定适配器不匹配 | 0 / 0 | `NativeContextAdapterMismatch` 中的两份适配器资料逐项相等 |
+| 匹配，提供方成功 | 1 / 1 | 设备与队列的观测值以及原 profile 完整交付 |
+| 匹配，提供方返回错误 | 1 / 1 | `SurfaceUnavailable` 原错误透传 |
+
+该测试运行外部 profile 入口使用的同一个 Rust 调度函数，以立即可完成的提供方计数。公开入口传入已保留 adapter 的原生请求。Graphics 入口继续以协商设备的实际 limits 构造 profile。真实设备与表面的端到端运行另有前置。
+
+编译回执 `1c33aebce8f327d73ae4703585830b4dcd34adff60d76d61cbc8bea73e57c51a`，测试 EXE `2a29e62749999c8afb57a85c01eaa1e2b80f6c6bd4e55aefda63520f4ea75857`，实际执行回执 `22ea410a337f60e4d2b337632b83cf9078a1a475b0c16a5daea8c0cbe19196b5`。
+
+修复仅移动共享调度函数内的一次 `request().await?`。修复前测试提交 `da3e99d63a66c7c1e4243d98b82613bd2994a55c` 中调用和轮询分别为 1 和 1。两次运行使用相同测试文件 `68d96ec62142131d72c1714a9a0c3423a4a13a9c`。
