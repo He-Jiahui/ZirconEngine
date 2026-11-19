@@ -70,3 +70,12 @@ Gauntlet/Framework/Gauntlet.Utils.cs:725–751（按全名发现）。Gauntlet/U
 [core-test]: <https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/core/runtime/tests/activation/behavior.rs#L53-L69>
 [frame]: <https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/browser/frame.rs#L61-L117>
 [ue-doc]: <https://dev.epicgames.com/documentation/en-us/unreal-engine/unreal-engine-modules>
+
+## 7. 两个可复跑的 Web 产品用例
+
+独立草稿新增两项 HTTP 目录回归。实际 WebEngine.load 对错误平台目录给出预期诊断，对合法空目录返回 ModuleGraphFrozen，未到缺少启动场景的检查。同一完整产品使用 #239 的两行 Wasm 编译修正。测试页面提交为 `415e09c7ec2c915cd6dda7c2d65c92b1eb5e24d1`。[可复跑的浏览器回归](https://github.com/He-Jiahui/ZirconEngine/blob/415e09c7ec2c915cd6dda7c2d65c92b1eb5e24d1/tools/validation/browser/web-startup-order.html)
+
+| HTTP 资源目录 | WebEngine.load 实际结果 | 预期 |
+|---|---|---|
+| `wrong` | `Initialization("AssetModule.Manager.ProjectAssetManager", "unsupported browser asset catalog schema, target, or entry count")` | `Initialization("AssetModule.Manager.ProjectAssetManager", "unsupported browser asset catalog schema, target, or entry count")` |
+| `correct` | `ModuleGraphFrozen` | `Initialization("AssetModule.Manager.ProjectAssetManager", "browser bundle has no startup scene")` |
