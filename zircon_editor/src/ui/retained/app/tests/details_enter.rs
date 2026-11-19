@@ -2,12 +2,15 @@
 
 use super::super::support::*;
 use crate::core::editing::engine::{HistoryContextId, HistoryStatus};
-use crate::core::gateway::GatewaySessionIdentity;
+use crate::core::gateway::{DetachedEditorRuntimeGateway, GatewaySessionIdentity};
 use crate::core::play::WorldDomain;
-use crate::core::project::{NewProjectDraft, ProjectTemplateId};
+use crate::core::project::{ProjectAuthority, ProjectTemplateId};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime::scene::{components::NodeKind, NodeId, Scene};
 use zircon_runtime_interface::math::Transform;
+use zircon_runtime_interface::project::{
+    ProjectLaunchIntent, ProjectLaunchProfile, ProjectLaunchSource,
+};
 
 const X: &str = "WorkbenchTransformPositionX";
 const Y: &str = "WorkbenchTransformPositionY";
@@ -94,7 +97,7 @@ fn details_enter_explicitly_retyping_displayed_value_is_a_real_edit() {
 }
 
 struct DetailsFixture {
-    harness: ChildWindowHostHarness,
+    harness: ColdHostHarness,
     location: PathBuf,
     cube: NodeId,
     history: HistoryContextId,
@@ -122,37 +125,42 @@ impl DetailsFixture {
         let location = unique_temp_path("ze_details_enter").with_extension("");
         assert_eq!(fs::canonicalize(location.parent().unwrap()).unwrap(), base);
         fs::create_dir(&location).expect("fresh, owned fixture directory");
-        let harness = ChildWindowHostHarness::new_at_config_path(location.join("config.json"));
-        harness
-            ._core
-            .activate_module(zircon_runtime::core::framework::scene::SCENE_MODULE_NAME)
-            .expect("activate the linked Scene module, not a substitute service");
-        crate::tests::support::configure_editor_test_runtime_build_set(&harness._core);
-        let window = harness.root_ui.window();
-        window.set_size(PhysicalSize::new(1672, 941));
+        let harness = ColdHostHarness::new(&location);
         let (cube, history, world) = {
             let mut host = harness.host.borrow_mut();
-            let draft = NewProjectDraft {
-                project_name: "DetailsEnter".into(),
-                location: location.to_string_lossy().into_owned(),
-                template: ProjectTemplateId::RenderableEmpty,
-            };
-            let manager = host.editor_manager.enter().expect("real EditorManager");
-            let session = manager
-                .create_project_and_open(draft)
-                .expect("real project admission");
+            let manager = host
+                .editor_manager
+                .enter()
+                .expect("setup: real EditorManager");
+            let (root, _, _) = manager
+                .active_project_session_focus_target()
+                .expect("setup: cold project session reached Ready");
+            let scene = manager
+                .active_scene_identity_for_session()
+                .expect("setup: scene document lifecycle bind");
             drop(manager);
-            host.apply_startup_session(session)
-                .expect("bind the startup scene document, not a detached replacement");
+            assert_eq!(
+                fs::canonicalize(&root).unwrap(),
+                fs::canonicalize(location.join("DetailsEnter")).unwrap()
+            );
+            assert_eq!(scene.project_root(), root.as_path());
+            assert_eq!(scene.scene_uri(), "res://scenes/main.scene.toml");
+            assert!(
+                scene.source_revision().is_some(),
+                "setup: physical scene source identity"
+            );
+            let history = HistoryContextId::Document(scene.document());
+            assert_eq!(host.runtime.active_scene_history_context(), Some(history));
             let cube = {
                 let shell = host.runtime.shell().lock();
                 shell.state.world.expect_with_world(|scene| {
                     let nodes = scene.nodes();
-                    nodes
-                        .iter()
-                        .find(|node| node.kind == NodeKind::Cube)
-                        .unwrap()
-                        .id
+                    let mut cubes = nodes.iter().filter(|node| node.name == "Cube");
+                    let cube = cubes.next().expect("setup: physical template's Cube");
+                    assert!(cubes.next().is_none(), "setup: a unique authored Cube");
+                    // RenderableEmpty references a project OBJ, not builtin://cube.
+                    assert_eq!(cube.kind, NodeKind::Mesh);
+                    cube.id
                 })
             };
             let effects = callback_dispatch::dispatch_hierarchy_selection(&host.runtime, cube)
@@ -160,8 +168,13 @@ impl DetailsFixture {
             host.apply_dispatch_effects(effects);
             host.sync_shell_size();
             host.refresh_ui();
-            let history = host.runtime.active_scene_history_context().unwrap();
-            assert!(matches!(history, HistoryContextId::Document(_)));
+            if let Some(error) = harness.root_ui.take_fatal_failure() {
+                panic!("setup: retained project projection failed: {error}");
+            }
+            let unreal = crate::ui::template_runtime::builtin::UNREAL_EDITOR_WINDOW_DOCUMENT_ID;
+            assert!(host
+                .active_activity_window_template_document_is(unreal)
+                .unwrap());
             let world = host.runtime.context().authoring_gateway().identity();
             (cube, history, world)
         };
@@ -279,5 +292,99 @@ impl DetailsFixture {
         host.borrow_mut().commit_project_close().unwrap();
         drop(self.harness);
         fs::remove_dir_all(self.location).expect("remove only the owned fixture directory");
+    }
+}
+
+// Real Project startup; never construct a Welcome/demo controller on this Core.
+struct ColdHostHarness {
+    host: Rc<RefCell<RetainedEditorHost>>,
+    root_ui: UiHostWindow,
+    _core: CoreRuntime,
+}
+
+impl ColdHostHarness {
+    fn new(location: &std::path::Path) -> Self {
+        let restore_config =
+            crate::tests::editor_event::support::EnvironmentVariableRestoreGuard::capture(
+                "ZIRCON_CONFIG_PATH",
+            );
+        std::env::set_var("ZIRCON_CONFIG_PATH", location.join("config.json"));
+        let core = CoreRuntime::new();
+        for engine_module in zircon_runtime::builtin::runtime_core_modules() {
+            core.register_module(engine_module.descriptor()).unwrap();
+        }
+        core.register_module(zircon_runtime::ui::module_descriptor())
+            .unwrap();
+        core.register_module(module::module_descriptor()).unwrap();
+        core.activate_module(FOUNDATION_MODULE_NAME).unwrap();
+        core.activate_module(zircon_runtime::asset::ASSET_MODULE_NAME)
+            .unwrap();
+        core.activate_module(zircon_runtime::core::framework::scene::SCENE_MODULE_NAME)
+            .expect("setup: activate the registered Scene module");
+        core.activate_module(module::EDITOR_MODULE_NAME).unwrap();
+
+        let provenance = crate::tests::support::test_project_creation_provenance();
+        let intent = ProjectLaunchIntent::create_project(
+            provenance.operation_id(),
+            ProjectLaunchSource::Cli,
+            ProjectLaunchProfile::Normal,
+            "DetailsEnter",
+            location,
+            ProjectTemplateId::RenderableEmpty,
+        )
+        .unwrap();
+        let startup = EditorGuiStartupRequest::project(intent)
+            .preflight_project(&ProjectAuthority::default())
+            .expect("setup: preflight the actual project request");
+        let root_ui = UiHostWindow::new().expect("setup: native retained host state");
+        root_ui.window().set_size(PhysicalSize::new(1672, 941));
+        let mut host = RetainedEditorHost::new(
+            core.handle(),
+            // App's separate profiling transport is unused by this Edit-world fixture.
+            Arc::new(DetachedEditorRuntimeGateway),
+            root_ui.clone_strong(),
+            Some(startup),
+            Some(provenance.build_set_id().clone()),
+            None,
+        )
+        .expect("setup: initialize the retained host directly in the admitted project");
+        drop(restore_config);
+        assert_eq!(host.startup_session.mode, EditorSessionMode::Project);
+        let settings = host.runtime.context().settings().snapshot();
+        apply_host_appearance_from_tokens(
+            settings.design_tokens_handle(),
+            Some(settings.generation()),
+        );
+        apply_host_paint_scale_factor(
+            ResolutionContext::from_physical_size_with_scale_mode(
+                host.shell_size,
+                host.shell_scale_factor,
+                host.shell_scale_mode,
+            )
+            .effective_scale_factor(),
+        );
+        root_ui.sync_host_paint_theme();
+        install_editor_v2_design_tokens(settings.as_ref());
+        host.sync_plugin_template_documents_if_changed()
+            .expect("setup: actual template owners");
+        let host = Rc::new(RefCell::new(host));
+        wire_callbacks(&root_ui, &host, None);
+        host.borrow_mut().self_handle = Some(Rc::downgrade(&host));
+        root_ui
+            .show()
+            .expect("setup: enable retained hit testing without a desktop event loop");
+        Self {
+            host,
+            root_ui,
+            _core: core,
+        }
+    }
+
+    fn dispatch_menu_action(&self, action: &str) {
+        let mut host = self.host.borrow_mut();
+        let effects = callback_dispatch::dispatch_menu_action(&host.runtime, action)
+            .expect("menu action dispatch should succeed");
+        host.apply_dispatch_effects(effects);
+        host.recompute_if_dirty();
     }
 }
