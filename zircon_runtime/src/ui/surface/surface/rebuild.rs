@@ -102,6 +102,15 @@ impl UiSurface {
         update.stats
     }
 
+    fn patch_render_payload_nodes(
+        &mut self,
+        changed_node_ids: &mut BTreeSet<UiNodeId>,
+    ) -> Result<UiSurfaceRenderCacheStats, ()> {
+        // Publish the same owner set that is re-extracted, including inherited paint changes.
+        self.expand_opacity_render_patch_nodes(changed_node_ids)?;
+        self.patch_render_nodes(changed_node_ids)
+    }
+
     fn patch_render_nodes(
         &mut self,
         changed_node_ids: &BTreeSet<UiNodeId>,
