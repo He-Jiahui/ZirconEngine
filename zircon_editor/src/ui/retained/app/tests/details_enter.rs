@@ -152,7 +152,9 @@ fn details_axis_ack_dynamic_success_and_valid_noop_consume_text_intent() {
     const VALUE: &str = "12.3456";
     let _guard = lock_env();
     let f = DetailsFixture::dynamic_camera();
-    let (mut expected, initial_history) = f.observe();
+    let (original, initial_history) = f.observe();
+    let original_bytes = f.read_saved_source().1;
+    let mut expected = original;
     expected.translation.x = 12.3456;
     let since = f.last_event_sequence();
     f.type_axis(X, VALUE);
@@ -173,7 +175,15 @@ fn details_axis_ack_dynamic_success_and_valid_noop_consume_text_intent() {
     assert_accepted_axis_submit(&f.expect_axis_submit_since(since, X, VALUE), false);
     assert_eq!(f.observe(), committed);
     f.assert_same_focus_enter_is_silent(VALUE);
-    f.harness.dispatch_menu_action("workbench.project.save");
+
+    // This focus/ack case never saves. Undo its one edit before closing the real project.
+    f.harness.dispatch_menu_action(UNDO);
+    let (restored, cleaned) = f.observe();
+    assert_eq!(restored, original);
+    assert_eq!(cleaned.top, initial_history.top);
+    assert_eq!(cleaned.saved_top, initial_history.saved_top);
+    assert!(!cleaned.dirty && cleaned.can_redo);
+    assert_eq!(f.read_saved_source().1, original_bytes);
     f.finish();
 }
 
