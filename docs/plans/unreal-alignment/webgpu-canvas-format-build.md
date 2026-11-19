@@ -72,3 +72,9 @@ Rust 1.94.1 链接的 `zircon_app.wasm` 为 101,019,794 字节，SHA-256 为 `1c
 |---|---:|---|
 | `zircon_app.js` | 91,172 | `025581fb2ba5be1575b4890c3a4d49a8a4e7ec3d5cedc4bd5089eb26a1be49da` |
 | `zircon_app_bg.wasm` | 90,396,136 | `0a7fca86748bc794ca07eebe5c87c28838c95d4df2a7b3d6832c0b53b62e8658` |
+
+## 9. 完整产品在浏览器中的运行位置
+
+本草稿公开提交 `4a7e07d7eed63be87e2e49f6a627939845d8f70d` 对应的 Web 产品已由 Chrome 157.0.8103.52 载入。页面执行 `WebEngine.load`，请求并收到了场景 `catalog.json`，随后返回 `ModuleGraphFrozen`。此时采样到的呈现帧数为 0。相同产品使用平台不匹配的目录时，返回目录校验错误。使用平台正确、资产为空的目录时，同样得到 `ModuleGraphFrozen`。[模块启动问题 #240](https://github.com/He-Jiahui/ZirconEngine/pull/240)
+
+该浏览器选择了 NVIDIA Ampere 适配器，`isFallbackAdapter=false`，画布首选格式为 `bgra8unorm`。在同一浏览器中，直接以此格式配置 64×64 画布能够取得纹理、清屏并完成队列提交，验证作用域返回 `null`。
