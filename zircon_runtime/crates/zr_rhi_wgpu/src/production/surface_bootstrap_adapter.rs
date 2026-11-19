@@ -163,12 +163,12 @@ pub(super) async fn request_with_supplied_profile<D, Q, F>(
 where
     F: Future<Output = Result<(D, Q), RhiError>>,
 {
-    let (device, queue) = request().await?;
     if profile.adapter() != facts {
         return Err(RhiError::NativeContextAdapterMismatch {
             profile_adapter: Box::new(profile.adapter().clone()),
             context_adapter: facts.clone(),
         });
     }
+    let (device, queue) = request().await?;
     Ok((device, queue, profile))
 }
