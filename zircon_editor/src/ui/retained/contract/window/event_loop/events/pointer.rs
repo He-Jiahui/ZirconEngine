@@ -196,6 +196,27 @@ impl crate::ui::retained_host::host_contract::window::UiHostWindow {
     }
 }
 
+#[cfg(all(test, windows))]
+impl crate::ui::retained_host::host_contract::window::UiHostWindow {
+    pub(crate) fn winit_pointer_driver_for_test(&self) -> impl FnMut(winit::event::WindowEvent) {
+        use winit::event::WindowEvent;
+
+        let mut owner = UiHostWindowEventLoop::new(self.clone_strong());
+        move |event| match event {
+            WindowEvent::PointerMoved { position, .. } => {
+                let translated = owner.translate_platform_input_event(&event);
+                owner.handle_pointer_moved(translated, position);
+            }
+            WindowEvent::PointerButton { .. } => {
+                let translated = owner.translate_platform_input_event(&event);
+                owner.handle_pointer_button(translated);
+            }
+            WindowEvent::Focused(false) => owner.handle_native_window_focus_lost(),
+            _ => panic!("expected a Winit pointer or focus loss event"),
+        }
+    }
+}
+
 #[cfg(test)]
 #[path = "../tests/pointer.rs"]
 mod tests;
