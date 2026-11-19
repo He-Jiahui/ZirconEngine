@@ -68,3 +68,15 @@ UE 把实例生命周期与 `UObject`/`AActor`/`UActorComponent` 关联，Bluepr
 | [Engine/Source/Editor/Kismet/Private/Tests/BlueprintEditorTests.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Editor/Kismet/Private/Tests/BlueprintEditorTests.cpp>) | `2838f0ab4ae694f4c35580d99e0d28dc47a725d99a8daf614a5e5582dbba7b72` |
 
 **去重：** lead 本地 [PR 快照](<D:/CodexData/worktrees/ze-ue-audit-20261117/reports/ue-module-audit-20261117/github-pr-snapshot.json>) 的条目 #131–145（标题和正文）无同根因；[#131](https://github.com/He-Jiahui/ZirconEngine/pull/131) 是 ECS 阶段顺序测试，不包含既有激活复用。`git log --branches --not e893… --` 对 `scene_system` owner 和该测试文件无未合提交输出；不是对其他会话未提交实现的接管，也不是全量远端查重。以既有 P1-10 下的这个子项追踪，不新增一套 canonical 生命周期计划。
+
+## 7. 三个正式脚本调度回归已冻结；第一次构建未获资源准入
+
+独立测试源码 `a7b178dbadd1d60eb9434c9c4176bdbf301c7b20`，`start_projection`，Git blob `9b53dccb8fcca9006443a308201c0f820eeaefbf`。完整首方 Client 插件目录及模块注册、定向激活脚本模块的真实依赖，注册系统在普通 `LevelSystem::tick` 的 Update 经 `VmPluginManager` 派发。最末层为经正规 API 注册的诊断后端，读取真实属性并给两个不同的非空回复；不冒充原生 ZrVM、全客户端或 UE 原测。
+
+| 计划的可判别用例 | 要验证的现象 |
+|---|---|
+| 普通属性写 | 第一帧 A/B 各开始并更新。只改 A 的颜色 0.25→0.75，下一帧 A 从 host 读到新值，而 B 仍只更新，不应再次启动。 |
+| 等值写与两个同样的 authored 槽 | 等值写不推进代次，两个槽各自启动一次，第二帧仍各更新一次。 |
+| 真正换 World | 相同数字实体号不足以冒充旧实例；新世界开始后需要自己的启动。 |
+
+第一次尝试明确选择 `zircon_plugin_zr_vm_language_runtime --no-default-features --test start_projection --no-run --profile test --locked --offline`，但物理内存一直低于本机并发准入线，**未启动 Cargo、未运行用例**。这是本机资源前置，不是脚本错误。后续从同三例、同源码重新验证，不提前改生产实现。
