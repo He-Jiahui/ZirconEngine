@@ -21,7 +21,7 @@ fn render_mipgen_offline_srgb_aware_average() {
             0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 0, 0, 255,
         ],
     );
-    let texture = apply_texture_import_settings(
+    let (texture, diagnostics) = apply_texture_import_settings(
         &import_context("mip_policy = \"generate_offline\""),
         texture,
     )
@@ -34,6 +34,10 @@ fn render_mipgen_offline_srgb_aware_average() {
     );
     assert_eq!(texture.rgba.len(), 20);
     assert_eq!(&texture.rgba[16..20], &[188, 188, 188, 255]);
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected import diagnostics: {diagnostics:?}"
+    );
 }
 
 #[test]
@@ -44,7 +48,7 @@ fn render_mipgen_decoded_images_default_to_an_offline_mip_chain() {
         2,
         vec![64, 128, 192, 255].repeat(8),
     );
-    let texture = apply_texture_import_settings(&import_context(""), texture)
+    let (texture, diagnostics) = apply_texture_import_settings(&import_context(""), texture)
         .expect("decoded image defaults should generate offline mips");
 
     assert_eq!(
@@ -53,6 +57,10 @@ fn render_mipgen_decoded_images_default_to_an_offline_mip_chain() {
     );
     assert_eq!(texture.texture_descriptor().mip_count, 3);
     assert_eq!(texture.rgba.len(), (8 + 2 + 1) * 4);
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected import diagnostics: {diagnostics:?}"
+    );
 }
 
 #[test]
@@ -69,7 +77,7 @@ fn render_mipgen_offline_kaiser_chain_complete() {
         256,
         pixels,
     );
-    let texture = apply_texture_import_settings(
+    let (texture, diagnostics) = apply_texture_import_settings(
         &import_context("mip_policy = \"generate_offline\""),
         texture,
     )
@@ -83,6 +91,10 @@ fn render_mipgen_offline_kaiser_chain_complete() {
 
     assert_eq!(texture.texture_descriptor().mip_count, 9);
     assert_eq!(texture.rgba.len(), expected_len);
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected import diagnostics: {diagnostics:?}"
+    );
 }
 
 #[test]
@@ -93,7 +105,7 @@ fn render_mipgen_runtime_prepares_full_chain_without_cpu_mips() {
         2,
         vec![32, 64, 96, 255].repeat(8),
     );
-    let texture = apply_texture_import_settings(
+    let (texture, diagnostics) = apply_texture_import_settings(
         &import_context("mip_policy = \"generate_runtime\""),
         texture,
     )
@@ -109,6 +121,10 @@ fn render_mipgen_runtime_prepares_full_chain_without_cpu_mips() {
         zircon_runtime::core::framework::render::TextureCompressionTarget::Uncompressed
     );
     assert_eq!(texture.rgba.len(), 4 * 2 * 4);
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected import diagnostics: {diagnostics:?}"
+    );
 }
 
 #[test]
@@ -121,7 +137,7 @@ fn render_mipgen_offline_normal_renormalized() {
             255, 128, 128, 255, 128, 255, 128, 255, 255, 128, 128, 255, 128, 255, 128, 255,
         ],
     );
-    let texture = apply_texture_import_settings(
+    let (texture, diagnostics) = apply_texture_import_settings(
         &import_context(
             "usage_hint = \"normal\"\nmip_policy = \"generate_offline\"\ncompression = \"uncompressed\"",
         ),
@@ -140,6 +156,10 @@ fn render_mipgen_offline_normal_renormalized() {
     assert_eq!(texture.texture_descriptor().mip_count, 2);
     assert!((length - 1.0).abs() <= 0.02, "normal length was {length}");
     assert_eq!(mip[3], 255);
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected import diagnostics: {diagnostics:?}"
+    );
 }
 
 #[test]
@@ -150,7 +170,7 @@ fn render_mipgen_offline_normal_mips_remain_unit_length() {
         4,
         vec![128, 128, 255, 255].repeat(16),
     );
-    let texture = apply_texture_import_settings(
+    let (texture, diagnostics) = apply_texture_import_settings(
         &import_context(
             "usage_hint = \"normal\"\nmip_policy = \"generate_offline\"\ncompression = \"uncompressed\"",
         ),
@@ -178,6 +198,10 @@ fn render_mipgen_offline_normal_mips_remain_unit_length() {
 
     assert_eq!(texture.texture_descriptor().mip_count, 3);
     assert_eq!(offset, texture.rgba.len());
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected import diagnostics: {diagnostics:?}"
+    );
 }
 
 #[test]
@@ -188,7 +212,7 @@ fn render_normal_import_transcodes_default_bc5_target() {
         4,
         vec![128, 255, 0, 255].repeat(16),
     );
-    let texture = apply_texture_import_settings(
+    let (texture, diagnostics) = apply_texture_import_settings(
         &import_context("usage_hint = \"normal\"\nmip_policy = \"generate_offline\""),
         texture,
     )
@@ -206,4 +230,8 @@ fn render_normal_import_transcodes_default_bc5_target() {
     assert_eq!(&bytes[..4], b"DDS ");
     assert_eq!(&bytes[84..88], b"ATI2");
     assert_eq!(bytes.len(), 128 + 3 * 16);
+    assert!(
+        diagnostics.is_empty(),
+        "unexpected import diagnostics: {diagnostics:?}"
+    );
 }
