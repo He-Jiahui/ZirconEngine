@@ -59,3 +59,19 @@ ZE 固定 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`。本项落实[原有 Inspe
 正式冷启动已到达真实场景、Details 轴框和 Winit 按键路径。两项都在第一次主动输入 12.3456 后读到 World X=0；尚未到保存、Undo 或无输入 Enter。这是更早的未写入现象，不是原题的精度/Redo RED。 两个独立物理项目中，真实已挂载的轴框均命中，焦点正确且有 commit action；Ctrl+A 后逐键录入，输入缓冲在按 Enter 前确为请求的字符串，预览阶段还没有修改 World。收到合成的 Winit Enter 后，第一例在主动编辑的初始断言看到 `Vec3(0,0,0)` 而不是 `Vec3(12.3456,0,0)`；另一例在同一步读到 X 位模式 `0` 而不是 `1095075732`。两项目都没有到达最终无输入确认、保存点或重做验证，不推断为何没写入、也不改生产。
 
 Windows x64/MSVC 1.94.1 / `zircon_editor --no-default-features --lib` / `test`，`details_enter_ --ignored --test-threads 1 --show-output`。实跑 0 过 2 败；编译回执 `34a2b2716d47673ab4fc78277d6b0c91c83a77780ac79a28869920780842ee75`，原生执行 `d79215438dc765a3be3eb10de3d3d9007fbba96f09b13270ebe459ae7c9deb8f`，stdout `759f2d7d415a90919fd28b73f2bf356807b606f64cc934f58a8c4b3caffba283`。它验证了 retained 输入路径，不代表桌面注入或 GPU 展示。下一步沿实际 commit binding、命令结果、选中对象的可编辑性和活动文档继续定位，不能把第一笔没提交的场景伪造成已经精确保存 `12.3456`。
+
+## 9. 已在可编辑相机复现，区分有输入与无输入 Enter
+
+在冷启动的真实默认工程中，保留原两例，另外选择模板自带的正常可编辑 Dynamic Camera；四例使用相同的命中、失焦/聚焦、合成 Winit 键入与事务观察。总计 **1 过 / 3 败**，不是三个原缺陷。
+
+| 用户动作 | World 和 Scene 文档证据 |
+|---|---|
+| 主动输入 X=12.3456、保存；输入 Y=6.25，再 Undo | 磁盘 Camera X 是 `12.345600128173828`，原生 X 位为 `0x41458794`；Undo 后 top/saved 均为事务 1，Y=2、can_redo=true、dirty=false。 |
+| 未作文字输入，只聚焦 X 并 Enter | 同一 Document、World generation 和 Camera，输入框显示 `12.35`。立即出现 `Inspector/TransformPositionXCommit:onSubmit`，原子日志记 `transaction_id=3`、changed=true；X 变 `0x4145999a`（12.35），Y/Z 不变，top/saved=3/1，can_redo=false、dirty=true。 |
+| 随后尝试真实 Redo | 命令因 when 条件禁用，未到原测试末尾的联合 assert；前后 World 位、历史与 journal 已直接记录。保留工程磁盘仍是前一保存的精确值，**不是磁盘已被破坏**。 |
+| 独立显式重新输入显示值 | Dynamic Camera 真正提交了 12.35，Undo/Redo 和保存均通过；修复不可禁止这一操作。 |
+| 原模板 Static Cube 两例 | 正确命中/输入，提交返回 `reflection edit failed`，无事务，World 保持 `(0,0,0)`；日志没展开内部错误类型，不把它们算作第二、第三次 #222 RED。 |
+
+动态相机实测：同一 Scene 已保存 X=12.3456 且可重做 Y=6.25，未输入就按 Enter 后 X 被改为 12.35，产生事务 #3，文档变脏，真正的 Redo 命令被禁用。显式重输同值对照通过；两个静态方块均是更早的反射写拒绝，不算复现。 下次先将 Static 改作诚实负对照，在可编辑例中于调用 Redo 前分别断言精度和历史，冻结这份回归后再做窄修复。
+
+Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile test`。实测输入 [同一测试版本](https://github.com/He-Jiahui/ZirconEngine/commit/3f18406a33d8277882bd87819ac86639f9419f39)，编译回执 `2fb9c4a44cd18ecf2f65578573124dcff6a7c0cf6d5a0dcaf8239ec8420c2e02`，实际执行 `c77aa2153f79d468963808141f11670cebe348c555c74d587ee3959013ab9884`，stdout `29d41d16fd45cf8315a569f4500aeb5c409ee8f41a7ae31f44352a6b39f382b7`。
