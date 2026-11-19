@@ -6,6 +6,7 @@ use crate::core::gateway::{DetachedEditorRuntimeGateway, GatewaySessionIdentity}
 use crate::core::play::WorldDomain;
 use crate::core::project::{ProjectAuthority, ProjectTemplateId};
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
+use zircon_runtime::core::framework::scene::Mobility;
 use zircon_runtime::scene::{components::NodeKind, NodeId, Scene};
 use zircon_runtime_interface::math::Transform;
 use zircon_runtime_interface::project::{
@@ -21,7 +22,17 @@ const REDO: &str = "workbench.history.redo";
 #[ignore = "requires an isolated physical Editor fixture and user profile"]
 fn details_enter_untouched_preserves_saved_precision_and_redo() {
     let _guard = lock_env();
-    let f = DetailsFixture::new();
+    exercise_untouched(DetailsFixture::new());
+}
+
+#[test]
+#[ignore = "requires an isolated physical Editor fixture and user profile"]
+fn details_enter_dynamic_camera_untouched_preserves_saved_precision_and_redo() {
+    let _guard = lock_env();
+    exercise_untouched(DetailsFixture::dynamic_camera());
+}
+
+fn exercise_untouched(f: DetailsFixture) {
     let (mut exact, _) = f.observe();
     exact.translation.x = 12.3456;
     f.type_axis(X, "12.3456");
@@ -70,7 +81,17 @@ fn details_enter_untouched_preserves_saved_precision_and_redo() {
 #[ignore = "requires an isolated physical Editor fixture and user profile"]
 fn details_enter_explicitly_retyping_displayed_value_is_a_real_edit() {
     let _guard = lock_env();
-    let f = DetailsFixture::new();
+    exercise_explicit_retype(DetailsFixture::new());
+}
+
+#[test]
+#[ignore = "requires an isolated physical Editor fixture and user profile"]
+fn details_enter_dynamic_camera_explicitly_retyping_displayed_value_is_a_real_edit() {
+    let _guard = lock_env();
+    exercise_explicit_retype(DetailsFixture::dynamic_camera());
+}
+
+fn exercise_explicit_retype(f: DetailsFixture) {
     f.type_axis(Y, "2.5436");
     f.type_axis(X, "12.3456");
     let (precise, before) = f.observe();
@@ -99,13 +120,23 @@ fn details_enter_explicitly_retyping_displayed_value_is_a_real_edit() {
 struct DetailsFixture {
     harness: ColdHostHarness,
     location: PathBuf,
-    cube: NodeId,
+    node: NodeId,
     history: HistoryContextId,
     world: GatewaySessionIdentity,
 }
 
 impl DetailsFixture {
     fn new() -> Self {
+        // RenderableEmpty's authored Cube is a project OBJ, not builtin://cube.
+        Self::for_node("Cube", NodeKind::Mesh, None)
+    }
+
+    fn dynamic_camera() -> Self {
+        // The normal editable control is another authored entity in the same template.
+        Self::for_node("Camera", NodeKind::Camera, Some(Mobility::Dynamic))
+    }
+
+    fn for_node(name: &str, kind: NodeKind, mobility: Option<Mobility>) -> Self {
         let base = fs::canonicalize(
             std::env::var_os("ZIRCON_TEST_OUTPUT_ROOT").expect("an owned fixture root"),
         )
@@ -126,7 +157,7 @@ impl DetailsFixture {
         assert_eq!(fs::canonicalize(location.parent().unwrap()).unwrap(), base);
         fs::create_dir(&location).expect("fresh, owned fixture directory");
         let harness = ColdHostHarness::new(&location);
-        let (cube, history, world) = {
+        let (node, history, world) = {
             let mut host = harness.host.borrow_mut();
             let manager = host
                 .editor_manager
@@ -151,20 +182,22 @@ impl DetailsFixture {
             );
             let history = HistoryContextId::Document(scene.document());
             assert_eq!(host.runtime.active_scene_history_context(), Some(history));
-            let cube = {
+            let node = {
                 let shell = host.runtime.shell().lock();
                 shell.state.world.expect_with_world(|scene| {
                     let nodes = scene.nodes();
-                    let mut cubes = nodes.iter().filter(|node| node.name == "Cube");
-                    let cube = cubes.next().expect("setup: physical template's Cube");
-                    assert!(cubes.next().is_none(), "setup: a unique authored Cube");
-                    // RenderableEmpty references a project OBJ, not builtin://cube.
-                    assert_eq!(cube.kind, NodeKind::Mesh);
-                    cube.id
+                    let mut matches = nodes.iter().filter(|node| node.name == name);
+                    let node = matches.next().expect("setup: authored template entity");
+                    assert!(matches.next().is_none(), "setup: unique authored {name}");
+                    assert_eq!(node.kind, kind);
+                    if let Some(expected) = mobility {
+                        assert_eq!(scene.mobility(node.id), Some(expected));
+                    }
+                    node.id
                 })
             };
-            let effects = callback_dispatch::dispatch_hierarchy_selection(&host.runtime, cube)
-                .expect("select the real Cube in the authoring world");
+            let effects = callback_dispatch::dispatch_hierarchy_selection(&host.runtime, node)
+                .expect("select the authored template entity in the authoring world");
             host.apply_dispatch_effects(effects);
             host.sync_shell_size();
             host.refresh_ui();
@@ -176,12 +209,12 @@ impl DetailsFixture {
                 .active_activity_window_template_document_is(unreal)
                 .unwrap());
             let world = host.runtime.context().authoring_gateway().identity();
-            (cube, history, world)
+            (node, history, world)
         };
         Self {
             harness,
             location,
-            cube,
+            node,
             history,
             world,
         }
@@ -195,11 +228,11 @@ impl DetailsFixture {
         assert_eq!(state.context.authoring_gateway().identity(), self.world);
         let selection = state.viewport_controller.selection();
         assert_eq!(selection.active_domain(), WorldDomain::Edit);
-        assert_eq!(selection.active_primary(), Some(self.cube));
+        assert_eq!(selection.active_primary(), Some(self.node));
         assert_eq!(selection.active_items().len(), 1);
         let transform = state
             .world
-            .expect_with_world(|scene| scene.find_node(self.cube).unwrap().transform);
+            .expect_with_world(|scene| scene.find_node(self.node).unwrap().transform);
         let history = state.transactions().history_status(self.history).unwrap();
         (transform, history)
     }
@@ -214,7 +247,7 @@ impl DetailsFixture {
         // Decode independently for observation; do not install or reopen another authoring world.
         let loaded = Scene::load_scene_document(&project, uri).unwrap();
         let (scene, _) = loaded.into_parts();
-        let x = scene.find_node(self.cube).unwrap().transform.translation.x;
+        let x = scene.find_node(self.node).unwrap().transform.translation.x;
         (x, bytes)
     }
 
@@ -255,9 +288,76 @@ impl DetailsFixture {
     }
 
     fn enter(&self) {
+        let since = self.trace_enter("pre-key", None);
         let enter = Key::Named(NamedKey::Enter);
         self.key(enter, KeyCode::Enter, None, ModifiersState::empty());
+        self.trace_enter("post-key", Some(since));
         self.harness.host.borrow_mut().refresh_ui();
+    }
+
+    // Read-only. Take the post-key sample before the test's explicit refresh.
+    fn trace_enter(&self, phase: &str, since: Option<u64>) -> u64 {
+        let focus = host_context(&self.harness.root_ui).get_text_input_focus();
+        let host = self.harness.host.borrow();
+        let map = |id: &str| host.workbench_window_bridge.binding_id_for_action_id(id);
+        let unreal = crate::ui::template_runtime::builtin::UNREAL_EDITOR_WINDOW_DOCUMENT_ID;
+        let active_template = host.active_activity_window_template_document_is(unreal);
+        let document = host
+            .editor_manager
+            .enter()
+            .ok()
+            .and_then(|manager| manager.active_scene_identity_for_session());
+        let document = document.as_ref().map(|scene| {
+            (
+                scene.document(),
+                scene.scene_uri(),
+                scene.source_revision().is_some(),
+            )
+        });
+        let status = host.runtime.status_line();
+        let journal = host.runtime.journal();
+        let latest = journal.records().last().map_or(0, |record| record.sequence.0);
+        eprintln!(
+            "R21_DETAILS_ENTER_FOCUS {phase} control={:?} kind={:?} value={:?} action={:?}->{:?} edit={:?}->{:?} commit={:?}->{:?} unreal={active_template:?}",
+            focus.control_id,
+            focus.dispatch_kind,
+            focus.value_text,
+            focus.action_id,
+            map(focus.action_id.as_str()),
+            focus.edit_action_id,
+            map(focus.edit_action_id.as_str()),
+            focus.commit_action_id,
+            map(focus.commit_action_id.as_str()),
+        );
+        let shell = host.runtime.shell().lock();
+        let state = &shell.state;
+        let selection = state.viewport_controller.selection();
+        let selected = selection.active_primary();
+        let selected_node = state.world.with_world(|scene| {
+            selected.and_then(|id| {
+                scene.find_node(id).map(|node| {
+                    let translation = node.transform.translation;
+                    (node.name, node.kind, scene.mobility(id), translation.to_array().map(f32::to_bits))
+                })
+            })
+        });
+        eprintln!(
+            "R21_DETAILS_ENTER_STATE {phase} doc={document:?} active_history={:?} pinned_history={:?} gateway={:?} pinned_gateway={:?} domain={:?} selected={selected:?} pinned_node={:?} node_name_kind_mobility_xyz_bits={selected_node:?} history={:?} status={status:?}",
+            state.active_scene_history_context(),
+            self.history,
+            state.context.authoring_gateway().identity(),
+            self.world,
+            selection.active_domain(),
+            self.node,
+            state.transactions().history_status(self.history),
+        );
+        if let Some(since) = since {
+            eprintln!("R21_DETAILS_ENTER_JOURNAL after_seq={since} newest={latest}");
+            for record in journal.records().iter().filter(|record| record.sequence.0 > since) {
+                eprintln!("R21_DETAILS_ENTER_RECORD {record:?}");
+            }
+        }
+        latest
     }
 
     fn type_axis(&self, control: &str, value: &str) {
