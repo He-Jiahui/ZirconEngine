@@ -23,8 +23,7 @@ use super::parameter_apply::{
     apply_clip_player_updates, apply_sequence_player_updates, scan_animation_scene,
 };
 use super::pose_apply::apply_pose_transforms_to_scene_nodes;
-use super::requests::playback_requires_continuous_frame;
-use super::sequences::{apply_loaded_sequences, LoadedSequenceSample};
+use super::sequences::{apply_loaded_sequences, prepare_sequences};
 use super::simulated_pose_blend::blend_simulated_pose_feed;
 use super::state_machine_layers::apply_state_machine_layers;
 use super::state_machine_step::resolve_state_machine_pose_requests_with_demand;
@@ -64,6 +63,9 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
             }
             let pipeline = world.resource_mut::<AnimationEvaluationPipeline>();
             let _ = pipeline.begin_evaluation_frame(replacement_epoch);
+            if !playback_settings.property_tracks {
+                pipeline.sequence_cache.clear();
+            }
             (
                 pipeline.take_projection(),
                 pipeline.clip_event_admission_cursor(),
@@ -126,10 +128,7 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
         if !apply_clip_player_updates(level, replacement_epoch, clip_player_updates) {
             return;
         }
-        retain_non_deferred_entity_updates(
-            &mut sequence_player_updates,
-            &admission.deferred_entities,
-        );
+        sequence_player_updates.retain(|row| !admission.deferred_entities.contains(&row.0));
         if !apply_sequence_player_updates(level, replacement_epoch, sequence_player_updates) {
             return;
         }
@@ -162,33 +161,12 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
 
     let mut requires_continuous_frame = scan.event_only_clip_requires_continuous_frame;
     let mut pending_clip_event_samples = scan.clip_event_samples;
-    let loaded_sequences = scan
-        .sequences
-        .into_iter()
-        .filter_map(|pending| {
-            asset_manager
-                .load_animation_sequence_asset(pending.sequence_id)
-                .ok()
-                .map(|sequence| {
-                    requires_continuous_frame |= playback_requires_continuous_frame(
-                        pending.playing,
-                        pending.playback_speed,
-                        pending.time_seconds,
-                        sequence.duration_seconds,
-                        pending.looping,
-                    );
-                    LoadedSequenceSample {
-                        entity: pending.entity,
-                        asset_id: pending.sequence_id,
-                        asset_revision: pending.asset_revision,
-                        sequence,
-                        time_seconds: pending.time_seconds,
-                        looping: pending.looping,
-                    }
-                })
-        })
-        .collect::<Vec<_>>();
-    let mut loaded_sequences = loaded_sequences;
+    let pending_sequences = scan.sequences;
+    let loaded_sequences = prepare_sequences(
+        asset_manager,
+        &pending_sequences,
+        &mut requires_continuous_frame,
+    );
     let Some(had_queued_clip_events) = level
         .animation_clip_event_backlog_len(replacement_epoch)
         .map(|pending| pending > 0)
@@ -316,8 +294,7 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
         &admission.deferred_entities,
     );
     retain_non_deferred_entity_updates(&mut clip_player_updates, &admission.deferred_entities);
-    retain_non_deferred_entity_updates(&mut sequence_player_updates, &admission.deferred_entities);
-    loaded_sequences.retain(|sample| !admission.deferred_entities.contains(&sample.entity));
+    sequence_player_updates.retain(|row| !admission.deferred_entities.contains(&row.0));
     active_state_updates.retain(|update| !admission.deferred_entities.contains(&update.entity));
     layer_diagnostics
         .retain(|diagnostic| !admission.deferred_entities.contains(&diagnostic.entity));
@@ -328,8 +305,15 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
                 .drain_clip_evaluation_diagnostics_excluding(&admission.deferred_entities)
         })
         .unwrap_or_default();
-    if !loaded_sequences.is_empty()
-        && !apply_loaded_sequences(level, replacement_epoch, &loaded_sequences)
+    if !pending_sequences.is_empty()
+        && !apply_loaded_sequences(
+            level,
+            replacement_epoch,
+            &asset_manager.resource_manager(),
+            &pending_sequences,
+            &loaded_sequences,
+            &admission.deferred_entities,
+        )
     {
         return;
     }

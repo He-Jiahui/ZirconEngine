@@ -218,21 +218,13 @@ fn animation_package_manifest_declares_dist_contract() {
 }
 
 #[test]
-fn property_sequence_pipeline_caches_compiled_projection_by_asset_revision() {
-    let pipeline_source = include_str!("../evaluation/animation_evaluation_pipeline.rs");
-    let request_source = include_str!("../evaluation/pipeline/requests.rs");
-    let scan_source = include_str!("../evaluation/pipeline/parameter_apply.rs");
-    let tick_source = include_str!("../evaluation/pipeline/tick.rs");
-    let sequence_source = include_str!("../evaluation/pipeline/sequences.rs");
-
-    assert!(pipeline_source.contains("sequence_cache"));
-    assert!(request_source.contains("asset_revision: Option<u64>"));
-    assert!(scan_source.contains("asset_revision: revision.asset_revision"));
-    assert!(tick_source.contains("asset_revision: pending.asset_revision"));
-    assert!(sequence_source.contains("struct CachedCompiledSequence"));
-    assert!(sequence_source.contains("compile_sequence_for_world"));
-    assert!(sequence_source.contains("apply_compiled_sequence_to_world"));
-    assert!(sequence_source.contains("compiled.is_current_for(world)"));
-    assert!(sequence_source.contains("sample.asset_revision.is_none()"));
-    assert!(!sequence_source.contains("apply_sequence_to_world"));
+fn property_sequence_pipeline_has_no_raw_sampling_fallback() {
+    // The old string-field cache assertions are covered using real active keys,
+    // typed payloads and World bindings in the adjacent sequence pipeline tests.
+    for source in [
+        include_str!("../evaluation/pipeline/tick.rs"),
+        include_str!("../evaluation/pipeline/sequences.rs"),
+    ] {
+        assert!(!source.contains("apply_sequence_to_world"));
+    }
 }

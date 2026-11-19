@@ -7,6 +7,8 @@ use zircon_runtime::core::framework::animation::{
 use zircon_runtime::core::math::Real;
 use zircon_runtime::scene::{AnimationStateTransitionRuntime, EntityId};
 
+use super::sequences::{SequenceObservation, SequenceOwner, SequenceRetry};
+
 #[derive(Clone, Debug, Default)]
 pub(super) struct AnimationSceneScan {
     pub(super) sequences: Vec<PendingSequenceSample>,
@@ -26,7 +28,9 @@ pub(super) struct AnimationSceneScan {
 pub(super) struct PendingSequenceSample {
     pub(super) entity: EntityId,
     pub(super) sequence_id: AssetId,
-    pub(super) asset_revision: Option<u64>,
+    pub(super) source: SequenceObservation,
+    pub(super) owner: SequenceOwner,
+    pub(super) retry: Option<SequenceRetry>,
     pub(super) playing: bool,
     pub(super) playback_speed: Real,
     pub(super) time_seconds: Real,
