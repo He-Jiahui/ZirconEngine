@@ -71,3 +71,18 @@ Windows x64 MSVC，`zr_rhi_wgpu --no-default-features --lib --profile test --loc
 | `native_resize_retired_frame` | — | 运行条件取决于前一项正常回收对照通过 |
 
 该观察点在实际 `enumerate_adapters` 和逐候选 `get_capabilities` 调用两侧。Windows x64/MSVC，`zr_rhi_wgpu --no-default-features --lib`，`test` profile。源码 `3a4d2d6c18e85b394145e5769113ee723670bc0d`，EXE `d7875e1a8795bd83984c49a8b08c5d9ace64035e2498a816182329a917cb512b`，对照执行回执 `04cdd7509df0248d56f827d3942cfd0a68521bb0b728c95c0363ca6a602785e5`。实际选择日志依次为 `enum_begin`。
+
+## 10. 真实桌面上的正常重配与旧引用复现
+
+在同一 RTX 3060 Laptop 上，正常回收旧帧后，192×128 的窗口成功调整到 256×144 并再次呈现。保留已完成帧的旧引用时，WGPU 报 `Surface::configure: Invalid surface`，ZE 同时返回 `Ok(Renderable)`。
+
+Windows DXGI 在 0.047 秒枚举出三项。精简环境的独立系统进程在第一项 RTX 3060 上进入 `D3D12CreateDevice`，到 45 秒截点仍在调用中。恢复桌面用户及驱动所需的普通 Windows 环境变量后，三个条目都成功创建并释放设备。两轮系统探测的差异定位到环境变量集合，单个变量的归因仍待测量。
+
+随后运行同一 Windows libtest EXE，设备为 Dx12、Discrete，vendor `10de`、device `2560`，驱动 `32.0.16.1714`。对照和见证分别在自己的进程中执行，保持原 60 秒上限、测试体和窗口尺寸。见证先收到已完成 GPU 提交的 `Completed` 票据，观察到 98,304 字节的旧资源进入退休队列，再调用 `reconfigure_surface`。
+
+| 已编译用例 | 实际结果 |
+|---|---|
+| `native_resize_drained_control` | 首帧、正常资源回收、非零尺寸调整及下一帧均通过 |
+| `native_resize_retired_frame` | `Surface::configure` 报 Validation / Invalid surface，应用侧 RHI 返回新尺寸 Renderable |
+
+实跑源码 `3a4d2d6c18e85b394145e5769113ee723670bc0d`，EXE `d7875e1a8795bd83984c49a8b08c5d9ace64035e2498a816182329a917cb512b`。当前草稿 `d38adbfe42cbfcee887e0dea4f08e3060201f3f1` 在该源码上追加了观察记录。对照回执 `e02bc8d4cb3f24d5a054dff3dd37a1a06bd6159533542c7027b9c8b4b0663a33`，见证回执 `ad3e88cf58c4d1320198fe4bcdf564592e1e97c732d89bb13a5108dca13fc162`。
