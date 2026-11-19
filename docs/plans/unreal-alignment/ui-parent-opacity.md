@@ -47,3 +47,28 @@ UE 的 style 依靠进程内 widget 递归传参；ZE 要在 `zircon_runtime::ui
 | [SWidget.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/Widgets/SWidget.cpp>) | `AEFD9093803CF15CDA65C8053417CC674B6496735E7C40862F5E89CEDDDC2318` |
 | [SPanel.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/Widgets/SPanel.cpp>) | `E33E3BE3D652632985F9EE7A0965E0BC57BC1556E3682EAEB1D8E452D8FC57B6` |
 | [WidgetStyle.h](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Styling/WidgetStyle.h>) | `5152CF108765E65ABE5C9E9F1F26B29FA9DCAC8F9486EFA2F4F0921E81932708` |
+
+## 7. 已发布 UI 帧中的祖先透明度
+
+父和子透明度各为 0.5 时，子节点实际绘制透明度为 0.5，预期 0.25。嵌套和兄弟节点的四项实测值见表。六例实测 1 过、5 败。
+
+| 公共绘制命令 | 实测 | 预期 |
+|---|---|---|
+| parent, direct child | `[0.5, 0.5]` | `[0.5, 0.25]` |
+| parent, middle, leaf, following sibling | `[0.5, 0.5, 0.8, 0.625]` | `[0.5, 0.25, 0.2, 0.625]` |
+| before parent-only update | `[1.0, 1.0, 0.8, 0.625]` | `[1.0, 1.0, 0.8, 0.625]` |
+| old frame remains immutable | `[1.0, 1.0, 0.8, 0.625]` | `[1.0, 1.0, 0.8, 0.625]` |
+| new parent/middle/leaf and unaffected sibling | `[0.5, 1.0, 0.8, 0.625]` | `[0.5, 0.5, 0.4, 0.625]` |
+
+补核了 UE 已有的 `Slate.STextBlockTest`。`Engine/Plugins/Tests/WidgetAutomationTests/Source/WidgetAutomationTests/Private/STextBlockTest.cpp` 第 14–84 行设置文本自身的 tint 为 `(0.5, 0.4, 0.3, 0.9)` 并触发重绘，文件 SHA-256 为 `28e2e4f29c398f8ca4fd62b6675c07d820ecd6825435ed943e5a306e3e4b5bf2`。其随库基线给出的来参是白色，最终文字保留 alpha 0.9。ZE 的祖先累乘和兄弟恢复用例取自 Slate 的 `Paint` 调用及 `BlendOpacity` 源码。
+
+| 用例 | 实测 |
+|---|---|
+| `parent_opacity_parent_only_update_republishes_descendant_paint` | 失败 |
+| `parent_opacity_preserves_style_alpha_and_fades_each_paint_once` | 失败 |
+| `parent_opacity_single_ancestor_multiplies_local_alpha_once` | 失败 |
+| `parent_opacity_two_ancestors_restore_the_following_sibling` | 失败 |
+| `parent_opacity_unset_and_explicit_one_are_identity` | 通过 |
+| `parent_opacity_zero_removes_visual_contribution_but_not_picking` | 失败 |
+
+Windows x64/MSVC，`zircon_runtime` 的 `ui_parent_opacity` 集成测试。默认特性关闭，额外特性为 native-host, ui。`test` profile 以 `parent_opacity_` 筛选，实际 1 过、5 败。源码 `44cd2e885fc575d375378419b1b5f8e1a1a13973`，测试文件 Git blob `af2f8ac58b6ff52dc195aedae1a04753bed3036c`，EXE `1080ed2b4874559f2b6d89bcb8d2c29d4c2be1050063518151c8df4ea221093b`，执行回执 `57bb5e3f393c20e7a94642420b257198c7b0a449d76059b27c7e2d9539581e47`。
