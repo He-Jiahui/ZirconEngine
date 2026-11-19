@@ -61,3 +61,9 @@ Engine/Plugins/EnhancedInput/Source/EnhancedInputTestSuite/Private/InputTestFram
 提交 `ba32996f1fb67131c2632afb72ba3de19b68a4c5` 在本草稿上独立编译生产 `Listeners`、输入队列和 `DefaultInputManager`，用 Chrome 157 检查 21 个输入帧。普通按放与窗口失焦的对照达到预期。转移到兄弟按钮、两个画布之间来回切换以及同帧重新聚焦等场景共有 **8 帧失败、13 帧通过**。[固定按键与焦点场景](https://github.com/He-Jiahui/ZirconEngine/blob/ba32996f1fb67131c2632afb72ba3de19b68a4c5/tools/validation/browser/web-focus-fixture.html#L64) · [游戏状态观察](https://github.com/He-Jiahui/ZirconEngine/blob/ba32996f1fb67131c2632afb72ba3de19b68a4c5/zircon_app/examples/web_focus_fixture.rs#L61)
 
 浏览器输入驱动还向画布发送 `a` 按下，实际焦点移动到同页按钮后向按钮发送 `a` 松开。两个键盘事件和画布 `blur` 的 `isTrusted` 均为 `true`。游戏读回键码 65 和逻辑键 `a` 的 `held` 在失焦帧、松开帧和空帧均为 `true`，对应的 `just_released` 均为 `false`。同一实例回焦再按 `a` 时也缺少新的按下边沿。
+
+## 8. 画布切焦后的状态
+
+提交 `23e2c2a5def64da0f62153127f05ca391ae2ed94` 让原画布的键盘焦点变更进入该画布自己的输入队列，帧提交保留按下、失焦、再次按下的先后顺序。原窗口级失焦仍使键盘和鼠标一起释放。[画布监听](https://github.com/He-Jiahui/ZirconEngine/blob/23e2c2a5def64da0f62153127f05ca391ae2ed94/zircon_app/src/web/listeners.rs#L138) · [逐帧输入提交](https://github.com/He-Jiahui/ZirconEngine/blob/23e2c2a5def64da0f62153127f05ca391ae2ed94/zircon_runtime/src/browser/input.rs#L34)
+
+同一份 21 帧 Chrome 157 用例由 13 帧达到预期提升为 **21/21**。原画布失焦当帧报告 `KeyCode(65)` 和 `Key("a")` 各有一次释放边沿，鼠标左键继续按住，光标与 IME 请求计数均为零。按钮随后收到了 `keyup`，回到原画布的下一次 `keydown` 产生新的按下边沿。双画布互换焦点、同帧重新按下、普通按放和原窗口全量失焦均达到预期。[固定浏览器用例](https://github.com/He-Jiahui/ZirconEngine/blob/23e2c2a5def64da0f62153127f05ca391ae2ed94/tools/validation/browser/web-focus-fixture.html#L64) · [游戏状态观察](https://github.com/He-Jiahui/ZirconEngine/blob/23e2c2a5def64da0f62153127f05ca391ae2ed94/zircon_app/examples/web_focus_fixture.rs#L61)
