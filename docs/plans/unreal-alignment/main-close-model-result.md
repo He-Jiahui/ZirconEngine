@@ -61,3 +61,24 @@ ZE 固定 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`。初次提交仅调查、�
 **导入例未到行为断言。** 状态行是 `Project opened: CloseModel`，其中 `project_generation=27 assets=7 ready=7 failed=0 registry_diagnostics=1`。这并不等于 Editor 已能按 URI 看见启动 Scene：夹具在「Editor 能取得 Scene 行、且没有待处理的 Scene reload」的联合门前用尽预算。这个结果本身不区分哪个谓词未满足，不能把所有原因归给 [#202](https://github.com/He-Jiahui/ZirconEngine/pull/202)。已留项目仍有 Ready 会话记录，注册表未出现目标 `close-triangle.obj`；没有提交测试 OBJ、也没有为此例调用原生关窗。不能宣称永久死锁、菜单不可用，或模型结果已由关闭所有者接收。
 
 Windows x64/MSVC 1.94.1；`zircon_editor --no-default-features --lib --profile test`，随后实际运行 `model_close_owner_ --ignored --test-threads 1 --show-output`。**1 过 / 1 败**；编译 `401262d49e19327f44b41dcb6072dbb8c16bc91a3f85de7be6bbee9dde192972`，执行 `f7db1c8f92e893d398a4845790ca9a7fc828652498102a4a0a56f813db626cc1`，stdout `ef241790d7fd553f963adc824308ccb6e9676203b6bac2b525a311b37ba1ebdf`。下一步分开采样真实注册目录和 reload，保留 watcher、权限、会话身份、工作线程及关闭断言；未取得同一终态任务的 READY/review 证据前不改生产。
+
+## 9. 分开观察目录与待重载：重开已有项目仍没有首个已注册目录
+
+无导入冷项目正常退出。针对导入的两次实跑均是**提交测试 OBJ 前**的前置失败：不是 worker 失败，也不是关闭所有者卡死。第二个工程先真实创建并走完无导入关闭，再以新 Core 的正式 CLI 请求重开**同一根目录**，验证旧/新 operation、Runtime activation 不同，源场景及 UUID 保持不变。
+
+| 观察 | 新建 | 真正重开 |
+|---|---:|---:|
+| Runtime 的外部观察 token（开始→超时） | 56→113 | 55→109 |
+| 注册 Editor 的 revision / epoch / rows，两次端点 | 0 / 0 / 0 | 0 / 0 / 0 |
+| `pending_active_scene_reload` 开始→超时 | false→true | false→false |
+
+两工程对应 Runtime Scene 有真实 UUID、activation 与 project root 在各自观测窗口匹配；Editor 按 locator 无索引、无 row，按资产身份返回 `Unknown(NoActiveProject)`。两次保留的项目锁都是 Ready，注册表没有测试 OBJ。外采 token 的旧代均已 superseded，不能断言哪个 watcher 写手造成了哪次内部同步过期，也不把两个端点当作全程。
+
+另将两个实际 `editor_project_open result=completed` 的未改写标记分别交给现有 MVP 日志消费者：它们均显示 `7 资产 / 7 Ready / 0 failed / 1 diagnostic` 但 Editor 是 `0/0/0`，均被正确拒绝为未初始化。这个标记是 [#201](https://github.com/He-Jiahui/ZirconEngine/pull/201) 在未叠入其修复的基线上的真实生产者例证，不是 MVP 错误放行；目录本身由 [#202](https://github.com/He-Jiahui/ZirconEngine/pull/202) 跟进。本 PR 未修改生产，后续不再原样重试同一前置。
+
+Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile test`，同一[受测提交](https://github.com/He-Jiahui/ZirconEngine/commit/141944ac3a68025c853c5a065ad0fec282064943)和编译回执 `5a277dcfba9014a6418e9b2aeac2968d07410e1a2f6222201fa0cffdced2dc63`。各次均显式 `--ignored --test-threads 1 --show-output`，独立项目和用户配置。
+
+| 过滤器 | 实际运行 | 执行回执 SHA-256 |
+|---|---|---|
+| `model_close_owner_` | 1 过 / 1 败 | `6a108d6eb04ba4c796b3f86839468c588e54cbf8af6ef65a92f43ae59a5dc8f5` |
+| `model_close_existing_session_` | 0 过 / 1 败 | `50f712a0a35cd0a59fb2604262479ca1fee922166d87bc755b5bf7fae44222e0` |
