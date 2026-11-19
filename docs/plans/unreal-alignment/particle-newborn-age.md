@@ -184,3 +184,20 @@ continuous 的精确出生 phase 及其旧 lifetime fixture 的取舍仍须先�
 [ue-vector-test]: <E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/Niagara/Private/IspcTestNiagaraDataInterfaceVectorField.cpp#L14-L161>
 [ue-inheritance-test]: <E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/NiagaraEditor/Private/Tests/NiagaraEmitterInheritanceTests.cpp#L188-L206>
 [ue-stack-test]: <E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Plugins/FX/Niagara/Source/NiagaraEditor/Private/Tests/NiagaraStackViewModelTests.cpp#L31-L81>
+
+## 7. 定时 burst 在首次 sprite 提取时的年龄与位置
+
+作者资源的 burst 在 0.375 秒发生。0.5 秒首帧输出 x=4、年龄 0.5 秒，预期分别为 1、0.125 秒。寿命 0.25 秒的粒子在第一次提取时就已消失。六例实测 1 过、5 败。 首帧的存活数来自 `ParticlesManager::snapshot`，位置来自渲染准备使用的 sprite，年龄来自作者指定的线性尺寸曲线。起点发射的对照按完整步长推进。 单步与分步的实际 `(x, age)` 分别为 `[[(4.0, 0.5)], [(2.0, 0.25)]]`。
+
+补核了 Niagara 的原有自动化。`Engine/Plugins/FX/Niagara/Source/NiagaraEditor/Private/Tests/NiagaraEmitterInheritanceTests.cpp` 第 127–591 行把 `DiffSameEmitters` 的注册包在块注释内，文件 SHA-256 为 `d2e73a265b0049e3a279bdc1df4701d1fa972c67bb0d64fadf5f58de41bfe6f9`。实际注册的 `Ispc.Graphics.NiagaraDataInterfaceVectorField` 比较向量场采样。出生用例依据真实发射端 `NiagaraDataInterfaceArraySpawnBurst.cpp` 第 233–288 行计算每批的相对出生时间，文件 SHA-256 为 `736f40752d84df51a0a7a107e38d1c4d9c44e00ab893b6fa4f2e6b36a1687027`。ZE 的帧末用例采用自己已有的右端点和游标约定。
+
+| 用例 | 实测 |
+|---|---|
+| `particle_birth_at_system_start_receives_the_first_positive_step` | 通过 |
+| `particle_birth_matches_single_step_when_split_around_the_burst` | 失败 |
+| `particle_birth_mid_frame_only_advances_for_its_remaining_time` | 失败 |
+| `particle_birth_on_positive_step_end_is_visible_once_at_age_zero` | 失败 |
+| `particle_birth_preserves_old_step_and_two_newborn_times_in_one_emitter` | 失败 |
+| `particle_birth_short_lifetime_reaches_render_extract_before_expiring` | 失败 |
+
+Windows x64/MSVC，`zircon_plugin_particles_editor` 的 `particle_birth` 集成测试。默认特性关闭，额外特性为 空。`test` profile 以 `particle_birth_` 筛选，实际 1 过、5 败。源码 `f8ec02b246b162970d8014c1e9c85aee4b1654a4`，测试文件 Git blob `069d2dfeebb1d82748bba4dbede09bb76e70098f`，EXE `9bfb277698d125ffe0fea461d67cc043225902fe5935b3c8764b55f7e26c84b2`，执行回执 `d3dc5d02432a45398a83c5c4cb7da4c9bf341de27ea61035f041f23a920253e1`。
