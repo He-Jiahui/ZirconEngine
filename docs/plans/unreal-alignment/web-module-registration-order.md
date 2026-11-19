@@ -90,3 +90,9 @@ Gauntlet/Framework/Gauntlet.Utils.cs:725–751（按全名发现）。Gauntlet/U
 | `correct` | `Initialization("AssetModule.Manager.ProjectAssetManager", "browser bundle has no startup scene")` | `Initialization("AssetModule.Manager.ProjectAssetManager", "browser bundle has no startup scene")` |
 
 Web 宿主使用同一 Core TaskGraph 取得并验证目录，登记全部模块后执行一次统一激活。Core 的晚注册保护继续由既有原测覆盖。[启动顺序](https://github.com/He-Jiahui/ZirconEngine/blob/50ce6ca18adaf778c48e1c803e79ed18b7d9ee42/zircon_runtime/src/browser/open.rs#L13)
+
+## 9. 同一预烘焙场景的加载位置
+
+在公开提交 `ca47f2c35066492f22a4445308c35b2a02e13395` 对应的启动修复与 [WebGPU 编译修复 #239](https://github.com/He-Jiahui/ZirconEngine/pull/239) 上，Chrome 157 读取同一份预烘焙目录。修复前仅请求目录，`WebEngine.load` 返回 `ModuleGraphFrozen`。修复后请求了目录、8 个内容寻址的资产文件和 1 个场景文件，随后返回 `Source(ProjectAssetUnavailable)`，截至该次加载结束呈现 0 帧。两次目录 SHA-256 均为 `6a43dd44f07e58dd360dfee4608cedf7a9c03aa3a85e695692d1215012bb609b`。
+
+目录包含 1 个 UI 布局根。该次输入中记录的资产种类为 Mesh、AnimationSkeleton、Model、Shader、Material、AnimationClip、UiLayout 和 Texture。检查项目字体需求、目录登记和已驻留资产的对应关系是下一项运行时调查。
