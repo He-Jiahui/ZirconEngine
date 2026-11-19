@@ -61,3 +61,14 @@ Engine/Plugins/Tests/RHITests/Source/RHITests/Private/RHITextureTests.cpp:18–6
 ## 7. 独立草稿的产品回归
 
 在 `d8d6d88120568dc1ae0b9dfe27f82c88e40e7fae` 执行 `cargo build -p zircon_app --no-default-features --features target-web --lib --target wasm32-unknown-unknown --profile dev --locked --offline --jobs 1`。Windows 上的 Rust 1.94.1 编译器以 101 退出，定位到 `zr_rhi_wgpu` 的画布交换链格式赋值。Cargo JSON 的唯一错误代码为 `E0594`。完整产品构建停在生成 Wasm 库之前。[赋值位置](https://github.com/He-Jiahui/ZirconEngine/blob/d8d6d88120568dc1ae0b9dfe27f82c88e40e7fae/zircon_runtime/crates/zr_rhi_wgpu/src/production/surface_bootstrap.rs#L107)
+
+## 8. 完整 Web 产品库构建结果
+
+在 `7ee0081901559eeb5d3cedfb6a5ce2e00d71ccdf` 上，相同包、目标、`target-web` 配置和依赖锁文件的构建退出码由 101 变为 0。Wasm 分支将局部描述符绑定为可写，随后仍按原有顺序选择适配器报告的画布格式。[格式选择](https://github.com/He-Jiahui/ZirconEngine/blob/7ee0081901559eeb5d3cedfb6a5ce2e00d71ccdf/zircon_runtime/crates/zr_rhi_wgpu/src/production/surface_bootstrap.rs#L73)
+
+Rust 1.94.1 链接的 `zircon_app.wasm` 为 101,019,794 字节，SHA-256 为 `1c77cc2cc105f78a4c1479ead1fac3aa09c554cdd6c34cbd4161b6dd7e612656`。`wasm-bindgen 0.2.122 --target web` 从该文件生成下列产品。
+
+| 文件 | 字节 | SHA-256 |
+|---|---:|---|
+| `zircon_app.js` | 91,172 | `025581fb2ba5be1575b4890c3a4d49a8a4e7ec3d5cedc4bd5089eb26a1be49da` |
+| `zircon_app_bg.wasm` | 90,396,136 | `0a7fca86748bc794ca07eebe5c87c28838c95d4df2a7b3d6832c0b53b62e8658` |
