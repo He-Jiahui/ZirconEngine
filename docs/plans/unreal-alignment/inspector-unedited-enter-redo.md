@@ -104,3 +104,16 @@ Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile t
 |---|---|---|
 | `details_axis_ack_` | 1 过 / 1 败 | `f378fded1edd5d447d545b18db05ec3855500d2192137cb7f4f6cfb246e7475f` |
 | `details_enter_` | 4 过 / 0 败 | `baf5882c1eae6905d496768ba407a2d98931e701043ff3a4880fa57abaa0a3e6` |
+
+## 13. 真实 Undo 清理通过；另一个旧用例仍暴露保存后重导入冲突
+
+新增同焦点用例 2/2 通过，真实 Undo 恢复原值、历史干净、仍可重做、磁盘不变。未改的原四例此次 3/4：显式重输、Undo、Redo 已过，末尾 Save 写盘后重导入再次被更新代次拒绝；上次为 4/4，不把两次拼成全绿。
+
+这次仅调整新增动态用例的收尾，确认只撤销自己的一个事务。原先显式把 `12.3456` 重输为显示串 `12.35` 的对照完全未改；它检查了实际写入、恢复高精度、Redo 回到刻意四舍五入的值，末尾另有真正 Save。此次该工程实际保存了 X=`12.350000381469727`，Y 保留其独立的 f32 精度；日志再次是 `targeted asset import was superseded by a newer project generation`、没有假发保存成功。保留这份失败，不重试到绿，不把 #204 的 shader 自写线索视作本次胜出写手的证据。不改生产保存、watcher、冲突校验或原四测试。
+
+Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile test`，同一[受测提交](https://github.com/He-Jiahui/ZirconEngine/commit/b0e1af5b8dd1c2ae650b8ca2bf818616621321d2)和编译回执 `6b8de98aaedca8332b49cb9505d9f1df1c598f963945029d6964de8592d63f5a`。各次均显式 `--ignored --test-threads 1 --show-output`，独立项目和用户配置。
+
+| 过滤器 | 实际运行 | 执行回执 SHA-256 |
+|---|---|---|
+| `details_axis_ack_` | 2 过 / 0 败 | `0c8f1b5939eaf19c2a4c8d8101e8fa14acbdb988c221441feb83aab80623a1e0` |
+| `details_enter_` | 3 过 / 1 败 | `708e0e0ae9e7c67be12c6cf60053b81f6a7dc036c954f32004aad7d91a72ff0a` |
