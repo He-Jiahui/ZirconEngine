@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第21轮新增 #227，目前共 **43 个问题 Draft**。最新实证见第25节；第7–24节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第22轮新增 #230，目前共 **44 个问题 Draft**。最新实证见第26节；第7–25节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -398,3 +398,15 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 每条 Editor 观察使用自己的真实项目与用户设置。能编译、能打开工程、能将键盘文字放入输入框、能提交场景事务、能在打包程序中重现，是五种不同结果。未执行 UE、GPU 或整套产品验收。
 
 累计 **43 个独立问题及测试维护 Draft + 1 个总索引，零合并**。八份不可变的模块/目标目录仍保持原始版本。
+
+## 26. 跨 Play 输入归属、Editor 会话与导出交接（第22轮）
+
+| 独立 PR | 实测及尚未覆盖的边界 |
+|---|---|
+| [#168](https://github.com/He-Jiahui/ZirconEngine/pull/168) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/86d72473ba32e3f8f3726915466d8a5d0bf51dd6/docs/plans/unreal-alignment/preview-captured-pointer-release.md#L110-L130) | 修复限同窗真实鼠标右键：原 Play 在视窗外恰好收到一次 release，回入不再空转；A 的旧松键不进 B，已观察到的非 Game Down 不凭空产生 Game 松键。没有先前可证明 Down 的正常窗内松键仍走原路。 |
+| [#221](https://github.com/He-Jiahui/ZirconEngine/pull/221) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/e22a1d490f4876a9ce3825f9ede40f783e0670bd/docs/plans/unreal-alignment/main-close-model-result.md#L65-L84) | 新建与真正关项后用新 Core 重开，两次 Runtime 都有同根 Scene；两次 Editor 在入口和超时都是空目录。重开两端均无 pending reload，单是目录缺失已足以挡住导入；依旧没有导入后的关窗证据。 |
+| [#222](https://github.com/He-Jiahui/ZirconEngine/pull/222) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/01c6d9cf60a688587498bc5f68087da288bac8ba/docs/plans/unreal-alignment/inspector-unedited-enter-redo.md#L108-L119) | 新增同焦点用例 2/2 通过，真实 Undo 恢复原值、历史干净、仍可重做、磁盘不变。未改的原四例此次 3/4：显式重输、Undo、Redo 已过，末尾 Save 写盘后重导入再次被更新代次拒绝；上次为 4/4，不把两次拼成全绿。 |
+| [#227](https://github.com/He-Jiahui/ZirconEngine/pull/227) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/58231036674341f21389381192dc77b6a1b4fbb0/docs/plans/unreal-alignment/reopened-project-window-exit.md#L57-L66) | 新增两例均通过：同一物理工程关闭再开由新操作接管，X 能退出；第二工程真实变脏后，X 显示关闭提示，Cancel 保留原会话、文档、脏状态及磁盘。原 2 个关闭用例也通过。 |
+| [#230](https://github.com/He-Jiahui/ZirconEngine/pull/230) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/0671cc1aadd852622d2b3732813f1abd8953bc88/docs/plans/unreal-alignment/same-run-cooked-pack-manifest.md#L64-L84) | 已修正同一次 Cook→Pack 的交接，不改独立 Pack override、Rust writer 或最终发布门。原红测通过；两种清单拼法、两个相同输入入口均实产 3 个资产的同字节包；debug-only 资产未混入。 |
+
+累计 **44 个问题及测试维护 Draft + 1 个总索引，零合并**。历史八份模块目录保持不变。组件测试、实际写包、桌面/硬件和 UE 的原测分开计，不把任何一组结果当成整个引擎验收。
