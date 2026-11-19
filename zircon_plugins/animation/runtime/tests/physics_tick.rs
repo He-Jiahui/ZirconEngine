@@ -11,6 +11,8 @@ mod blend_space_state;
 mod cache_invalidation;
 #[path = "evaluation_diagnostics.rs"]
 mod evaluation_diagnostics;
+#[path = "physics_tick/pause_guards.rs"]
+mod pause_guards;
 #[path = "runtime_helpers.rs"]
 mod runtime_helpers;
 #[path = "state_machine_boundaries.rs"]
