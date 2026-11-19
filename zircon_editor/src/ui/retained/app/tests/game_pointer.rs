@@ -892,3 +892,6 @@ fn game_pointer_owner_other_button_and_native_blur_are_distinct() {
         owner.stop(host);
     });
 }
+
+#[path = "game_rmb_edges.rs"]
+mod rmb_edges;
