@@ -14,3 +14,10 @@
 - 测试仍用原生产 producer/adapter WGSL 及原 Rust `encode`。合法输入由同一个受检查的 entity packer 生成 stable key，实体保留非零高 32 位和不同 primitive。重复源行的 disjoint spans、有效负 `base_vertex`、实际 GPUScene `first_instance`、不可见行、padding tail、读回 sidecar 与 authority 原值均保留，不通过重复复制 GPU 结果当预期。
 - 分开两项负对照：真正的错 canonical key 应在 **CPU** 被拒，错误原文可辨；另构造 CPU 合法、但 GPU producer authority 的 candidate/cluster 字段与本 run 不符的测试，在真实 dispatch 后读回 **`status=2` 且 Args5 全零**。不把源码选择替换成 raw buffer 绕过 CPU owner 或删弱断言。
 - 先冻结同一生产的测量合同、公开实际旧执行达到哪层，再做至多这个 fixture 的改动；同一 windows native GPU selector 真正提交并映射 GPU buffer 后才谈修复。确切图形 backend 要程序自己报告或明确锁定，不能用启动环境字符串当证据。stock #228 的同一提交深度/五字参数仍须独立测量。
+
+## 冻结 RED：Draft 创建后重放（R81）
+
+- 旧 Rust 测试 blob `7f3deec77fbb6ac557b2b367f152a00b859fde70`，原始 Git SHA256 `55d1675a7cc099a0eb90c9a654f902a462343478b6b7348fc28175a080075573`；整个 VG executor 子树、直接 stable-key owner、相关 SDK 与两个 lockfile 与 pinned base 一致。旧归档是独立的历史构建，**不**声称整个归档源树相同；较大的 VG 目录有 6 处无关差异。
+- Windows x64 使用保存的同一 PE `cf455e1bdc6d08382782205e6b994e96049f1b8d9998f97d8614e6c9c9c7df84`，精确选择原 libtest 名 `--exact --test-threads 1 --nocapture`，不编译、不修改 PE。单测试 `0/1`、exit `101`，唯一 panic 为 `stable_key.rs:14:5: entity id exceeds stable instance key packing range`，可见于真实原始日志（SHA256 `53930c011f9618b6e487fd3edeb989db99c107c68a8f70f08bad6617add5587b`，本地证据编号 795）。
+- 该 RED 仅是夹具错误：真实主机在 author-run 构造时中止，queue.submit 未到，**无 GPU adapter 写入或 Args5 map**。另一条错 canonical 是否触发 Rust 拒绝是读源推导，未在旧版提前失败后出现。没有 #228 stock 产品 RED、DX12 报告或场景深度证据。
+- 后续只改这个 `#[cfg(test)]` 文件：使用规范 key；将 Rust 错 canonical 与实际 WGSL 错 cluster authority 分开。必须由同一 selector 成功映射和断言所有行；本次更新不包含补丁，不改变 CI、必需检查或合并状态。
