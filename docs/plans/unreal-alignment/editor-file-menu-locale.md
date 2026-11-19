@@ -64,3 +64,18 @@
 | 此 PR 的资源 | 245.0 秒 | Camera 选择与视口布局 |
 
 观察结束时，两组均未生成已提交的界面状态，窗口枚举也未返回可操作的编辑器窗口。测试未能进入 Editor Settings。既有组件回归中同一菜单显示 `File → 文件 → File`。桌面上切换设置、选择场景和观察实际字形仍需验证。[菜单定义](https://github.com/He-Jiahui/ZirconEngine/blob/cc8e45d861618ed5975034f91e5e9189c483db2f/zircon_editor/assets/ui/editor/unreal/components/menus.zui#L38-L44)
+
+## 普通窗口的首次重绘跟踪
+
+沿用 `8d004310beb2cb3cb8d47f8ed6cdae889a182d10` 中记录的 BuildSet、修前菜单资源和正式 RenderableEmpty 项目。新建独立用户目录，仅开启 `ZIRCON_EDITOR_TRACE_NORMAL_CAPTURE_REDRAW=1`。55 秒观测内，跟踪记录了以下顺序。
+
+| 记录序号 | 经过的调用 | 观测 |
+|---:|---|---|
+| 9 | `replace_host_presentation` | 结构、几何和点击区域的代数由 0 变为 1 |
+| 11 | `patch_host_presentation_panes` | 三者由 1 变为 2 |
+| 12 | `about_to_wait_impl` | Winit 事件循环消费后台唤醒 |
+| 13–14 | `external_redraw`、`pending_redraw_merge` | 资源刷新请求与待处理的完整启动重绘汇合 |
+
+截至观测结束，日志中没有呈现器选择和原生重绘回调，编辑器也未写出可操作界面状态。后续诊断的位置是原生表面可用回调、呈现器启动轮询和窗口创建的返回点。本次跟踪使用修前菜单组，桌面语言切换仍待正常窗口显示后验证。
+
+[呈现器创建路径](https://github.com/He-Jiahui/ZirconEngine/blob/cc8e45d861618ed5975034f91e5e9189c483db2f/zircon_editor/src/ui/retained/contract/window/event_loop/lifecycle.rs#L41-L94) · [重绘请求合并](https://github.com/He-Jiahui/ZirconEngine/blob/cc8e45d861618ed5975034f91e5e9189c483db2f/zircon_editor/src/ui/retained/contract/window/event_loop/redraw.rs#L102-L145)
