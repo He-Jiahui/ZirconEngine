@@ -67,3 +67,9 @@ Engine/Plugins/EnhancedInput/Source/EnhancedInputTestSuite/Private/InputTestFram
 提交 `23e2c2a5def64da0f62153127f05ca391ae2ed94` 让原画布的键盘焦点变更进入该画布自己的输入队列，帧提交保留按下、失焦、再次按下的先后顺序。原窗口级失焦仍使键盘和鼠标一起释放。[画布监听](https://github.com/He-Jiahui/ZirconEngine/blob/23e2c2a5def64da0f62153127f05ca391ae2ed94/zircon_app/src/web/listeners.rs#L138) · [逐帧输入提交](https://github.com/He-Jiahui/ZirconEngine/blob/23e2c2a5def64da0f62153127f05ca391ae2ed94/zircon_runtime/src/browser/input.rs#L34)
 
 同一份 21 帧 Chrome 157 用例由 13 帧达到预期提升为 **21/21**。原画布失焦当帧报告 `KeyCode(65)` 和 `Key("a")` 各有一次释放边沿，鼠标左键继续按住，光标与 IME 请求计数均为零。按钮随后收到了 `keyup`，回到原画布的下一次 `keydown` 产生新的按下边沿。双画布互换焦点、同帧重新按下、普通按放和原窗口全量失焦均达到预期。[固定浏览器用例](https://github.com/He-Jiahui/ZirconEngine/blob/23e2c2a5def64da0f62153127f05ca391ae2ed94/tools/validation/browser/web-focus-fixture.html#L64) · [游戏状态观察](https://github.com/He-Jiahui/ZirconEngine/blob/23e2c2a5def64da0f62153127f05ca391ae2ed94/zircon_app/examples/web_focus_fixture.rs#L61)
+
+## 9. 与逻辑键配对修复一起运行
+
+两个草稿都修改浏览器输入队列。Git 从公开主线比较时，输入队列文件出现 3 处冲突。组合时保留真实 DOM 消息到 UI 的分发顺序，在画布失焦处同时结束旧的键盘配对。该文件经过实测的 Git blob 为 `8a4c8306b0073da617fbf29dccc3069a8fddc42d`。独立修复提交为 `2c1129b3b6146e86c467431aa41dbc4089e02152`。[逻辑键配对 #151](https://github.com/He-Jiahui/ZirconEngine/pull/151)
+
+在组合后的 Wasm 程序中，21 个画布焦点回归帧全部达到预期。另在 Chrome 输入驱动发送的三种序列中，先松 Shift 再松 `a` 会释放原 `A`，离开画布会释放原有大小写身份，返回画布后再次按 `a` 会得到新的按下边沿。该次运行使用本地组合源码，两个公开草稿分别保留各自的修复。
