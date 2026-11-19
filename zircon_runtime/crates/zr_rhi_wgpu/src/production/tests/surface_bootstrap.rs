@@ -99,3 +99,84 @@ fn surface_bootstrap_transfers_one_compatible_native_surface_into_the_neutral_de
         "profile adapter validation must fail before requesting a native device"
     );
 }
+
+use std::{
+    cell::Cell,
+    future::{poll_fn, Future},
+    task::{Context, Poll, Waker},
+};
+
+use zr_rhi::{RenderAdapterFacts, RenderDeviceProfile, RhiError};
+
+use super::super::surface_bootstrap_adapter::request_with_supplied_profile;
+
+const NATIVE_TOKENS: (u8, u8) = (11, 37);
+type ProfileRequestResult = Result<(u8, u8, RenderDeviceProfile), RhiError>;
+
+fn observe_profile_request(
+    selected: &RenderAdapterFacts,
+    profile: RenderDeviceProfile,
+    provider_result: Result<(u8, u8), RhiError>,
+) -> (ProfileRequestResult, (usize, usize)) {
+    let starts = Cell::new(0);
+    let polls = Cell::new(0);
+    let (start_counter, poll_counter) = (&starts, &polls);
+    let mut request = std::pin::pin!(request_with_supplied_profile(
+        selected,
+        profile,
+        move || {
+            start_counter.set(start_counter.get() + 1);
+            let mut provider_result = Some(provider_result);
+            poll_fn(move |_| {
+                poll_counter.set(poll_counter.get() + 1);
+                Poll::Ready(provider_result.take().expect("provider was polled again"))
+            })
+        }
+    ));
+    assert_eq!((starts.get(), polls.get()), (0, 0), "unpolled scheduler");
+    let mut context = Context::from_waker(Waker::noop());
+    let Poll::Ready(result) = request.as_mut().poll(&mut context) else {
+        panic!("the ready provider must not suspend the scheduler");
+    };
+    (result, (starts.get(), polls.get()))
+}
+
+#[test]
+fn profile_request_mismatch_does_not_start_request() {
+    let profile = super::test_profile();
+    let mut selected = profile.adapter().clone();
+    selected.name.push_str(" (selected)");
+    let expected = RhiError::NativeContextAdapterMismatch {
+        profile_adapter: Box::new(profile.adapter().clone()),
+        context_adapter: selected.clone(),
+    };
+    let (result, counts) = observe_profile_request(&selected, profile, Ok(NATIVE_TOKENS));
+
+    assert_eq!(result, Err(expected));
+    assert_eq!(
+        counts,
+        (0, 0),
+        "mismatched profile must neither invoke the request thunk nor poll its future"
+    );
+}
+
+#[test]
+fn profile_request_match_passes_through_success() {
+    let profile = super::test_profile();
+    let selected = profile.adapter().clone();
+    let (result, counts) = observe_profile_request(&selected, profile.clone(), Ok(NATIVE_TOKENS));
+
+    assert_eq!(counts, (1, 1));
+    assert_eq!(result, Ok((NATIVE_TOKENS.0, NATIVE_TOKENS.1, profile)));
+}
+
+#[test]
+fn profile_request_match_preserves_provider_error() {
+    let profile = super::test_profile();
+    let selected = profile.adapter().clone();
+    let provider_error = RhiError::SurfaceUnavailable("provider rejected device request".into());
+    let (result, counts) = observe_profile_request(&selected, profile, Err(provider_error.clone()));
+
+    assert_eq!(counts, (1, 1));
+    assert_eq!(result, Err(provider_error));
+}
