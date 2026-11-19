@@ -51,3 +51,11 @@ ZE 固定 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`。本项落实[原有 Inspe
 编译回执 `639ad560db92ffeda110d579c3848ec646f40f0a64d0202f98ab5da8ac33076e`；执行回执 `36881b1ddae16688cb779004dad29361ea7cf5b37ef2b7dde0860a35b4210ebd`，stdout `9e0df3cee2d535dd2d31cf427c64fb1468990fad2e093674c2983a9421ef407e`。
 
 未改生产逻辑；没有把其它 PR 的修复叠上来。本阶段不是 UE、GPU 或 stock 桌面端到端验证。
+
+## 8. 冷启动实测：能聚焦和键入，但第一次主动编辑未写进 World
+
+[固定测试源码](https://github.com/He-Jiahui/ZirconEngine/blob/e56a302b9c4ae1c64181b0f23ac995cd5c356303/zircon_editor/src/ui/retained/app/tests/details_enter.rs)只替换了宿主装配，原两条测试体、断言和默认忽略状态未变。正式预检的 RenderableEmpty 项目由 retained host 直接创建，得到 Ready 的同根项目、真实绑定的 Scene / Document、磁盘模板中名为 Cube 的 Mesh 和选中它的 Edit World，不再使用先前两次创建的演示 façade。
+
+正式冷启动已到达真实场景、Details 轴框和 Winit 按键路径。两项都在第一次主动输入 12.3456 后读到 World X=0；尚未到保存、Undo 或无输入 Enter。这是更早的未写入现象，不是原题的精度/Redo RED。 两个独立物理项目中，真实已挂载的轴框均命中，焦点正确且有 commit action；Ctrl+A 后逐键录入，输入缓冲在按 Enter 前确为请求的字符串，预览阶段还没有修改 World。收到合成的 Winit Enter 后，第一例在主动编辑的初始断言看到 `Vec3(0,0,0)` 而不是 `Vec3(12.3456,0,0)`；另一例在同一步读到 X 位模式 `0` 而不是 `1095075732`。两项目都没有到达最终无输入确认、保存点或重做验证，不推断为何没写入、也不改生产。
+
+Windows x64/MSVC 1.94.1 / `zircon_editor --no-default-features --lib` / `test`，`details_enter_ --ignored --test-threads 1 --show-output`。实跑 0 过 2 败；编译回执 `34a2b2716d47673ab4fc78277d6b0c91c83a77780ac79a28869920780842ee75`，原生执行 `d79215438dc765a3be3eb10de3d3d9007fbba96f09b13270ebe459ae7c9deb8f`，stdout `759f2d7d415a90919fd28b73f2bf356807b606f64cc934f58a8c4b3caffba283`。它验证了 retained 输入路径，不代表桌面注入或 GPU 展示。下一步沿实际 commit binding、命令结果、选中对象的可编辑性和活动文档继续定位，不能把第一笔没提交的场景伪造成已经精确保存 `12.3456`。
