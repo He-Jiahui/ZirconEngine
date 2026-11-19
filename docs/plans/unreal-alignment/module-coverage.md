@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮清点 30 个原列领域和 10 个补充领域。截至第28轮，累计 **56 个问题 Draft**。第32节列出本轮实测与尚待验证的边界，第7–31节保留前轮结果。下文首轮表格与 CSV 保留原始清点。
+首轮清点 30 个原列领域和 10 个补充领域。截至第29轮，累计 **57 个问题 Draft**。第33节记录本轮公开进度及验证边界，第7–32节保留前轮结果。下文首轮表格与 CSV 保留原始清点。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -481,3 +481,13 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 | [#243](https://github.com/He-Jiahui/ZirconEngine/pull/243) · [`4c304a3a`](https://github.com/He-Jiahui/ZirconEngine/blob/4c304a3aa8771d6d21bd1337fdebc30dad58cfad/docs/plans/unreal-alignment/webgpu-canvas-adoption.md#L77) | 空场景和带 HUD 场景从接管前退出，推进到在原 Canvas 成功配置 1 次和 1 次。两种尺寸的画布提交通过 0/2。两次均在系统纹理准备阶段发生 Wasm 运行错误，产品停在首帧之前。Windows 设备能力与会话释放对照通过 7/7。 |
 
 累计 56 个问题 Draft 和 1 个总索引；8 份模块 CSV 保持原 Git 对象。
+
+## 33. 运行时资源清单、动画通知和桌面项目启动
+
+| 草稿及当前提交 | 本轮实际结果和剩余边界 |
+|---|---|
+| [#214](https://github.com/He-Jiahui/ZirconEngine/pull/214) · [`270aab52`](https://github.com/He-Jiahui/ZirconEngine/blob/270aab521217a8ff1a6bcee37e264c0b33f3b450/docs/plans/unreal-alignment/paused-transition-event-replay.md#L64) | failed · 原生宿主两项对照通过。四个暂停用例记录 14 帧，两项通过，恢复时两条事件流均为 [0, 1, 1]。补充的五个兼容用例记录 21 帧，三项通过。两项持有淡出进度的断言在第 4 帧失败，第 3 帧已清空过渡。 |
+| [#215](https://github.com/He-Jiahui/ZirconEngine/pull/215) · [`63db058c`](https://github.com/He-Jiahui/ZirconEngine/blob/63db058c7abf389173adc1b8bacccae22e3a106f/docs/plans/unreal-alignment/editor-file-menu-locale.md#L68) | partial · 同一正式项目分别用修前和修后资源启动，观察约 245 秒均未取得可操作窗口。另一次 55 秒跟踪记录布局提交、点击区域更新，以及资源刷新请求与首次重绘请求汇合。桌面设置切换和字形显示待验。 |
+| [#244](https://github.com/He-Jiahui/ZirconEngine/pull/244) · [`0560b6e7`](https://github.com/He-Jiahui/ZirconEngine/blob/0560b6e75611997c03d1d3f23fbe665970c6f939/docs/plans/unreal-alignment/runtime-asset-manifest-origin.md#L44) | passed · Runtime 发布 ZIP 中的同名同内容资源现记录为实际选中的 Runtime 来源。11 项功能回归从 10 项通过提升到全部通过。另跑的源码文本检查在两版均因旧导入拼写失败。 |
+
+累计 57 个问题 Draft 和 1 个总索引；8 份模块 CSV 保持原 Git 对象。
