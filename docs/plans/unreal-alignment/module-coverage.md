@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第19轮新增 #219，目前共 **38 个问题 Draft**。最新实证见第23节；第7–22节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第20轮新增 #221、#222、#224、#225，目前共 **42 个问题 Draft**。最新实证见第24节；第7–23节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -371,3 +371,17 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 外部平台模块还核对了 UBT External 的 Win64 选库和 ZE 的 dist 命名：Cargo 允许单设库名，但没有查到 ZE 已承诺这一布局；因此未为自定义 DLL 名创建问题 PR。不把本地源码读取或旧工厂已加载数组刷新等价为 UE 全工程冷重开通过。
 
 累计 **38 个独立问题 Draft + 1 个总索引，均未合并**。2,588 个模块规则、178 个目标规则及八份 CSV 是冻结目录，不是行为通过数。[#214](https://github.com/He-Jiahui/ZirconEngine/pull/214) 原动画四例仍要等宿主依赖约束真正在其原输入上解除；独立 SDK 的局部通过数不代替动画帧。
+
+## 24. 纹理源、缓存恢复与编辑器操作所有权（第20轮）
+
+| 独立 PR | 实际范围与结果 |
+|---|---|
+| [#219](https://github.com/He-Jiahui/ZirconEngine/pull/219) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/482351810f7dd48f627a476c3dc003fb00608359/docs/plans/unreal-alignment/texture-array-source-refresh.md#L69-L86) | 父数组的缓存身份与解码现使用相同源图字节。相同六案 1 过 5 败→6 过；与旧制品相同构建的两案 0 过 2 败→2 过。关项改一图重开从误恢复父数组变为 1 恢复/2 重导；未改仍 3 恢复/0 重导。4 个 Runtime 合同及 4 个既有快照/预算检查通过。插件旧 libtest 被两份未改测试中的 23 个编译诊断挡住，三个额外兼容用例没有执行。 |
+| [#221](https://github.com/He-Jiahui/ZirconEngine/pull/221) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/af4503c9aa97abf9780155d5d630555362329692/docs/plans/unreal-alignment/main-close-model-result.md#L41-L55) | 真实 retained libtest 两例：0 过、2 败。未观测到预设的错误行为签名。两例都在切换到新项目的 authoring scene 时遭到同一代际拒绝，尚未发起 OBJ 导入或主窗口关闭；不能把这两次失败当成关闭所有权问题的 RED。 |
+| [#222](https://github.com/He-Jiahui/ZirconEngine/pull/222) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/45e26fc73ff112fe321be21c3cfd315cedfda0d0/docs/plans/unreal-alignment/inspector-unedited-enter-redo.md#L39-L53) | 真实 retained libtest 两例：0 过、2 败。未观测到预设的错误行为签名。两例均实际运行，但在绑定启动场景时就遇到代际拒绝；没有聚焦 Details、按 Enter、记录保存点或执行 Redo，不能把本次失败当作精度丢失的 RED。 |
+| [#224](https://github.com/He-Jiahui/ZirconEngine/pull/224) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/35db7c3f87741bed4b49570b9c63baecd2b64ce2/docs/plans/unreal-alignment/texture-ktx1-test-context.md#L34-L44) | KTX1 原测试的 2 项编译诊断已消失；同一插件 libtest 从 23 项降为 21 项，剩余均为独立 mipgen 测试的原诊断。仍未生成测试程序、0 行为用例执行；仅修测试，不改生产。 |
+| [#225](https://github.com/He-Jiahui/ZirconEngine/pull/225) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/40003b14353185ae7d6d0a4eacdae8ef40167869/docs/plans/unreal-alignment/texture-mip-test-result.md#L34-L44) | mipgen 原测试的 21 项编译诊断已消失；同一插件 libtest 从 23 项降为 2 项，剩余均为独立 KTX1 测试的原诊断。仍未生成测试程序、0 行为用例执行；仅修测试，不改生产。 |
+
+本轮新增项中，主窗口关闭和未编辑数值框是两条 Editor 行为调查；KTX1、mipgen 是同一 Plugins07/G01 验证门下的两处独立测试编译维护，不是另外两项纹理产品错误。纹理修复以恢复计数、生成源回滚、旧工程首次打开和冷工程分别取证。编辑器源码、宿主、桌面 GUI 与 UE 原测分开计算。
+
+累计 **42 个独立问题 Draft + 1 个总索引，零合并**。原 2,588 个模块规则、178 个目标规则与八份目录 CSV 不变；不把同一个回归的重跑或一次目录枚举视作额外问题/全域验收。
