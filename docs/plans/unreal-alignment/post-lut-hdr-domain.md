@@ -113,3 +113,18 @@ CPU 回读 reference 也应对**编码网格先解码**再运行现有解析变�
 | [PostProcessCombineLUTs.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/PostProcess/PostProcessCombineLUTs.cpp>) | `C05DFC80311FF9661F26C7A1F9EBAC94052D9878405BA02ED83AA6896515B149` |
 | [PostProcessTonemap.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/PostProcess/PostProcessTonemap.cpp>) | `9A1AD49A52F1712F7E30D7E010BBB672602213D0C4CF0861957232FE012D819D` |
 | [ACESOutputTransformTest.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Renderer/Private/Tests/ACESOutputTransformTest.cpp>) | `470318A6A23D3F7FC091C670BC59439AC134A9F843EC266250977A77A2399F18` |
+
+## 7. 同一着色器的高光对照
+
+在 RTX 3060 Laptop 上通过 Chromium WebGPU 执行原有烘焙着色器的 `cs_main` 和后处理着色器的 `vs_main`、`fs_main`。表中是线性 RGBA16F 读回值。曝光为 1，使用 Reinhard 算子与中性调色。
+
+| 输入亮度 | 直接映射 | 内部 LUT |
+|---:|---:|---:|
+| 1 | 0.500000 | 0.500000 |
+| 2 | 0.666504 | 0.500000 |
+| 4 | 0.799805 | 0.500000 |
+| 8 | 0.888672 | 0.500000 |
+
+低亮混色输入和外部三维 LUT 对照均通过。UE 原测的灰阶与亮色输入位于 `Engine/Source/Runtime/Renderer/Private/Tests/ACESOutputTransformTest.cpp` 第 121–138 行。这里的数值判据来自 ZE 自身的 Reinhard 实现。
+
+本次提交给 Runtime 产品图增加了双路径用例。两条路径使用相同的曝光与 HDR 场景输入。直接路径从后处理功能描述符移除烘焙 pass 和可选的 `COLOR_LUT` 读取，以便比较最终图像。 [产品图回归源码](https://github.com/He-Jiahui/ZirconEngine/blob/3f13501656eba837da9da5d29deef8f13ffc7124/zircon_runtime/src/graphics/tests/render_product_post_process/internal_lut_hdr.rs)
