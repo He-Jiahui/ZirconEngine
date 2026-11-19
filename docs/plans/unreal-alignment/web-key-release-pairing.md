@@ -152,3 +152,16 @@ Chrome 157 加载提交 `8c0a258c2ca43b0da7ee0c864a6f679cbe7d58e1` 编译的 Was
 | 主键区 `1` 与小键盘 `1` 都按下，仅松开前者 | 松开键码 49 | 小键盘 97 仍按住，逻辑 `1` 已提前释放 |
 
 UE 的 `Input.Triggers.Keyboard.BooleanReleased` 用相同的 SpaceBar 身份覆盖按下、持续和释放。源文件为 `Engine/Plugins/EnhancedInput/Source/EnhancedInputTestSuite/Private/InputTriggerTest.cpp:1175–1214`，SHA-256 `207e9b6eafb1bffe5efd0bc6aa04199550e3b5d07ae8673dce578d4aa561bf3a`。上述浏览器采样使用 ZE 的真实输入代码和受控 DOM 事件。
+
+## 8. 相同输入在修复后的结果
+
+在 `99fb3a50138f2d806c6f2d6f99b4aaa4eb1eefc6`，Web 帧先把当前逻辑名和文本发送给 UI，再按稳定的非零数字键码向游戏状态提交首次按下时的逻辑名。松开键码 65 时，游戏中的 `A` 产生一个释放边沿，在下一帧回到空闲。重复按键的原始 `text="a"`、`repeat=true` 均可观察。主键区与小键盘两个 `1` 的数字码为 49 和 97，首次松开时 `1` 继续按住，最后一次松开才释放。[Web 输入提交实现](https://github.com/He-Jiahui/ZirconEngine/blob/99fb3a50138f2d806c6f2d6f99b4aaa4eb1eefc6/zircon_runtime/src/browser/input.rs#L17)
+
+| 执行范围 | 原实现 | 修复后 |
+|---|---:|---:|
+| Windows x64/MSVC，`zircon_runtime` 开 `native-host`，`browser_key_` 六项 | 3/6 | **6/6** |
+| Chrome 157，原 canvas 回调、UI 前置观察和游戏管理器逐帧读回 | 17/24 | **24/24** |
+
+另在独立 Chrome 配置中通过浏览器输入驱动发送 Shift、A、释放 Shift、重复 `a`、释放 `a`。浏览器对这五个事件都标记 `isTrusted=true`。在释放帧读取 `Key("A")` 得到 `held=false, just_released=true`，下一空帧两个值均为 false。数字码为 0 的兼容用例保留 `a` 的按下和释放。原始 Windows 用例的 Git blob 为 `e0b5627aa66349d9578cefb6f152ccc69e8287d0`。浏览器使用同一份 HTML 与 Wasm 示例源码。[浏览器检查](https://github.com/He-Jiahui/ZirconEngine/blob/99fb3a50138f2d806c6f2d6f99b4aaa4eb1eefc6/tools/validation/browser/web-listener-fixture.html#L68) · [Windows 回归](https://github.com/He-Jiahui/ZirconEngine/blob/99fb3a50138f2d806c6f2d6f99b4aaa4eb1eefc6/zircon_runtime/tests/browser_key_pairing.rs#L119)
+
+本次的稳定身份是宿主已经提供的数字 `keyCode`。两个 DOM `code` 共用同一数字码时，左右 Shift 的个别占用超出这项修复的覆盖范围。
