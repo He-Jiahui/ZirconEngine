@@ -53,3 +53,14 @@ Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile t
 同一真实主窗 A→Welcome→B→X 已从 1过/1败 转为 2过/0败。保留旧关闭的严格身份校验，A、B 的 guard 均按各自会话释放；不代表一般热切换或进程重启的整体验收。
 
 Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile test`。实测输入 [同一测试版本](https://github.com/He-Jiahui/ZirconEngine/commit/f43b5629712a8e54c2b98ee3819a606644ff7919)，编译回执 `626a1474c5d258cd6fd077d636e6c0ef1c5e490b3b0f9f753f26ace67f48bdd7`，实际执行 `544254cb9969d13544a55e86588cb4067c7ccfa4ebd21cd51f096996d9a61372`，stdout `c8a996c3da426b90498d7b87c8b99cf4b3ce3f80bc3621ee1850d8a534fe26fa`。
+
+## 9. 同一物理根重开，以及脏工程的 Cancel
+
+同一物理根在原会话真正关闭并释放后，经原 Welcome 的 Open Existing 再次接纳；根相同但操作号不同，核到新会话的持久 Ready，然后原生 X 正常关闭。另一个测试经工作台真实创建立方体令项目 B 变脏；X 显示 Save/Discard/Cancel，坐标点击 Cancel 后没有退出。再次核查仍是同一 B、仍 Ready，World、文档历史、脏令牌和保存源字节不变；最后用全新的 X→Discard 完成真正清理。原两例/此前三个协调器保护的证据保留，不推论进程切换、失败投影回滚或未测平台。只增加测试，不改生产。
+
+Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile test`，同一[受测提交](https://github.com/He-Jiahui/ZirconEngine/commit/8db799e149d4f116104831d7094b1d9dd1bab3e3)和编译回执 `92cc0dc9d9f5d76658cd50b365a7baeeb9da16c5bf00ce3b244f644042207ca4`。各次均显式 `--ignored --test-threads 1 --show-output`，独立项目和用户配置。
+
+| 过滤器 | 实际运行 | 执行回执 SHA-256 |
+|---|---|---|
+| `r21_boundary_` | 2 过 / 0 败 | `43b9eda0d8df66d12cb0a6b8a049926baee9181f6c5ab270d1cd5830967d0e42` |
+| `r21_reopen_` | 2 过 / 0 败 | `12dae828301742dab544f836539fdb2a074057bc16ca99b23f263bf511055a42` |
