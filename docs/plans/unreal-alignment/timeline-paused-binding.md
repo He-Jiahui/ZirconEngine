@@ -162,3 +162,20 @@ UE 文件 SHA256（仅短符号/路径说明，无 UE 实现段落复制）：
 两份私有候选均未提交到生产。第一版不能保证扫描时记下的修订与随后取得的真实载荷成对；第二版在同内容、同修订的资源卸载又重驻留时会丢掉暂停实例仍待解决的绑定。后一种情况可以在两帧之间按正常资源生命周期发生，不要求制造竞态。这是针对候选的源码反证，不是本次用例运行过候选。下一道门是同一真实资源最后一个租约释放、按同修订重新装入并证实 active 身份变化，再新增目标；不应为此每帧重写已有轨或默认扩大热更新范围。
 
 这是 Windows 集成层经产品 portable 注册调用同一 PostUpdate 求值器、使用 native 资产管理器的结果；未跑真正的 Web 加载、原生插件扫描、桌面产品或 UE 原测。
+
+## 10. 磁盘同源重新驻留：独立证据与运行边界
+
+`e0d1a17bdf1ea2d305a927a79198c48e66f7b06b`：原八个测试正文 30,721 字节全部保留，原入口只在末尾挂新测试模块。Windows x64/MSVC，`zircon_plugin_animation_runtime --no-default-features --test sequence_tick --profile test --locked --offline`，显式额外特性为空。编译绑定真实 EXE `cb9381a4ca689481304bd088123048120538c2552a12eee6853bf98ed43937e2`；`sequence_tick_ --ignored --test-threads 1 --show-output` 真执行回执 `6aac6982c249cf6f51419d19deb28a17c93067825f0ce836ca3ad49404a00b4c`。同场景不靠 sleep、停用 watcher、替换 registry key 或给世界打 pause；独占物理 scratch 与 config，磁盘样本为正常 `.sequence.zranim`。
+
+原有八个场景：4 过，4 败。新增用例 `residency::sequence_tick_residency_rebinds_only_missing_target`：FAILED。首次 tests-only `bb9728af061b2bca4914434ab04ed9a7df06eaa5` 编译停在夹具读取项目代次的 E0599，没有可执行文件；此处使用原快照公开的 `into_parts()` 返回完整 token，保留相同等值断言，不把首次编译失败计为行为测试。按实际到达顺序：
+
+| 阶段 | 实际观察 |
+|---|---|
+| `first_load` | `id=0516a5e6-5f7e-87f1-9ca8-b2a92d6916cb revision=1 source_hash=a3fb048e01457a92` |
+| `unloaded` | `id=0516a5e6-5f7e-87f1-9ca8-b2a92d6916cb revision=1 leases=0-1-0 active=false` |
+| `reloaded` | `id=0516a5e6-5f7e-87f1-9ca8-b2a92d6916cb revision=1 source_hash=a3fb048e01457a92 same_bytes=true new_active_key=true` |
+| `lease_late` | `requests=0 a=1 b=3 translations=[Vec3(17.0, 0.0, 0.0), Vec3(0.0, 0.0, 0.0)]` |
+| `lease_quiet` | `requests=0 a=1 b=3 translations=[Vec3(17.0, 0.0, 0.0), Vec3(0.0, 0.0, 0.0)]` |
+| `closed` | `真实 close 返回，项目已撤销` |
+
+第九个真实磁盘用例已越过全部前置：同源、同 ID、同字节和修订号的 sequence 释放最后租约后重新驻留，active key 变了。暂停时刻不变，原 A 的外部编辑保留，新 B 没有按 t=0.5 采样；九例 4 过 5 败，未提交生产修复。 未运行 UE、浏览器、完整 D11 游戏宿主或产品验收；active 身份不是 authored 修订，也不能把下一次显式 seek 当作迟生目标已恢复。
