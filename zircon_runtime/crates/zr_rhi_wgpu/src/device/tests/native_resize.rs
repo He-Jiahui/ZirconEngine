@@ -114,10 +114,14 @@ struct Fixture {
 
 impl Fixture {
     fn new() -> (Self, SurfaceSessionReceipt) {
+        eprintln!("NATIVE_RESIZE_STAGE: hwnd_create_start");
         let window = HiddenWindow::new(INITIAL);
+        eprintln!("NATIVE_RESIZE_STAGE: hwnd_created");
         let mut desc = wgpu::InstanceDescriptor::new_without_display_handle();
         desc.backends = wgpu::Backends::DX12;
+        eprintln!("NATIVE_RESIZE_STAGE: wgpu_instance_start");
         let instance = wgpu::Instance::new(desc);
+        eprintln!("NATIVE_RESIZE_STAGE: wgpu_instance_ready");
         let descriptor = RenderSurfaceDescriptor::new(
             "native-resize",
             window.target(),
@@ -128,11 +132,14 @@ impl Fixture {
                 format: TextureFormat::Bgra8UnormSrgb,
             },
         );
+        eprintln!("NATIVE_RESIZE_STAGE: win32_surface_start");
         let bootstrap = WgpuSurfaceBootstrap::new(instance, descriptor)
             .expect("NATIVE_RESIZE_PREFLIGHT: create real Win32 surface");
+        eprintln!("NATIVE_RESIZE_STAGE: win32_surface_ready_start_adapter");
         let adapter = bootstrap
             .select_compatible_adapter(wgpu::Backends::DX12, &AdapterSelectionPolicy::default())
             .expect("NATIVE_RESIZE_PREFLIGHT: no compatible physical DX12 adapter is a hold");
+        eprintln!("NATIVE_RESIZE_STAGE: compatible_adapter_selected");
         let facts = adapter.adapter_facts();
         eprintln!("NATIVE_RESIZE_ADAPTER: {facts:?}");
         assert_eq!(facts.backend, RenderBackendKind::Dx12);
@@ -157,11 +164,13 @@ impl Fixture {
             trace: wgpu::Trace::Off,
             experimental_features: wgpu::ExperimentalFeatures::disabled(),
         };
+        eprintln!("NATIVE_RESIZE_STAGE: device_request_start");
         let (owner, native, outcome) =
             pollster::block_on(adapter.request_graphics_device_async(&native_desc, request))
                 .expect(
                     "NATIVE_RESIZE_PREFLIGHT: create DX12 device and configure initial surface",
                 );
+        eprintln!("NATIVE_RESIZE_STAGE: device_initial_surface_configured");
         let fixture = Self {
             owner,
             native,
@@ -181,11 +190,13 @@ impl Fixture {
         extent: (u32, u32),
         stage: &str,
     ) -> (SurfaceFrameLease, SubmissionTicket) {
+        eprintln!("NATIVE_RESIZE_STAGE: acquire_start");
         let outcome = self.owner.acquire_surface_frame(surface.session());
         let Ok(SurfaceAcquireOutcome::Acquired(frame)) = outcome else {
             panic!("NATIVE_RESIZE_{stage}: native acquire did not return a lease: {outcome:?}");
         };
         assert_eq!(frame.session(), surface.session());
+        eprintln!("NATIVE_RESIZE_STAGE: acquired");
         assert_eq!((frame.desc().width, frame.desc().height), extent);
         assert_eq!(frame.desc().format, surface.swapchain.format);
         {
@@ -209,12 +220,15 @@ impl Fixture {
         );
         list.begin_render_pass("native-resize-clear", vec![attachment], None);
         list.end_render_pass();
+        eprintln!("NATIVE_RESIZE_STAGE: enqueue_start");
         let ticket = self.owner.enqueue_command_list(list).unwrap();
         assert_eq!(self.owner.flush_submissions().unwrap(), 1);
+        eprintln!("NATIVE_RESIZE_STAGE: submitted");
         let presented = self
             .owner
             .present_surface_frame(frame.clone(), ticket)
             .unwrap();
+        eprintln!("NATIVE_RESIZE_STAGE: presented");
         assert_eq!(presented.frame, frame.frame());
         assert_eq!(presented.submission, ticket);
         assert_eq!(presented.terminal, SurfaceFrameTerminal::Presented);
@@ -226,6 +240,7 @@ impl Fixture {
     fn wait_completed(&self, ticket: SubmissionTicket, stage: &str) {
         // Native blocking fence wait runs the real queue callback without pumping RHI retirement.
         // There is only one producer and the just-presented frame is its most recent submission.
+        eprintln!("NATIVE_RESIZE_STAGE: native_fence_start");
         self.native
             .poll(wgpu::PollType::Wait {
                 submission_index: None,
@@ -234,6 +249,7 @@ impl Fixture {
             .unwrap_or_else(|error| {
                 panic!("NATIVE_RESIZE_{stage}: native completion wait: {error}")
             });
+        eprintln!("NATIVE_RESIZE_STAGE: native_fence_returned");
         assert_eq!(
             self.owner.submission_status(ticket).unwrap(),
             SubmissionStatus::Completed
