@@ -50,3 +50,11 @@ SHA-256 d1384c9d004b8091222566be2826696a69b0d6d11ff6ec7ff16294a0c014ec77
 在公开主线的动画插件上关闭默认特性后，Windows 库测试编译失败。三项宿主测试产生 14 条名称解析错误和 4 条随后的类型推断错误，编译器未生成测试程序。
 
 原文件中的三项测试分别检查原生注册、物理同步后的调度位置和分发清单。编译诊断的主位置位于第 38–203 行。使用 Windows x64/MSVC、`test` profile 和包 `zircon_plugin_animation_runtime --no-default-features --lib`。源码 `432c6efd72417695adcc621945f7c76ef665ae1c`，编译回执 `3bd2b970a12119c2122c347530109f4de5cd3954d768475f3e83b0729c138540`。
+
+## 8. 两种特性配置下的原库测试
+
+关闭动画包默认特性时，原先阻断库测试构建的 18 条诊断已消除。使用仓库现有的 `tests::` 筛选，实际通过 89 项。显式开启 `native-host` 后，注册、物理同步后的求值顺序和分发清单三项原测试全部通过。
+
+两条宿主专用导入和三个测试的编译条件对齐了原有 API。关闭默认特性后，测试列表包含 `tests::animation_module_resolves_manager`。显式开启宿主特性后，在同一份源码中逐名执行三个原用例。
+
+实跑源码 `2e041b050efd762d0fa6175d3cb33fd20cf75d73`。包为 `zircon_plugin_animation_runtime`，Windows x64/MSVC，`test` profile。无默认特性库套件回执 `193a00b54214a248a394d162d99b66379e90d90712e70db1e22f5bdcfb87a3b0`，显式 `native-host` 构建回执 `e35f9963e2e99187184ff61fd07ebe928ce2cb5ef65680ef70f62f4cbc5c5399`。
