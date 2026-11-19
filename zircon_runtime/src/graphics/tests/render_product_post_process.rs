@@ -313,6 +313,139 @@ fn render_product_post_user_lut_texture_changes_final_frame_and_matches_readback
     );
 }
 
+#[test]
+fn render_product_post_internal_lut_uses_effective_stack_without_caller_rebuild() {
+    use crate::core::framework::render::PostProcessEffectKind;
+
+    const DISPLAY_ABS: f32 = 0.007;
+    let size = UVec2::new(32, 32);
+    let server = WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default()))
+        .expect("a WGPU device is required for the LUT producer product regression");
+    let startup = server.query_stats().unwrap();
+    let adapter = startup
+        .device_diagnostics
+        .as_ref()
+        .expect("actual adapter identity");
+    eprintln!(
+        "LUT producer adapter={:?} type={} backend={} display_linear_abs={DISPLAY_ABS}",
+        adapter.adapter_name, adapter.adapter_device_type, startup.capabilities.backend_name
+    );
+
+    let profile = post_process_color_transform_profile("effective-color-lut-producer");
+    let stale_view = create_post_process_viewport_with_profile(&server, size, profile.clone());
+    let rebuilt_view = create_post_process_viewport_with_profile(&server, size, profile);
+    let mut stale = post_process_product_extract(
+        size,
+        RenderPostProcessEffectStackSettings {
+            tonemap: RenderTonemapSettings {
+                operator: RenderTonemapOperator::Reinhard,
+                exposure_bias: 0.0,
+                white_point: 1.0,
+            },
+            ..Default::default()
+        },
+    );
+    let low = [0.25, 0.5, 0.75];
+    stale.post_process.preview.clear_color = Vec4::new(0.25, 0.5, 0.75, 1.0);
+    let mut rebuilt = stale.clone();
+    rebuilt.post_process.rebuild_graph(false, false);
+    let authored_contains_bake = |extract: &RenderFrameExtract| {
+        extract
+            .post_process
+            .graph
+            .nodes
+            .iter()
+            .any(|node| node.kind == PostProcessEffectKind::ColorLutBake)
+    };
+    assert!(!authored_contains_bake(&stale));
+    assert!(authored_contains_bake(&rebuilt));
+
+    let observe = |case, viewport, extract, expected_src: [f32; 3]| {
+        let (frame, stats) = submit_and_capture_post_process_product(&server, viewport, extract);
+        assert_graph_executor_executed(&stats, "post.color-lut-bake");
+        assert_graph_executor_executed(&stats, "post.uber");
+        assert_graph_executor_executed(&stats, "post.output-transfer");
+        let exposure = stats.last_exposure_readback_report;
+        assert!(exposure.history_valid() && exposure.multiplier_within_epsilon(1.0, 0.0001));
+        let pass = stats
+            .last_graph_execution_profile_report
+            .pass_profiles
+            .iter()
+            .find(|pass| pass.executor_id == "post.color-lut-bake")
+            .expect("compiled bake pass profile, even if no work was encoded");
+        let lut = stats.last_color_lut_readback_report;
+        let hdr = server
+            .capture_scene_color_hdr(viewport)
+            .unwrap()
+            .expect("actual HDR input capture");
+        assert_eq!(hdr.generation, frame.generation);
+        let center = |w, h| ((h / 2) * w + w / 2) as usize;
+        let src = hdr.rgba16f[center(hdr.width, hdr.height)];
+        assert_eq!(&src[..3], &expected_src[..]);
+        let at = center(frame.width, frame.height) * 4;
+        assert_eq!(frame.rgba[at + 3], 255);
+        let srgb = [frame.rgba[at], frame.rgba[at + 1], frame.rgba[at + 2]];
+        let rgb = srgb.map(|byte| {
+            let s = byte as f32 / 255.0;
+            if s <= 0.04045 {
+                s / 12.92
+            } else {
+                ((s + 0.055) / 1.055).powf(2.4)
+            }
+        });
+        eprintln!(
+            "LUT producer case={case} src={src:?} bake_dispatches={} graph_missing_dispatches={} lut={lut:?} srgb8={srgb:?} rgb={rgb:?}",
+            pass.dispatch_count, stats.last_graph_compute_missing_dispatch_count,
+        );
+        (pass.dispatch_count, lut, rgb)
+    };
+
+    // Make the unrebuilt arm the first use of this 3D allocation so a prior
+    // successful bake cannot accidentally provide its texels.
+    let mut hdr_control = rebuilt.clone();
+    hdr_control.post_process.preview.clear_color = Vec4::new(1.0, 2.0, 4.0, 1.0);
+    let without_rebuild = observe("without-caller-rebuild", stale_view, stale, low);
+    let with_rebuild = observe("caller-rebuilt", rebuilt_view, rebuilt, low);
+    // Diagnostic only: a healthy producer can still feed a consumer that
+    // clips its input domain. Do not freeze the old out-of-domain behavior.
+    let _ = observe(
+        "caller-rebuilt-hdr-diagnostic",
+        rebuilt_view,
+        hdr_control,
+        [1.0, 2.0, 4.0],
+    );
+
+    for (case, (dispatches, lut, rgb)) in [
+        ("caller-rebuilt", with_rebuild),
+        ("without-caller-rebuild", without_rebuild),
+    ] {
+        assert!(
+            dispatches > 0,
+            "{case}: executor admission did not record any bake dispatch"
+        );
+        assert_eq!(
+            lut.size, [COLOR_LUT_SIZE_DEFAULT; 3],
+            "{case}: fresh 3D LUT readback required"
+        );
+        assert_eq!(lut.sample_count, COLOR_LUT_SIZE_DEFAULT.pow(3) as usize);
+        assert_eq!(
+            lut.alpha_out_of_tolerance_sample_count, 0,
+            "{case}: bake must write alpha=1 across the volume"
+        );
+        assert!(
+            lut.color_transform_within_epsilon(),
+            "{case}: bad baked LUT content: {lut:?}"
+        );
+        let expected = low.map(|c| c / (1.0 + c));
+        assert!(
+            rgb.into_iter()
+                .zip(expected)
+                .all(|(actual, want)| (actual - want).abs() <= DISPLAY_ABS),
+            "{case}: low-domain pixel did not use a valid LUT: {rgb:?}, expected {expected:?}"
+        );
+    }
+}
+
 fn create_post_process_viewport(
     server: &WgpuRenderFramework,
     viewport_size: UVec2,
