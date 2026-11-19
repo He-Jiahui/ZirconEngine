@@ -10,7 +10,7 @@ use zircon_runtime_interface::{
 };
 
 use crate::core::play::PlayPreviewInputOwner;
-use crate::ui::retained_host::host_contract::window::GameRmbInput;
+use crate::ui::retained_host::host_contract::GameRmbInput;
 
 use super::super::RetainedEditorHost;
 use super::pointer_mapping::map_viewport_pointer_event;

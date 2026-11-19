@@ -157,6 +157,7 @@ pub(in crate::ui::retained_host) use surface_hit_test::{
 };
 #[cfg(test)]
 pub(in crate::ui::retained_host) use template_popup_layout::menu_item_row_frame;
+pub(in crate::ui::retained_host) use window::GameRmbInput;
 pub(crate) use window::{
     primary_host_window_id, CanvasAnchorPopupEvent, CanvasAnchorPopupId, CanvasAnchorPopupKind,
     CanvasAnchorPopupOpen, HierarchyPointerSource, UiHostWindow,
