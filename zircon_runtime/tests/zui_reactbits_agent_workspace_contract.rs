@@ -17,12 +17,8 @@ fn retained_node_id(
     control_id: &str,
 ) -> zircon_runtime_interface::ui::event_ui::UiNodeId {
     surface
-        .tree
-        .nodes
-        .values()
-        .find(|node| node.node_path.0 == format!("v2/{control_id}"))
-        .map(|node| node.node_id)
-        .expect("responsive shell control should be retained")
+        .unique_control_node_id(control_id)
+        .unwrap_or_else(|| panic!("expected one retained responsive shell control {control_id:?}"))
 }
 
 #[test]
