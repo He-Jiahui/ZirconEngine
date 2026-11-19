@@ -39,3 +39,9 @@
 - `Engine/Source/Runtime/D3D12RHI/Private/Windows/WindowsD3D12Viewport.cpp` SHA-256 `bbd0df190f24c327806f08c9361f312ed2d439dccd7d751ba48e59db4e9c34e9`
 - `Engine/Source/Runtime/Engine/Private/Tests/EngineAutomationTests.cpp` SHA-256 `158c214df2c035c6d3f3075b7613b00bca6f2943486847ab6db4c8a073d19910`
 - `Engine/Source/Runtime/Engine/Private/Tests/AutomationCommon.cpp` SHA-256 `5b58be34bb20569f18c1cbf7339df9baf95a0caec5ae870d38cd71dfd8593673`
+
+## 7. 第一次构建与真实执行：控制未到达设备身份记录
+
+`0cb2e17cbf68a390d522aaba0672659ad8c7fad8`，Windows x64/MSVC、`zr_rhi_wgpu --no-default-features --lib`，test profile。真实编译回执 `125238be9cc33443d2110c7f504160f96c790654f2ef6bed5fd1fdb07a9f3d58`，EXE `3829e171fb86c9e5e38be950d2feb197f4826b7ebe6bce5905806aea6d6c7508`。只列出两项 `native_resize_`，同一枚 EXE 再按完整名称单跑 `native_resize_drained_control`。测试进程已进入 libtest 并打印这一项的名称，但未出现 `NATIVE_RESIZE_ADAPTER`、没有可证实的 submitted/presented、stderr 为空。60 秒外部限时届满，已绑定进程树全部终止，退出 124；运行回执 `7531c10c74498474b35f7ce0e9a221b7d6cacca4efdaf7040fbd621ac7ada584`。
+
+这不算一项命中窗口重配的失败；按先对照的约束未启动 `native_resize_retired_frame`。后续仅给原测试夹具添加阶段观测以区别阻塞位置，生产实现仍未修改。独立于已有历史 DX12 非零 resize 回执。
