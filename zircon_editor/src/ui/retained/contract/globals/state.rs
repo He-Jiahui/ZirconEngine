@@ -84,6 +84,9 @@ pub(crate) struct HostContractState {
     pub(crate) drag_state: HostDragStateData,
     pub(crate) resize_state: HostResizeStateData,
     pub(crate) text_input_focus: Arc<HostTextInputFocusData>,
+    /// The focus snapshot submitting synchronously through the native Details Enter path.
+    pub(in crate::ui::retained_host::host_contract) details_axis_submit_in_flight:
+        Option<Arc<HostTextInputFocusData>>,
     /// Routing address only; the session's Runtime Surface owns focus and capture.
     pub(crate) retained_pane_input_pane: Option<crate::ui::retained_host::primitives::SharedString>,
     pub(crate) canvas_anchor_popup:
@@ -151,6 +154,7 @@ impl HostContractState {
             drag_state: HostDragStateData::default(),
             resize_state: HostResizeStateData::default(),
             text_input_focus: Arc::new(HostTextInputFocusData::default()),
+            details_axis_submit_in_flight: None,
             retained_pane_input_pane: None,
             canvas_anchor_popup: None,
             canvas_anchor_popup_pointer_tail: None,

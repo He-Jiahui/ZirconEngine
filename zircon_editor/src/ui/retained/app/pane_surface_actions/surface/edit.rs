@@ -68,10 +68,11 @@ impl RetainedEditorHost {
             })();
             return Some(result);
         }
+        let action_id = binding_id;
         let binding_id = self
             .workbench_window_bridge
-            .binding_id_for_action_id(binding_id)
-            .unwrap_or_else(|| binding_id.to_string());
+            .binding_id_for_action_id(action_id)
+            .unwrap_or_else(|| action_id.to_string());
         match self.workbench_window_bridge.content_drawer_search_binding(
             control_id,
             binding_id.as_str(),
@@ -140,6 +141,18 @@ impl RetainedEditorHost {
                 value,
             )
         {
+            if result.is_ok() {
+                // Keep the shared surface callback unchanged. Only the originating window's
+                // in-flight native confirmation can consume a focused Details edit intent.
+                if let Some(window_id) = self.callback_source_window.as_ref() {
+                    if let Some(ui) = self.native_window_presenters.window(window_id) {
+                        ui.acknowledge_details_axis_text_commit(control_id, action_id, value);
+                    }
+                } else {
+                    self.ui
+                        .acknowledge_details_axis_text_commit(control_id, action_id, value);
+                }
+            }
             return Some(result);
         }
         if let Some(result) =
