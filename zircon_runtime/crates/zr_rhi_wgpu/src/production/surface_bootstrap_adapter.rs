@@ -112,7 +112,7 @@ impl WgpuSurfaceAdapterBootstrap {
             .map_err(|error| RhiError::SurfaceUnavailable(error.to_string()))?;
         let profile = profile(&adapter_facts, &device)?;
         let context = WgpuRenderDeviceContext::new(instance, adapter, device.clone(), queue);
-        let render_device = WgpuRenderDevice::new(context, profile)?;
+        let mut render_device = WgpuRenderDevice::new(context, profile)?;
         let outcome = render_device.adopt_surface_session(descriptor, surface)?;
         Ok((render_device, device, outcome))
     }

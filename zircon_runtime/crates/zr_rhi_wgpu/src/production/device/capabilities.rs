@@ -6,6 +6,11 @@ use zr_rhi::{
 
 use crate::wgpu_backend_caps;
 
+// Creating an additional surface from a native handle is not Canvas adoption.
+pub(super) const fn supports_native_surface_creation() -> bool {
+    cfg!(target_os = "windows")
+}
+
 pub(super) fn production_caps(
     adapter: &wgpu::Adapter,
     device: &wgpu::Device,
@@ -39,7 +44,7 @@ pub(in crate::production) fn production_caps_from_wgpu(
         "wgpu-rhi-production",
         features,
         limits,
-        cfg!(target_os = "windows"),
+        supports_native_surface_creation(),
         false,
         supports_indirect_execution,
     )

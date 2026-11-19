@@ -7,6 +7,7 @@ use zr_rhi::{
     SurfaceSessionCreateOutcome, SwapchainDesc,
 };
 
+use super::capabilities::supports_native_surface_creation;
 use super::{WgpuRenderDevice, WgpuSurfaceService};
 
 impl WgpuRenderDevice {
@@ -43,7 +44,7 @@ impl WgpuRenderDevice {
         descriptor: &RenderSurfaceDescriptor,
     ) -> Result<SurfaceSessionCreateOutcome, RhiError> {
         self.ensure_admission()?;
-        if !self.caps.supports_surface {
+        if !supports_native_surface_creation() {
             return Err(RhiError::SurfaceUnavailable(
                 "native surface sessions are unavailable for this build target".to_string(),
             ));
@@ -52,19 +53,36 @@ impl WgpuRenderDevice {
             .create_session(&self.instance, &self.adapter, &self.device, descriptor)
     }
 
-    pub(crate) fn adopt_surface_session(
-        &self,
+    /// Takes the surface retained by the adapter bootstrap before the device is shared.
+    pub(in crate::production) fn adopt_surface_session(
+        &mut self,
         descriptor: RenderSurfaceDescriptor,
         surface: wgpu::Surface<'static>,
     ) -> Result<SurfaceSessionCreateOutcome, RhiError> {
         self.ensure_admission()?;
-        if !self.caps.supports_surface {
+        #[cfg(target_arch = "wasm32")]
+        let adopts_browser_canvas = matches!(
+            descriptor.target,
+            zr_rhi::RenderNativeSurfaceTarget::Canvas { identity } if identity != 0
+        ) && self.adapter.get_info().backend
+            == wgpu::Backend::BrowserWebGpu;
+        #[cfg(not(target_arch = "wasm32"))]
+        let adopts_browser_canvas = false;
+
+        if !supports_native_surface_creation() && !adopts_browser_canvas {
             return Err(RhiError::SurfaceUnavailable(
                 "native surface sessions are unavailable for this build target".to_string(),
             ));
         }
-        self.lock_surfaces()
-            .adopt_session(&self.adapter, &self.device, descriptor, surface)
+        let outcome = {
+            let mut surfaces = self.lock_surfaces();
+            surfaces.adopt_session(&self.adapter, &self.device, descriptor, surface)
+        }?;
+        if adopts_browser_canvas {
+            // Announce only after this generation owns the Canvas session.
+            self.caps.supports_surface = true;
+        }
+        Ok(outcome)
     }
 
     // 重建会话前结算相关接受票据，并保持表面、资源表和提交状态的锁顺序。
