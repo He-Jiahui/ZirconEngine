@@ -75,6 +75,8 @@ use crate::ui::text::{UiTextMeasureCache, UiTextViewport};
 
 #[path = "extract/one_shot.rs"]
 mod one_shot;
+#[path = "extract/opacity.rs"]
+mod opacity;
 #[path = "extract/owner_text_prewarm.rs"]
 mod owner_text_prewarm;
 #[path = "extract/pixel_snapping.rs"]
@@ -85,6 +87,7 @@ mod popup_anchor;
 mod text_layout_route;
 
 pub use one_shot::{extract_ui_render_tree, extract_ui_render_tree_from_arranged};
+use opacity::EffectivePaintOpacity;
 use owner_text_prewarm::{collect_owner_text_prewarm_requests, owner_text_is_suppressed};
 use pixel_snapping::apply_resolved_pixel_snapping_policies;
 use popup_anchor::{popup_runtime_anchor_is_open, resolve_popup_anchor_frame};
@@ -189,6 +192,7 @@ pub(crate) fn extract_ui_render_tree_from_arranged_indexed_with_component_states
         crate::profile_scope!("runtime", "ui_text.extract", "render_command_collection");
         let mut commands = Vec::with_capacity(arranged_tree.draw_order.len());
         let mut pending_owner_text_layouts = PendingOwnerTextLayouts::default();
+        let mut paint_opacity = EffectivePaintOpacity::default();
         for node_id in arranged_tree.draw_order.iter().copied() {
             let Some(node) = tree.nodes.get(&node_id) else {
                 continue;
@@ -216,12 +220,16 @@ pub(crate) fn extract_ui_render_tree_from_arranged_indexed_with_component_states
             {
                 continue;
             }
+            let Some(opacity) = paint_opacity.resolve(tree, node_id) else {
+                continue;
+            };
             let component_state = component_states.and_then(|states| states.get(node_id));
-            let visual = UiNodeVisualData::resolve(
+            let mut visual = UiNodeVisualData::resolve(
                 node.template_metadata.as_ref(),
                 &node.state_flags,
                 component_state,
             );
+            visual.opacity = opacity;
             // Keep the owner before its supplemental commands while moving the resolved visual
             // only after those commands have finished borrowing it.
             let owner_command_index = commands.len();

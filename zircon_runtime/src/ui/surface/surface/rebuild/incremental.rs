@@ -230,7 +230,7 @@ impl UiSurface {
                 && local_layout_patch_dirty
             {
                 if !render_payload_dirty_node_ids.is_empty() {
-                    match self.patch_render_nodes(&render_changed_node_ids) {
+                    match self.patch_render_payload_nodes(&mut render_changed_node_ids) {
                         Ok(stats) => {
                             self.text_measure_cache.finish_frame();
                             Some(stats)
@@ -250,13 +250,15 @@ impl UiSurface {
                             self.text_measure_cache.finish_frame();
                             Some(stats)
                         }
-                        Err(()) => match self.patch_render_nodes(&render_changed_node_ids) {
-                            Ok(stats) => {
-                                self.text_measure_cache.finish_frame();
-                                Some(stats)
+                        Err(()) => {
+                            match self.patch_render_payload_nodes(&mut render_changed_node_ids) {
+                                Ok(stats) => {
+                                    self.text_measure_cache.finish_frame();
+                                    Some(stats)
+                                }
+                                Err(()) => None,
                             }
-                            Err(()) => None,
-                        },
+                        }
                     }
                 }
             } else if !popup_dependency_impact.render_extract
@@ -264,7 +266,7 @@ impl UiSurface {
                 && !(dirty.visible_range || dirty.hit_test || dirty.input)
                 && !render_changed_node_ids.is_empty()
             {
-                match self.patch_render_nodes(&render_changed_node_ids) {
+                match self.patch_render_payload_nodes(&mut render_changed_node_ids) {
                     Ok(stats) => {
                         self.text_measure_cache.finish_frame();
                         Some(stats)
@@ -511,9 +513,11 @@ impl UiSurface {
             }
             let render_local_patch =
                 if render_popup_dependency_impact.is_some_and(|impact| !impact.render_extract) {
-                    match self.patch_render_nodes(render_patch_node_ids) {
+                    let mut patch_node_ids = render_patch_node_ids.clone();
+                    match self.patch_render_payload_nodes(&mut patch_node_ids) {
                         Ok(stats) => {
                             self.text_measure_cache.finish_frame();
+                            render_local_patch_node_ids = Some(patch_node_ids);
                             Some(stats)
                         }
                         Err(()) => None,
@@ -524,20 +528,15 @@ impl UiSurface {
             let render_stats = render_local_patch
                 .clone()
                 .unwrap_or_else(|| self.rebuild_render_extract_with_text_frame(false, false));
-            render_local_patch_node_ids = render_local_patch
-                .as_ref()
-                .map(|_| render_patch_node_ids.clone());
             report.render_elapsed_micros = elapsed_micros(render_start);
             report.render_rebuilt = true;
             report.render_patched = render_local_patch.is_some();
             report.render_command_reused_count = render_stats.reused_command_count;
             report.render_command_rebuilt_count = render_stats.rebuilt_command_count;
             report.render_damage_rect_count = render_stats.damage_rect_count;
-            report.render_outer_node_visit_count = if render_local_patch.is_some() {
-                render_patch_node_ids.len()
-            } else {
-                self.arranged_tree.draw_order.len()
-            };
+            report.render_outer_node_visit_count = render_local_patch_node_ids
+                .as_ref()
+                .map_or_else(|| self.arranged_tree.draw_order.len(), BTreeSet::len);
             report = report.with_text_cache_stats(self.text_cache_frame_stats());
         }
         report = UiSurfaceRebuildReport {
