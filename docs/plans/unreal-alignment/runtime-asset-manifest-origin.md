@@ -32,3 +32,11 @@ Windows Runtime 的 shipping profile 规定 `asset_scope = "runtime"`。当运�
 ## 6. 等价回归与修复范围
 
 回归从正式 profile 生成配置，走资源复制和 ZIP 入口，分别断言同字节和不同字节两组的来源、大小、SHA-256 和归档内清单。另以包含两个资产根的编辑器或开发打包方式核对其既有选择顺序。修复应让来源查找使用与复制相同的资源范围，并继续按实际输出校验内容哈希。[构建流程](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/tools/build/zircon_build.py#L602-L614)
+
+## 7. 修订前的正式回归
+
+五个资产来源用例中四个通过。相同图标字节时，Runtime ZIP 的来源字段写入了 Editor 路径。六项已有清单及复制对照均通过。
+
+测试以 Python 3.14.4 运行仓库中的 `unittest` 模块。两组分别生成 Runtime shipping ZIP，并打开归档核对载荷、清单内容与实际资源路径。其它输入包括双根合并、缺省范围、空范围和 Editor shipping 资源位置。六项对照覆盖已有的来源绑定、无来源诊断、生成与插件文件以及实际复制策略。
+
+本次运行固定为 `2d11af2215768f99a87d84cf35ed0cd18b605544`。[可复跑用例](https://github.com/He-Jiahui/ZirconEngine/blob/2d11af2215768f99a87d84cf35ed0cd18b605544/tools/tests/test_zircon_build_asset_manifest_origin.py)
