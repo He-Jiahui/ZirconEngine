@@ -36,3 +36,18 @@
 - `Engine/Source/Programs/Unsync/Private/UnsyncCompression.cpp`：`9119c7a81ed7aedae0a477909d1362bf3b88c42acb12839d454507876ff55b4c`
 - `Engine/Source/Programs/UnrealBuildTool/Build/UEBuildModule.cs`：`d88199f14b2f439eed1e1a6960ea277a3fb6666a51a231b981664929f96266ed`
 - `Engine/Source/Programs/UnrealBuildTool.Tests/TargetRulesTests.cs`：`89a438e2e92e494c5e870290b36ca19493a127102d4e6a027fdc73f7ea50c345`
+
+## 7. 两个正式 Windows 域的编译实证
+
+正式 `check` 来自此 PR 初始单文档 `d4aaef3af516c4c7a28bc3d7d0e56d67f8d24733`，尚无任何工程修改。随后只新增/补充 Build 测试 `fb908380d464a1ee8db10d933489156f81cc932a`，没有借用 #232 的 UI 测试或任何其它 Draft。
+
+同一 Windows x64、MSVC Rust 1.94.1、dev profile，两次各只有 `zircon_runtime` 的 `--lib`；关闭默认特性，CI 等价的显式目标 `x86_64-pc-windows-msvc`、同一个 `--locked`。分别调用，不以二者的并集掩盖配置缺失。
+
+| 唯一特性 | 状态码 | 实际结果 | 本地原始命令回执 SHA-256 |
+|---|---:|---|---|
+| `ui` | 101 | E0433：未解析的 zstd | `e13a54aa12a407f1ff5a9fd10535cbcb61d52495277cdd6db6711aeb685e15e3` |
+| `graphics` | 101 | E0433：未解析的 zstd | `af1304ab5e84218f30e0e4695eb159f7bacf6070d0a7df94b3684fa124ae15cc` |
+
+真实 manifest 的闭包测试与相邻 shipping、别名/排序、registry 原有控制：**3 过 / 1 败**。此外用原锁文件在同一树实跑 Cargo 目标依赖图：Windows `ui` 的直接 zstd=无，原 `native-host` 仍有；只开 UI 未引入 ZIP。`wasm32-unknown-unknown` 的 `cooked-assets` 正常依赖子树中没有 `zstd` 或 `zstd-sys`。这是 Cargo 解析器结果，不是 wasm32 构建、浏览器运行或解码测试。
+
+这不是远端 GitHub Actions 执行，不是 UI 帧、渲染器、资产数据或完整发布产品验收。
