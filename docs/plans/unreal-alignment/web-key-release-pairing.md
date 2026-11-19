@@ -138,3 +138,17 @@ Web 私有配对必须消费 drain 中的所有 FocusLost（包括 [队列溢出
 | [PlayerInput](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/UserInterface/PlayerInput.cpp>) | e58db5316cab04dd2b4ad5ae3fdf974bb31b5f0a8670cb7cd59682d163d0a547 |
 | [EnhancedPlayerInput](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Plugins/EnhancedInput/Source/EnhancedInput/Private/EnhancedPlayerInput.cpp>) | 8d06cc7e5229a0536e4131406dbf1939e3abfbd0ce6408a9340f0a4fb2d2a0f4 |
 | [InputBindingTest](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Plugins/EnhancedInput/Source/EnhancedInputTestSuite/Private/InputBindingTest.cpp>) | 1577d3865608a38ce719c2f84813cebc4697696c8771100ed6f4b5279387e4b2 |
+
+## 7. 原实现的 Windows 和浏览器实测
+
+Windows x64/MSVC 在提交 `0358324d28cd1bdbedd6d0bfcfe8168e06c9fd0f` 运行六个用例。持续聚焦时提前松开 Shift、变更字形的重复键、两个数字键码贡献同一逻辑名三项失败。普通键与 Ctrl 对照、失焦与溢出后重新按下、物理码专用消息与 UTF-8 边界三项通过。[六项状态回归](https://github.com/He-Jiahui/ZirconEngine/blob/0358324d28cd1bdbedd6d0bfcfe8168e06c9fd0f/zircon_runtime/tests/browser_key_pairing.rs#L119)
+
+Chrome 157 加载提交 `8c0a258c2ca43b0da7ee0c864a6f679cbe7d58e1` 编译的 Wasm，用 `KeyboardEvent` 向测试画布回放按放顺序。五个场景都运行了实际 canvas 监听器，23 个采样帧均通过原消息与释放监听器的核对。24 项游戏状态断言通过 17 项。[浏览器用例](https://github.com/He-Jiahui/ZirconEngine/blob/8c0a258c2ca43b0da7ee0c864a6f679cbe7d58e1/tools/validation/browser/web-listener-fixture.html#L68) · [Wasm 观察入口](https://github.com/He-Jiahui/ZirconEngine/blob/8c0a258c2ca43b0da7ee0c864a6f679cbe7d58e1/zircon_app/examples/web_listener_fixture.rs#L69)
+
+| 操作 | 监听器实际接收 | 管理器实际状态 |
+|---|---|---|
+| 先松 Shift，再松 A | 键码 65，逻辑 `a`，无文本 | 键码已经释放，`A` 仍按住，空帧后仍按住 |
+| 松开 Shift 后出现 A 的重复事件 | 键码 65，逻辑和文本均为 `a`，`repeat=true` | 保留 `A` 的同时多出一次 `a` 按下边沿 |
+| 主键区 `1` 与小键盘 `1` 都按下，仅松开前者 | 松开键码 49 | 小键盘 97 仍按住，逻辑 `1` 已提前释放 |
+
+UE 的 `Input.Triggers.Keyboard.BooleanReleased` 用相同的 SpaceBar 身份覆盖按下、持续和释放。源文件为 `Engine/Plugins/EnhancedInput/Source/EnhancedInputTestSuite/Private/InputTriggerTest.cpp:1175–1214`，SHA-256 `207e9b6eafb1bffe5efd0bc6aa04199550e3b5d07ae8673dce578d4aa561bf3a`。上述浏览器采样使用 ZE 的真实输入代码和受控 DOM 事件。
