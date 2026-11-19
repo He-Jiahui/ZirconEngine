@@ -79,3 +79,14 @@ Gauntlet/Framework/Gauntlet.Utils.cs:725–751（按全名发现）。Gauntlet/U
 |---|---|---|
 | `wrong` | `Initialization("AssetModule.Manager.ProjectAssetManager", "unsupported browser asset catalog schema, target, or entry count")` | `Initialization("AssetModule.Manager.ProjectAssetManager", "unsupported browser asset catalog schema, target, or entry count")` |
 | `correct` | `ModuleGraphFrozen` | `Initialization("AssetModule.Manager.ProjectAssetManager", "browser bundle has no startup scene")` |
+
+## 8. 统一登记后的产品结果
+
+错误平台目录收到预期的资产校验错误，合法空目录由 ModuleGraphFrozen 推进到预期的缺少启动场景诊断。两条真实 Web 产品回归均通过，三个浏览器 owner 计数均回到零。同一完整产品使用 #239 的两行 Wasm 编译修正。测试页面提交为 `50ce6ca18adaf778c48e1c803e79ed18b7d9ee42`。[可复跑的浏览器回归](https://github.com/He-Jiahui/ZirconEngine/blob/50ce6ca18adaf778c48e1c803e79ed18b7d9ee42/tools/validation/browser/web-startup-order.html)
+
+| HTTP 资源目录 | WebEngine.load 实际结果 | 预期 |
+|---|---|---|
+| `wrong` | `Initialization("AssetModule.Manager.ProjectAssetManager", "unsupported browser asset catalog schema, target, or entry count")` | `Initialization("AssetModule.Manager.ProjectAssetManager", "unsupported browser asset catalog schema, target, or entry count")` |
+| `correct` | `Initialization("AssetModule.Manager.ProjectAssetManager", "browser bundle has no startup scene")` | `Initialization("AssetModule.Manager.ProjectAssetManager", "browser bundle has no startup scene")` |
+
+Web 宿主使用同一 Core TaskGraph 取得并验证目录，登记全部模块后执行一次统一激活。Core 的晚注册保护继续由既有原测覆盖。[启动顺序](https://github.com/He-Jiahui/ZirconEngine/blob/50ce6ca18adaf778c48e1c803e79ed18b7d9ee42/zircon_runtime/src/browser/open.rs#L13)
