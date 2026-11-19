@@ -447,13 +447,15 @@ mod playback_cache_tests {
         AnimationInterpolationAsset, AnimationSequenceBindingAsset, AnimationSequenceTrackAsset,
     };
     use zircon_runtime::core::framework::scene::{ComponentPropertyPath, EntityPath};
-    use zircon_runtime::core::resource::{AnimationSequenceMarker, ResourceHandle};
+    use zircon_runtime::core::resource::{
+        AnimationSequenceMarker, ResourceHandle, ResourceLocator,
+    };
     use zircon_runtime::scene::components::NodeKind;
 
     #[test]
     fn property_sequence_pipeline_reuses_only_paired_current_world_projections() {
         let manager = ResourceManager::new();
-        let uri = "mem://cache/sequence".parse().unwrap();
+        let uri = ResourceLocator::parse("mem://cache/sequence").unwrap();
         let id = AssetId::from_locator(&uri);
         let record = ResourceRecord::new(id, ResourceKind::AnimationSequence, uri)
             .with_source_hash("p1")
@@ -550,6 +552,16 @@ mod playback_cache_tests {
             .compiled
             .apply_playback_slots(&mut world, 0.5, false, None, |_| false)
             .is_none());
+        assert_eq!(
+            world
+                .get::<zircon_runtime::scene::components::LocalTransform>(target)
+                .unwrap()
+                .transform
+                .translation
+                .x,
+            2.0,
+            "a retired playback owner must preserve the last accepted value"
+        );
         assert!(compiled
             .compiled
             .apply_playback_slots(&mut world, 0.5, false, None, |_| true)
