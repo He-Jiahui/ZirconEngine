@@ -2,20 +2,26 @@
 
 use std::os::windows::fs::MetadataExt;
 use std::path::Path;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use zircon_runtime::asset::{AssetManager, ImportedAsset};
+use zircon_runtime_interface::project::{
+    ProjectLaunchIntent, ProjectLaunchProfile, ProjectLaunchSource,
+};
 
 use super::*;
-use crate::core::editing::engine::HistoryStatus;
+use crate::core::editing::engine::{HistoryContextId, HistoryStatus};
 use crate::core::editor_message::{EditorMessagePayload, EditorTopic, TOPIC_JOB};
+use crate::core::gateway::DetachedEditorRuntimeGateway;
+use crate::core::gui_startup_request::EditorGuiStartupRequest;
 use crate::core::jobs::{EditorJobShutdownState as Shutdown, JobCategory, JobEventKind, JobId};
 use crate::core::notifications::DecisionNotificationSnapshot;
-use crate::core::project::{NewProjectDraft, ProjectTemplateId};
+use crate::core::project::{ProjectAuthority, ProjectTemplateId};
 use crate::core::recovery::ProjectSessionEffect;
 use crate::core::settings::SETTINGS_USER_ROOT_ENV;
 use crate::tests::editor_event::support::EnvironmentVariableRestoreGuard as RestoreEnv;
-use crate::tests::support::configure_editor_test_runtime_build_set;
+use crate::tests::support::test_project_creation_provenance;
 use crate::ui::host::{ProjectCloseCoordinatorPhase as Phase, ProjectCloseOperation};
 use crate::ui::retained_host::app::project_close::RetainedProjectCloseError as CloseError;
 use crate::ui::retained_host::primitives::CloseRequestResponse;
@@ -54,8 +60,85 @@ fn managed_fixture_path(label: &str) -> PathBuf {
     root
 }
 
+struct ColdHost {
+    host: Rc<RefCell<RetainedEditorHost>>,
+    root_ui: UiHostWindow,
+    _core: CoreRuntime,
+}
+
+impl ColdHost {
+    fn new(root: &Path) -> Self {
+        let _config = RestoreEnv::capture("ZIRCON_CONFIG_PATH");
+        std::env::set_var("ZIRCON_CONFIG_PATH", root.join("config.json"));
+        let core = CoreRuntime::new();
+        for engine_module in zircon_runtime::builtin::runtime_core_modules() {
+            core.register_module(engine_module.descriptor()).unwrap();
+        }
+        core.register_module(zircon_runtime::ui::module_descriptor())
+            .unwrap();
+        core.register_module(module::module_descriptor()).unwrap();
+        core.activate_module(FOUNDATION_MODULE_NAME).unwrap();
+        core.activate_module(zircon_runtime::asset::ASSET_MODULE_NAME)
+            .unwrap();
+        core.activate_module(zircon_runtime::core::framework::scene::SCENE_MODULE_NAME)
+            .unwrap();
+        core.activate_module(module::EDITOR_MODULE_NAME).unwrap();
+
+        // CLI create has a real preflight and admits one project before constructing EditorState.
+        let provenance = test_project_creation_provenance();
+        let intent = ProjectLaunchIntent::create_project(
+            provenance.operation_id(),
+            ProjectLaunchSource::Cli,
+            ProjectLaunchProfile::Normal,
+            "CloseModel",
+            ProjectPaths::display_path(root),
+            ProjectTemplateId::RenderableEmpty,
+        )
+        .expect("fixture: cold project intent");
+        let request = EditorGuiStartupRequest::project(intent)
+            .preflight_project(&ProjectAuthority::default())
+            .expect("fixture: preflight the real RenderableEmpty template");
+        let root_ui = UiHostWindow::new().expect("fixture: root UI");
+        root_ui.show().expect("fixture: show the root test window");
+        let mut retained = RetainedEditorHost::new(
+            core.handle(),
+            Arc::new(DetachedEditorRuntimeGateway),
+            root_ui.clone_strong(),
+            Some(request),
+            Some(provenance.build_set_id().clone()),
+            None,
+        )
+        .expect("fixture: cold retained startup and Scene binding");
+
+        // Preserve the original CPU-only viewport seam, before any frame or render job.
+        let viewport = RetainedViewportController::new_test_stub();
+        viewport.bind_jobs(retained.runtime.context().jobs().clone());
+        root_ui.set_runtime_presenter_factory(viewport.runtime_presenter_factory());
+        retained.viewport = viewport;
+        let host = Rc::new(RefCell::new(retained));
+        wire_callbacks(&root_ui, &host, None);
+        let close_host = Rc::downgrade(&host);
+        root_ui
+            .window()
+            .on_close_requested(move || match close_host.upgrade() {
+                Some(host) => host.borrow_mut().native_main_window_close_requested(),
+                None => CloseRequestResponse::KeepWindowShown,
+            });
+        host.borrow_mut().self_handle = Some(Rc::downgrade(&host));
+        host.borrow_mut().refresh_ui();
+        host.borrow_mut()
+            .sync_hub_focus_binding()
+            .expect("fixture: bind the admitted project's focus owner");
+        Self {
+            host,
+            root_ui,
+            _core: core,
+        }
+    }
+}
+
 struct Fixture {
-    h: ChildWindowHostHarness,
+    h: ColdHost,
     root: PathBuf,
     activation: ProjectCloseOperation,
     _restore: [RestoreEnv; 2],
@@ -70,34 +153,9 @@ impl Fixture {
         ];
         std::env::set_var("USERPROFILE", root.join("home"));
         std::env::set_var(SETTINGS_USER_ROOT_ENV, root.join("settings"));
-        let h = ChildWindowHostHarness::new_at_config_path(root.join("config.json"));
-        h.activate_scene_for_editor09_close_fixture();
-        // new_for_test passes None to new_with_viewport; restore the ordinary test BuildSet.
-        configure_editor_test_runtime_build_set(&h._core);
-        let close_host = Rc::downgrade(&h.host);
-        h.root_ui
-            .window()
-            .on_close_requested(move || match close_host.upgrade() {
-                Some(host) => host.borrow_mut().native_main_window_close_requested(),
-                None => CloseRequestResponse::KeepWindowShown,
-            });
-
+        let h = ColdHost::new(&root);
         let activation = {
-            let mut host = h.host.borrow_mut();
-            let manager = host.editor_manager.enter().unwrap();
-            let draft = NewProjectDraft {
-                project_name: "CloseModel".into(),
-                location: ProjectPaths::display_path(&root)
-                    .to_string_lossy()
-                    .into_owned(),
-                template: ProjectTemplateId::RenderableEmpty,
-            };
-            let session = manager
-                .create_project_and_open(draft)
-                .expect("fixture: admit RenderableEmpty");
-            drop(manager);
-            host.apply_startup_session(session)
-                .expect("fixture: bind the startup scene");
+            let host = h.host.borrow();
             let manager = host.editor_manager.enter().unwrap();
             let activation = manager
                 .project_close_activation_identity()
@@ -110,6 +168,15 @@ impl Fixture {
                 .starts_with(&root));
             assert!(manager.project_session_heartbeat_deadline().is_some());
             assert_eq!(scene.scene_uri(), SCENE_URI);
+            assert_eq!(
+                host.runtime.active_scene_history_context(),
+                Some(HistoryContextId::Document(scene.document()))
+            );
+            assert!(host
+                .runtime
+                .project_scene_snapshot()
+                .expect("fixture: current authoring gateway")
+                .is_some());
             assert!(manager.dirty_document_toolkits().unwrap().is_empty());
             assert!(host.dirty_project_scene_token().unwrap().is_none());
             assert_eq!(host.project_close_coordinator.phase(), Phase::Decision);
@@ -176,7 +243,7 @@ fn scene_state(host: &RetainedEditorHost) -> (usize, HistoryStatus) {
     )
 }
 
-fn submit_and_observe_worker(h: &ChildWindowHostHarness, source: &Path) -> JobId {
+fn submit_and_observe_worker(h: &ColdHost, source: &Path) -> JobId {
     let context = h.host.borrow().runtime.context().clone();
     let (bus, jobs) = (context.bus(), context.jobs());
     let topic = EditorTopic::parse(TOPIC_JOB).unwrap();
@@ -238,10 +305,7 @@ fn submit_and_observe_worker(h: &ChildWindowHostHarness, source: &Path) -> JobId
     job
 }
 
-fn drive_native_close(
-    h: &ChildWindowHostHarness,
-    job: Option<JobId>,
-) -> Option<DecisionNotificationSnapshot> {
+fn drive_native_close(h: &ColdHost, job: Option<JobId>) -> Option<DecisionNotificationSnapshot> {
     let response = h.root_ui.dispatch_native_close_request_for_test();
     assert_eq!(response, CloseRequestResponse::KeepWindowShown);
     assert!(h.host.borrow().main_window_close_requested());
