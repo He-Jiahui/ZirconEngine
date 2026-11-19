@@ -81,3 +81,11 @@ Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile t
 新测试在同一 World 和保存点上直接断言 `(Transform, HistoryStatus)`，不是拿后续菜单错误代替原缺陷。将 Static 两案校正为真实拒绝写入的负控后，同一组 3 过 / 1 败，唯一失败在无编辑 Enter 刚返回、尝试 Redo 之前。明确重输与两个真实静态拒绝均通过，更早一轮的四案输出保留。 正控确证同一已提交 Scene 的 X/Y、显示值与可重做的分支，然后 `DETAILS_UNTOUCHED_ENTER_AUTHORING` 的精准联合检查失败。没有触碰产品代码。另外用同一 EXE 执行的四个既有门（设置、Unicode、层级重命名、搜索焦点）：3 过 / 1 败。 层级重命名原例在取得默认 Scene 的选中目标时停止（`default scene should expose a hierarchy rename target`），尚未走到原生重试 Enter，不能以它证明重命名通过。
 
 Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile test`。实测输入 [同一测试版本](https://github.com/He-Jiahui/ZirconEngine/commit/fa378b3dddf26efc540b353d8879f95573596955)，编译回执 `50218f13921aafdb2033c309735d93784f5260446c2d3cb9bc0f9fc9c5c2b5f6`，实际执行 `ac91c87bba24fbd4397f7a088c6bf85992f1d583d7e49e30ac869c8fccfd76fe`，stdout `61fcf9b8e80e74b7303e886d0294909cb74c7b4bc3985204df1f4cf933159f41`。
+
+## 11. 相同输入、同一测试字节：保留精度和重做
+
+在原 PR 上仅修改 Editor Details 数值轴的原生焦点/提交行为，不更改 Runtime 文档、事务系统或静态变换约束。未改冻结的测试、特性、过滤器和执行选项。
+
+同一冻结回归由 3过/1败 变为 4过/0败。空 Enter 和只移动光标均保留原 Scene 的精度、保存点及可重做的 Y；显式重输相同显示值仍形成可撤销事务。另外独立核对设置、文本、搜索、重命名的既有测试，仍以各自实测结果为准。 主案前后两次无文字编辑 Enter 的实际事件序列均未增加，随后真实 Redo 仍能重放刚撤销的 Y 位移；相机精确值与磁盘已保存的字节均不变。静态方块仍能报告 `reflection edit failed`，不会把合法拒绝记成成功。另外用同一 EXE 执行的四个既有门（设置、Unicode、层级重命名、搜索焦点）：3 过 / 1 败。 层级重命名原例在取得默认 Scene 的选中目标时停止（`default scene should expose a hierarchy rename target`），尚未走到原生重试 Enter，不能以它证明重命名通过。 这不是 IME、系统粘贴、全平台 GUI 或所有属性编辑器验收。
+
+Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile test`。实测输入 [同一测试版本](https://github.com/He-Jiahui/ZirconEngine/commit/6efde4339752054cfb60a74ce37d202f9bacf874)，编译回执 `3086de4975b6180ea07d5fddfe82eabbb320e7fd980e216cb1740120401abce8`，实际执行 `34d9211dc838849ac382612c6377b64aeaeec36599c98d9a277e27c980b2b866`，stdout `7bcd17fc91a2dc621f86e291ff32c5ce43c8ffdb896277f5cf69b14e2cbb646e`。
