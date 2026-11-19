@@ -61,10 +61,12 @@ impl CpuParticlePool {
         self.live_count
     }
 
-    pub(crate) fn spawn(&mut self, initial: InitialParticle) {
-        if let Some(index) = self.free.pop() {
+    pub(crate) fn spawn(&mut self, initial: InitialParticle) -> usize {
+        let index = if let Some(index) = self.free.pop() {
             self.write(index, initial);
+            index
         } else {
+            let index = self.alive.len();
             self.alive.push(true);
             self.age.push(0.0);
             self.lifetime.push(initial.lifetime);
@@ -79,8 +81,10 @@ impl CpuParticlePool {
             self.angular_velocity.push(initial.angular_velocity);
             self.seed.push(initial.seed);
             self.emitter_index.push(initial.emitter_index);
-        }
+            index
+        };
         self.live_count += 1;
+        index
     }
 
     pub(crate) fn kill(&mut self, index: usize) {

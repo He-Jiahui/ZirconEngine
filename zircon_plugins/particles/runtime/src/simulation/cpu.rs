@@ -95,8 +95,14 @@ impl ParticleSystemInstance {
         let transform = self.component.transform;
         let entity = self.component.entity;
         for emitter in &mut self.emitters {
-            emitter.spawn_due_particles(previous_age, self.age_seconds, transform, entity);
-            emitter.update_particles(scaled_dt);
+            let burst_steps = emitter.spawn_due_particles(
+                previous_age,
+                self.age_seconds,
+                scaled_dt,
+                transform,
+                entity,
+            );
+            emitter.update_particles(scaled_dt, burst_steps);
         }
         Ok(())
     }
@@ -205,17 +211,30 @@ impl ParticleEmitterInstance {
         &mut self,
         previous_age: Real,
         current_age: Real,
+        dt: Real,
         transform: Transform,
         entity: EntityId,
-    ) {
-        let mut spawn_count = 0u32;
+    ) -> Vec<(usize, Real)> {
+        let mut burst_steps = Vec::new();
+        // Admit against the pool at frame entry, before any slots can die this tick.
+        let mut available = self
+            .asset
+            .max_particles
+            .saturating_sub(self.pool.live_count() as u32);
         while let Some(burst) = self.asset.bursts.get(self.next_burst_index).copied() {
             let burst_time = burst.time_seconds.max(0.0);
             if burst_time > current_age {
                 break;
             }
             if burst_time >= previous_age {
-                spawn_count = spawn_count.saturating_add(burst.count);
+                let count = burst.count.min(available);
+                let remaining_dt = (current_age - burst_time).clamp(0.0, dt);
+                for _ in 0..count {
+                    let initial = self.initial_particle(transform, entity);
+                    let index = self.pool.spawn(initial);
+                    burst_steps.push((index, remaining_dt));
+                }
+                available -= count;
             }
             self.next_burst_index += 1;
         }
@@ -225,15 +244,12 @@ impl ParticleEmitterInstance {
                 (current_age - previous_age) * self.asset.spawn_rate_per_second;
             let continuous = (self.spawn_accumulator + SPAWN_ACCUMULATOR_EPSILON).floor() as u32;
             self.spawn_accumulator = (self.spawn_accumulator - continuous as Real).max(0.0);
-            spawn_count = spawn_count.saturating_add(continuous);
+            self.spawn_explicit(continuous, transform, entity);
         }
 
-        let live = self.pool.live_count() as u32;
-        let available = self.asset.max_particles.saturating_sub(live);
-        for _ in 0..spawn_count.min(available) {
-            let initial = self.initial_particle(transform, entity);
-            self.pool.spawn(initial);
-        }
+        // Reused slots are allocated in free-list order, not update order.
+        burst_steps.sort_unstable_by_key(|&(index, _)| index);
+        burst_steps
     }
 
     fn spawn_explicit(&mut self, count: u32, transform: Transform, entity: EntityId) {
@@ -276,33 +292,43 @@ impl ParticleEmitterInstance {
         }
     }
 
-    fn update_particles(&mut self, dt: Real) {
+    fn update_particles(&mut self, dt: Real, burst_steps: Vec<(usize, Real)>) {
+        let mut burst_steps = burst_steps.into_iter().peekable();
         for index in 0..self.pool.alive.len() {
             if !self.pool.alive[index] {
                 continue;
             }
+            let burst_dt = burst_steps
+                .next_if(|&(slot, _)| slot == index)
+                .map(|(_, remaining_dt)| remaining_dt);
+            let dt = burst_dt.unwrap_or(dt);
             self.pool.age[index] += dt;
             if self.pool.age[index] >= self.pool.lifetime[index] {
                 self.pool.kill(index);
                 continue;
             }
             let normalized_age = (self.pool.age[index] / self.pool.lifetime[index]).clamp(0.0, 1.0);
-            self.pool.previous_position[index] = self.pool.position[index];
-            let external_force = if self.physics_enabled {
-                self.asset.physics.external_force
-            } else {
-                Vec3::ZERO
-            };
-            self.pool.velocity[index] += (self.asset.gravity + external_force) * dt;
-            let drag_factor = (1.0 - self.asset.drag.max(0.0) * dt).clamp(0.0, 1.0);
-            let damping_factor = if self.physics_enabled && self.asset.physics.collision_enabled {
-                1.0 - self.asset.physics.damping.clamp(0.0, 1.0)
-            } else {
-                1.0
-            };
-            self.pool.velocity[index] *= drag_factor * damping_factor;
-            self.pool.position[index] += self.pool.velocity[index] * dt;
-            self.pool.rotation[index] += self.pool.angular_velocity[index] * dt;
+            // At a frame-end birth, evaluate the age-zero curves without applying
+            // the per-step damping or moving the freshly initialized particle.
+            if burst_dt != Some(0.0) {
+                self.pool.previous_position[index] = self.pool.position[index];
+                let external_force = if self.physics_enabled {
+                    self.asset.physics.external_force
+                } else {
+                    Vec3::ZERO
+                };
+                self.pool.velocity[index] += (self.asset.gravity + external_force) * dt;
+                let drag_factor = (1.0 - self.asset.drag.max(0.0) * dt).clamp(0.0, 1.0);
+                let damping_factor = if self.physics_enabled && self.asset.physics.collision_enabled
+                {
+                    1.0 - self.asset.physics.damping.clamp(0.0, 1.0)
+                } else {
+                    1.0
+                };
+                self.pool.velocity[index] *= drag_factor * damping_factor;
+                self.pool.position[index] += self.pool.velocity[index] * dt;
+                self.pool.rotation[index] += self.pool.angular_velocity[index] * dt;
+            }
             self.pool.size[index] = self.pool.initial_size[index]
                 * evaluate_scalar_curve(&self.asset.size_over_lifetime, normalized_age).max(0.0);
             self.pool.color[index] = self.pool.start_color[index]
