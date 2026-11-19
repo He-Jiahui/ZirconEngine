@@ -109,8 +109,8 @@ impl WgpuSurfaceBootstrap {
         };
         // Only the ignored Win32 resize fixture opts in via this descriptor label.
         #[cfg(all(test, target_os = "windows"))]
-        let trace_dx12 =
-            backends == wgpu::Backends::DX12 && descriptor.label.as_deref() == Some("native-resize");
+        let trace_dx12 = backends == wgpu::Backends::DX12
+            && descriptor.label.as_deref() == Some("native-resize");
         #[cfg(all(test, target_os = "windows"))]
         macro_rules! trace_selection {
             ($($args:tt)*) => {

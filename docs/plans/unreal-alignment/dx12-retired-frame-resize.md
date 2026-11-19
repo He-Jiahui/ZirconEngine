@@ -94,3 +94,13 @@ Windows DXGI 在 0.047 秒枚举出三项。精简环境的独立系统进程在
 现在每个交换链从首次创建起保留自己的资源归属。Win32 DX12 在配置非零尺寸前，释放属于该交换链且所有使用票据都已终结的退休纹理和视图。已提交但仍在途的帧、外部持有的原生视图和同时调整两个窗口各有独立的生命周期。
 
 定向验证使用 Windows x64/MSVC 的 `zr_rhi_wgpu --no-default-features --lib`，`test` profile。修复前同一份测试 1 过 1 败，修复后 2 过。源码 `00fe9442f0f7d63b7e0f01f0d90155f117a56980`，EXE `2be6d4bb24285accb4e440a21dc5cc2e95e5183a3ecbd1a4200f559fb83d1774`，两个执行回执分别为 `1c0142f6f3d5aaadf1c012c820e7c52c31c77b74d3720f6f8b426dcd526fcfb6` 和 `6b6e05093d861b5faaf78647966052ef9cdc563d2cf5f806e044ce1004eb896c`。
+
+## 12. 同一测试程序的提交与资源生命周期回归
+
+修复后用于窗口重配的测试程序 `2be6d4bb24285accb4e440a21dc5cc2e95e5183a3ecbd1a4200f559fb83d1774` 还通过了三项原有用例。每项均在单独的原生进程中执行。
+
+| 原用例 | 检查的行为 |
+|---|---|
+| `surface_teardown_racing_flush_has_only_atomic_terminal_outcomes` | 窗口收尾与提交队列并发执行时，整批票据得到一致的终态 |
+| `surface_teardown_settles_reserved_pending_and_duplicate_tickets_once` | 已保留、已入队和重复票据仅结算一次，命令上下文得到归还 |
+| `native_submitted_cancel_refusal_and_abandoned_batch_keep_original_receipt_owned` | 已提交的资源继续由原票据持有，混合批次中可取消票据正常释放 |
