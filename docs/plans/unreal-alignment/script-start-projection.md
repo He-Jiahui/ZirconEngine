@@ -95,3 +95,29 @@ UE 把实例生命周期与 `UObject`/`AActor`/`UActorComponent` 关联，Bluepr
 | `start_projection_world_replacement_starts_new_instances` | 通过 |
 
 同一活 World 只修改 A 的颜色，B 的绑定完全未变。正式 Update 第二帧真的对 B 再次成功派发 onStart；另两个对照通过。是脚本宿主派发的复现，不是 ZrVM 原生语言或整编辑器验收。 未执行 UE 原测；不将局部结果冒充完整宿主、浏览器或全引擎验收。
+
+## 9. 脚本 Update：真实成功调用与控制
+
+实际 Windows x64 / MSVC 编译源码 `60ab89574047524027ae8e7c3e961ddb05f3b3a5`。`zircon_plugin_zr_vm_language_runtime --no-default-features --test start_projection --profile test --locked --offline`，包级追加特性为空。`start_projection_ --test-threads 1 --show-output`，使用注册的首方 Update、真实 Level 与 VmPluginManager，执行末端是诊断后端，不是 ZrVM native guest 或整产品启动。 编译回执 `6d7d64e41da6f05b77061fb8340fd15ee5203aff115c1c87836f83e1c4cb2927`、EXE `5965feab699f6261112c04f69887ed0ee5ccb159b6e79cfe011ff464613345c1`、独立执行回执 `905ce15c2578ac792692c317d03eaf8822dad55b93a6cb1b040e0f2688838371`。**2 过 / 4 败**。
+
+普通更新通过已注册的 `Update` 入口派发。主用例第二帧 A 的 getter 返回 0.75，B 返回 0.5。表中列出第二次实际调度对每个实体的成功导出。
+
+| 场景 | A 的实际调用 | B 的实际调用 |
+|---|---|---|
+| 只改 A 的颜色 | onStart → onUpdate | onStart → onUpdate |
+| 等值写与 B 的两个重复槽 | onUpdate | onUpdate → onUpdate |
+| 更换 World | onStart → onUpdate | onStart → onUpdate |
+| 移除并以相同内容重装 B 行 | onStart → onUpdate | onStart → onUpdate |
+| B 行改值后还原 | onStart → onUpdate | onStart → onUpdate |
+| 另一个 Core 的第一个 World | onUpdate | onUpdate |
+
+| 冻结用例 | 结果 |
+|---|---|
+| `start_projection_equal_write_preserves_duplicate_slots` | 通过 |
+| `start_projection_new_core_with_same_numeric_ids_starts_its_own_bindings` | 失败 |
+| `start_projection_preserves_unedited_binding_across_property_write` | 失败 |
+| `start_projection_reinstalled_row_restarts_only_its_own_binding` | 失败 |
+| `start_projection_value_round_trip_restarts_only_its_own_binding` | 失败 |
+| `start_projection_world_replacement_starts_new_instances` | 通过 |
+
+脚本的六个用例实测 2 过、4 败。只改 A 后，B 仍重发 onStart。 未执行 UE 原测；不将局部结果冒充完整宿主、浏览器或全引擎验收。
