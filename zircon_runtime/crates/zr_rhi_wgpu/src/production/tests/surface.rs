@@ -1,6 +1,11 @@
-use zr_rhi::PresentMode;
+use zr_rhi::{
+    PresentMode, RenderNativeSurfaceTarget, RenderSurfaceDescriptor, SwapchainDesc, TextureFormat,
+};
 
-use super::{choose_present_mode, surface_present_mode};
+use super::{
+    choose_present_mode, surface_descriptor_is_supported, surface_present_mode,
+    surface_texture_format,
+};
 
 #[test]
 fn present_mode_projection_preserves_concrete_fifo_relaxed() {
@@ -78,4 +83,63 @@ fn native_fifo_variants_project_to_the_neutral_fifo_contract() {
     ] {
         assert_eq!(surface_present_mode(mode), PresentMode::Fifo);
     }
+}
+
+#[test]
+fn surface_receipt_format_preserves_sdr_layout_and_encoding() {
+    use wgpu::TextureFormat as W;
+
+    assert_eq!(
+        [
+            W::Bgra8UnormSrgb,
+            W::Rgba8UnormSrgb,
+            W::Bgra8Unorm,
+            W::Rgba8Unorm,
+            W::Rgba16Float,
+        ]
+        .map(surface_texture_format),
+        [
+            Some(TextureFormat::Bgra8UnormSrgb),
+            Some(TextureFormat::Rgba8UnormSrgb),
+            Some(TextureFormat::Bgra8Unorm),
+            Some(TextureFormat::Rgba8Unorm),
+            None,
+        ]
+    );
+}
+
+#[test]
+fn native_surface_admission_still_requires_srgb_and_a_supported_present_mode() {
+    use wgpu::TextureFormat as W;
+
+    let mut descriptor = RenderSurfaceDescriptor::new(
+        "native-admission-control",
+        RenderNativeSurfaceTarget::Win32 {
+            hwnd: 1,
+            hinstance: None,
+        },
+        SwapchainDesc {
+            width: 320,
+            height: 240,
+            present_mode: PresentMode::Fifo,
+            format: TextureFormat::Bgra8UnormSrgb,
+        },
+    );
+    let mut caps = wgpu::SurfaceCapabilities {
+        formats: vec![W::Bgra8UnormSrgb],
+        present_modes: vec![wgpu::PresentMode::Fifo],
+        alpha_modes: vec![wgpu::CompositeAlphaMode::Opaque],
+        usages: wgpu::TextureUsages::RENDER_ATTACHMENT,
+    };
+    assert!(surface_descriptor_is_supported(&caps, &descriptor));
+
+    caps.formats = vec![W::Rgba8UnormSrgb];
+    assert!(surface_descriptor_is_supported(&caps, &descriptor));
+    descriptor.swapchain.present_mode = PresentMode::Mailbox;
+    assert!(!surface_descriptor_is_supported(&caps, &descriptor));
+
+    descriptor.swapchain.present_mode = PresentMode::Fifo;
+    descriptor.swapchain.format = TextureFormat::Bgra8Unorm;
+    caps.formats = vec![W::Bgra8Unorm, W::Rgba8Unorm];
+    assert!(!surface_descriptor_is_supported(&caps, &descriptor));
 }
