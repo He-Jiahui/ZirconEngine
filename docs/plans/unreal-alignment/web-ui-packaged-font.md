@@ -81,3 +81,23 @@ Chrome 157 的九组字体准入回归通过 7/9。未写字体的 HUD 和已预
 每个用例结束时，监听器、引擎实例和已登记画布的计数均为零。页面提交为 `ec39dfc609c9fdac1487a91051d2843c104a8349`。[可复跑页面](https://github.com/He-Jiahui/ZirconEngine/blob/ec39dfc609c9fdac1487a91051d2843c104a8349/tools/validation/browser/web-font-policy.html)
 
 产品进入渲染器后返回 `Rhi(SurfaceUnavailable("no adapter compatible with the native surface satisfied selection policy: no adapter satisfied the declared selection policy"))`。本次呈现 0 帧。
+
+## 8. 使用内置默认字体后的实测
+
+Chrome 157 的九组字体准入回归通过 9/9。未写字体的 HUD 和已预载自定义字体的 HUD 均进入了渲染器。显式资源缺失、已登记但未预载、类型错误及坏 blob 均返回预期诊断。 本组使用固定输入差分目录。下表的渲染器请求次数来自产品对浏览器 WebGPU API 的实际调用。
+
+| 场景 | 渲染器请求适配器次数 | 字体准入断言 |
+|---|---:|---|
+| 只预载 HUD | 1 | 通过 |
+| HUD 使用默认样式 | 1 | 通过 |
+| 有效的项目默认覆盖 | 1 | 通过 |
+| 显式同名默认字体缺失 | 0 | 通过 |
+| 显式自定义字体缺失 | 0 | 通过 |
+| 自定义字体就绪，目录无默认覆盖 | 1 | 通过 |
+| 覆盖已登记、未预载 | 0 | 通过 |
+| URI 对应资源类型错误 | 0 | 通过 |
+| 已预载字体的 blob 哈希不符 | 0 | 通过 |
+
+每个用例结束时，监听器、引擎实例和已登记画布的计数均为零。页面提交为 `3dc6edcd5abd8842563c3867052f56913487195e`。[可复跑页面](https://github.com/He-Jiahui/ZirconEngine/blob/3dc6edcd5abd8842563c3867052f56913487195e/tools/validation/browser/web-font-policy.html)
+
+产品进入渲染器后返回 `Rhi(SurfaceUnavailable("no adapter compatible with the native surface satisfied selection policy: no adapter satisfied the declared selection policy"))`。本次呈现 0 帧。
