@@ -75,3 +75,9 @@ Windows x64/MSVC 1.94.1 / `zircon_editor --no-default-features --lib` / `test`�
 动态相机实测：同一 Scene 已保存 X=12.3456 且可重做 Y=6.25，未输入就按 Enter 后 X 被改为 12.35，产生事务 #3，文档变脏，真正的 Redo 命令被禁用。显式重输同值对照通过；两个静态方块均是更早的反射写拒绝，不算复现。 下次先将 Static 改作诚实负对照，在可编辑例中于调用 Redo 前分别断言精度和历史，冻结这份回归后再做窄修复。
 
 Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile test`。实测输入 [同一测试版本](https://github.com/He-Jiahui/ZirconEngine/commit/3f18406a33d8277882bd87819ac86639f9419f39)，编译回执 `2fb9c4a44cd18ecf2f65578573124dcff6a7c0cf6d5a0dcaf8239ec8420c2e02`，实际执行 `c77aa2153f79d468963808141f11670cebe348c555c74d587ee3959013ab9884`，stdout `29d41d16fd45cf8315a569f4500aeb5c409ee8f41a7ae31f44352a6b39f382b7`。
+
+## 10. 冻结可编辑和静态负控：只剩目标行为失败
+
+新测试在同一 World 和保存点上直接断言 `(Transform, HistoryStatus)`，不是拿后续菜单错误代替原缺陷。将 Static 两案校正为真实拒绝写入的负控后，同一组 3 过 / 1 败，唯一失败在无编辑 Enter 刚返回、尝试 Redo 之前。明确重输与两个真实静态拒绝均通过，更早一轮的四案输出保留。 正控确证同一已提交 Scene 的 X/Y、显示值与可重做的分支，然后 `DETAILS_UNTOUCHED_ENTER_AUTHORING` 的精准联合检查失败。没有触碰产品代码。另外用同一 EXE 执行的四个既有门（设置、Unicode、层级重命名、搜索焦点）：3 过 / 1 败。 层级重命名原例在取得默认 Scene 的选中目标时停止（`default scene should expose a hierarchy rename target`），尚未走到原生重试 Enter，不能以它证明重命名通过。
+
+Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile test`。实测输入 [同一测试版本](https://github.com/He-Jiahui/ZirconEngine/commit/fa378b3dddf26efc540b353d8879f95573596955)，编译回执 `50218f13921aafdb2033c309735d93784f5260446c2d3cb9bc0f9fc9c5c2b5f6`，实际执行 `ac91c87bba24fbd4397f7a088c6bf85992f1d583d7e49e30ac869c8fccfd76fe`，stdout `61fcf9b8e80e74b7303e886d0294909cb74c7b4bc3985204df1f4cf933159f41`。
