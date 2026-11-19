@@ -130,3 +130,17 @@ c9a7e5db685aea573f99f2c5f7d84c8711c17e0282f05a29f8cb6e1e6d4b1f46  Engine/Source/
 **为什么未改生产。** 直接忽略描述符 mtime 会误吞上述已测的合法显式 touch，[Runtime 目录契约也要求源 touch 可见](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/docs/plans/zircon_runtime/runtime/04/failure-2026-07-23-project-catalog-input-generation.md#L33-L49)。只在正常发布后强行调回时间也不足：[修订匹配](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/crates/zr_resource/src/io/source_revision.rs#L20-L35) 核身份、摘要、长度，不核原始 mtime；[回滚/恢复](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/crates/zr_resource/src/io/transaction/commit.rs#L264-L306) 会重新暂存备份字节。下一步须在生成写入的确切边界区分自己的写回与真实作者操作，并验证冲突、失败恢复、全扫与 targeted；不改变普通文件或通用写入默认，也不声称库能为非协作外部 writer 提供原子 CAS。
 
 原生命令回执 SHA-256 `4cbaf94e2eb7470d249a7283c1dce469d6f57de0d6024e2bb30440398dc1e823`。37 项选定源与配置复核，非全源码封存。这是 Runtime 微型工程的真实证据，不是 UE 测试执行、[Editor #202](https://github.com/He-Jiahui/ZirconEngine/pull/202) 的内部事件归因或产品验收。
+
+## 8. 关闭管理器和事务恢复后的来源时间
+
+在真实 Shader 复合资源上运行原有四项回归和五项新增用例，共 5/9 通过。一次正常扫描后关闭管理器并重新打开，即使成员没有改变，首次全扫也把上次生成描述符的物理时间记入来源。
+
+| 冷开或恢复条件 | 预期来源时间（Unix 毫秒） | 目录中实际来源时间（Unix 毫秒） |
+|---|---:|---:|
+| 外部同字节、同时间替换文件 | 1795128166269 | 1795128166269 |
+| 作者触碰同一文件 | 946684860000 | 946684860000 |
+| natural | 946684800000 | 1795128166600 |
+| 事务在登记表提交前失败 | 1795128227189 | 1795128167313 |
+| 重开后回放未完成的事务 | 1795128227602 | 1795128167828 |
+
+每次重开均核对三个 Ready 资源、三个已解码的载荷和成员输入。两种事务用例先确认登记表和描述符旧字节已还原，再扫描来源时间。注册的 UE `Simple Modify` 原测使用同一路径的不同内容验证重新导入。ZE 的两个触碰对照还覆盖内容保持相同的文件操作。 [新增回归源码](https://github.com/He-Jiahui/ZirconEngine/blob/c3149d2ee187c6289514718896d4c3d24fff108a/zircon_runtime/src/asset/tests/project/zmeta/compound_reopen.rs)
