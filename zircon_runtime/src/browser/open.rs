@@ -21,7 +21,6 @@ impl BrowserEngine {
         ] {
             core.register_module(module).map_err(error)?;
         }
-        core.activate_registered_modules().map_err(error)?;
         let source =
             BrowserAssetSource::open(&core.handle(), asset_root, BrowserAssetLimits::default())
                 .await
