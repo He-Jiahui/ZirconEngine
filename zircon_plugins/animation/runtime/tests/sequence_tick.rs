@@ -542,3 +542,249 @@ fn sequence_tick_paused_retries_shared_asset_after_eviction() {
     frames.assert_paused(a, shared, &a_before);
     frames.assert_paused(b, shared, &b_before);
 }
+
+fn mixed_transform_sequence(first: &str, others: &[&str]) -> AnimationSequenceAsset {
+    let mut asset = sequence_asset_for_entity(first);
+    for target in others {
+        asset
+            .bindings
+            .extend(sequence_asset_for_entity(target).bindings);
+    }
+    asset
+}
+
+fn edit_mixed_translation(frames: &SequenceFrames, target: EntityId, next: Vec3) {
+    frames.level.with_world_mut(|world| {
+        let mut transform = world.get::<LocalTransform>(target).unwrap().transform;
+        transform.translation = next;
+        assert!(world.update_transform(target, transform).unwrap());
+    });
+}
+
+#[track_caller]
+fn assert_mixed_frame<const N: usize>(
+    frames: &SequenceFrames,
+    stage: &str,
+    targets: [EntityId; N],
+    expected: [Vec3; N],
+    requests: Option<u64>,
+) {
+    let observed_requests = frames.frame(stage, 1);
+    let actual = targets.map(|entity| frames.translation(entity));
+    println!(
+        "SEQUENCE_MIXED_V1 stage={stage} requests={observed_requests} targets={targets:?} translations={actual:?}"
+    );
+    assert_eq!(actual, expected, "target translations at {stage}");
+    if let Some(requests) = requests {
+        assert_eq!(observed_requests, requests, "sequence requests at {stage}");
+    } else {
+        // While bindings are unresolved, an unrelated catalog edit may retry once.
+        assert!(
+            observed_requests <= 1,
+            "duplicate sequence requests at {stage}"
+        );
+    }
+}
+
+#[test]
+#[ignore = "requires an isolated host ZIRCON_CONFIG_PATH under the process temp directory"]
+fn sequence_tick_mixed_late_bindings_preserve_independent_edits() {
+    let frames = SequenceFrames::open();
+    let bound = frames.spawn("MixedBound");
+    let renamable = frames.spawn("MixedBeforeRename");
+    let unrelated = frames.spawn("MixedUnrelated");
+    let asset = mixed_transform_sequence("MixedBound", &["MixedSpawned", "MixedRenamed"]);
+    let sequence = frames.ready("mixed-late-targets", asset);
+    let clock = frames.player("MixedClock", sequence, PAUSED_TIME, false);
+    let before = frames.player_stamp(clock);
+    assert_eq!(frames.at_path("MixedSpawned"), None);
+    assert_eq!(frames.at_path("MixedRenamed"), None);
+    assert_eq!(frames.translation(bound), Vec3::ZERO);
+    assert_mixed_frame(
+        &frames,
+        "mixed_initial_partial",
+        [bound, renamable],
+        [SAMPLED, Vec3::ZERO],
+        Some(1),
+    );
+
+    edit_mixed_translation(&frames, bound, SENTINEL);
+    assert_mixed_frame(
+        &frames,
+        "mixed_authored_edit_settles",
+        [bound, renamable],
+        [SENTINEL, Vec3::ZERO],
+        Some(0),
+    );
+    frames.rename(unrelated, "MixedStillUnrelated");
+    assert_mixed_frame(
+        &frames,
+        "mixed_unrelated_catalog_edit",
+        [bound, renamable, unrelated],
+        [SENTINEL, Vec3::ZERO, Vec3::ZERO],
+        None,
+    );
+    frames.assert_paused(clock, sequence, &before);
+
+    let spawned = frames.spawn("MixedSpawned");
+    assert_eq!(frames.at_path("MixedSpawned"), Some(spawned));
+    assert_eq!(frames.at_path("MixedRenamed"), None);
+    assert_eq!(frames.translation(spawned), Vec3::ZERO);
+    let targets = [bound, spawned, renamable];
+    let after_spawn = [SENTINEL, SAMPLED, Vec3::ZERO];
+    assert_mixed_frame(&frames, "mixed_after_spawn", targets, after_spawn, Some(1));
+    assert_mixed_frame(
+        &frames,
+        "mixed_spawn_settled",
+        targets,
+        after_spawn,
+        Some(0),
+    );
+    frames.assert_paused(clock, sequence, &before);
+
+    let edited_spawn = Vec3::new(0.0, 29.0, 0.0);
+    edit_mixed_translation(&frames, spawned, edited_spawn);
+    frames.rename(renamable, "MixedRenamed");
+    assert_eq!(frames.at_path("MixedRenamed"), Some(renamable));
+    assert_eq!(frames.translation(renamable), Vec3::ZERO);
+    let after_rename = [SENTINEL, edited_spawn, SAMPLED];
+    assert_mixed_frame(
+        &frames,
+        "mixed_after_rename",
+        targets,
+        after_rename,
+        Some(1),
+    );
+    assert_mixed_frame(
+        &frames,
+        "mixed_rename_settled",
+        targets,
+        after_rename,
+        Some(0),
+    );
+    assert_eq!(frames.translation(clock), Vec3::ZERO);
+    assert!(!frames.level.animation_requires_continuous_frame());
+    frames.assert_paused(clock, sequence, &before);
+}
+
+fn publish_mixed_ready(
+    frames: &SequenceFrames,
+    uri: &AssetUri,
+    asset: &AnimationSequenceAsset,
+) -> ReadySequence {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::Hasher;
+
+    // Identify the actual encoded fixture content; ResourceManager owns the revision.
+    let mut digest = DefaultHasher::new();
+    digest.write(&asset.to_bytes().unwrap());
+    let id = ResourceId::from_locator(uri);
+    let manager = frames.assets();
+    manager
+        .resource_manager()
+        .register_ready(
+            ResourceRecord::new(id, ResourceKind::AnimationSequence, uri.clone())
+                .with_source_hash(format!("{:016x}", digest.finish())),
+            asset.clone(),
+        )
+        .expect("publish Ready sequence content");
+    assert_eq!(&manager.load_animation_sequence_asset(id).unwrap(), asset);
+    ReadySequence {
+        id,
+        revision: frames.asset_revision(id),
+    }
+}
+
+#[test]
+#[ignore = "requires an isolated host ZIRCON_CONFIG_PATH under the process temp directory"]
+fn sequence_tick_mixed_explicit_seek_and_asset_revision_resample_all_tracks() {
+    use zircon_runtime::core::framework::animation::AnimationChannelValueAsset;
+
+    let frames = SequenceFrames::open();
+    let first = frames.spawn("MixedExplicitFirst");
+    let second = frames.spawn("MixedExplicitSecond");
+    let targets = [first, second];
+    let mut asset = mixed_transform_sequence(
+        "MixedExplicitFirst",
+        &["MixedExplicitSecond", "MixedExplicitMissing"],
+    );
+    let uri = AssetUri::parse("res://animation/mixed-explicit.sequence.zranim").unwrap();
+    let sequence = publish_mixed_ready(&frames, &uri, &asset);
+    let clock = frames.player("MixedExplicitClock", sequence, PAUSED_TIME, false);
+    let before = frames.player_stamp(clock);
+    assert_eq!(frames.at_path("MixedExplicitMissing"), None);
+    assert_mixed_frame(
+        &frames,
+        "mixed_explicit_initial",
+        targets,
+        [SAMPLED; 2],
+        Some(1),
+    );
+    frames.assert_paused(clock, sequence, &before);
+
+    let edits = [SENTINEL, Vec3::new(0.0, 19.0, 0.0)];
+    for (target, edit) in targets.into_iter().zip(edits) {
+        edit_mixed_translation(&frames, target, edit);
+    }
+    assert_mixed_frame(
+        &frames,
+        "mixed_before_explicit_seek",
+        targets,
+        edits,
+        Some(0),
+    );
+    let mut requested_seek = before.0.clone();
+    requested_seek.time_seconds = 0.0;
+    frames.level.with_world_mut(|world| {
+        assert!(world
+            .set_animation_sequence_player(clock, Some(requested_seek.clone()))
+            .unwrap());
+    });
+    let seeked = frames.player_stamp(clock);
+    assert_eq!(seeked.0, requested_seek);
+    assert_ne!(seeked.1, before.1);
+    assert_mixed_frame(
+        &frames,
+        "mixed_explicit_seek",
+        targets,
+        [Vec3::ZERO; 2],
+        Some(1),
+    );
+    assert_mixed_frame(
+        &frames,
+        "mixed_seek_settled",
+        targets,
+        [Vec3::ZERO; 2],
+        Some(0),
+    );
+    assert_eq!(frames.player_stamp(clock), seeked);
+    assert_eq!(frames.asset_revision(sequence.id), sequence.revision);
+
+    let revised_values = [Vec3::new(7.0, 0.0, 0.0), Vec3::new(0.0, 8.0, 0.0)];
+    for (binding, sample) in asset.bindings.iter_mut().zip(revised_values) {
+        binding.tracks[0].channel.keys[0].value =
+            AnimationChannelValueAsset::Vec3(sample.to_array());
+    }
+    let revised = publish_mixed_ready(&frames, &uri, &asset);
+    assert_eq!(revised.id, sequence.id);
+    assert!(revised.revision > sequence.revision);
+    assert_mixed_frame(
+        &frames,
+        "mixed_explicit_ready_revision",
+        targets,
+        revised_values,
+        Some(1),
+    );
+    assert_mixed_frame(
+        &frames,
+        "mixed_revision_settled",
+        targets,
+        revised_values,
+        Some(0),
+    );
+    assert_eq!(frames.player_stamp(clock), seeked);
+    assert_eq!(frames.asset_revision(sequence.id), revised.revision);
+    assert_eq!(frames.at_path("MixedExplicitMissing"), None);
+    assert_eq!(frames.translation(clock), Vec3::ZERO);
+    assert!(!frames.level.animation_requires_continuous_frame());
+}
