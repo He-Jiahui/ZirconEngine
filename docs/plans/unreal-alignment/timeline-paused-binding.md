@@ -179,3 +179,32 @@ UE 文件 SHA256（仅短符号/路径说明，无 UE 实现段落复制）：
 | `closed` | `真实 close 返回，项目已撤销` |
 
 第九个真实磁盘用例已越过全部前置：同源、同 ID、同字节和修订号的 sequence 释放最后租约后重新驻留，active key 变了。暂停时刻不变，原 A 的外部编辑保留，新 B 没有按 t=0.5 采样；九例 4 过 5 败，未提交生产修复。 未运行 UE、浏览器、完整 D11 游戏宿主或产品验收；active 身份不是 authored 修订，也不能把下一次显式 seek 当作迟生目标已恢复。
+
+## 11. 真实场景里的冷装、旧目标、写入失效与延迟准入
+
+实际 Windows x64 / MSVC 编译源码 `d246c32ae8666892744c9f20ae5902559ef30428`。`zircon_plugin_animation_runtime --no-default-features --test sequence_tick --profile test --locked --offline`；`sequence_tick_ --ignored --test-threads 1 --show-output`。相同正式动画 PostUpdate；新增用例没有直接调用写入器或伪造资源版本。 编译回执 `de0474f89cb7b559cd8f42331243696345538611ef58781eaefe8b98d90fb774`、EXE `d5be9ba409c5504ea738466b05dd85ee8205fb61282af15e1b7e11ea757a96d9`、独立执行回执 `ad3d44cf6702019be951af283026008cc9ddd904f00b47a92048fff6c3708a13`。**5 过 / 9 败**。
+
+- **磁盘冷装**：首帧之前没有 active payload。首帧正式安装并采样 A.x=2；外部将 A 改为 17 后，无 seek、无内容更换的次帧却产生 1 个请求并把 A.x 写回 2。不是「首次没有装进来」。
+- **目标离开再返回**：同一 World、同一 A 与同一内容下记录六帧。B/C 对应路径都已出现，进入帧请求却分别为 0，B/C 保持零；A 的外部 17 保留。不是用新实体替代 A 的假阳性。
+- **普通帧内的写入失效**：两份 target/field writer 都已编好；A 的真实 Replace 观察器采用正常重命名 API 移走 B，A 写一次，B 零次，只有 B 的 binding generation 从 4 到 7，恰有一次 stale rejection。恢复同一 B 后确实写成 `(0,2,0)`，**失败的是已成功的 A 也被从 17 写回 2**。这不是「B 永远没写」或编译时就缺少 B。
+- **实际换代正控**：两玩家共用 P1，第一次真正写入后发布 P2。该帧只见 P1 的 `(2,0,0)`、`(3,0,0)`；下帧两次 P2 分别 `(0,7,0)`、`(0,9,0)`，之后 0 请求。均通过，不要求中途强行切换资产。
+- **真实延迟准入**：事件队列由 256 降到 225，B 的 clip 时钟从 0 到 0.125，证明它从 deferred 变成获准。A 获准时与 B 恢复时实际 late 写入都为空、请求 0/0，未把队列门或时钟当序列已经采样。
+
+| 冻结用例 | 结果 |
+|---|---|
+| `sequence_tick_admission_batch_does_not_mix_publications` | 通过 |
+| `sequence_tick_admission_deferred_owner_retains_its_late_sample` | 失败 |
+| `sequence_tick_disk_cold_paused_installs_then_quiet` | 失败 |
+| `sequence_tick_ordinary_stale_writer_retries_that_track_only` | 失败 |
+| `sequence_tick_paused_omits_previously_written_actor_after_rename` | 失败 |
+| `sequence_tick_residency_rebinds_only_missing_target` | 失败 |
+| `sequence_tick_mixed_explicit_seek_and_asset_revision_resample_all_tracks` | 通过 |
+| `sequence_tick_mixed_late_bindings_preserve_independent_edits` | 失败 |
+| `sequence_tick_paused_keeps_bound_target_quiet` | 通过 |
+| `sequence_tick_paused_retries_renamed_target` | 失败 |
+| `sequence_tick_paused_retries_shared_asset_after_eviction` | 失败 |
+| `sequence_tick_paused_retries_spawned_target` | 失败 |
+| `sequence_tick_playing_retries_spawned_target` | 通过 |
+| `sequence_tick_samples_initial_paused_target` | 通过 |
+
+原九例仍是 4 过 5 败。新增五例 1 过 4 败：真实冷装后无故重写、绑定历史/延期的漏写、普通帧内 writer 失效后的错误重写都已量到；正式发布新版时的两玩家一致性对照通过。未采用未经同组回归验证的生产候选。 未执行 UE 原测；不将局部结果冒充完整宿主、浏览器或全引擎验收。
