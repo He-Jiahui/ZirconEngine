@@ -30,3 +30,15 @@
 
 - `TextureCompressorModule.cpp`：`f6226f8c32941aec1d94402825392151fa524ecf9ec11d041b32eb5f2b6c983f`
 - `Texture2DTests.cpp`：`6ee1de61a79f5cd6a816e7e628f3c30ca7c06ab96edc06fde6a41f00f41eb25b`
+
+## 7. 原测试的独立修正和编译器实证
+
+[同 PR 单一测试文件改动](https://github.com/He-Jiahui/ZirconEngine/blob/0d37909af9584aadcf3dddc29c06bf738ca39de1/zircon_plugins/texture_importer/runtime/src/tests/mipgen.rs)。Windows x64/MSVC、Rust 1.94.1，`test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_texture_importer_runtime --no-default-features --lib --no-run --profile test --locked --jobs 1 --message-format=json`。原版包树、Runtime、接口、工作区清单与锁均取固定 main；两项独立调查起点只有各自的 Markdown 文档不同，**共用同一次真实原版编译**，不是叠加更改后的分支。
+
+mipgen 原测试的 21 项编译诊断已消失；同一插件 libtest 从 23 项降为 2 项，剩余均为独立 KTX1 测试的原诊断。仍未生成测试程序、0 行为用例执行；仅修测试，不改生产。
+
+- 原始编译回执 `ae1f236932d914fda6c778db8ab10196847bf050d9380d492569936aa9d1144f`：2 个 KTX1 E0618、11 个 mipgen E0599、10 个 mipgen E0609。
+- 本 PR 的实际编译回执 `1a0e5558cf45f5044d4de259766bb2a2b603d8369ef98b04baa77c8624bb7d9c`：逐个比对剩余的 `2` 个主错误（路径、行、code、message 均相同），其他未改测试的 Git blob 仍与 main 匹配，没有新增其它类别。
+- 七处成功值显式解构纹理和诊断；原纹理、法线、mip 字节和容器断言不改，并对这些正常输入核实没有未预期的诊断。
+
+这不是整套测试已绿，也不是生产纹理画面验证；未用跳过、临时 cfg、替代 runner 或从其它未合并 PR 拿代码。待两个独立改动合法进入同一基线后，仍须从原 Cargo 目标启动并运行原来的实际用例。
