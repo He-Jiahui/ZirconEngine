@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮清点 30 个原列领域和 10 个补充领域。截至第29轮，累计 **57 个问题 Draft**。第33节记录本轮公开进度及验证边界，第7–32节保留前轮结果。下文首轮表格与 CSV 保留原始清点。
+首轮清点 30 个原列领域和 10 个补充领域。截至第30轮，累计 **60 个问题 Draft**。第34节记录近期修复，第35节逐项列出 40 个领域的当前进度。第7–33节保留前轮结果。下文首轮表格与 CSV 保留原始清点。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -491,3 +491,58 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 | [#244](https://github.com/He-Jiahui/ZirconEngine/pull/244) · [`0560b6e7`](https://github.com/He-Jiahui/ZirconEngine/blob/0560b6e75611997c03d1d3f23fbe665970c6f939/docs/plans/unreal-alignment/runtime-asset-manifest-origin.md#L44) | passed · Runtime 发布 ZIP 中的同名同内容资源现记录为实际选中的 Runtime 来源。11 项功能回归从 10 项通过提升到全部通过。另跑的源码文本检查在两版均因旧导入拼写失败。 |
 
 累计 57 个问题 Draft 和 1 个总索引；8 份模块 CSV 保持原 Git 对象。
+
+## 34. 构建入口、任务等待和声音时间轴
+
+本轮三个独立 Draft 都从公共 `main` 的单份调查文档开始，随后各自补入回归和修复。
+
+- 构建工具的七项归属检查改为加载包入口和脚本入口。原有 16 项测试从 9 项通过提升到全部通过。故意只错绑脚本入口的复制函数时，只有对应检查失败。 [#245 的回归与实现](https://github.com/He-Jiahui/ZirconEngine/blob/1f47cafb90c6f3723b81b4b7538f809dafbbc753/docs/plans/unreal-alignment/build-entry-owner-imports.md)
+- 单个已完成任务的集合等待现在直接返回。调用线程的分配次数由 4 次降到 0 次，空输入和直接等待均为 0 次，显式分配对照为 1 次。 [#246 的回归与实现](https://github.com/He-Jiahui/ZirconEngine/blob/554913c4e49e0befb7b0fc4950cd21842db01eb8/docs/plans/unreal-alignment/task-wait-all-single-member.md)
+- 非循环声音序列恰好完成或越过时长时，报告值与主轨增益都从错误的 0.50 恢复到末键的 0.25。循环控制回绕至 0.75，三个回归由 1 项通过提升到 3 项通过。 [#247 的回归与实现](https://github.com/He-Jiahui/ZirconEngine/blob/3e4ed792940841502f9fa1b5bbc9eb005f949da5/docs/plans/unreal-alignment/sound-step-curve-terminal-gain.md)
+
+## 35. 四十个领域的验证进度
+
+前 30 项对应原列领域，后 10 项是补充领域。表中共享的草稿按编号计一次。每行的待验项给出下一项可实际检查的行为。
+
+| 领域 | 已对照的实现与验证 | 待验项 | 相关工作 |
+|---|---|---|---|
+| 物理 | Chaos 形状扫掠与 ZE 旋转盒查询。20 个包围盒回归通过。 | 核对 Jolt 窄相、静止重叠和固定步。 | [#166](https://github.com/He-Jiahui/ZirconEngine/pull/166)、[#145](https://github.com/He-Jiahui/ZirconEngine/pull/145) |
+| RHI | UE RHI 与 ZE 的 DX12 窗口调整、设备准入和 Web 表面配置。DX12 调整尺寸后已有回读像素。 | 核对多窗和在途帧，取得 Web 产品帧。 | [#132](https://github.com/He-Jiahui/ZirconEngine/pull/132)、[#235](https://github.com/He-Jiahui/ZirconEngine/pull/235)、[#236](https://github.com/He-Jiahui/ZirconEngine/pull/236)、[#242](https://github.com/He-Jiahui/ZirconEngine/pull/242)、[#243](https://github.com/He-Jiahui/ZirconEngine/pull/243) |
+| 音效 | 已读 UE 声音导入和 Sequencer 浮点通道。ZE 已复现冷缓存重开后保留 NaN，并验证声音时间轴的阶梯增益。 | 在真实工程中验证旧缓存迁移，再验证设备输出。 | [#156](https://github.com/He-Jiahui/ZirconEngine/pull/156)、[#247](https://github.com/He-Jiahui/ZirconEngine/pull/247) |
+| 组件 | MassEntity 生命周期与 ZE ECS 的 Remove、Despawn、sparse 行。销毁与代际回归修后 8/8。 | 复查更宽的 ECS 测试组及回调调度。 | [#131](https://github.com/He-Jiahui/ZirconEngine/pull/131)、[#167](https://github.com/He-Jiahui/ZirconEngine/pull/167) |
+| 脚本 | Blueprint 生命周期与 ZE 脚本绑定刷新。真实脚本宿主中，未变实例的启动通知由 2/6 提升到 6/6。 | 验证正式 Play 和 Reload。 | [#149](https://github.com/He-Jiahui/ZirconEngine/pull/149) |
+| 资产 | AssetRegistry 对照已覆盖 ZE 首目录、复合导入和纹理数组重扫。已复现项目就绪后首目录缺项。 | 追踪目录令牌和重扫来源，实测同 ID 的 GPU 对象绑定。 | [#134](https://github.com/He-Jiahui/ZirconEngine/pull/134)、[#180](https://github.com/He-Jiahui/ZirconEngine/pull/180)、[#202](https://github.com/He-Jiahui/ZirconEngine/pull/202)、[#204](https://github.com/He-Jiahui/ZirconEngine/pull/204)、[#219](https://github.com/He-Jiahui/ZirconEngine/pull/219) |
+| UI | Slate 祖先透明度、运行时 HUD 和 Web 字体准入。ZE 的祖先透明度回归修后 6/6。 | 取得 HUD 的真实设备输入和合成画面。 | [#150](https://github.com/He-Jiahui/ZirconEngine/pull/150)、[#212](https://github.com/He-Jiahui/ZirconEngine/pull/212)、[#233](https://github.com/He-Jiahui/ZirconEngine/pull/233)、[#241](https://github.com/He-Jiahui/ZirconEngine/pull/241) |
+| 布局 | Slate ScrollBox 对照 ZE 的内距与滚动范围。缩放、嵌套和适配用例由 1/5 提升到 5/5。 | 对照 grid、masonry 与窗口 DPI。 | [#232](https://github.com/He-Jiahui/ZirconEngine/pull/232)、[#234](https://github.com/He-Jiahui/ZirconEngine/pull/234) |
+| 交互 | Slate 的裁剪、捕获与取消对应 ZE 工具栏、Play 手势和运行时菜单。已实跑触摸取消路径。 | 验证分离窗口和桌面输入捕获。 | [#148](https://github.com/He-Jiahui/ZirconEngine/pull/148)、[#168](https://github.com/He-Jiahui/ZirconEngine/pull/168)、[#212](https://github.com/He-Jiahui/ZirconEngine/pull/212)、[#213](https://github.com/He-Jiahui/ZirconEngine/pull/213) |
+| 渲染 | 已对照普通网格、CPU 剔除、蒙皮及 RHI 提交。Windows DX12 有视口像素回读。 | 验证多后端产品首帧与 GPU 蒙皮。 | [#135](https://github.com/He-Jiahui/ZirconEngine/pull/135)、[#138](https://github.com/He-Jiahui/ZirconEngine/pull/138)、[#141](https://github.com/He-Jiahui/ZirconEngine/pull/141)、[#144](https://github.com/He-Jiahui/ZirconEngine/pull/144)、[#154](https://github.com/He-Jiahui/ZirconEngine/pull/154)、[#164](https://github.com/He-Jiahui/ZirconEngine/pull/164)、[#243](https://github.com/He-Jiahui/ZirconEngine/pull/243) |
+| 输入 | EnhancedInput 和 ApplicationCore 对照 ZE 浏览器键态、切焦释放与触摸取消。修后 Chrome 切焦断言 21/21。 | 验证触屏、手柄、IME 和其他浏览器。 | [#151](https://github.com/He-Jiahui/ZirconEngine/pull/151)、[#213](https://github.com/He-Jiahui/ZirconEngine/pull/213)、[#238](https://github.com/He-Jiahui/ZirconEngine/pull/238) |
+| 后处理 | 已追踪 UE CombineLUT、Tonemap 与 ZE 的内部 HDR LUT 取样。高光合并问题已定位到源码。 | 用 GPU 读回比较直接计算和内部 LUT 的高光范围。 | [#154](https://github.com/He-Jiahui/ZirconEngine/pull/154) |
+| 项目 | UE Projects 对照 ZE 场景打开、目录发布与会话关闭。已运行 A→欢迎页→B 的关闭场景。 | 在同一正式工程取得可操作首窗，再复验模型导入后的关闭。 | [#157](https://github.com/He-Jiahui/ZirconEngine/pull/157)、[#201](https://github.com/He-Jiahui/ZirconEngine/pull/201)、[#202](https://github.com/He-Jiahui/ZirconEngine/pull/202)、[#221](https://github.com/He-Jiahui/ZirconEngine/pull/221)、[#227](https://github.com/He-Jiahui/ZirconEngine/pull/227) |
+| prefab | 已对照属性覆盖的保存语义。ZE 普通场景的保存、重开回归由 0/2 提升到 2/2。 | 验证嵌套实例、Apply 和 Revert。 | [#133](https://github.com/He-Jiahui/ZirconEngine/pull/133)、[#210](https://github.com/He-Jiahui/ZirconEngine/pull/210) |
+| 反射 | CoreUObject 瞬态字段对应 ZE DynamicScene 的同 schema 恢复。修后目标默认值回归 7/7。 | 用不同 schema 与正式场景热重载复验。 | [#163](https://github.com/He-Jiahui/ZirconEngine/pull/163) |
+| 构建 | UBT、BuildGraph 与 ZE 的显式目标、单域依赖、Runtime ZIP 来源和工具入口。七个归属测试模块修后 16/16。 | 用同一修订运行完整 build、stage 和产品启动。 | [#161](https://github.com/He-Jiahui/ZirconEngine/pull/161)、[#230](https://github.com/He-Jiahui/ZirconEngine/pull/230)、[#233](https://github.com/He-Jiahui/ZirconEngine/pull/233)、[#239](https://github.com/He-Jiahui/ZirconEngine/pull/239)、[#244](https://github.com/He-Jiahui/ZirconEngine/pull/244)、[#245](https://github.com/He-Jiahui/ZirconEngine/pull/245) |
+| 材质 | 已对照材质排列与 ZE 选项位预算。32 位输入、33 位拒绝和旧缓存重导由 2/5 提升到 5/5。 | 验证 GPU 变体以及预热工具。 | [#152](https://github.com/He-Jiahui/ZirconEngine/pull/152) |
+| 粒子 | Niagara 的帧内出生余量对应 ZE CPU 定时 burst。出生时间、年龄、位置与首次提取由 1/6 提升到 6/6。 | 验证连续发射及 GPU 仿真。 | [#153](https://github.com/He-Jiahui/ZirconEngine/pull/153) |
+| 蒙太奇 | 已读 UE Montage 中断和暂停通知。ZE 状态机在真实宿主的四个暂停用例通过两个，五个兼容用例通过三个。 | 修正恢复时重复发送的通知并复验过渡生命周期。 | [#171](https://github.com/He-Jiahui/ZirconEngine/pull/171)、[#214](https://github.com/He-Jiahui/ZirconEngine/pull/214) |
+| 时间轴 | MovieScene 对照 ZE 序列绑定和声音关键帧。属性序列的迟绑定、资产失效和实际冷装回归修后 14/14。 | 验证编辑器时间轴和不同播放器组合。 | [#165](https://github.com/He-Jiahui/ZirconEngine/pull/165)、[#247](https://github.com/He-Jiahui/ZirconEngine/pull/247) |
+| 动画 | 已对照姿态混合、过渡和循环通知。分页回归修后 13/13，短弧混合及暂停后的重复通知仍有失败用例。 | 用既有真实帧复验 #147 和 #214 的候选修复。 | [#147](https://github.com/He-Jiahui/ZirconEngine/pull/147)、[#171](https://github.com/He-Jiahui/ZirconEngine/pull/171)、[#207](https://github.com/He-Jiahui/ZirconEngine/pull/207)、[#214](https://github.com/He-Jiahui/ZirconEngine/pull/214)、[#237](https://github.com/He-Jiahui/ZirconEngine/pull/237) |
+| 骨骼 | UE 的父骨依赖对照 ZE 关节槽。257 骨 CPU 求值后，DX12 三帧回读验证了后置父骨。 | 验证 GPU 蒙皮、LOD 变化和资源重建。 | [#164](https://github.com/He-Jiahui/ZirconEngine/pull/164) |
+| VFX | 已建立 Niagara 图与 ZE VFX 图、运行节点的对应。CPU burst 与首次 sprite 提取已有 6 个回归。 | 用正式图完成编译、执行与 GPU 提交。 | [#153](https://github.com/He-Jiahui/ZirconEngine/pull/153) |
+| editor_ui | 已对照 LevelEditor 和 Details 的命中、菜单及事务。组件测试已验证 File、文件、File 的切换。 | 在普通桌面窗口验证输入、中文字形和保存后重开。 | [#148](https://github.com/He-Jiahui/ZirconEngine/pull/148)、[#215](https://github.com/He-Jiahui/ZirconEngine/pull/215)、[#221](https://github.com/He-Jiahui/ZirconEngine/pull/221)、[#222](https://github.com/He-Jiahui/ZirconEngine/pull/222)、[#227](https://github.com/He-Jiahui/ZirconEngine/pull/227) |
+| 优化 | 已对照任务分配、资源生命周期和可选的堆诊断。本轮在已完成任务上直接测量调用线程分配。 | 测量正式负载下的帧时间和并发堆峰值。 | [#148](https://github.com/He-Jiahui/ZirconEngine/pull/148)、[#160](https://github.com/He-Jiahui/ZirconEngine/pull/160)、[#235](https://github.com/He-Jiahui/ZirconEngine/pull/235)、[#246](https://github.com/He-Jiahui/ZirconEngine/pull/246) |
+| jobs | UE Core Tasks 的终态等待对照 ZE TaskGraph、scope 和公开句柄。单成员集合等待有原生分配计数回归。 | 验证取消、关闭、不同工作线程数和 Web 配置。 | [#130](https://github.com/He-Jiahui/ZirconEngine/pull/130)、[#246](https://github.com/He-Jiahui/ZirconEngine/pull/246) |
+| 导航 | 导航和路径跟随已对照 ZE Legacy、Builtin 管理器以及插件准入。独立 Legacy 的三项移动场景修后均通过。 | 验证宿主注册、项目烘焙和真实 Level 更新。 | [#146](https://github.com/He-Jiahui/ZirconEngine/pull/146)、[#158](https://github.com/He-Jiahui/ZirconEngine/pull/158) |
+| preview | PIE 输入路由对应 ZE Game Preview。已验证同窗边界外的释放会回到原 Play 会话。 | 验证分离窗、原生滑块与发布版预览。 | [#168](https://github.com/He-Jiahui/ZirconEngine/pull/168) |
+| AI | AIModule 对照 ZE 的行为树和导航目标。超时撤销的定向用例修后 4/4，较宽测试组仍有十项失败。 | 追踪十项用例，并核对正式导航和感知入口。 | [#158](https://github.com/He-Jiahui/ZirconEngine/pull/158)、[#162](https://github.com/He-Jiahui/ZirconEngine/pull/162) |
+| 行为树 | UE TimeLimit 与 ZE Selector 的同步撤销已对照。测试检查自然完成、先撤销再切换和第三方目标。 | 验证异步撤销、Parallel 及行为树编辑器。 | [#162](https://github.com/He-Jiahui/ZirconEngine/pull/162) |
+| 核心 | Core 模块登记、配置和内存诊断已映射。Web 模块激活顺序修后两项用例通过。 | 验证产品启动、关闭和真实并发峰值。 | [#130](https://github.com/He-Jiahui/ZirconEngine/pull/130)、[#160](https://github.com/He-Jiahui/ZirconEngine/pull/160)、[#240](https://github.com/He-Jiahui/ZirconEngine/pull/240) |
+| IO | 平台文件与 ZE 的事务临时名、恢复和原子写已对照。长名修复后通过 48 项原子和 23 项持久写入用例。 | 验证 Unix、掉电恢复和产品场景保存。 | [#159](https://github.com/He-Jiahui/ZirconEngine/pull/159)、[#175](https://github.com/He-Jiahui/ZirconEngine/pull/175) |
+| 平台 | Windows 原生窗口及 Web Wasm 生命周期已有实际运行。Web 已完成 GPU 设备与 Canvas 首次配置。 | 取得浏览器首帧并复验尺寸变化、关闭及其他受支持平台。 | [#227](https://github.com/He-Jiahui/ZirconEngine/pull/227)、[#235](https://github.com/He-Jiahui/ZirconEngine/pull/235)、[#239](https://github.com/He-Jiahui/ZirconEngine/pull/239)、[#240](https://github.com/He-Jiahui/ZirconEngine/pull/240)、[#242](https://github.com/He-Jiahui/ZirconEngine/pull/242)、[#243](https://github.com/He-Jiahui/ZirconEngine/pull/243) |
+| 网络 | UE Sockets 对照 ZE 的 TCP 事件和查询状态。Windows 回环错误回归修后 4/4。 | 在其他系统复验，并核对更高层协议。 | [#155](https://github.com/He-Jiahui/ZirconEngine/pull/155) |
+| 插件 | PluginManager 对照 ZE 注册图、测试 SDK 宿主与 Play 恢复。已实际验证默认依赖及已登记依赖。 | 验证动态分发、真实启动与恢复策略。 | [#158](https://github.com/He-Jiahui/ZirconEngine/pull/158)、[#216](https://github.com/He-Jiahui/ZirconEngine/pull/216)、[#217](https://github.com/He-Jiahui/ZirconEngine/pull/217)、[#240](https://github.com/He-Jiahui/ZirconEngine/pull/240) |
+| 测试自动化 | 已枚举 UE 自动化规则与原测试来源。ZE 的测试维护涵盖纹理、响应式 UI、动画特性及构建工具归属。 | 在相容的源码基线运行原始 KTX1 和 mip 测试组。 | [#137](https://github.com/He-Jiahui/ZirconEngine/pull/137)、[#224](https://github.com/He-Jiahui/ZirconEngine/pull/224)、[#225](https://github.com/He-Jiahui/ZirconEngine/pull/225)、[#234](https://github.com/He-Jiahui/ZirconEngine/pull/234)、[#237](https://github.com/He-Jiahui/ZirconEngine/pull/237)、[#245](https://github.com/He-Jiahui/ZirconEngine/pull/245) |
+| 导入烘焙缓存 | DDC、Interchange 与 Cook 对照 ZE 重扫、纹理数组、Cook、Pack 与发布资源来源。已用真实 ZRPK、ZIP 验证。 | 验证外部触碰、GPU 重建及最终发布版启动。 | [#180](https://github.com/He-Jiahui/ZirconEngine/pull/180)、[#204](https://github.com/He-Jiahui/ZirconEngine/pull/204)、[#219](https://github.com/He-Jiahui/ZirconEngine/pull/219)、[#224](https://github.com/He-Jiahui/ZirconEngine/pull/224)、[#225](https://github.com/He-Jiahui/ZirconEngine/pull/225)、[#230](https://github.com/He-Jiahui/ZirconEngine/pull/230)、[#244](https://github.com/He-Jiahui/ZirconEngine/pull/244) |
+| 文本本地化无障碍 | 已定位 Slate 文本与本地化原测，实测 ZE 编辑器菜单挂载和 Web 字体准入。 | 通过桌面窗口验证 IME、字形及系统辅助功能。 | [#174](https://github.com/He-Jiahui/ZirconEngine/pull/174)、[#215](https://github.com/He-Jiahui/ZirconEngine/pull/215)、[#241](https://github.com/He-Jiahui/ZirconEngine/pull/241) |
+| 媒体XR虚拟制作 | 已定位 UE 播放列表、XR 模型和 LiveLink 插值测试，并对应到 ZE 的单帧捕获、相机及音频。 | 用双视口实际回读验证帧的归属。 | [#178](https://github.com/He-Jiahui/ZirconEngine/pull/178) |
+| 第三方和平台外部库 | 已对应 UBT External 规则、VisionOS 覆写及 ZE 的 Cargo 依赖与分发命名。 | 在受支持平台完成实际链接、装载与 ABI 验证。 | [目录清点](https://github.com/He-Jiahui/ZirconEngine/blob/db92396a1d350aae8ff379e3f2278ea852d7d74d/docs/plans/unreal-alignment/module-coverage.md) |
