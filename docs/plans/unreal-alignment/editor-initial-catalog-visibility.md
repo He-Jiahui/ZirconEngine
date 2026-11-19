@@ -133,3 +133,14 @@ UE 对照是进程级 registry 的包/对象路径查询及 game-thread 通知�
 **尚缺的链条。** 没有采到产品自身接受的原始 notify、折叠后的每个 `AssetWatchBatch` 与每次 Runtime 安装的对应关系，也没有 fence 处的 current token；不得将旁路计数和 Runtime 数字一一配对。不要通过放宽 fence、禁用 watcher 或繁忙重试来保证首次目录。独立参考 [#204](https://github.com/He-Jiahui/ZirconEngine/pull/204) 的描述符自身时钟实验，不把两项当成已经修复。76 项选定源/清单；A 回执 `71e9d3b843046dd088b16a2d1915233c7c4f3211f0f74b0894c6a08e5f9d84d9`，B 的 stdout `a7f2a86756ebff0c51d3199eac72fd76fd83b9aaf321630e99207d05e3df53d3`、stderr `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`，完整有界观测索引 SHA-256 `b4822eb68ca4ec0406025d8302bfd23c6176a9aea5de87cc09fb0f11d9264762`。
 
 对同一次正常打开的留存原字节又作了独立复核，没有重跑：14 个实盘 descriptor 文件对象，屏蔽 `source_mtime_unix_ms` 后字节逐一相等；相邻 **13/13** 版确有前版物理毫秒等于下一版持久毫秒。14 份 WAL 每份原样只有一个完整、校验正确的 `project` intent 帧，既无下一帧字节也无残尾；同包暂存名→目标的 rename 与这 14 个 intent 的申明路径逐一相符。没有 Prepared 或 target committed 证据，不能把它们补成逐笔提交、watcher 消费或 fence 归因。无需重复运行即可区分“看到了时钟递推”和“知道具体哪次提交使 fence 失效”。
+
+## 11. 首笔比较的证据边界：能认出原产物，不等于拿到实际比较值
+
+以本 PR 原文档 `d8a50d923ee4f6e8a48e34f88f5fa7c6374c0d53` 为锚；第 16 轮实际编译测试树为 `423f40fe738db8023d9f6a9889be63441b67045b`。重新核对了原来运行的 Windows x64 Editor `--lib`，`--no-default-features --features profiling`、test profile（不是 profiling profile，且编译调试信息为 0）。原 EXE 为 331,861,504 字节，其 SHA-256 仍为 `fbc6e1fff5b8a8061766396ad965ca964ac0178438df32df36994f4a597da9f3`。本地 PDB 的 GUID `b6608ae0-9e07-4284-9832-0d488cedb539`、Age 2 同该 EXE 自身的 RSDS 匹配；Editor 的 17 个和 Runtime 的 16 个目标对象模块均没有记录源行或局部位置。全局能找到公开的比较函数入口，但不能由入口反推出某一次比较时变量的实际值。
+
+| 原来已发生的同步路径 | 已采集的 expected 序号 | 运行时首次比较 | 比较内部 current / root / activation |
+|---|---:|---|---|
+| 第一次打开工程 | 3 | 拒绝；没有进入 Editor 发布回调，也没有 rebase | 未观测 |
+| 同一原 trace 中唯一显式刷新 | 10 | 同样在第一笔拒绝 | 未观测 |
+
+外部刷新前后 `10→16` 不等于这一笔读到了 16。首开有五个未归属的发布 span 落在 expected 与拒绝标记之间，其中另一个列出的 span 却在拒绝之后；这些时间先后都不能替代运行时持锁比较或指出具体 writer。独立 [#204](https://github.com/He-Jiahui/ZirconEngine/pull/204) 的无 watcher 两次扫描证实了自身写回时钟反馈，仍没有证据把那个源写手与本次 compare 配对。本轮未再运行原工程、未启用新诊断、未附加调试器、未更改产品；#221 的 OBJ 关窗也并未因此获得前置条件。
