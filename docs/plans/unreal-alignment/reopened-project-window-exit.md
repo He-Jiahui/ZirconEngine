@@ -37,3 +37,11 @@ ZE 基线 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`。本提交仅调查，不�
 - `GameProjectAutomationTests.cpp`：`8b72cec4b488d8b07bd5d523bd2a0875188fffe33054a217a7794fd448108f90`
 - `UnrealEdMisc.cpp`：`c5b99eeced51018ae594524edd0a11420aca049140d6f7d8b952ede2d8ce5a9f`
 - `UE.BootTest.cs`：`8552fae6ab131dba61d16b86a95c2844eb0f0ed4c41bf3a6f259be1dcf9440e7`
+
+## 7. 同一宿主 A→Welcome→B 后，原生 X 确认保留旧 owner
+
+在真实 Ready 项目上走同一 retained root 与 native close callback。对照**通过**：普通冷项目 X 后退出，manager 无 active admission、锁已释放。主例**失败**：File 关闭 A 后 A 的独占 Session 锁不存在，仍是同一窗口；再由已启用的 Welcome Open Existing 打开另一实盘工程 B，核到 B 的独立 operation、活动 Scene/document、无脏项。主窗 X 后的失败不是超时，而是 `The close coordinator no longer owns the approved activation.`：当时主窗不退出、已阻断会话 UI，coordinator 仍保留 A 的 Closed operation，而 manager 中恰是 B；B 的正式记录仍为 Ready。
+
+1 过 / 1 败，0 次 OBJ 导入；没有人工 reset coordinator、替换 World 或故意制造代际失配。结果仅代表真实 retained 回调与项目会话；不是实际 Windows 鼠标/桌面消息或不同进程生命周期验收。下一步只校正已完成的旧 activation 所有权，不能跳过 current identity 比对、清空 Recovery/未完成释放或在 B 上沿用 A 的操作。
+
+Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile test`。实测输入 [同一测试版本](https://github.com/He-Jiahui/ZirconEngine/commit/9583255a8750df136adfea4441f3a91e7ee262cd)，编译回执 `18da72291619df0ce94a579617630a114dd0110f7cab9290b6722a5cbbf7072f`，实际执行 `acad30d2baa51a829719426381d274a5b7b67484cb2f84a47a69274b12fc3fe9`，stdout `054fba0d2036278039475ef99397f3394387d263807081be6f03709ed4fb5a97`。
