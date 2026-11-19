@@ -442,3 +442,146 @@ impl VmPluginInstance for RecordingInstance {
         Ok(Some(ScriptHostValue::Int(reply)))
     }
 }
+
+#[test]
+fn start_projection_reinstalled_row_restarts_only_its_own_binding() {
+    assert_only_b_restarts(|world, b, original| {
+        let before = bindings_generation(world);
+        assert!(world.remove_dynamic_component(b, BINDINGS).unwrap());
+        assert!(world.contains_scene_node(b), "the actor was not removed");
+        assert!(world.dynamic_component(b, BINDINGS).is_none());
+        let removed = bindings_generation(world);
+        assert!(removed > before);
+
+        assert!(world
+            .set_dynamic_component(b, BINDINGS, original.clone())
+            .unwrap());
+        assert!(bindings_generation(world) > removed);
+    });
+}
+
+#[test]
+fn start_projection_value_round_trip_restarts_only_its_own_binding() {
+    assert_only_b_restarts(|world, b, original| {
+        let before = bindings_generation(world);
+        let mut changed = original.clone();
+        let color = changed[0]["properties"].get_mut("color").unwrap();
+        assert_eq!(color.as_f64(), Some(COLOR_B));
+        *color = json!(COLOR_EDIT);
+        assert!(world.set_dynamic_component(b, BINDINGS, changed).unwrap());
+        assert_eq!(
+            binding(world, b)[0]["properties"]["color"].as_f64(),
+            Some(COLOR_EDIT)
+        );
+        let edited = bindings_generation(world);
+        assert!(edited > before);
+
+        assert!(world
+            .set_dynamic_component(b, BINDINGS, original.clone())
+            .unwrap());
+        assert!(bindings_generation(world) > edited);
+    });
+}
+
+fn assert_only_b_restarts(change_b: impl FnOnce(&mut World, EntityId, &Value)) {
+    let fixture = Fixture::new(1);
+    let [a, b] = fixture.entities;
+    let first = fixture.tick();
+    assert_eq!(exports_for(&first, a), [start(COLOR_A), update(COLOR_A)]);
+    assert_eq!(exports_for(&first, b), [start(COLOR_B), update(COLOR_B)]);
+
+    let handle = fixture.level.world_handle();
+    let epoch = fixture.level.capture_world_replacement_epoch();
+    // No intervening frame observes the row absent or its temporary JSON value.
+    fixture.level.with_world_mut(|world| {
+        let saved_a = binding(world, a).clone();
+        let saved_b = binding(world, b).clone();
+        change_b(world, b, &saved_b);
+        assert!(world.contains_scene_node(a) && world.contains_scene_node(b));
+        assert_eq!(binding(world, a), &saved_a);
+        assert_eq!(binding(world, b), &saved_b, "the final JSON is identical");
+    });
+    assert_eq!(fixture.level.world_handle(), handle);
+    assert_eq!(fixture.level.capture_world_replacement_epoch(), epoch);
+
+    let second = fixture.tick();
+    assert_eq!(
+        exports_for(&second, b),
+        [start(COLOR_B), update(COLOR_B)],
+        "B's real binding mutation must not carry the old activation"
+    );
+    assert_eq!(
+        exports_for(&second, a),
+        [update(COLOR_A)],
+        "never-written A must update without executing onStart again"
+    );
+}
+
+#[test]
+fn start_projection_new_core_with_same_numeric_ids_starts_its_own_bindings() {
+    let first = Fixture::new(1);
+    let next = Fixture::new(1);
+    let [a, b] = first.entities;
+    let first_owner = first
+        .runtime
+        .resolve_manager_handle::<VmPluginManager>(VM_PLUGIN_MANAGER_NAME)
+        .unwrap();
+    let next_owner = next
+        .runtime
+        .resolve_manager_handle::<VmPluginManager>(VM_PLUGIN_MANAGER_NAME)
+        .unwrap();
+    assert_ne!(first_owner, next_owner, "independent Core service owners");
+    assert_eq!(first.level.world_handle(), next.level.world_handle());
+    assert_eq!(
+        first.level.capture_world_replacement_epoch(),
+        next.level.capture_world_replacement_epoch()
+    );
+    assert_eq!(first.entities, next.entities);
+    assert_eq!(
+        first.slot, next.slot,
+        "the numeric VM slot and generation can coincide too"
+    );
+    let input = |fixture: &Fixture| {
+        fixture.level.with_world(|world| {
+            assert!(world.contains_scene_node(a) && world.contains_scene_node(b));
+            (
+                bindings_generation(world),
+                binding(world, a).clone(),
+                binding(world, b).clone(),
+            )
+        })
+    };
+    assert_eq!(input(&first), input(&next));
+
+    // Let the second owner legally resolve both symbols, without running them.
+    // If an old dense handle aliases it, the Update should still be observable;
+    // a missing dense target must not hide the missing onStart in this test.
+    {
+        let manager = next_owner.enter().unwrap();
+        for export in ["onStart", "onUpdate"] {
+            manager
+                .resolve_package_callback(PACKAGE, MODULE, export)
+                .unwrap();
+        }
+    }
+    assert!(first.recorder.0.lock().unwrap().is_empty());
+    assert!(next.recorder.0.lock().unwrap().is_empty());
+
+    let expected = (
+        vec![start(COLOR_A), update(COLOR_A)],
+        vec![start(COLOR_B), update(COLOR_B)],
+    );
+    // Keep both owners alive and dispatch their first frames on this same thread.
+    let first_frame = first.tick();
+    assert_eq!(
+        (exports_for(&first_frame, a), exports_for(&first_frame, b)),
+        expected
+    );
+    let next_frame = next.tick();
+    assert!(first.recorder.0.lock().unwrap().is_empty());
+    assert_eq!(
+        (exports_for(&next_frame, a), exports_for(&next_frame, b)),
+        expected,
+        "a different Core/Level must not inherit either binding's started state"
+    );
+}
