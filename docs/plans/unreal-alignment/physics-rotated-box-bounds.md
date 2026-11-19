@@ -108,3 +108,41 @@ UE 的 `InitialDirs` 六组输入是 GJK 搜索初始方向，而不是 ZE 公�
 ### 去重与范围结论
 
 只计 **PH-01 一条**。与 [PR145](<https://github.com/He-Jiahui/ZirconEngine/pull/145>) 的 solver world→parent-local 回写不同：本例没有父节点、刚体或 solver pose 写回。与 [PR135](<https://github.com/He-Jiahui/ZirconEngine/pull/135>) / [PR144](<https://github.com/He-Jiahui/ZirconEngine/pull/144>) 的 render/viewport affine packet 无关。本条也不是泛“Jolt 没有 native query”的重报。领域覆盖与未查清事项另见 [物理覆盖记录](<D:/CodexData/worktrees/ze-ue-audit-20261117/reports/ue-module-audit-20261117/research/physics-coverage.md>)。
+
+## 7. 首次公开接口实测：用原生产代码复现
+
+[本次实际编译的提交](https://github.com/He-Jiahui/ZirconEngine/commit/a30629fd4b86d9130fe56fb623e0426ae965370e) `a30629fd4b86d9130fe56fb623e0426ae965370e`。一个普通根实体挂球或 Box collider，`build_world_sync_state → PhysicsManager::sync_world → synchronized_world` 先验证实体、中心、缩放与朝向，再通过公共 `PhysicsQueryInterface::shape_cast` 询问。Builtin / QueryOnly，无刚体求解、剪切层级、Jolt FFI、UE 二进制或完整游戏启动。
+
+Windows x64 / MSVC，`zircon_plugin_physics_runtime`、`--no-default-features`、额外 package features 空，`--locked --offline --profile test --jobs 1 --test physics_rotated_box_query`。编译和执行证据分开：EXE SHA-256 `018315737746c007da1761c498d2391560306b4a70c115be6dfa67693e7afe72`，实际执行回执 `e1f8b8e14b1f6b29618e5f527ae724d4a4c514e7b6d06d1aeba2306580f272b0`，唯一筛选 `rotated_sweep_ --test-threads 1 --show-output`。**10 过 / 5 败**，未忽略或过滤选中的用例。
+
+| 真实请求 | 实际结果（查询中心沿途的距离） | oracle |
+|---|---|---:|
+| right-angle target Box | 未命中 | 2.65 |
+| right-angle query Box, q | 未命中 | 2.65 |
+| right-angle query Box, -q | 未命中 | 2.65 |
+| 45-degree target Box | 未命中 | 1.30901 |
+| UE ordinary sphere against Box | 2 | 2 |
+| UE rotated Box against sphere | 1.5 | 2 |
+| UE rotated needle against sphere | 2.5 | 2 |
+
+UE `GJK.GJKRaycastTests → GJKSphereBoxSweep` 的普通球/Box、旋转移动 Box、旋转退化针形 Box 三组保留了几何、固定方向与命中距离；旋转组先把原来偏心的 Box 中心变换到世界。UE 的接触点不等于 ZE 命中位置，不移植 GJK 内部寻向、MTD、EPA 或宣称任意角度精确 TOI。另设 90° 两侧和 45° 的 ZE 反例；45° 的数值是保守代理入口而非精确表面接触。原有无旋转、距离不足、不存在的 World、排除实体、界外方向、零程及有限非单位 query 姿态用例分别列出。
+
+| 冻结测试 | 结果 |
+|---|---|
+| `rotated_sweep_control_entity_filter` | 通过 |
+| `rotated_sweep_control_finite_nonunit_query_rotation` | 通过 |
+| `rotated_sweep_control_identity_query_box` | 通过 |
+| `rotated_sweep_control_identity_target_box` | 通过 |
+| `rotated_sweep_control_oblique_short_and_off_axis` | 通过 |
+| `rotated_sweep_control_right_angle_outside_bounds` | 通过 |
+| `rotated_sweep_control_short_distance` | 通过 |
+| `rotated_sweep_control_unpublished_world` | 通过 |
+| `rotated_sweep_control_zero_distance_initial_overlap` | 通过 |
+| `rotated_sweep_oblique_target_box_keeps_bound` | 失败 |
+| `rotated_sweep_query_box_keeps_bound` | 失败 |
+| `rotated_sweep_target_box_keeps_bound` | 失败 |
+| `rotated_sweep_ue_ordinary_sphere_hits_box` | 通过 |
+| `rotated_sweep_ue_rotated_box_keeps_contact_distance` | 失败 |
+| `rotated_sweep_ue_rotated_needle_keeps_contact_distance` | 失败 |
+
+此处仅提交等价回归及实际观测。原先可能修改共有 AABB 的设想也会影响静态 overlap、trigger 和 contact；后续只评估正距离 sweep 自身两端，非单位旋转、零程及不能表示的新范围均须保留原兼容边界。
