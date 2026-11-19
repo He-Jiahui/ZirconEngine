@@ -11,6 +11,10 @@ use super::super::WgpuRenderDeviceContext;
 use super::*;
 use crate::{next_wgpu_device_id, wgpu_adapter_facts, wgpu_device_limits, wgpu_device_request};
 
+#[cfg(target_os = "windows")]
+#[path = "native_resize.rs"]
+mod native_resize;
+
 #[test]
 fn surface_teardown_settles_tickets_under_one_submission_lock() {
     let source = include_str!("../../production/device/surface_lifecycle.rs");
