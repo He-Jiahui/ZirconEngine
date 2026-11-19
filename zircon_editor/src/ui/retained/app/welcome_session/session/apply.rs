@@ -1,3 +1,5 @@
+use crate::ui::host::ProjectCloseCoordinatorPhase;
+
 use super::super::super::*;
 
 impl RetainedEditorHost {
@@ -55,6 +57,25 @@ impl RetainedEditorHost {
         let should_abort_admitted_session =
             !previous_runtime_snapshot.project_open && previous_scene_identity.is_none();
 
+        // Capture the exact old close and new admission; this observation cannot fail startup.
+        let close_handoff = (should_abort_admitted_session
+            && previous_startup_session.mode == EditorSessionMode::Welcome
+            && self.project_close_coordinator.phase() == ProjectCloseCoordinatorPhase::Closed
+            && !self.main_window_close_requested()
+            && session.mode == EditorSessionMode::Project
+            && session.open_builtin_view.is_none())
+        .then(|| {
+            let old = self.project_close_coordinator.operation()?;
+            let project = session.project.as_ref()?;
+            let new = self
+                .editor_manager
+                .enter()
+                .ok()?
+                .ready_project_close_activation_identity()?;
+            (old != &new && project.root_path.as_path() == new.project_root())
+                .then(|| (old.clone(), new))
+        })
+        .flatten();
         let result = self.apply_startup_session_transaction(session);
         if let Err(startup_error) = &result {
             let rollback = self.rollback_startup_session(
@@ -102,6 +123,18 @@ impl RetainedEditorHost {
                         startup_error
                     ));
                 }
+            }
+        } else if let Some((old, new)) = close_handoff {
+            // A Ready guard does not suffice until the retained projection has succeeded.
+            if !self.main_window_close_requested()
+                && self.project_close_coordinator.phase() == ProjectCloseCoordinatorPhase::Closed
+                && self.project_close_coordinator.operation() == Some(&old)
+                && self.editor_manager.enter().is_ok_and(|manager| {
+                    manager.ready_project_close_activation_identity().as_ref() == Some(&new)
+                })
+            {
+                // Phase was checked above; retiring a completed close cannot fail startup.
+                let _ = self.project_close_coordinator.reset_for_new_session();
             }
         }
         result

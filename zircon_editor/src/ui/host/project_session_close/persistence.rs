@@ -22,6 +22,21 @@ impl EditorManager {
         })
     }
 
+    /// Captures only a committed Ready activation, with identity and lifecycle read together.
+    pub(crate) fn ready_project_close_activation_identity(&self) -> Option<ProjectCloseOperation> {
+        let guard = self
+            .project_session_guard
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let guard = guard.as_ref()?;
+        let record = guard.record();
+        (record.lifecycle() == ProjectSessionAdmissionLifecycleV1::Ready
+            && record.session_generation().is_some())
+        .then(|| {
+            ProjectCloseOperation::new(guard.project_root().to_path_buf(), record.operation_id())
+        })
+    }
+
     /// Persists the non-ready close phase and returns the only capability accepted by teardown.
     pub(in crate::ui::host) fn begin_project_close_operation(
         &self,
