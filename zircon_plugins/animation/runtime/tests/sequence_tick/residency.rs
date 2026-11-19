@@ -139,8 +139,8 @@ fn sequence_tick_residency_rebinds_only_missing_target() {
             .assets()
             .current_project_generation_snapshot()
             .unwrap()
-            .token()
-            .clone()
+            .into_parts()
+            .1
     };
     let generation = project_token();
     let indexed = AssetManager::current_project_source_path(&*assets, &uri)
