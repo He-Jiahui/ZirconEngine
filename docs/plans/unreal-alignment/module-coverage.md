@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第20轮新增 #221、#222、#224、#225，目前共 **42 个问题 Draft**。最新实证见第24节；第7–23节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第21轮新增 #227，目前共 **43 个问题 Draft**。最新实证见第25节；第7–24节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -385,3 +385,16 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 本轮新增项中，主窗口关闭和未编辑数值框是两条 Editor 行为调查；KTX1、mipgen 是同一 Plugins07/G01 验证门下的两处独立测试编译维护，不是另外两项纹理产品错误。纹理修复以恢复计数、生成源回滚、旧工程首次打开和冷工程分别取证。编辑器源码、宿主、桌面 GUI 与 UE 原测分开计算。
 
 累计 **42 个独立问题 Draft + 1 个总索引，零合并**。原 2,588 个模块规则、178 个目标规则与八份目录 CSV 不变；不把同一个回归的重跑或一次目录枚举视作额外问题/全域验收。
+
+## 25. 在真实项目冷启动后验证输入与关闭（第21轮）
+
+| 独立 PR | 原生检查和实际边界 |
+|---|---|
+| [#168](https://github.com/He-Jiahui/ZirconEngine/pull/168) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/2e8ea0fdd631408a2674343470166fe9efcc29d8/docs/plans/unreal-alignment/preview-captured-pointer-release.md#L63-L71) | 真实 V8 Play 相机已进入右键旋转；同窗 Game 外释放时原会话的 release 计数不增加，回入后 Move 实际送达且仍转动。inside、无主输入和失焦对照先通过。没有把相机观测当作 authored Slider 或 OS 验收。 |
+| [#221](https://github.com/He-Jiahui/ZirconEngine/pull/221) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/623216b09fb67d0da0948a983b58196791b7fd9e/docs/plans/unreal-alignment/main-close-model-result.md#L57-L63) | 冷启动的无导入正控制已真正退出并释放项目。导入例已绑定同根 Scene 与 Document，但在首次目录/待处理重载的联合门限前停止，0 次测试 OBJ 提交和 0 次该例关窗；未证实或修复模型结果交接。 |
+| [#222](https://github.com/He-Jiahui/ZirconEngine/pull/222) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/8211cbbad4f8570856b4544a05522bdb47863dda/docs/plans/unreal-alignment/inspector-unedited-enter-redo.md#L85-L91) | 同一冻结回归由 3过/1败 变为 4过/0败。空 Enter 和只移动光标均保留原 Scene 的精度、保存点及可重做的 Y；显式重输相同显示值仍形成可撤销事务。另外独立核对设置、文本、搜索、重命名的既有测试，仍以各自实测结果为准。 |
+| [#227](https://github.com/He-Jiahui/ZirconEngine/pull/227) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/ae59d575725e1f67b7be90ce0326bad89a886671/docs/plans/unreal-alignment/reopened-project-window-exit.md#L49-L55) | 同一真实主窗 A→Welcome→B→X 已从 1过/1败 转为 2过/0败。保留旧关闭的严格身份校验，A、B 的 guard 均按各自会话释放；不代表一般热切换或进程重启的整体验收。 |
+
+每条 Editor 观察使用自己的真实项目与用户设置。能编译、能打开工程、能将键盘文字放入输入框、能提交场景事务、能在打包程序中重现，是五种不同结果。未执行 UE、GPU 或整套产品验收。
+
+累计 **43 个独立问题及测试维护 Draft + 1 个总索引，零合并**。八份不可变的模块/目标目录仍保持原始版本。
