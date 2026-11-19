@@ -84,3 +84,25 @@ Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile t
 |---|---|---|
 | `game_drag_release_outside_clip_reaches_original_play` | 0 过 / 1 败 | `f9ac395b149f89f1196b9b36048f2ce871c37623981dbc14456eaa2bc6486964` |
 | `game_pointer_owner_` | 1 过 / 2 败 | `abbfb094a72b48d0b753bc6e823867a049df70fc528436063a3989d01b14235a` |
+
+## 9. 保护无法确认来源的普通松键再复核同一组回归
+
+真实 Play A 已退休后，在新 B 的 Game 内放开旧右键，B 的释放计数 0→1；状态栏按下、Game 内放开也多出一次释放。不同按键与失焦对照通过。原来的同窗外释放丢失仍可稳定复现。
+
+第一组仍是原会话的已接纳右键拖动，释放时未收到 Up，回入后 Move 确实进入且相机仍旋转。第二组使用相同 retained 窗口和真正的 V8 会话：先验证 A 的右键旋转确实已开始；通过正式 Stop 释放 A，创建同一工程的 B，核实新 Play instance、ABI session 及 gateway generation 均不同。旧 Up 在 B 的真实 Game clip 内，先记录 B 的实际输入边计数，再确认 B 新的一组按下、移动、松开均正常并完成停止；Edit 相机未被写。另一案证明非 Game 的右键 Down 没有送入原会话，随后同键尾却在 Game 内变成了孤立的 release；普通中键和真正 blur 的作用另作控制。
+
+另在未曾观察过该右键按下时，从同一窗内向 Game 派发未知来源的右键 Up，真实 release 仍会增加；这反证无条件丢弃全部窗内 Up 的取巧修法。
+
+层级面板是真正命中的相邻 pane，不是空白状态栏。旧实现未把松键给原 Game，回入后仍在旋转。测量区间未产生 IME Disable 或 Cursor 释放；随后在同一真实 Runtime 的正式 blur 对照能读到两种请求，用来区分正常松键与全局重置，不推论某个键保持按下。普通菜单实际打开但不遮挡测试坐标时，相同 Game 的新鼠标按下仍被接纳。另跑原 Play/SIE controller 行为和两项现有输入 ownership 保护，三项通过。
+
+首版新增用例在两个悬浮窗口集合上误用了 Vec 的 `is_empty()`，只得到 E0599（未运行）。此处改用该模型正式的 `row_count() == 0`；没有弱化前置，未改生产，编译失败不算业务失败。
+
+这些是正常 retained 路由、构造的 Winit 输入与真实已链接相机/V8 会话结果。它们不是硬件鼠标捕获、staged DLL、GPU 呈现、左键 Slider 拖动或实际窗口管理器输入的验收。
+
+Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile test`，同一[受测提交](https://github.com/He-Jiahui/ZirconEngine/commit/4e31bb384bdee02e85b91644e6f8ff4447d40fb4)和编译回执 `42f925793574b24574428ce5a3589e7845b182cc91a0ba95f9d3879f4f55db46`。各次均显式 `--ignored --test-threads 1 --show-output`，独立项目和用户配置。
+
+| 过滤器 | 实际运行 | 执行回执 SHA-256 |
+|---|---|---|
+| `game_drag_release_outside_clip_reaches_original_play` | 0 过 / 1 败 | `435e61f49c61ef30103120b224ef59cf7d0fbc55bd4e2d4f361b7626ac8aa0e1` |
+| `game_pointer_owner_` | 1 过 / 3 败 | `10cddc60853998e419cd9724b4f349d670e93307a3eb506d666da534c8dea4d0` |
+| `game_pointer_adjacent_` | 1 过 / 1 败 | `9d0b79797cc849cbe9ea6a5c8a1ca18124a576184d1347847462ad45efe7be93` |
