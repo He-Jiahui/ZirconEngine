@@ -128,3 +128,9 @@ CPU 回读 reference 也应对**编码网格先解码**再运行现有解析变�
 低亮混色输入和外部三维 LUT 对照均通过。UE 原测的灰阶与亮色输入位于 `Engine/Source/Runtime/Renderer/Private/Tests/ACESOutputTransformTest.cpp` 第 121–138 行。这里的数值判据来自 ZE 自身的 Reinhard 实现。
 
 本次提交给 Runtime 产品图增加了双路径用例。两条路径使用相同的曝光与 HDR 场景输入。直接路径从后处理功能描述符移除烘焙 pass 和可选的 `COLOR_LUT` 读取，以便比较最终图像。 [产品图回归源码](https://github.com/He-Jiahui/ZirconEngine/blob/3f13501656eba837da9da5d29deef8f13ffc7124/zircon_runtime/src/graphics/tests/render_product_post_process/internal_lut_hdr.rs)
+
+## 8. 混色边界与资源回退
+
+在同一 RTX 3060 Laptop 上，把红通道从半精度 `1.0` 提高到它的下一可表示值 `1.0009765625`，绿色输入固定为 `0.99951171875`。合法的 `gamma=0.001` 放大了原网格在边界处的插值偏差。一旦越界就改用解析计算的试验版本，使绿色从线性 UNORM8 的 250 跳到 156。在网格外侧使用一个格点间距过渡后，两次绿色读数为 250 和 247，超过该距离时回到解析结果。第二组混色在相同两点处由 65 变为 64。
+
+缺失的用户 LUT 触发系统回退曲线。输入 `(2, 0.25, 0.5)`、曝光 `1/8`、强度 `0.75` 时，直接路径的线性 RGB8 为 `(47, 3, 6)`，原内部 LUT 为 `(16, 3, 6)`。新增产品回归通过正式资源句柄、曝光和帧读回检查这两种输入。 [边界用例](https://github.com/He-Jiahui/ZirconEngine/blob/6ba78833390bff105acf57bf14ec49c4ee52459f/zircon_runtime/src/graphics/tests/render_product_post_process/internal_lut_hdr.rs#L236)
