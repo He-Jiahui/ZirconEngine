@@ -60,3 +60,25 @@ UE 对照文件 SHA-256：
 | Python 回归 / 邻近用例回执 | `2f8fdfdfc9ac20b747e2a4225d536a88222673482584b18fa889a7f12464b232` / `26d5d9113d5044727c5f7c3a7f1ea0b7ba33c3a2cb000d9a14b8582d1b4ac8aa` |
 | 真实 Cook/Pack 运行 / 四条结果与内容校验记录 | `479e9eaa4907108d816caa095d38e02cce28c425a58f51423ff940adea983370` / `15f28906be65c2a5e77b0f23cf549da264b4a57373276b2b5db15d45ea7e7c48` |
 | 3 个不写包的预演 + 显式空 Cook 源拒绝 | `8a9b43ca4956ac18f82bc8e27fc9a2d9ba1c3e9799c999ab84af925061dc6787` |
+
+## 8. 同一次成功 Cook 后以其产物写包
+
+已修正同一次 Cook→Pack 的交接，不改独立 Pack override、Rust writer 或最终发布门。原红测通过；两种清单拼法、两个相同输入入口均实产 3 个资产的同字节包；debug-only 资产未混入。
+
+修复只在进入过本次 Cook 的流水线把下一阶段 Pack 绑定到本次约定产物。直接 Pack 和从 Pack 恢复仍尊重显式覆盖，拒绝无效显式参数；预演只表示计划，没有冒充已经写出的清单。回归文件、Rust writer 源码/产物、项目的实际资产字节与上一组完全相同。
+
+| 正常输入写法 | 项目字段指定 | 同一文件从命令行指定 |
+|---|---|---|
+| Windows 路径 | Pack 成功，3 个实际资产；来源门通过 | Pack 成功，3 个实际资产；来源门通过 |
+| 正斜杠、含调试 root | Pack 成功，3 个实际资产；来源门通过 | Pack 成功，3 个实际资产；来源门通过 |
+
+成功的包不只据 exit/report 判断：读取真实 ZRPK v1 header、嵌入的 chunk/asset manifest，再按 offset/size 与工程源文件逐字节对照；`--determinism-check` 由真 writer 运行。使用既有匹配 profile 的 Validate 夹具而非执行完整 Validate；仅在实际 Pack 成功后在 PlatformBundle 边界非零停止，没有假造发布成功，也未运行宿主。最后的同源检查以实际生成的两份 stage report 输入原 `cook_assets_pack_manifest_handoff_diagnostics`，不是全量 Report。
+
+[受测提交](https://github.com/He-Jiahui/ZirconEngine/commit/7ec3e5d172b7fb53822ed7f57e494849aa439676)；Python 新增用例 1 过 / 0 败；已有恢复、显式路径和报告门 39 过 / 0 败。Windows x64/MSVC 1.94.1，单包 `zircon_runtime`，`--no-default-features --features native-host --bin zircon_export_pack --profile dev`。
+
+| 实物 | SHA-256 |
+|---|---|
+| 构建回执 / 真 writer | `a757e13ece17cf1f552efad6dd6248f6eac399f599ab0cf3491e191ccca10307` / `5fd1027b509bcbb5e620276be37e18424c77a9f41b41151e993954e832368ed1` |
+| Python 回归 / 邻近用例回执 | `762f57bef8abeecdfc9bac60c6b800e9c55809ed71440dcb33b93cdca1a4de3c` / `3117364c43fba1513f21062da5e6e16b9efa297665f13a9b832f4d14bb5df838` |
+| 真实 Cook/Pack 运行 / 四条结果与内容校验记录 | `22eb5331325eef51f2d6657064c0ee21245ebd078e95f5b7c645d3776ce877fb` / `7903e19b17775066db9842f65e1a86292ff549c941d8bf5067af4e6c02f6d20e` |
+| 3 个不写包的预演 + 显式空 Cook 源拒绝 | `674e0a6a9100a5cb3c4e05ebf62e5396da5b044f7fd96bc66c5ee15d3dca324f` |
