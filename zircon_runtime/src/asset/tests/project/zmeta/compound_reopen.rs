@@ -1,5 +1,8 @@
 //! A new manager must not turn its own publication or restoration into an authored edit.
 
+#[path = "compound_opt_in.rs"]
+mod opt_in;
+
 use std::fs::{self, File, FileTimes};
 use std::io::Write;
 use std::path::Path;
@@ -331,4 +334,49 @@ fn descriptor_revision(fixture: &Fixture) -> SourceRevision {
 
 fn entries(directory: &Path) -> usize {
     fs::read_dir(directory).unwrap().map(Result::unwrap).count()
+}
+
+#[test]
+fn compound_source_time_prepared_commit_does_not_erase_later_author_touch() {
+    let fixture = Fixture::new("compound_clock_prepared_touch");
+    let (manager, before) = Published::first(&fixture);
+    let registry = manager.paths().registry_root().join("asset-registry.json");
+    let registry_bytes = fs::read(&registry).unwrap();
+    let early_ms = before.scan.descriptor_ms.max(super::SEEDED_MS) + 60_000;
+    touch_descriptor(&fixture, &before, early_ms);
+
+    let generation = crate::asset::project::lock_project_generation(&fixture.root).unwrap();
+    let mut candidate = manager.clone();
+    let (_, prepared) = candidate.prepare_full_generation(None).unwrap();
+    let catalog = candidate.catalog_input_generation();
+    let row = catalog.record(before.records[0].id()).unwrap();
+    assert_eq!(row.source_mtime_unix_ms(), early_ms);
+
+    // A deterministic external file operation outside the participating writer protocol, before
+    // the final CAS, not a claim about the OS race after the final check and before replacement.
+    let late_ms = early_ms + 60_000;
+    let later = touch_descriptor(&fixture, &before, late_ms);
+    let outcome = prepared.commit();
+    eprintln!(
+        "COMPOUND_SOURCE_TIME_LATE_TOUCH early_ms={early_ms} late_ms={late_ms} commit={outcome:?}"
+    );
+    if let Ok(committed) = outcome {
+        committed.ensure_durable().unwrap();
+    } else {
+        // An explicit rejection may defer the later clock to a new generation, but must not
+        // publish any disk changes. The next normal scan must succeed and publish that clock.
+        assert_eq!(fs::read(&registry).unwrap(), registry_bytes);
+        assert_eq!(
+            fs::read(&fixture.descriptor).unwrap(),
+            before.scan.descriptor_text.as_bytes()
+        );
+        assert_eq!(modified(&fixture.descriptor), later);
+    }
+    let after_commit = modified(&fixture.descriptor);
+    drop(generation);
+    drop(candidate);
+    drop(manager);
+    let reopened = ProjectManager::open(&fixture.root).unwrap();
+    let scan = before.cold_scan(&fixture, reopened);
+    before.assert_clock(&scan, late_ms, after_commit, "late-author-touch");
 }

@@ -25,6 +25,9 @@ const IMPORT_PATH: &str = "asset_stamp_fixture::probe";
 const SEEDED_MS: u64 = 946_684_800_000;
 const OWNER_MARKER: &str = ".compound-source-time-owner";
 
+#[path = "clock_retry.rs"]
+mod clock_retry;
+
 struct Fixture {
     root: PathBuf,
     owner: String,

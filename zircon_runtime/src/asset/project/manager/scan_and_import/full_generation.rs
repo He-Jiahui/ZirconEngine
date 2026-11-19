@@ -846,7 +846,7 @@ impl ProjectManager {
     }
 
     #[cfg(test)]
-    fn scan_and_import_with_full_generation_fault(
+    pub(crate) fn scan_and_import_with_full_generation_fault(
         &mut self,
         select_fault: impl FnOnce(usize) -> ProjectTransactionFault,
     ) -> Result<Vec<ResourceRecord>, AssetImportError> {
