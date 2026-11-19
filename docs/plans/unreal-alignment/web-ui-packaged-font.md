@@ -101,3 +101,11 @@ Chrome 157 的九组字体准入回归通过 9/9。未写字体的 HUD 和已预
 每个用例结束时，监听器、引擎实例和已登记画布的计数均为零。页面提交为 `3dc6edcd5abd8842563c3867052f56913487195e`。[可复跑页面](https://github.com/He-Jiahui/ZirconEngine/blob/3dc6edcd5abd8842563c3867052f56913487195e/tools/validation/browser/web-font-policy.html)
 
 产品进入渲染器后返回 `Rhi(SurfaceUnavailable("no adapter compatible with the native surface satisfied selection policy: no adapter satisfied the declared selection policy"))`。本次呈现 0 帧。
+
+## 9. 用仓内资源写入器复测
+
+仓内 WebBundleWriter 导出了九个字体场景。相同的 Chrome 回归页面在修复前通过 7/9，修复后通过 9/9。显式缺失字体、错误资源类型、缺少预载和损坏的 blob 均得到预期诊断。
+
+Windows 主机的 `zircon_runtime` 库测试使用 `native-host,ui,memory-validation` 三项功能，关闭默认特性。首次编译在现有模型几何测试中返回 `E0716`。应用 [#137](https://github.com/He-Jiahui/ZirconEngine/pull/137) 的两行测试修复后，同一配置编译成功。精确执行 `export_webgpu_font_policy_fixtures`，1 项通过，产生九个真实目录。每份目录的场景、原始资产长度、BLAKE3 及启动依赖均已核对。
+
+使用产品 `WebEngine.load` 的前后配对中，默认样式和已预载自定义字体都进入了渲染器。九个用例结束时监听器、实例和登记画布均归零。[测试提交](https://github.com/He-Jiahui/ZirconEngine/blob/ec39dfc609c9fdac1487a91051d2843c104a8349/tools/validation/browser/web-font-policy.html) · [修订版调查](https://github.com/He-Jiahui/ZirconEngine/blob/f1c24f68353a8be3ccefd66a705ccf8167e75bb7/docs/plans/unreal-alignment/web-ui-packaged-font.md)
