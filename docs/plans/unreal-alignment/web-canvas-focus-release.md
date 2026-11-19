@@ -55,3 +55,9 @@ Engine/Plugins/EnhancedInput/Source/EnhancedInputTestSuite/Private/InputSystemTe
 Engine/Plugins/EnhancedInput/Source/EnhancedInputTestSuite/Private/InputTestFramework.h:185–186  a6e171a7dcebc52a6ec9e149660b67bce63747e980e648251e65d6ac994ca080
 Engine/Plugins/EnhancedInput/Source/EnhancedInputTestSuite/Private/InputTestFramework.cpp:291–312  f0eb3e6e6fc60003c23b31bf6e52b39d2a155b4b809c734e18d4614a88419cbd
 ```
+
+## 7. 原草稿的浏览器回归
+
+提交 `ba32996f1fb67131c2632afb72ba3de19b68a4c5` 在本草稿上独立编译生产 `Listeners`、输入队列和 `DefaultInputManager`，用 Chrome 157 检查 21 个输入帧。普通按放与窗口失焦的对照达到预期。转移到兄弟按钮、两个画布之间来回切换以及同帧重新聚焦等场景共有 **8 帧失败、13 帧通过**。[固定按键与焦点场景](https://github.com/He-Jiahui/ZirconEngine/blob/ba32996f1fb67131c2632afb72ba3de19b68a4c5/tools/validation/browser/web-focus-fixture.html#L64) · [游戏状态观察](https://github.com/He-Jiahui/ZirconEngine/blob/ba32996f1fb67131c2632afb72ba3de19b68a4c5/zircon_app/examples/web_focus_fixture.rs#L61)
+
+浏览器输入驱动还向画布发送 `a` 按下，实际焦点移动到同页按钮后向按钮发送 `a` 松开。两个键盘事件和画布 `blur` 的 `isTrusted` 均为 `true`。游戏读回键码 65 和逻辑键 `a` 的 `held` 在失焦帧、松开帧和空帧均为 `true`，对应的 `just_released` 均为 `false`。同一实例回焦再按 `a` 时也缺少新的按下边沿。
