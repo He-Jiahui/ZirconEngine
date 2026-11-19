@@ -89,3 +89,18 @@ Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile t
 同一冻结回归由 3过/1败 变为 4过/0败。空 Enter 和只移动光标均保留原 Scene 的精度、保存点及可重做的 Y；显式重输相同显示值仍形成可撤销事务。另外独立核对设置、文本、搜索、重命名的既有测试，仍以各自实测结果为准。 主案前后两次无文字编辑 Enter 的实际事件序列均未增加，随后真实 Redo 仍能重放刚撤销的 Y 位移；相机精确值与磁盘已保存的字节均不变。静态方块仍能报告 `reflection edit failed`，不会把合法拒绝记成成功。另外用同一 EXE 执行的四个既有门（设置、Unicode、层级重命名、搜索焦点）：3 过 / 1 败。 层级重命名原例在取得默认 Scene 的选中目标时停止（`default scene should expose a hierarchy rename target`），尚未走到原生重试 Enter，不能以它证明重命名通过。 这不是 IME、系统粘贴、全平台 GUI 或所有属性编辑器验收。
 
 Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile test`。实测输入 [同一测试版本](https://github.com/He-Jiahui/ZirconEngine/commit/6efde4339752054cfb60a74ce37d202f9bacf874)，编译回执 `3086de4975b6180ea07d5fddfe82eabbb320e7fd980e216cb1740120401abce8`，实际执行 `34d9211dc838849ac382612c6377b64aeaeec36599c98d9a277e27c980b2b866`，stdout `7bcd17fc91a2dc621f86e291ff32c5ce43c8ffdb896277f5cf69b14e2cbb646e`。
+
+## 12. 同焦点提交与重试已到位；额外保存的失败单列
+
+原 4 例全过。新加静态拒绝/同焦点重试通过；动态相机的成功提交、有意重输同值后的 changed=false、两次空 Enter 均通过业务断言，随后清理中额外的 Save 在已写场景后重导入失败。整例计失败，不给保存或本组全绿。
+
+相同焦点下，动态相机先记录 `changed=true / tx1`（X=12.345600128173828），重按 Enter 的 journal 保持 `3→3`；Ctrl+A 输入相同精度字串，实际提交 `changed=false / 无新事务`，再按 Enter 的 journal 保持 `4→4`。静态 Cube 的两份 Submit 记录都有 reflection veto，事务均为空；World 和历史未改、焦点保留。
+
+动态案最终另调的标准 Save 不能当作成功：返回“源已写入，但场景重导入失败，历史仍脏”，所以新增组实际是 **1 过 1 败**。同一工程留下的磁盘场景确有 `12.345600128173828`，底层日志明确是 `targeted asset import was superseded by a newer project generation`。这不是空 Enter 不正确；没有凭此断言某个 watcher 是推进代次的写手，也不取消保护过期提交的校验。原来的精度/保存/重做四例使用同一 EXE 全过，照原样保留。下一次只为这条不依赖另存的窄 ACK 用例，在全部现有断言后真实 Undo 恢复原值/干净历史并正常关闭；保存失败的本次结果与根因调查仍单独保留。
+
+Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile test`，同一[受测提交](https://github.com/He-Jiahui/ZirconEngine/commit/c68a75c9b719f22eaba8d3c37fc51cc6bbe3a600)和编译回执 `2bb1cb11e42f58521bf51170eb79a821a24a2e5488d2db773b1653cb5547feae`。各次均显式 `--ignored --test-threads 1 --show-output`，独立项目和用户配置。
+
+| 过滤器 | 实际运行 | 执行回执 SHA-256 |
+|---|---|---|
+| `details_axis_ack_` | 1 过 / 1 败 | `f378fded1edd5d447d545b18db05ec3855500d2192137cb7f4f6cfb246e7475f` |
+| `details_enter_` | 4 过 / 0 败 | `baf5882c1eae6905d496768ba407a2d98931e701043ff3a4880fa57abaa0a3e6` |
