@@ -1,0 +1,100 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Zircon Web startup font admission</title>
+<pre id="result">Running...</pre>
+<!-- Serve alongside bindgen JS/Wasm and the directories from export_webgpu_font_policy_fixtures.
+     Default mode proves the font admission boundary; ?present=1 also requires first/resize frames. -->
+<script type="module">
+const params = new URLSearchParams(location.search);
+const requireFrames = params.get('present') === '1';
+const unavailable = 'Source(ProjectAssetUnavailable)';
+const cases = [
+  ['no-ui', null],
+  ['implicit', null],
+  ['registered-default', null],
+  ['explicit-default-missing', unavailable],
+  ['explicit-custom-missing', unavailable],
+  ['explicit-custom-ready', null],
+  ['registered-not-resident', unavailable],
+  ['registered-wrong-kind', unavailable],
+  ['registered-corrupt-blob', 'Database(InvalidCookedArtifact)'],
+];
+const record = {status: 'running', mode: requireFrames ? 'present' : 'admission', cases: []};
+const report = document.getElementById('result');
+const diagnostic = error => error?.message ?? String(error);
+window.__zirconFontPolicy = (async () => {
+  const {default: init, WebEngine, browser_memory_snapshot} = await import('./zircon_app.js');
+  await init();
+  if (!navigator.gpu) throw Error('WebGPU API unavailable in the browser');
+  const counts = () => {
+    const {live_engines, registered_canvases, event_listeners} = JSON.parse(browser_memory_snapshot());
+    return [live_engines, registered_canvases, event_listeners];
+  };
+  const proto = Object.getPrototypeOf(navigator.gpu);
+  const requestAdapter = proto.requestAdapter;
+  if (typeof requestAdapter !== 'function') throw Error('Cannot observe WebGPU requestAdapter');
+  let adapterRequests = 0;
+  // Observe the real renderer boundary, forwarding unchanged to real WebGPU; do not mock success.
+  proto.requestAdapter = function (...args) {
+    adapterRequests += 1;
+    return Reflect.apply(requestAdapter, this, args);
+  };
+  try {
+    for (const [name, expectedError] of cases) {
+      const result = {name, expectedError, before: counts(), frames: []};
+      record.cases.push(result);
+      const canvas = document.createElement('canvas');
+      canvas.width = 320;
+      canvas.height = 240;
+      document.body.append(canvas);
+      const start = adapterRequests;
+      let engine;
+      try {
+        engine = await WebEngine.load(canvas, new URL(name, location.href).href);
+        result.loaded = true;
+      } catch (error) {
+        result.loadError = diagnostic(error);
+      }
+      result.adapterRequests = adapterRequests - start;
+      try {
+        if (engine && requireFrames && expectedError === null) {
+          result.frames.push(JSON.parse(await engine.render_frame(100)));
+          engine.resize(480, 270);
+          result.frames.push(JSON.parse(await engine.render_frame(117)));
+        }
+      } catch (error) {
+        result.frameError = diagnostic(error);
+      } finally {
+        try {
+          if (engine) result.close = JSON.parse(await engine.close());
+        } catch (error) {
+          result.closeError = diagnostic(error);
+        } finally {
+          engine?.free();
+          canvas.remove();
+        }
+      }
+      result.after = counts();
+      const closed = result.after.every(value => value === 0) &&
+        result.before.every(value => value === 0) && (!result.loaded ||
+          (result.close?.modules_closed && result.close?.task_graph_joined && result.close?.pending_assets === 0));
+      const reachedRenderer = result.adapterRequests > 0 &&
+        (result.loaded || result.loadError?.startsWith('Rhi('));
+      const presented = result.frames.length === 2 && result.frames.every(frame =>
+        frame.presented && (name === 'no-ui' ? frame.ui_commands === 0 : frame.ui_commands > 0));
+      result.passed = !!(closed && (expectedError === null ?
+        reachedRenderer && (!requireFrames || presented) :
+        !result.loaded && result.adapterRequests === 0 && result.loadError === expectedError));
+    }
+    record.status = record.cases.every(result => result.passed) ? 'passed' : 'failed';
+  } finally {
+    proto.requestAdapter = requestAdapter;
+  }
+})().catch(error => {
+  record.status = 'failed';
+  record.error = diagnostic(error);
+}).then(() => {
+  report.textContent = JSON.stringify(record, null, 2);
+  return record;
+});
+</script>
