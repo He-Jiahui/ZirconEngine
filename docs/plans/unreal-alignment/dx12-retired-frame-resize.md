@@ -45,3 +45,17 @@
 `0cb2e17cbf68a390d522aaba0672659ad8c7fad8`，Windows x64/MSVC、`zr_rhi_wgpu --no-default-features --lib`，test profile。真实编译回执 `125238be9cc33443d2110c7f504160f96c790654f2ef6bed5fd1fdb07a9f3d58`，EXE `3829e171fb86c9e5e38be950d2feb197f4826b7ebe6bce5905806aea6d6c7508`。只列出两项 `native_resize_`，同一枚 EXE 再按完整名称单跑 `native_resize_drained_control`。测试进程已进入 libtest 并打印这一项的名称，但未出现 `NATIVE_RESIZE_ADAPTER`、没有可证实的 submitted/presented、stderr 为空。60 秒外部限时届满，已绑定进程树全部终止，退出 124；运行回执 `7531c10c74498474b35f7ce0e9a221b7d6cacca4efdaf7040fbd621ac7ada584`。
 
 这不算一项命中窗口重配的失败；按先对照的约束未启动 `native_resize_retired_frame`。后续仅给原测试夹具添加阶段观测以区别阻塞位置，生产实现仍未修改。独立于已有历史 DX12 非零 resize 回执。
+
+## 8. 同一 EXE 的阶段和两种限时，未达成重配门
+
+Windows x64 MSVC，`zr_rhi_wgpu --no-default-features --lib --profile test --locked --offline`，源码 `79521141905b4dda2bb89b0c6aeeac1c150889f1`。只加阶段打印，去掉它们后两测试及夹具与上轮的 Git 前像逐字节相同。实际 EXE `102da85832525e7c5bb2210dcf35c9811e386e1fcf23980f82274896c2cb1a8e` 不变；两次依相同完整名选中同一用例，限时和原始进程分开留存，过限均核到整个测试进程树已结束。
+
+| 进程 | 实际退出 | 实际阶段 / 回执 SHA-256 |
+|---|---:|---|
+| 原限时（60 秒）正常回收对照 | 124 | `hwnd_create_start → hwnd_created → wgpu_instance_start → wgpu_instance_ready → win32_surface_start → win32_surface_ready_start_adapter`；`1bc18d67fb946e0ce36ae6f72207920acb09066c144ee0eb14a9ffae20cd958b` |
+| 延长限时（180 秒）正常回收对照 | 124 | `hwnd_create_start → hwnd_created → wgpu_instance_start → wgpu_instance_ready → win32_surface_start → win32_surface_ready_start_adapter`；`4fc71e084d5db2f358158ba67c135250d5cdc75151b1eef7b2c4c016d69e7768` |
+| 保留旧引用的见证 | — | 按前置约束未启动。 |
+
+确认窗口/实例/surface 建立。`win32_surface_ready_start_adapter` 在正式 [select_compatible_adapter](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/crates/zr_rhi_wgpu/src/production/surface_bootstrap.rs#L58-L144) 之前，`compatible_adapter_selected` 在其成功返回之后。该函数包括本机 DXGI 适配器枚举及 surface capabilities/策略筛选，两者还没有被单独计时；只凭这段等待不能归因到消息泵、驱动、窗口调整或设备故障。
+
+真实非零窗口、WGPU 实例和 surface 均已建成；同一 EXE 在 60 秒和 180 秒均未完成兼容适配器选择。未到呈现或 resize，无本机重配 RED；没有提交推测性的引擎修复。 不把历史包、机上安装的显卡或成功编译替代当前用例运行。
