@@ -3,6 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from tools.tests.zircon_build_owner_assertions import assert_entry_bindings
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ZIRCON_BUILD = REPO_ROOT / "tools/build/zircon_build.py"
@@ -32,15 +34,19 @@ class ZirconBuildPluginCatalogOwnerBoundaryTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        for import_name in (
-            "from .build.zircon_build_plugin_packages import PluginPackage",
-            "from .build.zircon_build_plugin_selection import (",
-            "from .build.zircon_build_plugin_workspace_crates import discover_plugin_workspace_crates",
-            "from build.zircon_build_plugin_packages import PluginPackage",
-            "from build.zircon_build_plugin_selection import (",
-            "from build.zircon_build_plugin_workspace_crates import discover_plugin_workspace_crates",
-        ):
-            self.assertIn(import_name, build_text)
+        assert_entry_bindings(self, "zircon_build_plugin_packages", "PluginPackage")
+        assert_entry_bindings(
+            self,
+            "zircon_build_plugin_selection",
+            "filter_plugins_by_carrier",
+            "print_plugin_catalog",
+            "select_plugins",
+        )
+        assert_entry_bindings(
+            self,
+            "zircon_build_plugin_workspace_crates",
+            "discover_plugin_workspace_crates",
+        )
 
         for class_name in ("CargoPackage", "PluginPackage"):
             self.assertNotIn(
