@@ -4,7 +4,7 @@
 #[path = "animation_assets.rs"]
 mod animation_assets;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use animation_assets::sequence_asset_for_entity;
@@ -45,25 +45,110 @@ struct SequenceFrames {
     epoch: u64,
 }
 
+fn checked_fixture_path(path: &Path, directory: bool) -> ResolvedProjectPathIdentity {
+    assert!(path.is_absolute(), "fixture path is not absolute: {path:?}");
+    let is_separator = |byte| byte == b'/' || (cfg!(windows) && byte == b'\\');
+    let raw = path.as_os_str().as_encoded_bytes();
+    // Path::components would discard interior `.` before the admission check.
+    assert!(
+        !raw.split(|&byte| is_separator(byte))
+            .any(|part| part == b"." || part == b".."),
+        "fixture path contains a dot component: {path:?}"
+    );
+    assert!(
+        directory || !raw.last().is_some_and(|&byte| is_separator(byte)),
+        "config must name a file, not a directory: {path:?}"
+    );
+    let spelling = if directory {
+        directory_spelling(path)
+    } else {
+        path.to_path_buf()
+    };
+    assert!(
+        spelling.is_absolute() && spelling.parent().is_some(),
+        "fixture cannot be a filesystem root: {path:?}"
+    );
+    for ancestor in spelling.ancestors() {
+        let metadata = std::fs::symlink_metadata(ancestor)
+            .unwrap_or_else(|err| panic!("cannot inspect fixture component {ancestor:?}: {err}"));
+        assert!(
+            !metadata.file_type().is_symlink(),
+            "fixture symlink: {ancestor:?}"
+        );
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::MetadataExt;
+            const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
+            assert_eq!(
+                metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT,
+                0,
+                "fixture reparse point: {ancestor:?}"
+            );
+        }
+    }
+    let resolved = ProjectPaths::resolve_existing(path)
+        .unwrap_or_else(|err| panic!("cannot resolve existing fixture path {path:?}: {err}"));
+    let physical = resolved.operation_path();
+    assert!(
+        if directory {
+            physical.is_dir()
+        } else {
+            physical.is_file()
+        },
+        "unexpected fixture path kind: {path:?}"
+    );
+    assert!(
+        ProjectPaths::same_lexical_path(&spelling, resolved.display_path()).unwrap(),
+        "fixture path alias: declared={path:?} physical={:?}",
+        resolved.display_path()
+    );
+    resolved.into()
+}
+
+#[cfg(windows)]
+fn directory_spelling(path: &Path) -> PathBuf {
+    use std::os::windows::ffi::{OsStrExt, OsStringExt};
+    // GetTempPath supplies a final separator that canonicalization does not.
+    // Remove only that directory syntax; no component or non-ASCII data changes.
+    let mut wide: Vec<_> = path.as_os_str().encode_wide().collect();
+    while wide
+        .last()
+        .is_some_and(|&unit| unit == u16::from(b'\\') || unit == u16::from(b'/'))
+    {
+        wide.pop();
+    }
+    PathBuf::from(std::ffi::OsString::from_wide(&wide))
+}
+
+#[cfg(not(windows))]
+fn directory_spelling(path: &Path) -> PathBuf {
+    // Non-Windows ProjectPaths already compares by components. Strip the final
+    // directory syntax for symlink_metadata as well, after rejecting raw dots.
+    path.components().collect()
+}
+
 impl SequenceFrames {
     fn open() -> Self {
         // Use the normal Foundation config selector, never a user's default profile.
         let declared = PathBuf::from(
             std::env::var_os("ZIRCON_CONFIG_PATH").expect("set an isolated ZIRCON_CONFIG_PATH"),
         );
+        let declared_temp = PathBuf::from(std::env::var_os("TEMP").expect("set an isolated TEMP"));
         let scratch = std::env::temp_dir();
-        assert!(declared.is_absolute() && scratch.is_absolute());
-        let config = ProjectPaths::resolve_existing(&declared).expect("existing isolated config");
-        let temp =
-            ProjectPaths::resolve_existing(&scratch).expect("existing isolated temp directory");
-        assert!(config.operation_path().is_file() && temp.operation_path().is_dir());
-        assert!(ProjectPaths::same_lexical_path(&declared, config.display_path()).unwrap());
-        assert!(ProjectPaths::same_lexical_path(&scratch, temp.display_path()).unwrap());
-        let config: ResolvedProjectPathIdentity = config.into();
-        let temp: ResolvedProjectPathIdentity = temp.into();
+        let temp = checked_fixture_path(&declared_temp, true);
+        let actual_temp = checked_fixture_path(&scratch, true);
+        assert_eq!(
+            actual_temp, temp,
+            "system temp_dir must select the declared physical TEMP"
+        );
+        let config = checked_fixture_path(&declared, false);
         assert!(
-            config.is_within(&temp),
+            config != temp && config.is_within(&temp),
             "config must be under the isolated temp directory"
+        );
+        println!(
+            "SEQUENCE_FIXTURE_V1 declared_temp={declared_temp:?} os_temp={scratch:?} physical_temp={:?}",
+            temp.operation_path()
         );
 
         let core = CoreRuntime::try_new().expect("start real Core");
