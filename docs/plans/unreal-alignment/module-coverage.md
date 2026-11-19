@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第22轮新增 #230，目前共 **44 个问题 Draft**。最新实证见第26节；第7–25节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第23轮新增 #232、#233，目前共 **46 个问题 Draft**。最新实证见第27节；第7–26节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -410,3 +410,14 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 | [#230](https://github.com/He-Jiahui/ZirconEngine/pull/230) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/0671cc1aadd852622d2b3732813f1abd8953bc88/docs/plans/unreal-alignment/same-run-cooked-pack-manifest.md#L64-L84) | 已修正同一次 Cook→Pack 的交接，不改独立 Pack override、Rust writer 或最终发布门。原红测通过；两种清单拼法、两个相同输入入口均实产 3 个资产的同字节包；debug-only 资产未混入。 |
 
 累计 **44 个问题及测试维护 Draft + 1 个总索引，零合并**。历史八份模块目录保持不变。组件测试、实际写包、桌面/硬件和 UE 的原测分开计，不把任何一组结果当成整个引擎验收。
+
+## 27. 暂停序列、滚动范围、单域构建与首次目录比较（第23轮）
+
+| 独立 PR | 实测及尚未覆盖的边界 |
+|---|---|
+| [#165](https://github.com/He-Jiahui/ZirconEngine/pull/165) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/fc6df989a02e903a3841101c712c8f9e242b4523/docs/plans/unreal-alignment/timeline-paused-binding.md#L138-L164) | 冻结原六例后补了混合绑定回归。共 4 过 / 4 败：混合序列中原轨保留外部编辑，但新建目标仍为 X=0、没有获得 X=2；另一个显式 seek 和真实 Ready 增版的正控通过。两份候选因不能证明资源重新驻留后的归属均未进入生产。 |
+| [#202](https://github.com/He-Jiahui/ZirconEngine/pull/202) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/83a85364c7d462fee4e37b80d8e8219d3547f534/docs/plans/unreal-alignment/editor-initial-catalog-visibility.md#L137-L146) | 核实原来真正运行的 Editor 测试 EXE 及其配对 PDB。首次 open / 显式刷新可分别确认 expected=3 / 10，而且两次首次比较都拒绝；比较内部 current 仍不可观测。没有再开工程、附加调试器、关闭 watcher 或把 #204 当作已归因。 |
+| [#232](https://github.com/He-Jiahui/ZirconEngine/pull/232) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/3b03a94d63f184930ff6c2c88bcad01ecbd47e9b/docs/plans/unreal-alignment/scrollbox-padding-range.md#L79-L106) | 已修正普通滚动范围：同一组 5 例从 1 过 4 败到 5/5。内容刚好放下时偏移为 0，窗口变大后旧偏移归零；横轴只扣左右内距，嵌套滚轮正确交给外层；零内距行为保持不变。 独立的旧 ReactBits 文档对照前后仍均 0/1，未到三个视口尺寸。 |
+| [#233](https://github.com/He-Jiahui/ZirconEngine/pull/233) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/2c04b37fd2e23c08e206e6e0d6fc992b8f2f5ea8/docs/plans/unreal-alignment/native-ui-domain-dependency.md#L55-L68) | 已修正 Windows 的共享 cooked 资产编译依赖：同样的 `ui` 和 `graphics` 单特性、x64 MSVC `--lib` 都从 E0433 变为通过，未启用 native-host。未改锁文件、CI、codec 或虚拟目标配置；同一组 4 个 Build/依赖控制通过。 |
+
+累计 **46 个问题及测试维护 Draft + 1 个总索引，零合并**。历史八份模块目录保持不变。组件测试、实际写包、桌面/硬件和 UE 的原测分开计，不把任何一组结果当成整个引擎验收。
