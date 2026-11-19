@@ -59,3 +59,15 @@ Windows x64 MSVC，`zr_rhi_wgpu --no-default-features --lib --profile test --loc
 确认窗口/实例/surface 建立。`win32_surface_ready_start_adapter` 在正式 [select_compatible_adapter](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/crates/zr_rhi_wgpu/src/production/surface_bootstrap.rs#L58-L144) 之前，`compatible_adapter_selected` 在其成功返回之后。该函数包括本机 DXGI 适配器枚举及 surface capabilities/策略筛选，两者还没有被单独计时；只凭这段等待不能归因到消息泵、驱动、窗口调整或设备故障。
 
 真实非零窗口、WGPU 实例和 surface 均已建成；同一 EXE 在 60 秒和 180 秒均未完成兼容适配器选择。未到呈现或 resize，无本机重配 RED；没有提交推测性的引擎修复。 不把历史包、机上安装的显卡或成功编译替代当前用例运行。
+
+## 9. Win32 对照的适配器枚举与能力查询
+
+真实 Win32 窗口和 surface 创建成功。测试进入 DX12 适配器枚举后等待了 60 秒，枚举没有返回，因此还未对任何候选查询窗口能力。
+
+| 进程 | 退出码 | 结果 |
+|---|---:|---|
+| 两个既有测试名的枚举 | 0 | 均在实际编译的 libtest 中 |
+| `native_resize_drained_control` | 124 | 受限的 60 秒观察窗，`enum_begin` |
+| `native_resize_retired_frame` | — | 运行条件取决于前一项正常回收对照通过 |
+
+该观察点在实际 `enumerate_adapters` 和逐候选 `get_capabilities` 调用两侧。Windows x64/MSVC，`zr_rhi_wgpu --no-default-features --lib`，`test` profile。源码 `3a4d2d6c18e85b394145e5769113ee723670bc0d`，EXE `d7875e1a8795bd83984c49a8b08c5d9ace64035e2498a816182329a917cb512b`，对照执行回执 `04cdd7509df0248d56f827d3942cfd0a68521bb0b728c95c0363ca6a602785e5`。实际选择日志依次为 `enum_begin`。
