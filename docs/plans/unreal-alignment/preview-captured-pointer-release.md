@@ -69,3 +69,18 @@ UE 证据只支持**已经依捕获策略获得 capture 的支路**；`NoCapture
 真实 V8 Play 相机已进入右键旋转；同窗 Game 外释放时原会话的 release 计数不增加，回入后 Move 实际送达且仍转动。inside、无主输入和失焦对照先通过。没有把相机观测当作 authored Slider 或 OS 验收。 尚无本 PR 生产修复。
 
 Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile test`。实测输入 [同一测试版本](https://github.com/He-Jiahui/ZirconEngine/commit/8036cb85a46298834544b31c31b5978c948022ed)，编译回执 `ddd1b4829a83871a98558d9c3918145300cf5aaff88d9578f50c46bbd9a78414`，实际执行 `4be1290f0057735226bb773dd8f9650c2569a775f682cefb011c8e9ac0fe46dc`，stdout `708501ccdfed0cd6bc09e40bc1b2216463d812775302dbcc2fb28da0ebd64e37`。
+
+## 8. 在 B 的可见区域放开 A 的右键，以及在非 Game 区按下的对照
+
+真实 Play A 已退休后，在新 B 的 Game 内放开旧右键，B 的释放计数 0→1；状态栏按下、Game 内放开也多出一次释放。不同按键与失焦对照通过。原来的同窗外释放丢失仍可稳定复现。
+
+第一组仍是原会话的已接纳右键拖动，释放时未收到 Up，回入后 Move 确实进入且相机仍旋转。第二组使用相同 retained 窗口和真正的 V8 会话：先验证 A 的右键旋转确实已开始；通过正式 Stop 释放 A，创建同一工程的 B，核实新 Play instance、ABI session 及 gateway generation 均不同。旧 Up 在 B 的真实 Game clip 内，先记录 B 的实际输入边计数，再确认 B 新的一组按下、移动、松开均正常并完成停止；Edit 相机未被写。另一案证明非 Game 的右键 Down 没有送入原会话，随后同键尾却在 Game 内变成了孤立的 release；普通中键和真正 blur 的作用另作控制。
+
+这些是正常 retained 路由、构造的 Winit 输入与真实已链接相机/V8 会话结果。它们不是硬件鼠标捕获、staged DLL、GPU 呈现、左键 Slider 拖动或实际窗口管理器输入的验收。
+
+Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile test`，同一[受测提交](https://github.com/He-Jiahui/ZirconEngine/commit/119f1c37ac06834a2d47944ae008677bb97851d8)和编译回执 `97d1985cb46b80ecaab780ad90a6e0910ba159bab2eb8bc4b33ee5e2d053cfe4`。各次均显式 `--ignored --test-threads 1 --show-output`，独立项目和用户配置。
+
+| 过滤器 | 实际运行 | 执行回执 SHA-256 |
+|---|---|---|
+| `game_drag_release_outside_clip_reaches_original_play` | 0 过 / 1 败 | `f9ac395b149f89f1196b9b36048f2ce871c37623981dbc14456eaa2bc6486964` |
+| `game_pointer_owner_` | 1 过 / 2 败 | `abbfb094a72b48d0b753bc6e823867a049df70fc528436063a3989d01b14235a` |
