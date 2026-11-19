@@ -1,0 +1,26 @@
+{
+  "shifted": [
+    {"KeyboardInput":{"key_code":16,"logical_key":"Shift","text":null,"pressed":true,"repeat":false}},
+    {"KeyboardInput":{"key_code":65,"logical_key":"A","text":"A","pressed":true,"repeat":false}},
+    {"KeyboardInput":{"key_code":16,"logical_key":"Shift","text":null,"pressed":false,"repeat":false}},
+    {"KeyboardInput":{"key_code":65,"logical_key":"a","text":"a","pressed":true,"repeat":true}},
+    {"KeyboardInput":{"key_code":65,"logical_key":"a","text":null,"pressed":false,"repeat":false}}
+  ],
+  "plain": [
+    {"KeyboardInput":{"key_code":65,"logical_key":"a","text":"a","pressed":true,"repeat":false}},
+    {"KeyboardInput":{"key_code":65,"logical_key":"a","text":"a","pressed":true,"repeat":true}},
+    {"KeyboardInput":{"key_code":65,"logical_key":"a","text":null,"pressed":false,"repeat":false}}
+  ],
+  "control": [
+    {"KeyboardInput":{"key_code":17,"logical_key":"Control","text":null,"pressed":true,"repeat":false}},
+    {"KeyboardInput":{"key_code":65,"logical_key":"a","text":"a","pressed":true,"repeat":false}},
+    {"KeyboardInput":{"key_code":65,"logical_key":"a","text":null,"pressed":false,"repeat":false}},
+    {"KeyboardInput":{"key_code":17,"logical_key":"Control","text":null,"pressed":false,"repeat":false}}
+  ],
+  "shared_alias": [
+    {"KeyboardInput":{"key_code":49,"logical_key":"1","text":"1","pressed":true,"repeat":false}},
+    {"KeyboardInput":{"key_code":97,"logical_key":"1","text":"1","pressed":true,"repeat":false}},
+    {"KeyboardInput":{"key_code":49,"logical_key":"1","text":null,"pressed":false,"repeat":false}},
+    {"KeyboardInput":{"key_code":97,"logical_key":"1","text":null,"pressed":false,"repeat":false}}
+  ]
+}

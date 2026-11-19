@@ -38,7 +38,13 @@ name = "zircon_shader_pbr_viewer"
 path = "src/bin/zircon_shader_pbr_viewer/main.rs"
 required-features = ["target-client"]
 
+[[example]]
+name = "web_listener_fixture"
+crate-type = ["cdylib"]
+required-features = ["web-listener-fixture"]
+
 [features]
+web-listener-fixture = ["animation"]
 default = ["target-client"]
 dev-dynamic-linking = ["dep:zr_runtime_dev_dylib", "zr_runtime_dev_dylib/runtime"]
 core-min = ["zircon_runtime/core-min"]

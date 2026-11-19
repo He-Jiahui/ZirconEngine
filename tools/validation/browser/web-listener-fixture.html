@@ -1,0 +1,130 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Zircon synthetic keyboard QA</title>
+<canvas id="zircon-key-fixture" width="64" height="64"></canvas>
+<div hidden id="zircon-qa-other-target"></div>
+<pre id="result">Waiting for test package</pre>
+<script type="module">
+const canvas = document.getElementById('zircon-key-fixture');
+const other = document.getElementById('zircon-qa-other-target');
+const down = (key, code, keyCode, location, shiftKey, text) =>
+  ({type: 'keydown', key, code, keyCode, location, shiftKey, repeat: false, text});
+const up = (sample, overrides = {}) => ({...sample, type: 'keyup', text: null, ...overrides});
+const shift = down('Shift', 'ShiftLeft', 16, 1, true, null);
+const a = down('A', 'KeyA', 65, 0, true, 'A');
+const releasedShift = up(shift, {shiftKey: false});
+const releasedA = up(a, {key: 'a', shiftKey: false});
+const repeat = {...a, key: 'a', shiftKey: false, repeat: true, text: 'a'};
+const digit = down('1', 'Digit1', 49, 0, false, '1');
+const numpad = down('1', 'Numpad1', 97, 3, false, '1');
+const right = down('Shift', 'ShiftRight', 16, 2, true, null);
+
+const dispatch = (spec, target) => {
+  const {type, key, code, keyCode, location, shiftKey, repeat} = spec;
+  // No prototype/property override, OS input, or synthetic payload injection into Rust.
+  const event = new KeyboardEvent(type,
+    {key, code, keyCode, location, shiftKey, repeat, cancelable: true});
+  const accepted = target.dispatchEvent(event);
+  const dom = {source: 'dom-constructed-keyboardevent', type: event.type,
+    key: event.key, code: event.code, keyCode: event.keyCode, location: event.location,
+    shiftKey: event.shiftKey, repeat: event.repeat, isComposing: event.isComposing,
+    isTrusted: event.isTrusted, target: event.target?.id, prevented: event.defaultPrevented};
+  const ok = Object.entries({type, key, code, keyCode, location, shiftKey, repeat})
+    .every(([field, value]) => dom[field] === value) && !dom.isComposing && !dom.isTrusted &&
+    event.target === target && accepted === (target !== canvas) &&
+    dom.prevented === (target === canvas);
+  return {dom, ok};
+};
+
+const rawMatches = (events, spec) => {
+  if (!spec) return events.length === 0;
+  if (events.length !== 1 || Object.keys(events[0]).length !== 1) return false;
+  const event = events[0].KeyboardInput;
+  const expected = {key_code: spec.keyCode, logical_key: spec.key, text: spec.text,
+    pressed: spec.type === 'keydown', repeat: spec.repeat};
+  return event && Object.keys(event).length === 5 &&
+    Object.entries(expected).every(([field, value]) => event[field] === value);
+};
+
+const sample = (Fixture, name, keys, target = canvas) => {
+  const fixture = new Fixture();
+  let cleanup = false;
+  const steps = [];
+  try {
+    // No await or externally owned input while the original Listeners are mounted.
+    for (const spec of [...keys, null]) {
+      const {dom, ok} = spec ? dispatch(spec, target) : {dom: null, ok: true};
+      const state = JSON.parse(fixture.step());
+      steps.push({dom, ...state, fixture_ok: document.activeElement === canvas && !document.hidden &&
+        ok && state.listener.omitted_events === 0 &&
+        !!rawMatches(state.listener.events, target === canvas ? spec : null)});
+    }
+  } finally {
+    try { cleanup = fixture.close(); } finally { fixture.free(); }
+  }
+  return {case: name, steps, listener_cleanup: cleanup};
+};
+
+const checkCases = report => {
+  const on = [true, true, false];
+  const held = [true, false, false];
+  const off = [false, false, true];
+  const idle = [false, false, false];
+  const cases = new Map(report.cases.map(item => [item.case, item]));
+  const checks = [
+    ['shift-a', 1, 'A', on], ['shift-a', 2, 'A', held],
+    ['shift-a', 2, 'Shift', off], ['shift-a', 2, '16', off],
+    ['shift-a', 3, '65', off], ['shift-a', 3, 'A', off],
+    ['shift-a', 3, 'a', idle], ['shift-a', 4, 'A', idle],
+    ['shift-a-repeat', 3, 'A', held], ['shift-a-repeat', 3, 'a', idle],
+    ['shift-a-repeat', 3, '65', held], ['shift-a-repeat', 4, '65', off],
+    ['shift-a-repeat', 4, 'A', off], ['shift-a-repeat', 5, 'A', idle],
+    ['distinct-numeric-alias', 0, '1', on], ['distinct-numeric-alias', 1, '1', held],
+    ['distinct-numeric-alias', 2, '49', off], ['distinct-numeric-alias', 2, '97', held],
+    ['distinct-numeric-alias', 2, '1', held], ['distinct-numeric-alias', 3, '1', off],
+    ['distinct-numeric-alias', 3, '97', off], ['distinct-numeric-alias', 4, '1', idle],
+    ['non-canvas', 0, 'A', idle], ['non-canvas', 0, '65', idle],
+  ];
+  report.manager_checks = checks.map(([scenario, step, button, expected]) => {
+    const observed = cases.get(scenario)?.steps[step]?.manager.buttons[button];
+    return {scenario, step, button, expected, observed,
+      pass: JSON.stringify(observed) === JSON.stringify(expected)};
+  });
+  const fixtureOk = report.cases.length === 5 && report.cases.every(item =>
+    item.listener_cleanup && item.steps.every(step => step.fixture_ok));
+  return !fixtureOk ? 'fixture-failed' :
+    report.manager_checks.every(item => item.pass) ? 'passed' : 'manager-failed';
+};
+
+const run = async () => {
+  let Fixture;
+  try {
+    const pkg = await import('./web_listener_fixture.js');
+    const wasm = await pkg.default();
+    Fixture = pkg.WebListenerFixture;
+    if (!(wasm.memory instanceof WebAssembly.Memory) || typeof Fixture !== 'function') {
+      throw new Error('Expected the separate Wasm QA fixture export');
+    }
+  } catch (error) {
+    return {status: 'package-load-failed', error: String(error)};
+  }
+  try {
+    const report = {query_order: ['held', 'just_pressed', 'just_released'], cases: [
+      sample(Fixture, 'shift-a', [shift, a, releasedShift, releasedA]),
+      sample(Fixture, 'shift-a-repeat', [shift, a, releasedShift, repeat, releasedA]),
+      sample(Fixture, 'distinct-numeric-alias', [digit, numpad, up(digit), up(numpad)]),
+      sample(Fixture, 'shared-numeric-diagnostic', [shift, right, up(right), releasedShift]),
+      sample(Fixture, 'non-canvas', [a], other),
+    ]};
+    report.status = checkCases(report);
+    return report;
+  } catch (error) {
+    return {status: 'fixture-failed', error: String(error)};
+  }
+};
+window.__zirconKeyFixture = run().then(report => {
+  document.getElementById('result').textContent = JSON.stringify(report, null, 2);
+  document.documentElement.dataset.fixtureStatus = report.status;
+  return report;
+});
+</script>

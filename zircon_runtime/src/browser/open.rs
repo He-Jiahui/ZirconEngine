@@ -145,7 +145,7 @@ impl BrowserEngine {
             canvas,
             identity,
             input,
-            frame_events: Vec::new(),
+            frame_events: BrowserInputFrame::default(),
             last_timestamp: None,
             lifecycle_generation: 0,
             frame: 0,
