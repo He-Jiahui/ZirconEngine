@@ -558,3 +558,6 @@ fn assert_explicit_touch(target: Touch) {
     assert_eq!(second.meta.source_mtime_unix_ms, touched_ms);
     second.assert_only_modified_since(&first);
 }
+
+#[path = "compound_reopen.rs"]
+mod reopen;
