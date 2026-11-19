@@ -24,7 +24,7 @@ fn post_process_shader_samples_bound_effect_lut_texture() {
     assert!(POST_PROCESS_SHADER.contains("textureLoad(effect_lut_tex"));
     assert!(POST_PROCESS_SHADER.contains("sample_effect_lut_2d_strip"));
     assert!(POST_PROCESS_SHADER
-        .contains("mapped = mix(mapped, sample_effect_lut(mapped, params.effect_flags.y)"));
+        .contains("mapped = mix(mapped, sample_effect_lut(mapped, binding_mode), lut_intensity)"));
 }
 
 #[test]
@@ -56,7 +56,10 @@ fn post_process_shader_samples_bound_effect_lut_texture_3d() {
     assert!(POST_PROCESS_SHADER
         .contains("clamp(color, vec3<f32>(0.0), vec3<f32>(1.0)) * axis_max + vec3<f32>(0.5)"));
     assert!(POST_PROCESS_SHADER.contains("if (binding_mode == 3u)"));
-    assert!(POST_PROCESS_SHADER.contains("if (params.effect_flags.y == 4u)"));
+    assert!(POST_PROCESS_SHADER.contains("if (binding_mode == 4u)"));
+    assert!(POST_PROCESS_SHADER.contains(
+        "all(color >= vec3<f32>(0.0)) && all(color <= vec3<f32>(1.0))"
+    ));
     assert!(POST_PROCESS_SHADER.contains("return sample_effect_lut_3d(color);"));
 }
 

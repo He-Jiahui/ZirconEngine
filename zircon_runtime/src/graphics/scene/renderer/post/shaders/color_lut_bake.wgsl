@@ -118,7 +118,7 @@ fn apply_color_grading(color: vec3<f32>) -> vec3<f32> {
 }
 
 // 烘焙顺序与未烘焙显示路径一致；使用内部 LUT 的消费者须跳过再次 grading。
-// 格点源颜色目前覆盖 [0,1]，HDR 输入域的约定见消费端 CR-POST-SHADER-0004。
+// 格点只覆盖场景线性 [0,1]；消费端在域外一个格点内过渡到同一解析变换。
 @compute @workgroup_size(4, 4, 4)
 fn cs_main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let lut_size = max(params.lut_size_and_flags.x, 1u);
