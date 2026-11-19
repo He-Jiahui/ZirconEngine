@@ -35,3 +35,19 @@ ZE 固定 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`。本项落实[原有 Inspe
 - `BlueprintEditorTests.cpp`：`2838f0ab4ae694f4c35580d99e0d28dc47a725d99a8daf614a5e5582dbba7b72`
 - `EditorTransaction.cpp`：`4a445e4183060b9cf870ed9acc4b14a8ef36e4e22760c36e2449edf635ea2e4b`
 - `TransactionDiffingTests.cpp`：`49a8ea72cd88f54f4313b6cd57766c691c29f2e004f2d4cbce2e28f2e39969a6`
+
+## 7. 在原 owning Editor 宿主上的首次执行
+
+[固定的仅测试提交](https://github.com/He-Jiahui/ZirconEngine/blob/280585580550850ff10b6206b065f6ba83137480/zircon_editor/src/ui/retained/app/tests/details_enter.rs)仅增加该问题的回归及挂载。Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib`，Rust 的 `test` profile（包内依赖需要 `target-editor-host`、`test-support`）。过滤 `details_enter_`，`--ignored --test-threads 1 --show-output`；专用物理项目、最近工程与用户设置，不借用实际用户状态。
+
+真实 retained libtest 两例：0 过、2 败。未观测到预设的错误行为签名。
+
+两例均实际运行，但在绑定启动场景时就遇到代际拒绝；没有聚焦 Details、按 Enter、记录保存点或执行 Redo，不能把本次失败当作精度丢失的 RED。
+
+“明确重新输入显示值”和“仅确认已保存值”分别使用独占的 Windows 项目、设置和用户目录。两者都已编译、成功创建正式项目，随后在 `apply_startup_session` 收到 `the authoring scene belongs to gateway generation 1, but generation 2 is current`。既有 `ChildWindowHostHarness` 在同一服务中先建示例 World，再构造 Welcome，最后装回更早的示例状态；这一测试装配顺序不等于真实产品冷启动，也不能据此声称用户的保存文件或历史已经改变。
+
+后续验证应直接从已预检的真实项目意图建立宿主、加载磁盘场景并绑定 Document，以实际项目中名为 Cube 的 Mesh 为目标；不重写网关代号、不创建替代实体、不用手工发送属性 setter 代替按键。必须验证精确 World、已保存文件、两位显示和存续的 redo 分支都已就位，才能判断无输入确认以及明确重输两种动作。
+
+编译回执 `639ad560db92ffeda110d579c3848ec646f40f0a64d0202f98ab5da8ac33076e`；执行回执 `36881b1ddae16688cb779004dad29361ea7cf5b37ef2b7dde0860a35b4210ebd`，stdout `9e0df3cee2d535dd2d31cf427c64fb1468990fad2e093674c2983a9421ef407e`。
+
+未改生产逻辑；没有把其它 PR 的修复叠上来。本阶段不是 UE、GPU 或 stock 桌面端到端验证。
