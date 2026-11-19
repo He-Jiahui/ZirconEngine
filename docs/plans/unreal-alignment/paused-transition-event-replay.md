@@ -45,3 +45,18 @@ UE 补充源身份（SHA-256）：`Engine/Source/Runtime/Engine/Private/Componen
 这是实际 Windows x64/MSVC Rust 1.94.1 的 `zircon_plugin_animation_runtime --no-default-features --features native-host --test physics_tick --no-run --profile test --locked --jobs 1 --message-format=json`。锁定依赖在全新的物理 D 盘任务池编译；按 Cargo 返回的唯一目标、包号、源和实际字节确认 exe，再在三次单独进程隔离 smoke/TEMP/config/log 中执行，没有改动物理路径保护。没有启 Jolt、运行编辑器、设备或 UE。构建回执 `d539e805ebd8097ee76c01b87d7db4d7383cdef57d221c242458bf1e73581b93`；可执行文件 SHA-256 `34370b4764899c45496db49d67371f61e7ee52d5cd233ada896ac5a8f6a53a2b`；三次执行回执按表序 `e5cb191b5f6712b78469bb480ada4c0234b8d29f7f8f47ade86cf948e6fd2d43`、`019de66ba625c13cc9627cc0c37cb90b4e8cd46d314fbe8997b293a7658dd8f9`、`ddcaa1ca7ce99a2739dc671d75c106b487db914cbc4c2950f44df11abdcadc67`。
 
 **这不是该动画行为的 RED，也没有 GREEN。** 现有 `TestRuntime` 的基础模块组合、插件目录排序是独立的前置；不在此 PR 偷加假 Foundation、清 fatal 或替换既有 SDK 测试。对候选还有两条独立约束：正常 playing 的组件随 bundle 迁移不应重启淡化；同一机器资产热更新删除过渡端点时，不得让旧过渡永久复活。没有原帧证据之前，本 PR 不改生产。
+
+## 原生宿主的暂停与恢复验证
+
+以 `6d81e87ed8047a53b2133dae41f5c0f046890969` 的测试和动画实现为输入，叠加 [#216](https://github.com/He-Jiahui/ZirconEngine/pull/216) 和 [#217](https://github.com/He-Jiahui/ZirconEngine/pull/217) 中的五个宿主生产文件。本地组合提交为 `e65e9d4a6133daa088c2743ad97bbd74b06c18af`。两个独立对照分别运行有动画插件的正常过渡和无动画插件的序列播放器，两者都通过了帧后的场景断言。[原暂停用例](https://github.com/He-Jiahui/ZirconEngine/blob/6d81e87ed8047a53b2133dae41f5c0f046890969/zircon_plugins/animation/runtime/tests/physics_tick/paused_event.rs)
+
+| 输入动作 | 每帧匹配点数量，每条事件流各自计数 | 结果 |
+|---|---|---|
+| 连续播放三帧 | 0、1、0 | 通过 |
+| 过渡完成后暂停并恢复 | 0、1、0、0 | 通过 |
+| 过渡中暂停，下一帧恢复 | 0、1、1 | 同一通知出现两次 |
+| 过渡中暂停，保持一帧再恢复 | 0、1、0、1 | 暂停期间的过渡状态断言失败 |
+
+每次实际 tick 的步长为 0.125 秒。第三组中，播放器根时间依次为 0.125、0.125、0.25 秒。暂停帧就从 Idle 进入 Run 并发出通知。恢复帧再次发出同一点。类型化和中立事件流的身份与数量逐帧一致。
+
+四案共记录 14 帧，每案使用原测试的场景和图资源。下一项修复验证需要同时覆盖普通播放、同一实体的播放器替换与重新添加，以及使用相同资产 ID 的状态机热更新。
