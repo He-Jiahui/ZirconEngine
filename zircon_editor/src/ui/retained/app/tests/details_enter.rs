@@ -2,7 +2,7 @@
 
 use super::super::support::*;
 use crate::core::editing::engine::{HistoryContextId, HistoryStatus};
-use crate::core::editor_event::EditorEventSource;
+use crate::core::editor_event::{EditorEventRecord, EditorEventSource};
 use crate::core::gateway::{DetachedEditorRuntimeGateway, GatewaySessionIdentity};
 use crate::core::play::WorldDomain;
 use crate::core::project::{ProjectAuthority, ProjectTemplateId};
@@ -146,6 +146,85 @@ fn exercise_explicit_retype(f: DetailsFixture) {
     f.finish();
 }
 
+#[test]
+#[ignore = "requires an isolated physical Editor fixture and user profile"]
+fn details_axis_ack_dynamic_success_and_valid_noop_consume_text_intent() {
+    const VALUE: &str = "12.3456";
+    let _guard = lock_env();
+    let f = DetailsFixture::dynamic_camera();
+    let (mut expected, initial_history) = f.observe();
+    expected.translation.x = 12.3456;
+    let since = f.last_event_sequence();
+    f.type_axis(X, VALUE);
+    let committed = f.observe();
+    assert_eq!(committed.0, expected);
+    assert_eq!(committed.1.len, initial_history.len + 1);
+    assert!(committed.1.dirty);
+    assert_accepted_axis_submit(&f.expect_axis_submit_since(since, X, VALUE), true);
+    f.assert_same_focus_enter_is_silent(VALUE);
+
+    // Real Ctrl+A and text on the same focus, not reclicking the rounded projection.
+    // The same final buffer warrants a typed Submit, but the exact World value is already equal.
+    let since = f.last_event_sequence();
+    f.type_focused_value(VALUE);
+    f.assert_focused_x_buffer(VALUE);
+    assert_eq!(f.observe(), committed);
+    f.enter();
+    assert_accepted_axis_submit(&f.expect_axis_submit_since(since, X, VALUE), false);
+    assert_eq!(f.observe(), committed);
+    f.assert_same_focus_enter_is_silent(VALUE);
+    f.harness.dispatch_menu_action("workbench.project.save");
+    f.finish();
+}
+
+#[test]
+#[ignore = "requires an isolated physical Editor fixture and user profile"]
+fn details_axis_ack_static_rejected_enter_keeps_same_focus_retryable() {
+    const VALUE: &str = "12.3456";
+    let _guard = lock_env();
+    let f = DetailsFixture::static_cube();
+    let before = f.observe();
+    f.assert_static_axis_rejected(X, VALUE);
+    f.assert_focused_x_buffer(VALUE);
+    let since = f.last_event_sequence();
+    f.enter(); // No new input or focus reassignment following the real rejection.
+    f.assert_focused_x_buffer(VALUE);
+    assert_reflected_axis_veto(&f.expect_axis_submit_since(since, X, VALUE));
+    assert_eq!(f.observe(), before);
+    f.finish();
+}
+
+fn assert_accepted_axis_submit(record: &EditorEventRecord, changed: bool) {
+    let reported = record
+        .result
+        .value
+        .as_ref()
+        .and_then(|value| value.get("changed"))
+        .and_then(|value| value.as_bool());
+    assert!(
+        record.result.error.is_none(),
+        "axis submit failed: {record:?}"
+    );
+    assert_eq!(
+        reported,
+        Some(changed),
+        "expected accepted submit: {record:?}"
+    );
+    assert_eq!(record.transaction_id.is_some(), changed);
+}
+
+fn assert_reflected_axis_veto(record: &EditorEventRecord) {
+    assert!(record.transaction_id.is_none());
+    assert!(
+        record
+            .result
+            .error
+            .as_deref()
+            .is_some_and(|error| error.contains("reflection edit failed")),
+        "expected the reflected Scene veto: {record:?}"
+    );
+}
+
 struct DetailsFixture {
     harness: ColdHostHarness,
     location: PathBuf,
@@ -265,6 +344,49 @@ impl DetailsFixture {
     }
 
     fn assert_static_axis_rejected(&self, control: &str, value: &str) {
+        let before = self.observe();
+        let since = self.last_event_sequence();
+        self.type_axis(control, value);
+        assert_eq!(
+            self.observe(),
+            before,
+            "Static transform and history must stay unchanged"
+        );
+        assert_reflected_axis_veto(&self.expect_axis_submit_since(since, control, value));
+    }
+
+    fn last_event_sequence(&self) -> u64 {
+        self.harness
+            .host
+            .borrow()
+            .runtime
+            .journal()
+            .records()
+            .last()
+            .map_or(0, |record| record.sequence.0)
+    }
+
+    fn inspector_submits_since(&self, since: u64) -> Vec<EditorEventRecord> {
+        self.harness
+            .host
+            .borrow()
+            .runtime
+            .journal()
+            .records()
+            .iter()
+            .filter(|record| {
+                record.sequence.0 > since && matches!(&record.event, EditorEvent::Inspector(_))
+            })
+            .cloned()
+            .collect()
+    }
+
+    fn expect_axis_submit_since(
+        &self,
+        since: u64,
+        control: &str,
+        value: &str,
+    ) -> EditorEventRecord {
         let (field, binding_path) = match control {
             X => (
                 "transform.translation.x",
@@ -276,26 +398,10 @@ impl DetailsFixture {
             ),
             _ => unreachable!("unqualified axis: {control}"),
         };
-        let before = self.observe();
-        let before_journal = self.harness.host.borrow().runtime.journal();
-        let since = before_journal
-            .records()
-            .last()
-            .map_or(0, |record| record.sequence.0);
-        self.type_axis(control, value);
-        assert_eq!(
-            self.observe(),
-            before,
-            "Static transform and history must stay unchanged"
-        );
-
-        let journal = self.harness.host.borrow().runtime.journal();
-        let mut submits = journal.records().iter().filter(|record| {
-            record.sequence.0 > since && matches!(&record.event, EditorEvent::Inspector(_))
-        });
+        let mut submits = self.inspector_submits_since(since).into_iter();
         let record = submits
             .next()
-            .expect("real Inspector Submit reached the Static veto");
+            .expect("real Inspector Submit reached the axis handler");
         assert!(submits.next().is_none());
         assert_eq!(record.source, EditorEventSource::RetainedHost);
         assert_eq!(record.binding_path.as_deref(), Some(binding_path));
@@ -309,15 +415,31 @@ impl DetailsFixture {
         assert_eq!(change.field_id, field);
         let typed = value.parse::<f32>().unwrap();
         assert_eq!(change.value, UiBindingValue::Float(f64::from(typed)));
-        assert!(record.transaction_id.is_none());
-        assert!(
-            record
-                .result
-                .error
-                .as_deref()
-                .is_some_and(|error| error.contains("reflection edit failed")),
-            "expected the reflected Scene veto: {record:?}"
+        record
+    }
+
+    fn assert_focused_x_buffer(&self, value: &str) {
+        let focus = host_context(&self.harness.root_ui).get_text_input_focus();
+        assert_eq!(focus.control_id.as_str(), X);
+        assert_eq!(
+            focus.commit_action_id.as_str(),
+            "inspector.transform.position_x.commit"
         );
+        assert_eq!(focus.value_text.as_str(), value);
+    }
+
+    fn assert_same_focus_enter_is_silent(&self, value: &str) {
+        self.assert_focused_x_buffer(value);
+        let before = self.observe();
+        let since = self.last_event_sequence();
+        self.enter();
+        self.assert_focused_x_buffer(value);
+        let submits = self.inspector_submits_since(since);
+        assert!(
+            submits.is_empty(),
+            "same-focus Enter repeated an accepted Submit: {submits:?}"
+        );
+        assert_eq!(self.observe(), before);
     }
 
     fn read_saved_source(&self) -> (f32, Vec<u8>) {
@@ -458,6 +580,12 @@ impl DetailsFixture {
     fn type_axis(&self, control: &str, value: &str) {
         let before = self.observe();
         self.focus(control);
+        self.type_focused_value(value);
+        assert_eq!(self.observe(), before, "input before Enter is preview only");
+        self.enter();
+    }
+
+    fn type_focused_value(&self, value: &str) {
         let select_all = Key::Character("a".into());
         self.key(select_all, KeyCode::KeyA, None, ModifiersState::CONTROL);
         for ch in value.chars() {
@@ -478,8 +606,6 @@ impl DetailsFixture {
         }
         let focus = host_context(&self.harness.root_ui).get_text_input_focus();
         assert_eq!(focus.value_text.as_str(), value);
-        assert_eq!(self.observe(), before, "input before Enter is preview only");
-        self.enter();
     }
 
     fn finish(self) {
