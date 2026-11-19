@@ -30,3 +30,15 @@ Windows x64/MSVC 1.94.1 上，`-p zircon_plugin_texture_importer_runtime --no-de
 
 - `TextureImportTestFunctions.cpp`：`01bccbd5b2caf13efdb75e6d336fc04f7f0f8dfdbd1cbe53c1eddf929568a86d`
 - `Texture2DTests.cpp`：`6ee1de61a79f5cd6a816e7e628f3c30ca7c06ab96edc06fde6a41f00f41eb25b`
+
+## 7. 原测试的独立修正和编译器实证
+
+[同 PR 单一测试文件改动](https://github.com/He-Jiahui/ZirconEngine/blob/50d6834db0d58d827bec5edd0599bcac6f3bf04d/zircon_plugins/texture_importer/runtime/src/tests/ktx1_plugins07_ktx1_hotpath.rs)。Windows x64/MSVC、Rust 1.94.1，`test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_texture_importer_runtime --no-default-features --lib --no-run --profile test --locked --jobs 1 --message-format=json`。原版包树、Runtime、接口、工作区清单与锁均取固定 main；两项独立调查起点只有各自的 Markdown 文档不同，**共用同一次真实原版编译**，不是叠加更改后的分支。
+
+KTX1 原测试的 2 项编译诊断已消失；同一插件 libtest 从 23 项降为 21 项，剩余均为独立 mipgen 测试的原诊断。仍未生成测试程序、0 行为用例执行；仅修测试，不改生产。
+
+- 原始编译回执 `ae1f236932d914fda6c778db8ab10196847bf050d9380d492569936aa9d1144f`：2 个 KTX1 E0618、11 个 mipgen E0599、10 个 mipgen E0609。
+- 本 PR 的实际编译回执 `400e0a06ba43f17fec5a0df2a2983e25f78c11abd5f23bc3caff918a32c40230`：逐个比对剩余的 `21` 个主错误（路径、行、code、message 均相同），其他未改测试的 Git blob 仍与 main 匹配，没有新增其它类别。
+- 两处有效输入的局部名字不再遮蔽原 helper，第二份输入、验证函数、正例和具体负例断言未改。
+
+这不是整套测试已绿，也不是生产纹理画面验证；未用跳过、临时 cfg、替代 runner 或从其它未合并 PR 拿代码。待两个独立改动合法进入同一基线后，仍须从原 Cargo 目标启动并运行原来的实际用例。
