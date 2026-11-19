@@ -90,13 +90,14 @@ impl TaskHandle {
         match handles {
             [] => return,
             [handle] => handle.wait(),
-            _ => {}
+            _ => {
+                let completions = handles
+                    .iter()
+                    .map(|handle| handle.completion.clone())
+                    .collect::<Vec<_>>();
+                JobHandle::combine(&completions).wait();
+            }
         }
-        let completions = handles
-            .iter()
-            .map(|handle| handle.completion.clone())
-            .collect::<Vec<_>>();
-        JobHandle::combine(&completions).wait();
     }
 
     pub fn on_terminal(&self, observer: impl FnOnce() + Send + 'static) {
