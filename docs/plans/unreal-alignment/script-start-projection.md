@@ -80,3 +80,18 @@ UE 把实例生命周期与 `UObject`/`AActor`/`UActorComponent` 关联，Bluepr
 | 真正换 World | 相同数字实体号不足以冒充旧实例；新世界开始后需要自己的启动。 |
 
 第一次尝试明确选择 `zircon_plugin_zr_vm_language_runtime --no-default-features --test start_projection --no-run --profile test --locked --offline`，但物理内存一直低于本机并发准入线，**未启动 Cargo、未运行用例**。这是本机资源前置，不是脚本错误。后续从同三例、同源码重新验证，不提前改生产实现。
+
+## 8. 脚本 Update：真实成功调用与控制
+
+实际 Windows x64 / MSVC 编译源码 `914d3e57ba065f1a7ea9c10fa838c1934520274f`。`zircon_plugin_zr_vm_language_runtime --no-default-features --test start_projection --profile test --locked --offline`，包级追加特性为空。`start_projection_ --test-threads 1 --show-output`，使用注册的首方 Update、真实 Level 与 VmPluginManager，执行末端是诊断后端，不是 ZrVM native guest 或整产品启动。 编译回执 `af60805145144b60d940a1eca8f78393961cbdf947a1089a83fc7afbb378db6f`、EXE `e2b82c803fd97af1f2131ef7f9bb62236d8b98b3f67166903dc9f44947deb2f8`、独立执行回执 `f999b58cae0247602c6581d37709f8b32304c6939ceb5aa6eb5f3a556de59fbb`。**2 过 / 1 败**。
+
+- 首帧 A（entity 1）和 B（entity 2）均成功 `onStart → onUpdate`。只经正式 World API 把 A 的 `color` 由 0.25 改成 0.75，类型代次确实推进。第二个真实帧中 A 的成功 `onUpdate` 读回 **0.75**，排除了“根本没刷新”。相同 World/epoch、B 行内容与活动 VM slot/generation 不变。B 的两个帧实际分别是 `onStart → onUpdate`、`onStart → onUpdate`，B 读回始终 0.5。不是统计缓存长度；导出返回非空诊断值 101／202。
+- 等值写未推进 generation；同一实体的两个相同 authored 槽首帧各开始和更新、之后各更新但不重新开始。真正换 World（复用数字实体 ID）则为新实例各自重新开始。这两例是独立控制，不被旧 #149 结论替代。
+
+| 冻结用例 | 结果 |
+|---|---|
+| `start_projection_equal_write_preserves_duplicate_slots` | 通过 |
+| `start_projection_preserves_unedited_binding_across_property_write` | 失败 |
+| `start_projection_world_replacement_starts_new_instances` | 通过 |
+
+同一活 World 只修改 A 的颜色，B 的绑定完全未变。正式 Update 第二帧真的对 B 再次成功派发 onStart；另两个对照通过。是脚本宿主派发的复现，不是 ZrVM 原生语言或整编辑器验收。 未执行 UE 原测；不将局部结果冒充完整宿主、浏览器或全引擎验收。
