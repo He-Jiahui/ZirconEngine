@@ -78,3 +78,16 @@ UE 补充源身份（SHA-256）：`Engine/Source/Runtime/Engine/Private/Componen
 混合组件包替换与实际移除后重加都刷新了 `Added`，移除事件仅在后者出现。两个热更新场景都使用相同资产 ID，实读修订从 1 增加到 2。修复需要保留正常播放中的淡出，同时避免向新播放器或缺少端点的新修订传递旧过渡。
 
 这五案使用 Windows x64 的同一原生集成目标，筛选 `pause_guards::pause_guard_`，单线程执行。组合包含 [#216](https://github.com/He-Jiahui/ZirconEngine/pull/216) 和 [#217](https://github.com/He-Jiahui/ZirconEngine/pull/217) 的宿主修复。公开的两个测试文件对应实跑输入 `be6bb5680e401ff1fd4e3fdc010e0d1316c81485` 的相同 Git 对象。[测试代码](https://github.com/He-Jiahui/ZirconEngine/blob/0605aeb7276aab62549d26cbbe0bb53b62f23bff/zircon_plugins/animation/runtime/tests/physics_tick/pause_guards.rs)
+
+## 晚起淡化中的源与目标片段时钟
+
+根状态先用两个 0.25 秒步进播放半秒，再打开一个长 0.25 秒的淡化。此时旧片段和新片段处于不同的局部时间。两者都在 `Root/Hand` 上注册了 `fade_mid`，源片段的事件时刻为 0.6875 秒，目标片段的事件时刻为 0.1875 秒。
+
+| 世界时间步 | 两条订阅流各自的逐帧点数 | 实际发送时刻 |
+|---|---|---|
+| 暂停帧 0.125 秒 | `0, 0, 0, 2, 1, 1` | 暂停帧各发一个片段点，恢复帧发目标片段自己的根窗点。 |
+| 暂停帧 0 秒 | `0, 0, 0, 0, 2, 1` | 两个片段点在恢复帧发出，下一帧发稳态点。 |
+
+两组的根时钟都是 `0.25, 0.50, 0.625, 0.625, 0.75, 0.875` 秒。这个用例要求恢复时保留合法的新点，并逐项核对载荷、目标以及两种时间。直接过滤暂停帧会漏掉第一组的两个片段点。暂停后重复通知的修复还须处理同一播放器和同一目标来源的重叠时间区间。
+
+本次原生测试使用 #216、#217 已验证的五项宿主前置，运行 1 个用例，通过 1 项。[晚起淡化用例](https://github.com/He-Jiahui/ZirconEngine/blob/606b16654042bb01469093880ea6c15d35147667/zircon_plugins/animation/runtime/tests/physics_tick/pause_late_start.rs)
