@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>WebEngine existing Canvas adoption</title>
+<canvas id="target" width="64" height="48"></canvas>
+<pre id="report">Loading WebEngine…</pre>
+<script type="module">
+const message = error => error instanceof Error ? error.message : String(error);
+const size = object => ({ width: object.width, height: object.height });
+const ownerKeys = ['live_engines', 'registered_canvases', 'event_listeners'];
+
+async function run() {
+  const canvas = document.getElementById('target');
+  const out = {
+    passed: false, stage: 'fixture-error', error: null, fixtureError: null, scene: null,
+    canvas: { id: canvas.id, initial: size(canvas), unchanged: false },
+    gpu: { adapters: [], devices: [] }, contextRequests: [], configure: [], unconfigure: [],
+    textures: [], submissions: [], frames: [], resize: null,
+    load: { ok: false, error: null }, close: null, baseline: null, live: null, owners: null,
+  };
+  const ids = new WeakMap(), productQueues = new WeakSet();
+  const textures = new WeakMap(), views = new WeakMap(), encoders = new WeakMap();
+  const buffers = new WeakMap(), restore = [];
+  let serial = 0, nextId = 0, phase = 'setup', engine, stats;
+  function identity(object) {
+    if (object == null) return null;
+    if (!ids.has(object)) ids.set(object, ++nextId);
+    return ids.get(object);
+  }
+  function observe(prototype, name, wrap) {
+    const descriptor = Object.getOwnPropertyDescriptor(prototype, name);
+    if (typeof descriptor?.value !== 'function') throw new Error(`Missing WebGPU observer: ${name}`);
+    Object.defineProperty(prototype, name, {
+      ...descriptor,
+      value: function (...args) { return wrap(descriptor.value, this, args); },
+    });
+    restore.push(() => Object.defineProperty(prototype, name, descriptor));
+  }
+  function record(list, info, invoke, onReturn) {
+    const event = { phase, called: ++serial, returned: null, error: null, ...info };
+    list.push(event);
+    let value;
+    try {
+      value = invoke();
+      event.returned = ++serial;
+    } catch (error) {
+      event.error = message(error);
+      throw error;
+    }
+    if (onReturn) onReturn(event, value);
+    return value;
+  }
+  function observeRequest(prototype, method, list, info, onResolve) {
+    observe(prototype, method, (original, receiver, args) => {
+      if (phase !== 'load') return Reflect.apply(original, receiver, args);
+      return record(list, info(receiver), () => Reflect.apply(original, receiver, args), (event, promise) => {
+        // Observe settlement without returning a replacement Promise to the engine.
+        promise.then(value => {
+          event.resolved = ++serial;
+          event.resultId = identity(value);
+          if (value) onResolve(event, value);
+        }, error => {
+          event.rejected = ++serial;
+          event.error = message(error);
+        });
+      });
+    });
+  }
+  const target = context => context.canvas === canvas;
+  function contextEvent(context) {
+    return { contextId: identity(context), sameCanvas: target(context), ...size(canvas) };
+  }
+  try {
+    const relative = new URLSearchParams(location.search).get('scene') || './canvas-scene';
+    out.scene = new URL(relative, location.href).href;
+    const pkg = await import('./zircon_app.js');
+    await pkg.default();
+    stats = () => JSON.parse(pkg.browser_memory_snapshot());
+    out.baseline = stats();
+    if (!isSecureContext || !navigator.gpu || typeof GPUCanvasContext.prototype.getConfiguration !== 'function') {
+      throw new Error('A secure WebGPU context with GPUCanvasContext.getConfiguration is required');
+    }
+    observeRequest(GPU.prototype, 'requestAdapter', out.gpu.adapters, () => ({}), (event, adapter) => {
+      event.vendor = adapter.info?.vendor ?? null;
+      event.fallback = adapter.info?.isFallbackAdapter ?? null;
+    });
+    observeRequest(GPUAdapter.prototype, 'requestDevice', out.gpu.devices,
+      adapter => ({ adapterId: identity(adapter) }), (_event, device) => productQueues.add(device.queue));
+    observe(HTMLCanvasElement.prototype, 'getContext', (original, receiver, args) => {
+      const invoke = () => Reflect.apply(original, receiver, args);
+      if (receiver !== canvas || args[0] !== 'webgpu') return invoke();
+      return record(out.contextRequests, { canvasId: canvas.id }, invoke, (event, context) => {
+        event.contextId = identity(context);
+        event.sameCanvas = !!context && target(context);
+      });
+    });
+    observe(GPUCanvasContext.prototype, 'configure', (original, context, args) => {
+      const invoke = () => Reflect.apply(original, context, args);
+      if (!target(context)) return invoke();
+      const config = args[0];
+      return record(out.configure, { ...contextEvent(context), format: config.format,
+        deviceId: identity(config.device) }, invoke, event => {
+        // A JS return is distinct from an active configuration. This is a read, not a configure probe.
+        try {
+          const active = context.getConfiguration();
+          event.active = active && { deviceId: identity(active.device), format: active.format };
+        } catch (error) {
+          event.inspectError = message(error);
+        }
+      });
+    });
+    observe(GPUCanvasContext.prototype, 'unconfigure', (original, context, args) => {
+      const invoke = () => Reflect.apply(original, context, args);
+      return target(context) ? record(out.unconfigure, contextEvent(context), invoke) : invoke();
+    });
+    observe(GPUCanvasContext.prototype, 'getCurrentTexture', (original, context, args) => {
+      const invoke = () => Reflect.apply(original, context, args);
+      if (!target(context)) return invoke();
+      return record(out.textures, contextEvent(context), invoke, (event, texture) => {
+        Object.assign(event, size(texture), { textureId: identity(texture), format: texture.format });
+        textures.set(texture, event);
+      });
+    });
+    // Associate a real Canvas attachment with a product queue submission, not just a frame counter.
+    observe(GPUTexture.prototype, 'createView', (original, texture, args) => {
+      const view = Reflect.apply(original, texture, args);
+      if (textures.has(texture)) views.set(view, textures.get(texture));
+      return view;
+    });
+    observe(GPUCommandEncoder.prototype, 'beginRenderPass', (original, encoder, args) => {
+      const pass = Reflect.apply(original, encoder, args);
+      const attachments = args[0]?.colorAttachments;
+      if (Array.isArray(attachments)) {
+        const targetView = attachments.find(attachment => attachment && views.has(attachment.view));
+        if (targetView) encoders.set(encoder, { texture: views.get(targetView.view), label: args[0].label ?? null });
+      }
+      return pass;
+    });
+    observe(GPUCommandEncoder.prototype, 'finish', (original, encoder, args) => {
+      const buffer = Reflect.apply(original, encoder, args);
+      if (encoders.has(encoder)) buffers.set(buffer, encoders.get(encoder));
+      return buffer;
+    });
+    observe(GPUQueue.prototype, 'submit', (original, queue, args) => {
+      const invoke = () => Reflect.apply(original, queue, args);
+      if (!productQueues.has(queue)) return invoke();
+      const submitted = Array.isArray(args[0]) ? args[0] : [];
+      return record(out.submissions, { commandBuffers: submitted.length,
+        canvasPasses: submitted.map(buffer => buffers.get(buffer)).filter(Boolean) }, invoke);
+    });
+
+    phase = 'load';
+    try {
+      engine = await pkg.WebEngine.load(canvas, out.scene);
+      out.load.ok = true;
+      out.live = stats();
+    } catch (error) {
+      out.load.error = message(error);
+    }
+    if (engine) {
+      async function render(step, timestamp) {
+        phase = step;
+        const frame = { phase, timestamp, canvas: size(canvas), receipt: null, error: null };
+        out.frames.push(frame);
+        try { frame.receipt = JSON.parse(await engine.render_frame(timestamp)); }
+        catch (error) { frame.error = message(error); }
+      }
+      await render('first-frame', 16);
+      phase = 'resize';
+      out.resize = { requested: { width: 96, height: 64 }, actual: null, error: null };
+      try {
+        engine.resize(96, 64);
+        out.resize.actual = size(canvas);
+        await render('resized-frame', 32);
+      } catch (error) {
+        out.resize.error = message(error);
+      }
+    }
+  } catch (error) {
+    out.fixtureError = message(error);
+  } finally {
+    phase = 'close';
+    if (engine) {
+      out.close = { receipt: null, error: null, freed: false, freeError: null };
+      try { out.close.receipt = JSON.parse(await engine.close()); }
+      catch (error) { out.close.error = message(error); }
+      try { engine.free(); out.close.freed = true; }
+      catch (error) { out.close.freeError = message(error); }
+    }
+    for (const undo of restore.reverse()) undo();
+    if (stats) out.owners = stats();
+  }
+
+  const adapter = out.gpu.adapters.find(event => event.resultId != null);
+  const device = adapter && out.gpu.devices.find(event =>
+    event.adapterId === adapter.resultId && event.called > adapter.resolved && event.resultId != null);
+  const loadContexts = out.contextRequests.filter(event => event.phase === 'load');
+  const loadConfigure = out.configure.filter(event => event.phase === 'load');
+  const first = loadConfigure[0];
+  const context = loadContexts[0];
+  out.canvas.unchanged = canvas.isConnected && document.getElementById('target') === canvas;
+  const active = event => event.returned !== null && event.active?.deviceId === event.deviceId &&
+    event.active?.format === event.format;
+  const matches = event => !!device && active(event) && event.called > device.resolved &&
+    event.sameCanvas && event.deviceId === device.resultId && event.contextId === context?.contextId &&
+    event.width === out.canvas.initial.width && event.height === out.canvas.initial.height;
+  const checks = out.checks = {
+    adapterReturned: !!adapter, deviceReturned: !!device,
+    contextBound: loadContexts.length === 1 && !!context?.sameCanvas && out.canvas.unchanged,
+    initialConfigured: !!first && matches(first), viewportHandoff: false,
+    loaded: out.load.ok && !out.load.error,
+    liveOwners: !!out.live && out.live.live_engines === out.baseline.live_engines + 1 &&
+      out.live.registered_canvases === out.baseline.registered_canvases + 1 &&
+      out.live.event_listeners > out.baseline.event_listeners,
+    closed: !!(out.close?.freed && out.close.receipt?.modules_closed && out.close.receipt?.task_graph_joined &&
+      out.close.receipt?.pending_assets === 0),
+    ownersReleased: !!(out.owners && out.baseline && ownerKeys.every(key => out.owners[key] === out.baseline[key])),
+    followupSubmitted: false,
+  };
+  checks.viewportHandoff = checks.contextBound && checks.initialConfigured && loadConfigure.length >= 2 &&
+    loadConfigure.slice(1).every(event => event.called > first.returned && matches(event) && event.format === first.format) &&
+    out.unconfigure.every(event => event.phase !== 'load');
+  const submittedFrame = (step, width, height) => out.frames.some(frame => frame.phase === step &&
+    !frame.error && frame.receipt?.presented === true) && out.submissions.some(event => event.phase === step &&
+      event.returned !== null && event.canvasPasses.some(({ texture }) => texture.phase === step &&
+        texture.contextId === context?.contextId && texture.format === first?.format &&
+        texture.width === width && texture.height === height));
+  checks.followupSubmitted = submittedFrame('first-frame', 64, 48) && submittedFrame('resized-frame', 96, 64);
+  out.counts = Object.fromEntries(['load', 'close', 'total'].map(step => {
+    const counted = list => list.filter(event => step === 'total' || event.phase === step);
+    const configured = counted(out.configure), unconfigured = counted(out.unconfigure);
+    return [step, { configureStarted: configured.length, configureReturned: configured.filter(e => e.returned !== null).length,
+      configureSucceeded: configured.filter(active).length, unconfigureStarted: unconfigured.length,
+      unconfigureSucceeded: unconfigured.filter(e => e.returned !== null).length }];
+  }));
+  out.stage = out.fixtureError ? 'fixture-error' : !out.gpu.adapters.length ? 'before-adapter-request' :
+    !checks.adapterReturned ? 'adapter-unresolved' : !out.gpu.devices.length ? 'before-device-request' :
+    !checks.deviceReturned ? 'device-unresolved' : !first ? 'before-first-configure' :
+    !checks.initialConfigured ? 'first-configure-incomplete' : !checks.viewportHandoff ? 'before-viewport-handoff' :
+    !checks.loaded ? 'load-failed-after-viewport-handoff' :
+    !(checks.liveOwners && checks.closed && checks.ownersReleased) ? 'owner-lifecycle-incomplete' : 'adopted';
+  out.error = out.fixtureError ?? out.load.error ?? out.close?.error ?? out.close?.freeError ?? null;
+  out.passed = out.stage === 'adopted';
+  return out;
+}
+
+window.canvasAdoptionResult = run().catch(error => ({ passed: false, stage: 'fixture-error', error: message(error) }));
+document.getElementById('report').textContent = JSON.stringify(await window.canvasAdoptionResult, null, 2);
+</script>
+</html>
