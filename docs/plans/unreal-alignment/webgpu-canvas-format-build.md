@@ -57,3 +57,7 @@ Engine/Plugins/Tests/RHITests/Source/RHITests/Private/RHITextureTests.cpp:18–6
 [focus]: https://github.com/He-Jiahui/ZirconEngine/pull/238
 [ci]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/.github/workflows/profile-feature-contract.yml#L49-L109
 [lock]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/Cargo.lock#L8072-L8075
+
+## 7. 独立草稿的产品回归
+
+在 `d8d6d88120568dc1ae0b9dfe27f82c88e40e7fae` 执行 `cargo build -p zircon_app --no-default-features --features target-web --lib --target wasm32-unknown-unknown --profile dev --locked --offline --jobs 1`。Windows 上的 Rust 1.94.1 编译器以 101 退出，定位到 `zr_rhi_wgpu` 的画布交换链格式赋值。Cargo JSON 的唯一错误代码为 `E0594`。完整产品构建停在生成 Wasm 库之前。[赋值位置](https://github.com/He-Jiahui/ZirconEngine/blob/d8d6d88120568dc1ae0b9dfe27f82c88e40e7fae/zircon_runtime/crates/zr_rhi_wgpu/src/production/surface_bootstrap.rs#L107)
