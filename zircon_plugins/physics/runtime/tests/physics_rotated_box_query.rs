@@ -392,3 +392,128 @@ fn assert_near(label: &str, actual: Vec3, expected: Vec3) {
         "{label}: expected {expected:?}, got {actual:?}"
     );
 }
+
+#[test]
+fn rotated_sweep_edge_local_scale_precedes_rotation() {
+    let target = PublishedCollider::sphere_at(0.125, Vec3::new(0.0, 1.5, 0.0));
+    let shape = PhysicsColliderShape::Box {
+        half_extents: [1.0, 0.25, 0.5],
+    };
+    let pose = Transform::from_translation(Vec3::new(-3.0, 0.0, 0.0))
+        .with_scale(Vec3::new(-2.0, 0.5, 1.5));
+    let mut identity = sweep(shape, pose, Vec3::X, 3.0);
+    identity.origin_transform.translation.y = 1.5;
+    target.expect_hit("signed scale without rotation, centered", &identity, 0.875);
+
+    // Scale gives local half (2, .125, .75). The cycle X->Y->Z->X gives
+    // world half (.75, 2, .125), so the inflated X face is -.875.
+    let mut reflected = identity;
+    reflected.origin_transform.translation.y = 0.0;
+    reflected.origin_transform.rotation = cycle_axes();
+    let mut unreflected = reflected.clone();
+    unreflected.origin_transform.scale.x = 2.0;
+    let negative = "rotated query, negative local X scale";
+    let positive = "rotated query, positive local X scale";
+    let reflected_hits = target.observe(negative, &reflected);
+    let unreflected_hits = target.observe(positive, &unreflected);
+    target.check_hit(negative, &reflected, &reflected_hits, 2.125);
+    target.check_hit(positive, &unreflected, &unreflected_hits, 2.125);
+}
+
+#[test]
+fn rotated_sweep_edge_zero_distance_preserves_legacy_proxy() {
+    let target = PublishedCollider::box_at([1.0; 3], Transform::identity());
+    let sphere = PhysicsColliderShape::Sphere { radius: 1.0 };
+    let corner = Transform::from_translation(Vec3::new(1.75, 1.75, 0.0));
+    let mut query = sweep(sphere, corner, Vec3::X, 0.0);
+    // Actual sphere-to-box gap is sqrt(2*.75^2) > 1, but the start is
+    // strictly inside the old expanded AABB. Zero length must still hit it.
+    for length in [0.0, -0.0] {
+        query.max_distance = length;
+        let case = "zero length, corner inside legacy proxy only";
+        let hits = target.observe(case, &query);
+        target.check_hit(case, &query, &hits, 0.0);
+        assert_eq!(hits[0].distance, 0.0, "{case}");
+    }
+
+    // Neither Box endpoint should switch to oriented sweep bounds at zero.
+    let rotation = Quat::from_rotation_z(FRAC_PI_2);
+    let pose = Transform::from_translation(Vec3::new(0.0, 1.5, 0.0));
+    let probe = sweep(SPHERE, pose, Vec3::X, 0.0);
+    long_box_target(rotation).expect_miss("zero length with rotated target", &probe);
+    let mut probe = long_box_sweep(0.0, rotation);
+    probe.origin_transform.translation.x = 0.0;
+    probe.max_distance = 0.0;
+    offset_sphere_target().expect_miss("zero length with rotated query", &probe);
+}
+
+#[test]
+fn rotated_sweep_edge_tiny_positive_distance_is_not_zero() {
+    let pose = Transform::identity().with_rotation(cycle_axes());
+    let target = PublishedCollider::box_at([1.0, 0.125, 0.125], pose);
+    let entry = Real::EPSILON * 0.5;
+    let start = Transform::from_translation(Vec3::new(-0.25 - entry, 0.5, 0.0));
+    let sphere = PhysicsColliderShape::Sphere { radius: 0.125 };
+    let mut query = sweep(sphere, start, Vec3::X, 0.0);
+    target.expect_miss("tiny sweep fixture, zero length", &query);
+    query.max_distance = entry * 0.5;
+    target.expect_miss("tiny sweep fixture, stops before entry", &query);
+    query.max_distance = entry;
+    let case = "tiny sweep reaches rotated X face exactly";
+    let hits = target.observe(case, &query);
+    target.check_hit(case, &query, &hits, entry);
+    // The shared assertion's ordinary tolerance would also accept zero here.
+    assert_eq!(hits[0].distance, entry, "{case}");
+    assert_eq!(hits[0].position, [-0.25, 0.5, 0.0], "{case}");
+}
+
+#[test]
+fn rotated_sweep_edge_large_pair_does_not_drop_finite_hit() {
+    let unit = Real::from_bits(0x7f00_0000); // 2^127, still finite.
+    let pose = Transform::identity().with_rotation(Quat::from_rotation_x(FRAC_PI_4));
+    let target = PublishedCollider::box_at([0.625 * unit; 3], pose);
+    let start = Transform::from_translation(Vec3::new(-0.875 * unit, 0.0, 0.0));
+    let sphere = PhysicsColliderShape::Sphere {
+        radius: 0.1875 * unit,
+    };
+    let query = sweep(sphere, start, Vec3::X, 0.125 * unit);
+    // Rotating about X doesn't move the entry face. The rotated Y/Z half
+    // width fits alone; its expanded *full* width exceeds f32::MAX.
+    let hits = target.observe("finite X hit despite expanded Y/Z width", &query);
+    let [hit] = hits.as_slice() else {
+        panic!("expected one finite hit, got {hits:?}");
+    };
+    assert_eq!(hit.entity, target.entity);
+    assert!(
+        (hit.distance / unit - 0.0625).abs() <= EPS,
+        "large sweep: {hit:?}"
+    );
+    let center = Vec3::from_array(hit.position.map(|component| component / unit));
+    assert_near(
+        "large sweep, scaled query center",
+        center,
+        Vec3::new(-0.8125, 0.0, 0.0),
+    );
+}
+
+#[test]
+fn rotated_sweep_edge_initial_overlap_keeps_legacy_center() {
+    let center = Vec3::new(1.25, 0.0, 0.0);
+    let target = PublishedCollider::sphere_at(0.125, center);
+    let pose = Transform::from_translation(center).with_rotation(cycle_axes());
+    let shape = PhysicsColliderShape::Box {
+        half_extents: [1.0, 0.25, 16_777_216.0],
+    };
+    let query = sweep(shape, pose, Vec3::X, 1.0);
+    // In the old query AABB, mean(.25, 2.25) is exactly 1.25. Recomputing
+    // that center from the new X half width (2^24) would round it to 1.5.
+    let case = "positive sweep, initial overlap retains its original center";
+    let hits = target.observe(case, &query);
+    let normal = target.check_hit(case, &query, &hits, 0.0);
+    assert_eq!(hits[0].distance, 0.0, "{case}");
+    assert_eq!(normal, [0.0; 3], "{case}");
+}
+
+fn cycle_axes() -> Quat {
+    Quat::from_array([0.5; 4])
+}
