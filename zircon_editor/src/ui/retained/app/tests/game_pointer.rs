@@ -514,3 +514,381 @@ fn game_drag_release_outside_clip_reaches_original_play() {
     assert!(released_once && drag_ended,
         "PREVIEW168_GAME_CLIP_RELEASE: outside RMB Up must reach and disarm the original Play orbit (release={released_once}, ended={drag_ended})");
 }
+
+fn in_game_pointer_owner_fixture<T>(
+    run: impl FnOnce(&RefCell<RetainedEditorHost>, &UiHostWindow, u64, &dyn Fn()) -> T,
+) -> T {
+    let _lock = lock_env();
+    let root = fixture_root();
+    let _env = [
+        "ZIRCON_CONFIG_PATH",
+        "ZIRCON_LOG_ROOT",
+        "USERPROFILE",
+        SETTINGS_USER_ROOT_ENV,
+    ]
+    .map(EnvironmentVariableRestoreGuard::capture);
+    std::env::set_var("ZIRCON_CONFIG_PATH", root.join("config.json"));
+    std::env::set_var("ZIRCON_LOG_ROOT", root.join("log"));
+    std::env::set_var("USERPROFILE", &root);
+    std::env::set_var(SETTINGS_USER_ROOT_ENV, root.join("settings"));
+    let core = CoreRuntime::new();
+    let ui = UiHostWindow::new().expect("fixture: retained window contract");
+    ui.window().set_size(PhysicalSize::new(1280, 800));
+    ui.window().set_scale_factor(1.0);
+    ui.show().unwrap();
+    let host = cold_project_host(&core, &ui, &root);
+    let runtime = host.borrow().runtime.clone();
+    let edit = runtime.gateway_for(WorldDomain::Edit).unwrap();
+    let edit_identity = edit.identity();
+    let entity = runtime
+        .project_scene_snapshot()
+        .expect("fixture: current Edit gateway")
+        .expect("fixture: admitted project scene")
+        .active_camera();
+    let edit_before = camera(&edit, &edit_identity, entity);
+    let check_edit = || assert_eq!(camera(&edit, &edit_identity, entity), edit_before);
+    let result = run(&host, &ui, entity, &check_edit);
+    check_edit();
+    result
+}
+
+struct GamePointerOwner {
+    domain: WorldDomain,
+    gateway: EditorRuntimeGatewayHandle,
+    identity: GatewaySessionIdentity,
+}
+
+impl GamePointerOwner {
+    fn enter(host: &RefCell<RetainedEditorHost>) -> Self {
+        menu(&mut host.borrow_mut(), "workbench.play_mode.enter");
+        let runtime = host.borrow().runtime.clone();
+        let sessions = runtime.play_sessions();
+        assert!(matches!(
+            sessions.mode_snapshot(),
+            PlayMode::Playing {
+                kind: PlayKind::Play
+            }
+        ));
+        let Some(domain @ WorldDomain::Play(instance)) = sessions.attached_world_domain() else {
+            panic!("fixture: no genuine Play owner attached");
+        };
+        let gateway = runtime
+            .gateway_for(domain)
+            .expect("fixture: no Play gateway");
+        let identity = gateway.identity();
+        assert!(identity.runtime_session().is_valid());
+        assert_eq!(identity.play_instance(), Some(instance.raw()));
+        assert!(
+            runtime.play_preview_view_focused().unwrap(),
+            "fixture: Game must be focused by Enter Play"
+        );
+        Self {
+            domain,
+            gateway,
+            identity,
+        }
+    }
+
+    fn stop(self, host: &RefCell<RetainedEditorHost>) -> (WorldDomain, GatewaySessionIdentity) {
+        let Self {
+            domain,
+            gateway,
+            identity,
+        } = self;
+        drop(gateway);
+        menu(&mut host.borrow_mut(), "workbench.play_mode.exit");
+        let runtime = host.borrow().runtime.clone();
+        let sessions = runtime.play_sessions();
+        assert_eq!(
+            sessions.mode_snapshot(),
+            PlayMode::Edit,
+            "fixture: Stop for {identity:?}"
+        );
+        assert!(sessions.attached_world_domain().is_none());
+        assert!(
+            !sessions.terminal_backend_retirement_pending(),
+            "fixture: backend still owns {identity:?} after Stop"
+        );
+        assert!(runtime.gateway_for(domain).is_none());
+        (domain, identity)
+    }
+
+    fn input(&self) -> RuntimeInputDiagnosticsSnapshot {
+        play_input(&self.gateway, &self.identity)
+    }
+
+    fn pose(&self, entity: u64) -> (u64, Transform) {
+        camera(&self.gateway, &self.identity, entity)
+    }
+}
+
+struct GamePointerPoints {
+    down: UiPoint,
+    drag: UiPoint,
+    probe: UiPoint,
+    status: UiPoint,
+}
+
+fn game_pointer_owner_points(ui: &UiHostWindow) -> GamePointerPoints {
+    let presentation = ui.get_host_presentation();
+    let mut docks = presentation
+        .host_scene_data
+        .document_surfaces()
+        .iter()
+        .filter(|dock| dock.pane.kind.as_str() == "Game");
+    let dock = docks.next().expect("fixture: no published Game pane");
+    assert!(
+        docks.next().is_none(),
+        "fixture: expected one Game document"
+    );
+    let clip = authored_level_viewport(&presentation, dock)
+        .expect("fixture: no authored Game clip")
+        .clip;
+    let status = presentation.host_layout.status_bar_frame;
+    let window = ui.window().size();
+    assert!(clip.width > 160.0 && clip.height > 100.0 && status.height > 0.0);
+    let inside = |u: f32| UiPoint::new(clip.x + clip.width * u, clip.y + clip.height * 0.5);
+    let drag = inside(0.44);
+    let outside = UiPoint::new(drag.x, status.y + status.height * 0.5);
+    assert!(outside.y > clip.y + clip.height && outside.y < window.height as f32);
+    assert!(
+        outside.x >= status.x
+            && outside.x < status.x + status.width
+            && outside.x < window.width as f32
+    );
+    GamePointerPoints {
+        down: inside(0.32),
+        drag,
+        probe: inside(0.61),
+        status: outside,
+    }
+}
+
+fn game_pointer_edge(button: MouseButton, state: ElementState, at: UiPoint) -> WindowEvent {
+    WindowEvent::PointerButton {
+        device_id: None,
+        position: PhysicalPosition::new(f64::from(at.x), f64::from(at.y)),
+        primary: true,
+        button: button.into(),
+        state,
+    }
+}
+
+fn game_pointer_move(at: UiPoint) -> WindowEvent {
+    WindowEvent::PointerMoved {
+        device_id: None,
+        position: PhysicalPosition::new(f64::from(at.x), f64::from(at.y)),
+        primary: true,
+        source: PointerSource::Mouse,
+    }
+}
+
+fn mouse_edges(input: &RuntimeInputDiagnosticsSnapshot) -> (u64, u64) {
+    (
+        input.mouse_button_press_count,
+        input.mouse_button_release_count,
+    )
+}
+
+fn arm_game_pointer_owner(
+    drive: &mut impl FnMut(WindowEvent),
+    owner: &GamePointerOwner,
+    entity: u64,
+    points: &GamePointerPoints,
+) -> RuntimeInputDiagnosticsSnapshot {
+    let before = owner.input();
+    let (epoch, pose) = owner.pose(entity);
+    drive(game_pointer_edge(
+        MouseButton::Right,
+        ElementState::Pressed,
+        points.down,
+    ));
+    drive(game_pointer_move(points.drag));
+    let armed = owner.input();
+    let (after_epoch, after_pose) = owner.pose(entity);
+    assert_eq!(after_epoch, epoch);
+    assert_ne!(
+        after_pose, pose,
+        "fixture: RMB Down + Move must arm real Play orbit for {:?}",
+        owner.identity
+    );
+    assert_eq!(
+        mouse_edges(&armed),
+        (
+            before.mouse_button_press_count + 1,
+            before.mouse_button_release_count
+        )
+    );
+    assert_eq!(armed.pointer_move_count, before.pointer_move_count + 1);
+    eprintln!(
+        "PREVIEW168_OWNER_ARMED owner={:?} epoch={epoch} edges={:?}->{:?} moves={}->{}",
+        owner.identity,
+        mouse_edges(&before),
+        mouse_edges(&armed),
+        before.pointer_move_count,
+        armed.pointer_move_count
+    );
+    armed
+}
+
+fn probe_game_pointer_owner(
+    drive: &mut impl FnMut(WindowEvent),
+    owner: &GamePointerOwner,
+    entity: u64,
+    point: UiPoint,
+    should_orbit: bool,
+) {
+    let before = owner.input();
+    let (epoch, pose) = owner.pose(entity);
+    drive(game_pointer_move(point));
+    let after = owner.input();
+    let (after_epoch, after_pose) = owner.pose(entity);
+    assert_eq!(after_epoch, epoch);
+    assert_eq!(mouse_edges(&after), mouse_edges(&before));
+    assert_eq!(
+        after.pointer_move_count,
+        before.pointer_move_count + 1,
+        "probe Move must reach the current Play"
+    );
+    let orbited = after_pose != pose;
+    eprintln!(
+        "PREVIEW168_OWNER_PROBE owner={:?} moves={}->{} orbited={orbited}",
+        owner.identity, before.pointer_move_count, after.pointer_move_count
+    );
+    assert_eq!(orbited, should_orbit, "Play orbit with a delivered Move");
+}
+
+#[test]
+#[ignore = "isolated native Editor lane; requires ZIRCON_PREVIEW168_TEST_ROOT"]
+fn game_pointer_owner_stale_up_does_not_enter_replacement_game() {
+    let (before, after) = in_game_pointer_owner_fixture(|host, ui, entity, check_edit| {
+        // Keep one retained window and one Winit driver across both Play sessions.
+        let mut drive = ui.winit_pointer_driver_for_test();
+        let a = GamePointerOwner::enter(host);
+        arm_game_pointer_owner(&mut drive, &a, entity, &game_pointer_owner_points(ui));
+        check_edit();
+        let (old_domain, old_identity) = a.stop(host); // no RMB Up; retain identity values only
+        eprintln!("PREVIEW168_OWNER_A_RETIRED owner={old_identity:?}");
+        let b = GamePointerOwner::enter(host);
+        assert_ne!(b.domain, old_domain);
+        assert_ne!(b.identity, old_identity);
+        assert_ne!(b.identity.runtime_session(), old_identity.runtime_session());
+        assert_ne!(
+            b.identity.gateway_generation(),
+            old_identity.gateway_generation()
+        );
+        assert_eq!(b.identity.project(), old_identity.project());
+        let points = game_pointer_owner_points(ui); // use B's committed Game clip
+        let before = mouse_edges(&b.input());
+        drive(game_pointer_edge(
+            MouseButton::Right,
+            ElementState::Released,
+            points.drag,
+        ));
+        let after = mouse_edges(&b.input());
+        eprintln!("PREVIEW168_OWNER_STALE_UP_IN_GAME a={old_identity:?} b={:?} at={:?} b_edges={before:?}->{after:?}", b.identity, points.drag);
+        probe_game_pointer_owner(&mut drive, &b, entity, points.probe, false);
+
+        // A fresh pair on B, releasing at exactly the same point as the stale tail.
+        let armed = arm_game_pointer_owner(&mut drive, &b, entity, &points);
+        drive(game_pointer_edge(
+            MouseButton::Right,
+            ElementState::Released,
+            points.drag,
+        ));
+        assert_eq!(
+            mouse_edges(&b.input()),
+            (
+                armed.mouse_button_press_count,
+                armed.mouse_button_release_count + 1
+            )
+        );
+        probe_game_pointer_owner(&mut drive, &b, entity, points.probe, false);
+        check_edit();
+        b.stop(host);
+        (before, after)
+    });
+    assert_eq!(
+        after, before,
+        "PREVIEW168_OWNER_STALE_UP_IN_GAME: retired A's RMB Up must not enter B Game"
+    );
+}
+
+#[test]
+#[ignore = "isolated native Editor lane; requires ZIRCON_PREVIEW168_TEST_ROOT"]
+fn game_pointer_owner_known_non_game_down_has_no_game_up() {
+    let (before, after) = in_game_pointer_owner_fixture(|host, ui, entity, check_edit| {
+        let owner = GamePointerOwner::enter(host);
+        let points = game_pointer_owner_points(ui);
+        let mut drive = ui.winit_pointer_driver_for_test();
+        let idle = mouse_edges(&owner.input());
+        drive(game_pointer_edge(
+            MouseButton::Right,
+            ElementState::Pressed,
+            points.status,
+        ));
+        assert_eq!(
+            mouse_edges(&owner.input()),
+            idle,
+            "fixture: status band Down must not enter Game"
+        );
+        // No observed Middle Down. Keep the ordinary in-clip route for the other
+        // button even while the host has seen a non-Game RMB Down.
+        drive(game_pointer_edge(
+            MouseButton::Middle,
+            ElementState::Released,
+            points.drag,
+        ));
+        let before = mouse_edges(&owner.input());
+        assert_eq!(
+            before,
+            (idle.0, idle.1 + 1),
+            "in-clip Middle Up keeps its ordinary input route"
+        );
+        drive(game_pointer_edge(
+            MouseButton::Right,
+            ElementState::Released,
+            points.drag,
+        ));
+        let after = mouse_edges(&owner.input());
+        eprintln!("PREVIEW168_OWNER_NON_GAME_TAIL owner={:?} status_down={:?} game_up={:?} edges={before:?}->{after:?}", owner.identity, points.status, points.drag);
+        probe_game_pointer_owner(&mut drive, &owner, entity, points.probe, false);
+        check_edit();
+        owner.stop(host);
+        (before, after)
+    });
+    assert_eq!(after, before, "PREVIEW168_OWNER_NON_GAME_TAIL: a known status-band RMB Down must not supply a Game release");
+}
+
+#[test]
+#[ignore = "isolated native Editor lane; requires ZIRCON_PREVIEW168_TEST_ROOT"]
+fn game_pointer_owner_other_button_and_native_blur_are_distinct() {
+    in_game_pointer_owner_fixture(|host, ui, entity, check_edit| {
+        let owner = GamePointerOwner::enter(host);
+        let points = game_pointer_owner_points(ui);
+        let mut drive = ui.winit_pointer_driver_for_test();
+        let armed = arm_game_pointer_owner(&mut drive, &owner, entity, &points);
+        drive(game_pointer_edge(
+            MouseButton::Left,
+            ElementState::Released,
+            points.status,
+        ));
+        assert_eq!(
+            mouse_edges(&owner.input()),
+            mouse_edges(&armed),
+            "an unrelated outside LMB Up must not enter Play"
+        );
+        probe_game_pointer_owner(&mut drive, &owner, entity, points.probe, true);
+
+        // Real host focus-loss handler: no fabricated RMB Up or direct Runtime reset.
+        drive(WindowEvent::Focused(false));
+        assert_eq!(
+            mouse_edges(&owner.input()),
+            mouse_edges(&armed),
+            "native blur is not a mouse release"
+        );
+        probe_game_pointer_owner(&mut drive, &owner, entity, points.down, false);
+        check_edit();
+        owner.stop(host);
+    });
+}
