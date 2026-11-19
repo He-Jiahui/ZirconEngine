@@ -161,8 +161,8 @@ fn legacy_validate_level_ranges(
 #[test]
 fn plugins07_ktx1_hotpath_lazy_metadata_labels_preserve_validation() {
     let bytes = metadata_bytes();
-    let context = context(bytes);
-    validate_key_value_metadata_records(&context, 0, context.source_bytes.len())
+    let valid_context = context(bytes);
+    validate_key_value_metadata_records(&valid_context, 0, valid_context.source_bytes.len())
         .expect("valid metadata records should pass");
 
     let truncated = context(vec![0; 2]);
@@ -179,8 +179,8 @@ fn plugins07_ktx1_hotpath_lazy_metadata_labels_preserve_validation() {
 
 #[test]
 fn plugins07_ktx1_hotpath_lazy_mip_labels_preserve_validation() {
-    let context = context(mip_bytes());
-    validate_level_ranges(&context, 0, MIP_LEVELS).expect("valid mip level ranges should pass");
+    let valid_context = context(mip_bytes());
+    validate_level_ranges(&valid_context, 0, MIP_LEVELS).expect("valid mip level ranges should pass");
 
     let truncated = context(vec![0; 2]);
     let error = validate_level_ranges(&truncated, 0, 1)
