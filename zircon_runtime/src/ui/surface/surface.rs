@@ -228,6 +228,13 @@ impl UiSurface {
         super::render::text_font_asset_dependencies(&self.tree)
     }
 
+    #[cfg(all(feature = "target-web", target_arch = "wasm32"))]
+    pub(crate) fn explicit_text_font_asset_dependencies(&self) -> Vec<String> {
+        super::render::explicit_text_font_asset_dependencies(&self.tree)
+            .into_iter()
+            .collect()
+    }
+
     pub(crate) fn new_with_font_collection(
         tree_id: UiTreeId,
         font_collection: Arc<FontCollectionService>,

@@ -72,6 +72,8 @@ pub(crate) use extract::{
     resolve_text_layout_with_cache,
 };
 pub use extract::{extract_ui_render_tree, extract_ui_render_tree_from_arranged};
+#[cfg(all(feature = "target-web", target_arch = "wasm32"))]
+pub(super) use font_dependencies::explicit_text_font_asset_dependencies;
 pub(super) use font_dependencies::text_font_asset_dependencies;
 pub(crate) use inline_widgets::{
     metadata_has_inline_widget, resolve_inline_widget_layout_with_cache,
