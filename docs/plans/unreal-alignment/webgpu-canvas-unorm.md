@@ -55,3 +55,9 @@ Windows 上的 Chrome 157 为 `WebEngine.load` 返回了 NVIDIA Ampere 适配器
 Chrome 157 通过真实 WebEngine.load 加载无资产的空场景，在设备创建前返回 SurfaceUnavailable。页面记录了零次画布配置和零个呈现帧，监听器、引擎及画布计数均回到零。
 
 仓库中的生成脚本为测试建立目录和内容寻址的空场景。另有 Rust 用例分别检查 BGRA8/RGBA8 的交换链回执、Win32 sRGB 和呈现模式。 在源码 `b02f701abe030f97b676564e638f50ffad1ea214` 上使用同一测试页面与生成的目录。[可复跑页面](https://github.com/He-Jiahui/ZirconEngine/blob/b02f701abe030f97b676564e638f50ffad1ea214/tools/validation/browser/web-canvas-format.html)
+
+## 8. 适配器进入设备创建后的结果
+
+Windows 格式与呈现模式回归从 5/6 到 6/6。Chrome 157 的完整产品选中了适配器，并通过 requestDevice 取得设备。空场景加载结果为 Rhi(SurfaceUnavailable("native surface sessions are unavailable for this build target"))，记录到 0 次画布配置和 0 帧。
+
+原生失败用例原先将 BGRA8 和 RGBA8 UNORM 都映射为空。修订后回执返回对应的 UNORM 格式，Win32 的 sRGB 和 Fifo 控制均通过。用同一个包含八个资源的场景复测时，产品从适配器筛选推进到设备创建。三次 Git 文件合并覆盖了本修复与 [#235](https://github.com/He-Jiahui/ZirconEngine/pull/235) 和 [#239](https://github.com/He-Jiahui/ZirconEngine/pull/239) 的共有源码。 在源码 `523022eadd3fd89f16f93e6826e4ecae4d03b5bd` 上使用同一测试页面与生成的目录。[可复跑页面](https://github.com/He-Jiahui/ZirconEngine/blob/523022eadd3fd89f16f93e6826e4ecae4d03b5bd/tools/validation/browser/web-canvas-format.html)
