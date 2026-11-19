@@ -1,5 +1,5 @@
 use crate::core::framework::input::{InputButton, InputEvent, InputManager};
-use std::collections::VecDeque;
+use std::collections::{BTreeMap, VecDeque};
 use std::sync::{
     atomic::{AtomicBool, AtomicU64, Ordering},
     Mutex,
@@ -12,6 +12,48 @@ const INPUT_TEXT_BYTES: usize = 128;
 struct Queue {
     events: VecDeque<InputEvent>,
     omitted: u64,
+    // Only keys already submitted to gameplay, never speculative queued presses.
+    held_keys: BTreeMap<u32, String>,
+}
+impl Queue {
+    // A zero keyCode keeps its legacy per-event logical name; it has no
+    // stable identity for pairing or sharing a held alias.
+    fn pair_game_key(&mut self, event: &mut InputEvent) {
+        match event {
+            InputEvent::FocusLost => self.held_keys.clear(),
+            InputEvent::KeyboardInput {
+                key_code,
+                logical_key,
+                pressed,
+                repeat,
+                ..
+            } if *key_code != 0 => {
+                // An explicit None stays physical-only.
+                let Some(raw_key) = logical_key.take() else {
+                    return;
+                };
+                let key_code = *key_code;
+                if *pressed {
+                    if let Some(held) = self.held_keys.get(&key_code) {
+                        *logical_key = Some(held.clone());
+                    } else if !*repeat && self.held_keys.len() < INPUT_CAPACITY {
+                        // Do not invent a press from a late repeat or evict a live
+                        // pairing when the independent held-key cap is reached.
+                        self.held_keys.insert(key_code, raw_key.clone());
+                        *logical_key = Some(raw_key);
+                    }
+                } else {
+                    // An unmatched release cannot release another key's alias.
+                    // An alias shared by several keyCodes lives until the last up.
+                    *logical_key = self
+                        .held_keys
+                        .remove(&key_code)
+                        .filter(|released| !self.held_keys.values().any(|held| held == released));
+                }
+            }
+            _ => {}
+        }
+    }
 }
 #[derive(Default)]
 pub(crate) struct BrowserInputFrame {
@@ -109,11 +151,9 @@ impl BrowserInput {
     }
     pub fn close(&self) {
         self.closed.store(true, Ordering::Release);
-        self.queue
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .events
-            .clear();
+        let mut queue = self.queue.lock().unwrap_or_else(|e| e.into_inner());
+        queue.events.clear();
+        queue.held_keys.clear();
     }
     pub(crate) fn submit_frame(
         &self,
@@ -121,10 +161,29 @@ impl BrowserInput {
         manager: &dyn InputManager,
         mut visit_raw: impl FnMut(&InputEvent) -> Result<(), String>,
     ) -> Result<(), String> {
+        if self.is_closed() {
+            frame.clear();
+            return Ok(());
+        }
         manager.begin_frame();
         self.drain(&mut frame.events);
-        for event in frame.events.drain(..) {
+        for mut event in frame.events.drain(..) {
             visit_raw(&event)?;
+            if matches!(
+                &event,
+                InputEvent::KeyboardInput {
+                    key_code: 1..,
+                    logical_key: Some(_),
+                    ..
+                } | InputEvent::FocusLost
+            ) {
+                let mut queue = self.queue.lock().unwrap_or_else(|e| e.into_inner());
+                if self.is_closed() {
+                    break;
+                }
+                // Includes the FocusLost marker queued on overflow, in order.
+                queue.pair_game_key(&mut event);
+            }
             manager.submit_event(event);
         }
         Ok(())
