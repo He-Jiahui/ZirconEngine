@@ -58,3 +58,18 @@ Chrome 157.0.8103.52 在 Windows 上运行 ZE 的完整 Web 库。`WebEngine.loa
 [caps-consumer]: <https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/graphics/runtime/capability_summary/capability_summary.rs#L7-L20>
 [plan]: <https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/docs/plans/optimize/zircon_runtime/09a-rhi-render-graph-gpu-lifetime-review.md#L159-L173>
 [plan-rhi]: <https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/docs/plans/zircon_runtime/render/17/2026-08-24-wgpu-diagnostic-submission-architecture-and-measurement-plan.md#L906-L961>
+
+## 7. 原 Canvas 的首次配置回归
+
+空场景和带 HUD 的原始场景均返回了与适配器配对的设备，加载期间原 Canvas 的 configure 调用计数均为 0。两个用例结束时监听器、实例和登记画布均回到基线。
+
+| 正常 WebEngine.load 输入 | 加载完成 | 初始配置 | 视口接管 | 两尺寸画布提交 | 结束时 owner 回到基线 |
+|---|---|---|---|---|---|
+| 空场景 | 否 | 否 | 否 | 否 | 是 |
+| 原始 HUD 场景 | 否 | 否 | 否 | 否 | 是 |
+
+测试页面与启动素材通过同一 HTTP 源加载。观测对 WebGPU 原方法发起调用，按返回的适配器、设备、Canvas context、目标纹理与提交命令缓冲区建立对应关系。测试包含于 `8bccbca8cb8ec889e38a9ec82d446f78107b8be6`。[浏览器回归](https://github.com/He-Jiahui/ZirconEngine/blob/8bccbca8cb8ec889e38a9ec82d446f78107b8be6/tools/validation/browser/web-canvas-adoption.html)
+
+本次运行的诊断：
+
+- `Rhi(SurfaceUnavailable("native surface sessions are unavailable for this build target"))`
