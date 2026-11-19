@@ -51,3 +51,16 @@
 | 命中路由、快捷键和可用性 | 三次均为 `workbench.unreal.menu.file.open`、`Ctrl+O`、可用 |
 
 同一测试修后通过。只把实际 `MenuSlot0.text` 绑定到现有 `menu.file.label` 并保留英文 fallback；没有改 tooltip、ID、其它菜单、翻译表或 i18n 总线。 Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib`（无额外 feature）、`test` profile；单独运行 `file_menu_locale_`，**1 过、0 败**。子进程未设置资产根 override，实际 exe 旁没有 `assets`，按生产 dev-root 规则从对应提交的规范 Editor asset 根读取菜单。原生构建回执 `c7345e9bd8c8aa6484730e7f17228b41183adcfccb8383a516efe484845b45f1`；实际执行 `90c86db6021c906e858fcde73b74a6ce254a257d702f2736769b11cbbee9fd2e`；stdout `ea4ca2b980e4c9a5f42aac2489b986e29299293428dc41f00a5fd664a0c6a613`。没有覆盖 OS 辅助技术、Locale 国际化全量、设备绘制或 UE 原测。
+
+## Windows 桌面项目的普通启动
+
+从 `cc8e45d861618ed5975034f91e5e9189c483db2f` 构建 `zircon_editor` 与启用 `target-editor-host` 的运行库，使用构建工具生成的同一 BuildSet。首次测试直接打开模板目录，编辑器报告缺少 `project_guid`。随后通过 `--create-project` 创建 RenderableEmpty，实际写入的 v3 清单包含相同的项目 GUID、模板回执和 BuildSet。使用这份项目的两个副本执行普通 `--project` 启动，每个副本包含 18 个文件，合计 13,004 字节。
+
+两组都使用独立偏好设置和相同的默认场景。两套 671 个引擎资源只有菜单定义的内容不同。普通启动关闭首帧 PNG 捕获，保留既有的已提交界面状态记录。
+
+| 菜单资源 | 启动观察时长 | 日志中最后一个共同的工作台动作 |
+|---|---:|---|
+| 公共 main 的资源 | 244.7 秒 | Camera 选择与视口布局 |
+| 此 PR 的资源 | 245.0 秒 | Camera 选择与视口布局 |
+
+观察结束时，两组均未生成已提交的界面状态，窗口枚举也未返回可操作的编辑器窗口。测试未能进入 Editor Settings。既有组件回归中同一菜单显示 `File → 文件 → File`。桌面上切换设置、选择场景和观察实际字形仍需验证。[菜单定义](https://github.com/He-Jiahui/ZirconEngine/blob/cc8e45d861618ed5975034f91e5e9189c483db2f/zircon_editor/assets/ui/editor/unreal/components/menus.zui#L38-L44)
