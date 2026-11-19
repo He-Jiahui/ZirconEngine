@@ -45,3 +45,11 @@ ZE 基线 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`。本提交仅调查，不�
 1 过 / 1 败，0 次 OBJ 导入；没有人工 reset coordinator、替换 World 或故意制造代际失配。结果仅代表真实 retained 回调与项目会话；不是实际 Windows 鼠标/桌面消息或不同进程生命周期验收。下一步只校正已完成的旧 activation 所有权，不能跳过 current identity 比对、清空 Recovery/未完成释放或在 B 上沿用 A 的操作。
 
 Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile test`。实测输入 [同一测试版本](https://github.com/He-Jiahui/ZirconEngine/commit/9583255a8750df136adfea4441f3a91e7ee262cd)，编译回执 `18da72291619df0ce94a579617630a114dd0110f7cab9290b6722a5cbbf7072f`，实际执行 `acad30d2baa51a829719426381d274a5b7b67484cb2f84a47a69274b12fc3fe9`，stdout `054fba0d2036278039475ef99397f3394387d263807081be6f03709ed4fb5a97`。
+
+## 8. 相同双工程测试的修复复验
+
+同样两条忽略态显式选跑的原测试，未改任何一个字节或命令参数，均建立相同独立活动 Scene 和持久 Session。干净冷项目与双工程路径都正常退出，最终实际 manager 无活动会话，双方锁均已释放。三条原有 coordinator 的不同身份拒绝、Recovery 终态及单向推进对照在修复前后也都是 3 过 / 0 败。没有测试失败投影回退、重新打开同一路径或脏文档的交互，保留这些边界。
+
+同一真实主窗 A→Welcome→B→X 已从 1过/1败 转为 2过/0败。保留旧关闭的严格身份校验，A、B 的 guard 均按各自会话释放；不代表一般热切换或进程重启的整体验收。
+
+Windows x64/MSVC 1.94.1，`zircon_editor --no-default-features --lib --profile test`。实测输入 [同一测试版本](https://github.com/He-Jiahui/ZirconEngine/commit/f43b5629712a8e54c2b98ee3819a606644ff7919)，编译回执 `626a1474c5d258cd6fd077d636e6c0ef1c5e490b3b0f9f753f26ace67f48bdd7`，实际执行 `544254cb9969d13544a55e86588cb4067c7ccfa4ebd21cd51f096996d9a61372`，stdout `c8a996c3da426b90498d7b87c8b99cf4b3ce3f80bc3621ee1850d8a534fe26fa`。
