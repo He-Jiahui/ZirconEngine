@@ -49,3 +49,9 @@ Windows 上的 Chrome 157 为 `WebEngine.load` 返回了 NVIDIA Ampere 适配器
 [plan]: <https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/docs/plans/zircon_runtime/render/17/2026-08-24-wgpu-diagnostic-submission-architecture-and-measurement-plan.md#L906-L961>
 [rhi-test]: <https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/crates/zr_rhi_wgpu/src/production/tests/surface.rs#L5-L81>
 [gfx-test]: <https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/graphics/backend/backend/tests/viewport_surface.rs#L46-L88>
+
+## 7. 空场景与原生格式回归
+
+Chrome 157 通过真实 WebEngine.load 加载无资产的空场景，在设备创建前返回 SurfaceUnavailable。页面记录了零次画布配置和零个呈现帧，监听器、引擎及画布计数均回到零。
+
+仓库中的生成脚本为测试建立目录和内容寻址的空场景。另有 Rust 用例分别检查 BGRA8/RGBA8 的交换链回执、Win32 sRGB 和呈现模式。 在源码 `b02f701abe030f97b676564e638f50ffad1ea214` 上使用同一测试页面与生成的目录。[可复跑页面](https://github.com/He-Jiahui/ZirconEngine/blob/b02f701abe030f97b676564e638f50ffad1ea214/tools/validation/browser/web-canvas-format.html)
