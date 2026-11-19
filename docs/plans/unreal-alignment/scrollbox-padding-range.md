@@ -75,3 +75,32 @@ UE 已有 `TestFramework.Driver / Element / Hover`：`AutomationDriver.spec: 下
 另按同一代码输入单独编译/运行**未修改**的 `zui_reactbits_agent_workspace_contract::reactbits_agent_workspace_builds_a_responsive_flow_surface`；该测试包含 640×520、900×620 和 1280×800 三个原尺寸。结果：**0 过 / 1 败**。不是上述五个滚轮反例。 该次先在原用例通过 node_path 查找 retained 控件时停止（第 25 行），在三个尺寸的 compute_layout 调用之前；没有据此签收任何尺寸。
 
 覆盖的是正常文档表面的 CPU 布局、呈现指令与输入派发。没有据此声称物理鼠标、OS 窗口、GPU 像素、所有虚拟列表或 UE 原测已通过。
+
+## 8. [通过] 真实滚轮、内容范围与当前按钮位置
+
+生产只改非虚拟滚动框送入原 clamp 的主轴内容尺寸：按测量端实际加过的数额扣一次 owner 的轴向自内距，仍用原内框作 viewport。没有修改缓存向父节点报告的大小、按钮位置公式、滚轮路由、裁剪、材质、物化虚拟列表或虚拟未物化 fallback。
+
+本次 Git 输入 `a781b6e90a4f18f0bfe836fd0006b5e37e26da6a`；[实际回归用例](https://github.com/He-Jiahui/ZirconEngine/blob/a781b6e90a4f18f0bfe836fd0006b5e37e26da6a/zircon_runtime/tests/scroll_padding.rs)，该输入的测试产物 SHA-256 `199c45a3a3d7a883f0a47e25142b837c7bdd1e88b533506efd521bcb274dc116`。独立集成测试实际运行 **5 过 / 0 败**。
+
+| 冻结的用例 | 本次结果 |
+|---|---|
+| `scroll_padding_exact_fit_does_not_scroll` | 通过 |
+| `scroll_padding_exact_fit_inner_leaves_first_wheel_to_outer_owner` | 通过 |
+| `scroll_padding_horizontal_uses_left_and_right_not_top_and_bottom` | 通过 |
+| `scroll_padding_overflow_clamps_to_start_as_the_viewport_grows` | 通过 |
+| `scroll_padding_zero_padding_keeps_existing_end_and_fit` | 通过 |
+
+| 时点 | 实测 offset | 正常值 |
+|---|---:|---:|
+| `fit-after-wheel` | 0 | 0 |
+| `overflow-end` | 30 | 30 |
+| `overflow-after-resize` | 0 | 0 |
+| `zero-padding-end` | 10 | 10 |
+| `zero-padding-fit` | 0 | 0 |
+| `horizontal-end` | 10 | 10 |
+
+单独 `ui` 的首次真实构建没有生成测试二进制（共享 cooked 资产模块找不到 zstd，E0433）；本节的行为计数只来自关闭默认、显式 `native-host,ui` 后的 Windows 测试产物，两条结果不合计。
+
+另按同一代码输入单独编译/运行**未修改**的 `zui_reactbits_agent_workspace_contract::reactbits_agent_workspace_builds_a_responsive_flow_surface`；该测试包含 640×520、900×620 和 1280×800 三个原尺寸。结果：**0 过 / 1 败**。不是上述五个滚轮反例。 该次先在原用例通过 node_path 查找 retained 控件时停止（第 25 行），在三个尺寸的 compute_layout 调用之前；没有据此签收任何尺寸。
+
+覆盖的是正常文档表面的 CPU 布局、呈现指令与输入派发。没有据此声称物理鼠标、OS 窗口、GPU 像素、所有虚拟列表或 UE 原测已通过。
