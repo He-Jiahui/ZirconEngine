@@ -21,6 +21,8 @@ use crate::graphics::WgpuRenderFramework;
 #[path = "render_product_post_process/motion_blur.rs"]
 mod motion_blur;
 
+include!("render_product_post_process/internal_lut_hdr.rs");
+
 #[test]
 fn render_product_post_uber_light_effects_change_final_frame() {
     let viewport_size = UVec2::new(128, 96);
