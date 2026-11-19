@@ -201,3 +201,18 @@ continuous 的精确出生 phase 及其旧 lifetime fixture 的取舍仍须先�
 | `particle_birth_short_lifetime_reaches_render_extract_before_expiring` | 失败 |
 
 Windows x64/MSVC，`zircon_plugin_particles_editor` 的 `particle_birth` 集成测试。默认特性关闭，额外特性为 空。`test` profile 以 `particle_birth_` 筛选，实际 1 过、5 败。源码 `f8ec02b246b162970d8014c1e9c85aee4b1654a4`，测试文件 Git blob `069d2dfeebb1d82748bba4dbede09bb76e70098f`，EXE `9bfb277698d125ffe0fea461d67cc043225902fe5935b3c8764b55f7e26c84b2`，执行回执 `d3dc5d02432a45398a83c5c4cb7da4c9bf341de27ea61035f041f23a920253e1`。
+
+## 8. 按出生后的剩余时间推进 CPU 定时 burst
+
+同一份六例在 CPU 定时 burst 修复后全部通过。0.375 秒出生的粒子到首帧末移动到 x=1，年龄 0.125 秒，短寿命粒子先进入一次渲染提取，再按时到期。 同一发射器内的旧粒子走完整步长，两批新粒子各自走从出生到帧末的时间。起点、右端点和帧切分的三组输入分别验证。
+
+| 用例 | 实测 |
+|---|---|
+| `particle_birth_at_system_start_receives_the_first_positive_step` | 通过 |
+| `particle_birth_matches_single_step_when_split_around_the_burst` | 通过 |
+| `particle_birth_mid_frame_only_advances_for_its_remaining_time` | 通过 |
+| `particle_birth_on_positive_step_end_is_visible_once_at_age_zero` | 通过 |
+| `particle_birth_preserves_old_step_and_two_newborn_times_in_one_emitter` | 通过 |
+| `particle_birth_short_lifetime_reaches_render_extract_before_expiring` | 通过 |
+
+Windows x64/MSVC，`zircon_plugin_particles_editor` 的 `particle_birth` 集成测试。默认特性关闭，额外特性为 空。`test` profile 以 `particle_birth_` 筛选，实际 6 过、0 败。源码 `28edcc346685be408218d1d90ce758abf0f024b1`，测试文件 Git blob `069d2dfeebb1d82748bba4dbede09bb76e70098f`，EXE `d65e6b1a71010af57e4b87ea493d0176c950954f8a475f298c39c9e44d8347d4`，执行回执 `cf541495fdea9ee849a571bfddad2ebee379cda6f9548f6a6ca5167a8cff265e`。
