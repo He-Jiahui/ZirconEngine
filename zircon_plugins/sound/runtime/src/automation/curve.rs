@@ -19,6 +19,12 @@ pub(crate) fn sample_automation_curve(
         return Ok(first.value);
     }
 
+    if let Some(last) = curve.keyframes.last() {
+        if time_seconds >= last.time_seconds {
+            return Ok(last.value);
+        }
+    }
+
     for window in curve.keyframes.windows(2) {
         let start = window[0];
         let end = window[1];
