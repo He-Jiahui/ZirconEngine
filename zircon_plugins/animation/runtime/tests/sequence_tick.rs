@@ -792,3 +792,6 @@ fn sequence_tick_mixed_explicit_seek_and_asset_revision_resample_all_tracks() {
 #[cfg(windows)]
 #[path = "sequence_tick/residency.rs"]
 mod residency;
+
+#[path = "sequence_tick/admission.rs"]
+mod admission;

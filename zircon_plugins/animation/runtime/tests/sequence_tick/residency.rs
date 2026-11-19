@@ -329,3 +329,6 @@ fn sequence_tick_residency_rebinds_only_missing_target() {
         "behavior: subsequent paused frame must be quiet"
     );
 }
+
+#[path = "coverage.rs"]
+mod coverage;
