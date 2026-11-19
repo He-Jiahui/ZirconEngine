@@ -87,6 +87,7 @@ pub(super) fn wire_host_shell_runtime_callbacks(
 
     let weak = Rc::downgrade(host);
     let source = ui.hierarchy_pointer_source();
+    let game_root = ui.same_native_window(&host.borrow().ui);
     host_shell.on_native_window_focus_lost(move || {
         if let Some(host) = weak.upgrade() {
             if host.borrow().main_window_close_blocks_session_ui() {
@@ -99,7 +100,7 @@ pub(super) fn wire_host_shell_runtime_callbacks(
                 HierarchyTerminalReason::FocusLost,
             );
             host.dismiss_workbench_tooltip();
-            host.native_window_focus_lost();
+            host.native_window_focus_lost_from(game_root);
             host.cancel_viewport_interaction();
         }
     });

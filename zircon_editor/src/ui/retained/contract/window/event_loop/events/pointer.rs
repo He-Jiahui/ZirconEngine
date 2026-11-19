@@ -74,6 +74,7 @@ impl UiHostWindowEventLoop {
     }
 
     pub(super) fn handle_pointer_button(&mut self, platform_event: PlatformInputTranslation) {
+        let physical_rmb = self.native_game_rmb_sequence.take() == Some(platform_event.sequence);
         self.begin_input_outcome(platform_event.sequence);
         let Some(pointer) = platform_pointer_input(platform_event.event) else {
             self.reject_input_outcome();
@@ -93,19 +94,29 @@ impl UiHostWindowEventLoop {
         let pointer_id = pointer.metadata.pointer_id.unwrap_or_default();
         let modifiers = pointer.metadata.modifiers;
         self.last_pointer_position = Some((x, y));
-        if let Some(result) = self.host.dispatch_retained_pane_platform_input(
-            zircon_runtime_interface::ui::dispatch::UiInputEvent::Pointer(pointer.clone()),
-        ) {
-            self.dispatch_pointer_result(result);
-            self.sync_ime_allowed();
-            return;
-        }
-        self.host
-            .global::<UiHostContext>()
-            .invoke_workbench_pointer_input(pointer, None);
-        let result =
-            dispatch_native_pointer_button(&self.host, pointer_id, state, button, modifiers, x, y);
-        if state == NativePointerButtonState::Released && button == Some(UiPointerButton::Primary) {
+        let dispatch = || {
+            if let Some(result) = self.host.dispatch_retained_pane_platform_input(
+                zircon_runtime_interface::ui::dispatch::UiInputEvent::Pointer(pointer.clone()),
+            ) {
+                return (result, true);
+            }
+            self.host
+                .global::<UiHostContext>()
+                .invoke_workbench_pointer_input(pointer, None);
+            let result = dispatch_native_pointer_button(
+                &self.host, pointer_id, state, button, modifiers, x, y,
+            );
+            (result, false)
+        };
+        let (result, retained) = if physical_rmb && button == Some(UiPointerButton::Secondary) {
+            self.host.with_native_game_rmb(pointer_id, state, dispatch)
+        } else {
+            dispatch()
+        };
+        if !retained
+            && state == NativePointerButtonState::Released
+            && button == Some(UiPointerButton::Primary)
+        {
             self.host
                 .global::<UiHostContext>()
                 .invoke_workbench_primary_release_post_dispatch(pointer_id);
