@@ -788,3 +788,7 @@ fn sequence_tick_mixed_explicit_seek_and_asset_revision_resample_all_tracks() {
     assert_eq!(frames.translation(clock), Vec3::ZERO);
     assert!(!frames.level.animation_requires_continuous_frame());
 }
+
+#[cfg(windows)]
+#[path = "sequence_tick/residency.rs"]
+mod residency;
