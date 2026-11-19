@@ -50,3 +50,19 @@ Windows x64 / MSVC、`zircon_runtime` 关闭默认、显式 `native-host,ui`、`
 源/compiled 根为 `root`，实际 metadata 索引与 retained 根一致。用例还在明确隔离的派生文档让 `main` 和根重名：单义 API 返回 None，旧路径反而指向 `main`；已移除的原 `main` 名称也返回 None。派生文档仅用于负控，任何尺寸结论都来自未编辑的原文档。
 
 两个测试分开判定：身份观测通过；原 `reactbits_agent_workspace_builds_a_responsive_flow_surface` 仍在 helper 第 25 行失败，未执行任何 `compute_layout`。没有用测试维护冒充生产 UI 改进。
+
+## 8. 只修验收查找，保留原响应式断言
+
+实际编译 `1df3f8f859b0db34812870cc4ae48f0fc31f68f1`；同一个原 `.zui` 文档与原 `UiV2SurfaceBuilder`，不依赖 #232/#233 合并。Windows x64 MSVC，`zircon_runtime --no-default-features --features native-host,ui --test zui_reactbits_agent_workspace_contract --profile test --locked --offline`；真实 EXE `1bbb330bf206a0e25e57a3b4c5791684011c6405fe9c633752d466ffb2978eb6`，执行回执 `6ab28890f5e0dc83aa2ba49dd034c05ac364fb5cb3559672d4314966ef1eae94`，`reactbits_ --test-threads 1 --show-output`。**2 过 / 0 败**；编译与运行分别计。
+
+| 作者节点 | 实际 retained path | metadata / 公开唯一 ID 查找 | 旧路径查找 |
+|---|---|---|---|
+| `root` | `v2/root` | `ReactBitsAgentWorkspaceRoot` → `1` | `[]` |
+| `sidebar` | `v2/ReactBitsAgentSidebar` | `ReactBitsAgentSidebar` → `2` | `[2]` |
+| `main` | `v2/ReactBitsAgentMain` | `ReactBitsAgentMain` → `22` | `[22]` |
+| `context` | `v2/ReactBitsAgentContextPanel` | `ReactBitsAgentContextPanel` → `70` | `[70]` |
+| `context_summary` | `v2/ReactBitsAgentContextSummary` | `ReactBitsAgentContextSummary` → `56` | `[56]` |
+
+源/compiled 根为 `root`，实际 metadata 索引与 retained 根一致。用例还在明确隔离的派生文档让 `main` 和根重名：单义 API 返回 None，旧路径反而指向 `main`；已移除的原 `main` 名称也返回 None。派生文档仅用于负控，任何尺寸结论都来自未编辑的原文档。
+
+只把 helper 从扫描 `v2/<control_id>` 换为正式的唯一控件入口；原聚合函数体、三次尺寸（640×520、900×620、1280×800）、后续子节点路径/样式与夹具未改。这一次真实原测试返回成功；不等于 GPU、桌面互动或整编辑器验收。
