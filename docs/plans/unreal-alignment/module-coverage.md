@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮清点 30 个原列领域和 10 个补充领域。截至第27轮，累计 **53 个问题 Draft**。第31节列出本轮实测，第7–30节保留前轮结果。下文首轮表格与 CSV 保留原始清点。
+首轮清点 30 个原列领域和 10 个补充领域。截至第28轮，累计 **56 个问题 Draft**。第32节列出本轮实测与尚待验证的边界，第7–31节保留前轮结果。下文首轮表格与 CSV 保留原始清点。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -471,3 +471,13 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 启动修订 [#240](https://github.com/He-Jiahui/ZirconEngine/pull/240) 与两个输入草稿仅共改 `browser/open.rs`。Git 分别自动合并为 `1158129c1a55bce0800c8860759204e32e960b05`，保留帧队列初始化和统一激活。
 
 累计 53 个问题 Draft 和 1 个总索引；8 份模块 CSV 保持原 Git 对象。
+
+## 32. Web 产品启动、字体准入与画布格式（第28轮）
+
+| 草稿及当前提交 | 公开进展与验证范围 |
+|---|---|
+| [#241](https://github.com/He-Jiahui/ZirconEngine/pull/241) · [`fc32dea6`](https://github.com/He-Jiahui/ZirconEngine/blob/fc32dea61e7134a9b91c373301c5f42f0e3c7a3e/docs/plans/unreal-alignment/web-ui-packaged-font.md#L105) | 普通文字 HUD 和仅带自定义字体的 HUD 现在都能通过字体准入。Chrome 九组回归从 7/9 到 9/9，仓内 WebBundleWriter 生成的九组资源重现了相同结果。 |
+| [#242](https://github.com/He-Jiahui/ZirconEngine/pull/242) · [`1ce9fbed`](https://github.com/He-Jiahui/ZirconEngine/blob/1ce9fbedf01451889a4daebbb6ae402466c16c41/docs/plans/unreal-alignment/webgpu-canvas-unorm.md#L59) | Canvas 候选接受浏览器公布的 8 位 UNORM 交换链格式。Windows 格式与呈现模式回归从 5/6 到 6/6，Chrome 完整产品由适配器筛选失败推进到获得真实 GPUDevice。 |
+| [#243](https://github.com/He-Jiahui/ZirconEngine/pull/243) · [`4c304a3a`](https://github.com/He-Jiahui/ZirconEngine/blob/4c304a3aa8771d6d21bd1337fdebc30dad58cfad/docs/plans/unreal-alignment/webgpu-canvas-adoption.md#L77) | 空场景和带 HUD 场景从接管前退出，推进到在原 Canvas 成功配置 1 次和 1 次。两种尺寸的画布提交通过 0/2。两次均在系统纹理准备阶段发生 Wasm 运行错误，产品停在首帧之前。Windows 设备能力与会话释放对照通过 7/7。 |
+
+累计 56 个问题 Draft 和 1 个总索引；8 份模块 CSV 保持原 Git 对象。
