@@ -46,3 +46,32 @@ UE 已有 `TestFramework.Driver / Element / Hover`：`AutomationDriver.spec: 下
 - `Engine/Plugins/Tests/AutomationDriverTests/Source/AutomationDriverTests/Private/AutomationDriver.spec.cpp`：`62a0e0a384be81fae4e10ec29925fd6058332fe850842daed0aa853163422da6`
 - `Engine/Plugins/Tests/AutomationDriverTests/Source/AutomationDriverTests/Private/SAutomationDriverSpecSuite.cpp`：`3ce1a412a68316cedd113bf579f0bf9e147b76c97a5ea45b46571a87eeee3d82`
 - `Engine/Source/Runtime/Slate/Private/Widgets/Layout/SScrollBox.cpp`：`1b64336bf8356f3b46644a060e8d9349d133f44f4f86bf8ea9ec3be548eef178`
+
+## 7. [实测失败] 真实滚轮、内容范围与当前按钮位置
+
+从正常 `.zui` 文档加载、编译及展开为同一 `UiSurface`，给真实按钮坐标发送默认滚轮，重建并读取真实布局树、按钮 Quad、命中与 handled_by。基线下的错误是 offset 和实际按钮位置被改变，而不是滚动条的小数舍入。
+
+本次 Git 输入 `25569db598005184535f0c7b075607056bee7d76`；[实际回归用例](https://github.com/He-Jiahui/ZirconEngine/blob/25569db598005184535f0c7b075607056bee7d76/zircon_runtime/tests/scroll_padding.rs)，该输入的测试产物 SHA-256 `d4947f01e066e238ddbe2bafd8e29a75cde5fcdd1f4dea1eeee7e091fd4cf58d`。独立集成测试实际运行 **1 过 / 4 败**。
+
+| 冻结的用例 | 本次结果 |
+|---|---|
+| `scroll_padding_exact_fit_does_not_scroll` | 失败 |
+| `scroll_padding_exact_fit_inner_leaves_first_wheel_to_outer_owner` | 失败 |
+| `scroll_padding_horizontal_uses_left_and_right_not_top_and_bottom` | 失败 |
+| `scroll_padding_overflow_clamps_to_start_as_the_viewport_grows` | 失败 |
+| `scroll_padding_zero_padding_keeps_existing_end_and_fit` | 通过 |
+
+| 时点 | 实测 offset | 正常值 |
+|---|---:|---:|
+| `fit-after-wheel` | 20 | 0 |
+| `overflow-end` | 50 | 30 |
+| `overflow-after-resize` | 20 | 0 |
+| `zero-padding-end` | 10 | 10 |
+| `zero-padding-fit` | 0 | 0 |
+| `horizontal-end` | 30 | 10 |
+
+单独 `ui` 的首次真实构建没有生成测试二进制（共享 cooked 资产模块找不到 zstd，E0433）；本节的行为计数只来自关闭默认、显式 `native-host,ui` 后的 Windows 测试产物，两条结果不合计。
+
+另按同一代码输入单独编译/运行**未修改**的 `zui_reactbits_agent_workspace_contract::reactbits_agent_workspace_builds_a_responsive_flow_surface`；该测试包含 640×520、900×620 和 1280×800 三个原尺寸。结果：**0 过 / 1 败**。不是上述五个滚轮反例。 该次先在原用例通过 node_path 查找 retained 控件时停止（第 25 行），在三个尺寸的 compute_layout 调用之前；没有据此签收任何尺寸。
+
+覆盖的是正常文档表面的 CPU 布局、呈现指令与输入派发。没有据此声称物理鼠标、OS 窗口、GPU 像素、所有虚拟列表或 UE 原测已通过。
