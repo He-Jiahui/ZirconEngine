@@ -144,9 +144,12 @@ Examples:
         "--asset-manifest",
         default=None,
         help=(
-            "Cooked asset manifest input for CookAssets, or explicit Pack input. "
             "Pack defaults from a matching CookAssets report, then "
-            "<out>/stages/cook_assets/assets.json."
+            "<out>/stages/cook_assets/assets.json when starting at Pack. "
+            "This option overrides that default with --stage pack or "
+            "--resume-from pack. If CookAssets runs, this option selects its "
+            "source. Pack follows the resulting CookAssets report, or previews "
+            "the planned cooked path in a dry run."
         ),
     )
     parser.add_argument(
