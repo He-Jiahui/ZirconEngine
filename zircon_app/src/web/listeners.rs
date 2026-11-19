@@ -135,6 +135,12 @@ impl Listeners {
             let input = Arc::clone(&input);
             listeners.add(target.clone(), name, move |_| input.push(event.clone()))?;
         }
+        let canvas_blur = Arc::clone(&input);
+        listeners.add(target, "blur", move |event| {
+            if event.event_phase() == web_sys::Event::AT_TARGET {
+                canvas_blur.canvas_keyboard_blurred();
+            }
+        })?;
         let blur = Arc::clone(&input);
         listeners.add(window.clone().unchecked_into(), "blur", move |_| {
             blur.push(InputEvent::FocusLost)
