@@ -1,6 +1,6 @@
 use zr_rhi::{
     BufferDesc, BufferHandle, BufferUsage, RhiError, SamplerDesc, SamplerHandle, SubmissionTicket,
-    TextureDesc, TextureHandle, TextureUsage, TextureViewDesc, TextureViewHandle,
+    SurfaceSession, TextureDesc, TextureHandle, TextureUsage, TextureViewDesc, TextureViewHandle,
     TransientAllocatorStats,
 };
 
@@ -421,6 +421,7 @@ impl WgpuResourceRegistry {
     /// terminal state, while the public handles become stale immediately.
     pub(crate) fn release_surface_frame(
         &mut self,
+        surface: SurfaceSession,
         texture_handle: TextureHandle,
         default_view: TextureViewHandle,
     ) -> Result<(), RhiError> {
@@ -444,9 +445,10 @@ impl WgpuResourceRegistry {
         decrement_texture_view_count(&mut self.texture_view_counts, texture_handle);
         self.handles.release_texture_view(default_view)?;
         let view_last_uses = std::mem::take(&mut view.last_uses);
-        self.retire_native(
+        self.retire_native_in_scope(
             WgpuRetiredResource::TextureView { _resource: view },
             view_last_uses,
+            Some(surface),
         );
         let mut texture_resource = self
             .textures
@@ -454,9 +456,10 @@ impl WgpuResourceRegistry {
             .ok_or(RhiError::UnknownTexture(texture_handle.diagnostic_id()))?;
         self.handles.release_texture(texture_handle)?;
         let texture_last_uses = std::mem::take(&mut texture_resource.last_uses);
-        self.retire_native(
+        self.retire_native_in_scope(
             WgpuRetiredResource::Texture(texture_resource),
             texture_last_uses,
+            Some(surface),
         );
         Ok(())
     }

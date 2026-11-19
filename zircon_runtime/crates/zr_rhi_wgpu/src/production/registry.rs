@@ -12,8 +12,8 @@ use zr_rhi::{
     BindGroupDesc, BindGroupHandle, BindGroupLayoutDesc, BindGroupLayoutHandle, BufferDesc,
     BufferHandle, DeviceGeneration, DeviceId, GpuMemoryBudget, PipelineDesc, PipelineHandle,
     PipelineLayoutDesc, PipelineLayoutHandle, RenderResourceHandleAllocator, SamplerDesc,
-    SamplerHandle, ShaderModuleDesc, ShaderModuleHandle, SubmissionTicket, TextureDesc,
-    TextureHandle, TextureViewDesc, TextureViewHandle,
+    SamplerHandle, ShaderModuleDesc, ShaderModuleHandle, SubmissionTicket, SurfaceSession,
+    TextureDesc, TextureHandle, TextureViewDesc, TextureViewHandle,
 };
 
 #[path = "registry/bindings.rs"]
@@ -133,6 +133,7 @@ enum WgpuRetiredResource {
 
 struct WgpuRetirement {
     after: Vec<SubmissionTicket>,
+    surface: Option<SurfaceSession>,
     resource: WgpuRetiredResource,
 }
 

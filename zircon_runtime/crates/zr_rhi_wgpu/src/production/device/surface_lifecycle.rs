@@ -2,9 +2,9 @@
 use std::sync::MutexGuard;
 
 use zr_rhi::{
-    RenderDevice, RenderSurfaceDescriptor, RhiError, SubmissionStatus, SubmissionTicket,
-    SurfaceAcquireOutcome, SurfaceFrameLease, SurfacePresentReceipt, SurfaceSession,
-    SurfaceSessionCreateOutcome, SwapchainDesc,
+    RenderBackendKind, RenderDevice, RenderSurfaceDescriptor, RhiError, SubmissionStatus,
+    SubmissionTicket, SurfaceAcquireOutcome, SurfaceFrameLease, SurfacePresentReceipt,
+    SurfaceSession, SurfaceSessionCreateOutcome, SwapchainDesc,
 };
 
 use super::{WgpuRenderDevice, WgpuSurfaceService};
@@ -85,6 +85,16 @@ impl WgpuRenderDevice {
                 &mut registry,
                 session,
                 swapchain,
+                |registry, scope| {
+                    if cfg!(target_os = "windows")
+                        && self.profile.adapter().backend == RenderBackendKind::Dx12
+                    {
+                        // DXGI ResizeBuffers needs the completed back-buffer references gone first.
+                        registry.reap_surface_retired(scope, |ticket| {
+                            self.submissions.is_ticket_terminal(ticket)
+                        });
+                    }
+                },
             )
         };
         self.prune_terminal_resources();
