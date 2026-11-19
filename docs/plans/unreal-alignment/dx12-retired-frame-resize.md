@@ -86,3 +86,11 @@ Windows DXGI 在 0.047 秒枚举出三项。精简环境的独立系统进程在
 | `native_resize_retired_frame` | `Surface::configure` 报 Validation / Invalid surface，应用侧 RHI 返回新尺寸 Renderable |
 
 实跑源码 `3a4d2d6c18e85b394145e5769113ee723670bc0d`，EXE `d7875e1a8795bd83984c49a8b08c5d9ace64035e2498a816182329a917cb512b`。当前草稿 `d38adbfe42cbfcee887e0dea4f08e3060201f3f1` 在该源码上追加了观察记录。对照回执 `e02bc8d4cb3f24d5a054dff3dd37a1a06bd6159533542c7027b9c8b4b0663a33`，见证回执 `ad3e88cf58c4d1320198fe4bcdf564592e1e97c732d89bb13a5108dca13fc162`。
+
+## 11. 已完成的旧帧资源在窗口重配前释放
+
+同一台 RTX 3060 上，正常回收对照和保留旧引用的用例均完成 192×128 到 256×144 的窗口调整，并成功取得、绘制和呈现下一帧。原先失败的用例在重配前仍有 98,304 字节的已完成帧资源。
+
+现在每个交换链从首次创建起保留自己的资源归属。Win32 DX12 在配置非零尺寸前，释放属于该交换链且所有使用票据都已终结的退休纹理和视图。已提交但仍在途的帧、外部持有的原生视图和同时调整两个窗口各有独立的生命周期。
+
+定向验证使用 Windows x64/MSVC 的 `zr_rhi_wgpu --no-default-features --lib`，`test` profile。修复前同一份测试 1 过 1 败，修复后 2 过。源码 `00fe9442f0f7d63b7e0f01f0d90155f117a56980`，EXE `2be6d4bb24285accb4e440a21dc5cc2e95e5183a3ecbd1a4200f559fb83d1774`，两个执行回执分别为 `1c0142f6f3d5aaadf1c012c820e7c52c31c77b74d3720f6f8b426dcd526fcfb6` 和 `6b6e05093d861b5faaf78647966052ef9cdc563d2cf5f806e044ce1004eb896c`。
