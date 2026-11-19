@@ -44,3 +44,9 @@ SHA-256 d1384c9d004b8091222566be2826696a69b0d6d11ff6ec7ff16294a0c014ec77
 给三项原测试和[两条宿主专用导入](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/tests/cases.rs#L1-L5)各加 `#[cfg(feature = "native-host")]`。原测试函数体、`CoreRuntime` 导入和其它测试留在原位。改动只落测试声明，沿用原 API、ABI、清单、制品与资产格式，迁移只需维护者按特性选相应库测试。
 
 待按 Windows x64/MSVC、`test` profile、插件工作区唯一选包 `zircon_plugin_animation_runtime` 记录以下实际结果与源码、回执指纹。固定基线预检先跑 `--no-default-features --lib --no-run --profile test --locked --offline`。修后在同配置执行现有 `tests::`，确认正常测试有运行且三个宿主名称不在列表；再显式追加 `--features native-host`，执行原三名的确切过滤并保留实际匹配与结果。两组均用真实 libtest。关闭默认的这一组使用 Windows 原生进程，Wasm 与浏览器的验证保有自己的目标和回执。
+
+## 7. 无默认特性的库测试编译结果
+
+在公开主线的动画插件上关闭默认特性后，Windows 库测试编译失败。三项宿主测试产生 14 条名称解析错误和 4 条随后的类型推断错误，编译器未生成测试程序。
+
+原文件中的三项测试分别检查原生注册、物理同步后的调度位置和分发清单。编译诊断的主位置位于第 38–203 行。使用 Windows x64/MSVC、`test` profile 和包 `zircon_plugin_animation_runtime --no-default-features --lib`。源码 `432c6efd72417695adcc621945f7c76ef665ae1c`，编译回执 `3bd2b970a12119c2122c347530109f4de5cd3954d768475f3e83b0729c138540`。
