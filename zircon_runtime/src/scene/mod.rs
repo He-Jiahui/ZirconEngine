@@ -18,6 +18,9 @@ pub mod prelude;
 mod runtime_extension;
 #[path = "runtime_level_traits.rs"]
 mod runtime_level_traits;
+#[cfg(feature = "script")]
+#[path = "script_binding_activation.rs"]
+pub(crate) mod script_binding_activation;
 #[path = "world_publication.rs"]
 mod world_publication;
 #[path = "world_time/mod.rs"]
