@@ -2,7 +2,7 @@
 
 ## 1. 本轮阶段与边界
 
-首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第25轮新增 #236，目前共 **49 个问题 Draft**。最新实证见第29节；第7–28节保留历史快照。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
+首轮完成用户要求的“先搜索全部关联模块、再逐个提出有据问题 Draft”阶段：**21 个独立问题 Draft、30 个原列领域 + 10 个补充领域映射**。后续新增独立 Notify #171、Text #174、旧恢复归属 #175、Capture #178 和经典纹理缓存 #180，第26轮实测见第30节，累计 **50 个问题 Draft**。第7–29节记录此前各轮的源码与执行结果。下文首轮表格/CSV保留发布当时快照，不是实时测试通过表。不是引擎整体对齐完成，也不是数千模块逐项行为/产品审计通过。
 
 - 每个问题的六点在各自 PR 正文及独立文档内：不一致；实际影响；根因/UE处理；Rust做法；接口/ECS差异；ZE具体修改草案。
 - 每项都有精确 UE/ZE 路径、符号、行范围、UE 文件 SHA256、源码定位的生产调用链及未执行边界、既有测试落点。能复用的 UE 原测试与仅由源码推导的新回归已分列；不虚构迁移。
@@ -443,3 +443,14 @@ CSV 的 `catalog_status` 与初盘 owner 状态保留目录阶段快照；首轮
 | [#236](https://github.com/He-Jiahui/ZirconEngine/pull/236) · [源码和证据](https://github.com/He-Jiahui/ZirconEngine/blob/da0f224b4ed0a9e768014708e6b9ab796ecdb261/docs/plans/unreal-alignment/rhi-profile-admission-order.md#L56-L70) | 提前校验已选适配器与调用方提供的 profile。相同测试由 2 过 1 败变为 3 过 0 败。不匹配时请求调用和首次轮询均为 0，匹配时各 1 次，结果及错误均原样交付。 |
 
 累计 **49 个问题及测试维护 Draft + 1 个总索引，零合并**。八份模块目录沿用已核验版本。
+
+## 30. DX12 窗口、UI 透明度、CPU 粒子与动画库测试（第26轮）
+
+| 模块调查 | 本轮实际结果 |
+|---|---|
+| [#150](https://github.com/He-Jiahui/ZirconEngine/pull/150) · [源码与验证](https://github.com/He-Jiahui/ZirconEngine/blob/871d26696eadbf4a8704b0478741546dc303a0cf/docs/plans/unreal-alignment/ui-parent-opacity.md#L76) | 同一份六例全部通过。两层 0.5 透明度下，局部透明度 0.8 的叶节点得到 0.2，随后绘制的兄弟节点保留 0.625。单独修改父节点后，工作区发布新的子节点绘制结果。 |
+| [#153](https://github.com/He-Jiahui/ZirconEngine/pull/153) · [源码与验证](https://github.com/He-Jiahui/ZirconEngine/blob/bb3b01c0baf536a8e5956338f695fa721e14b66b/docs/plans/unreal-alignment/particle-newborn-age.md#L205) | 同一份六例在 CPU 定时 burst 修复后全部通过。0.375 秒出生的粒子到首帧末移动到 x=1，年龄 0.125 秒，短寿命粒子先进入一次渲染提取，再按时到期。 |
+| [#235](https://github.com/He-Jiahui/ZirconEngine/pull/235) · [源码与验证](https://github.com/He-Jiahui/ZirconEngine/blob/38cbb4c860169c2aaf8b7fc41a3702451b63eada/docs/plans/unreal-alignment/dx12-retired-frame-resize.md#L98) | 同一台 RTX 3060 上，正常回收对照和保留旧引用的用例均完成 192×128 到 256×144 的窗口调整，并成功取得、绘制和呈现下一帧。原先失败的用例在重配前仍有 98,304 字节的已完成帧资源。 同一程序的三项既有回归也通过，覆盖窗口收尾与提交队列并发执行、重复票据结算，以及已提交资源的保留。 |
+| [#237](https://github.com/He-Jiahui/ZirconEngine/pull/237) · [源码与验证](https://github.com/He-Jiahui/ZirconEngine/blob/eed698b826a8f89d448a156a30b18ee65be5f46e/docs/plans/unreal-alignment/animation-portable-libtests.md#L54) | 关闭动画包默认特性时，原先阻断库测试构建的 18 条诊断已消除。使用仓库现有的 `tests::` 筛选，实际通过 89 项。显式开启 `native-host` 后，注册、物理同步后的求值顺序和分发清单三项原测试全部通过。 |
+
+本次核对 50 个问题及测试维护 Draft 和 1 个总索引。8 份 UE 模块目录继续指向相同的 Git 对象。
