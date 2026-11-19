@@ -16,12 +16,40 @@ async function run() {
     canvas: { id: canvas.id, initial: size(canvas), unchanged: false },
     gpu: { adapters: [], devices: [] }, contextRequests: [], configure: [], unconfigure: [],
     textures: [], submissions: [], frames: [], resize: null,
-    load: { ok: false, error: null }, close: null, baseline: null, live: null, owners: null,
+    load: { state: 'not-started', ok: false, error: null }, close: null,
+    baseline: null, live: null, owners: null, interruption: null,
   };
   const ids = new WeakMap(), productQueues = new WeakSet();
   const textures = new WeakMap(), views = new WeakMap(), encoders = new WeakMap();
   const buffers = new WeakMap(), restore = [];
   let serial = 0, nextId = 0, phase = 'setup', engine, stats;
+  const stopped = Symbol('observation stopped'), deadlineMs = 15_000;
+  let signal;
+  const interrupted = new Promise(resolve => { signal = resolve; });
+  function stop(kind, reason = null) {
+    if (out.interruption) return;
+    out.interruption = { kind, phase, deadlineMs, name: reason?.name ?? null,
+      error: reason == null ? null : message(reason), stack: reason?.stack ?? null };
+    signal(stopped);
+  }
+  const onError = event => {
+    if (event instanceof ErrorEvent) stop('window-error', event.error ?? event.message);
+  };
+  const onReject = event => stop('unhandled-rejection', event.reason);
+  const timer = setTimeout(() => stop('deadline'), deadlineMs);
+  window.addEventListener('error', onError);
+  window.addEventListener('unhandledrejection', onReject);
+  function noteTrap(error) {
+    if (error instanceof WebAssembly.RuntimeError) stop('wasm-trap', error);
+    return out.interruption !== null;
+  }
+  async function observeUntilStop(start) {
+    if (out.interruption) throw stopped;
+    // This races only the fixture's wait; the product Promise is not cancelled.
+    const value = await Promise.race([start(), interrupted]);
+    if (out.interruption) throw stopped;
+    return value;
+  }
   function identity(object) {
     if (object == null) return null;
     if (!ids.has(object)) ids.set(object, ++nextId);
@@ -73,8 +101,8 @@ async function run() {
   try {
     const relative = new URLSearchParams(location.search).get('scene') || './canvas-scene';
     out.scene = new URL(relative, location.href).href;
-    const pkg = await import('./zircon_app.js');
-    await pkg.default();
+    const pkg = await observeUntilStop(() => import('./zircon_app.js'));
+    await observeUntilStop(() => pkg.default());
     stats = () => JSON.parse(pkg.browser_memory_snapshot());
     out.baseline = stats();
     if (!isSecureContext || !navigator.gpu || typeof GPUCanvasContext.prototype.getConfiguration !== 'function') {
@@ -150,20 +178,28 @@ async function run() {
     });
 
     phase = 'load';
+    out.load = { state: 'pending', ok: null, error: null };
     try {
-      engine = await pkg.WebEngine.load(canvas, out.scene);
-      out.load.ok = true;
+      engine = await observeUntilStop(() => pkg.WebEngine.load(canvas, out.scene));
+      out.load = { state: 'fulfilled', ok: true, error: null };
       out.live = stats();
     } catch (error) {
-      out.load.error = message(error);
+      if (!out.interruption) {
+        if (out.load.state === 'pending') out.load = { state: 'rejected', ok: false, error: null };
+        out.load.error = message(error);
+      }
+      if (noteTrap(error)) throw stopped;
     }
     if (engine) {
       async function render(step, timestamp) {
         phase = step;
         const frame = { phase, timestamp, canvas: size(canvas), receipt: null, error: null };
         out.frames.push(frame);
-        try { frame.receipt = JSON.parse(await engine.render_frame(timestamp)); }
-        catch (error) { frame.error = message(error); }
+        try { frame.receipt = JSON.parse(await observeUntilStop(() => engine.render_frame(timestamp))); }
+        catch (error) {
+          if (noteTrap(error)) throw stopped;
+          frame.error = message(error);
+        }
       }
       await render('first-frame', 16);
       phase = 'resize';
@@ -173,22 +209,31 @@ async function run() {
         out.resize.actual = size(canvas);
         await render('resized-frame', 32);
       } catch (error) {
+        if (noteTrap(error)) throw stopped;
         out.resize.error = message(error);
       }
     }
   } catch (error) {
-    out.fixtureError = message(error);
+    if (!noteTrap(error)) out.fixtureError = message(error);
   } finally {
     phase = 'close';
-    if (engine) {
+    if (engine && !out.interruption) {
       out.close = { receipt: null, error: null, freed: false, freeError: null };
-      try { out.close.receipt = JSON.parse(await engine.close()); }
-      catch (error) { out.close.error = message(error); }
-      try { engine.free(); out.close.freed = true; }
-      catch (error) { out.close.freeError = message(error); }
+      try { out.close.receipt = JSON.parse(await observeUntilStop(() => engine.close())); }
+      catch (error) { if (!noteTrap(error)) out.close.error = message(error); }
+      if (!out.interruption) {
+        try { engine.free(); out.close.freed = true; }
+        catch (error) { if (!noteTrap(error)) out.close.freeError = message(error); }
+      }
     }
+    clearTimeout(timer);
+    window.removeEventListener('error', onError);
+    window.removeEventListener('unhandledrejection', onReject);
     for (const undo of restore.reverse()) undo();
-    if (stats) out.owners = stats();
+    if (stats && !out.interruption) {
+      try { out.owners = stats(); }
+      catch (error) { if (!noteTrap(error)) out.fixtureError = message(error); }
+    }
   }
 
   const adapter = out.gpu.adapters.find(event => event.resultId != null);
@@ -209,12 +254,12 @@ async function run() {
     contextBound: loadContexts.length === 1 && !!context?.sameCanvas && out.canvas.unchanged,
     initialConfigured: !!first && matches(first), viewportHandoff: false,
     loaded: out.load.ok && !out.load.error,
-    liveOwners: !!out.live && out.live.live_engines === out.baseline.live_engines + 1 &&
+    liveOwners: out.interruption && !out.live ? null : !!out.live && out.live.live_engines === out.baseline.live_engines + 1 &&
       out.live.registered_canvases === out.baseline.registered_canvases + 1 &&
       out.live.event_listeners > out.baseline.event_listeners,
-    closed: !!(out.close?.freed && out.close.receipt?.modules_closed && out.close.receipt?.task_graph_joined &&
+    closed: out.interruption ? null : !!(out.close?.freed && out.close.receipt?.modules_closed && out.close.receipt?.task_graph_joined &&
       out.close.receipt?.pending_assets === 0),
-    ownersReleased: !!(out.owners && out.baseline && ownerKeys.every(key => out.owners[key] === out.baseline[key])),
+    ownersReleased: out.interruption ? null : !!(out.owners && out.baseline && ownerKeys.every(key => out.owners[key] === out.baseline[key])),
     followupSubmitted: false,
   };
   checks.viewportHandoff = checks.contextBound && checks.initialConfigured && loadConfigure.length >= 2 &&
@@ -239,9 +284,16 @@ async function run() {
     !checks.initialConfigured ? 'first-configure-incomplete' : !checks.viewportHandoff ? 'before-viewport-handoff' :
     !checks.loaded ? 'load-failed-after-viewport-handoff' :
     !(checks.liveOwners && checks.closed && checks.ownersReleased) ? 'owner-lifecycle-incomplete' : 'adopted';
-  out.error = out.fixtureError ?? out.load.error ?? out.close?.error ?? out.close?.freeError ?? null;
-  out.passed = out.stage === 'adopted';
-  return out;
+  if (out.interruption) {
+    const step = out.interruption.phase;
+    out.stage = step === 'load' && checks.initialConfigured
+      ? (checks.viewportHandoff ? 'load-interrupted-after-viewport-handoff' : 'load-interrupted-after-first-configure')
+      : `${step}-interrupted`;
+  }
+  out.error = out.interruption?.error ?? out.fixtureError ?? out.load.error ?? out.close?.error ?? out.close?.freeError ?? null;
+  out.passed = !out.interruption && out.stage === 'adopted';
+  // Existing request observers may still settle after the report; return a detached snapshot.
+  return out.interruption ? structuredClone(out) : out;
 }
 
 window.canvasAdoptionResult = run().catch(error => ({ passed: false, stage: 'fixture-error', error: message(error) }));
