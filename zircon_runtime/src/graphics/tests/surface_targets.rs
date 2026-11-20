@@ -27,6 +27,8 @@ const CAMERA_TEXTURE_TARGET_USAGE_CAPABILITY: &str = "camera texture render targ
 const HEADLESS_CAMERA_SURFACE_PRESENT_CAPABILITY: &str = "headless camera surface present";
 const SURFACE_PRESENT_CAPABILITY: &str = "viewport surface present";
 
+#[path = "surface_targets/capture_owner.rs"]
+mod capture_owner;
 #[path = "surface_targets/texture_target.rs"]
 mod texture_target;
 
