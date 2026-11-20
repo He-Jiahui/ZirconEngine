@@ -28,6 +28,16 @@ impl ViewportRecord {
             Some(RenderVisibleSpatialQuerySnapshot::new(identity, query));
     }
 
+    // This snapshot is recorded after successful viewport-terminal submission and
+    // retired with viewport products. Its stamp is not an attachment-write proof.
+    pub(in crate::graphics::runtime::render_framework) fn published_frame_generation(
+        &self,
+    ) -> Option<u64> {
+        self.last_visible_spatial_query
+            .as_ref()
+            .map(|snapshot| snapshot.identity().frame_generation)
+    }
+
     pub(in crate::graphics::runtime::render_framework) fn visible_spatial_query(
         &self,
     ) -> Option<RenderVisibleSpatialQuerySnapshot> {

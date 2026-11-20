@@ -6,6 +6,7 @@ use crate::core::framework::render::{
 };
 
 use super::super::render_framework_backend_error::render_framework_backend_error;
+use super::super::render_framework_state::RenderFrameworkState;
 use super::super::wgpu_render_framework::WgpuRenderFramework;
 
 pub(in crate::graphics::runtime::render_framework) fn capture_frame(
@@ -30,52 +31,45 @@ pub(in crate::graphics::runtime::render_framework) fn capture_frame_if_newer(
         .renderer
         .wait_for_readback_completions()
         .map_err(render_framework_backend_error)?;
-    let completed_frame =
+    let RenderFrameworkState {
+        renderer,
+        viewports,
+        stats,
+        ..
+    } = &mut *state;
+    let record = viewports
+        .get_mut(&viewport)
+        .ok_or(RenderFrameworkError::UnknownViewport {
+            viewport: viewport.raw(),
+        })?;
+    record.promote_completed_async_capture();
+
+    let matches_filter = |capture: &CapturedFrame| {
+        last_generation.is_none_or(|generation| capture.generation > generation)
+    };
+    // Filtered requests prefer completed captures. Otherwise try the retained
+    // renderer frame only for the requesting viewport's published generation.
+    if last_generation.is_none() || !record.last_capture().is_some_and(matches_filter) {
+        if let Some(generation) = record
+            .published_frame_generation()
+            .filter(|&generation| last_generation.is_none_or(|last| generation > last))
         {
-            let record = state.viewports.get_mut(&viewport).ok_or(
-                RenderFrameworkError::UnknownViewport {
-                    viewport: viewport.raw(),
-                },
-            )?;
-            record.promote_completed_async_capture();
-            match last_generation {
-                Some(generation)
-                    if record
-                        .last_capture()
-                        .is_some_and(|capture| capture.generation > generation) =>
-                {
-                    record.capture_for_inspection()
-                }
-                _ => None,
+            if let Some(frame) = renderer
+                .capture_latest_frame(generation)
+                .map_err(render_framework_backend_error)?
+            {
+                record.store_synchronous_capture(frame);
             }
-        };
-    let frame =
-        if let Some(frame) = completed_frame {
-            frame
-        } else {
-            let frame = state
-                .renderer
-                .capture_latest_frame()
-                .map_err(render_framework_backend_error)?;
-            let Some(frame) = frame else {
-                return Ok(None);
-            };
-            let record = state.viewports.get_mut(&viewport).ok_or(
-                RenderFrameworkError::UnknownViewport {
-                    viewport: viewport.raw(),
-                },
-            )?;
-            record.store_synchronous_capture(frame);
-            let Some(frame) = record.capture_for_inspection() else {
-                return Ok(None);
-            };
-            frame
-        };
-    if last_generation.is_some_and(|generation| frame.generation <= generation) {
+        }
+    }
+    if !record.last_capture().is_some_and(matches_filter) {
         return Ok(None);
     }
-    state.stats.captured_frames += 1;
-    Ok(Some(frame))
+    let frame = record.capture_for_inspection();
+    if frame.is_some() {
+        stats.captured_frames += 1;
+    }
+    Ok(frame)
 }
 
 pub(in crate::graphics::runtime::render_framework) fn capture_scene_color_hdr(
