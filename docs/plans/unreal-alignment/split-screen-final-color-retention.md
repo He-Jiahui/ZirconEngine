@@ -34,3 +34,22 @@ Windows x64 上使用 NVIDIA GeForce RTX 3060 Laptop GPU 和 DX12 运行 `render
 用当前视口、逻辑输出和显示尺寸约束最终纹理与其 view 的复用。只有相机内部尺寸发生变化时，保留这张已写入的最终纹理，并按新内部尺寸分配场景颜色、深度和 GBuffer。显示输出实际调整大小或切换到不同的输出所有者时，为新输出提供相应的纹理。显式相机纹理仍按资产的直接导入或转换写回路径工作。可在现有 WGPU 后端与提交路径内实现。
 
 沿用现有 160×120 双区回归，两侧各自应有超过 90% 的预期颜色，错误颜色均低于 5%。增加一项真实 WGPU 纹理与 view 身份对照，覆盖同视口内部尺寸变化、等尺寸切换视口和真实输出 resize。通过实际分屏像素和资源身份共同验证修订。
+
+## 同一张最终纹理保留了先写入的分屏区域
+
+同一 DX12 设备上，160×120 分屏左侧红色从 0/6656 恢复为 6656/6656，右侧绿色保持 6656/6656。反序提交、192×128 输出尺寸变化和实际 GPU 纹理身份对照均通过。
+
+修复把显示输出的颜色纹理与场景附件分别管理。同一视口、同一逻辑输出且显示尺寸未变时，如果只需调整内部场景尺寸，保留已经承载上一台相机画面的纹理和 view。切换视口所有者或真正调整输出尺寸时，使用新输出。此次未加入 GPU 拷贝、等待或按视口常驻的纹理表。
+
+| 本次已执行的像素检查 | 左红 | 左绿 | 右红 | 右绿 | 每侧取样数 |
+|---|---:|---:|---:|---:|---:|
+| 160×120，左先右后 | 6656 | 0 | 0 | 6656 | 6656 |
+| 160×120，右先左后 | 6656 | 0 | 0 | 6656 | 6656 |
+| 192×128，重配后只画右侧 | 0 | 0 | 0 | 8960 | 8960 |
+| 192×128，左右均绿 | 0 | 8960 | 0 | 8960 | 8960 |
+
+未改变原有正序回归的断言，只增加它打印的像素计数。修前已保存的两次正序运行使用同一块 NVIDIA GeForce RTX 3060 Laptop GPU，左红均为 0、右绿均为 6656。本次另两项是新增对照，未把它们称为修前实测。
+
+三个原生测试分别运行于同一 `zircon_runtime` libtest，`native-host,graphics`、Windows x64、DX12。身份用例在真实设备上比较纹理与 view，验证场景附件应替换、同输出最终颜色应保留、跨视口与真 resize 应替换最终颜色。构建测试所需的 [#137 单文件夹具](https://github.com/He-Jiahui/ZirconEngine/pull/137) 只用于运行，没有进入该 PR。已核对普通离屏主目标和显式 headless 输出；物理窗口交换链、其它后端及多玩家输入仍未在此验证。
+
+[相机分屏回归](https://github.com/He-Jiahui/ZirconEngine/blob/e8227920bda2a8cf1dcf2b4acc312e16e0a718e7/zircon_runtime/src/graphics/tests/primary_surface.rs#L167-L246) · [输出分配实现](https://github.com/He-Jiahui/ZirconEngine/blob/e8227920bda2a8cf1dcf2b4acc312e16e0a718e7/zircon_runtime/src/graphics/backend/offscreen_target_construct/construct.rs) · [GPU 身份测试](https://github.com/He-Jiahui/ZirconEngine/blob/e8227920bda2a8cf1dcf2b4acc312e16e0a718e7/zircon_runtime/src/graphics/scene_renderer_target/tests/offscreen_final_retention.rs)
