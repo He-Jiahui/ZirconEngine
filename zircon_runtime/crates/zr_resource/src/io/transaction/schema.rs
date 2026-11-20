@@ -5,7 +5,10 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
+use super::mtime::RetainedMtime;
+
 pub(super) const JOURNAL_VERSION: u32 = 7;
+pub(super) const JOURNAL_VERSION_WITH_RETAINED_MTIME: u32 = 8;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TransactionFault {
@@ -103,6 +106,8 @@ pub(super) struct JournalIntent {
     pub(super) staging: PathBuf,
     pub(super) backup: PathBuf,
     pub(super) rollback_staging: PathBuf,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) retained_mtime: Option<RetainedMtime>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub(super) retirements: Vec<JournalRetirement>,
 }
@@ -153,12 +158,17 @@ pub struct JournalDocument {
     pub(super) staging: PathBuf,
     pub(super) backup: PathBuf,
     pub(super) rollback_staging: PathBuf,
+    pub(super) retained_mtime: Option<RetainedMtime>,
     pub(super) retirements: Vec<JournalRetirement>,
 }
 
 impl JournalDocument {
     pub fn target(&self) -> &std::path::Path {
         &self.target
+    }
+
+    pub(super) fn retains_source_mtime(&self) -> bool {
+        self.retained_mtime.is_some()
     }
 
     pub fn retired_paths(&self) -> impl Iterator<Item = &std::path::Path> {
@@ -170,6 +180,30 @@ impl JournalDocument {
 
 impl TransactionJournal {
     pub(super) fn fold(&self) -> Result<FoldedTransactionJournal, String> {
+        let has_retained_mtime = self
+            .documents
+            .iter()
+            .any(|intent| intent.retained_mtime.is_some());
+        let expected_version = if has_retained_mtime {
+            JOURNAL_VERSION_WITH_RETAINED_MTIME
+        } else {
+            JOURNAL_VERSION
+        };
+        if self.version != expected_version {
+            return Err(
+                "durable transaction journal version does not match its clock policy".into(),
+            );
+        }
+        for intent in &self.documents {
+            if let Some(stamp) = intent.retained_mtime {
+                if !intent.retirements.is_empty() {
+                    return Err(
+                        "a retained clock requires a replace-only transaction document".into(),
+                    );
+                }
+                stamp.as_time().map_err(|error| error.to_string())?;
+            }
+        }
         let mut phase = JournalPhase::Intent;
         let mut documents = self
             .documents
@@ -184,6 +218,7 @@ impl TransactionJournal {
                 staging: intent.staging.clone(),
                 backup: intent.backup.clone(),
                 rollback_staging: intent.rollback_staging.clone(),
+                retained_mtime: intent.retained_mtime,
                 retirements: intent.retirements.clone(),
             })
             .collect::<Vec<_>>();
@@ -235,6 +270,11 @@ fn fold_document_transition(
             }
             if document.retirements.len() != transition.retired_digests.len() {
                 return Err(format!("{label} has incomplete retired-file evidence"));
+            }
+            if document.retained_mtime.is_some() && !target_existed {
+                return Err(format!(
+                    "{label} cannot retain the clock of a missing target"
+                ));
             }
             document.state = JournalState::Prepared;
             document.target_existed = Some(target_existed);

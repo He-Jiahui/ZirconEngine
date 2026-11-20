@@ -2,10 +2,14 @@ use std::ffi::OsStr;
 use std::fs;
 use std::io::Read;
 use std::path::{Component, Path, PathBuf};
+use std::time::SystemTime;
 
 use crate::asset::project::ProjectPaths;
 use crate::asset::safe_project_path::is_link_or_reparse;
 use crate::asset::{AssetImportContext, AssetImportError};
+use crate::core::resource::io::SourceRevision;
+
+type OpenedSourceRead<T> = (PathBuf, Vec<u8>, u64, T);
 
 const MAX_AUXILIARY_READ_CAPACITY_HINT: usize = 8 * 1024 * 1024;
 
@@ -184,6 +188,27 @@ impl AuxiliarySourceResolver {
         self.read_path_snapshot_with_hooks(reference, limit, || {}, || {})
     }
 
+    /// Compound descriptors are both import input and a potential publication target.
+    pub(crate) fn read_descriptor_snapshot(
+        &self,
+        reference: &Path,
+        limit: u64,
+    ) -> Result<OpenedSourceRead<(SourceRevision, SystemTime)>, AssetImportError> {
+        self.read_path_snapshot_observed(
+            reference,
+            limit,
+            || {},
+            || {},
+            |path, file, observed, bytes| {
+                let observed = observed.ok_or_else(|| {
+                    std::io::Error::other("compound descriptor has no observable modification time")
+                })?;
+                let revision = SourceRevision::from_opened_snapshot(path, file, bytes, observed)?;
+                Ok((revision, observed))
+            },
+        )
+    }
+
     fn read_path_snapshot_with_hooks(
         &self,
         reference: &Path,
@@ -191,6 +216,24 @@ impl AuxiliarySourceResolver {
         after_admission: impl FnOnce(),
         after_open: impl FnOnce(),
     ) -> Result<(PathBuf, Vec<u8>, u64), AssetImportError> {
+        self.read_path_snapshot_observed(
+            reference,
+            limit,
+            after_admission,
+            after_open,
+            |_, _, _, _| Ok(()),
+        )
+        .map(|(path, bytes, milliseconds, ())| (path, bytes, milliseconds))
+    }
+
+    fn read_path_snapshot_observed<T>(
+        &self,
+        reference: &Path,
+        limit: u64,
+        after_admission: impl FnOnce(),
+        after_open: impl FnOnce(),
+        observe: impl FnOnce(&Path, &fs::File, Option<SystemTime>, &[u8]) -> std::io::Result<T>,
+    ) -> Result<OpenedSourceRead<T>, AssetImportError> {
         let admitted = self.resolve_path(reference)?;
         after_admission();
         let file =
@@ -252,7 +295,8 @@ impl AuxiliarySourceResolver {
                 ProjectPaths::display_path(&admitted).display()
             )));
         }
-        Ok((admitted, bytes, mtime_unix_ms))
+        let observation = observe(&admitted, &file, metadata_modified, &bytes)?;
+        Ok((admitted, bytes, mtime_unix_ms, observation))
     }
 
     pub(super) fn root_relative_path<'a>(

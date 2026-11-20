@@ -6,9 +6,14 @@ use std::path::Path;
 
 use super::error::{DurableTransactionError, TransactionPhase};
 use super::journal::{record_phase, record_state};
+use super::mtime::RetainedMtime;
 use super::observation::DurableCommitReport;
 use super::schema::{JournalDocument, JournalPhase, JournalState, TransactionFault};
-use super::stage::{copy_and_sync_hash, remove_reserved_if_exists, StagedFile};
+use super::stage::{
+    copy_and_sync_hash_with_mtime, digest_file, file_presence, remove_reserved_if_exists,
+    FilePresence, StagedFile,
+};
+use crate::io::atomic_file::sync_published_file;
 use crate::io::{publish_staged_file_for_transaction, replace_staged_file, sync_parent_directory};
 
 // 替换成功或可能已生效时才标记 committed；后续 retirement 删除或目录同步失败仍须回滚目标。
@@ -26,6 +31,10 @@ pub(super) fn commit_file(
             staged.expected_revision.as_ref(),
             Some(crate::io::source_revision::SourceRevision::Missing),
         );
+    if let Some(stamp) = staged.intent.retained_mtime {
+        // Narrow the nonparticipating writer window after WAL records Committing.
+        stamp.verify_path(&staged.intent.target, false)?;
+    }
     match publish_staged_file_for_transaction(
         &staged.intent.staging,
         &staged.intent.target,
@@ -176,6 +185,9 @@ pub(super) fn restore_document(document: &JournalDocument) -> io::Result<()> {
             &document.rollback_staging,
             &document.target,
             document.original_digest.as_deref().unwrap_or_default(),
+            document
+                .retained_mtime
+                .map(|stamp| (stamp, document.new_digest.as_deref().unwrap_or_default())),
         )?;
     } else {
         remove_live_if_exists(&document.target)?;
@@ -186,6 +198,7 @@ pub(super) fn restore_document(document: &JournalDocument) -> io::Result<()> {
             &retirement.rollback_staging,
             &retirement.path,
             digest,
+            None,
         )?;
     }
     Ok(())
@@ -268,6 +281,10 @@ fn restore_staged(document: &StagedFile) -> io::Result<()> {
             &document.intent.rollback_staging,
             &document.intent.target,
             document.original_digest.as_deref().unwrap_or_default(),
+            document
+                .intent
+                .retained_mtime
+                .map(|stamp| (stamp, document.new_digest.as_str())),
         )?;
     } else {
         remove_live_if_exists(&document.intent.target)?;
@@ -283,6 +300,7 @@ fn restore_staged(document: &StagedFile) -> io::Result<()> {
             &retirement.rollback_staging,
             &retirement.path,
             digest,
+            None,
         )?;
     }
     Ok(())
@@ -293,8 +311,22 @@ fn restore_from_backup(
     rollback_staging: &Path,
     target: &Path,
     expected_digest: &str,
+    retained_clock: Option<(RetainedMtime, &str)>,
 ) -> io::Result<()> {
-    let digest = copy_and_sync_hash(backup, rollback_staging)?;
+    let needs_restore = || match retained_clock {
+        None => Ok(true),
+        Some((stamp, published_digest)) => {
+            still_needs_clock_retaining_restore(target, expected_digest, published_digest, stamp)
+        }
+    };
+    if !needs_restore()? {
+        return sync_converged_clock_protected_target(target);
+    }
+    let digest = copy_and_sync_hash_with_mtime(
+        backup,
+        rollback_staging,
+        retained_clock.map(|(stamp, _)| stamp),
+    )?;
     if digest != expected_digest {
         let _ = remove_reserved_if_exists(rollback_staging);
         return Err(io::Error::new(
@@ -302,7 +334,45 @@ fn restore_from_backup(
             "rollback backup digest changed",
         ));
     }
+    if !needs_restore()? {
+        return sync_converged_clock_protected_target(target);
+    }
     replace_staged_file(rollback_staging, target)
+}
+
+fn sync_converged_clock_protected_target(target: &Path) -> io::Result<()> {
+    // An old-looking directory entry may come from a replace that reached visibility but not its
+    // publication barrier. Or an author may have supplied an equal-byte inode not staged by us.
+    // Confirm durability before recording rollback completion, without rewriting the live file.
+    #[cfg(not(windows))]
+    fs::File::open(target)?.sync_all()?;
+    sync_published_file(target)
+}
+
+fn still_needs_clock_retaining_restore(
+    target: &Path,
+    original_digest: &str,
+    published_digest: &str,
+    stamp: RetainedMtime,
+) -> io::Result<bool> {
+    if file_presence(target)? == FilePresence::Missing {
+        // The existing backed-target policy permits restoration from validated evidence.
+        return Ok(true);
+    }
+    let actual = digest_file(target)?;
+    if actual == original_digest {
+        // Also covers equal old/new bytes. Opt-in excludes retirements, so no live change remains
+        // for this document. Not proof of past actions; it is proof of current convergence.
+        return Ok(false);
+    }
+    if actual != published_digest {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "clock-retaining restore found neither original nor published bytes",
+        ));
+    }
+    stamp.verify_path(target, false)?;
+    Ok(true)
 }
 
 fn remove_live_if_exists(path: &Path) -> io::Result<()> {

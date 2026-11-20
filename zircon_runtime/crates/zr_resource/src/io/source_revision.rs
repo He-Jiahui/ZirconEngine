@@ -7,6 +7,7 @@ use std::fs::{self, File, Metadata};
 use std::io::{self, Read};
 use std::path::Path;
 use std::sync::Arc;
+use std::time::SystemTime;
 
 #[path = "source_revision/platform.rs"]
 mod platform;
@@ -134,6 +135,54 @@ impl SourceRevision {
 
     pub fn matches_path(&self, path: &Path) -> io::Result<bool> {
         Self::observe(path).map(|actual| actual == *self)
+    }
+
+    /// Bind exact bytes already read from a caller-admitted file to that file's identity.
+    /// The caller owns no-follow admission and checks for concurrent edits while reading.
+    pub fn from_opened_snapshot(
+        path: &Path,
+        file: &File,
+        bytes: &[u8],
+        observed_modified: SystemTime,
+    ) -> io::Result<Self> {
+        let revision = Self::staged(path, file, bytes)?;
+        if revision.pinned_modified()? != observed_modified {
+            return Err(io::Error::new(
+                io::ErrorKind::Interrupted,
+                "source modification time changed while binding its observed revision",
+            ));
+        }
+        Ok(revision)
+    }
+
+    /// Re-observe an opted-in file without reading more than the admitted object's length.
+    /// The existing general SourceRevision match and scene APIs do not select this policy.
+    pub(crate) fn observe_bounded_like(&self, path: &Path) -> io::Result<Self> {
+        let Self::Present(revision) = self else {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "expected an observed file",
+            ));
+        };
+        let limit = usize::try_from(revision.length).map_err(|_| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "observed file length exceeds this platform",
+            )
+        })?;
+        match SourceSnapshot::read_bounded(path, limit) {
+            Ok(snapshot) => Ok(snapshot.revision),
+            Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(Self::Missing),
+            Err(error) => Err(error),
+        }
+    }
+
+    /// Last-write time of the pinned object, not of a freshly resolved path.
+    pub(crate) fn pinned_modified(&self) -> io::Result<SystemTime> {
+        match self {
+            Self::Present(revision) => revision._object.metadata()?.modified(),
+            Self::Missing => Err(io::Error::from(io::ErrorKind::NotFound)),
+        }
     }
 
     pub(crate) fn staged(path: &Path, file: &File, bytes: &[u8]) -> io::Result<Self> {

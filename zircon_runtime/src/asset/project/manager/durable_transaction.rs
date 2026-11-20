@@ -197,6 +197,14 @@ impl ProjectRecoveryPolicy {
 }
 
 impl RecoveryPolicy for ProjectRecoveryPolicy {
+    fn allows_retained_source_mtime(&self, document: &JournalDocument) -> bool {
+        let raw = document.target();
+        self.is_meta_path(raw)
+            && recovery_identity(raw)
+                .and_then(|target| self.is_relocatable_project_entry(raw, &target))
+                .unwrap_or(false)
+    }
+
     fn validate_document(
         &self,
         _journal_path: &Path,

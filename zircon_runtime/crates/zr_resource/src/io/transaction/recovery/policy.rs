@@ -29,6 +29,10 @@ pub trait RecoveryPolicy {
         document: &JournalDocument,
     ) -> Result<(), String>;
 
+    fn allows_retained_source_mtime(&self, _document: &JournalDocument) -> bool {
+        false
+    }
+
     fn digest_file(&mut self, path: &Path) -> io::Result<String> {
         digest_file(path)
     }

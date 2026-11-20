@@ -5,6 +5,7 @@ use std::io::{self, Read, Write};
 use std::path::Path;
 
 use super::error::{DurableTransactionError, TransactionPhase};
+use super::mtime::RetainedMtime;
 use super::schema::{JournalIntent, TransactionFault};
 use super::PreparedFileWrite;
 use crate::io::{ensure_parent_directories, sync_parent_directory};
@@ -37,7 +38,11 @@ pub(super) fn stage_file(
 ) -> Result<StagedFile, DurableTransactionError> {
     #[cfg(not(test))]
     let _ = (fault, index);
-    super::engine::verify_source_revision(&write.path, write.expected_revision.as_ref())?;
+    super::engine::verify_source_revision(
+        &write.path,
+        write.expected_revision.as_ref(),
+        intent.retained_mtime,
+    )?;
     ensure_parent_directories(&write.path).map_err(|source| operation(&write.path, source))?;
     ensure_regular_or_missing(&write.path).map_err(|source| operation(&write.path, source))?;
     remove_reserved_if_exists(&intent.staging)
@@ -56,6 +61,11 @@ pub(super) fn stage_file(
     }
     let new_digest = write_and_sync_hash(&mut staging, &write.bytes)
         .map_err(|source| operation(&write.path, source))?;
+    if let Some(stamp) = intent.retained_mtime {
+        stamp
+            .set_on(&staging)
+            .map_err(|source| operation(&intent.staging, source))?;
+    }
     let publication_revision = write
         .expected_revision
         .as_ref()
@@ -69,6 +79,11 @@ pub(super) fn stage_file(
         .transpose()
         .map_err(|source| operation(&write.path, source))?;
     drop(staging);
+    if let Some(stamp) = intent.retained_mtime {
+        stamp
+            .verify_path(&intent.staging, false)
+            .map_err(|source| operation(&intent.staging, source))?;
+    }
     #[cfg(any(test, feature = "test-support"))]
     if matches!(
         fault,
@@ -263,6 +278,14 @@ pub(super) fn digest_file(path: &Path) -> io::Result<String> {
 }
 
 pub(super) fn copy_and_sync_hash(source: &Path, target: &Path) -> io::Result<String> {
+    copy_and_sync_hash_with_mtime(source, target, None)
+}
+
+pub(super) fn copy_and_sync_hash_with_mtime(
+    source: &Path,
+    target: &Path,
+    retained_mtime: Option<RetainedMtime>,
+) -> io::Result<String> {
     remove_reserved_if_exists(target)?;
     let mut source = File::open(source)?;
     let mut target_file = OpenOptions::new()
@@ -280,7 +303,13 @@ pub(super) fn copy_and_sync_hash(source: &Path, target: &Path) -> io::Result<Str
         hasher.update(&buffer[..read]);
     }
     target_file.flush()?;
-    target_file.sync_all()?;
+    if let Some(stamp) = retained_mtime {
+        stamp.set_on(&target_file)?;
+        drop(target_file);
+        stamp.verify_path(target, false)?;
+    } else {
+        target_file.sync_all()?;
+    }
     sync_parent_directory(target)?;
     Ok(hasher.finalize().to_hex().to_string())
 }

@@ -19,6 +19,7 @@ fn prepublication_conflict_preserves_external_target_and_skips_rollback() {
             staging,
             backup: root.join("generation.backup"),
             rollback_staging: root.join("generation.rollback"),
+            retained_mtime: None,
             retirements: Vec::new(),
         },
         target_existed: false,

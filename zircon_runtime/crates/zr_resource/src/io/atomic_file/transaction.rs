@@ -370,6 +370,11 @@ pub fn replace_staged_file(staging: &Path, target: &Path) -> io::Result<()> {
             ));
         }
     }
+    sync_published_file(target)
+}
+
+/// Synchronizes a published file and its parent using the platform publication barriers.
+pub(crate) fn sync_published_file(target: &Path) -> io::Result<()> {
     platform::sync_committed_target(target)?;
     sync_parent_directory(target)
 }

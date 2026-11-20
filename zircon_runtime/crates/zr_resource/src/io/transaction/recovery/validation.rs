@@ -66,6 +66,12 @@ pub(super) fn validate_journals(
             policy
                 .validate_document(journal_path, document)
                 .map_err(|reason| DurableTransactionError::invalid(journal_path, reason))?;
+            if document.retains_source_mtime() && !policy.allows_retained_source_mtime(document) {
+                return Err(DurableTransactionError::invalid(
+                    journal_path,
+                    "journal owner does not admit retained file modification times for this target",
+                ));
+            }
             validate_document_paths(
                 journal_path,
                 &journal.tag,

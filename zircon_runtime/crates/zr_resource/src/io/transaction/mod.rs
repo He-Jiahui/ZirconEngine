@@ -11,6 +11,8 @@ mod engine;
 mod error;
 #[path = "journal/mod.rs"]
 mod journal;
+#[path = "mtime.rs"]
+mod mtime;
 #[path = "observation.rs"]
 mod observation;
 #[path = "owner_lock.rs"]

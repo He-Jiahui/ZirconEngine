@@ -21,8 +21,8 @@ use directory::sync_new_directory;
 pub use directory::{ensure_parent_directories, sync_parent_directory};
 pub use pathing::is_atomic_write_transaction_path;
 pub use recovery::recover_missing_target_from_backup;
-pub(crate) use transaction::publish_staged_file_for_transaction;
 pub use transaction::replace_staged_file;
+pub(crate) use transaction::{publish_staged_file_for_transaction, sync_published_file};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum PathEntry {

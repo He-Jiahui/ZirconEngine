@@ -167,6 +167,7 @@ fn intent_frame() -> Vec<u8> {
             rollback_staging: PathBuf::from(
                 "C:/project/.zircon/registry/.registry.zr-project-rollback-stage-1-1",
             ),
+            retained_mtime: None,
             retirements: Vec::new(),
         }],
         transitions: Vec::new(),

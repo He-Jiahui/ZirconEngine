@@ -4,7 +4,9 @@ use std::path::{Path, PathBuf};
 
 use super::super::error::DurableTransactionError;
 use super::super::journal::{decode_journal_with_valid_len, MAX_JOURNAL_BYTES};
-use super::super::schema::{FoldedTransactionJournal, JOURNAL_VERSION};
+use super::super::schema::{
+    FoldedTransactionJournal, JOURNAL_VERSION, JOURNAL_VERSION_WITH_RETAINED_MTIME,
+};
 use super::validation::{
     ensure_regular_file, operation, validate_journals, validate_regular_directory,
 };
@@ -64,7 +66,10 @@ pub(super) fn load_pending_transactions(
         }
         let bytes = fs::read(&path).map_err(|source| operation(&path, source))?;
         let (parsed, valid_len) = decode_journal_with_valid_len(&path, &bytes)?;
-        if parsed.version != JOURNAL_VERSION {
+        if !matches!(
+            parsed.version,
+            JOURNAL_VERSION | JOURNAL_VERSION_WITH_RETAINED_MTIME
+        ) {
             return Err(DurableTransactionError::invalid(
                 &path,
                 "unsupported durable transaction journal version",
