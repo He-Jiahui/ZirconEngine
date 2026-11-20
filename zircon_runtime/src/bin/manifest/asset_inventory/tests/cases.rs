@@ -110,7 +110,7 @@ fn shader_prewarm_warm_snapshot_index_rejects_replaced_directory_link() {
         64 * 1024 * 1024,
     )
     .expect("cold inventory should persist a warm snapshot");
-    first.record_default_prewarm_success(&snapshot_root);
+    first.record_default_prewarm_success(&root, &snapshot_root);
     remove_snapshot_directory_entry(
         &snapshot_path_for(&root, &snapshot_root)
             .expect("fixture root should have a payload snapshot path"),
@@ -172,7 +172,7 @@ fn shader_prewarm_inventory_reuses_warm_snapshot_and_invalidates_changed_files()
         64 * 1024 * 1024,
     )
     .expect("cold inventory should write a snapshot");
-    first.record_default_prewarm_success(&snapshot_root);
+    first.record_default_prewarm_success(&root, &snapshot_root);
     assert_eq!(
         first.changed_paths(),
         &BTreeSet::from([root.join("surface.wgsl")]),
@@ -221,6 +221,60 @@ fn shader_prewarm_inventory_reuses_warm_snapshot_and_invalidates_changed_files()
 }
 
 #[test]
+fn shader_prewarm_root_receipt_bounds_history_and_rejects_late_generations() {
+    const BUDGET: usize = 64 * 1024 * 1024;
+    let root = unique_root("out_of_order_receipt");
+    let snapshot_root = unique_root("out_of_order_receipt_cache");
+    fs::create_dir_all(&root).unwrap();
+    let source = root.join("surface.wgsl");
+    let warm = || {
+        ShaderPrewarmAssetInventory::warm_snapshot_is_current_excluding(
+            &root,
+            &snapshot_root,
+            None,
+            BUDGET,
+        )
+    };
+    let collect = || {
+        ShaderPrewarmAssetInventory::collect_with_warm_snapshot(&root, &snapshot_root, BUDGET)
+            .unwrap()
+    };
+    fs::write(&source, "fn first() {}\n").unwrap();
+    let first = collect();
+    first.record_default_prewarm_success(&root, &snapshot_root);
+    assert!(warm());
+
+    fs::write(&source, "fn second_generation() {}\n").unwrap();
+    let second = collect();
+    second.record_default_prewarm_success(&root, &snapshot_root);
+    assert!(warm());
+    first.record_default_prewarm_success(&root, &snapshot_root);
+    assert!(
+        !warm(),
+        "late completion cannot certify a different generation"
+    );
+    second.record_default_prewarm_success(&root, &snapshot_root);
+    assert!(warm());
+
+    fs::write(&source, "fn third_generation_without_success() {}\n").unwrap();
+    let pending = collect();
+    first.record_default_prewarm_success(&root, &snapshot_root);
+    assert!(
+        !warm(),
+        "no prior success can certify the unfinished generation"
+    );
+    assert_eq!(collect().changed_paths(), pending.changed_paths());
+
+    let receipt = snapshot_path_for(&root, &snapshot_root)
+        .unwrap()
+        .with_extension("prewarm-ready");
+    assert_eq!(fs::metadata(receipt).unwrap().len(), 16);
+    assert_eq!(fs::read_dir(&snapshot_root).unwrap().count(), 3);
+    fs::remove_dir_all(root).unwrap();
+    fs::remove_dir_all(snapshot_root).unwrap();
+}
+
+#[test]
 fn shader_prewarm_warm_snapshot_index_is_current_without_loading_payload() {
     let root = unique_root("warm_snapshot_index");
     let snapshot_root = unique_root("warm_snapshot_index_cache");
@@ -234,7 +288,7 @@ fn shader_prewarm_warm_snapshot_index_is_current_without_loading_payload() {
         64 * 1024 * 1024,
     )
     .expect("cold inventory should persist a warm snapshot");
-    first.record_default_prewarm_success(&snapshot_root);
+    first.record_default_prewarm_success(&root, &snapshot_root);
     let snapshot_path =
         snapshot_path_for(&root, &snapshot_root).expect("fixture root should have a payload path");
     let snapshot_index_path = snapshot_index_path_for(&root, &snapshot_root)
@@ -273,7 +327,7 @@ fn shader_prewarm_warm_snapshot_rejects_tampered_relative_paths_and_map_keys() {
         64 * 1024 * 1024,
     )
     .expect("cold inventory should persist a warm snapshot");
-    first.record_default_prewarm_success(&snapshot_root);
+    first.record_default_prewarm_success(&root, &snapshot_root);
 
     let snapshot_path =
         snapshot_path_for(&root, &snapshot_root).expect("fixture root should have a payload path");
@@ -343,7 +397,7 @@ fn shader_prewarm_inventory_excludes_nested_variant_cache_from_warm_fingerprint(
         64 * 1024 * 1024,
     )
     .expect("cold inventory should exclude the variant cache");
-    first.record_default_prewarm_success(&snapshot_root);
+    first.record_default_prewarm_success(&root, &snapshot_root);
     assert_eq!(first.paths(), &[root.join("surface.wgsl")]);
 
     fs::write(
@@ -416,7 +470,7 @@ fn shader_prewarm_warm_inventory_emits_only_changed_source_work() {
     .expect("cold inventory should be collected");
     let first_manifest = manifest_for_inventory(&root, &first);
     assert_eq!(first_manifest.variants.len(), 6);
-    first.record_default_prewarm_success(&snapshot_root);
+    first.record_default_prewarm_success(&root, &snapshot_root);
 
     let warm = ShaderPrewarmAssetInventory::collect_with_warm_snapshot(
         &root,
@@ -476,7 +530,7 @@ fn shader_prewarm_inventory_scale_10k_cold_warm_and_one_percent_change() {
     .expect("cold scale inventory should be collected");
     assert_eq!(cold.paths().len(), FILE_COUNT);
     assert_eq!(cold.changed_paths().len(), FILE_COUNT);
-    cold.record_default_prewarm_success(&snapshot_root);
+    cold.record_default_prewarm_success(&root, &snapshot_root);
 
     let warm = ShaderPrewarmAssetInventory::collect_with_warm_snapshot(
         &root,

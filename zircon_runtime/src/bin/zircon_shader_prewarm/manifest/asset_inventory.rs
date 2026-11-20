@@ -59,7 +59,8 @@ impl ShaderPrewarmAssetInventory {
         if let Some(snapshot) =
             Self::load_snapshot(root, snapshot_root, excluded_root_identity.as_deref())
         {
-            let qualified = snapshot::default_prewarm_succeeded(snapshot_root, snapshot.generation);
+            let qualified =
+                snapshot::default_prewarm_succeeded(root, snapshot_root, snapshot.generation);
             if snapshot.is_current(root, max_resident_text_bytes) {
                 let mut inventory = snapshot.into_inventory(root);
                 if !qualified {
@@ -100,14 +101,14 @@ impl ShaderPrewarmAssetInventory {
         let excluded_root_identity = nested_excluded_root_identity(root, excluded_root);
         Self::load_snapshot_index(root, snapshot_root, excluded_root_identity.as_deref())
             .is_some_and(|snapshot| {
-                snapshot::default_prewarm_succeeded(snapshot_root, snapshot.generation)
+                snapshot::default_prewarm_succeeded(root, snapshot_root, snapshot.generation)
                     && snapshot.is_current(root, max_resident_text_bytes)
             })
     }
 
-    pub(crate) fn record_default_prewarm_success(&self, snapshot_root: &Path) {
+    pub(crate) fn record_default_prewarm_success(&self, root: &Path, snapshot_root: &Path) {
         if let Some(generation) = self.snapshot_generation {
-            snapshot::record_default_prewarm_success(snapshot_root, generation);
+            snapshot::record_default_prewarm_success(root, snapshot_root, generation);
         }
     }
 

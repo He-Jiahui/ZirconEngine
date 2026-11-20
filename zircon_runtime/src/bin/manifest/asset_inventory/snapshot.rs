@@ -1,12 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
-use std::io::{BufReader, BufWriter, Write};
+use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::{Component, Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use zircon_runtime::asset::project::AssetMetaDocument;
 use zircon_runtime::asset::AssetUuid;
-use zircon_runtime::core::resource::io::atomic_write_new;
+use zircon_runtime::core::resource::io::atomic_write;
 
 use super::ShaderPrewarmAssetInventory;
 use crate::error::{ShaderPrewarmAssetScanError, ShaderPrewarmAssetScanResult};
@@ -388,27 +388,49 @@ pub(super) fn snapshot_index_path_for(root: &Path, snapshot_root: &Path) -> Opti
     Some(snapshot_path_for(root, snapshot_root)?.with_extension("index.json"))
 }
 
-// A name unique to the observed payload/index pair prevents one process
-// from certifying or erasing a different process's inventory generation.
-fn default_prewarm_receipt(snapshot_root: &Path, generation: AssetUuid) -> PathBuf {
-    snapshot_root.join(format!("default-prewarm-v1-{generation}.ready"))
+fn default_prewarm_receipt(root: &Path, snapshot_root: &Path) -> Option<PathBuf> {
+    Some(snapshot_path_for(root, snapshot_root)?.with_extension("prewarm-ready"))
 }
 
-pub(super) fn default_prewarm_succeeded(snapshot_root: &Path, generation: AssetUuid) -> bool {
-    fs::symlink_metadata(default_prewarm_receipt(snapshot_root, generation)).is_ok_and(|metadata| {
-        metadata.is_file() && metadata.len() == 0 && !super::traversal::is_reparse_point(&metadata)
+pub(super) fn default_prewarm_succeeded(
+    root: &Path,
+    snapshot_root: &Path,
+    generation: AssetUuid,
+) -> bool {
+    default_prewarm_receipt(root, snapshot_root)
+        .is_some_and(|path| receipt_matches_generation(&path, generation))
+}
+
+fn receipt_matches_generation(path: &Path, generation: AssetUuid) -> bool {
+    let Ok(metadata) = fs::symlink_metadata(path) else {
+        return false;
+    };
+    if !metadata.is_file() || super::traversal::is_reparse_point(&metadata) {
+        return false;
+    }
+    fs::File::open(path).is_ok_and(|mut file| {
+        let mut saved_generation = [0; 16];
+        file.read_exact(&mut saved_generation).is_ok()
+            && matches!(file.read(&mut [0]), Ok(0))
+            && &saved_generation == generation.binary_key()
     })
 }
 
-pub(super) fn record_default_prewarm_success(snapshot_root: &Path, generation: AssetUuid) {
-    if default_prewarm_succeeded(snapshot_root, generation) {
+pub(super) fn record_default_prewarm_success(
+    root: &Path,
+    snapshot_root: &Path,
+    generation: AssetUuid,
+) {
+    let Some(path) = default_prewarm_receipt(root, snapshot_root) else {
+        return;
+    };
+    if receipt_matches_generation(&path, generation) {
         return;
     }
-    let path = default_prewarm_receipt(snapshot_root, generation);
-    if let Err(error) = atomic_write_new(&path, b"") {
-        if error.kind() != std::io::ErrorKind::AlreadyExists {
-            eprintln!("failed to publish shader prewarm receipt {path:?}: {error}");
-        }
+    // A late writer can replace the root's receipt with its own older
+    // generation. Readers of a different generation then reproject.
+    if let Err(error) = atomic_write(&path, generation.binary_key()) {
+        eprintln!("failed to publish shader prewarm receipt {path:?}: {error}");
     }
 }
 

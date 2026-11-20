@@ -193,8 +193,8 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String>
         && !has_external_permutation_inputs
         && !has_external_resource_registry
     {
-        for (_, inventory) in &asset_inventories {
-            inventory.record_default_prewarm_success(&inventory_snapshot_root);
+        for (asset_root, inventory) in &asset_inventories {
+            inventory.record_default_prewarm_success(asset_root, &inventory_snapshot_root);
         }
     }
     Ok(exit_code)
