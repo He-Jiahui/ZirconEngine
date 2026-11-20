@@ -44,3 +44,22 @@ UE 依赖 `FViewport/FRenderTarget` 接收者的 RHI 资源；ZE 已有 [Rust `R
 | [MediaCaptureSources.inl](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Plugins/Media/MediaIOFramework/Source/MediaIOCore/Private/MediaCaptureSources.inl>) | `2d99edc9148c61abdff634d64e3389e2b701df03f9e8ae3207bc3e54924a82f9` |
 | [ScreenshotFunctionalTest.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Developer/FunctionalTesting/Private/ScreenshotFunctionalTest.cpp>) | `952b2f7571dc657317a148d1ce68db70811db8e0a537e1b7b5104d14099953dd` |
 | [MediaIODeinterlacerTests.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Plugins/Media/MediaIOFramework/Source/MediaIOCore/Private/Tests/MediaIODeinterlacerTests.cpp>) | `b928b6e49be586c4f6bf6a23ec6500365378286808d19497be01e99e62a2d4a8` |
+
+## 双视口的实际像素与缓存归属
+
+NVIDIA GeForce RTX 3060 Laptop GPU 的 DX12 实测复现截图归属错误。六个用例中有 5 个读取了 B 的图像或把它留在 A 的缓存中，两个既有离屏与 HDR 对照均通过。 每次只向同一渲染框架提交受控的红色或绿色相机。参考读回同时核对像素尺寸、RGBA 长度、generation 和捕获来源。失败中的 `equals_B` 逐字节比较整张图及其来源报告。调用对相同代数返回 `None` 后，A 的两种轮询仍读到了 B 的整帧。
+
+| 顺序和请求 | 结果 |
+|---|---|
+| 仅 B 提交，A 与 B 尺寸不同，直接请求 A | 失败 |
+| 两个视口尺寸相同，未提交的 A 请求任意一代 | 失败 |
+| 未提交的 A 请求比 0 更新的一代 | 失败 |
+| A 原有红帧，提交绿色 B 后重新截图 A | 失败 |
+| A 拒绝 B 的相同代数后，再轮询 A 的缓存 | 失败 |
+| 未知句柄、空缓存与有效 B 缓存对照 | 通过 |
+
+中心像素的独立参照：A 的 40×24 第 1 代为 `(255, 0, 0, 255)`；B 的 40×24 第 1 代为 `(0, 255, 0, 255)`；B 的 40×24 第 2 代为 `(0, 255, 0, 255)`。保留 A 自己已有的红帧或返回 `None` 均可满足未取得新 A 产品时的直接请求。后续轮询仍须维持 A 自己的缓存。
+
+运行使用 `zircon_runtime --lib` 的 `native-host,graphics` 配置。执行树采用 [#137 的模型测试夹具](https://github.com/He-Jiahui/ZirconEngine/blob/7f9a8a70e71a700e45300bab4f64094541507fa4/zircon_runtime/src/graphics/scene/resources/tests/model_geometry_resolution.rs#L293-L315) 解决同一测试库的借用前置。六项回归和两项既有对照共享该程序。UE `GetViewportScreenShot` 对传入的 `FViewport` 读取像素，`AScreenshotFunctionalTest` 提供 GameViewport 截图流程的原测参照。这里的双句柄与代数断言源自 ZE 的逐视口接口合同。
+
+[双视口回归](https://github.com/He-Jiahui/ZirconEngine/blob/fcaf7f4000957dc746938d6ab5675740286b29a4/zircon_runtime/src/graphics/tests/surface_targets/capture_owner.rs)
