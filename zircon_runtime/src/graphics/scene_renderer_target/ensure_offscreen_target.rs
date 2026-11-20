@@ -20,3 +20,7 @@ pub(crate) fn ensure_offscreen_target(
         offscreen_output,
     )
 }
+
+#[cfg(test)]
+#[path = "tests/offscreen_final_retention.rs"]
+mod tests;
