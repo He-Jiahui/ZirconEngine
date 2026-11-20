@@ -37,3 +37,9 @@
 在直接播放器提交新通知范围前，按已就绪且时长有效的非循环 Clip 的现有采样边界判断两端是否仍有有效移动。起点还在片内的最后一次穿越必须保留。继续处理所有已准入的范围，保留相同端点的姿态和原始钟，不改 ECS 类型、ABI、续页算法或窗口策略。不足以证明空范围的未就绪资源或修订变化须保留原重试约束。
 
 用 `physics_tick` 的真实插件帧入口验证：第一帧两个通知流各收到 `0.75s`，积压为 1、需求为真；第二帧各收到 `1.75s`，积压与需求应为 `0 / false`；显式第三帧确认仍无新通知、无积压。短步等价播放、暂停后仍能读出已准入尾通知、真正的循环继续产生事件，分别作对照。仅在获准后使用 `zircon_plugin_animation_runtime --no-default-features --features native-host --test physics_tick` 的 test profile 比对同一输入的行为 RED/GREEN；本稿没有该次运行结果，也不声称已验收桌面休眠。[现有入口与相邻用例](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/tests/physics_tick.rs#L326-L329) · [原订阅读取](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/tests/physics_tick/clip_events.rs#L499-L525)
+
+## 非循环片段的尾通知与帧请求
+
+测试从 2 秒非循环片段的 0.5 秒处开始播放。第一帧送达 0.75 秒标记，第二帧的两个事件流各收到一次 1.75 秒标记。修前第二、三帧的 `(待处理区间数, 请求下一帧)` 均为 `(1, true)`，第三帧没有事件。修复在扫描直接播放的片段时跳过起止时间均已到达终点的新区间。已经入队的尾部继续按原来的预算处理。修后第二、三帧均为 `(0, false)`。
+
+短步播放、暂停后读完尾部和循环跨界三个对照均通过。Windows x64/MSVC 构建使用 `zircon_plugin_animation_runtime` 的 `native-host` 特性、`physics_tick` 测试目标及 `test` profile。修前 3 项通过、1 项失败，过滤 42 项。修后 4 项通过、0 项失败，过滤 42 项。测试宿主使用 SDK 私有夹具，桌面按需宿主的产品验收待实测。 [四项回归](https://github.com/He-Jiahui/ZirconEngine/blob/79cd7103951f3dbd08169dfe70123a55c25f2486/zircon_plugins/animation/runtime/tests/physics_tick/clip_end_idle.rs#L23-L41)
