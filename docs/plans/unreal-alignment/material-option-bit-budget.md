@@ -196,3 +196,15 @@ ZE 自身既有 [32 位上限/超限 import 诊断合同:165](<https://github.co
 本修复不把公开的 infallible Rust 构造器或直接赋值改为新 ABI；绕开正常导入与持久读回自行捏造的表不在保证内。冷 prewarm 从同一作者解析入口可获得诊断是源码结论；本轮没有运行 CLI、warm inventory、设备端 shader 或 UE，不称整个材质系统已验收。
 
 38 项选定输入；实际回执 SHA-256 `7fefbc54bd75ee12a9d227b9b9a2f98d02cd7d2afbe6f0bb5a4904a985e3e130`，stdout `6a30f40fb25468141080568348a72198b4489979fdb5edfdd6819c51eb6053b8`，stderr `82385cb84b3d685fdda503246c3a5738b75b619c9468d21621fd76b93f8a5b78`。
+
+## 普通预热程序的冷缓存与热缓存结果
+
+普通预热程序对合法 32 位材质在两个版本都生成三个变体。33 位声明在公开 main 被折叠到 0；本 PR 在冷启动及强制 high 时均指出 detail_mode 超出 32 位。默认热重试仍可跳过这份未修正的输入。
+
+选用 30 个 bool 和一个三值枚举构成恰好 32 位，普通 `.zmaterial` 分别选择 `off`、`uv` 和 `triplanar`。两个版本都写出 `0x00000000`、`0x40000000`、`0x80000000`，报告为 3 请求、3 写入、0 失败。逐个核对 v3 清单、变体键、源身份及对应的压缩 WGSL；解压后取得实际着色器文本。
+
+再增加一个 bool，使最后枚举累计占 33 位。公开主干的冷报告写下一个值为 `0` 的排列。本 PR 的冷运行返回 1，指出 `detail_mode` 需要 33 位、上限为 32，未写 WGSL。未修改任何项目文件，第二次使用同一资产库存默认重试却返回 0，零请求、零写入、零失败；强制 `--quality-tier high` 再次返回相同解析诊断。这一默认重试问题也可以用合法 32 位 shader 和语法损坏的材质在主干独立复现。
+
+使用 Windows x64 普通 `zircon_shader_prewarm`，编译指定 `target-server,dynamic-api`、`dev` profile。以上是程序与实际缓存的结果，未启用 WGPU 模块或管线验证。交付工具另有 v1 与 v3 元数据格式之差，在 Python 验收器处出现，不是变体生成失败。没有为此补记修改引擎源码。
+
+[位数检查与材质解析](https://github.com/He-Jiahui/ZirconEngine/blob/aa68636392c8bbd993f4e198621a094ce08df591/zircon_runtime/src/asset/assets/shader/zshader.rs) · [默认库存快路](https://github.com/He-Jiahui/ZirconEngine/blob/aa68636392c8bbd993f4e198621a094ce08df591/zircon_runtime/src/bin/zircon_shader_prewarm/run.rs#L119-L179) · [正式磁盘提交](https://github.com/He-Jiahui/ZirconEngine/blob/aa68636392c8bbd993f4e198621a094ce08df591/zircon_runtime/src/graphics/shader/variant_cache/disk.rs#L208-L242)
