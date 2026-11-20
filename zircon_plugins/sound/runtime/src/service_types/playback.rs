@@ -59,6 +59,7 @@ impl DefaultSoundManager {
             looped: settings.looped,
             completion_action: settings.completion_action,
             paused: settings.paused,
+            has_paused_seek: false,
             muted: settings.muted,
             range_start_frame: playback_range.start_frame,
             range_end_frame: playback_range.end_frame,

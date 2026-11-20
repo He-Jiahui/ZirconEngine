@@ -19,7 +19,7 @@ impl DefaultSoundManager {
             .playbacks
             .get_mut(&playback)
             .ok_or(SoundError::UnknownPlayback { playback })?
-            .paused = true;
+            .set_paused(true);
         Ok(())
     }
 
@@ -38,7 +38,7 @@ impl DefaultSoundManager {
             .playbacks
             .get_mut(&playback)
             .ok_or(SoundError::UnknownPlayback { playback })?
-            .paused = false;
+            .set_paused(false);
         Ok(())
     }
 
@@ -63,7 +63,7 @@ impl DefaultSoundManager {
             .playbacks
             .get_mut(&playback)
             .ok_or(SoundError::UnknownPlayback { playback })?
-            .paused = !paused;
+            .set_paused(!paused);
         Ok(())
     }
 }

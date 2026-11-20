@@ -41,11 +41,22 @@ pub(crate) struct ActivePlayback {
     pub(crate) looped: bool,
     pub(crate) completion_action: SoundPlaybackCompletionAction,
     pub(crate) paused: bool,
+    /// The requested cursor, not the last sample rendered by the paused backend.
+    pub(crate) has_paused_seek: bool,
     pub(crate) muted: bool,
     pub(crate) range_start_frame: usize,
     pub(crate) range_end_frame: Option<usize>,
     pub(crate) output_track: SoundTrackId,
     pub(crate) pan: f32,
+}
+
+impl ActivePlayback {
+    pub(crate) fn set_paused(&mut self, paused: bool) {
+        self.paused = paused;
+        if !paused {
+            self.has_paused_seek = false;
+        }
+    }
 }
 
 impl SoundEngineState {

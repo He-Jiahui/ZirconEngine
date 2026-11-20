@@ -42,7 +42,13 @@ impl DefaultSoundManager {
             .get(&active.clip)
             .map(|clip| clip.asset.sample_rate_hz)
             .unwrap_or_default();
-        let kira_position = state.kira.playback_position(playback).ok();
+        // A paused seek moves the backend transport without advancing its resampler.
+        // Until resume, the accepted target is the logical cursor for this playback.
+        let kira_position = if active.has_paused_seek {
+            None
+        } else {
+            state.kira.playback_position(playback).ok()
+        };
         let (cursor_frame, cursor_seconds) = kira_position
             .map(|position| {
                 absolute_position_from_kira_slice(
