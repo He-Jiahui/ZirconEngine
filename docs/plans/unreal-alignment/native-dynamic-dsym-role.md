@@ -45,3 +45,20 @@ ZE 支持按目标平台复制预建插件。macOS 的 `.dylib` 属于运行库�
 可用 `python -m unittest tools.export.tests.test_native_dynamic_debug_bundle_roles` 运行七项回归。Windows 运行使用本地 Python 3.14，另有同一源码上的十五项既有测试覆盖包复制、平台筛选、清单对账和哈希读取。
 
 [七项回归](https://github.com/He-Jiahui/ZirconEngine/blob/d799bc1b313ca3b3a9057dc173155d375b80a3b4/tools/export/tests/test_native_dynamic_debug_bundle_roles.py)
+
+## 按包内路径区分库与符号
+
+已统一 NativeDynamic 的运行库角色判定。七项回归和十五个既有测试全部通过。用 UE 自带的 ShaderConductor 动态库和 dSYM 打包时，下游只收到一项运行库，三个文件的字节和哈希都正确。 暂存报告、目录交付、可选签名与公证候选，以及插件签名清单现在共用包相对路径规则。普通子目录中的真实库仍进入运行库列表，调试目录中的条目继续进入完整文件清单。
+
+| 验证 | 原实现 | 修复后 |
+|---|---:|---:|
+| 七个产物角色用例 | 3/7 | 7/7 |
+| 十五个既有导出用例 | 15/15 | 15/15 |
+| 五组预建物料，包括真实 ShaderConductor 库和符号 | 3/5 | 5/5 |
+| 真实库与同名 DWARF 的 stage、交付、签名候选数 | 2 / 2 / 2 | 1 / 1 / 1 |
+
+测试同时覆盖大写或混合大小写的调试目录、包自身名称带 `.dSYM`、普通嵌套库以及仅带符号的输入。已有 v2 报告若含错误角色，交付读取会指出该项被记录为了运行库。验证环境为 Windows 宿主的预建物料导出。
+
+[运行库分类实现](https://github.com/He-Jiahui/ZirconEngine/blob/a7af64868c2782a1f1c6fd925ed55b6066f3e2d0/tools/export/native_dynamic_contract.py) · [交付回归](https://github.com/He-Jiahui/ZirconEngine/blob/a7af64868c2782a1f1c6fd925ed55b6066f3e2d0/tools/export/tests/test_native_dynamic_debug_bundle_roles.py)
+
+**已有项目升级。** 如果上一版本的 v2 报告把 DWARF 记为了运行库，用升级后的导出器、原 profile、原 Validate 回执和原始预建插件目录，在同一 `out` 目录重跑 `--stage native_dynamic`。验证中读取旧报告时得到错误条目的具体路径，同目录重新暂存后，PlatformBundle 成功读取一项真实库。六个文件的相对路径、字节数、SHA-256 和整个包的内容哈希均与升级前相同。
