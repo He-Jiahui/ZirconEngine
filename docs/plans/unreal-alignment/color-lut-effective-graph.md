@@ -29,3 +29,9 @@ UE 已注册的 `System.Renderer.ColorManagement.ACES2OutputTransform` 要求 No
 ## 6. 与已有问题的关系及验收条件
 
 已核对 247 个 PR，含 113 个开放、133 个合并和 1 个关闭的 PR。本问题影响合法低亮输入和整张 LUT 的写入。#154 处理已经烘焙的 LUT 对超出单位立方体颜色的采样。#120 曾涉及同一执行器文件，#137 修正图形测试的模型夹具借用。依次验证本问题的低亮双视口、既有非中性与外部 LUT 用例，再与 #154 组合验证高光。[高光采样 #154](https://github.com/He-Jiahui/ZirconEngine/pull/154) · [历史变更 #120](https://github.com/He-Jiahui/ZirconEngine/pull/120) · [测试夹具 #137](https://github.com/He-Jiahui/ZirconEngine/pull/137)
+
+## 7. 低亮双视口的原生对照
+
+Windows DX12 在 RTX 3060 Laptop 上执行了同一份相机参数。生效图在两个视口均包含 `post.color-lut-bake`。直接提交的视口记录 0 次烘焙 dispatch，32,768 个格点的 alpha 偏离预期，最终 sRGB8 为 `(0, 0, 0)`。调用方先重建提取图时，视口记录 1 次 dispatch，格点 alpha 和 RGB 全部通过，最终 sRGB8 为 `(124, 156, 175)`。
+
+用已烘焙的 LUT 输入 `(1, 2, 4)`，三个通道的最终 sRGB8 均为 187。低亮调度回归由本草稿负责，域外通道采样见 #154。 [双视口测试](https://github.com/He-Jiahui/ZirconEngine/blob/d0c2b5e5b78c51758a7bc226623da1c31efccab5/zircon_runtime/src/graphics/tests/render_product_post_process.rs#L316) · [高光采样 #154](https://github.com/He-Jiahui/ZirconEngine/pull/154)
