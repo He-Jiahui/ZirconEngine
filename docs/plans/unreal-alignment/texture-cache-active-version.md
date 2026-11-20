@@ -62,3 +62,11 @@ UE 是 package/object 路径 + UObject 实例导出、GC/streamable handle、edi
 | [AssetRegistry.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/AssetRegistry/Private/AssetRegistry.cpp>) | `071f916324ff4e714329416559b3dce37be493b9df22a3dcb98988c58a4ca9fc` |
 | [AsyncLoadingTests_Renames.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/Tests/Loading/AsyncLoadingTests_Renames.cpp>) | `972d7bfb7f295ad877af4883c1761802e8ba74808e564709e363aad062bb3c13` |
 | [Texture2DTests.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/Tests/Texture2DTests.cpp>) | `6ee1de61a79f5cd6a816e7e628f3c30ca7c06ab96edc06fde6a41f00f41eb25b` |
+
+## 重建同一 UUID 的 PNG 后，GPU 仍读回旧红色像素
+
+同一台 NVIDIA GeForce RTX 3060 Laptop GPU 通过 DX12 读回 1×1 纹理。普通 PNG 从修订 1 更新到 2 时上传一次，读回黄色，缺失资源回退与稳定命中对照通过。经项目资产接口删除红色 PNG，恢复原侧车并以同一 UUID 重新导入绿色 PNG。新旧修订号均为 1，活动版本标识不同。CPU 已读到绿色。经典 Sprite 仍选中旧纹理和绑定，上传 0 次，GPU 读回 `[255, 0, 0, 255]`。
+
+回归在像素断言处退出 101。命中 1 个失败用例，另有 13,437 项被过滤。
+
+Windows x64/MSVC 的 `zircon_runtime` 库测试启用 `native-host,graphics`。#137 的私有夹具用于构建测试宿主。此次核对经典 Sprite 纹理准备、上传和像素读回，完整场景帧的产品验收待实测。 [像素回归](https://github.com/He-Jiahui/ZirconEngine/blob/5f2c5e17e5faa56b129736a232d196145c047db5/zircon_runtime/src/graphics/scene/resources/tests/texture_aba.rs#L181)
