@@ -37,3 +37,13 @@ ZE 将 1.5 秒换成绝对帧 12,000，扣除切片起点 4,000，把相对 1 �
 Windows x64/MSVC 下构建 `zircon_plugin_sound_runtime` 的 `--lib` 测试目标，关闭默认特性、无额外特性；最终只执行一个精确用例，**0 通过、1 失败，405 项被过滤，退出码 101**。编译成功，进程在有界 Job 中运行，原位 PE 在运行前后指纹一致；未留存独立 PE。未测试 CPAL 声卡、编辑器或视频播放，未运行修后版本。
 
 [暂停、定位与读回断言](https://github.com/He-Jiahui/ZirconEngine/blob/f36731ab854072da6003b32876bb6c864ecea29e/zircon_plugins/sound/runtime/src/service_types/tests/paused_clip_seek.rs#L52-L100)
+
+## 同一原生回归修后通过
+
+修前的两次读回都是第 4,576 帧（0.572 秒）；修后同一测试在保持暂停时两次都读到第 **12,000 帧 / 1.5 秒**。恢复后仍能在同一播放句柄上继续推进。测试字节不变，使用真正的 Kira mixer 处理块，不开启声卡，也未观测 DAC 音频。
+
+Windows x64/MSVC 上，同一个 `zircon_plugin_sound_runtime` 库测试从 **0 通过、1 失败，退出 101** 变为 **1 通过、0 失败，退出 0**；两次均精确执行一项，另 405 项被过滤。修前使用 D 盘构建池，修后使用 F 盘构建池；核对了相同的编译器、构建选项和测试选择器。修后试验源为 `bcb18a844b6ab0a45143649843be9b6347320f2c`。这次把已验证的七处文件内容接到公开基线记录之后；候选与试验树只有本文不同。
+
+暂停期间，仅对成功定位过的播放句柄返回已保存的逻辑游标。普通暂停仍读后端位置；恢复或切换到播放后清除此状态，重新随实际后端前进。没有新增 ABI、修改媒体导入或改变设备所有权。
+
+[状态读回](https://github.com/He-Jiahui/ZirconEngine/blob/2de0971fc46bc266def7968fc523378bd863ee7a/zircon_plugins/sound/runtime/src/service_types/playback_status.rs#L40-L74) · [记录定位](https://github.com/He-Jiahui/ZirconEngine/blob/2de0971fc46bc266def7968fc523378bd863ee7a/zircon_plugins/sound/runtime/src/service_types/playback_controls/seek.rs#L40-L53) · [恢复时清除](https://github.com/He-Jiahui/ZirconEngine/blob/2de0971fc46bc266def7968fc523378bd863ee7a/zircon_plugins/sound/runtime/src/engine/state/playback.rs#L51-L60) · [没有改动的精确断言](https://github.com/He-Jiahui/ZirconEngine/blob/2de0971fc46bc266def7968fc523378bd863ee7a/zircon_plugins/sound/runtime/src/service_types/tests/paused_clip_seek.rs#L52-L100)
