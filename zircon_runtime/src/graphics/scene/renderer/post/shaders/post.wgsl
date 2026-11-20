@@ -610,12 +610,21 @@ fn sample_effect_lut(color: vec3<f32>, binding_mode: u32) -> vec3<f32> {
     return sample_effect_lut_1d(color);
 }
 
-// 内部烘焙 LUT 已包含曝光、tonemap 与 grading，mode 4 必须直接采样并跳过再次 grading。
-fn apply_tonemap_and_lut(color: vec3<f32>) -> vec3<f32> {
-    // TODO: [CR-POST-SHADER-0004] 确认内部烘焙 LUT 的 HDR 输入域；烘焙只覆盖 [0,1]，
-    // 这里直接调用归一化颜色采样，HDR 值 1 与 2 映到相同格点，缺少与解析 tonemap 等价的高亮验证。
-    if (params.effect_flags.y == 4u) {
-        return sample_effect_lut_3d(color);
+// 内部 LUT 仅覆盖曝光前的场景线性 [0,1]。域外对整个 RGB 做解析变换，保留调色的跨通道运算。
+fn apply_display_color_transform(color: vec3<f32>) -> vec3<f32> {
+    var binding_mode = params.effect_flags.y;
+    var analytic_weight = 1.0;
+    if (binding_mode == 4u) {
+        if (all(color >= vec3<f32>(0.0)) && all(color <= vec3<f32>(1.0))) {
+            return sample_effect_lut_3d(color);
+        }
+        // 跨出一个 LUT 格点间距内，从钳位边界的 LUT 结果过渡到完整解析结果。
+        let outside = max(-color, color - vec3<f32>(1.0));
+        let axis_cells = max(vec3<f32>(textureDimensions(effect_lut_3d_tex)) - vec3<f32>(1.0), vec3<f32>(1.0));
+        let cell_distance = outside * axis_cells;
+        analytic_weight = clamp(max(cell_distance.x, max(cell_distance.y, cell_distance.z)), 0.0, 1.0);
+        // mode 4 未选中已就绪的用户 LUT；若 LUT 强度 > 0，bake 和此处都使用系统二维曲线。
+        binding_mode = 1u;
     }
 
     let exposure = exp2(params.effect_tonemap_lut.x) * max(exposure_buffer[0].x, 0.0);
@@ -635,10 +644,14 @@ fn apply_tonemap_and_lut(color: vec3<f32>) -> vec3<f32> {
         mapped = (mapped * (6.2 * mapped + vec3<f32>(0.5))) / (mapped * (6.2 * mapped + vec3<f32>(1.7)) + vec3<f32>(0.06));
     }
     let lut_intensity = clamp(params.effect_tonemap_lut.z, 0.0, 1.0);
-    if (params.effect_flags.y != 0u && lut_intensity > 0.0) {
-        mapped = mix(mapped, sample_effect_lut(mapped, params.effect_flags.y), lut_intensity);
+    if (binding_mode != 0u && lut_intensity > 0.0) {
+        mapped = mix(mapped, sample_effect_lut(mapped, binding_mode), lut_intensity);
     }
-    return mapped;
+    let graded = apply_color_grading(mapped);
+    if (analytic_weight < 1.0) {
+        return mix(sample_effect_lut_3d(color), graded, analytic_weight);
+    }
+    return graded;
 }
 
 fn load_resolved_screen_space_reflection(coord: vec2<i32>, viewport_size: vec2<u32>) -> vec4<f32> {
@@ -926,10 +939,7 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
         color = apply_fxaa(coord, viewport_size, color);
     }
 
-    color = apply_tonemap_and_lut(color);
-    if (params.effect_flags.y != 4u) {
-        color = apply_color_grading(color);
-    }
+    color = apply_display_color_transform(color);
     var output: FragmentOutput;
     output.final_color = vec4<f32>(color, scene_color.a);
     output.global_illumination = vec4<f32>(indirect_light, indirect_light_history_signature);
