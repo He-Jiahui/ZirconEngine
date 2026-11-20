@@ -47,3 +47,14 @@ UE 的池统计使用对齐后的大小，Rust 的 `Layout::size()` / `new_size`
 | [MallocBinned2.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Private/HAL/MallocBinned2.cpp>) | `031eb45f2734989f67cfe72784c78619bd1495fe752eb6818538dad09a58ce87` |
 | [MallocBinnedCommon.h](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Public/HAL/MallocBinnedCommon.h>) | `77f6c42b3a6ea64cd1b114b98c09f4b53d8ae7278b41399c0affe62563f238d8` |
 | [PagedArrayTest.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Core/Tests/Containers/PagedArrayTest.cpp>) | `7bbc4d9358a0bc2bb4d73618e246bdd517b40b5f75805df6d48afb09d6746ce0` |
+
+## 并发重分配时观察到的计数
+
+在 Windows x64/MSVC 上，将生产 `CountingAllocator` 包在真实系统分配上，分别在三个新进程中运行测试。每次读取使用分析器实际发布的帧计数行。串行用例检查了原地调整、移动分配、增长、缩小和返回空指针的失败路径，通过。
+
+| 并发回归 | 样本 | 实际占用下界 | 分析器读数 |
+|---|---|---:|---:|
+| 存活字节数 | 8,192 个帧样本，894,592 次已完成的同尺寸重分配 | 持续占用 2,048 字节 | 最低为 0 字节 |
+| 保留峰值 | 第 2 次短时分配结束后，等待所有线程退出 | 两个持有块与临时块合计 2,114 字节 | 最终为 2,113 字节 |
+
+两个回归均在预期的数值断言失败。每次成功的同尺寸 `realloc` 先扣减旧大小，再加回新大小。两个原子更新之间，采样线程会读取暂时缺少持有块的总量。[三个完整回归](https://github.com/He-Jiahui/ZirconEngine/blob/7514690f52e140f55e647fba58b122bb511ba499/zircon_runtime/tests/runtime_profiling_memory_realloc.rs)
