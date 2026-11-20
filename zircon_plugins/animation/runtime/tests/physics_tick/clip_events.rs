@@ -523,3 +523,7 @@ fn drain_animation_clip_events(
             .collect()
     })
 }
+
+mod interruption_notify {
+    include!("interruption_notify.rs");
+}
