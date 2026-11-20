@@ -8,6 +8,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use zircon_runtime::asset::project::AssetMetaDocument;
+use zircon_runtime::asset::AssetUuid;
 
 use super::paths::is_zmeta;
 use crate::error::{ShaderPrewarmAssetScanError, ShaderPrewarmAssetScanResult};
@@ -27,6 +28,7 @@ pub(crate) struct ShaderPrewarmAssetInventory {
     metadata_by_path: BTreeMap<PathBuf, AssetMetaDocument>,
     text_by_path: BTreeMap<PathBuf, String>,
     changed_paths: BTreeSet<PathBuf>,
+    snapshot_generation: Option<AssetUuid>,
 }
 
 impl ShaderPrewarmAssetInventory {
@@ -57,30 +59,38 @@ impl ShaderPrewarmAssetInventory {
         if let Some(snapshot) =
             Self::load_snapshot(root, snapshot_root, excluded_root_identity.as_deref())
         {
+            let qualified = snapshot::default_prewarm_succeeded(snapshot_root, snapshot.generation);
             if snapshot.is_current(root, max_resident_text_bytes) {
-                return Ok(snapshot.into_inventory(root));
+                let mut inventory = snapshot.into_inventory(root);
+                if !qualified {
+                    inventory.changed_paths = inventory.paths.iter().cloned().collect();
+                }
+                return Ok(inventory);
             }
             let mut inventory = Self::collect_fresh_with_text_budget_excluding(
                 root,
                 max_resident_text_bytes,
                 excluded_root,
             )?;
-            inventory.changed_paths = snapshot.changed_file_paths(root, &inventory);
-            inventory.write_snapshot(root, snapshot_root, excluded_root_identity.as_deref())?;
+            if qualified {
+                inventory.changed_paths = snapshot.changed_file_paths(root, &inventory);
+            }
+            inventory.snapshot_generation =
+                inventory.write_snapshot(root, snapshot_root, excluded_root_identity.as_deref())?;
             return Ok(inventory);
         }
-        let inventory = Self::collect_fresh_with_text_budget_excluding(
+        let mut inventory = Self::collect_fresh_with_text_budget_excluding(
             root,
             max_resident_text_bytes,
             excluded_root,
         )?;
-        inventory.write_snapshot(root, snapshot_root, excluded_root_identity.as_deref())?;
+        inventory.snapshot_generation =
+            inventory.write_snapshot(root, snapshot_root, excluded_root_identity.as_deref())?;
         Ok(inventory)
     }
 
-    /// Checks only the compact warm-snapshot index. The command-line path
-    /// uses this before deciding whether an unchanged root needs its bounded
-    /// metadata and source payload hydrated at all.
+    /// Checks the compact index and the success receipt for its generation
+    /// before deciding whether to hydrate the cached metadata and source bodies.
     pub(crate) fn warm_snapshot_is_current_excluding(
         root: &Path,
         snapshot_root: &Path,
@@ -89,7 +99,16 @@ impl ShaderPrewarmAssetInventory {
     ) -> bool {
         let excluded_root_identity = nested_excluded_root_identity(root, excluded_root);
         Self::load_snapshot_index(root, snapshot_root, excluded_root_identity.as_deref())
-            .is_some_and(|snapshot| snapshot.is_current(root, max_resident_text_bytes))
+            .is_some_and(|snapshot| {
+                snapshot::default_prewarm_succeeded(snapshot_root, snapshot.generation)
+                    && snapshot.is_current(root, max_resident_text_bytes)
+            })
+    }
+
+    pub(crate) fn record_default_prewarm_success(&self, snapshot_root: &Path) {
+        if let Some(generation) = self.snapshot_generation {
+            snapshot::record_default_prewarm_success(snapshot_root, generation);
+        }
     }
 
     fn collect_fresh(root: &Path) -> ShaderPrewarmAssetScanResult<Self> {
@@ -111,6 +130,7 @@ impl ShaderPrewarmAssetInventory {
                     metadata_by_path: BTreeMap::new(),
                     text_by_path: BTreeMap::new(),
                     changed_paths: BTreeSet::new(),
+                    snapshot_generation: None,
                 });
             }
             Err(source) => {
@@ -184,6 +204,7 @@ impl ShaderPrewarmAssetInventory {
         }
         Ok(Self {
             changed_paths: paths.iter().cloned().collect(),
+            snapshot_generation: None,
             paths,
             directories,
             meta_paths,

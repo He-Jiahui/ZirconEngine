@@ -5,6 +5,8 @@ use std::path::{Component, Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use zircon_runtime::asset::project::AssetMetaDocument;
+use zircon_runtime::asset::AssetUuid;
+use zircon_runtime::core::resource::io::atomic_write_new;
 
 use super::ShaderPrewarmAssetInventory;
 use crate::error::{ShaderPrewarmAssetScanError, ShaderPrewarmAssetScanResult};
@@ -26,7 +28,10 @@ impl ShaderPrewarmAssetInventory {
         {
             return None;
         }
-        Some(snapshot)
+        // Concurrent writers may interleave their atomic replacements. Only
+        // use the payload as an incremental baseline for its own index.
+        let index = Self::load_snapshot_index(root, snapshot_root, excluded_root_identity)?;
+        (index.generation == snapshot.generation).then_some(snapshot)
     }
 
     pub(super) fn load_snapshot_index(
@@ -54,9 +59,9 @@ impl ShaderPrewarmAssetInventory {
         root: &Path,
         snapshot_root: &Path,
         excluded_root_identity: Option<&str>,
-    ) -> ShaderPrewarmAssetScanResult<()> {
+    ) -> ShaderPrewarmAssetScanResult<Option<AssetUuid>> {
         let Some(snapshot_path) = snapshot_path_for(root, snapshot_root) else {
-            return Ok(());
+            return Ok(None);
         };
         let Some(files) = self
             .paths
@@ -64,7 +69,7 @@ impl ShaderPrewarmAssetInventory {
             .map(|path| SnapshotEntry::from_path(root, path))
             .collect::<Option<Vec<_>>>()
         else {
-            return Ok(());
+            return Ok(None);
         };
         let Some(directories) = self
             .directories
@@ -72,7 +77,7 @@ impl ShaderPrewarmAssetInventory {
             .map(|path| SnapshotEntry::from_path(root, path))
             .collect::<Option<Vec<_>>>()
         else {
-            return Ok(());
+            return Ok(None);
         };
         let metadata_by_relative_path = self
             .metadata_by_path
@@ -99,7 +104,9 @@ impl ShaderPrewarmAssetInventory {
             .unwrap_or(usize::MAX);
         let root_identity = root_identity(root).unwrap_or_default();
         let excluded_root_identity = excluded_root_identity.map(str::to_owned);
+        let generation = AssetUuid::new();
         let snapshot_index = ShaderPrewarmAssetInventorySnapshotIndex {
+            generation,
             schema_version: ShaderPrewarmAssetInventorySnapshot::SCHEMA_VERSION,
             root_identity: root_identity.clone(),
             excluded_root_identity: excluded_root_identity.clone(),
@@ -108,6 +115,7 @@ impl ShaderPrewarmAssetInventory {
             resident_text_bytes,
         };
         let snapshot = ShaderPrewarmAssetInventorySnapshotRef {
+            generation,
             schema_version: ShaderPrewarmAssetInventorySnapshot::SCHEMA_VERSION,
             root_identity,
             excluded_root_identity,
@@ -127,16 +135,18 @@ impl ShaderPrewarmAssetInventory {
         }
         write_snapshot_json(&snapshot_path, &snapshot)?;
         let Some(snapshot_index_path) = snapshot_index_path_for(root, snapshot_root) else {
-            return Ok(());
+            return Ok(None);
         };
-        // The index is the readiness marker: publish it after the full payload
-        // so an external-input invocation can always hydrate a current index.
-        write_snapshot_json(&snapshot_index_path, &snapshot_index)
+        // Publish the inventory index after its payload. The separate default
+        // prewarm receipt is issued only after the batch succeeds.
+        write_snapshot_json(&snapshot_index_path, &snapshot_index)?;
+        Ok(Some(generation))
     }
 }
 
 #[derive(Clone, Debug, Deserialize)]
 pub(super) struct ShaderPrewarmAssetInventorySnapshot {
+    pub(super) generation: AssetUuid,
     schema_version: u32,
     root_identity: String,
     excluded_root_identity: Option<String>,
@@ -151,6 +161,7 @@ pub(super) struct ShaderPrewarmAssetInventorySnapshot {
 /// deserializing the cached metadata and WGSL bodies.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub(super) struct ShaderPrewarmAssetInventorySnapshotIndex {
+    pub(super) generation: AssetUuid,
     schema_version: u32,
     root_identity: String,
     excluded_root_identity: Option<String>,
@@ -163,6 +174,7 @@ pub(super) struct ShaderPrewarmAssetInventorySnapshotIndex {
 /// creates a second in-memory copy of every WGSL, zshader, and material body.
 #[derive(Serialize)]
 struct ShaderPrewarmAssetInventorySnapshotRef<'a> {
+    generation: AssetUuid,
     schema_version: u32,
     root_identity: String,
     excluded_root_identity: Option<String>,
@@ -174,7 +186,7 @@ struct ShaderPrewarmAssetInventorySnapshotRef<'a> {
 }
 
 impl ShaderPrewarmAssetInventorySnapshot {
-    const SCHEMA_VERSION: u32 = 4;
+    const SCHEMA_VERSION: u32 = 5;
 
     pub(super) fn into_inventory(self, root: &Path) -> ShaderPrewarmAssetInventory {
         let paths = self
@@ -209,6 +221,7 @@ impl ShaderPrewarmAssetInventorySnapshot {
             metadata_by_path,
             text_by_path,
             changed_paths: BTreeSet::new(),
+            snapshot_generation: Some(self.generation),
         }
     }
 
@@ -365,13 +378,38 @@ fn is_safe_relative_child(path: &Path, allow_root: bool) -> bool {
 pub(super) fn snapshot_path_for(root: &Path, snapshot_root: &Path) -> Option<PathBuf> {
     let root_identity = root_identity(root)?;
     Some(snapshot_root.join(format!(
-        "{}.json",
-        blake3::hash(root_identity.as_bytes()).to_hex()
+        "{}.v{}.json",
+        blake3::hash(root_identity.as_bytes()).to_hex(),
+        ShaderPrewarmAssetInventorySnapshot::SCHEMA_VERSION
     )))
 }
 
 pub(super) fn snapshot_index_path_for(root: &Path, snapshot_root: &Path) -> Option<PathBuf> {
     Some(snapshot_path_for(root, snapshot_root)?.with_extension("index.json"))
+}
+
+// A name unique to the observed payload/index pair prevents one process
+// from certifying or erasing a different process's inventory generation.
+fn default_prewarm_receipt(snapshot_root: &Path, generation: AssetUuid) -> PathBuf {
+    snapshot_root.join(format!("default-prewarm-v1-{generation}.ready"))
+}
+
+pub(super) fn default_prewarm_succeeded(snapshot_root: &Path, generation: AssetUuid) -> bool {
+    fs::symlink_metadata(default_prewarm_receipt(snapshot_root, generation)).is_ok_and(|metadata| {
+        metadata.is_file() && metadata.len() == 0 && !super::traversal::is_reparse_point(&metadata)
+    })
+}
+
+pub(super) fn record_default_prewarm_success(snapshot_root: &Path, generation: AssetUuid) {
+    if default_prewarm_succeeded(snapshot_root, generation) {
+        return;
+    }
+    let path = default_prewarm_receipt(snapshot_root, generation);
+    if let Err(error) = atomic_write_new(&path, b"") {
+        if error.kind() != std::io::ErrorKind::AlreadyExists {
+            eprintln!("failed to publish shader prewarm receipt {path:?}: {error}");
+        }
+    }
 }
 
 fn write_snapshot_json(
