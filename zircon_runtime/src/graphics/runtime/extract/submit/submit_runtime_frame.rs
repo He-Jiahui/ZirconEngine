@@ -83,7 +83,8 @@ fn submit_selected_runtime_frame(
     submit_started: &Instant,
     output_policy: CameraLoopOutputPolicy,
 ) -> Result<(), RenderFrameworkError> {
-    let output_policy = ViewportCameraStackOutputPolicy::from(output_policy);
+    let output_policy =
+        ViewportCameraStackOutputPolicy::from(output_policy).with_viewport(viewport);
     let owns_viewport_submission = output_policy.owns_viewport_submission();
     let owns_shared_viewport_products = output_policy.owns_shared_viewport_products();
     frame.camera_stack_output_policy = output_policy;

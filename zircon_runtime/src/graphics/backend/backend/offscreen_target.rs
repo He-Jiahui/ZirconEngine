@@ -1,12 +1,16 @@
-//! 离屏目标绑定一个尺寸周期内场景、后处理及历史复用的原生资源；调整尺寸需整体重建。
+//! 离屏颜色产品与内部场景附件共用容器，但分别按输出与场景尺寸配置。
+use crate::core::framework::render::RenderViewportHandle;
 use crate::core::math::UVec2;
 use crate::graphics::resource_identity::SampledTextureIdentity;
+use crate::graphics::types::ViewportRenderOutputTarget;
 
 pub(crate) struct OffscreenTarget {
     pub(crate) size: UVec2,
     pub(crate) render_size: UVec2,
     pub(crate) final_color: wgpu::Texture,
     pub(crate) final_color_view: wgpu::TextureView,
+    pub(crate) final_color_viewport: Option<RenderViewportHandle>,
+    pub(crate) final_color_output: Option<ViewportRenderOutputTarget>,
     pub(crate) global_illumination: wgpu::Texture,
     pub(crate) global_illumination_view: wgpu::TextureView,
     pub(crate) scene_color: wgpu::Texture,

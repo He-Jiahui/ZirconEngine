@@ -1,6 +1,7 @@
 use crate::core::framework::render::{
-    PostProcessGraphResourceNames, RenderCapabilitySummary, RenderFrameHistoryInput,
-    RenderFrameSubmissionReceipt, RenderFrameSubmissionTransaction, RenderPipelinePhase,
+    PostProcessGraphResourceNames, RenderCameraTargetGraphImportStatus, RenderCapabilitySummary,
+    RenderFrameHistoryInput, RenderFrameSubmissionReceipt, RenderFrameSubmissionTransaction,
+    RenderPipelinePhase,
 };
 use crate::core::TaskPool;
 use crate::graphics::backend::{GpuPassTimer, ViewportSurface};
@@ -118,7 +119,23 @@ impl SceneRenderer {
                     .map(|targets| targets.output().allocation_extent())
             })
             .unwrap_or(size);
-        if ensure_offscreen_target(&self.backend.device, &mut self.target, size, render_size) {
+        // Direct graph imports write their own asset; they do not take the scratch color lane
+        // from a same-viewport sibling. Conversions and stack-suppressed targets do own it.
+        let offscreen_output = (self
+            .streamer
+            .output_target_frame_plan()
+            .graph_import_report()
+            .status
+            != RenderCameraTargetGraphImportStatus::ReadyForDirectImport)
+            .then_some(frame.output_target());
+        if ensure_offscreen_target(
+            &self.backend.device,
+            &mut self.target,
+            size,
+            render_size,
+            frame.camera_stack_output_policy().viewport(),
+            offscreen_output,
+        ) {
             self.core
                 .post_process
                 .invalidate_taa_resolve_bind_group_cache();
