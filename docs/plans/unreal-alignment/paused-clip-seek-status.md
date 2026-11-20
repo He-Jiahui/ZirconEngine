@@ -29,3 +29,11 @@ ZE 将 1.5 秒换成绝对帧 12,000，扣除切片起点 4,000，把相对 1 �
 让播放状态在本次暂停期间报告该句柄最后一次成功显式定位的逻辑游标；没有定位的普通暂停仍按停住的位置报告。恢复后重新随真实后端推进，不更改公开接口、ABI、时间单位、完成队列或设备所有权。
 
 用实际 WAV parser 生成并装入片段，由生产 `SoundManager` 执行播放、暂停、定位、读回与恢复；仅在测试中用 Kira 的 `MockBackend` 手工处理真实 mixer 的音频帧，不开桌面设备。先确认真实 Kira `Paused` 和原游标稳定，定位后跨两组回调读同一播放句柄，两次均应是 **12,000 帧 / 1.5 秒**；最后不再次定位就恢复，确认从目标附近继续推进。只要求定位期间的逻辑读回一致，不断言已出样；真实 CPAL/声卡是另外的产品验证。既有 [Kira 句柄调用测试](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/sound/runtime/src/tests/kira_bridge/lifecycle/playback.rs#L9-L25)未驱动回调或断言位置，不能替代它。此处暂无行为 RED/GREEN。
+
+## 修前原生回归：成功定位后仍读到暂停前的位置
+
+测试解码并装入 8 kHz、单声道、非循环 PCM16 WAV，使用生产 `SoundManager` 播放素材 0.5–2.5 秒的切片。先确认 Kira 已进入 `Paused`，且未定位时位置稳定；再经公开接口成功定位到绝对 1.5 秒（第 12,000 帧）。Kira 的 `MockBackend` 手工驱动真实 mixer，不开音频设备。定位后分别在三次和六次回调已处理时读取同一播放句柄，两次仍为 **4,576 帧 / 0.572 秒**；当时保持暂停。未再次定位，恢复播放后读到 **12,445 帧**，证明后端已采纳目标，失败在暂停时的状态读回。
+
+Windows x64/MSVC 下构建 `zircon_plugin_sound_runtime` 的 `--lib` 测试目标，关闭默认特性、无额外特性；最终只执行一个精确用例，**0 通过、1 失败，405 项被过滤，退出码 101**。编译成功，进程在有界 Job 中运行，原位 PE 在运行前后指纹一致；未留存独立 PE。未测试 CPAL 声卡、编辑器或视频播放，未运行修后版本。
+
+[暂停、定位与读回断言](https://github.com/He-Jiahui/ZirconEngine/blob/f36731ab854072da6003b32876bb6c864ecea29e/zircon_plugins/sound/runtime/src/service_types/tests/paused_clip_seek.rs#L52-L100)
