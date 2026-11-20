@@ -25,3 +25,20 @@ Rust 运行时写出 `v3/<分片>/<hash>.wgsl.zst`，再用同目录 `<hash>.man
 ## 6. 修改范围与验收
 
 让正式 stage 按报告的每个变体 hash 查找当前 v3 清单及其同分片 payload，再核对变体身份、来源、工具链、格式和实际压缩长度。旧报告可继续使用 v1 诊断。用发布前后的同一批真实文件验证交付检查，同时覆盖缺清单、缺 payload、错误分片、过大清单、错误版本或来源、仅有 v1 制品等输入。原有六个 pass、画质、几何来源与注册表检查继续参与同一次验收。[验收的维度与来源](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/tools/build/zircon_build_shader_prewarm_acceptance.py#L37-L82)
+
+## 7. 同一批 v3 制品的修前、修后验收
+
+正式发布验收现按报告逐项检查已提交的 v3 清单与同分片 WGSL。Windows 同一批六个材质 pass 的真实物料由拒绝变为通过，文件、报告和注册表的原始字节未变；11 个回归用例和 58 个既有用例全部通过。
+
+在 Windows x64 使用固定基线已封存的普通 `zircon_shader_prewarm`（不重新编译），以默认内建着色器、`medium` 画质和 `static` 几何生成标准 stage。真实进程退出 0，`forward`、`gbuffer`、`depth_prepass`、`shadow`、`velocity`、`taa_reactive_mask` 各一次请求和写入，共 **6 请求、6 写入、0 失败**。以同一目录原有报告、资源注册表、6 个 `.manifest` 和 6 个 `.wgsl.zst` 两次调用正式 staged acceptance，没有替换或重生成物料。
+
+| 对照 | 原验收 | 修订后 |
+|---|---|---|
+| 六个材质 pass 的真实暂存物料 | 把全部 6 对判为 `missing metadata` | 同一正式验收入口通过 |
+| 合法项目材质的三个真实 forward 对 | 下级缓存检查拒绝全部 3 对 | 下级缓存检查通过（不是另一组六 pass） |
+| Python 回归 | 仅 v2 拒绝正控通过；其余用例触发旧判定或旧诊断 | 11/11 |
+| 相邻既有用例 | 58/58 | 58/58 |
+
+正式 stage 只接受当前 v3，按报告 hash 读取提交清单、同分片的不可变 payload，并核对变体、来源 ID/摘要、工具链、声明预算、压缩字节数和 Zstd 帧头。没有清单的已报条目不算提交，已提交但缺 payload 不是成功；旧 v1 只保留历史诊断，不能证明当前运行时可读。另用独立只读核验解压上述九对并核对实际 BLAKE3，记录的物料 SHA-256 修前修后相同；Python 发布检查本身不重新做运行时的解压、BLAKE3 或 GPU 验证。
+
+[仅回归提交](https://github.com/He-Jiahui/ZirconEngine/blob/d1689f0542564bf258e362a4ea7ac3a9a218e23b/tools/tests/test_zircon_build_shader_prewarm_v3_artifacts.py) · [正式验收入口](https://github.com/He-Jiahui/ZirconEngine/blob/71d5fff6500a89f6804f058fe20b0ec29d3885d4/tools/build/zircon_build_shader_prewarm_acceptance.py#L37-L84) · [v3 物料验证](https://github.com/He-Jiahui/ZirconEngine/blob/71d5fff6500a89f6804f058fe20b0ec29d3885d4/tools/build/zircon_build_shader_prewarm_v3_artifacts.py#L25-L68) · [运行时字节回读](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/graphics/shader/variant_cache/disk.rs#L302-L352)
