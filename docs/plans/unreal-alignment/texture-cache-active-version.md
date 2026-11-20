@@ -70,3 +70,11 @@ UE 是 package/object 路径 + UObject 实例导出、GC/streamable handle、edi
 回归在像素断言处退出 101。命中 1 个失败用例，另有 13,437 项被过滤。
 
 Windows x64/MSVC 的 `zircon_runtime` 库测试启用 `native-host,graphics`。#137 的私有夹具用于构建测试宿主。此次核对经典 Sprite 纹理准备、上传和像素读回，完整场景帧的产品验收待实测。 [像素回归](https://github.com/He-Jiahui/ZirconEngine/blob/5f2c5e17e5faa56b129736a232d196145c047db5/zircon_runtime/src/graphics/scene/resources/tests/texture_aba.rs#L181)
+
+## 按当前资源版本刷新 Sprite 纹理和绑定
+
+同一台 NVIDIA GeForce RTX 3060 Laptop GPU 通过 DX12 读回 1×1 纹理。普通 PNG 从修订 1 更新到 2 时上传一次，读回黄色，缺失资源回退与稳定命中对照通过。经项目资产接口删除红色 PNG，恢复原侧车并以同一 UUID 重新导入绿色 PNG。新旧修订号均为 1，活动版本标识不同。CPU 已读到绿色。经典 Sprite 仍选中旧纹理和绑定，上传 0 次，GPU 读回 `[255, 0, 0, 255]`。
+
+修复让缓存核对资源目录行、活动版本和 CPU 快照。相同输入下 GPU 获取新的纹理与绑定，上传 1 次，读回 `[0, 255, 0, 255]`。下一帧继续使用新纹理。修后 1 项通过，两次各过滤 13,437 项。
+
+Windows x64/MSVC 的 `zircon_runtime` 库测试启用 `native-host,graphics`。#137 的私有夹具用于构建测试宿主。此次核对经典 Sprite 纹理准备、上传和像素读回，完整场景帧的产品验收待实测。 [像素回归](https://github.com/He-Jiahui/ZirconEngine/blob/12bab9560101523e0b769c9b1668ca4b702e3763/zircon_runtime/src/graphics/scene/resources/tests/texture_aba.rs#L181)
