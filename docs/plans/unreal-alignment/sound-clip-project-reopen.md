@@ -43,3 +43,13 @@ ZE 已有用例 `cached_clip_load_returns_before_project_asset_resolution` 验�
 项目内的 `res://` 与 `package://` 分别用真实 WAV 验证重复加载的 ID、片段信息和缺失地址。另一个用例核对 Kira 播放数据共享帧缓冲区。两项均通过。
 
 Windows x64 的测试通过正式 WAV 导入器、磁盘产物、项目资产管理器和中立 Sound 服务读取声音。[两个项目回归](https://github.com/He-Jiahui/ZirconEngine/blob/98be9586b19910bd36a959384b5f42b6b0e7996a/zircon_plugins/sound/runtime/tests/clip_project_reopen.rs)
+
+## 声音缓存按当前激活的项目解析资源地址
+
+修复后，同根替换的 WAV 在声音服务中读为 16 kHz、四帧。关闭项目时新请求返回 NoProjectOpen，另一项目缺少该 WAV 时返回 InvalidLocator。同一项目内的重复加载和已有声音句柄均通过验证。
+
+项目内的 `res://` 与 `package://` 分别用真实 WAV 验证重复加载的 ID、片段信息和缺失地址。另一个用例核对 Kira 播放数据共享帧缓冲区。两项均通过。
+
+Windows x64 的测试通过正式 WAV 导入器、磁盘产物、项目资产管理器和中立 Sound 服务读取声音。[两个项目回归](https://github.com/He-Jiahui/ZirconEngine/blob/0a247890484e2ea097770e24980d0ef4cc3c8c28/zircon_plugins/sound/runtime/tests/clip_project_reopen.rs)
+
+两个正式回归和两个单元对照在同一修订上通过。新请求先校验激活身份，准备好 PCM 后再在项目代数校验内登记。[加载实现](https://github.com/He-Jiahui/ZirconEngine/blob/0a247890484e2ea097770e24980d0ef4cc3c8c28/zircon_plugins/sound/runtime/src/service_types/clip_assets.rs)
