@@ -227,6 +227,7 @@ fn render_product_split_screen_viewports() {
     let left_green = dominant_green_pixels_in_region(&frame, left_inset);
     let right_red = dominant_red_pixels_in_region(&frame, right_inset);
     let right_green = dominant_green_pixels_in_region(&frame, right_inset);
+    println!("SPLIT_252_PIXELS case=forward extent={}x{} left_red={left_red} left_green={left_green} right_red={right_red} right_green={right_green} total={inset_pixels}", frame.width, frame.height);
 
     assert!(
         left_red > inset_pixels * 9 / 10,
@@ -244,4 +245,104 @@ fn render_product_split_screen_viewports() {
         right_red < inset_pixels / 20,
         "left Base camera red clear should not leak into the right viewport; red={right_red}, total={inset_pixels}"
     );
+}
+
+#[test]
+fn render_product_split_screen_reverse_order_and_headless_resize() {
+    use crate::core::framework::render::RenderCameraTarget;
+
+    let fixture = RenderFixture::new(
+        "graphics_camera_targets_split_screen_reverse_and_resize",
+        [1.0, 1.0, 1.0, 1.0],
+    );
+    let (framework, viewport) = fixture.configured_framework(camera_target_product_profile());
+    let larger = UVec2::new(192, 128);
+    let red = Vec4::new(1.0, 0.0, 0.0, 1.0);
+    let green = Vec4::new(0.0, 1.0, 0.0, 1.0);
+    let mut previous_generation = 0;
+    let mut observations = Vec::new();
+
+    // Match the physical dimensions of the PrimarySurface witness first. An explicit headless
+    // camera target then lets the same public viewport handle request a new output extent.
+    for (case, size, left_order, right_order, left_color) in [
+        ("reverse", fixture.viewport_size, 1, 0, Some(red)),
+        ("resize-right-only", larger, 0, 1, None),
+        ("equal-green", larger, 0, 1, Some(green)),
+    ] {
+        let half_width = size.x / 2;
+        let half_size = UVec2::new(half_width, size.y);
+        let mut extract = fixture.frame_extract(Vec::new());
+        let camera = |id, order, color, origin| {
+            let mut desc = primary_surface_camera_descriptor(
+                id,
+                order,
+                RenderCameraClear::Color(color),
+                RenderLayerSet::default(),
+                extract.view.camera.clone(),
+            )
+            .with_viewport(RenderViewportRect::new(origin, half_size));
+            desc.target = RenderCameraTarget::Headless { size };
+            desc
+        };
+        // Keep the descriptor vector left-to-right; only render_order reverses the first frame.
+        let mut cameras = Vec::new();
+        if let Some(color) = left_color {
+            cameras.push(camera(908, left_order, color, UVec2::ZERO));
+        }
+        cameras.push(camera(909, right_order, green, UVec2::new(half_width, 0)));
+        let submission_count = cameras.len();
+        extract.view = extract.view.with_cameras(cameras);
+
+        framework.submit_frame_extract(viewport, extract).unwrap();
+        let frame = framework
+            .capture_frame(viewport)
+            .unwrap()
+            .expect("headless split capture");
+        let stats = framework.query_stats().unwrap();
+        assert_eq!(
+            stats.last_camera_loop_submission_count, submission_count,
+            "{case}"
+        );
+        assert_eq!(UVec2::new(frame.width, frame.height), size, "{case}");
+        assert_eq!(frame.capture_report.output_size, size, "{case}");
+        assert_eq!(
+            frame.capture_report.target_kind,
+            RenderCameraTargetKind::Headless,
+            "{case}"
+        );
+        assert_eq!(
+            frame.capture_report.source,
+            RenderCaptureSource::FrameworkOffscreen,
+            "{case}"
+        );
+        assert_eq!(frame.rgba.len(), (size.x * size.y * 4) as usize, "{case}");
+        assert!(
+            frame.generation > previous_generation,
+            "{case}: stale generation"
+        );
+        previous_generation = frame.generation;
+
+        let inset = UVec2::new(half_width - 16, size.y - 16);
+        let left = RenderViewportRegion::new(UVec2::new(8, 8), inset);
+        let right = RenderViewportRegion::new(UVec2::new(half_width + 8, 8), inset);
+        let total = (inset.x * inset.y) as usize;
+        let left_red = dominant_red_pixels_in_region(&frame, left);
+        let left_green = dominant_green_pixels_in_region(&frame, left);
+        let right_red = dominant_red_pixels_in_region(&frame, right);
+        let right_green = dominant_green_pixels_in_region(&frame, right);
+        println!("SPLIT_252_PIXELS case={case} extent={}x{} left_red={left_red} left_green={left_green} right_red={right_red} right_green={right_green} total={total}", frame.width, frame.height);
+        observations.push((case, total, [left_red, left_green, right_red, right_green]));
+    }
+    framework.destroy_viewport(viewport).unwrap();
+
+    for ((case, total, pixels), expected) in observations.into_iter().zip([
+        [true, false, false, true],
+        [false, false, false, true],
+        [false, true, false, true],
+    ]) {
+        for (actual, dominant) in pixels.into_iter().zip(expected) {
+            assert!(if dominant { actual > total * 9 / 10 } else { actual < total / 20 },
+                    "SPLIT_252_PIXELS_ORACLE {case}: expected {expected:?}, observed {pixels:?} of {total}");
+        }
+    }
 }
