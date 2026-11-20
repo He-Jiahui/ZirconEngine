@@ -62,6 +62,7 @@ def validate_staged_shader_prewarm_acceptance_contract(config) -> None:
     validate_shader_prewarm_cache_artifact_contract(
         config.shader_prewarm_cache_root,
         report_path=config.shader_prewarm_report_path,
+        require_current_format=True,
         expected_pass_types=_PRODUCT_MATERIAL_MESH_PASS_TYPES,
         expected_quality_tiers=config.shader_quality_tiers,
         expected_geometry_sources=config.shader_geometry_sources,
