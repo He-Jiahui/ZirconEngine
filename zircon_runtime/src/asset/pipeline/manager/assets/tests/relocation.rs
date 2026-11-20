@@ -359,14 +359,15 @@ fn relocating_a_prefab_keeps_the_open_scene_savable() {
         ))) if path == old.to_string() => {
             assert_eq!(fs::read(&scene_path).unwrap(), control_bytes);
             assert!(old_revision.matches_path(&scene_path).unwrap());
-            assert_eq!(
-                open_world.to_scene_asset(&current).unwrap(),
-                live_before_save
-            );
             false
         }
         Err(other) => panic!("R34 unexpected save failure, not behavioral RED: {other:?}"),
     };
+    assert_eq!(
+        open_world.to_scene_asset(&current).unwrap(),
+        live_before_save,
+        "saving may update the publication snapshot, not the live World"
+    );
     let expected_hint = if committed { new_hint } else { old_hint };
     let disk_text = fs::read_to_string(&scene_path).unwrap();
     let saved_doc: toml::Value = toml::from_str(&disk_text).unwrap();
@@ -414,6 +415,31 @@ fn relocating_a_prefab_keeps_the_open_scene_savable() {
     eprintln!("R34 independent reopen: hint={expected_hint}, resolved={moved}, probe x={fresh_x}, scene/Prefab rows unchanged");
 
     assert!(committed, "PREFAB_RELOCATION_SAVE_RED: MissingPath({old}); source unchanged; independent reopen repaired the locator");
+
+    // The watcher is closed. An unrelated source can occupy the old path without being
+    // indexed yet; that must revoke the stale-locator repair without losing an unsaved edit.
+    fs::write(&old_source, leaf_source.as_bytes()).unwrap();
+    assert!(fresh.asset_registry().entry_by_path(&old).is_none());
+    assert!(open_world
+        .update_transform(90, Transform::from_translation(Vec3::new(7.0, 0.0, 0.0)))
+        .unwrap());
+    let blocked = open_world
+        .save_scene_to_project(&fresh, &scene_uri, &reopened_revision)
+        .expect_err("an occupied previous source must not be remapped on save");
+    assert!(
+        matches!(
+            &blocked,
+            SceneProjectError::ProjectDocument(ProjectDocumentError::Reference(
+                ReferenceResolutionError::MissingPath { path },
+            )) if path == &old.to_string()
+        ),
+        "expected the unresolved old path, got {blocked:?}"
+    );
+    assert_eq!(fs::read(&scene_path).unwrap(), disk_text.as_bytes());
+    assert!(reopened_revision.matches_path(&scene_path).unwrap());
+    assert_eq!(open_world.local_transform(90).unwrap().translation.x, 7.0);
+    eprintln!("R34 occupied old path: save rejected, scene bytes unchanged, live probe x=7.0");
+
     if !keep_fixture {
         fs::remove_dir_all(&root).unwrap();
     }
