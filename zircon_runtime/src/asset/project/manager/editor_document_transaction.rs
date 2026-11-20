@@ -4,11 +4,12 @@
 //! generation, and bounded publication paths before handing both bytes to the existing resource
 //! transaction substrate. Recovery runs before a project generation is admitted to the registry.
 
+use std::collections::HashMap;
 use std::io;
 use std::path::{Path, PathBuf};
 
 use crate::asset::project::{ProjectManifest, ProjectPaths, ResolvedProjectPathIdentity};
-use crate::asset::{AssetImportError, AssetUri};
+use crate::asset::{AssetImportError, AssetReference, AssetUri};
 use crate::core::resource::io::transaction::{
     commit_prepared_files_with_revisions as commit_core_files, recover_pending_transactions,
     DurableCommitDisposition, DurableCommitReport, DurableTransactionError, JournalDocument,
@@ -268,7 +269,23 @@ impl<'project> ScopedRuntimeProjectManager<'project> {
         let workspace_path = self.workspace_path();
         self.validate_workspace_target(&workspace_path)?;
 
-        let scene_asset = scene.to_scene_asset(self.project)?;
+        let mut scene_asset = scene.to_scene_asset(self.project)?;
+        // Correct only the typed prefab references in this publication snapshot. Instances can
+        // share a source, so probe the physical move once per identical stale reference.
+        let mut relocated_prefabs = HashMap::<AssetReference, AssetUri>::new();
+        for instance in scene_asset
+            .entities
+            .iter_mut()
+            .filter_map(|entity| entity.prefab_instance.as_mut())
+        {
+            let reference = &mut instance.prefab;
+            if let Some(locator) = relocated_prefabs.get(reference) {
+                reference.locator = locator.clone();
+            } else if let Some(locator) = self.project.relocated_scene_prefab_locator(reference) {
+                relocated_prefabs.insert(reference.clone(), locator.clone());
+                reference.locator = locator.clone();
+            }
+        }
         let scene_document = scene_asset
             .to_project_toml_string(|reference| self.project.persist_runtime_reference(reference))
             .map_err(SceneProjectError::from)?;
