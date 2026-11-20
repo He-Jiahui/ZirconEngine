@@ -25,3 +25,15 @@ ZE 既有的 16 像素可读性用例通过字面量列表读取图像，列表�
 ## 6. 修复与验收
 
 将模式节点的图标地址指向已有的 Universal Transform SVG。分别在 100% 和 150% 缩放下绘制完整工具栏，检查 `activate_scene_mode` 对应的文件路径、SHA-256、加载状态及按钮矩形内的图像绘制命令。再由已有宽幅工具栏用例遍历全部 16 个控件。这样可以同时观察本图标的恢复和其它控件的绘制结果。[工具栏投影入口](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/src/ui/retained/app/host_lifecycle/startup/bridges/factory.rs#L40-L56)
+
+## 同一程序复测：模式图标通过了 100% 的局部检查
+
+同一 Windows Editor 测试程序复测时，100% 下的模式图标通过了原用例的资源归属、加载和绘制范围断言。原用例仍因后面的 SetPreviewSkybox 失败；未验证 150% 或新增 Rust 用例。
+
+保留原 Windows x64 Editor libtest、正常开发资产根与其中的 `projected_toolbar_paints_all_16_source_icons_at_100_and_150_percent`，只替换运行时 ZUI 的图标地址。这次没有重新编译测试程序，也没有重跑旧失败。修前 stdout 在 100% 首轮的 `assetAudit.complete` 停下：Universal Transform 图标是一个无真实源文件记录的占位图。
+
+修后同一原用例越过了资源审计以及 16 个源控件的计数，但仍退出 101（0 passed、1 failed）。原始输出停在另一控件的断言：`icon SetPreviewSkybox must be loaded with its source owner`。这是后续边界，不是整条回归通过，也未在此进一步诊断 Skybox。
+
+100% 目标通过可从原用例顺序确定：它先跑 100%，再跑 150%；内建模板按左组的 authored child 顺序投影，`ActivateSceneMode` 在 `SetPreviewSkybox` 之前。若当前断言发生在首轮，前面的目标已完成；若发生在后续轮，首轮早已完成。目标的原断言查找同一 `sourceNodeId` 的已加载资源，并检查控件矩形中存在 `Image` 命令；先前通过的审计还回读实际资源字节。原日志未单独打印该行的 SVG 路径、SHA 或图像命令和资源键的配对，也未打印失败轮次。此次仅认定 100% 的目标节点，不把 150%、新增精确回归或普通桌面呈现记为已执行。
+
+[原来的两轮断言](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/src/ui/retained/contract/workbench/docks/tests/viewport_toolbar.rs#L14-L75) · [不重排的节点采集](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/src/ui/runtime/runtime/projection.rs#L503-L523) · [一行图标资源修复](https://github.com/He-Jiahui/ZirconEngine/blob/58decef48911a4ea9d8707872393dce4546278f9/zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.zui#L55-L60) · [另行加入、尚未执行的精确回归](https://github.com/He-Jiahui/ZirconEngine/blob/a404673de70b0aabedf6568a7fd5fb2b9b880258/zircon_editor/src/ui/retained/contract/workbench/docks/tests/viewport_toolbar.rs)
