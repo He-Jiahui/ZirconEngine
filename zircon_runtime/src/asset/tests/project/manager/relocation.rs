@@ -127,6 +127,7 @@ fn interrupted_project_source_relocation_recovers_the_original_generation() {
         .entry_by_path(&source)
         .unwrap()
         .uuid();
+    let source_resource_id = manager.registry().get_by_locator(&source).unwrap().id();
     let source_before = fs::read(&source_path).unwrap();
     let source_meta_before = fs::read(&source_meta_path).unwrap();
     let registry_before = fs::read(&registry_path).unwrap();
@@ -138,14 +139,32 @@ fn interrupted_project_source_relocation_recovers_the_original_generation() {
     assert!(!source_path.exists());
     drop(manager);
 
-    let reopened = ProjectManager::open(&root)
+    let mut reopened = ProjectManager::open(&root)
         .expect("project recovery must accept and roll back a source relocation transaction");
     assert_eq!(fs::read(&source_path).unwrap(), source_before);
     assert_eq!(fs::read(&source_meta_path).unwrap(), source_meta_before);
     assert_eq!(fs::read(&registry_path).unwrap(), registry_before);
     assert!(!target_path.exists());
     assert!(!target_meta_path.exists());
-    assert!(reopened.registry().get_by_locator(&source).is_some());
+
+    let asset = reopened
+        .asset_registry()
+        .entry_by_path(&source)
+        .expect("project open must load the recovered source index");
+    assert_eq!(asset.uuid(), source_uuid);
+    assert!(reopened.asset_registry().entry_by_path(&target).is_none());
+    assert!(reopened.registry().get_by_locator(&source).is_none());
+
+    // The disk index is queryable before importing; runtime records require explicit publication.
+    reopened
+        .register_asset_importer(counted_data_importer())
+        .unwrap();
+    reopened.scan_and_import().unwrap();
+    let published = reopened
+        .registry()
+        .get_by_locator(&source)
+        .expect("import must publish the restored source");
+    assert_eq!(published.id(), source_resource_id);
     assert!(reopened.registry().get_by_locator(&target).is_none());
 
     let _ = fs::remove_dir_all(root);

@@ -12,8 +12,9 @@ UE 的 `FAssetRegistryState::Load`（`Engine/Source/Runtime/AssetRegistry/Privat
 
 ZE 使用 Rust 的 `AssetRegistryIndex` 保存 UUID 与源路径，用 `ResourceRegistry` 发布已导入的资源。`ProjectManager::open` [先恢复事务并加载资产索引，运行时资源表仍为空](../../../zircon_runtime/src/asset/project/manager/open.rs#L31-L63)；需要注册夹具的 importer，再走[扫描导入](../../../zircon_runtime/src/asset/project/manager/scan_and_import.rs#L161-L170)才发布运行时记录。两层索引、侧车和文件事务保持 ZE 实现，不用 UE 的 `UObject` 加载替代它们。
 
-## 待验证
+## 独立实测：恢复索引与运行时发布分阶段验证
 
 1. 保留搬迁中断后的文件、侧车与磁盘索引字节核对：旧地址恢复，新地址退出。
-2. 独立打开后，在恢复的资产索引中读取同一 UUID 和旧地址；运行时不凭空产生资源。重新注册测试 importer 并扫描后，在运行时表验证原地址和稳定资源 ID，新地址仍不可见。
-3. 在 Windows x64/MSVC 精确运行该 `zircon_runtime` 库用例（test profile，关闭默认特性，仅 `native-host`）。本首发 Draft 仅登记问题，尚未修改或验证夹具。
+2. 独立打开后，从恢复的资产索引查到同一 UUID 和旧地址；运行时表此时没有该资源。重新注册测试 importer 并扫描，运行时表发布了旧地址和原 `ResourceId`，新地址仍不可见。该断言覆盖 UE 测试所示的元数据与对象加载边界，不改变 ZE 两种注册表或资产事务的生产逻辑。
+
+Windows x64/MSVC、Rust 1.94.1，`zircon_runtime` 库测试、test profile，关闭默认特性，仅显式启用 `native-host`。实际执行 `cargo test -p zircon_runtime --lib --no-default-features --features native-host --locked --offline --jobs 1 asset::tests::project::manager::relocation::interrupted_project_source_relocation_recovers_the_original_generation -- --exact --nocapture --test-threads 1`，夹具 Git blob `82d468a7`：**1 通过、0 失败、0 忽略，退出 0，7,774 项过滤**。未运行 UE 自动化、编辑器产品或全套资产验收。GitHub Actions 必需的 `editor-compile-gate` 仍未上报，本地通过不替代合并门禁。
