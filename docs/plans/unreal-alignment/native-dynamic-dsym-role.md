@@ -37,3 +37,11 @@ ZE 支持按目标平台复制预建插件。macOS 的 `.dylib` 属于运行库�
 ## 6. 等价回归与修复判据
 
 用可重复创建的同名 DWARF 夹具覆盖上述两条 macOS 路径，断言完整清单同时包含库和符号，而加载清单与下游候选恰含一项真实库。补充只有符号时的失败用例，并复用 Windows DLL/PDB 和 Linux SO/DBG 对照。修复在角色判断时识别属于符号包的祖先目录，让暂存报告、下游读取和外部处理候选使用同一规则。验收时复核复制后的相对路径、字节数、摘要以及合法运行库的交付。
+
+## 同名 DWARF 的可执行回归
+
+已加入七个产物角色回归。原实现通过三项，其余四项共触发十个断言。十五个既有导出用例全部通过。 测试用预建输入运行 NativeDynamic 阶段，逐项核对完整文件清单和运行库清单。只改变 DWARF 叶名时，库与符号的字节保持一致，暂存报告、交付读取及外部处理候选数从一项变为两项。给下游一份只含真实库的正确 v2 清单，原消费者反而要求把符号补回。
+
+可用 `python -m unittest tools.export.tests.test_native_dynamic_debug_bundle_roles` 运行七项回归。Windows 运行使用本地 Python 3.14，另有同一源码上的十五项既有测试覆盖包复制、平台筛选、清单对账和哈希读取。
+
+[七项回归](https://github.com/He-Jiahui/ZirconEngine/blob/d799bc1b313ca3b3a9057dc173155d375b80a3b4/tools/export/tests/test_native_dynamic_debug_bundle_roles.py)
