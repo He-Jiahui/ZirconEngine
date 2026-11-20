@@ -22,22 +22,28 @@ impl SceneRenderer {
         }
     }
 
-    pub(crate) fn capture_latest_frame(&mut self) -> Result<Option<ViewportFrame>, GraphicsError> {
-        let Some(target) = self.target.as_ref() else {
+    pub(crate) fn capture_latest_frame(
+        &mut self,
+        generation: u64,
+    ) -> Result<Option<ViewportFrame>, GraphicsError> {
+        // A renderer attempt retires the previous receipt before touching its targets.
+        // Its counter alone can still equal the last successful frame after a failure.
+        if self
+            .last_frame_submission_receipt
+            .as_ref()
+            .is_none_or(|receipt| receipt.frame_generation() != generation)
+        {
+            return Ok(None);
+        }
+        let (Some(target), Some(capture_target)) = (self.target.as_ref(), self.last_capture_target)
+        else {
             return Ok(None);
         };
-        let capture_target = self
-            .last_capture_target
-            .unwrap_or(SceneRendererCaptureTarget {
-                output_target: Default::default(),
-                owns_final_target_output: true,
-            });
         let output_target_capture = output_target_capture_resource(
             &self.streamer,
             capture_target.output_target,
             capture_target.owns_final_target_output,
         );
-        let generation = self.generation;
         let backend = &self.backend;
         let mut observe_poll = |poll_receipt| {
             route_frame_submission_completion_consumers(
