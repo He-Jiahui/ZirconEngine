@@ -69,3 +69,16 @@
 [revision]: <https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/crates/zr_resource/src/manager/commit.rs#L372-L404>
 [sample]: <https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/examples/vampire/assets/animation/vampire_idle.graph.zranim.zmeta#L1-L13>
 [scene-graph]: <https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/scene/world/project_io/scene_asset.rs#L210-L268>
+
+## 重建图和骨架后的关卡姿态
+
+图用例通过项目接口删除源，恢复原 UUID 的侧车，再导入输出另一段剪辑的图。骨架用例在资源管理器内分两次提交删除和登记，检查换序后掩码仍作用于同名手骨。两例都在同一运行时让原关卡连续消费第 1、2 帧，再让新建关卡首次消费第 3 帧。读回时核对两关卡使用同一份新载荷，并确认原关卡仍保留第 2 帧的姿态。
+
+| 操作 | 持续播放关卡的 `Hand.x`（修前 → 修后） | 新建关卡的 `Hand.x` |
+|---|---:|---:|
+| 重新登记动画图 | 1 → 9 | 9 |
+| 重建骨架并交换同父骨骼的顺序 | 1 → 10 | 10 |
+
+普通覆写对照在同一关卡将图修订从 1 升到 2，手骨位置从 1 更新为 9。三项回归 1/3 → 3/3。运行环境为 Windows x64/MSVC，`zircon_plugin_animation_runtime` 使用 `native-host` 特性和 `physics_tick` 测试目标。关卡测试使用 SDK 宿主夹具。
+
+缓存条目保存用于编译的图和骨架载荷的弱引用。下次使用条目时，运行时比较两份资源快照的修订和载荷身份，替换任一载荷都会重编对应的图。 [关卡回归](https://github.com/He-Jiahui/ZirconEngine/blob/907146fe13fce32e1c8a2a69ba07694b7f4710ce/zircon_plugins/animation/runtime/tests/cache_invalidation/graph_reload.rs)
