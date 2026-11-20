@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
+use crate::asset::TextureAsset;
 use crate::core::framework::render::RenderFrameSubmissionTransaction;
+use crate::core::resource::{ResourceHandle, ResourceKind, TextureMarker};
 use crate::graphics::backend::RenderBackend;
 
-use super::super::super::prepared::PreparedTexture;
 use super::super::super::GpuTextureResource;
 use super::super::ResourceStreamer;
 use super::{MipStreamingSettings, MipStreamingTask};
@@ -31,30 +32,19 @@ impl ResourceStreamer {
                 &task,
                 submission_transaction,
             );
-            match rebuilt {
-                Some((revision, resource, capture_sample_rgba)) => {
-                    if let Some(resident_mip_range) =
-                        self.finish_texture_mip_streaming_task(&task, true)
-                    {
-                        crate::profile_counter!(
-                            "render",
-                            "texture_publication_before_upload_completion",
-                            1
-                        );
-                        self.textures.insert(
-                            task.texture,
-                            PreparedTexture {
-                                revision,
-                                resource,
-                                capture_sample_rgba,
-                                resident_mip_range,
-                            },
-                        );
-                    }
-                }
-                None => {
-                    self.finish_texture_mip_streaming_task(&task, false);
-                }
+            let Some(resource) = rebuilt else {
+                self.finish_texture_mip_streaming_task(&task, false);
+                continue;
+            };
+            let range = self.finish_texture_mip_streaming_task(&task, true);
+            if let (Some(range), Some(prepared)) = (range, self.textures.get_mut(&task.texture)) {
+                crate::profile_counter!(
+                    "render",
+                    "texture_publication_before_upload_completion",
+                    1
+                );
+                prepared.resource = resource;
+                prepared.resident_mip_range = range;
             }
         }
     }
@@ -65,24 +55,33 @@ impl ResourceStreamer {
         texture_layout: &wgpu::BindGroupLayout,
         task: &MipStreamingTask,
         submission_transaction: &mut RenderFrameSubmissionTransaction,
-    ) -> Option<(u64, Arc<GpuTextureResource>, Option<[f32; 4]>)> {
+    ) -> Option<Arc<GpuTextureResource>> {
         let prepared = self.textures.get(&task.texture)?;
         if prepared.resident_mip_range != task.resident_mips {
             return None;
         }
-        let revision = prepared.revision;
-        let capture_sample_rgba = prepared.capture_sample_rgba;
-        let previous = Arc::clone(&prepared.resource);
-        let previous_range = prepared.resident_mip_range.clone();
+        // Common mips come from the previous GPU object. Do not reload a CPU payload here:
+        // a different active publication, even at the same revision, cannot certify those mips.
         let payload = {
             crate::profile_scope!("render", "texture", "load_snapshot");
-            self.asset_manager()
-                .ok()?
-                .load_texture_asset_snapshot(task.texture)
+            let resources = self.asset_manager().ok()?.resource_manager();
+            let projection = resources.projection_snapshot();
+            let catalog = projection.management().row_by_id(task.texture)?;
+            if catalog.kind != ResourceKind::Texture
+                || catalog.revision != prepared.revision
+                || projection.active().row(task.texture)?.key != prepared.active_key
+            {
+                return None;
+            }
+            resources
+                .snapshot_expected::<TextureMarker, TextureAsset>(
+                    ResourceHandle::new(task.texture),
+                    &prepared.active_key,
+                )
                 .ok()?
         };
         crate::profile_counter!("render", "texture_snapshot_load_count", 1);
-        if payload.revision() != revision {
+        if payload.revision() != prepared.revision {
             return None;
         }
         crate::profile_counter!("render", "texture_cpu_payload_clone_bytes", 0);
@@ -93,21 +92,19 @@ impl ResourceStreamer {
                 texture_layout,
                 task.texture,
                 Arc::clone(payload.resource()),
-                previous.as_ref(),
-                previous_range,
+                prepared.resource.as_ref(),
+                prepared.resident_mip_range.clone(),
                 task.wanted_mips.clone(),
             )
             .ok()?
         };
-        let resource = self
-            .enqueue_gpu_texture_upload_work_for_frame(
-                backend,
-                task.texture,
-                resource,
-                submission_transaction,
-            )
-            .ok()?;
-        Some((revision, resource, capture_sample_rgba))
+        self.enqueue_gpu_texture_upload_work_for_frame(
+            backend,
+            task.texture,
+            resource,
+            submission_transaction,
+        )
+        .ok()
     }
 }
 
