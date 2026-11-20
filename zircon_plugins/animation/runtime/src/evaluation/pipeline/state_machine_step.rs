@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use zircon_runtime::asset::ProjectAssetManager;
 use zircon_runtime::core::framework::animation::AnimationPoseOutput;
+use zircon_runtime::core::math::Real;
 use zircon_runtime::scene::{AnimationStateTransitionRuntime, EntityId};
 
 use super::machine_instance_key::MachineInstanceKey;
@@ -126,6 +127,7 @@ pub(super) fn resolve_state_machine_pose_requests_with_demand(
                         &pending,
                         &instance,
                         &advanced,
+                        None,
                     ));
                     interrupted_source = Some(source);
                     let transition = begin_state_machine_transition(
@@ -208,6 +210,9 @@ pub(super) fn resolve_state_machine_pose_requests_with_demand(
             let active_source = interrupted_source
                 .as_ref()
                 .or_else(|| cached_active_source.as_deref());
+            // The old root fade has already sampled the chosen source through this time.
+            let source_event_start = (!is_nested && interrupted_source.is_some())
+                .then_some(active_transition.from_time_seconds);
             events.extend(sample_state_transition_clip_events(
                 pipeline,
                 asset_manager,
@@ -216,6 +221,7 @@ pub(super) fn resolve_state_machine_pose_requests_with_demand(
                 &pending,
                 &instance,
                 active_transition,
+                source_event_start,
             ));
             let Some((entity, pose, requires_frame)) = sample_state_transition_pose_with_demand(
                 pipeline,
@@ -369,16 +375,21 @@ fn sample_state_transition_clip_events(
     pending: &PendingStateMachinePoseSample,
     instance: &MachineInstanceKey,
     transition: &AnimationStateTransitionRuntime,
+    source_event_start: Option<Real>,
 ) -> Vec<PendingClipEventSample> {
     let mut events = Vec::new();
-    let (from_start_seconds, to_start_seconds) = pending
-        .transition
-        .as_ref()
-        .filter(|previous| {
-            previous.from_state == transition.from_state && previous.to_state == transition.to_state
-        })
-        .map(|previous| (previous.from_time_seconds, previous.to_time_seconds))
-        .unwrap_or((pending.from_time_seconds, 0.0));
+    let (from_start_seconds, to_start_seconds) = if let Some(start) = source_event_start {
+        (start, 0.0)
+    } else {
+        pending
+            .transition
+            .as_ref()
+            .filter(|previous| {
+                previous.from_state == transition.from_state && previous.to_state == transition.to_state
+            })
+            .map(|previous| (previous.from_time_seconds, previous.to_time_seconds))
+            .unwrap_or((pending.from_time_seconds, 0.0))
+    };
 
     events.extend(sample_machine_state_events(
         pipeline,
