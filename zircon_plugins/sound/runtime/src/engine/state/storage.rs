@@ -2,6 +2,7 @@
 use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 
+use zircon_runtime::asset::project::ProjectActivationIdentity;
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::framework::sound::{
     ExternalAudioSourceHandle, SoundAutomationBinding, SoundAutomationBindingId, SoundClipId,
@@ -38,7 +39,8 @@ pub(crate) struct SoundEngineState {
     pub(crate) next_clip_id: u64,
     pub(crate) next_playback_id: u64,
     pub(crate) next_source_id: u64,
-    pub(crate) clip_ids_by_locator: HashMap<String, SoundClipId>,
+    /// `res://` routes are tagged by the activation that resolved them; other schemes remain unscoped.
+    pub(crate) clip_ids_by_locator: HashMap<String, (SoundClipId, Option<ProjectActivationIdentity>)>,
     pub(crate) clips: HashMap<SoundClipId, LoadedClip>,
     pub(crate) external_sources: HashMap<ExternalAudioSourceHandle, SoundExternalSourceBlock>,
     pub(crate) playbacks: HashMap<SoundPlaybackId, ActivePlayback>,
