@@ -78,3 +78,25 @@ Rust 1.94.1 链接的 `zircon_app.wasm` 为 101,019,794 字节，SHA-256 为 `1c
 本草稿公开提交 `4a7e07d7eed63be87e2e49f6a627939845d8f70d` 对应的 Web 产品已由 Chrome 157.0.8103.52 载入。页面执行 `WebEngine.load`，请求并收到了场景 `catalog.json`，随后返回 `ModuleGraphFrozen`。此时采样到的呈现帧数为 0。相同产品使用平台不匹配的目录时，返回目录校验错误。使用平台正确、资产为空的目录时，同样得到 `ModuleGraphFrozen`。[模块启动问题 #240](https://github.com/He-Jiahui/ZirconEngine/pull/240)
 
 该浏览器选择了 NVIDIA Ampere 适配器，`isFallbackAdapter=false`，画布首选格式为 `bgra8unorm`。在同一浏览器中，直接以此格式配置 64×64 画布能够取得纹理、清屏并完成队列提交，验证作用域返回 `null`。
+
+## 10. 独立复验 `zircon_runtime` Web 入口
+
+从远端未修改的 `233f17f0` 在 Windows 宿主 / Rust 1.94.1 执行：
+
+```text
+cargo check -p zircon_runtime --lib --no-default-features --features target-web --target wasm32-unknown-unknown --profile dev --locked --offline --jobs 1
+```
+
+实际检查 `zr_rhi_wgpu` 和 `zircon_runtime`，**退出 0**；相同目标与特性曾在 [#265](https://github.com/He-Jiahui/ZirconEngine/pull/265) 的独立分支因同一处 `E0594` 退出 101。此次只验证 #239 的 Rust Web 入口，没有合并其他 Draft，没有重链 `zircon_app` 或重跑浏览器。回执 SHA-256 `39ace6d1cf00e7d8ea33a151269de215cbabe89d3c489fa84af1c59aae81689c`。
+
+## 11. UE 纹理读回的原生对照
+
+UE `Rendering.RHI → RHICopyTexture` 检查 BGRA8 的四种 UNORM/sRGB 复制组合，提交后用 staging 逐像素比较。ZE 的[中立 RHI 与原生 recorder](../../../zircon_runtime/crates/zr_rhi_wgpu/src/production/tests/unreal_resource.rs#L125-L296) 都通过生产设备提交和读回逐字节比对；中立路径保留 BGRA8 四种编码组合并加两条 RGBA8 对照，原生读回桥按其既有契约使用 RGBA8 四种组合。验证的是数据保真，不等于 UE Vulkan 或 ZE Canvas 交换链协商。ZE 继续使用 Rust `wgpu`、中立 RHI 和异步回执，不移植 Vulkan 厂商枚举或 UE 颜色空间策略。
+
+Windows x64/MSVC、Rust 1.94.1、`zr_rhi_wgpu` 库、test profile，关闭默认特性、不启用其他特性。下列两条用例实际选择 Vulkan / NVIDIA GeForce RTX 3060 Laptop GPU，**2 通过、0 失败、0 忽略、461 项过滤**，无缺少适配器的跳过。回执 SHA-256 `b69fa19f41210b1aaaca85b182b19f063613c1ec58be1b2652482b7c7e7610b2`。
+
+```text
+cargo test -p zr_rhi_wgpu --lib --no-default-features --profile test --locked --offline --jobs 1 unreal_copy_texture_preserves_unorm_and_srgb_bytes_through_ -- --nocapture --test-threads 1
+```
+
+浏览器运行仍由 [#240 模块注册顺序](https://github.com/He-Jiahui/ZirconEngine/pull/240)、[#242 Canvas 格式协商](https://github.com/He-Jiahui/ZirconEngine/pull/242)、[#243 表面接管](https://github.com/He-Jiahui/ZirconEngine/pull/243) 等独立阶段继续验证。未以本地通过替代 GitHub 必需检查 `editor-compile-gate`。
