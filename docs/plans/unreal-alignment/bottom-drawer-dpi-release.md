@@ -34,3 +34,19 @@ ZE 已有 140% 缩放下窄窗打开 Inspector 的测试，及松手前失焦应
 **只在拥有手势的 Bottom 分隔条正常松手后、发 `SetDrawerRegionExtent` 前**，将最后的物理高度除以发布该 Workbench 框的、已归一的有效缩放比例。保留临时物理值、左右分隔条、取消和钳制；不在 Move 或绘制时再转换。跨窗口、拖动途中变化 DPI 及存盘迁移不在这次范围。只有 tests-only 回归在未修复的基线上取得尺寸断言的实际 RED 后，才应用生产修改。
 
 最小门是 `zircon_editor` 的 `--lib --no-default-features`（默认 test profile），仅运行 `root_bottom_dock_resize_commits_logical_extent_` 两例。用真实 [测试宿主](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/src/ui/retained/app/tests/support.rs#L92-L144) 挂载 Console，从已公布的 splitter 发 Down/Move/Up；断言 Move 无提交、Up 恰一条 Bottom `220` 逻辑像素、活动布局偏好与公布外框均正确。100% 是保持不变的对照；150% 预期在基线报告 `330` 的提交和 `495 px` 的外框，修复后为 `220` 和 `330 px`。这些数字目前只有源码推导，驱动、编译或准入失败均不算有效 RED。
+
+## 原生回归：松开 Console 分隔条后的逻辑偏好与几何
+
+Windows x64/MSVC，`zircon_editor` 库测试，默认特性关闭。同一根窗口、两个独立 exact 进程。用例操作已发布的 Bottom Console 分隔条，检查 Down/Move 捕获、松手清除捕获和瞬态，再读 Workbench 偏好和宿主发布的框；不以 journal 快照为判据。
+
+**修前**（100% 对照通过，150% 在[逻辑偏好断言](https://github.com/He-Jiahui/ZirconEngine/blob/07d10166b3763ce1f7e94c5a310d7dce130da6e9/zircon_editor/src/ui/retained/app/tests/projection_geometry.rs#L511)退出 101）：
+
+- 100%：向上拖 20 物理像素；Move 保持逻辑偏好 200，瞬态高度 220 物理像素。松手读回 220 逻辑像素，发布高度 200 → 220 物理像素。1 通过，0 失败，10541 项过滤。
+- 150%：向上拖 30 物理像素；Move 保持逻辑偏好 200，瞬态高度 330 物理像素。松手读回 330 逻辑像素，发布高度 300 → 495 物理像素。0 通过，1 失败，10541 项过滤。
+
+**修后**（两进程均退出 0）：
+
+- 100%：向上拖 20 物理像素；Move 保持逻辑偏好 200，瞬态高度 220 物理像素。松手读回 220 逻辑像素，发布高度 200 → 220 物理像素。1 通过，0 失败，10541 项过滤。
+- 150%：向上拖 30 物理像素；Move 保持逻辑偏好 200，瞬态高度 330 物理像素。松手读回 220 逻辑像素，发布高度 300 → 330 物理像素。1 通过，0 失败，10541 项过滤。
+
+只在 [Bottom 松手提交](https://github.com/He-Jiahui/ZirconEngine/blob/402697de6a0140a7bfd8345def265b3d1f0c2185/zircon_editor/src/ui/retained/app/workspace_docking/drawer_resize/movement.rs#L83-L90) 将物理高度除以窗口的有效缩放；不修改侧边抽屉、拖动预览、事件或 journal。 使用原位编译 PE 的运行时指纹，未保留独立副本。结论不等同于真实桌面拖动或产品验收。
