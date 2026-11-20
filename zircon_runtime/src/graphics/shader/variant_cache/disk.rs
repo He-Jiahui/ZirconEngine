@@ -234,7 +234,7 @@ impl ShaderVariantCacheDisk {
         crate::profile_scope!("render", "shader_pipeline", "disk_cache_payload_commit");
         atomic_create_or_verify(&path.payload, &compressed)?;
         crate::profile_scope!("render", "shader_pipeline", "disk_cache_metadata_commit");
-        atomic_manifest_commit(&path.manifest, &manifest_bytes)?;
+        commit_shader_cache_manifest(&path.manifest, &manifest_bytes, &meta)?;
         self.read_entry_at(&self.root, key)?.ok_or_else(|| {
             ShaderVariantCacheDiskError::CorruptTarget(
                 "manifest commit did not publish a readable cache entry".to_string(),
@@ -533,6 +533,41 @@ fn atomic_create_or_verify_with_hook(
     })();
     let _ = fs::remove_file(&temp_path);
     result
+}
+
+// The raw helper keeps first-writer bytes in both of its conflict branches.
+// The typed caller may reuse a committed manifest whose only changed field is
+// the observation time. Keep unknown fields so serde cannot hide a difference.
+#[derive(Deserialize)]
+struct PublishedShaderCacheManifest {
+    #[serde(flatten)]
+    meta: ShaderVariantCacheDiskMeta,
+    #[serde(flatten)]
+    extra: serde_json::Map<String, serde_json::Value>,
+}
+
+fn commit_shader_cache_manifest(
+    path: &Path,
+    bytes: &[u8],
+    requested: &ShaderVariantCacheDiskMeta,
+) -> Result<(), ShaderVariantCacheDiskError> {
+    let conflict = match atomic_manifest_commit(path, bytes) {
+        Err(error @ ShaderVariantCacheDiskError::CorruptTarget(_)) => error,
+        result => return result,
+    };
+    let committed = read_bounded(path, SHADER_VARIANT_CACHE_MAX_MANIFEST_BYTES, "manifest")?;
+    let Ok(mut committed) = serde_json::from_slice::<PublishedShaderCacheManifest>(&committed)
+    else {
+        return Err(conflict);
+    };
+    // The current serializer emits exactly the typed fields of `requested`.
+    // Compare with a local timestamp substitution; never replace the winner.
+    committed.meta.created_unix_seconds = requested.created_unix_seconds;
+    if committed.meta == *requested && committed.extra.is_empty() {
+        Ok(())
+    } else {
+        Err(conflict)
+    }
 }
 
 fn atomic_manifest_commit(path: &Path, bytes: &[u8]) -> Result<(), ShaderVariantCacheDiskError> {
