@@ -168,3 +168,21 @@ UE Montage 的另一条合同是 [Stop:1566–1586](<E:/Git/ZirconEngine/dev/Unr
 ## 测试防假绿约束
 
 先断言第一帧确实建立 A→B、第二帧确实打断成 B→C，并检查对应局部时钟；再分别计数 typed/neutral 流中的唯一 B 事件标记、目标实体/target_id、payload 及 0.375 时间。neutral 投影明确 `clip: None`，typed 消息也不携带本夹具可据此筛选的 B `clip_id`，不能靠不存在的字段筛选而得到假绿。A/C 无该标记；合法其他 track/occurrence 不能被全局消重。当前所有回归仍未新增或运行。
+
+## 根状态打断产生重复通知的实测
+
+三个根状态打断用例在真实物理帧中多发通知，typed 和 neutral 两条事件流读到相同的多余条目。两个新对照通过。五个既有对照中两个通过，另三个在姿势或状态访问处失败。
+
+测试通过已注册的 Physics 和 Animation 插件加载真实场景、骨架和剪辑。共采集 16 个实际帧，每帧读取两条事件流，队列积压均为零。表中计数分别适用于每一条流。
+
+| 打断选择 | 打断帧预期 | 打断帧实测 | 后续帧实测 |
+|---|---|---|---|
+| 从当前态发起 | `.375` 的 idle 一次，`.5` 的 shared 两次 | idle 两次，shared 三次 | `.625` 的 idle 与 `.125` 的 sprint 各一次 |
+| 从下一态发起 | `.375` 的 run 一次，`.5` 的 shared 两次 | run 两次，shared 三次 | `.625` 的 run 与 `.125` 的 sprint 各一次 |
+| 返回先前目标 | `.625` 的 idle 和 `.125` 的 run 各一次 | 同帧额外出现 `.375` 的 run | 随后一帧又正常跨过该 `.375` 通知 |
+
+持续原过渡时，两段剪辑各自产生的同名 shared 事件都保留。分层状态机的对应路径也通过。三个失败用例均到达相同的打断帧事件断言。五个既有对照中，双端剪辑事件、延迟事件准入通过。分层姿势连续性与触发恢复在手骨平移断言失败，退出时间门在读取状态映射时失败。原生套件共 4/10 通过。
+
+Windows x64/MSVC，集成目标为 `zircon_plugin_animation_runtime` 的 `physics_tick`，启用 `native-host`。运行环境使用五个来自既有 SDK 测试宿主的文件，并让文件系统夹具绑定当前物理编译目录。此提交中的两处变更均属 `physics_tick` 回归。
+
+[通知采样测试](https://github.com/He-Jiahui/ZirconEngine/blob/acd348a8d0a74e398ba327683d4192af906537b4/zircon_plugins/animation/runtime/tests/physics_tick/interruption_notify.rs#L405-L437) · [既有退出时间与姿势断言](https://github.com/He-Jiahui/ZirconEngine/blob/acd348a8d0a74e398ba327683d4192af906537b4/zircon_plugins/animation/runtime/tests/state_machine_interruption.rs#L168-L179)
