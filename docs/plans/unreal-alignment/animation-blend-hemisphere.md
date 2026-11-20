@@ -140,3 +140,15 @@ ZE 已有 [PoseBuffer blend.rs:149–153](<https://github.com/He-Jiahui/ZirconEn
 UE 的 `System.Core.Math.Vector Register Abstraction Test` 中，`TestQuatLerp` 覆盖了四元数正负点积。`Engine/Source/Runtime/Core/Tests/Math/UnrealMathTest.cpp:3652–3721` 调用的四元数 `FMath::Lerp` 特化使用 Slerp。这一原测提供方向选择参照。这里普通非等权用例按 ZE 当前的归一化线性插值检查。多输入广角区间和权重跨越相等点还需要约定稳定的姿态选择。
 
 [六个新增回归及图输入](https://github.com/He-Jiahui/ZirconEngine/blob/cb6a5bca0cf789a6e0bf0ec6b19eb8bdf2e6baac/zircon_plugins/animation/runtime/src/evaluation/pipeline/tests/pose_blend.rs#L334-L691)
+
+## 三个宽角姿态对短弧混合的限制
+
+同一根骨骼绕 Z 轴分别旋转 `A = −170°`、`B = 0°`、`C = +170°`。让内层 Blend 以 `u` 混合 A、C，再让外层以 `v` 混入 B，三段剪辑的权重就是 `((1−v)(1−u), v, (1−v)u)`。下面考察只按本帧输入求值、且每一条双输入边都精确使用短弧归一化线性插值（NLERP）的方案。[图的权重计算](https://github.com/He-Jiahui/ZirconEngine/blob/8689ba4e2ca7af6f332403b13cb3f57183bad085/zircon_plugins/animation/runtime/src/evaluation/compiled_graph/evaluate.rs#L37)
+
+按当前符号约定，A·B、B·C、C·A 三个单位四元数点积约为 `−0.087156`、`+0.087156`、`+0.984808`。沿参数方格的边界走 A→C→B→A，每段都选择短弧时，连续跟踪的四元数会从 `q` 走到 `−q`。两者表示同一个旋转，但这个符号变化约束了方格内部的插值。
+
+把两个参数都按 `2⁻¹⁶` 取样，再将每个小方格沿对角线分为两个三角形。将每条边两端四元数的点积符号相乘，内部边各出现两次，边界的总乘积为 `−1`。若有点积为零，该边两端物理转角已相差 180°。否则至少有一个三角形的三个点积 `a,b,c` 满足 `abc < 0`。如果三条边的物理转角都小于 120°，则三个点积的绝对值都大于 `1/2`，其 Gram 行列式 `1 − a² − b² − c² + 2abc` 会小于零，与三个实单位向量的 Gram 行列式非负矛盾。因而某个轴向或对角邻步上，**每个参数至多变化 `2⁻¹⁶`，姿态却至少变化 120°**。
+
+独立数值模型复算了边界的 262,144 个点，边界上最大的相邻转角小于 `0.003205°`。对同一组三姿态，按当前生产公式逐项选符号、加权、归一化，模型得到整个网格相邻转角的上界为 `0.010924°`。这两个数来自几何复算。上节记录的 ZE 原生回归为 **11/16 通过**，其中手骨两帧预期转动 `0.25°`，实际转动 `179.750453°`。[生产混合公式](https://github.com/He-Jiahui/ZirconEngine/blob/8689ba4e2ca7af6f332403b13cb3f57183bad085/zircon_plugins/animation/runtime/src/evaluation/pipeline/pose_blend.rs#L63) · [手骨两帧断言](https://github.com/He-Jiahui/ZirconEngine/blob/8689ba4e2ca7af6f332403b13cb3f57183bad085/zircon_plugins/animation/runtime/src/evaluation/pipeline/tests/pose_blend.rs#L354)
+
+一个可单独验证的修复方向是按图、骨骼和剪辑版本预先固定单位参考四元数 `p`。若遮罩允许的全部连续采样都满足 `|p·q| > 1/√2` 并留有浮点余量，就可以朝 `p` 统一取号，此时任意两项也落在彼此的短弧一侧。候选实现需要验证手骨跨帧、宽角素材的处理，以及同 UUID 换入新剪辑、骨架或遮罩后的重新判断。
