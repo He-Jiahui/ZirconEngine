@@ -27,3 +27,13 @@ ZE 的资产搬迁测试检查同一 ID 的新地址、旧地址失效及 `Renam
 通过正式 importer 建立 Leaf、嵌套引用 Leaf 的 Squad、引用 Squad 的三个场景实例。先保存普通实体的 X 坐标 `1.25` 并回读。再在同一 World 改为 `4.25`，移动 Squad，检查同 UUID、新目录代及 `Renamed`。在该 World 上调用正常项目保存。基线要同时观察具体的旧路径错误、原磁盘字节和新建 ProjectManager 的独立重开。首发已核对两端源码、原测试断言和 TOML 输入结构，运行时测量待补入本 PR。
 
 修复后的保存应写出三个实例的新路径提示。独立重开后，X 应为 `4.25`，实例各自的变换和覆盖值都能读回。其中一个普通字符串刻意等于旧 URI，仍应保持原值。建议在构造待写场景引用时，用可确认的同项目搬迁记录或唯一稳定 UUID 解析根 Prefab 的新地址，再执行现有物理源与版本检查。UUID 缺失、旧地址被其他资源占用以及物理源不唯一时应保留明确错误。
+
+## 修前原生回归：搬迁后活场景保存仍查询旧地址
+
+同一个已打开的真实项目中，未搬迁对照先写盘并重开成功（探针 x=1.25）。在同一活动场景把探针编辑为 x=4.25，再走正常搬迁入口，把 Squad Prefab 从 `res://prefabs/squad.prefab.toml` 移到 `res://archive/squad.prefab.toml`。旧源和侧车退出，目录保留同一 UUID 并登记新地址，但活动 World 仍持旧地址。此时普通保存返回针对旧地址的 `MissingPath`。
+
+失败后场景文件与未搬迁的对照逐字节相同。关闭原项目代后独立重开：三个场景实例仍引用同一 Prefab，顶层覆盖行数为 1／1／0，两个嵌套实例各保留一行覆盖，未移动的 Leaf 依赖保持不变。解析出的实际地址为新位置，磁盘探针仍是 x=1.25，证明失败的保存没有写入活动场景的 x=4.25。已回读场景、Prefab、侧车和目录字节，不把读路径成功说成写路径已修复。
+
+Windows x64/MSVC，`zircon_runtime` 库测试目标（关闭默认特性，仅请求 `native-host`，test profile）。单个精确用例在有界 Job 中为 **0 通过、1 失败（退出 101），7,775 项被过滤**。PE 原位使用、执行前后核对指纹，未留独立副本。未运行修后版本、普通桌面窗口或 UE 自动化。本次只增补同一条回归，不包含生产代码。
+
+[原生回归源码](https://github.com/He-Jiahui/ZirconEngine/blob/f84bf72a92c1716859f99401521dfd5cbbe34654/zircon_runtime/src/asset/pipeline/manager/assets/tests/relocation.rs#L416)
