@@ -5,7 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from .file_digest import file_size_and_sha256
-from .native_dynamic_contract import NATIVE_DYNAMIC_LOADABLE_ARTIFACT_EXTENSIONS
+from .native_dynamic_contract import (
+    NATIVE_DYNAMIC_LOADABLE_ARTIFACT_EXTENSIONS,
+    native_dynamic_is_loadable_artifact_path,
+)
 from .native_dynamic_templates import toml_string
 from .native_signing import execute_native_dynamic_signing
 
@@ -95,7 +98,10 @@ def plugin_build_loadable_file_manifest(
     for file_path in file_paths:
         if not file_path.is_file():
             continue
-        if file_path.suffix.lower() not in NATIVE_DYNAMIC_LOADABLE_ARTIFACT_EXTENSIONS:
+        package_relative = file_path.relative_to(package_dir)
+        if not native_dynamic_is_loadable_artifact_path(
+            package_relative, NATIVE_DYNAMIC_LOADABLE_ARTIFACT_EXTENSIONS,
+        ):
             continue
         try:
             byte_length, sha256 = file_size_and_sha256(file_path)
@@ -104,7 +110,7 @@ def plugin_build_loadable_file_manifest(
             continue
         entries.append(
             {
-                "path": file_path.relative_to(package_dir).as_posix(),
+                "path": package_relative.as_posix(),
                 "bytes": byte_length,
                 "sha256": sha256,
             }

@@ -6,7 +6,10 @@ import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
-from .native_dynamic_contract import NATIVE_DYNAMIC_PACKAGE_REPORT_FILE
+from .native_dynamic_contract import (
+    NATIVE_DYNAMIC_PACKAGE_REPORT_FILE,
+    native_dynamic_is_loadable_artifact_path,
+)
 
 
 @dataclass(frozen=True)
@@ -201,7 +204,8 @@ def native_dynamic_package_loadable_artifacts(
     for file_path in entries:
         if not file_path.is_file():
             continue
-        if file_path.suffix.lower() not in loadable_artifact_extensions:
+        package_relative = file_path.relative_to(package_dir)
+        if not native_dynamic_is_loadable_artifact_path(package_relative, loadable_artifact_extensions):
             continue
         artifacts.append(file_path.relative_to(stage_dir).as_posix())
     return artifacts
