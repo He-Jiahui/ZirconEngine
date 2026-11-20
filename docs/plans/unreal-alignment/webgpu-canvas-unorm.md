@@ -61,3 +61,21 @@ Chrome 157 通过真实 WebEngine.load 加载无资产的空场景，在设备�
 Windows 格式与呈现模式回归从 5/6 到 6/6。Chrome 157 的完整产品选中了适配器，并通过 requestDevice 取得设备。空场景加载结果为 Rhi(SurfaceUnavailable("native surface sessions are unavailable for this build target"))，记录到 0 次画布配置和 0 帧。
 
 原生失败用例原先将 BGRA8 和 RGBA8 UNORM 都映射为空。修订后回执返回对应的 UNORM 格式，Win32 的 sRGB 和 Fifo 控制均通过。用同一个包含八个资源的场景复测时，产品从适配器筛选推进到设备创建。三次 Git 文件合并覆盖了本修复与 [#235](https://github.com/He-Jiahui/ZirconEngine/pull/235) 和 [#239](https://github.com/He-Jiahui/ZirconEngine/pull/239) 的共有源码。 在源码 `523022eadd3fd89f16f93e6826e4ecae4d03b5bd` 上使用同一测试页面与生成的目录。[可复跑页面](https://github.com/He-Jiahui/ZirconEngine/blob/523022eadd3fd89f16f93e6826e4ecae4d03b5bd/tools/validation/browser/web-canvas-format.html)
+
+## 9. 独立 Rust 回归：Canvas 能力顺序与回执
+
+UE Vulkan 将真实 surface 支持的格式、色空间交给交换链，而不是传回不支持的请求。ZE 不照搬其格式优先级和色空间枚举：wgpu 29.0.3 把浏览器首选 Canvas 格式放在列表前面，ZE 保留首个支持的 SDR UNORM 格式。抽出[实际 Canvas 选择函数](../../../zircon_runtime/crates/zr_rhi_wgpu/src/production/surface.rs#L451-L488)供 Rust 单测调用，不改策略、编译目标或公开 RHI。新增[两个能力夹具](../../../zircon_runtime/crates/zr_rhi_wgpu/src/production/tests/surface.rs#L111-L146)：分别验证 BGRA/RGBA 首选顺序及中立回执，并验证不接受只有 HDR/sRGB 的列表或空列表。现有原生 sRGB 和呈现模式控制未改。
+
+Windows x64/MSVC、Rust 1.94.1、`zr_rhi_wgpu` 库、test profile、默认特性关闭、不启用其他特性：在本工作树确实重编后 **8 通过、0 失败、0 忽略、459 项过滤**，覆盖以上两个新增用例。回执 SHA-256 `9ee5bb873569a7852cff08644d2c581e76d4af28b49695c247271f7efb601776`。
+
+```text
+cargo test -p zr_rhi_wgpu --lib --no-default-features --profile test --locked --offline --jobs 1 production::surface::tests:: -- --nocapture --test-threads 1
+```
+
+第一次调用误用了共享池的旧可执行文件，只运行了 4 个旧测试、退出 0；它不属于此 PR 的验收。原回执和新回执均保留，跨工作树复用独立记录于 [#267](https://github.com/He-Jiahui/ZirconEngine/pull/267)。直接选择 Wasm `zr_rhi_wgpu` 的验证尝试在 `uuid` 缺少 Wasm 随机源时结束（退出 101，回执 SHA-256 `a75f355cd8e74efe8bd4c430684c39e38ae373cb96f8ea226bee4097d9559bc1`）；不修改依赖，改用 `zircon_runtime` 的 `target-web` 组合。
+
+Windows 宿主 / Rust 1.94.1，真实 `wasm32-unknown-unknown`，`zircon_runtime --lib` / dev profile，关闭默认特性、仅 `target-web`。下列命令实际检查本树的 `zr_rhi_wgpu` 与 Web 库，**退出 0**，回执 SHA-256 `0692bf9ccba3c6565dd3ffcbfe7b4cb56fc1bf7e5f42b133eb03cad26ba30f15`。本次没有合并其他 Draft，没有启动浏览器、创建 Canvas 或验证首帧；此前设备接管阶段的问题见 [#243](https://github.com/He-Jiahui/ZirconEngine/pull/243)。GitHub `editor-compile-gate` 独立生效。
+
+```text
+cargo check -p zircon_runtime --lib --no-default-features --features target-web --target wasm32-unknown-unknown --profile dev --locked --offline --jobs 1
+```

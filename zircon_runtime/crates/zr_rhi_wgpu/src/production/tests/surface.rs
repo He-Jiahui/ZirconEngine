@@ -3,8 +3,8 @@ use zr_rhi::{
 };
 
 use super::{
-    choose_present_mode, surface_descriptor_is_supported, surface_present_mode,
-    surface_texture_format,
+    choose_canvas_surface_format, choose_present_mode, surface_descriptor_is_supported,
+    surface_present_mode, surface_texture_format,
 };
 
 #[test]
@@ -105,6 +105,44 @@ fn surface_receipt_format_preserves_sdr_layout_and_encoding() {
             Some(TextureFormat::Rgba8Unorm),
             None,
         ]
+    );
+}
+
+#[test]
+fn canvas_surface_format_preserves_the_first_supported_browser_preference() {
+    use wgpu::TextureFormat as W;
+
+    for (reported, chosen, receipt) in [
+        (
+            &[W::Bgra8Unorm, W::Rgba8Unorm, W::Rgba16Float][..],
+            W::Bgra8Unorm,
+            TextureFormat::Bgra8Unorm,
+        ),
+        (
+            &[W::Rgba8Unorm, W::Bgra8Unorm, W::Rgba16Float][..],
+            W::Rgba8Unorm,
+            TextureFormat::Rgba8Unorm,
+        ),
+        (
+            &[W::Rgba16Float, W::Bgra8UnormSrgb, W::Rgba8Unorm][..],
+            W::Rgba8Unorm,
+            TextureFormat::Rgba8Unorm,
+        ),
+    ] {
+        let selected = choose_canvas_surface_format(reported);
+        assert_eq!(selected, Some(chosen), "reported formats: {reported:?}");
+        assert_eq!(selected.and_then(surface_texture_format), Some(receipt));
+    }
+}
+
+#[test]
+fn canvas_surface_format_rejects_lists_without_sdr_unorm() {
+    use wgpu::TextureFormat as W;
+
+    assert_eq!(choose_canvas_surface_format(&[]), None);
+    assert_eq!(
+        choose_canvas_surface_format(&[W::Rgba16Float, W::Bgra8UnormSrgb, W::Rgba8UnormSrgb]),
+        None
     );
 }
 

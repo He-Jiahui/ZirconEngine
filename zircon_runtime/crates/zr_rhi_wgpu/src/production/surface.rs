@@ -454,13 +454,7 @@ fn choose_surface_format(
 ) -> Option<wgpu::TextureFormat> {
     #[cfg(target_arch = "wasm32")]
     if matches!(descriptor.target, RenderNativeSurfaceTarget::Canvas { .. }) {
-        // WebGPU orders its preferred Canvas format first; skip non-SDR entries.
-        return formats.iter().copied().find(|format| {
-            matches!(
-                format,
-                wgpu::TextureFormat::Bgra8Unorm | wgpu::TextureFormat::Rgba8Unorm
-            )
-        });
+        return choose_canvas_surface_format(formats);
     }
 
     let requested = match descriptor.swapchain.format {
@@ -478,6 +472,17 @@ fn choose_surface_format(
             .into_iter()
             .find(|format| formats.contains(format))
         })
+}
+
+#[cfg(any(target_arch = "wasm32", test))]
+fn choose_canvas_surface_format(formats: &[wgpu::TextureFormat]) -> Option<wgpu::TextureFormat> {
+    // wgpu puts the browser's preferred Canvas format first. Preserve that order.
+    formats.iter().copied().find(|format| {
+        matches!(
+            format,
+            wgpu::TextureFormat::Bgra8Unorm | wgpu::TextureFormat::Rgba8Unorm
+        )
+    })
 }
 
 fn surface_texture_format(format: wgpu::TextureFormat) -> Option<TextureFormat> {
