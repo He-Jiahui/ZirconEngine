@@ -35,3 +35,9 @@ UE 已注册的 `System.Renderer.ColorManagement.ACES2OutputTransform` 要求 No
 Windows DX12 在 RTX 3060 Laptop 上执行了同一份相机参数。生效图在两个视口均包含 `post.color-lut-bake`。直接提交的视口记录 0 次烘焙 dispatch，32,768 个格点的 alpha 偏离预期，最终 sRGB8 为 `(0, 0, 0)`。调用方先重建提取图时，视口记录 1 次 dispatch，格点 alpha 和 RGB 全部通过，最终 sRGB8 为 `(124, 156, 175)`。
 
 用已烘焙的 LUT 输入 `(1, 2, 4)`，三个通道的最终 sRGB8 均为 187。低亮调度回归由本草稿负责，域外通道采样见 #154。 [双视口测试](https://github.com/He-Jiahui/ZirconEngine/blob/d0c2b5e5b78c51758a7bc226623da1c31efccab5/zircon_runtime/src/graphics/tests/render_product_post_process.rs#L316) · [高光采样 #154](https://github.com/He-Jiahui/ZirconEngine/pull/154)
+
+## 8. 按视口的生效图录制烘焙
+
+执行器通过 `gpu.post_process()` 取得本帧相机使用的后处理图。桌面 DX12 上，直接提交的烘焙 dispatch 数从 0 变为 1，低亮像素从黑色恢复至 sRGB8 `(124, 156, 175)`。预先重建的视口输出相同。两个视口的 32,768 个格点均通过完整 RGBA 检查。双视口回归、既有非中性调色和用户 LUT 纹理用例共 3/3 通过。
+
+在本草稿单独修复烘焙的版本中，输入 `(1, 2, 4)` 的三个通道仍取到同一格点。域外采样修复已在 #154 提交。 [执行器修复](https://github.com/He-Jiahui/ZirconEngine/blob/ea3c7927dcef3df8b9b990ca415889138fc09c45/zircon_runtime/src/graphics/scene/execution/builtin_postprocess_executors.rs#L59-L80) · [高光采样 #154](https://github.com/He-Jiahui/ZirconEngine/pull/154)
