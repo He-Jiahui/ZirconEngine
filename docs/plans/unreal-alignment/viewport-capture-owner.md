@@ -63,3 +63,27 @@ NVIDIA GeForce RTX 3060 Laptop GPU 的 DX12 实测复现截图归属错误。六
 运行使用 `zircon_runtime --lib` 的 `native-host,graphics` 配置。执行树采用 [#137 的模型测试夹具](https://github.com/He-Jiahui/ZirconEngine/blob/7f9a8a70e71a700e45300bab4f64094541507fa4/zircon_runtime/src/graphics/scene/resources/tests/model_geometry_resolution.rs#L293-L315) 解决同一测试库的借用前置。六项回归和两项既有对照共享该程序。UE `GetViewportScreenShot` 对传入的 `FViewport` 读取像素，`AScreenshotFunctionalTest` 提供 GameViewport 截图流程的原测参照。这里的双句柄与代数断言源自 ZE 的逐视口接口合同。
 
 [双视口回归](https://github.com/He-Jiahui/ZirconEngine/blob/fcaf7f4000957dc746938d6ab5675740286b29a4/zircon_runtime/src/graphics/tests/surface_targets/capture_owner.rs)
+
+## 按请求视口的已发布代数读取截图
+
+修复后，六个按视口选择与筛选截图的用例由 1/6 提升至 6/6。插件实际写入的蓝色截图、A 的红色缓存和两个原有捕获对照均通过。同设备上共 17/24 项通过。
+
+读回活纹理之前，渲染器先匹配最新一次成功提交的回执。视口自身已有的截图继续供查询使用，严格更新筛选在同步写入缓存之前执行。实现复用成功视口提交已有的代数和表面重配的失效处理。
+
+| 选定用例 | 修订前通过 | 修订后通过 |
+|---|---:|---:|
+| 请求归属与同代筛选 | 1/6 | 6/6 |
+| 已有离屏与 HDR 对照 | 2/2 | 2/2 |
+| 失败提交、worker 错误和空写 | 0/3 | 1/3 |
+| 相机纹理 | 6/8 | 6/8 |
+| 分屏、场景和 UI 合成 | 1/3 | 1/3 |
+| 插件直接写蓝色终态纹理 | 本次新增 | 1/1 |
+| 主相机先提交，纹理相机后提交 | 0/1 | 0/1 |
+
+B 的自定义最终执行器只声明写入，实际执行为空。B 成功提交后，同步截图和轮询仍把 A 的整张旧图标为 B 的第二代。这个独立用例继续失败。
+
+修订前后在同一位置出现的其他结果：重分配夹具的测试通道缺少资源声明，在注册时退出。纹理目标截图本身的来源断言通过。随后查询到的渲染统计仍记录离屏来源。分屏右侧读到绿色，左侧未读到预期红色。动态分辨率 UI 用例在字体图集上传准备时退出。主相机先于纹理相机的用例在提交时遇到模型 UUID 与资源地址不符。
+
+测试使用 Windows x64 的 `zircon_runtime` 库程序，启用 `native-host,graphics`。两次编译都使用同一份 [模型测试夹具](https://github.com/He-Jiahui/ZirconEngine/blob/7f9a8a70e71a700e45300bab4f64094541507fa4/zircon_runtime/src/graphics/scene/resources/tests/model_geometry_resolution.rs#L293-L315)。新增插件用公开 GPU 编码器录制 `Clear+Store`，校验读回蓝色，并逐字节核对 A 的红色缓存。窗口呈现、单相机局部写入和其它图形后端仍待实测。
+
+[同步请求](https://github.com/He-Jiahui/ZirconEngine/blob/cc7bb9726301d1e25af275d1b7995b57f3d1da0e/zircon_runtime/src/graphics/runtime/framework/capture_frame/capture_frame.rs) · [读回判断](https://github.com/He-Jiahui/ZirconEngine/blob/cc7bb9726301d1e25af275d1b7995b57f3d1da0e/zircon_runtime/src/graphics/scene/renderer/core/pipeline/pipeline/readback.rs)
