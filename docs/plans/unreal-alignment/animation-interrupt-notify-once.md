@@ -186,3 +186,19 @@ UE Montage 的另一条合同是 [Stop:1566–1586](<E:/Git/ZirconEngine/dev/Unr
 Windows x64/MSVC，集成目标为 `zircon_plugin_animation_runtime` 的 `physics_tick`，启用 `native-host`。运行环境使用五个来自既有 SDK 测试宿主的文件，并让文件系统夹具绑定当前物理编译目录。此提交中的两处变更均属 `physics_tick` 回归。
 
 [通知采样测试](https://github.com/He-Jiahui/ZirconEngine/blob/acd348a8d0a74e398ba327683d4192af906537b4/zircon_plugins/animation/runtime/tests/physics_tick/interruption_notify.rs#L405-L437) · [既有退出时间与姿势断言](https://github.com/He-Jiahui/ZirconEngine/blob/acd348a8d0a74e398ba327683d4192af906537b4/zircon_plugins/animation/runtime/tests/state_machine_interruption.rs#L168-L179)
+
+## 从已采样的位置继续扫描通知
+
+修复只调整根状态机接管旧过渡时的源剪辑起点。旧过渡已经扫描到当前源时刻，新过渡的第一次扫描从该时刻开始。目标剪辑继续按自己的时间窗口产生通知。
+
+| 真实运行时的路径 | 打断前 | 修复后 |
+|---|---|---|
+| 选当前态或下一态作为新源 | `.375` 的源通知重发，`.5` 的同名通知共出现三次 | 源通知出现一次，两个活动剪辑各自的 `.5` 通知均保留 |
+| 打断后返回先前目标 | `.375` 的 run 通知出现在决策帧和下一帧 | 只在下一帧实际跨越该点时出现 |
+| 原过渡继续、对应的分层过渡 | 两项通过 | 两项通过 |
+
+五个通知用例在修复前通过两项，修复后全部通过。测试实际读取 16 帧，各自检查 typed 与 neutral 通知流的实体、目标、payload 和时间。另五个现有对照在两版都通过两项。剩余三个用例的名称、断言位置及诊断相同，两处手骨平移断言失败，一处状态映射缺项。十项合计由 4/10 提升至 7/10。
+
+运行使用 Windows x64/MSVC 的 `physics_tick` 集成测试、`native-host` 特性和先前用于同一组基线的插件宿主。公开改动限于一个动画运行时文件。
+
+[根过渡的事件扫描](https://github.com/He-Jiahui/ZirconEngine/blob/d2a296bf446c581d2ad320a8bbd08a13b6b873ad/zircon_plugins/animation/runtime/src/evaluation/pipeline/state_machine_step.rs#L205-L230)
