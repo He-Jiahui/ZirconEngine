@@ -38,3 +38,11 @@ ZE 的产品回归从同一节点分别载入预组和分解两种标签，正�
 本次仅加测试，未改生产。
 
 Windows x64/MSVC、Rust 1.94.1：仅 `zircon_editor --no-default-features --lib --profile test --locked --offline --jobs 1 --no-run --message-format=json`；两组选定 case 单线程。测试使用真实已准入 Project 的 retained 事件分发与 authoring Scene，不启动物理桌面窗口，不是 OS 输入法、磁盘保存或 UE 产品验收。
+
+## 修复私有编辑边界后，同一批用例通过
+
+修前在已经提交的分解标签上[观察到 `Cafe`](https://github.com/He-Jiahui/ZirconEngine/blob/1fde8273c28a5624de2fbbe6f8296feff5126e52/zircon_editor/src/ui/retained/app/tests/hierarchy_rename.rs#L291)。只改[私有 textarea 焦点编辑实现](https://github.com/He-Jiahui/ZirconEngine/blob/f40cd739eee6bd6b0fd0dafbb47f67b8d2934175/zircon_editor/src/ui/retained/contract/data/text_focus/editing.rs)：沿已经依赖的 `unicode-segmentation` 扩展字素边界移动、选择和双向删除，在拼接后将 caret 贴回边界；不改变标量坐标契约、原始 UTF-8、现有事件及场景事务。
+
+同一编译范围、相同测试源码与 filters 下，[F2 用例](https://github.com/He-Jiahui/ZirconEngine/blob/f40cd739eee6bd6b0fd0dafbb47f67b8d2934175/zircon_editor/src/ui/retained/app/tests/hierarchy_rename.rs#L149-L301) 1/1：预组和分解名都经同节点真实提交成为 `Caf`，各一条 `RenameNode` / 一笔历史；[焦点用例](https://github.com/He-Jiahui/ZirconEngine/blob/f40cd739eee6bd6b0fd0dafbb47f67b8d2934175/zircon_editor/src/ui/retained/contract/data/text_focus/editing/tests/cases.rs#L1-L137) 8/8，涵盖原对照与新增边界。未改测试源码、依赖清单或锁文件。
+
+Windows x64/MSVC、Rust 1.94.1：仅 `zircon_editor --no-default-features --lib --profile test --locked --offline --jobs 1 --no-run --message-format=json`；两组选定 case 单线程。测试使用真实已准入 Project 的 retained 事件分发与 authoring Scene，不启动物理桌面窗口，不是 OS 输入法、磁盘保存或 UE 产品验收。
