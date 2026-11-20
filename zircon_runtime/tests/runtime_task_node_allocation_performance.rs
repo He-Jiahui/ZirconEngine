@@ -2,6 +2,7 @@ use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 use std::hint::black_box;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use zircon_runtime::core::runtime::tasks::{
@@ -179,11 +180,13 @@ fn task_wait_all_singleton_reuses_terminal_handle() {
     let scope = graph
         .create_scope(TaskGraphScopeDescriptor::new("wait-all-singleton"))
         .expect("running graph must admit a scope");
+    let done = Arc::new(AtomicBool::new(false));
+    let done_for_task = Arc::clone(&done);
     let task = scope
         .submit(
             TaskDescriptor::new(TaskId::new(1), TaskPoolKind::Compute, "singleton")
                 .with_cancellation_policy(TaskCancellationPolicy::FinishOnShutdown),
-            |_| {},
+            move |_| done_for_task.store(true, Ordering::Release),
         )
         .expect("scope must admit the task");
     scope.close_admission();
@@ -201,12 +204,15 @@ fn task_wait_all_singleton_reuses_terminal_handle() {
         drop(black_box(Box::new(black_box(42_u64))));
     });
 
+    assert!(done.load(Ordering::Acquire), "the task body must have run");
     assert_eq!(task.status().state, TaskState::Completed);
     assert!(!graph
         .shutdown(budget)
         .expect("the graph must join its own workers")
         .has_in_flight_work());
-    println!("TASK_WAIT_ALL_SINGLETON empty={empty} direct={direct} singleton={singleton} meter={meter}");
+    println!(
+        "TASK_WAIT_ALL_SINGLETON empty={empty} direct={direct} singleton={singleton} meter={meter}"
+    );
     assert!(meter > 0, "the caller allocation meter must see a real Box");
     assert_eq!((empty, direct), (0, 0), "negative allocation controls");
     assert_eq!(

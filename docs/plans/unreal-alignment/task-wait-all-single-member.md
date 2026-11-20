@@ -16,7 +16,14 @@ ZE 对 `TaskHandle::wait_all` 定义了三个分支。空输入直接返回，�
 
 UE 将直接等待委托给单个 `FTask`。集合重载以输入任务为前置条件创建一个 `Inline` 等待任务。两个重载位于 `Engine/Source/Runtime/Core/Public/Tasks/Task.h` 第 422–445 行。
 
-注册原测 `System::Core::Tasks::Basic` 包含一个延后等待的场景。测试让任务设置 `Done`，先观察 `IsCompleted()`，再调用 `Wait()` 并检查 `Done`。另一组输入对两个已提交任务调用集合等待。位置为 `Engine/Source/Runtime/Core/Tests/Tasks/TasksTest.cpp` 第 30–36、91–109 行。ZE 回归沿用先确认终态再等待的顺序，由 ZE 自身的快路径约定提供分配次数判据。
+注册原测 `System::Core::Tasks::Basic` 位于 `Engine/Source/Runtime/Core/Tests/Tasks/TasksTest.cpp` 第 30–36、91–109 行。本次按行为对应，不复制 UE 代码：
+
+| UE 行为 | ZE 实现和测试 |
+| --- | --- |
+| 任务写入 `Done`，调用者先观察 `IsCompleted()`，再 `Wait()` 并检查 `Done`。 | ZE 在有界 scope 内等到句柄报告 `Completed`，分别做直接等待和单成员集合等待，再核对任务体通过原子量发布结果。见[分配与行为回归](../../../zircon_runtime/tests/runtime_task_node_allocation_performance.rs)。 |
+| `Wait(Tasks)` 等待所有已提交任务。 | 多成员仍走 `JobHandle::combine`；[现有依赖用例](../../../zircon_runtime/src/core/runtime/tasks/task_graph/scope/tests/dependency_scale.rs#L50-L189)检查全部任务体已执行，以及出现 panic 时仍先等待所有成员终结。 |
+
+**有意保留的差异：** UE 的集合重载创建 `Inline` 等待任务，然后用超时参数等待它并返回布尔值。ZE 使用自研 `EngineTaskGraph`、`TaskGraphScope` 和 Rust 任务句柄：`wait_all` 不带超时，正常完成和取消不通过返回值区分，任务 panic 在全部成员终结后传播。空切片直接返回，单成员复用原句柄而不创建组合节点，是 ZE 自有的快路径；零分配断言只针对已完成的成功任务、只统计调用线程，不是 UE 承诺。此修复不改变 ECS、变换、脚本虚拟机、模块裁剪或 WebGPU 路径。
 
 ## 5. 现有验证与历史归属
 
@@ -41,3 +48,15 @@ UE 将直接等待委托给单个 `FTask`。集合重载以输入任务为前置
 用例提交正常工作，观察到一个完成任务，随后执行三种等待。测试结束时检查任务状态并等待工作线程退出。
 
 在 Windows x64 的 `test` 配置下，`zircon_runtime` 运行定向用例，通过 1/1。测试提交为 `39ddf7deaa559337fe1a5b92059c021ba6758fa1`。[本次回归用例](https://github.com/He-Jiahui/ZirconEngine/blob/39ddf7deaa559337fe1a5b92059c021ba6758fa1/zircon_runtime/tests/runtime_task_node_allocation_performance.rs)
+
+## 9. 独立复核
+
+以远端 `main` 的 `e89349ca5` 为合入基线，在 Windows x64/MSVC、Rust 1.94.1 进行复核。Cargo 使用锁定依赖、关闭默认特性，仅启用 `core-min`；通过规范仓库的独立本地入口在 PR 工作树执行。未运行 UE 测试二进制、跨平台矩阵、Release 基准或编辑器产品验收。
+
+| 实际执行范围 | 结果 |
+| --- | --- |
+| `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --offline --jobs 1`（dev） | 退出码 0。 |
+| `cargo test -p zircon_runtime --no-default-features --features core-min --locked --offline --jobs 1 --test runtime_task_node_allocation_performance task_wait_all_singleton_reuses_terminal_handle -- --exact --nocapture --test-threads 1`（test） | 1 通过；`empty=0 direct=0 singleton=0 meter=1`，任务体发布的结果保持可见。 |
+| `cargo test -p zircon_runtime --lib --no-default-features --features core-min --locked --offline --jobs 1 task_graph::scope::tests::dependency_scale -- --test-threads 1`（test） | 5 通过、0 失败、1 个原有性能用例按标记忽略。覆盖空/单成员等待、依赖链、宽集合等待和全部终结后才传播 panic。 |
+
+远端分支保护仍要求 GitHub Actions 的 `editor-compile-gate`。提供该门禁的 [CI 工作流](../../../.github/workflows/ci.yml#L37-L44)手动停用，未给出检查结果。本地范围通过不替代远端验收，不绕过门禁。

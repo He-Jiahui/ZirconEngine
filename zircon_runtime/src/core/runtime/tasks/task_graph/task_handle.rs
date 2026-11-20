@@ -86,6 +86,9 @@ impl TaskHandle {
 
     /// Waits for every canonical task handle to reach a terminal state before
     /// propagating a task panic. Cancellation remains a normal wait completion.
+    ///
+    /// An empty slice returns immediately. One handle uses [`Self::wait`];
+    /// only multiple handles require a combined completion.
     pub fn wait_all(handles: &[Self]) {
         match handles {
             [] => return,
