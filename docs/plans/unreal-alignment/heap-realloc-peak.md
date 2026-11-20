@@ -58,3 +58,16 @@ UE 的池统计使用对齐后的大小，Rust 的 `Layout::size()` / `new_size`
 | 保留峰值 | 第 2 次短时分配结束后，等待所有线程退出 | 两个持有块与临时块合计 2,114 字节 | 最终为 2,113 字节 |
 
 两个回归均在预期的数值断言失败。每次成功的同尺寸 `realloc` 先扣减旧大小，再加回新大小。两个原子更新之间，采样线程会读取暂时缺少持有块的总量。[三个完整回归](https://github.com/He-Jiahui/ZirconEngine/blob/7514690f52e140f55e647fba58b122bb511ba499/zircon_runtime/tests/runtime_profiling_memory_realloc.rs)
+
+## 并发重分配的修复结果
+
+`CountingAllocator` 在底层重分配成功后，按新旧大小的净差额更新一次存活量，再用这次更新得到的值记录峰值。串行回归验证了保留原指针、移动、增减大小和分配失败时的计数。
+
+| 实际运行的并发回归 | 修复前 | 修复后 |
+|---|---|---|
+| 两个各 1,024 字节的块持续存活 | 8,192 帧中最低记录为 0 字节 | 8,192 帧中最低为 2,048 字节，其间完成 1,162,560 次重分配 |
+| 短时分配与持有块重叠 | 第 2 次临时分配后实际重叠为 2,114 字节，只保留 2,113 字节 | 完成 8,192 次临时分配，帧采样与线程退出后的保留峰值均为 10,304 字节，等于实际峰值 |
+
+两版使用相同的集成测试源码和三个精确选择器，每项在独立 Windows x64/MSVC 进程中运行。修复版本三项全部通过。这里记录的帧数与重分配次数来自正确性测试。
+
+[分配器计数修订](https://github.com/He-Jiahui/ZirconEngine/blob/fd44ec2cc09950b29c3b0ac40da82f5d90b4bb4d/zircon_runtime/src/core/runtime/diagnostics/profiling/memory.rs) · [并发回归](https://github.com/He-Jiahui/ZirconEngine/blob/fd44ec2cc09950b29c3b0ac40da82f5d90b4bb4d/zircon_runtime/tests/runtime_profiling_memory_realloc.rs)
