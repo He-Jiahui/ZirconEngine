@@ -106,3 +106,7 @@ pub(crate) fn absolute_position_from_kira_slice(
         absolute_frame as f32 / sample_rate_hz as f32,
     )
 }
+
+#[cfg(test)]
+#[path = "tests/paused_clip_seek.rs"]
+mod paused_clip_seek_tests;

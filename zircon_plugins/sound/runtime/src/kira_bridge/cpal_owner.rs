@@ -24,6 +24,8 @@ use kira::backend::cpal::{
     },
     CpalBackendSettings, Error as CpalBackendError,
 };
+#[cfg(test)]
+use kira::backend::mock::{MockBackend, MockBackendSettings};
 use kira::backend::{Backend, Renderer};
 use zircon_runtime::core::runtime::tasks::thread_is_join_ready;
 
@@ -471,6 +473,13 @@ pub(crate) struct OwnerCpalBackend {
     stream: Option<cpal::Stream>,
     pending_retirement: Option<ProviderRetirement>,
     gate: Arc<CallbackGate>,
+    #[cfg(test)]
+    mock_output: Option<MockBackend>,
+}
+
+#[cfg(test)]
+thread_local! {
+    static NEXT_MOCK_OUTPUT_RATE: std::cell::Cell<Option<u32>> = const { std::cell::Cell::new(None) };
 }
 
 #[cfg(test)]
@@ -517,6 +526,28 @@ impl Backend for OwnerCpalBackend {
         settings: Self::Settings,
         _internal_buffer_size: usize,
     ) -> Result<(Self, u32), Self::Error> {
+        #[cfg(test)]
+        if let Some(sample_rate) = NEXT_MOCK_OUTPUT_RATE.take() {
+            let (mock_output, sample_rate) =
+                MockBackend::setup(MockBackendSettings { sample_rate }, _internal_buffer_size)
+                    .expect("Kira mock output setup is infallible");
+            return Ok((
+                Self {
+                    device: None,
+                    config: cpal::StreamConfig {
+                        channels: 2,
+                        sample_rate,
+                        buffer_size: cpal::BufferSize::Default,
+                    },
+                    stream: None,
+                    pending_retirement: None,
+                    gate: Arc::new(CallbackGate::new()),
+                    mock_output: Some(mock_output),
+                },
+                sample_rate,
+            ));
+        }
+
         let host = cpal::default_host();
         let device = settings
             .device
@@ -533,12 +564,22 @@ impl Backend for OwnerCpalBackend {
                 stream: None,
                 pending_retirement: None,
                 gate: Arc::new(CallbackGate::new()),
+                #[cfg(test)]
+                mock_output: None,
             },
             sample_rate,
         ))
     }
 
     fn start(&mut self, mut renderer: Renderer) -> Result<(), Self::Error> {
+        #[cfg(test)]
+        if let Some(mock_output) = &mut self.mock_output {
+            mock_output
+                .start(renderer)
+                .expect("Kira mock output start is infallible");
+            return Ok(());
+        }
+
         let Some(device) = self.device.take() else {
             return Err(CpalBackendError::NoDefaultOutputDevice);
         };
@@ -625,6 +666,35 @@ impl OwnerCpalBackend {
                 Err(error)
             }
         }
+    }
+
+    #[cfg(test)]
+    /// Select a device-free backend for one synchronous `AudioManager::new` on this thread.
+    pub(crate) fn with_mock_output_for_test<T>(
+        sample_rate: u32,
+        activate: impl FnOnce() -> T,
+    ) -> T {
+        struct Reset;
+        impl Drop for Reset {
+            fn drop(&mut self) {
+                let _ = NEXT_MOCK_OUTPUT_RATE.take();
+            }
+        }
+
+        assert!(NEXT_MOCK_OUTPUT_RATE.get().is_none());
+        NEXT_MOCK_OUTPUT_RATE.set(Some(sample_rate));
+        let _reset = Reset;
+        activate()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn process_mock_block_for_test(&mut self) {
+        let mock_output = self
+            .mock_output
+            .as_mut()
+            .expect("expected Kira mock output");
+        mock_output.on_start_processing();
+        mock_output.process();
     }
 
     #[cfg(test)]
