@@ -66,3 +66,15 @@
 真实 manifest 的闭包测试与相邻 shipping、别名/排序、registry 原有控制：**4 过 / 0 败**。此外用原锁文件在同一树实跑 Cargo 目标依赖图：Windows `ui` 的直接 zstd=有，原 `native-host` 仍有；只开 UI 未引入 ZIP。`wasm32-unknown-unknown` 的 `cooked-assets` 正常依赖子树中没有 `zstd` 或 `zstd-sys`。这是 Cargo 解析器结果，不是 wasm32 构建、浏览器运行或解码测试。
 
 这不是远端 GitHub Actions 执行，不是 UI 帧、渲染器、资产数据或完整发布产品验收。
+
+## 9. 独立复核：便携资产的原生解码与 Web 依赖边界
+
+UE 原测 `Core::Compression::CompressedBuffer::Decompress` 比较解码后的值，并要求短缓冲区不返回数据（`Engine/Source/Runtime/Core/Tests/Compression/CompressedBufferTest.cpp:123–175,214–221`）。ZE 的[集成回归](../../../zircon_runtime/tests/cooked_block_decode.rs#L19-L74)经真实 Render Artifact Loader 和任务图，完整 zstd 帧逐字节读回，截短一字节的同源帧得到 `DecodeFailed`。两个夹具分别拥有与落盘内容匹配的哈希、编码长度；这验证的是解码器拒绝，而不是文件校验提前拦截。ZE 保留 Rust zstd、整块工件与便携环境的只读边界；不移植 Oodle、UE 的部分偏移 API 或文件格式。
+
+Windows x64/MSVC、Rust 1.94.1，`zircon_runtime`，test profile，默认特性关闭、仅 `cooked-assets`；**1 通过、0 失败、0 忽略**。闭包及注册策略独立复跑 **4 通过、0 失败**。没有启用 `native-host`，也没有替换 UI 或 Graphics 的历史库编译验证。原生回执 SHA-256 `e8b0b3c88507d393d3e7dfd715244baec61776a9b96c9b4e487373d56ab338f8`。
+
+```text
+cargo test -p zircon_runtime --no-default-features --features cooked-assets --locked --offline --jobs 1 --test cooked_block_decode cooked_block_load_decodes_complete_and_rejects_truncated_frames -- --exact --test-threads 1
+```
+
+随后在 `wasm32-unknown-unknown` 上对该最小特性实际 `check --lib`：未报原生 zstd 依赖错误；库检查因未装配的 `crate::scene` 返回 `E0433` / 101。失败路径与主干相同，已分到独立 [#265](https://github.com/He-Jiahui/ZirconEngine/pull/265)；这里不声称 wasm 库或浏览器产品通过，不把它混入 Windows 依赖修复。GitHub `editor-compile-gate` 仍须实际通过。
