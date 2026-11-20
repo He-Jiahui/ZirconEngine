@@ -121,3 +121,22 @@ ZE 已有 [PoseBuffer blend.rs:149–153](<https://github.com/He-Jiahui/ZirconEn
 实际 Windows 工作树（CRLF）测试源 SHA-256 `5271548a88503729344d33ffd253c94632a29f76e2f76adddc34b85731a91af5`，Git blob 按 LF 的 SHA-256 `b9edf5f4ff998e39231f128a51ee1629c5e679e696558529f007a1845bd926d1`；换行归一后源码一致。回执 `1b569bf98d8f236a7addd4a358925b6d095adc56d7612703174f83cd40c506d4`，stdout `d8ba8287bdf1c188cf4444eaceaf2e405c2aad0318baf4e4a7ef2b056e745a7d`（3,452 B），stderr `e2a8a644a75896a9c5b5ab2af85df71e55a20efb727c61980aedba6504e3d326`（269,786 B）；17 项选取输入复核。UE `UnrealMathTest.cpp:3652–3721` 的 `TestQuatLerp` 中 float 旋转的输入是正 RawCosom，double 旋转的输入是负 RawCosom，±alpha 与 dot 正负是两回事。它只校验双输入插值，不是这些 Base 多输入 oracle，未执行 UE。
 
 **暂不提交生产修复。** 第一有效输入作锚会引入与重排有关的大误差；取每骨最大权重（含确定平局）也不能仅凭这十案宣告可用：在同一组 `−170°/0°/+170°`、外侧权重由 `(1+2^-15, 1-2^-15)` 互换、中间固定 1 的独立标量设计检查中，该拟议策略前后物理方向相隔约 **106.611°**，而原逐项规范在此特定比较仅约 0.000489°。这些数**不是引擎实测**，也没有为所有广角规定某个 UE 角。下一门是确定可接受的共同半球策略，并用同组冻结测试、广角权重交叉/正交换号与真实 Level 图采样验证；不改 additive、ABI、平移缩放或现有无贡献回退。
+
+## 两帧动画图求值复现手骨转向
+
+真实骨架和剪辑经过 Blend 图求值，手骨两帧预期只转 0.25°，实际转了 179.750°。原有十项通过 6 项，新增六项通过 5 项。 两次采样的根骨遮罩、根骨朝向和手骨平移均已通过断言。在其中一段剪辑从 −89° 转向 −91° 时，混合后的手骨应从 −89.375° 转向 −89.625°。测试从两次实际输出的单位四元数求出相对转角。
+
+| 新增用例 | Windows 原生结果 |
+|---|---|
+| 具名骨架与剪辑的两帧 Hand 方向 | 失败 |
+| 三段广角剪辑轻微调整混合权重 | 通过 |
+| 极小离群权重对邻近两骨姿态的影响 | 通过 |
+| 普通二输入的非等权归一化线性插值 | 通过 |
+| 恰好正交时，输入顺序与表示符号的等距中点 | 通过 |
+| 存在第三个固定姿态时，邻近输入的小幅变化 | 通过 |
+
+同一程序以 `zircon_plugin_animation_runtime` 的 `native-host` 配置运行，16 个具名用例逐项计数。两条图级用例注册了骨架、剪辑、Blend 参数和遮罩，经生产图解析、采样与姿态混合取得结果。
+
+UE 的 `System.Core.Math.Vector Register Abstraction Test` 中，`TestQuatLerp` 覆盖了四元数正负点积。`Engine/Source/Runtime/Core/Tests/Math/UnrealMathTest.cpp:3652–3721` 调用的四元数 `FMath::Lerp` 特化使用 Slerp。这一原测提供方向选择参照。这里普通非等权用例按 ZE 当前的归一化线性插值检查。多输入广角区间和权重跨越相等点还需要约定稳定的姿态选择。
+
+[六个新增回归及图输入](https://github.com/He-Jiahui/ZirconEngine/blob/cb6a5bca0cf789a6e0bf0ec6b19eb8bdf2e6baac/zircon_plugins/animation/runtime/src/evaluation/pipeline/tests/pose_blend.rs#L334-L691)
