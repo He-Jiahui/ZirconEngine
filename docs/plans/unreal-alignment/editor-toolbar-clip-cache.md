@@ -46,3 +46,17 @@ UE 使用进程内 `SWidget` 指针、persistent paint state 和 `FHittestGrid`�
 | [SWidget.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/Widgets/SWidget.cpp>) | `AEFD9093803CF15CDA65C8053417CC674B6496735E7C40862F5E89CEDDDC2318` |
 | [SlateInvalidationRoot.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/FastUpdate/SlateInvalidationRoot.cpp>) | `EC935649054B88977DE0C67523EDF773458C246B2F560F8F7FBEAA18333C82C9` |
 | [SlateInvalidationWidgetListTest.cpp](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Private/Test/SlateInvalidationWidgetListTest.cpp>) | `8F4FF55BC2056113223F8AD77E703B81457CA342B00A27584C89095A6DCF5332` |
+
+## 工具栏裁剪改变后的命中区域
+
+Windows x64/MSVC 的编辑器 libtest 读取本提交的工具栏模板，在两个按钮采样点命中，然后移动祖先裁剪框。按钮的布局尺寸保持相同。裁剪框只覆盖第一个点时，应当只能点击这个点。裁到空区域时，两个点都应失效。
+
+| 路径 | 观察到的行为 |
+|---|---|
+| 保留式工具栏外层命中缓存 | 完整、部分、空裁剪三次均在两个点命中。后两次都复用了先前的命中区域。 |
+| 指针路由的内层几何缓存 | 三次几何更新标志为 `true,false,false`。两个点三次都能命中，预期依次为两个、一个和零个。 |
+| 三个独立路由对照 | 缩放后的命令身份、完整签名复用和单控件几何更新各自通过。 |
+
+七项用例中还有两项报告了独立问题。应用级用例在创建种子项目时因缺少启动 BuildSet 而停止，尚未派发窗口点击。100% 宽幅绘制用例报告通用变换图标缺少文件，已加载的十份资源都匹配原文件，并在进入 150% 用例前结束。本次已测到工具栏的两层命中逻辑，真实窗口的输入派发待补测。
+
+[外层回归](https://github.com/He-Jiahui/ZirconEngine/blob/8c8f03b2e78651cf6ecb8b23f6a8dfa3c0d285c0/zircon_editor/src/ui/retained/dispatch/templates/tests/surface_frame_cache.rs) · [内层回归](https://github.com/He-Jiahui/ZirconEngine/blob/8c8f03b2e78651cf6ecb8b23f6a8dfa3c0d285c0/zircon_editor/src/ui/retained/tests/sync_surface_frame.rs)
