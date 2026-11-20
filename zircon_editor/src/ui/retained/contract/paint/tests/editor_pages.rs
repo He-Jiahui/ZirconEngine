@@ -3,11 +3,34 @@ use super::support::{icon_readability_footprint, EDITOR_PAGES_WIRED_TEMPLATE_ICO
 
 #[test]
 fn editor_pages_template_icons_have_readable_16px_raster_footprints() {
+    let _guard = crate::tests::support::env_lock().lock().unwrap();
+    let mut bridge =
+        crate::ui::retained_host::callback_dispatch::BuiltinViewportToolbarTemplateBridge::new()
+            .unwrap();
+    let toolbar = bridge
+        .paint_nodes_for_size(zircon_runtime_interface::ui::layout::UiSize::new(640.0, 28.0))
+        .unwrap();
+    let mode = toolbar
+        .iter()
+        .find(|node| node.source_node_id.as_str() == "activate_scene_mode")
+        .expect("authored tool mode node");
+    let mode_icon = mode.icon_name.as_str();
+    assert!(!mode_icon.is_empty(), "authored tool mode icon must be set");
     let preview = crate::ui::retained_host::primitives::Image::default();
-    for icon in EDITOR_PAGES_WIRED_TEMPLATE_ICONS {
+    for icon in EDITOR_PAGES_WIRED_TEMPLATE_ICONS
+        .iter()
+        .copied()
+        .chain(std::iter::once(mode_icon))
+    {
         let pixels =
             template_image_pixels(&preview, "", icon, 16, 16, Some(ICON_TINT), false, None)
                 .unwrap_or_else(|| panic!("{icon} should render through the template icon path"));
+        if icon == mode_icon {
+            assert!(
+                !pixels.resource_key.starts_with("missing-icon:"),
+                "{icon} must use the authored resource, not fallback pixels"
+            );
+        }
         let footprint = icon_readability_footprint(&pixels)
             .unwrap_or_else(|| panic!("{icon} should produce visible 16px pixels"));
 

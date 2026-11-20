@@ -11,7 +11,6 @@ pub(super) const EDITOR_PAGES_WIRED_TEMPLATE_ICONS: &[&str] = &[
     "editor_pages/asset_browser/navigation/folder.svg",
     "editor_pages/hierarchy/entity/scene.svg",
     "editor_pages/console_profiler/logs/log-info.svg",
-    "editor_pages/scene_viewport/tools/universal-transform.svg",
     "editor_pages/scene_viewport/display/lit.svg",
     "editor_pages/scene_viewport/display/grid-overlay.svg",
     "editor_pages/scene_viewport/snapping/grid-snap.svg",

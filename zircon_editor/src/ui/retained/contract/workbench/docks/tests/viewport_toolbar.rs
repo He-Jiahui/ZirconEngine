@@ -77,6 +77,82 @@ fn projected_toolbar_paints_all_16_source_icons_at_100_and_150_percent() {
 }
 
 #[test]
+fn builtin_scene_mode_icon_has_its_file_backed_universal_transform_asset() {
+    use zircon_runtime_interface::runtime_build_set::ZrRuntimeDigestV1;
+
+    let _guard = crate::tests::support::env_lock().lock().unwrap();
+    let mut bridge =
+        crate::ui::retained_host::callback_dispatch::BuiltinViewportToolbarTemplateBridge::new()
+            .unwrap();
+    let repo = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap();
+    let svg = "zircon_editor/assets/icons/editor_pages/tools/universal-transform.svg";
+    let sha = ZrRuntimeDigestV1::sha256(&std::fs::read(repo.join(svg)).unwrap());
+    for scale in [1.0, 1.5] {
+        bridge.admit_layout_context(scale, 1);
+        let dimensions = zircon_runtime_interface::ui::layout::UiSize::new(
+            640.0 * scale,
+            28.0 * scale,
+        );
+        let mut pane = PaneData {
+            kind: "Scene".into(),
+            show_toolbar: true,
+            ..Default::default()
+        };
+        pane.viewport.toolbar_surface_key = "document:icons".into();
+        pane.viewport.toolbar_template_nodes = bridge.paint_nodes_for_size(dimensions).unwrap();
+        let mode = pane
+            .viewport
+            .toolbar_template_nodes
+            .iter()
+            .find(|node| node.source_node_id.as_str() == "activate_scene_mode")
+            .expect("authored tool mode node");
+        let toolbar = FrameRect {
+            x: 120.0,
+            y: 80.0,
+            width: 640.0 * scale,
+            height: 28.0 * scale,
+        };
+        let evidence = crate::ui::retained_host::host_contract::paint_template_nodes::PaintEvidenceScope::begin(repo, 96.0 * scale).unwrap();
+        let mut frame = HostRgbaFrame::recording_only(1200, 200);
+        draw_viewport_toolbar(&mut frame, &pane, &toolbar, &toolbar);
+        let commands = frame.into_recorded_commands();
+        let audit = evidence.finish().unwrap();
+        let mut rows = audit["assetAudit"]["resources"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|resource| resource["sourceNodeId"].as_str() == Some("activate_scene_mode"));
+        let resource = rows.next().unwrap_or_else(|| {
+            panic!(
+                "BUILTIN_SCENE_MODE_ICON: {scale}x did not load a file for the projected asset {:?}: {}",
+                mode.icon_name, audit["issues"]
+            )
+        });
+        assert!(rows.next().is_none(), "{scale}x must have one authored asset");
+        assert_eq!(resource["path"].as_str(), Some(svg));
+        assert_eq!(resource["sha256"].as_str(), Some(sha.as_str()));
+        assert_eq!(resource["loaded"].as_bool(), Some(true));
+        assert_eq!(resource["currentFileMatches"].as_bool(), Some(true));
+        let key = resource["resourceKey"].as_str().unwrap();
+        assert!(commands.iter().any(|command| {
+            matches!(&command.kind, HostRecordedPaintKind::Image { resource_key, .. }
+                if resource_key.as_str() == key)
+                && command.frame.width > 0.0
+                && command.frame.height > 0.0
+                && command.frame.x >= toolbar.x + mode.frame.x
+                && command.frame.y >= toolbar.y + mode.frame.y
+                && command.frame.x + command.frame.width
+                    <= toolbar.x + mode.frame.x + mode.frame.width + 0.01
+                && command.frame.y + command.frame.height
+                    <= toolbar.y + mode.frame.y + mode.frame.height + 0.01
+        }));
+        println!("BUILTIN_SCENE_MODE_ICON: {scale}x {svg} {sha}", sha = sha.as_str());
+    }
+}
+
+#[test]
 fn source_toolbar_hover_focus_and_mode_change_share_live_painter_state() {
     let _guard = crate::tests::support::env_lock().lock().unwrap();
     let mut bridge =
