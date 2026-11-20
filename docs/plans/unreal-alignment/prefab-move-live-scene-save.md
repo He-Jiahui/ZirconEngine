@@ -37,3 +37,11 @@ ZE 的资产搬迁测试检查同一 ID 的新地址、旧地址失效及 `Renam
 Windows x64/MSVC，`zircon_runtime` 库测试目标（关闭默认特性，仅请求 `native-host`，test profile）。单个精确用例在有界 Job 中为 **0 通过、1 失败（退出 101），7,775 项被过滤**。PE 原位使用、执行前后核对指纹，未留独立副本。未运行修后版本、普通桌面窗口或 UE 自动化。本次只增补同一条回归，不包含生产代码。
 
 [原生回归源码](https://github.com/He-Jiahui/ZirconEngine/blob/f84bf72a92c1716859f99401521dfd5cbbe34654/zircon_runtime/src/asset/pipeline/manager/assets/tests/relocation.rs#L416)
+
+## 修后原生回归：搬迁后保存并独立重开
+
+Scene writer 仅在本次保存的类型化 Prefab 实例上更新路径提示。它用 UUID 核对当前项目目录中的 Prefab、唯一物理源和侧车，确认旧源和侧车均消失后更新 locator，再经过原有的严格引用写入校验。 [Scene 保存](https://github.com/He-Jiahui/ZirconEngine/blob/52f49b7daa15cc50e9a3ed33b32128d150b52346/zircon_runtime/src/asset/project/manager/editor_document_transaction.rs#L272) · [源身份核对](https://github.com/He-Jiahui/ZirconEngine/blob/52f49b7daa15cc50e9a3ed33b32128d150b52346/zircon_runtime/src/asset/project/manager/persisted_reference.rs#L110)
+
+同一条 Windows x64/MSVC 回归在修前收到旧地址的 `MissingPath`，磁盘保留了无搬迁对照的 x=1.25。修后使用同一 `zircon_runtime` libtest 目标、`native-host` 和 test profile。普通保存后，独立新开项目读回 x=4.25。三个实例的 `path_hint` 都是 `assets/archive/squad.prefab.toml`，GUID 与搬迁前一致。磁盘场景的覆盖行数仍为 1／1／0。嵌套的两个 Leaf 实例各保留一行覆盖与原引用。覆盖值中的字面量 `res://prefabs/squad.prefab.toml` 原样保留。 [原生回归源码](https://github.com/He-Jiahui/ZirconEngine/blob/fc72fd7d5f6d56f55ad60630e538701f265c676d/zircon_runtime/src/asset/pipeline/manager/assets/tests/relocation.rs#L416)
+
+精确选择一个用例。修前 0 通过、1 失败（退出 101），修后 1 通过、0 失败、0 忽略（退出 0）。两次均过滤 7,775 项。修后使用与编译产物字节一致的保留 PE，并回读原始测试输出、Job 和物理文件。验证范围是 Runtime 项目搬迁、保存及重开。
