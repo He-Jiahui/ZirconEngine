@@ -35,3 +35,11 @@ ZE 已有用例 `cached_clip_load_returns_before_project_asset_resolution` 验�
 ## 6. 修复判据
 
 让 `res://` 的缓存命中和并发加载后的登记都使用当前项目激活身份。同一激活继续复用已加载片段。已有片段可以继续服务持有它的播放句柄。关闭、替换项目或加载期间发生新的激活时，新的地址请求应解析此刻的项目。验收使用同根更换素材和另一项目缺少原地址两项回归，并核对旧项目缓存、未改的合法 WAV 及同一激活的命中行为。[项目代数校验入口](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/asset/pipeline/manager/assets/runtime.rs#L179-L242)
+
+## 同一声音服务连续两次打开项目的读数
+
+项目重开后，磁盘产物和资产管理器均读到 16 kHz 的四帧 WAV，声音服务按同一地址加载仍返回 8 kHz 的三帧旧片段。关闭项目和切换到缺少该 WAV 的项目后，新请求也都返回了同一个旧 ID。
+
+项目内的 `res://` 与 `package://` 分别用真实 WAV 验证重复加载的 ID、片段信息和缺失地址。另一个用例核对 Kira 播放数据共享帧缓冲区。两项均通过。
+
+Windows x64 的测试通过正式 WAV 导入器、磁盘产物、项目资产管理器和中立 Sound 服务读取声音。[两个项目回归](https://github.com/He-Jiahui/ZirconEngine/blob/98be9586b19910bd36a959384b5f42b6b0e7996a/zircon_plugins/sound/runtime/tests/clip_project_reopen.rs)
