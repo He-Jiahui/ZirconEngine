@@ -60,3 +60,12 @@ Windows x64/MSVC 的编辑器 libtest 读取本提交的工具栏模板，在两
 七项用例中还有两项报告了独立问题。应用级用例在创建种子项目时因缺少启动 BuildSet 而停止，尚未派发窗口点击。100% 宽幅绘制用例报告通用变换图标缺少文件，已加载的十份资源都匹配原文件，并在进入 150% 用例前结束。本次已测到工具栏的两层命中逻辑，真实窗口的输入派发待补测。
 
 [外层回归](https://github.com/He-Jiahui/ZirconEngine/blob/8c8f03b2e78651cf6ecb8b23f6a8dfa3c0d285c0/zircon_editor/src/ui/retained/dispatch/templates/tests/surface_frame_cache.rs) · [内层回归](https://github.com/He-Jiahui/ZirconEngine/blob/8c8f03b2e78651cf6ecb8b23f6a8dfa3c0d285c0/zircon_editor/src/ui/retained/tests/sync_surface_frame.rs)
+
+## 裁剪变化后的工具栏命中区域
+
+- **外层缓存：** 内建工具栏从完整可见裁到部分可见、再裁到全空。修前复用旧帧，两个点始终命中；修后保留原始按钮框，只更新有效命中区，部分可见时只命中可见点，全空时两点都不命中。
+- **内层点击路由：** 原始按钮框不变、只更新裁剪。修前两点仍能触发路由；修后被裁掉的点不再路由，裁到全空后两点均无路由。
+
+Windows x64/MSVC 的 `zircon_editor` 原生库测试使用相同测试和资产。两个回归均由 **失败 → 通过**；缩放后的控件身份与命令、未变投影的帧复用、单控件几何增量三个对照仍通过，共 **5 项通过，0 项失败**。
+
+没有重跑停在工程准入的 App 用例或缺图的宽幅绘制用例；缺图另见 [#257](https://github.com/He-Jiahui/ZirconEngine/pull/257)。桌面实点、项目内实际命令和 GPU 呈现仍待验。

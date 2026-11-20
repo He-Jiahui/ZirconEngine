@@ -39,7 +39,13 @@ struct SurfaceFrameNode {
     projection_control_id: String,
     hit_control_id: Option<String>,
     component: String,
-    frame: UiFrame,
+    frame: SurfaceFrameNodeGeometry,
+}
+
+#[derive(Clone, Default, PartialEq)]
+struct SurfaceFrameNodeGeometry {
+    raw: UiFrame,
+    source_clip: Option<UiFrame>,
 }
 
 impl ViewportToolbarSurfaceFrameCache {
@@ -314,7 +320,10 @@ impl SurfaceFrameSignature {
                 projection_control_id: projection_control_id.to_string(),
                 hit_control_id: hit_control_id(projection_control_id),
                 component: projection_node.component.clone(),
-                frame: projection_node.frame,
+                frame: SurfaceFrameNodeGeometry {
+                    raw: projection_node.frame,
+                    source_clip: projection_node.clip_frame,
+                },
             })
         }));
         Self {
@@ -400,14 +409,14 @@ fn build_surface_frame(
             "projection_control_id".to_string(),
             toml::Value::String(projection_node.projection_control_id.clone()),
         );
-        let node = UiTreeNode::new(
+        let mut node = UiTreeNode::new(
             UiNodeId::new(index as u64 + 2),
             UiNodePath::new(format!(
                 "viewport_toolbar/{surface_key}/{}",
                 projection_node.projection_control_id
             )),
         )
-        .with_frame(projection_node.frame)
+        .with_frame(projection_node.frame.raw)
         .with_state_flags(UiStateFlags {
             visible: true,
             enabled: true,
@@ -420,6 +429,9 @@ fn build_surface_frame(
         })
         .with_input_policy(UiInputPolicy::Receive)
         .with_template_metadata(metadata);
+        // Keep the raw frame for pane route identity; combine the independent source
+        // clip with the synthetic surface root when publishing its hit grid.
+        node.layout_cache.clip_frame = projection_node.frame.source_clip;
         let _ = surface.tree.insert_child(UiNodeId::new(1), node);
     }
 
