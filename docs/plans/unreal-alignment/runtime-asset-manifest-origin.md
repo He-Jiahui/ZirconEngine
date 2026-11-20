@@ -50,3 +50,14 @@ Runtime 归档的同路径图标现记录为选中的 Runtime 来源。相同与
 本次运行固定为 `94c95094dfe15c6fa69341809f17831474945531`。[可复跑用例](https://github.com/He-Jiahui/ZirconEngine/blob/94c95094dfe15c6fa69341809f17831474945531/tools/tests/test_zircon_build_asset_manifest_origin.py)
 
 另行执行了既有测试 `test_asset_staging_lives_in_asset_staging_owner`。它要求构建入口含有 `from .build.zircon_build_asset_staging import (`，在修前和修后均因这条字符串断言失败。相邻的 [#161](https://github.com/He-Jiahui/ZirconEngine/pull/161) 也编辑了清单文件，两份改动的三方文件合并成功。
+
+## 9. 独立复核：载荷相同不能替代资源归属
+
+| 源码或测试 | 等价点与差异 |
+| --- | --- |
+| UE `DeploymentContext.StageFile` → `FilesToStage` → 导出清单、按清单复制 | UE 保存显式的目标—来源映射；ZE 不照搬该映射，而是让复制和清单使用同一套产品 profile、资源根顺序与排除规则，在选中范围内用 SHA-256 校验已暂存文件。相同内容不能把排除的 Editor 根变成 Runtime 来源。 |
+| UE `ZenOplogUtils::Diff::DifferentPackageName` | 将内容与元数据分别验证。ZE 的 [Runtime ZIP 回归](../../../tools/tests/test_zircon_build_asset_manifest_origin.py)独立断言归档字节、大小、SHA-256 和来源路径。选中范围外的文件即使字节相同，清单也报缺少来源，并不写出新的清单。 |
+
+本模块是 ZE 的 Python 发布工具，不是 Rust 运行时；回归落在实际拥有复制、JSON 和确定性 ZIP 逻辑的 Python 单测。保留 Runtime/Editor profile 和可裁剪的资源范围；不改 UE 包格式、ZE 本体 Rust API 或插件 ABI。
+
+Windows、Python 3.14.4。新增反例在远端基线 `e89349ca5` 的打包实现下实测失败（错误接受文件，写出清单）；本 PR 实现下通过。资产归属、清单与复制的定向行为用例 **12 通过、0 失败**。另有一个未改动的旧导入结构断言复核失败，已由独立 [#245](https://github.com/He-Jiahui/ZirconEngine/pull/245) 处理，未计入 12 项。未运行 UE 测试二进制或编译发布产品。

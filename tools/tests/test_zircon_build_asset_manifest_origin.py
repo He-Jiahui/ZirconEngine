@@ -43,6 +43,20 @@ class ZirconBuildAssetManifestOriginTests(unittest.TestCase):
     def test_runtime_windows_uses_runtime_origin_for_distinct_editor_asset(self):
         self._assert_runtime_archive_origin(EDITOR_SVG)
 
+    def test_runtime_manifest_rejects_a_staged_editor_only_asset(self):
+        self._seed_assets(RUNTIME_SVG)
+        config = self._shipping_config("runtime-windows")
+        stage_engine_assets(config, config.asset_scope)
+        self.assertFalse((config.engine_root / EDITOR_ONLY).exists())
+
+        # Only the excluded Editor root has matching bytes at this relative path.
+        self._write(config.engine_root / EDITOR_ONLY, RUNTIME_SVG)
+        with self.assertRaisesRegex(
+            SystemExit, r"no source provenance: assets/icons/editor-only\.svg"
+        ):
+            write_staging_manifest(config)
+        self.assertFalse((config.engine_root / "staging_manifest.json").exists())
+
     def test_merged_and_missing_scope_keep_editor_first(self):
         self._seed_assets(RUNTIME_SVG)
         for scope, options in (("all", {"asset_scope": "all"}), ("implicit", {})):
@@ -99,6 +113,7 @@ class ZirconBuildAssetManifestOriginTests(unittest.TestCase):
             manifest = archive.read(manifest_path.name)
         self.assertEqual(manifest_path.read_bytes(), manifest)
         row = self._target_row(json.loads(manifest))
+        self.assertEqual(len(RUNTIME_SVG), row["bytes"])
         self.assertEqual(hashlib.sha256(RUNTIME_SVG).hexdigest(), row["sha256"])
         self.assertEqual(
             {"kind": "source_asset", "path": RUNTIME_SOURCE.as_posix()}, row["source"]
