@@ -391,92 +391,14 @@ fn root_resize_capture_prefers_workbench_left_drawer_shell_extent_over_stale_reg
 fn root_native_focus_loss_cancels_drawer_resize_without_persisting_transient_extent() {
     let _guard = lock_env();
     let harness = ChildWindowHostHarness::new("zircon_retained_root_resize_focus_cancel");
-    harness.activate_workbench_page();
-    let native_splitter = harness
-        .root_ui
-        .get_host_presentation()
-        .host_scene_data
-        .resize_layer
-        .left_splitter_frame;
-    assert!(native_splitter.width > 0.0 && native_splitter.height > 0.0);
-    let (x, y, committed_width) = {
-        let host = harness.host.borrow();
-        let committed_width = host
-            .shell_geometry
-            .as_ref()
-            .expect("Workbench should have committed shell geometry")
-            .region_frame(ShellRegionId::Left)
-            .width;
-        (
-            native_splitter.x + native_splitter.width * 0.5,
-            native_splitter.y + native_splitter.height * 0.5,
-            committed_width,
-        )
-    };
-    let baseline = harness.journal_len();
-
-    harness.root_ui.dispatch_native_primary_press_for_test(x, y);
-    assert!(
-        host_context(&harness.root_ui)
-            .get_resize_state()
-            .resize_active
-    );
-    assert!(harness.host.borrow().active_drawer_resize.is_some());
-    harness
-        .root_ui
-        .dispatch_native_pointer_move_for_test(x + 40.0, y);
-    assert!(harness
-        .host
-        .borrow()
-        .transient_region_preferred
-        .contains_key(&ShellRegionId::Left));
-    harness.host.borrow_mut().refresh_ui();
-    let transient_width = harness
-        .host
-        .borrow()
-        .shell_geometry
-        .as_ref()
-        .expect("drawer move should update shell geometry")
-        .region_frame(ShellRegionId::Left)
-        .width;
-    assert!(transient_width > committed_width);
+    let drag = BottomCancelGesture::start(&harness);
 
     harness.root_ui.dispatch_native_focus_lost_for_test();
-    assert!(
-        !host_context(&harness.root_ui)
-            .get_resize_state()
-            .resize_active
-    );
-    {
-        let host = harness.host.borrow();
-        assert!(host.active_drawer_resize.is_none());
-        assert!(!host
-            .transient_region_preferred
-            .contains_key(&ShellRegionId::Left));
-    }
-    assert!(
-        harness.delta_events_since(baseline).is_empty(),
-        "Cancel must not commit drawer resize"
-    );
-    harness.host.borrow_mut().refresh_ui();
-    let restored_width = harness
-        .host
-        .borrow()
-        .shell_geometry
-        .as_ref()
-        .expect("left drawer after canceled refresh")
-        .region_frame(ShellRegionId::Left)
-        .width;
-    assert_eq!(restored_width, committed_width);
-
+    drag.assert_canceled(&harness);
+    // A new Down on the restored divider must be able to capture again.
     harness
         .root_ui
-        .dispatch_native_primary_release_for_test(x + 40.0, y);
-    assert!(
-        harness.delta_events_since(baseline).is_empty(),
-        "late owner Up must not commit resize"
-    );
-    harness.root_ui.dispatch_native_primary_press_for_test(x, y);
+        .dispatch_native_primary_press_for_test(drag.x, drag.y);
     assert!(
         host_context(&harness.root_ui)
             .get_resize_state()
@@ -484,14 +406,13 @@ fn root_native_focus_loss_cancels_drawer_resize_without_persisting_transient_ext
     );
     assert!(harness.host.borrow().active_drawer_resize.is_some());
     harness.root_ui.dispatch_native_focus_lost_for_test();
-    assert!(harness.delta_events_since(baseline).is_empty());
+    assert!(harness.delta_events_since(drag.journal_start).is_empty());
 }
 
 #[test]
 fn root_hide_close_cancels_drawer_resize_without_persisting_transient_extent() {
     let _guard = lock_env();
     let harness = ChildWindowHostHarness::new("zircon_retained_root_resize_close_cancel");
-    harness.activate_workbench_page();
     let close_host = Rc::downgrade(&harness.host);
     harness.root_ui.window().on_close_requested(move || {
         close_host.upgrade().map_or(
@@ -499,86 +420,131 @@ fn root_hide_close_cancels_drawer_resize_without_persisting_transient_extent() {
             |host| host.borrow_mut().native_main_window_close_requested(),
         )
     });
-    let native_splitter = harness
-        .root_ui
-        .get_host_presentation()
-        .host_scene_data
-        .resize_layer
-        .left_splitter_frame;
-    assert!(native_splitter.width > 0.0 && native_splitter.height > 0.0);
-    let (x, y, committed_width) = {
-        let host = harness.host.borrow();
-        let committed_width = host
-            .shell_geometry
-            .as_ref()
-            .expect("Workbench should have committed shell geometry")
-            .region_frame(ShellRegionId::Left)
-            .width;
-        (
-            native_splitter.x + native_splitter.width * 0.5,
-            native_splitter.y + native_splitter.height * 0.5,
-            committed_width,
-        )
-    };
-    let baseline = harness.journal_len();
-
-    harness.root_ui.dispatch_native_primary_press_for_test(x, y);
-    harness
-        .root_ui
-        .dispatch_native_pointer_move_for_test(x + 40.0, y);
-    assert!(
-        host_context(&harness.root_ui)
-            .get_resize_state()
-            .resize_active
-    );
-    assert!(harness.host.borrow().active_drawer_resize.is_some());
-    assert!(harness
-        .host
-        .borrow()
-        .transient_region_preferred
-        .contains_key(&ShellRegionId::Left));
+    let drag = BottomCancelGesture::start(&harness);
     assert_eq!(
         harness.root_ui.dispatch_native_close_request_for_test(),
         crate::ui::retained_host::primitives::CloseRequestResponse::KeepWindowShown
     );
-
     assert!(harness.root_ui.window().is_visible());
     assert!(!harness.root_ui.exit_requested_for_test());
-    assert!(
-        !host_context(&harness.root_ui)
-            .get_resize_state()
-            .resize_active
-    );
-    {
-        let host = harness.host.borrow();
-        assert!(host.active_drawer_resize.is_none());
-        assert!(!host
-            .transient_region_preferred
-            .contains_key(&ShellRegionId::Left));
-    }
-    assert!(harness.delta_events_since(baseline).is_empty());
-    harness.host.borrow_mut().refresh_ui();
-    let restored_width = harness
-        .host
-        .borrow()
-        .shell_geometry
-        .as_ref()
-        .expect("left drawer after canceled close")
-        .region_frame(ShellRegionId::Left)
-        .width;
-    assert_eq!(restored_width, committed_width);
-
-    harness
-        .root_ui
-        .dispatch_native_primary_release_for_test(x + 40.0, y);
-    assert!(harness.delta_events_since(baseline).is_empty());
+    drag.assert_canceled(&harness);
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
     while !harness.root_ui.exit_requested_for_test() && std::time::Instant::now() < deadline {
         harness.host.borrow_mut().tick();
         std::thread::yield_now();
     }
     assert!(harness.root_ui.exit_requested_for_test());
-    assert!(harness.delta_events_since(baseline).is_empty());
+    assert!(harness.delta_events_since(drag.journal_start).is_empty());
+}
+
+// The default Level Editor mounts BottomDrawerShellRoot, not a left drawer shell.
+// Use the real grip's published rectangle; cancellation itself is region-independent.
+struct BottomCancelGesture {
+    x: f32,
+    y: f32,
+    height: f32,
+    preference: f32,
+    journal_start: usize,
+}
+
+impl BottomCancelGesture {
+    const DRAG_UP: f32 = 20.0;
+
+    fn preference(harness: &ChildWindowHostHarness) -> f32 {
+        let layout = harness.host.borrow().runtime.current_layout().unwrap();
+        layout.active_activity_window_drawers()[&ActivityDrawerSlot::Bottom].extent
+    }
+
+    fn start(harness: &ChildWindowHostHarness) -> Self {
+        harness.activate_workbench_page();
+        harness.activate_drawer_tab(ActivityDrawerSlot::Bottom, "editor.console#1");
+        let window = harness.root_ui.window();
+        window.set_size(PhysicalSize::new(1920, 1200));
+        window.set_scale_factor(1.0);
+        {
+            let mut host = harness.host.borrow_mut();
+            host.sync_shell_size();
+            let effects = callback_dispatch::dispatch_layout_command(
+                &host.runtime,
+                LayoutCommand::SetDrawerExtent {
+                    slot: ActivityDrawerSlot::Bottom,
+                    extent: 200.0,
+                },
+            )
+            .expect("seed a dock height away from its layout bounds");
+            host.apply_dispatch_effects(effects);
+            host.refresh_ui();
+        }
+        let scene = harness.root_ui.get_host_presentation().host_scene_data;
+        assert_eq!(scene.bottom_dock.pane.id.as_str(), "editor.console#1");
+        assert!(scene.bottom_dock.content_frame.height > 0.0);
+        let splitter = scene.resize_layer.bottom_splitter_frame;
+        assert!(splitter.width > 0.0 && splitter.height > 0.0);
+        let drag = Self {
+            x: splitter.x + splitter.width * 0.5,
+            y: splitter.y + splitter.height * 0.5,
+            height: scene.bottom_dock.region_frame.height,
+            preference: Self::preference(harness),
+            journal_start: harness.journal_len(),
+        };
+        harness
+            .root_ui
+            .dispatch_native_primary_press_for_test(drag.x, drag.y);
+        assert!(
+            host_context(&harness.root_ui)
+                .get_resize_state()
+                .resize_active
+        );
+        assert!(harness
+            .host
+            .borrow()
+            .active_drawer_resize
+            .as_ref()
+            .is_some_and(|active| {
+                active.region == ShellRegionId::Bottom && active.source_window.is_none()
+            }));
+        harness
+            .root_ui
+            .dispatch_native_pointer_move_for_test(drag.x, drag.y - Self::DRAG_UP);
+        let transient = harness.host.borrow().transient_region_preferred[&ShellRegionId::Bottom];
+        assert!((transient - (drag.height + Self::DRAG_UP)).abs() <= 0.5);
+        assert_eq!(Self::preference(harness), drag.preference);
+        assert!(harness.delta_events_since(drag.journal_start).is_empty());
+        drag
+    }
+
+    fn assert_canceled(&self, harness: &ChildWindowHostHarness) {
+        assert!(
+            !host_context(&harness.root_ui)
+                .get_resize_state()
+                .resize_active
+        );
+        {
+            let host = harness.host.borrow();
+            assert!(host.active_drawer_resize.is_none());
+            assert!(!host
+                .transient_region_preferred
+                .contains_key(&ShellRegionId::Bottom));
+        }
+        harness.host.borrow_mut().refresh_ui();
+        let restored = harness
+            .root_ui
+            .get_host_presentation()
+            .host_scene_data
+            .bottom_dock;
+        assert_eq!(restored.pane.id.as_str(), "editor.console#1");
+        assert!((restored.region_frame.height - self.height).abs() <= 0.5);
+        assert_eq!(Self::preference(harness), self.preference);
+        assert!(harness.delta_events_since(self.journal_start).is_empty());
+        harness
+            .root_ui
+            .dispatch_native_primary_release_for_test(self.x, self.y - Self::DRAG_UP);
+        assert!(
+            harness.delta_events_since(self.journal_start).is_empty(),
+            "late Up committed a resize"
+        );
+        assert_eq!(Self::preference(harness), self.preference);
+    }
 }
 
 #[test]
