@@ -98,6 +98,14 @@ mod window;
 #[path = "context_menu.rs"]
 mod workbench_context_menu;
 
+#[cfg(test)]
+#[path = "tests/scene_toolbar_probes.rs"]
+mod scene_toolbar_probes;
+#[cfg(test)]
+pub(in crate::ui::retained_host) use scene_toolbar_probes::{
+    record_scene_toolbar_control_ink_for_test, scene_toolbar_route_for_test,
+};
+
 pub(crate) use data::*;
 pub(crate) use diagnostics::{
     HostInvalidationDiagnostics, HostWindowDiagnostic, HostWindowDiagnosticSeverity,

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use zircon_runtime_interface::ui::{layout::UiFrame, surface::UiSurfaceFrame};
+use zircon_runtime_interface::ui::{layout::UiPoint, surface::UiSurfaceFrame};
 
 use super::rebuild_surface::{
     viewport_toolbar_control_node_id, ViewportToolbarNodeFrameChange, ViewportToolbarSurfaceDelta,
@@ -47,12 +47,11 @@ impl ViewportToolbarPointerBridge {
             if control_route_for_id(control_id).is_none() {
                 continue;
             }
-            let frame = UiFrame::new(
-                surface_origin.x + entry.frame.x,
-                surface_origin.y + entry.frame.y,
-                entry.frame.width.max(1.0),
-                entry.frame.height.max(1.0),
-            );
+            // The published grid already intersected the node with its ancestors. This
+            // secondary surface is hit-only: copy the effective region, including empty.
+            let frame = entry
+                .clip_frame
+                .translated(UiPoint::new(surface_origin.x, surface_origin.y));
             let control_index = controls.len();
             match existing.get(control_index) {
                 Some(current) if current.action_key == control_id => {

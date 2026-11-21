@@ -47,6 +47,8 @@ mod retained_host_automation;
 mod root_pointer_fallbacks;
 #[path = "runtime_diagnostics_drawer.rs"]
 mod runtime_diagnostics_drawer;
+#[path = "scene_toolbar_clip.rs"]
+mod scene_toolbar_clip;
 #[path = "scoped_presentation.rs"]
 mod scoped_presentation;
 #[path = "serialized_startup_presentation.rs"]
