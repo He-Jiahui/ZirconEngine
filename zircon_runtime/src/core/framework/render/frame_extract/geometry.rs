@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
+use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::Arc;
 
 use crate::core::framework::scene::{EntityId, Mobility};
+use crate::core::math::{Mat4, Transform};
 use crate::core::resource::{MaterialMarker, MeshMarker, ModelMarker, ResourceHandle, ResourceId};
 
 use super::super::{
@@ -73,12 +75,61 @@ impl GeometryPhaseInput {
     }
 }
 
+/// One World matrix shared by all extracted primitives of an entity. The
+/// projected TRS and revision identify which public snapshot it belongs to.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) struct PreparedMeshAffine {
+    matrix: Mat4,
+    projected_transform: Transform,
+    revision: u64,
+}
+
+impl PreparedMeshAffine {
+    pub(crate) fn new(matrix: Mat4, projected_transform: Transform) -> Option<Self> {
+        let columns = matrix.to_cols_array();
+        let bits = columns.map(f32::to_bits);
+        // A finite affine can be singular; it does not need an inverse here.
+        if !matrix.is_finite()
+            || [columns[3], columns[7], columns[11], columns[15]] != [0.0, 0.0, 0.0, 1.0]
+            || bits
+                == projected_transform
+                    .matrix()
+                    .to_cols_array()
+                    .map(f32::to_bits)
+        {
+            return None;
+        }
+        let mut hash = DefaultHasher::new();
+        bits.hash(&mut hash);
+        Some(Self {
+            matrix,
+            projected_transform,
+            revision: hash.finish(),
+        })
+    }
+
+    pub(crate) fn revision(self) -> u64 {
+        self.revision
+    }
+
+    fn matches(&self, mesh: &RenderMeshSnapshot) -> bool {
+        let a = self.projected_transform;
+        let b = mesh.transform;
+        self.revision == mesh.transform_revision
+            && a.translation.to_array().map(f32::to_bits)
+                == b.translation.to_array().map(f32::to_bits)
+            && a.rotation.to_array().map(f32::to_bits) == b.rotation.to_array().map(f32::to_bits)
+            && a.scale.to_array().map(f32::to_bits) == b.scale.to_array().map(f32::to_bits)
+    }
+}
+
 /// 网格快照、阶段队列与增量变更的共同提交包。
 /// `World` 生成它；可见性、资源投影和绘制准备分别消费这些侧带。
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct GeometryExtract {
     pub scene_changes: Option<Arc<RenderComponentChangeArtifact>>,
     pub meshes: Vec<RenderMeshSnapshot>,
+    mesh_affines: BTreeMap<EntityId, PreparedMeshAffine>,
     pub material_property_overrides: BTreeMap<EntityId, MaterialPropertyOverrideBlock>,
     pub phase_inputs: Vec<GeometryPhaseInput>,
     pub phase_queue: RenderPhaseQueue,
@@ -169,6 +220,7 @@ impl GeometryExtract {
         Self {
             scene_changes: None,
             meshes,
+            mesh_affines: BTreeMap::new(),
             material_property_overrides,
             phase_inputs,
             phase_queue,
@@ -176,6 +228,28 @@ impl GeometryExtract {
             virtual_geometry: None,
             virtual_geometry_debug: None,
         }
+    }
+
+    pub(crate) fn with_mesh_affines(
+        mut self,
+        mesh_affines: BTreeMap<EntityId, PreparedMeshAffine>,
+    ) -> Self {
+        self.mesh_affines = mesh_affines;
+        self
+    }
+
+    /// No affine row means the caller should use the snapshot's TRS. A
+    /// derived frame may replace or edit the public snapshot after sharing.
+    pub(crate) fn affine_world_from_local(&self, mesh: &RenderMeshSnapshot) -> Option<Mat4> {
+        self.mesh_affines
+            .get(&mesh.node_id)
+            .filter(|affine| affine.matches(mesh))
+            .map(|affine| affine.matrix)
+    }
+
+    pub(crate) fn mesh_world_from_local(&self, mesh: &RenderMeshSnapshot) -> Mat4 {
+        self.affine_world_from_local(mesh)
+            .unwrap_or_else(|| mesh.transform.matrix())
     }
 
     pub fn with_material_property_overrides(

@@ -1,6 +1,6 @@
 use super::super::declarations::VisibilityBounds;
 use crate::core::framework::render::{RenderMeshBounds, RenderMeshSnapshot};
-use crate::core::math::Vec3;
+use crate::core::math::{Mat4, Vec3};
 
 const MIN_GPU_BOUNDS_RADIUS_SCALE: f32 = 0.0001;
 
@@ -33,6 +33,33 @@ pub(crate) fn mesh_bounds_from_local(
         VisibilityBounds { center, radius }
     } else {
         fail_open_bounds(mesh)
+    }
+}
+
+/// Project the local box with the exact matrix used by ordinary draws. An
+/// axis-length scale of the local sphere alone can underestimate shear.
+pub(crate) fn mesh_bounds_from_affine(
+    mesh: &RenderMeshSnapshot,
+    local_bounds: Option<RenderMeshBounds>,
+    world_from_local: Mat4,
+) -> VisibilityBounds {
+    let Some(local) = local_bounds.filter(|bounds| {
+        bounds.is_finite()
+            && bounds
+                .min
+                .into_iter()
+                .zip(bounds.max)
+                .all(|(min, max)| min <= max)
+    }) else {
+        return fail_open_bounds(mesh);
+    };
+    let world = local.transformed_by_affine(world_from_local);
+    if !world.is_finite() {
+        return fail_open_bounds(mesh);
+    }
+    VisibilityBounds {
+        center: Vec3::from_array(world.center),
+        radius: world.radius.max(local.radius * MIN_GPU_BOUNDS_RADIUS_SCALE),
     }
 }
 

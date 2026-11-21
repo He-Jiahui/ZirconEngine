@@ -66,6 +66,33 @@ fn render_mesh_bounds_rejects_non_finite_positions() {
     }
 }
 
+#[test]
+fn unreal_rotate_mirror_translate_aabb_matches_eight_corner_reference() {
+    // Same forward subcase as HeadlessChaos TestTransformAABB_ScaleRotateTranslate.
+    let min = Vec3::new(-3.0, -2.0, -1.0);
+    let max = Vec3::new(1.0, 2.0, 3.0);
+    let translation = Vec3::new(4.0, 7.0, -3.0);
+    let rotation =
+        Quat::from_axis_angle(Vec3::new(4.0, -3.0, 5.0).normalize(), 36.5_f32.to_radians());
+    let scale = Vec3::new(1.0, -4.0, 17.0);
+    let reference = RenderMeshBounds::try_from_positions((0..8).map(|corner| {
+        let point = Vec3::new(
+            if corner & 1 == 0 { min.x } else { max.x },
+            if corner & 2 == 0 { min.y } else { max.y },
+            if corner & 4 == 0 { min.z } else { max.z },
+        );
+        (rotation * (scale * point) + translation).to_array()
+    }))
+    .unwrap();
+    let projected = RenderMeshBounds::from_min_max(min.to_array(), max.to_array()).transformed(
+        Transform::from_translation(translation)
+            .with_rotation(rotation)
+            .with_scale(scale),
+    );
+    assert_vec3_close(projected.min, reference.min);
+    assert_vec3_close(projected.max, reference.max);
+}
+
 fn assert_vec3_close(actual: [f32; 3], expected: [f32; 3]) {
     for axis in 0..3 {
         assert!(

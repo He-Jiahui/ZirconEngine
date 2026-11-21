@@ -6,7 +6,8 @@ use crate::core::framework::render::{
 use crate::core::framework::scene::Mobility;
 
 use super::super::super::culling::{
-    mesh_bounds::mesh_bounds_from_local, visibility_entries::visibility_mesh_indices,
+    mesh_bounds::{mesh_bounds_from_affine, mesh_bounds_from_local},
+    visibility_entries::visibility_mesh_indices,
 };
 use super::super::super::declarations::{
     VisibilityBatch, VisibilityBatchKey, VisibilityBvhInstance, VisibilityHistoryEntry,
@@ -76,7 +77,10 @@ pub(super) fn collect_batching_result_with_prepared_bounds(
             .and_then(|bounds| bounds.get(mesh_index))
             .copied()
             .flatten();
-        let bounds = mesh_bounds_from_local(mesh, local_bounds);
+        let bounds = match value.geometry.affine_world_from_local(mesh) {
+            Some(matrix) => mesh_bounds_from_affine(mesh, local_bounds, matrix),
+            None => mesh_bounds_from_local(mesh, local_bounds),
+        };
         bvh_instances.push(VisibilityBvhInstance {
             entity,
             stable_instance_key: mesh.stable_instance_key,

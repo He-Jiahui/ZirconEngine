@@ -28,12 +28,13 @@ pub(crate) fn build_selection_vertices(
                 let Some(model) = streamer.model(&mesh_instance.model.id()) else {
                     return;
                 };
+                let world_from_local = frame.extract.geometry.mesh_world_from_local(mesh_instance);
                 for mesh in &model.meshes {
                     append_bounding_box_vertices(
                         &mut vertices,
                         mesh.bounds_min,
                         mesh.bounds_max,
-                        mesh_instance.transform.matrix(),
+                        world_from_local,
                         color,
                     );
                 }

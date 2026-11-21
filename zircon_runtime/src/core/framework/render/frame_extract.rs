@@ -49,6 +49,7 @@ pub use debug_overlay::DebugOverlayExtract;
 pub use extract_context::RenderExtractContext;
 pub use extract_producer::RenderExtractProducer;
 pub use frame::{RenderFrameExtract, RenderFrameTiming};
+pub(crate) use geometry::PreparedMeshAffine;
 pub use geometry::{GeometryExtract, GeometryPhaseInput, StaticMeshBatchExtract};
 pub use lighting::LightingExtract;
 pub use particle::ParticleExtract;

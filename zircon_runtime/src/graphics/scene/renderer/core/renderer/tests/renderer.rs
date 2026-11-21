@@ -253,3 +253,125 @@ fn portable_scene_keeps_ui_and_output_transfer_without_eager_desktop_effect_reso
         SceneRendererDeferredLightingProfile::FullScene
     );
 }
+
+#[test]
+fn prepared_world_affine_reaches_direct_and_model_instance_uploads() {
+    use crate::asset::{
+        AssetUri, MeshAsset, MeshAttributeValues, MeshIndices, MESH_ATTRIBUTE_NORMAL,
+        MESH_ATTRIBUTE_POSITION, MESH_ATTRIBUTE_UV0,
+    };
+    use crate::core::framework::render::{
+        render_mesh_stable_instance_key, CameraRenderDescriptor, ProjectionMode,
+        RenderExtractContext, RenderMeshTopology, SceneViewportExtractRequest,
+        ViewportCameraSnapshot,
+    };
+    use crate::core::math::{Quat, Transform, UVec2, Vec3};
+    use crate::core::resource::{ResourceHandle, ResourceId, ResourceKind, ResourceRecord};
+    use crate::graphics::backend::{read_buffer_bytes, BufferByteReadback};
+    use crate::graphics::scene::gpu_scene::GpuInstanceData;
+    use crate::graphics::types::ViewportRenderFrame;
+    use crate::scene::{components::MeshRenderer, NodeKind, World};
+
+    let assets = Arc::new(ProjectAssetManager::default());
+    let uri = AssetUri::parse("res://meshes/affine-draw.zmesh").unwrap();
+    let mesh_id = ResourceId::from_locator(&uri);
+    let mesh = MeshAsset::new(
+        uri.clone(),
+        RenderMeshTopology::TriangleList,
+        std::collections::BTreeMap::from([
+            (
+                MESH_ATTRIBUTE_POSITION.to_string(),
+                MeshAttributeValues::Float32x3(vec![[0.0; 3], [0.25, 0.0, 0.0], [0.0, 0.25, 0.0]]),
+            ),
+            (
+                MESH_ATTRIBUTE_NORMAL.to_string(),
+                MeshAttributeValues::Float32x3(vec![[0.0, 0.0, 1.0]; 3]),
+            ),
+            (
+                MESH_ATTRIBUTE_UV0.to_string(),
+                MeshAttributeValues::Float32x2(vec![[0.0; 2], [1.0, 0.0], [0.0, 1.0]]),
+            ),
+        ]),
+        Some(MeshIndices::U32(vec![0, 1, 2])),
+    )
+    .unwrap();
+    assets
+        .resource_manager()
+        .register_ready(ResourceRecord::new(mesh_id, ResourceKind::Mesh, uri), mesh)
+        .expect("publish direct mesh fixture");
+    let mut renderer = SceneRenderer::new_for_test(assets).expect("offscreen scene renderer");
+
+    let mut world = World::empty();
+    let parent = world.spawn_node(NodeKind::Empty).unwrap();
+    let direct = world.spawn_node(NodeKind::Mesh).unwrap();
+    world.get_mut::<MeshRenderer>(direct).unwrap().mesh = Some(ResourceHandle::new(mesh_id));
+    let model = world.spawn_node(NodeKind::Cube).unwrap();
+    let nodes = [direct, model];
+    for (entity, x) in [(direct, -0.6), (model, 0.6)] {
+        world
+            .update_transform(
+                entity,
+                Transform::from_translation(Vec3::new(x, 0.0, -5.0))
+                    .with_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_4)),
+            )
+            .unwrap();
+        world.set_parent_checked(entity, Some(parent)).unwrap();
+    }
+    let context = RenderExtractContext::new(
+        world.render_world_snapshot_handle(),
+        SceneViewportExtractRequest {
+            camera: Some(CameraRenderDescriptor::from_camera_payload(
+                None,
+                ViewportCameraSnapshot {
+                    projection_mode: ProjectionMode::Orthographic,
+                    ortho_size: 4.0,
+                    aspect_ratio: 1.0,
+                    ..Default::default()
+                },
+            )),
+            ..Default::default()
+        },
+    );
+    let [(sheared, first), (orthogonal, second)] =
+        [Vec3::new(2.0, 1.0, 1.0), Vec3::ONE].map(|scale| {
+            world
+                .update_transform(parent, Transform::default().with_scale(scale))
+                .unwrap();
+            let extract = world.build_prepared_render_frame_extract(&context);
+            assert_eq!(extract.geometry.meshes.len(), 2);
+            let expected =
+                nodes.map(|entity| world.world_matrix(entity).unwrap().to_cols_array_2d());
+            let frame = ViewportRenderFrame::from_extract(extract, UVec2::splat(64));
+            renderer
+                .render_frame(&frame)
+                .expect("submit prepared frame");
+            assert!(renderer.streamer.mesh(&mesh_id).is_some());
+            let gpu_scene = &renderer.core.gpu_scene;
+            let size = std::mem::size_of::<GpuInstanceData>() as u64;
+            let uploaded = nodes.map(|entity| {
+                let key = render_mesh_stable_instance_key(entity, 0);
+                let entry = gpu_scene.entry(key).expect("ordinary mesh instance entry");
+                let bytes = read_buffer_bytes(
+                    &renderer.backend.device,
+                    &renderer.backend.queue,
+                    gpu_scene.instance_buffer(),
+                    BufferByteReadback {
+                        source_offset: u64::from(entry.first_instance_index) * size,
+                        byte_len: size,
+                        label: "prepared-world-affine-readback",
+                    },
+                )
+                .expect("read actual uploaded instance without rolling history again");
+                bytemuck::pod_read_unaligned::<GpuInstanceData>(&bytes)
+            });
+            (expected, uploaded)
+        });
+    assert_eq!(
+        first.map(|row| row.world_from_local),
+        sheared,
+        "direct and model draws must upload the prepared World affine"
+    );
+    assert_eq!(first.map(|row| row.prev_world_from_local), sheared);
+    assert_eq!(second.map(|row| row.world_from_local), orthogonal);
+    assert_eq!(second.map(|row| row.prev_world_from_local), sheared);
+}

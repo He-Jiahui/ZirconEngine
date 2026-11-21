@@ -5,12 +5,13 @@ use crate::core::framework::render::{
     sort_render_cameras, AdvancedLightingExtract, CameraRenderDescriptor, DebugOverlayExtract,
     EnvironmentExtract, GeometryExtract, GeometryPhaseInput, LightingExtract,
     MaterialPropertyOverrideBlock, ParticleExtract, PostProcessExtract, PostProcessVolumeExtract,
-    PreviewEnvironmentExtract, ProjectionMode, RenderCameraOrderInput, RenderCameraOrderReport,
-    RenderExposureSettings, RenderFrameExtract, RenderFrameScenePayload, RenderHybridGiExtract,
-    RenderLayerSet, RenderMeshLodSelection, RenderMeshSnapshot, RenderMeshStaticState,
-    RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpriteSnapshot,
-    RenderViewExtract, RenderVirtualGeometryExtract, RenderWorldSnapshotHandle, RendererCommon,
-    SceneViewportExtractRequest, SceneViewportRenderPacket, SpriteExtract, ViewportCameraSnapshot,
+    PreparedMeshAffine, PreviewEnvironmentExtract, ProjectionMode, RenderCameraOrderInput,
+    RenderCameraOrderReport, RenderExposureSettings, RenderFrameExtract, RenderFrameScenePayload,
+    RenderHybridGiExtract, RenderLayerSet, RenderMeshLodSelection, RenderMeshSnapshot,
+    RenderMeshStaticState, RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderSpriteSnapshot, RenderViewExtract, RenderVirtualGeometryExtract,
+    RenderWorldSnapshotHandle, RendererCommon, SceneViewportExtractRequest,
+    SceneViewportRenderPacket, SpriteExtract, ViewportCameraSnapshot,
     RENDER_MESH_STABLE_KEY_MAX_PRIMITIVE_ORDINAL,
 };
 use crate::core::framework::scene::Mobility;
@@ -107,6 +108,7 @@ impl World {
                             mesh,
                             &camera_layers,
                             camera_position,
+                            None,
                             |snapshot| meshes.push(snapshot),
                         );
                     });
@@ -167,7 +169,7 @@ impl World {
             extract.geometry.scene_changes = self.render_component_change_artifact();
             return extract;
         }
-        let (meshes, phase_inputs, material_property_overrides) = self
+        let (meshes, phase_inputs, material_property_overrides, mesh_affines) = self
             .collect_render_meshes_and_phase_inputs(
                 &extract_layers,
                 view.camera.transform.translation,
@@ -195,7 +197,8 @@ impl World {
             meshes,
             phase_inputs,
             material_property_overrides,
-        );
+        )
+        .with_mesh_affines(mesh_affines);
         geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
             debug: request.virtual_geometry_debug.unwrap_or_default(),
             ..RenderVirtualGeometryExtract::default()
@@ -244,6 +247,7 @@ impl World {
         Vec<RenderMeshSnapshot>,
         Vec<GeometryPhaseInput>,
         BTreeMap<crate::scene::EntityId, MaterialPropertyOverrideBlock>,
+        BTreeMap<crate::scene::EntityId, PreparedMeshAffine>,
     ) {
         let mesh_component_id = self.registered_component_id::<MeshRenderer>();
         let mut mesh_entries = Vec::with_capacity(
@@ -252,6 +256,7 @@ impl World {
                 .unwrap_or(0),
         );
         let mut material_property_overrides = BTreeMap::new();
+        let mut mesh_affines = BTreeMap::new();
         {
             crate::profile_scope!("runtime", "scene", "render_mesh_visit");
             if let Some(component_id) = mesh_component_id {
@@ -263,6 +268,7 @@ impl World {
                             mesh,
                             camera_layers,
                             camera_position,
+                            Some(&mut mesh_affines),
                             |snapshot| {
                                 mesh_entries.push((
                                     snapshot,
@@ -313,9 +319,16 @@ impl World {
             "runtime",
             "render_frame_mesh_payload_bytes",
             render_mesh_snapshot_payload_bytes(&meshes)
+                + mesh_affines.len()
+                    * std::mem::size_of::<(crate::scene::EntityId, PreparedMeshAffine)>()
         );
 
-        (meshes, phase_inputs, material_property_overrides)
+        (
+            meshes,
+            phase_inputs,
+            material_property_overrides,
+            mesh_affines,
+        )
     }
 
     fn visit_render_mesh_snapshots_for_camera(
@@ -324,6 +337,7 @@ impl World {
         mesh: &MeshRenderer,
         camera_layers: &RenderLayerSet,
         camera_position: Vec3,
+        mesh_affines: Option<&mut BTreeMap<crate::scene::EntityId, PreparedMeshAffine>>,
         mut visit: impl FnMut(RenderMeshSnapshot),
     ) {
         if self.active_in_hierarchy(entity) != Some(true) {
@@ -337,7 +351,12 @@ impl World {
             return;
         }
 
-        let transform = self.world_transform(entity).unwrap_or_default();
+        let world_matrix = mesh_affines
+            .as_ref()
+            .and_then(|_| self.world_matrix(entity));
+        let transform = world_matrix
+            .map(super::derived_state::matrix_to_transform)
+            .unwrap_or_else(|| self.world_transform(entity).unwrap_or_default());
         let mobility = self.mobility(entity).unwrap_or_default();
         let static_state =
             RenderMeshStaticState::from_transform_static(mobility == Mobility::Static);
@@ -354,7 +373,13 @@ impl World {
             );
             return;
         }
-        let transform_revision = render_mesh_transform_revision(&transform);
+        let affine = world_matrix.and_then(|matrix| PreparedMeshAffine::new(matrix, transform));
+        let transform_revision = if let Some((mesh_affines, affine)) = mesh_affines.zip(affine) {
+            mesh_affines.insert(entity, affine);
+            affine.revision()
+        } else {
+            render_mesh_transform_revision(&transform)
+        };
         if !source.primitives.is_empty() {
             for (primitive_ordinal, primitive) in source.primitives.iter().enumerate() {
                 visit(RenderMeshSnapshot {

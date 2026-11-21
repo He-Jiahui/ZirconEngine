@@ -1,9 +1,11 @@
 use crate::core::framework::render::{
-    render_mesh_stable_instance_key, RenderComponentFullReprojectionReason,
-    RenderComponentProjectionMode, RenderExtractContext, RenderMeshBounds,
-    RenderWorldSnapshotHandle, SceneViewportExtractRequest,
+    render_mesh_stable_instance_key, CameraRenderDescriptor, ProjectionMode,
+    RenderComponentFullReprojectionReason, RenderComponentProjectionMode, RenderExtractContext,
+    RenderFrameExtract, RenderMeshBounds, RenderWorldSnapshotHandle, SceneViewportExtractRequest,
+    ViewportCameraSnapshot,
 };
 use crate::core::math::{Mat4, Quat, Transform, Vec3};
+use crate::graphics::visibility::VisibilityContext;
 use crate::scene::components::{
     ActiveInHierarchy, ActiveSelf, LocalTransform, MeshRenderer, Name, RenderLayerMask, WorldMatrix,
 };
@@ -510,4 +512,287 @@ fn render_scene_component_projector_preserves_hierarchical_shear_world_matrix() 
         primitive.descriptor().world_from_local.to_cols_array(),
         expected.to_cols_array()
     );
+}
+
+#[test]
+fn prepared_mesh_keeps_affine_geometry_visible_across_sparse_replay() {
+    let mut world = World::empty();
+    let parent = world.spawn_node(crate::scene::NodeKind::Empty).unwrap();
+    world
+        .update_transform(
+            parent,
+            Transform::default().with_scale(Vec3::new(2.0, 1.0, 1.0)),
+        )
+        .unwrap();
+    let child = world.spawn(mesh_bundle("visible sheared mesh")).unwrap();
+    world
+        .update_transform(
+            child,
+            Transform::from_translation(Vec3::new(1.375, 0.0, -5.0))
+                .with_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_4)),
+        )
+        .unwrap();
+    world.set_parent_checked(child, Some(parent)).unwrap();
+    let outside = world.spawn(mesh_bundle("outside mesh")).unwrap();
+    world
+        .update_transform(
+            outside,
+            Transform::from_translation(Vec3::new(30.0, 0.0, -5.0)),
+        )
+        .unwrap();
+
+    let camera = ViewportCameraSnapshot {
+        projection_mode: ProjectionMode::Orthographic,
+        ortho_size: 1.0,
+        aspect_ratio: 1.0,
+        z_far: 10.0,
+        ..Default::default()
+    };
+    let extract_context = RenderExtractContext::new(
+        world.render_world_snapshot_handle(),
+        SceneViewportExtractRequest {
+            camera: Some(CameraRenderDescriptor::from_camera_payload(None, camera)),
+            ..Default::default()
+        },
+    );
+    let full = world.build_prepared_render_frame_extract(&extract_context);
+    let world_matrix = world.world_matrix(child).unwrap();
+    let half = std::f32::consts::FRAC_1_SQRT_2;
+    let local_vertex = Vec3::new(-half, half, 0.0);
+    let world_vertex = world_matrix.transform_point3(local_vertex);
+    assert!((world_vertex - Vec3::new(0.75, 0.0, -5.0)).length() < 1.0e-5);
+    assert!(world_vertex.x.abs() < 1.0 && world_vertex.y.abs() < 1.0);
+    let local = RenderMeshBounds::try_from_positions([
+        local_vertex.to_array(),
+        [half, half, 0.0],
+        [half, -half, 0.0],
+    ])
+    .unwrap();
+    let stable_key = render_mesh_stable_instance_key(child, 0);
+    let mut projector = RenderSceneComponentProjector::new(extract_context.world);
+    projector
+        .project_frame(&full, &mut TestGeometryResolver::default())
+        .unwrap();
+    let read = projector.read();
+    let projected = read
+        .get(read.handle_for_stable_key(stable_key).unwrap())
+        .unwrap();
+    assert_eq!(projected.descriptor().world_from_local, world_matrix);
+
+    // A later material-only change produces an increment without the sheared row.
+    // CPU visibility must not try to recover current matrices from journal upserts.
+    world.get_mut::<MeshRenderer>(outside).unwrap().render_queue = 7;
+    let sparse = world.build_prepared_render_frame_extract(&extract_context);
+    let changes = sparse.geometry.scene_changes.as_ref().unwrap();
+    assert_eq!(changes.mode(), RenderComponentProjectionMode::Incremental);
+    assert!(changes.upserts().iter().any(|row| row.entity() == outside));
+    assert!(changes.upserts().iter().all(|row| row.entity() != child));
+    assert_eq!(world.world_matrix(child).unwrap(), world_matrix);
+
+    let observe = |frame: &RenderFrameExtract| {
+        let bounds = vec![Some(local); frame.geometry.meshes.len()];
+        let context = VisibilityContext::from_extract_with_history_static_index_task_pool_and_feature_payloads_with_prepared_bounds(
+            frame, None, None, None, None, None, None, Some(&bounds),
+        );
+        let sphere = context
+            .bvh_instances
+            .iter()
+            .find(|row| row.stable_instance_key == stable_key)
+            .unwrap()
+            .bounds;
+        assert!(
+            sphere.radius.is_finite() && sphere.radius < 10.0,
+            "the provided bounds must not take the missing-geometry branch"
+        );
+        let contains_vertex = sphere.center.distance(world_vertex) <= sphere.radius;
+        (context.main_view_visible_entities(), contains_vertex)
+    };
+    assert_eq!(
+        [&full, &sparse].map(observe),
+        [(vec![child], true), (vec![child], true)],
+        "both the full and sparse frames must retain a mesh with an inside vertex"
+    );
+
+    let shared = RenderFrameExtract::from_shared_scene(
+        sparse.shared_scene(),
+        sparse.view.clone(),
+        sparse.timing,
+    );
+    assert!(shared.shares_scene_with(&sparse));
+    assert_eq!(observe(&shared), (vec![child], true));
+
+    // The public DTO may be edited or replaced in a derived frame. An
+    // affine row from the old frame cannot override either change.
+    let mut moved = shared.clone();
+    let mesh = moved
+        .geometry
+        .meshes
+        .iter_mut()
+        .find(|mesh| mesh.node_id == child)
+        .unwrap();
+    mesh.transform.translation.x = -30.0;
+    assert!(observe(&moved).0.is_empty());
+    let mut replaced = shared.clone();
+    let mesh = replaced
+        .geometry
+        .meshes
+        .iter_mut()
+        .find(|mesh| mesh.node_id == child)
+        .unwrap();
+    mesh.transform_revision ^= 1;
+    assert!(observe(&replaced).0.is_empty());
+    assert_eq!(observe(&shared), (vec![child], true));
+}
+
+#[test]
+fn prepared_mesh_revision_tracks_opposite_shear_with_equal_projected_trs() {
+    let mut world = World::empty();
+    let parent = world
+        .spawn((Name("shear parent".into()), ActiveSelf::default()))
+        .unwrap();
+    let child = world.spawn(mesh_bundle("shear child")).unwrap();
+    world.set_parent_checked(child, Some(parent)).unwrap();
+    let extract_context = RenderExtractContext::new(
+        RenderWorldSnapshotHandle::new(92),
+        SceneViewportExtractRequest::default(),
+    );
+    // Rounded near-unit 45° quaternion whose computed XY sine and cosine
+    // coefficients are equal in f32. Opposite conjugations produce symmetric
+    // matrices with equal diagonals and column lengths, not equal off-diagonals.
+    let z = f32::from_bits(0x3ec3ef15);
+    let w = f32::from_bits(0x3f6c8360);
+    let build = |world: &mut World, sign: f32| {
+        let rotation = Quat::from_xyzw(0.0, 0.0, sign * z, w);
+        let inverse_rotation = Quat::from_xyzw(0.0, 0.0, -sign * z, w);
+        world
+            .update_transform(
+                parent,
+                Transform::default()
+                    .with_rotation(rotation)
+                    .with_scale(Vec3::new(2.0, 1.0, 1.0)),
+            )
+            .unwrap();
+        world
+            .update_transform(
+                child,
+                Transform::from_translation(Vec3::new(0.0, 0.0, -5.0))
+                    .with_rotation(inverse_rotation),
+            )
+            .unwrap();
+        let frame = world.build_prepared_render_frame_extract(&extract_context);
+        let mesh = frame
+            .geometry
+            .meshes
+            .iter()
+            .find(|row| row.node_id == child)
+            .unwrap();
+        (
+            world.world_matrix(child).unwrap(),
+            world.world_transform(child).unwrap(),
+            mesh.stable_instance_key,
+            mesh.transform_revision,
+        )
+    };
+    let (positive, positive_trs, key, revision) = build(&mut world, 1.0);
+    let (negative, negative_trs, changed_key, changed_revision) = build(&mut world, -1.0);
+    assert!(positive.x_axis.y > 0.45 && negative.x_axis.y < -0.45);
+    assert_ne!(positive, negative);
+    assert_eq!(
+        positive_trs, negative_trs,
+        "fixture selects a change hidden by TRS projection"
+    );
+    assert_eq!(key, changed_key);
+    assert_eq!(
+        changed_revision,
+        build(&mut world, -1.0).3,
+        "unchanged authored input must not churn the revision"
+    );
+    assert_ne!(
+        revision, changed_revision,
+        "same stable draw key needs a new transform revision when its actual world matrix changes"
+    );
+}
+
+#[test]
+fn prepared_tighter_affine_bounds_keep_perspective_witness_visible() {
+    let mut world = World::empty();
+    let parent = world.spawn_node(crate::scene::NodeKind::Empty).unwrap();
+    world
+        .update_transform(
+            parent,
+            Transform::default().with_scale(Vec3::new(1.0, 3.0, 1.2)),
+        )
+        .unwrap();
+    let child = world
+        .spawn(mesh_bundle("crossing perspective mesh"))
+        .unwrap();
+    world
+        .update_transform(
+            child,
+            Transform::from_translation(Vec3::new(6.3, 0.0, -5.0 / 1.2))
+                .with_rotation(Quat::from_rotation_y(-std::f32::consts::FRAC_PI_4)),
+        )
+        .unwrap();
+    world.set_parent_checked(child, Some(parent)).unwrap();
+    let outside = world
+        .spawn(mesh_bundle("outside perspective mesh"))
+        .unwrap();
+    world
+        .update_transform(
+            outside,
+            Transform::from_translation(Vec3::new(30.0, 0.0, -5.0)),
+        )
+        .unwrap();
+
+    let camera = ViewportCameraSnapshot {
+        transform: Transform::default(),
+        projection_mode: ProjectionMode::Perspective,
+        fov_y_radians: std::f32::consts::FRAC_PI_2,
+        aspect_ratio: 1.0,
+        z_near: 0.1,
+        z_far: 10.0,
+        ..Default::default()
+    };
+    let frame = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
+        world.render_world_snapshot_handle(),
+        SceneViewportExtractRequest {
+            camera: Some(CameraRenderDescriptor::from_camera_payload(None, camera)),
+            ..Default::default()
+        },
+    ));
+    let world_matrix = world.world_matrix(child).unwrap();
+    let x = world_matrix.x_axis.truncate();
+    let z = world_matrix.z_axis.truncate();
+    assert!(x.dot(z) > 0.2);
+    let witness = world_matrix.transform_point3(Vec3::NEG_X);
+    assert!((witness - Vec3::new(5.592893, 0.0, -5.848528)).length() < 1.0e-5);
+    assert!((0.1..10.0).contains(&-witness.z) && witness.x.abs() < -witness.z);
+    let local = RenderMeshBounds::try_from_positions([
+        Vec3::NEG_X.to_array(),
+        [1.0, 0.01, 0.0],
+        [1.0, -0.01, 0.0],
+    ])
+    .unwrap();
+    let bounds = vec![Some(local); frame.geometry.meshes.len()];
+    let context = VisibilityContext::from_extract_with_history_static_index_task_pool_and_feature_payloads_with_prepared_bounds(
+        &frame, None, None, None, None, None, None, Some(&bounds),
+    );
+    let key = render_mesh_stable_instance_key(child, 0);
+    let sphere = context
+        .bvh_instances
+        .iter()
+        .find(|instance| instance.stable_instance_key == key)
+        .unwrap()
+        .bounds;
+    // Accept both the old loose sphere and the smaller affine box sphere, but
+    // never a missing-bounds fail-open. Keep the measured radius in the log.
+    assert!((1.0..3.1).contains(&sphere.radius));
+    assert!(sphere.center.distance(witness) <= sphere.radius);
+    eprintln!("BD02 perspective sphere radius: {:.8}", sphere.radius);
+    assert_eq!(
+        context.main_view_visible_entities(),
+        vec![child],
+        "the tighter sphere must retain an actual vertex inside the perspective side plane"
+    );
+    assert_eq!(context.main_view_culled_entities(), vec![outside]);
 }

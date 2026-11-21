@@ -93,8 +93,11 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
     } else {
         mesh_instance.tint
     };
-    let model_matrix =
-        render_mat4_or(mesh_instance.transform.matrix(), RenderMat4::IDENTITY).to_cols_array_2d();
+    let model_matrix = render_mat4_or(
+        frame.extract.geometry.mesh_world_from_local(mesh_instance),
+        RenderMat4::IDENTITY,
+    )
+    .to_cols_array_2d();
     let material_proxy = material_selection.proxy(streamer, &mesh_instance.material.id());
     let material = material_proxy.runtime();
     let common = Arc::new(renderer_common_for_material(
