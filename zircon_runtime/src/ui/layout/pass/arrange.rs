@@ -766,19 +766,30 @@ fn arrange_scrollable_children(
         }
     }
 
-    let (content_size, previous_state, previous_window) = {
+    let (content_extent, previous_state, previous_window) = {
         let node = tree
             .node(node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
+        let mut content_extent = size_axis_extent(node.layout_cache.content_size, config.axis);
+        if config.virtualization.is_none() {
+            // Measurement includes the node inset; the scroll viewport has already excluded it.
+            let padding_extent = match config.axis {
+                UiAxis::Horizontal => node.layout_padding.horizontal(),
+                UiAxis::Vertical => node.layout_padding.vertical(),
+            }
+            .max(0.0);
+            if padding_extent > 0.0 && padding_extent.is_finite() && content_extent.is_finite() {
+                content_extent = (content_extent - padding_extent).max(0.0);
+            }
+        }
         (
-            node.layout_cache.content_size,
+            content_extent,
             node.scroll_state.unwrap_or_default(),
             node.layout_cache.virtual_window,
         )
     };
 
     let viewport_extent = frame_axis_extent(frame, config.axis);
-    let content_extent = size_axis_extent(content_size, config.axis);
     let plan = plan_scrollable_virtual_window(
         config,
         previous_state,
