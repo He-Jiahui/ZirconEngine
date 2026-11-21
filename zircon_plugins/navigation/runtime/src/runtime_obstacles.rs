@@ -165,9 +165,9 @@ pub(crate) fn collect_runtime_obstacles(world: &World) -> Vec<RuntimeObstacle> {
         .filter_map(|node| {
             let value = world.dynamic_component(node.id, NAV_MESH_OBSTACLE_COMPONENT_TYPE)?;
             let obstacle = parse_component::<NavMeshObstacleDescriptor>(value);
-            let transform = world.world_transform(node.id).unwrap_or(node.transform);
-            let center = transform
-                .matrix()
+            let center = world
+                .world_matrix(node.id)
+                .unwrap_or_else(|| node.transform.matrix())
                 .transform_point3(Vec3::from_array(obstacle.center));
             let radius = match obstacle.shape {
                 NavMeshObstacleShape::Box => {
