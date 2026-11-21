@@ -356,6 +356,136 @@ fn render_shader_variant_cache_same_key_writers_publish_one_verified_entry() {
 }
 
 #[test]
+fn render_shader_variant_cache_reuses_first_manifest_observation() {
+    let root = unique_shader_cache_project_root("repeated-manifest-observation");
+    let cache = ShaderVariantCacheDisk::new(&root);
+    let source = cache_source("fn main() {}", "template-r1", "naga-test", "wgpu-test");
+    let key = disk_key(&variant_key(), &source);
+    let first = cache.write(&key, &source.wgsl_source).unwrap();
+    let path = cache.entry_path(&key);
+    let payload = fs::read(&path.payload).unwrap();
+    let mut published = first.meta;
+    // Fixed historical observation (not the current wall clock); no sleep.
+    published.created_unix_seconds = 1;
+    let published_bytes = serde_json::to_vec_pretty(&published).unwrap();
+    fs::write(&path.manifest, &published_bytes).unwrap();
+
+    let again = cache.write(&key, &source.wgsl_source);
+    assert_eq!(fs::read(&path.manifest).unwrap(), published_bytes);
+    assert_eq!(fs::read(&path.payload).unwrap(), payload);
+    let _ = fs::remove_dir_all(&root);
+    let again = again.unwrap();
+    assert_eq!(again.meta, published);
+    assert_eq!(again.wgsl_source, source.wgsl_source);
+}
+
+#[test]
+fn render_shader_variant_cache_retry_rejects_malformed_or_different_manifest_identity() {
+    let root = unique_shader_cache_project_root("repeated-manifest-conflicts");
+    let cache = ShaderVariantCacheDisk::new(&root);
+    let source = cache_source("fn main() {}", "template-r1", "naga-test", "wgpu-test");
+    let key = disk_key(&variant_key(), &source);
+    let first = cache.write(&key, &source.wgsl_source).unwrap();
+    let path = cache.entry_path(&key);
+    let payload = fs::read(&path.payload).unwrap();
+    let mut published = serde_json::to_value(first.meta).unwrap();
+    published["created_unix_seconds"] = serde_json::json!(1);
+    for (field, value) in [
+        ("source_hash", serde_json::json!("other-source")),
+        ("payload_hash", serde_json::json!("other-payload")),
+        ("wgpu_version", serde_json::json!("other-toolchain")),
+        ("future_identity", serde_json::json!({"producer": "other"})),
+        ("created_unix_seconds", serde_json::json!("1")),
+        ("created_unix_seconds", serde_json::json!(true)),
+        ("created_unix_seconds", serde_json::json!(-1)),
+        ("created_unix_seconds", serde_json::json!(1.0)),
+    ] {
+        let mut changed = published.clone();
+        changed[field] = value;
+        let changed_bytes = serde_json::to_vec(&changed).unwrap();
+        assert_manifest_retry_conflict(&cache, &key, &source.wgsl_source, &changed_bytes, &payload);
+    }
+
+    let mut missing = published.clone();
+    missing.as_object_mut().unwrap().remove("created_unix_seconds");
+    let missing_bytes = serde_json::to_vec(&missing).unwrap();
+    assert_manifest_retry_conflict(&cache, &key, &source.wgsl_source, &missing_bytes, &payload);
+    let duplicate = published.to_string().replacen('{', r#"{"created_unix_seconds":2,"#, 1);
+    assert_manifest_retry_conflict(&cache, &key, &source.wgsl_source, duplicate.as_bytes(), &payload);
+    assert_manifest_retry_conflict(&cache, &key, &source.wgsl_source, b"{ invalid json", &payload);
+    let _ = fs::remove_dir_all(&root);
+}
+
+fn assert_manifest_retry_conflict(
+    cache: &ShaderVariantCacheDisk,
+    key: &ShaderVariantCacheDiskKey,
+    wgsl_source: &str,
+    manifest: &[u8],
+    payload: &[u8],
+) {
+    let path = cache.entry_path(key);
+    fs::write(&path.manifest, manifest).unwrap();
+    let retry = cache.write(key, wgsl_source);
+    assert_eq!(fs::read(&path.manifest).unwrap().as_slice(), manifest);
+    assert_eq!(fs::read(&path.payload).unwrap().as_slice(), payload);
+    assert!(matches!(retry, Err(ShaderVariantCacheDiskError::CorruptTarget(_))), "{retry:?}");
+}
+
+#[test]
+fn render_shader_variant_cache_retry_rejects_changed_immutable_payload() {
+    let root = unique_shader_cache_project_root("repeated-manifest-payload-conflict");
+    let cache = ShaderVariantCacheDisk::new(&root);
+    let source = cache_source("fn main() {}", "template-r1", "naga-test", "wgpu-test");
+    let key = disk_key(&variant_key(), &source);
+    cache.write(&key, &source.wgsl_source).unwrap();
+    let path = cache.entry_path(&key);
+    let manifest = fs::read(&path.manifest).unwrap();
+    let mut payload = fs::read(&path.payload).unwrap();
+    payload[0] ^= 1;
+    fs::write(&path.payload, &payload).unwrap();
+
+    let retry = cache.write(&key, &source.wgsl_source);
+    assert_eq!(fs::read(&path.manifest).unwrap(), manifest);
+    assert_eq!(fs::read(&path.payload).unwrap(), payload);
+    let _ = fs::remove_dir_all(&root);
+    assert!(matches!(retry, Err(ShaderVariantCacheDiskError::CorruptTarget(message))
+        if message.contains("immutable payload")));
+}
+
+#[test]
+fn render_shader_variant_cache_manifest_commit_conflicts_keep_raw_first_writer() {
+    let root = unique_shader_cache_project_root("repeated-manifest-raw-install-conflict");
+    let cache = ShaderVariantCacheDisk::new(&root);
+    let source = cache_source("fn main() {}", "template-r1", "naga-test", "wgpu-test");
+    let key = disk_key(&variant_key(), &source);
+    let entry = cache.write(&key, &source.wgsl_source).unwrap();
+    let path = cache.entry_path(&key);
+    let payload = fs::read(&path.payload).unwrap();
+    let mut first = entry.meta;
+    first.created_unix_seconds = 1;
+    let first_bytes = serde_json::to_vec_pretty(&first).unwrap();
+    let mut later = first.clone();
+    later.created_unix_seconds = 2;
+    let later_bytes = serde_json::to_vec_pretty(&later).unwrap();
+    fs::remove_file(&path.manifest).unwrap();
+    // Install the winner just after the losing caller checked for a destination.
+    let publish_first = || atomic_manifest_commit(&path.manifest, &first_bytes).unwrap();
+    let late = atomic_manifest_commit_with_hook(&path.manifest, &later_bytes, Some(&publish_first));
+    let preexisting = atomic_manifest_commit(&path.manifest, &later_bytes);
+    assert_eq!(late, preexisting);
+    assert!(matches!(late, Err(ShaderVariantCacheDiskError::CorruptTarget(_))));
+    assert_eq!(fs::read(&path.manifest).unwrap(), first_bytes);
+    assert_eq!(fs::read(&path.payload).unwrap(), payload);
+
+    // The typed caller may reuse, but must keep the original published bytes.
+    let retry = cache.write(&key, &source.wgsl_source);
+    assert_eq!(fs::read(&path.manifest).unwrap(), first_bytes);
+    assert_eq!(fs::read(&path.payload).unwrap(), payload);
+    let _ = fs::remove_dir_all(&root);
+    assert_eq!(retry.unwrap().meta, first);
+}
+
+#[test]
 fn shader_variant_disk_cache_profiles_lookup_and_write_independently() {
     let source = include_str!("../disk.rs")
         .split_once("#[cfg(test)]")
