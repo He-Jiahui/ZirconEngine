@@ -75,6 +75,8 @@ impl WgpuSurfaceBootstrap {
             descriptor,
             instance,
         } = self;
+        #[cfg(target_arch = "wasm32")]
+        let mut descriptor = descriptor;
         let surface_ref = &surface;
         #[cfg(target_arch = "wasm32")]
         let adapters = {
