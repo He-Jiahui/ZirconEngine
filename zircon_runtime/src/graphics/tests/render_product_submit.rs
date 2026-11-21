@@ -37,6 +37,8 @@ use super::plugin_render_feature_fixtures::{
     pluginized_wgpu_render_framework_with_solari_provider,
 };
 
+#[path = "render_product_submit/core2d_depth_attachment.rs"]
+mod core2d_depth_attachment;
 #[path = "render_product_submit/profiles.rs"]
 mod profiles;
 
