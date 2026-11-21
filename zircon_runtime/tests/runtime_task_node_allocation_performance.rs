@@ -1,6 +1,8 @@
 use std::alloc::{GlobalAlloc, Layout, System};
+use std::cell::Cell;
 use std::hint::black_box;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use zircon_runtime::core::runtime::tasks::{
@@ -140,8 +142,81 @@ fn finish_profile() -> (u64, u64) {
 }
 
 fn record_allocation(pointer: *mut u8, size: usize) {
-    if !pointer.is_null() && PROFILE_ACTIVE.load(Ordering::Relaxed) {
+    if pointer.is_null() {
+        return;
+    }
+    if PROFILE_ACTIVE.load(Ordering::Relaxed) {
         ALLOCATION_COUNT.fetch_add(1, Ordering::Relaxed);
         ALLOCATED_BYTES.fetch_add(size as u64, Ordering::Relaxed);
+        return;
     }
+    let _ = CALLER_ALLOCATIONS.try_with(|count| {
+        if let Some(allocations) = count.get() {
+            count.set(Some(allocations.saturating_add(1)));
+        }
+    });
+}
+
+thread_local! {
+    static CALLER_ALLOCATIONS: Cell<Option<u64>> = const { Cell::new(None) };
+}
+
+fn profile_caller_allocations(operation: impl FnOnce()) -> u64 {
+    assert!(!PROFILE_ACTIVE.load(Ordering::SeqCst));
+    CALLER_ALLOCATIONS.with(|count| {
+        assert!(count.replace(Some(0)).is_none());
+        operation();
+        count.replace(None).expect("caller probe must be armed")
+    })
+}
+
+#[test]
+fn task_wait_all_singleton_reuses_terminal_handle() {
+    use zircon_runtime::core::runtime::tasks::{TaskHandle, TaskState};
+
+    let budget = Duration::from_secs(5);
+    let graph = EngineTaskGraph::try_new(EngineTaskGraphOptions::with_worker_threads(1))
+        .expect("graph must start its real worker domains");
+    let scope = graph
+        .create_scope(TaskGraphScopeDescriptor::new("wait-all-singleton"))
+        .expect("running graph must admit a scope");
+    let done = Arc::new(AtomicBool::new(false));
+    let done_for_task = Arc::clone(&done);
+    let task = scope
+        .submit(
+            TaskDescriptor::new(TaskId::new(1), TaskPoolKind::Compute, "singleton")
+                .with_cancellation_policy(TaskCancellationPolicy::FinishOnShutdown),
+            move |_| done_for_task.store(true, Ordering::Release),
+        )
+        .expect("scope must admit the task");
+    scope.close_admission();
+    assert!(scope.wait_until_quiescent(budget), "task must drain");
+    assert_eq!(scope.census().completed, 1);
+    assert_eq!(task.status().state, TaskState::Completed);
+
+    // Count on the caller only; dispatcher and worker allocations are not part of this contract.
+    let empty = profile_caller_allocations(|| TaskHandle::wait_all(&[]));
+    let direct = profile_caller_allocations(|| black_box(&task).wait());
+    let singleton = profile_caller_allocations(|| {
+        TaskHandle::wait_all(black_box(std::slice::from_ref(&task)));
+    });
+    let meter = profile_caller_allocations(|| {
+        drop(black_box(Box::new(black_box(42_u64))));
+    });
+
+    assert!(done.load(Ordering::Acquire), "the task body must have run");
+    assert_eq!(task.status().state, TaskState::Completed);
+    assert!(!graph
+        .shutdown(budget)
+        .expect("the graph must join its own workers")
+        .has_in_flight_work());
+    println!(
+        "TASK_WAIT_ALL_SINGLETON empty={empty} direct={direct} singleton={singleton} meter={meter}"
+    );
+    assert!(meter > 0, "the caller allocation meter must see a real Box");
+    assert_eq!((empty, direct), (0, 0), "negative allocation controls");
+    assert_eq!(
+        singleton, direct,
+        "an already-completed singleton must use the direct wait path without allocating"
+    );
 }
