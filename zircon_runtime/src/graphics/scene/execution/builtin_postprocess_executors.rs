@@ -61,8 +61,7 @@ pub(super) fn color_lut_bake_postprocess_executor(
 ) -> Result<(), String> {
     let should_execute = {
         let gpu = context.require_gpu()?;
-        gpu.frame_extract()
-            .post_process
+        gpu.post_process()
             .graph
             .nodes
             .iter()
