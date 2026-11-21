@@ -1,4 +1,6 @@
 //! 已选适配器及主表面一次性交给设备，后续表面帧由同一代际管理。
+use std::future::Future;
+
 use zr_rhi::{RenderAdapterFacts, RenderDeviceProfile, RhiError, SurfaceSessionCreateOutcome};
 
 use super::{WgpuRenderDevice, WgpuRenderDeviceContext};
@@ -54,17 +56,27 @@ impl WgpuSurfaceAdapterBootstrap {
         native_descriptor: &wgpu::DeviceDescriptor<'_>,
         profile: RenderDeviceProfile,
     ) -> Result<(WgpuRenderDevice, SurfaceSessionCreateOutcome), RhiError> {
-        let (owner, _, outcome) = self
-            .request_device_inner(native_descriptor, move |facts, _| {
-                if profile.adapter() != facts {
-                    return Err(RhiError::NativeContextAdapterMismatch {
-                        profile_adapter: Box::new(profile.adapter().clone()),
-                        context_adapter: facts.clone(),
-                    });
-                }
-                Ok(profile)
+        let Self {
+            surface,
+            adapter,
+            adapter_facts,
+            descriptor,
+            instance,
+        } = self;
+        let request_adapter = &adapter;
+        let (device, queue, profile) =
+            request_with_supplied_profile(&adapter_facts, profile, move || {
+                request_native_device(request_adapter, native_descriptor)
             })
             .await?;
+        let (owner, _, outcome) = Self::adopt_requested_device(
+            surface,
+            adapter,
+            descriptor,
+            instance,
+            (device, queue),
+            profile,
+        )?;
         Ok((owner, outcome))
     }
 
@@ -106,14 +118,57 @@ impl WgpuSurfaceAdapterBootstrap {
             descriptor,
             instance,
         } = self;
-        let (device, queue) = adapter
-            .request_device(native_descriptor)
-            .await
-            .map_err(|error| RhiError::SurfaceUnavailable(error.to_string()))?;
+        let (device, queue) = request_native_device(&adapter, native_descriptor).await?;
         let profile = profile(&adapter_facts, &device)?;
+        Self::adopt_requested_device(
+            surface,
+            adapter,
+            descriptor,
+            instance,
+            (device, queue),
+            profile,
+        )
+    }
+
+    fn adopt_requested_device(
+        surface: wgpu::Surface<'static>,
+        adapter: wgpu::Adapter,
+        descriptor: zr_rhi::RenderSurfaceDescriptor,
+        instance: wgpu::Instance,
+        (device, queue): (wgpu::Device, wgpu::Queue),
+        profile: RenderDeviceProfile,
+    ) -> Result<(WgpuRenderDevice, wgpu::Device, SurfaceSessionCreateOutcome), RhiError> {
         let context = WgpuRenderDeviceContext::new(instance, adapter, device.clone(), queue);
         let render_device = WgpuRenderDevice::new(context, profile)?;
         let outcome = render_device.adopt_surface_session(descriptor, surface)?;
         Ok((render_device, device, outcome))
     }
+}
+
+async fn request_native_device(
+    adapter: &wgpu::Adapter,
+    native_descriptor: &wgpu::DeviceDescriptor<'_>,
+) -> Result<(wgpu::Device, wgpu::Queue), RhiError> {
+    adapter
+        .request_device(native_descriptor)
+        .await
+        .map_err(|error| RhiError::SurfaceUnavailable(error.to_string()))
+}
+
+pub(super) async fn request_with_supplied_profile<D, Q, F>(
+    facts: &RenderAdapterFacts,
+    profile: RenderDeviceProfile,
+    request: impl FnOnce() -> F,
+) -> Result<(D, Q, RenderDeviceProfile), RhiError>
+where
+    F: Future<Output = Result<(D, Q), RhiError>>,
+{
+    if profile.adapter() != facts {
+        return Err(RhiError::NativeContextAdapterMismatch {
+            profile_adapter: Box::new(profile.adapter().clone()),
+            context_adapter: facts.clone(),
+        });
+    }
+    let (device, queue) = request().await?;
+    Ok((device, queue, profile))
 }
