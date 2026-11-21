@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>WebEngine Canvas surface formats</title>
+<canvas id="target" width="64" height="48"></canvas>
+<pre id="report">Loading WebEngine…</pre>
+<script type="module">
+async function run() {
+  const pkg = await import('./zircon_app.js');
+  await pkg.default();
+  const canvas = document.getElementById('target');
+  const assetRoot = new URL('./canvas-scene', location.href).href;
+  const stats = () => JSON.parse(pkg.browser_memory_snapshot());
+  const baseline = stats();
+  const context = canvas.getContext('webgpu');
+  if (!context) throw new Error('WebGPU canvas context unavailable');
+  const configured = [];
+  const textures = [];
+  const configure = context.configure;
+  const acquire = context.getCurrentTexture;
+  context.configure = function (descriptor) {
+    const result = configure.call(this, descriptor);
+    configured.push(descriptor.format);
+    return result;
+  };
+  context.getCurrentTexture = function () {
+    const texture = acquire.call(this);
+    textures.push({ format: texture.format, width: texture.width, height: texture.height });
+    return texture;
+  };
+  const checks = {};
+  let engine, error, closeError;
+  const frames = [];
+  try {
+    engine = await pkg.WebEngine.load(canvas, assetRoot);
+    checks.loaded = true;
+    frames.push(JSON.parse(await engine.render_frame(16)));
+    engine.resize(96, 64);
+    frames.push(JSON.parse(await engine.render_frame(32)));
+    checks.configured = configured.length > 0 && configured.every(format =>
+      format === 'bgra8unorm' || format === 'rgba8unorm');
+    checks.acquired = [[64, 48], [96, 64]].every(([width, height]) =>
+      textures.some(t => t.width === width && t.height === height && configured.includes(t.format)));
+    checks.presented = frames.every(frame => frame.presented && frame.submitted_frames > 0) &&
+      frames[1].submitted_frames > frames[0].submitted_frames;
+  } catch (failure) {
+    error = failure instanceof Error ? failure.message : String(failure);
+  } finally {
+    try {
+      if (engine) {
+        const receipt = JSON.parse(await engine.close());
+        checks.closed = receipt.modules_closed && receipt.task_graph_joined;
+      }
+    } catch (failure) {
+      closeError = String(failure);
+    } finally {
+      engine?.free();
+      delete context.configure;
+      delete context.getCurrentTexture;
+    }
+  }
+  const owners = stats();
+  checks.ownersReleased = ['live_engines', 'registered_canvases', 'event_listeners'].every(
+    key => owners[key] === baseline[key]);
+  const passed = !error && !closeError && ['loaded', 'configured', 'acquired', 'presented',
+    'closed', 'ownersReleased'].every(key => checks[key] === true);
+  return { passed, error, closeError, checks, configured, textures, frames, baseline, owners };
+}
+window.canvasFormatResult = run().catch(error => ({ passed: false, error: String(error) }));
+document.getElementById('report').textContent = JSON.stringify(await window.canvasFormatResult, null, 2);
+</script>
+</html>

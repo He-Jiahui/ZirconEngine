@@ -397,10 +397,14 @@ fn negotiate_surface_config(
     descriptor: &RenderSurfaceDescriptor,
 ) -> Result<(wgpu::SurfaceConfiguration, SwapchainDesc), RhiError> {
     let caps = surface.get_capabilities(adapter);
-    let format =
-        choose_surface_format(&caps.formats, descriptor.swapchain.format).ok_or_else(|| {
-            RhiError::SurfaceUnavailable("surface has no supported SDR sRGB format".to_string())
-        })?;
+    let format = choose_surface_format(&caps.formats, descriptor).ok_or_else(|| {
+        let reason = match descriptor.target {
+            #[cfg(target_arch = "wasm32")]
+            RenderNativeSurfaceTarget::Canvas { .. } => "Canvas has no supported SDR UNORM format",
+            _ => "surface has no supported SDR sRGB format",
+        };
+        RhiError::SurfaceUnavailable(reason.to_owned())
+    })?;
     let present_mode = choose_present_mode(&caps.present_modes, descriptor.swapchain.present_mode)
         .ok_or_else(|| {
             RhiError::SurfaceUnavailable("surface has no compatible present mode".to_string())
@@ -436,7 +440,7 @@ pub(crate) fn surface_descriptor_is_supported(
     capabilities: &wgpu::SurfaceCapabilities,
     descriptor: &RenderSurfaceDescriptor,
 ) -> bool {
-    choose_surface_format(&capabilities.formats, descriptor.swapchain.format).is_some()
+    choose_surface_format(&capabilities.formats, descriptor).is_some()
         && choose_present_mode(
             &capabilities.present_modes,
             descriptor.swapchain.present_mode,
@@ -446,9 +450,14 @@ pub(crate) fn surface_descriptor_is_supported(
 
 fn choose_surface_format(
     formats: &[wgpu::TextureFormat],
-    requested: TextureFormat,
+    descriptor: &RenderSurfaceDescriptor,
 ) -> Option<wgpu::TextureFormat> {
-    let requested = match requested {
+    #[cfg(target_arch = "wasm32")]
+    if matches!(descriptor.target, RenderNativeSurfaceTarget::Canvas { .. }) {
+        return choose_canvas_surface_format(formats);
+    }
+
+    let requested = match descriptor.swapchain.format {
         TextureFormat::Bgra8UnormSrgb => Some(wgpu::TextureFormat::Bgra8UnormSrgb),
         TextureFormat::Rgba8UnormSrgb => Some(wgpu::TextureFormat::Rgba8UnormSrgb),
         _ => None,
@@ -465,10 +474,23 @@ fn choose_surface_format(
         })
 }
 
+#[cfg(any(target_arch = "wasm32", test))]
+fn choose_canvas_surface_format(formats: &[wgpu::TextureFormat]) -> Option<wgpu::TextureFormat> {
+    // wgpu puts the browser's preferred Canvas format first. Preserve that order.
+    formats.iter().copied().find(|format| {
+        matches!(
+            format,
+            wgpu::TextureFormat::Bgra8Unorm | wgpu::TextureFormat::Rgba8Unorm
+        )
+    })
+}
+
 fn surface_texture_format(format: wgpu::TextureFormat) -> Option<TextureFormat> {
     match format {
         wgpu::TextureFormat::Bgra8UnormSrgb => Some(TextureFormat::Bgra8UnormSrgb),
         wgpu::TextureFormat::Rgba8UnormSrgb => Some(TextureFormat::Rgba8UnormSrgb),
+        wgpu::TextureFormat::Bgra8Unorm => Some(TextureFormat::Bgra8Unorm),
+        wgpu::TextureFormat::Rgba8Unorm => Some(TextureFormat::Rgba8Unorm),
         _ => None,
     }
 }

@@ -75,8 +75,6 @@ impl WgpuSurfaceBootstrap {
             descriptor,
             instance,
         } = self;
-        #[cfg(target_arch = "wasm32")]
-        let mut descriptor = descriptor;
         let surface_ref = &surface;
         #[cfg(target_arch = "wasm32")]
         let adapters = {
@@ -88,25 +86,6 @@ impl WgpuSurfaceBootstrap {
                 })
                 .await
                 .map_err(|error| RhiError::SurfaceUnavailable(error.to_string()))?;
-            let capabilities = surface_ref.get_capabilities(&adapter);
-            let selected = capabilities
-                .formats
-                .iter()
-                .find_map(|format| match format {
-                    wgpu::TextureFormat::Bgra8UnormSrgb => {
-                        Some(zr_rhi::TextureFormat::Bgra8UnormSrgb)
-                    }
-                    wgpu::TextureFormat::Rgba8UnormSrgb => {
-                        Some(zr_rhi::TextureFormat::Rgba8UnormSrgb)
-                    }
-                    wgpu::TextureFormat::Bgra8Unorm => Some(zr_rhi::TextureFormat::Bgra8Unorm),
-                    wgpu::TextureFormat::Rgba8Unorm => Some(zr_rhi::TextureFormat::Rgba8Unorm),
-                    _ => None,
-                })
-                .ok_or_else(|| {
-                    RhiError::SurfaceUnavailable("Canvas has no SDR surface format".into())
-                })?;
-            descriptor.swapchain.format = selected;
             vec![adapter]
         };
         #[cfg(not(target_arch = "wasm32"))]
