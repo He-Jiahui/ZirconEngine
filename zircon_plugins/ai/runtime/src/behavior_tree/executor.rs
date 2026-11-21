@@ -786,6 +786,8 @@ fn evaluate_time_limit(
             .unwrap_or(f32::INFINITY);
         if state.elapsed_seconds >= limit {
             state.elapsed_seconds = 0.0;
+            // 先撤销仍运行的子树，父节点才能按失败结果继续（例如执行 fallback）。
+            abort::abort_subtree(tree, child, context);
             return node_result(node, AiDecisionStatus::Failed);
         }
     } else if is_terminal(&result.status) {

@@ -5,9 +5,9 @@ use zircon_runtime::core::framework::ai::{AiBehaviorAbortPolicy, AiBehaviorNodeP
 use crate::behavior_tree::BehaviorIntegrationTaskContext;
 
 use super::{
-    decorator_condition_passes, BehaviorNodeRuntimeState, BehaviorNodeSemantics,
+    decorator_condition_passes, parameter, BehaviorNodeRuntimeState, BehaviorNodeSemantics,
     BehaviorNodeTickContext, BehaviorTreeExecutionContext, BehaviorTreeInstanceState,
-    CompiledBehaviorTree, SUBTREE_TARGET_PARAMETER_KEY,
+    CompiledBehaviorTree, SUBTREE_TARGET_PARAMETER_KEY, TASK_RESULT_PARAMETER_KEY,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -170,12 +170,14 @@ pub(super) fn abort_subtree(
             }
         }
         if was_active {
+            // 显式 result 绕过集成宿主，没有可撤销的宿主副作用。
             if matches!(
                 node.semantics(),
                 BehaviorNodeSemantics::MoveTo
                     | BehaviorNodeSemantics::PlayAnimation
                     | BehaviorNodeSemantics::ScriptTask
-            ) {
+            ) && parameter(node, TASK_RESULT_PARAMETER_KEY).is_none()
+            {
                 let abort_context = BehaviorIntegrationTaskContext {
                     node_id: node.id(),
                     semantics: node.semantics(),
