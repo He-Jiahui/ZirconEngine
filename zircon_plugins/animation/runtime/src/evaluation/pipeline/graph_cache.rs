@@ -1,5 +1,5 @@
-//! 图编译缓存以图和骨架修订失效，帧内参数求值缓存按参数内容复用；所有采样都依赖资源快照。
-use std::sync::Arc;
+//! 图编译缓存以图和骨架的载荷身份与修订失效；帧内参数求值缓存按参数内容复用。
+use std::sync::{Arc, Weak};
 
 use zircon_runtime::asset::{AssetId, ProjectAssetManager};
 use zircon_runtime::core::framework::animation::{
@@ -22,6 +22,8 @@ const COMPILED_GRAPH_CACHE_LIMIT: usize = 128;
 pub(super) struct CachedCompiledGraph {
     pub(super) graph_revision: u64,
     pub(super) skeleton_revision: u64,
+    graph_payload: Weak<AnimationGraphAsset>,
+    skeleton_payload: Weak<AnimationSkeletonAsset>,
     pub(super) last_used: u64,
     pub(super) graph: Arc<CompiledAnimationGraph>,
 }
@@ -49,9 +51,16 @@ impl AnimationEvaluationPipeline {
         self.graph_access_sequence = self.graph_access_sequence.saturating_add(1);
         let access = self.graph_access_sequence;
 
+        // A deleted and recreated row can reuse its numeric revision. The Weak
+        // handles keep allocation identities distinct without keeping old payloads alive.
         let is_current = self.graph_cache.get(&key).is_some_and(|cached| {
             cached.graph_revision == graph.revision()
                 && cached.skeleton_revision == skeleton.revision()
+                && std::ptr::eq(cached.graph_payload.as_ptr(), Arc::as_ptr(graph.resource()))
+                && std::ptr::eq(
+                    cached.skeleton_payload.as_ptr(),
+                    Arc::as_ptr(skeleton.resource()),
+                )
         });
         if !is_current {
             let targets = Arc::new(SkeletonTargetTable::compile(&skeleton).ok()?);
@@ -61,6 +70,8 @@ impl AnimationEvaluationPipeline {
                 CachedCompiledGraph {
                     graph_revision: graph.revision(),
                     skeleton_revision: skeleton.revision(),
+                    graph_payload: Arc::downgrade(graph.resource()),
+                    skeleton_payload: Arc::downgrade(skeleton.resource()),
                     last_used: access,
                     graph: compiled,
                 },

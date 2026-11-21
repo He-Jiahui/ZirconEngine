@@ -1,6 +1,9 @@
 //! 生产帧在资源替换、暂停 seek 和大量直接剪辑实例下的缓存与公平性契约。
 use super::*;
 
+#[path = "cache_invalidation/graph_reload.rs"]
+mod graph_reload;
+
 #[test]
 fn level_tick_invalidates_compiled_clip_after_remove_and_readd_with_reset_revision() {
     let runtime = runtime_with_physics_animation_scene_asset();
