@@ -141,3 +141,6 @@ fn cached_artifact_never_becomes_the_new_source_baseline() {
         "repeat Save uses the actual publication receipt as its new base"
     );
 }
+
+#[path = "prefab_save.rs"]
+mod prefab_save;

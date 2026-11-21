@@ -6,7 +6,7 @@ use zircon_runtime_interface::project::PersistedAssetReference;
 use crate::asset::{AssetReference, ReferenceResolutionError};
 
 use super::codec::{decode_document, encode_document, ProjectDocumentArtifact};
-use crate::asset::assets::{ProjectDocumentError, SceneAsset};
+use crate::asset::assets::{PrefabPropertyOverrideAsset, ProjectDocumentError, SceneAsset};
 
 #[derive(Deserialize, Serialize)]
 #[serde(bound(serialize = "R: Serialize", deserialize = "R: Deserialize<'de>"))]
@@ -269,7 +269,8 @@ pub(in crate::asset::assets) fn serialize_scene(
     // The runtime row owns a JSON value; encode it before the TOML bridge so
     // nulls, arrays and scalar strings survive the authoring representation.
     let mut value = value.clone();
-    for entity in &mut value.entities {
+    let mut prefab_override_rows = Vec::new();
+    for (entity_index, entity) in value.entities.iter_mut().enumerate() {
         for component in &mut entity.components {
             component.payload =
                 serde_json::Value::String(serde_json::to_string(&component.payload).map_err(
@@ -278,10 +279,52 @@ pub(in crate::asset::assets) fn serialize_scene(
                     },
                 )?);
         }
+        if let Some(instance) = entity.prefab_instance.as_mut() {
+            if instance.overrides.iter().any(|row| row.value.is_null()) {
+                prefab_override_rows.push((entity_index, std::mem::take(&mut instance.overrides)));
+            }
+        }
     }
-    let document = encode_document::<_, SceneAuthoringDocument<AssetReference>>(&value)?;
+    let mut document = encode_document::<_, SceneAuthoringDocument<AssetReference>>(&value)?;
+    // The bridge converts the same entity Vec in order, before reference mapping.
+    for (entity_index, overrides) in prefab_override_rows {
+        let instance = document
+            .entities
+            .get_mut(entity_index)
+            .and_then(|entity| entity.prefab_instance.as_mut())
+            .ok_or_else(|| ProjectDocumentError::Schema {
+                message: format!(
+                    "scene prefab override owner missing at entity index {entity_index}"
+                ),
+            })?;
+        let rows = overrides
+            .into_iter()
+            .map(encode_prefab_override_row)
+            .collect::<Result<Vec<_>, _>>()?;
+        instance
+            ._rest
+            .insert("overrides".into(), toml::Value::Array(rows));
+    }
     let document = map_scene_references(document, |reference| resolver(&reference))?;
     Ok(toml::to_string_pretty(&document)?)
+}
+
+fn encode_prefab_override_row(
+    row: PrefabPropertyOverrideAsset,
+) -> Result<toml::Value, toml::ser::Error> {
+    if !row.value.is_null() {
+        return toml::Value::try_from(row);
+    }
+    // A missing value key already reads as JSON null. Keep the row and both paths.
+    let PrefabPropertyOverrideAsset {
+        entity_path,
+        property_path,
+        value: _,
+    } = row;
+    let mut fields = toml::Table::new();
+    fields.insert("entity_path".into(), toml::Value::String(entity_path));
+    fields.insert("property_path".into(), toml::Value::String(property_path));
+    Ok(toml::Value::Table(fields))
 }
 
 fn map_scene_references<A, B>(
