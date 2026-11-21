@@ -3,6 +3,8 @@ import types
 import unittest
 from pathlib import Path
 
+from tools.tests.zircon_build_owner_assertions import assert_entry_bindings
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ZIRCON_BUILD = REPO_ROOT / "tools/build/zircon_build.py"
@@ -18,14 +20,6 @@ class ZirconBuildAssetStagingOwnerBoundaryTests(unittest.TestCase):
         build_text = ZIRCON_BUILD.read_text(encoding="utf-8")
         staging_text = ZIRCON_BUILD_ASSET_STAGING.read_text(encoding="utf-8")
 
-        self.assertIn(
-            "from .build.zircon_build_asset_staging import (",
-            build_text,
-        )
-        self.assertIn(
-            "from .build.zircon_build_asset_staging import (",
-            build_text,
-        )
         for function_name in (
             "stage_engine_assets",
             "copy_tree_contents",
@@ -60,6 +54,9 @@ class ZirconBuildAssetStagingOwnerBoundaryTests(unittest.TestCase):
             len(staging_text.splitlines()),
             180,
             "zircon_build_asset_staging.py should stay focused on asset staging",
+        )
+        assert_entry_bindings(
+            self, "zircon_build_asset_staging", "copy_resource_dirs", "stage_engine_assets"
         )
 
     def test_asset_staging_owner_preserves_zui_and_resource_copy_semantics(self):

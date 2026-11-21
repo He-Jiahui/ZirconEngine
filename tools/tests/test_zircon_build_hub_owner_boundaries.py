@@ -6,6 +6,8 @@ from unittest import mock
 from uuid import uuid4
 from pathlib import Path
 
+from tools.tests.zircon_build_owner_assertions import assert_entry_bindings
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ZIRCON_BUILD = REPO_ROOT / "tools/build/zircon_build.py"
@@ -24,8 +26,9 @@ class ZirconBuildHubOwnerBoundaryTests(unittest.TestCase):
         hub_text = ZIRCON_BUILD_HUB.read_text(encoding="utf-8")
         outputs_text = ZIRCON_BUILD_HUB_OUTPUTS.read_text(encoding="utf-8")
 
-        self.assertIn("from .build.zircon_build_hub import build_hub", build_text)
-        self.assertIn("from .build.zircon_build_hub import build_hub", build_text)
+        from tools.build import zircon_build_hub, zircon_build_hub_outputs
+
+        assert_entry_bindings(self, "zircon_build_hub", "build_hub")
 
         for function_name in (
             "build_hub",
@@ -50,9 +53,10 @@ class ZirconBuildHubOwnerBoundaryTests(unittest.TestCase):
                 f"{function_name} belongs in zircon_build_hub_outputs.py",
             )
             self.assertIn(f"def {function_name}(", outputs_text)
-
-        self.assertIn("from .zircon_build_hub_outputs import", hub_text)
-        self.assertIn("from .zircon_build_hub_outputs import", hub_text)
+            self.assertIs(
+                getattr(zircon_build_hub, function_name),
+                getattr(zircon_build_hub_outputs, function_name),
+            )
 
         for constant_name in ("HUB_TAURI_BUNDLE_TARGET", "HUB_INSTALLERS_DIR_NAME"):
             self.assertNotIn(f"{constant_name} =", hub_text)

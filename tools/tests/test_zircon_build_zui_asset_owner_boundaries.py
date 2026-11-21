@@ -5,7 +5,6 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ZIRCON_BUILD = REPO_ROOT / "tools/build/zircon_build.py"
-ZIRCON_BUILD_ASSET_STAGING = REPO_ROOT / "tools/build/zircon_build_asset_staging.py"
 ZIRCON_BUILD_ZUI_ASSETS = REPO_ROOT / "tools/build/zircon_build_zui_assets.py"
 
 
@@ -16,28 +15,14 @@ class ZirconBuildZuiAssetOwnerBoundaryTests(unittest.TestCase):
             "staged .zui asset validation belongs in zircon_build_zui_assets.py",
         )
         build_text = ZIRCON_BUILD.read_text(encoding="utf-8")
-        asset_staging_text = ZIRCON_BUILD_ASSET_STAGING.read_text(encoding="utf-8")
         zui_assets_text = ZIRCON_BUILD_ZUI_ASSETS.read_text(encoding="utf-8")
 
-        self.assertIn(
-            "from .build.zircon_build_asset_staging import (",
-            build_text,
-            "zircon_build.py should consume staged assets through the asset staging owner",
-        )
-        self.assertIn(
-            "from .build.zircon_build_asset_staging import (",
-            build_text,
-            "direct zircon_build.py execution should use the same asset staging owner",
-        )
-        self.assertIn(
-            "from .zircon_build_zui_assets import validate_staged_engine_asset_suffix",
-            asset_staging_text,
+        from tools.build import zircon_build_asset_staging, zircon_build_zui_assets
+
+        self.assertIs(
+            zircon_build_asset_staging.validate_staged_engine_asset_suffix,
+            zircon_build_zui_assets.validate_staged_engine_asset_suffix,
             "asset staging should consume staged .zui validation through its owner",
-        )
-        self.assertIn(
-            "from .zircon_build_zui_assets import validate_staged_engine_asset_suffix",
-            asset_staging_text,
-            "direct asset staging execution should use the same staged .zui owner",
         )
         self.assertIn("def validate_staged_engine_asset_suffix(", zui_assets_text)
         self.assertIn("validate_plugin_distribution_zui_asset", zui_assets_text)

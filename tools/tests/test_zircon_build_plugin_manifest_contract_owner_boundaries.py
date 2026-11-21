@@ -2,6 +2,8 @@
 import unittest
 from pathlib import Path
 
+from tools.tests.zircon_build_owner_assertions import assert_entry_bindings
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ZIRCON_BUILD = REPO_ROOT / "tools/build/zircon_build.py"
@@ -23,13 +25,13 @@ class ZirconBuildPluginManifestContractOwnerBoundaryTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertIn(
-            "from .build.zircon_build_plugin_manifest_contract import (",
-            build_text,
-        )
-        self.assertIn(
-            "from .build.zircon_build_plugin_manifest_contract import (",
-            build_text,
+        assert_entry_bindings(
+            self,
+            "zircon_build_plugin_manifest_contract",
+            "collect_module_crate_names",
+            "distribution_table",
+            "normalize_optional_string",
+            "require_distribution_forms",
         )
         for constant_name in (
             "PLUGIN_DISTRIBUTION_FORM_DIST",

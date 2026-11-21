@@ -10,6 +10,7 @@ from tools.build.zircon_build_plugin_shader_descriptors import (
     collect_shader_module_specs,
     collect_shader_permutation_id_specs,
 )
+from tools.tests.zircon_build_owner_assertions import assert_entry_bindings
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -52,13 +53,15 @@ class ZirconBuildPluginShaderDescriptorOwnerBoundaryTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertIn(
-            "from .build.zircon_build_plugin_shader_descriptors import (",
-            build_text,
-        )
-        self.assertIn(
-            "from .build.zircon_build_plugin_shader_descriptors import (",
-            build_text,
+        assert_entry_bindings(
+            self,
+            "zircon_build_plugin_shader_descriptors",
+            "collect_geometry_source_descriptor_id_specs",
+            "collect_geometry_source_descriptors",
+            "collect_shader_module_specs",
+            "collect_shader_permutation_id_specs",
+            "collect_shading_model_descriptors",
+            "shading_model_descriptor_id_specs",
         )
         for function_name in (
             "collect_shader_permutation_id_specs",
