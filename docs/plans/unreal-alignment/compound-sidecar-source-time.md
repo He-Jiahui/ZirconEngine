@@ -1,6 +1,6 @@
 # Runtime/Asset：复合资产的生成写回不应变成下一次源修改
 
-**阶段：独立源码调查，可作 Draft；ZE 回归待实跑。** 固定 ZE 基线 [`e89349ca51b4e9d024c194cd3bdf645bd25b6c37`][base]；所引 Runtime/资源事务/Editor 目录路径与本地读到的跟踪内容无差异。一份独立 Windows 文件系统原语旁证不等于运行了 ZE 或 Unreal，也不归因 [#202][observer]。
+**阶段（`750a407b`）：修复已落地（方案 B，Windows 实测）。** 测试 `c3149d2e` 上 9 项 5 过 4 败：第二次全扫、冷开首扫、事务回滚与重开恢复都把引擎写盘时间记成来源时间（§8）。修复 `1874fd1a` 让引擎写回复合描述符时保留作者文件原有的修改时间，9/9，扩展组 16/16（§9）；描述符纯 touch 仍算源变更。§1–§7 为发布与 RED 阶段原文，保留不改（§7 末“为什么未改生产”写于 `22137934`）。 固定 ZE 基线 [`e89349ca51b4e9d024c194cd3bdf645bd25b6c37`][base]；所引 Runtime/资源事务/Editor 目录路径与本地读到的跟踪内容无差异。一份独立 Windows 文件系统原语旁证不等于运行了 ZE 或 Unreal，也不归因 [#202][observer]。
 
 ## 1. 差异：内容可复用，复合描述符的物理时间却能使第二次扫描不再是空操作
 
@@ -14,7 +14,7 @@
 
 有差异时，不必重导入或换 GUID：完整 [`AssetMetaDocument`][meta-eq] 与 [`ProjectCatalogInputRecord`][catalog-record]（其自身还另存同一个 mtime）都参与相等检查；同 ID、同 locator 则是 `Modified`，不是 Added/Removed/rename。[元数据比较][changed-doc]、[代发布条件][catalog]、[delta 分类][catalog-delta]。有代变化和一次多余 `.zmeta` 替换的风险，不等于资源变成 Error、artifact 损坏或实际 UI 刷新；全扫即使复用目录代仍可单独持久化 registry，不要求全盘零写入。[写回清单][full-write]。多轮之间每次须重新跨过聚合阈值；后两次提交可在同一毫秒桶而自然停住。序号分配也不应当作某个资产的精确次数。
 
-[#202 的冻结记录][observer-evidence] 实测的是同 activation 下输入序号 12→19、外取旧 token 变为 Superseded、watch reconcile/commit 差值 7、注册 Editor 未读到首代；未录得逐次变动的行/字段、实际 native batch/path、全扫与 targeted 选择或内部 refresh 拒绝分支。显式扫描中的此机制与之相关，**并不证明 #202 命中此机制，也不解释其中任一次或全部七次**；正常 watch URI 映射还主动排除侧车与已识别事务临时路径[见过滤][watch-ignore]。不可据此禁用 watcher、修改 token fence 或把 `.zmeta` 本身宣称为已观测到的自激事件。
+[#202 的冻结记录][observer-evidence] 实测的是同 activation 下输入序号 12→19、外取旧 token 变为 Superseded、watch reconcile/commit 差值 7、注册 Editor 未读到首代；未录得逐次变动的行/字段、实际 native batch/path、全扫与 targeted 选择或内部 refresh 拒绝分支。（#202 其后在 `83a85364` 的 §9/§11 进一步确认：打开与显式刷新两次同步都命中 Runtime 代令牌拒绝分支，比较内部 current 不可观测；本 PR 仍不归因 #202。）显式扫描中的此机制与之相关，**并不证明 #202 命中此机制，也不解释其中任一次或全部七次**；正常 watch URI 映射还主动排除侧车与已识别事务临时路径[见过滤][watch-ignore]。不可据此禁用 watcher、修改 token fence 或把 `.zmeta` 本身宣称为已观测到的自激事件。
 
 ## 3. 根因与 UE 对照：写回路径与源时间被同一物理对象串联
 
@@ -48,17 +48,17 @@ c9a7e5db685aea573f99f2c5f7d84c8711c17e0282f05a29f8cb6e1e6d4b1f46  Engine/Source/
 
 ## 4. Rust 做法：分离源时间与自己的写入，不删除真实的源观测
 
-在 Runtime 的 source-snapshot/compound 生成边界修正时间的归属，保留已有 `AssetMetaDocument`、digest/action key、文件事务和不可变 catalog 代。先用主回归验证，候选是 compound 采用真实已接纳的成员/辅助时间，描述符的作者含义继续由已解析的元数据/recipe/身份承载。空包或部分失败需要显式无成员策略（如 `0` 表示未观测），不得回退到刚写回的描述符时间，不得把失败前已读的个别成员当成成功快照。普通单文件及其合法辅助源继续观察时间。若确需把**仅 touch 复合描述符**视为源变更，评估仅对引擎生成写回所用 staging 保留已验证的作者描述符时间，并处理回滚/并发契约；不能提交后补碰时间、全局改变 durable IO 的时间行为、屏蔽作者字段或仅从 catalog 相等比较里删 mtime（同一问题仍会重写磁盘）。[Runtime04 旧计划][plan] 明确规定普通 source touch 同 hash 仍能更新 mtime 与目录；当前[已有原生用例源码][ordinary]保护该行为。
+在 Runtime 的 source-snapshot/compound 生成边界修正时间的归属，保留已有 `AssetMetaDocument`、digest/action key、文件事务和不可变 catalog 代。已采用的修法是 **B**（§9，提交 `1874fd1a`）：引擎写回复合描述符时，从同一份已打开的作者文件取得完整精度修改时间，设在暂存文件与回滚文件上，再同步发布；描述符纯 touch 仍被观测（`compound_source_time_observes_explicit_descriptor_touch` 保持不变）。**A**（复合根只取成员/辅助源时间）未采用。本段以下为调查阶段对两种方向的原始讨论。空包或部分失败需要显式无成员策略（如 `0` 表示未观测），不得回退到刚写回的描述符时间，不得把失败前已读的个别成员当成成功快照。普通单文件及其合法辅助源继续观察时间。若确需把**仅 touch 复合描述符**视为源变更，评估仅对引擎生成写回所用 staging 保留已验证的作者描述符时间，并处理回滚/并发契约；不能提交后补碰时间、全局改变 durable IO 的时间行为、屏蔽作者字段或仅从 catalog 相等比较里删 mtime（同一问题仍会重写磁盘）。[Runtime04 旧计划][plan] 明确规定普通 source touch 同 hash 仍能更新 mtime 与目录；当前[已有原生用例源码][ordinary]保护该行为。
 
 ## 5. 接口与 ECS：保持物理绑定和已发布代契约，独立于首读/通知实现
 
-无须引入 UE `UObject`、全局 cache、ECS 行规则或改公开 ABI；保持 compound `.zmeta` 为精确持久化路径、原 UUID/标签/子资产与依赖、普通文件的 mtime 可观测性、catalog 元数据与原子提交。共享 [targeted 路径][targeted] 也读同一快照；其 metadata 写与 topology/echo 语义不同，修 shared source 时间须做对照，不把本案直接两扫泛化成 targeted/no-op 的全部修复。邻接计划是 [Runtime04 catalog inputs][plan]（不可变投影涵盖实际输入）、[targeted source/index][targeted-plan]（单源协调与拓扑）、[#134][reader]（Runtime 目录查询）、[#157][scene]（Scene 后缀）、[#159][io-names]/[#175][io-owner]（原子兄弟名与恢复 owner）、[#180][texture]（已安装纹理 identity/ABA）、[#201][status]（日志分类）与 [#202][observer]（注册 Editor 首代可见性）。2026-11-18 18:49 +08:00 的公开 68 个 open PR 完整文件集与本题相关生产/现有回归路径无交叠；all-state 关键词 `compound + mtime`、`source_mtime_unix_ms`、`sidecar + timestamp`、`复合 + 时间戳` 无结果。只表示本次去重范围，不声称未索引或工作区外私有事项也不存在。
+无须引入 UE `UObject`、全局 cache、ECS 行规则或改公开 ABI；保持 compound `.zmeta` 为精确持久化路径、原 UUID/标签/子资产与依赖、普通文件的 mtime 可观测性、catalog 元数据与原子提交。共享 [targeted 路径][targeted] 也读同一快照；其 metadata 写与 topology/echo 语义不同，修 shared source 时间须做对照，不把本案直接两扫泛化成 targeted/no-op 的全部修复。邻接计划是 [Runtime04 catalog inputs][plan]（不可变投影涵盖实际输入）、[targeted source/index][targeted-plan]（单源协调与拓扑）、[#134][reader]（Runtime 目录查询）、[#157][scene]（Scene 后缀）、[#159][io-names]/[#175][io-owner]（原子兄弟名与恢复 owner）、[#180][texture]（已安装纹理 identity/ABA）、[#201][status]（日志分类）与 [#202][observer]（注册 Editor 首代可见性）。以下去重写于 2026-11-18 18:49 +08:00，当时本 PR 尚无生产改动。修复落地后的文件交叠：#219 同改 `scan_and_import/{sources,full_generation,targeted}.rs` 与 `importer/ingest/auxiliary_source.rs`，且把父记录的源时间改为主文件与伴随文件的最大值；#159 同改 `zr_resource/src/io/atomic_file/mod.rs` 与 `io/transaction/recovery/discovery.rs`（据其 `5e6555df` 时的文件清单）；#175 与本 PR 无同名文件，但同属事务恢复 owner；#180 无交叠。后合入者负责 rebase 并重跑对方的定向组。§9 的 #219 组合运行所用 #219 head 为 ⟨…⟩、组合树为 ⟨…⟩（本地，非本 PR 提交）。若与 #159 一起落地，旧二进制既不识别 `.zr2-` 旁名，也不识别 v8 日志，降级前须用新版本完成恢复。all-state 关键词 `compound + mtime`、`source_mtime_unix_ms`、`sidecar + timestamp`、`复合 + 时间戳` 无结果。只表示本次去重范围，不声称未索引或工作区外私有事项也不存在。
 
 ## 6. ZE 后续：先落一个固定两扫的独立回归，再验证窄修
 
-1. **主例，源码派生、待运行。** 在已有 [真实 compound Shader 测试模块/最小 include 包形状][compound-fixture] 新建独占工程，只放一个 `res://shaders/<package>`，自己的 Dirty `.zmeta`、一个 `.zshader` 和一个短 WGSL；无跨包 include/警告，显式 import path 不等于项目派生 path。用 `ProjectManager::open` 与默认内建 [.zmeta Shader importer][builtin-shader]，无 mock/插件夹具、GPU/Editor/AssetWatcher。初始文件写完后，仅在**第一次导入前**把描述符和**所有**成员 mtime 固定到 `UNIX_EPOCH + 946_684_800s`，如用现有 `FileTimes`，读回实际毫秒并关闭句柄。输入极少且无外部辅助，不复制模板、夹具或用户配置。首扫确认真正 durable、Dirty→Ready、成员/UUID/locator 正确且根和 WGSL 子资产实际可解码；核磁盘和目录行的 `P1` 都等于已读回的种子聚合毫秒。保存 S1 `Arc`/序号、磁盘 `.zmeta` 字节/解析值、目录行 mtime/content/action/GUID、实际制品，同时**只读**记录首扫自然写回的 `D1`。随后只再调用一次同一 manager 的 `scan_and_import()`；没有写入/touch、sleep、重试、轮询、重开、注入时钟或文件改写钩子。
+1. **主例（已于 §7 实跑）。** 在已有 [真实 compound Shader 测试模块/最小 include 包形状][compound-fixture] 新建独占工程，只放一个 `res://shaders/<package>`，自己的 Dirty `.zmeta`、一个 `.zshader` 和一个短 WGSL；无跨包 include/警告，显式 import path 不等于项目派生 path。用 `ProjectManager::open` 与默认内建 [.zmeta Shader importer][builtin-shader]，无 mock/插件夹具、GPU/Editor/AssetWatcher。初始文件写完后，仅在**第一次导入前**把描述符和**所有**成员 mtime 固定到 `UNIX_EPOCH + 946_684_800s`，如用现有 `FileTimes`，读回实际毫秒并关闭句柄。输入极少且无外部辅助，不复制模板、夹具或用户配置。首扫确认真正 durable、Dirty→Ready、成员/UUID/locator 正确且根和 WGSL 子资产实际可解码；核磁盘和目录行的 `P1` 都等于已读回的种子聚合毫秒。保存 S1 `Arc`/序号、磁盘 `.zmeta` 字节/解析值、目录行 mtime/content/action/GUID、实际制品，同时**只读**记录首扫自然写回的 `D1`。随后只再调用一次同一 manager 的 `scan_and_import()`；没有写入/touch、sleep、重试、轮询、重开、注入时钟或文件改写钩子。
 2. **判据。** 先核两次的成员字节、作者字段、GUID/子资产身份、digest/action key、Ready 与解码后的 artifact 内容相同；比较时只能归一化生成 `source_mtime_unix_ms`，不能隐去其他差异。然后要求两扫之间磁盘与目录行中的 `source_mtime` 相同、元数据 bytes 相同、同一 catalog `Arc`/序号、delta unchanged。基线预期为 `D1 > P1` 时 `P2=D1`、meta 原字节不同、同 ID 恰一条 `Modified`、不复用代；不锁定序号差值或 `D2>D1`。`D1` 是**旧基线触及机制的诊断**，不是所有修法 GREEN 时也必须增加的断言。目标记录未 Ready/未读回/提交不 durable、其他字段也在抖动、或旧基线上 `max(D1,M)==P1` 均不能算本机制 RED；`max(D1,M)!=P1` 且同一合法根与所有其他前置成立而上述三者稳定，则实测**反证**此链。可用现有 [`SourceRevision::observe`][file-revision] 比较真实 `lib://` manifest 的字节/文件身份（本地文件系统支持文件 ID 时；不是对 `.zmeta` 造 mtime），辅证第二次走 cache restore 而不是重建出同字节：成功重导入会准备替换 artifact manifest，[restore][full-restore] 不会。相邻 [已存在的 restart restore][restart-test] / [action key restore][action-test] 是不同用例，不能代替该 Ready compound 见证。
-3. **固定正控，分开运行，不污染主例。** 继续要求[普通 `.json` touch、同 digest、exact Modified][ordinary]。在另一复合项目，用真实描述符 writer 作根 `tags` 变化（缓存可恢复，catalog/entry tags 读回必须变化），另外改变正常 `import_settings` 值（同成员 digest，recipe/action key 必须变并保存作者值；未承诺内建 Shader 对任意设置改变 WGSL）。改变同路 WGSL 的有效常量，甚至控制两版成员 mtime 相同，要求 digest/action key 改变、同 ID 的 Shader 根与被修改的 WGSL 子制品实际解码为新数据。可分开的成员纯 touch 控制预设可读回且压住描述符的另一确定时间，证明不冻结整个 compound mtime。已有空/错误/成员失败的回归保留；若采用成员时间方案，再覆盖空目录 Error、重扫和有效成员补齐，保持不发布部分成员。正式验证只在已确认独立 Draft 中加入项目资产的窄测试；同用例先跑原生旧基线，再核生产差异和 paired GREEN，仍不代替 #202 的逐代/逐事件归因或产品验收。本次未运行 ZE、UE、Cargo 或项目 CLI，未改源码、Git 或远端。
+3. **固定正控，分开运行，不污染主例。** 继续要求[普通 `.json` touch、同 digest、exact Modified][ordinary]。在另一复合项目，用真实描述符 writer 作根 `tags` 变化（缓存可恢复，catalog/entry tags 读回必须变化），另外改变正常 `import_settings` 值（同成员 digest，recipe/action key 必须变并保存作者值；未承诺内建 Shader 对任意设置改变 WGSL）。改变同路 WGSL 的有效常量，甚至控制两版成员 mtime 相同，要求 digest/action key 改变、同 ID 的 Shader 根与被修改的 WGSL 子制品实际解码为新数据。可分开的成员纯 touch 控制预设可读回且压住描述符的另一确定时间，证明不冻结整个 compound mtime。已有空/错误/成员失败的回归保留；若采用成员时间方案，再覆盖空目录 Error、重扫和有效成员补齐，保持不发布部分成员。正式验证只在已确认独立 Draft 中加入项目资产的窄测试；同用例先跑原生旧基线，再核生产差异和 paired GREEN，仍不代替 #202 的逐代/逐事件归因或产品验收。§1–§6 撰写时未运行 ZE、UE、Cargo 或项目 CLI；§7–§9 为其后的原生执行。
 
 [base]: https://github.com/He-Jiahui/ZirconEngine/commit/e89349ca51b4e9d024c194cd3bdf645bd25b6c37
 [source-discovery]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/asset/project/manager/scan_and_import/sources.rs#L224-L324
@@ -139,7 +139,7 @@ c9a7e5db685aea573f99f2c5f7d84c8711c17e0282f05a29f8cb6e1e6d4b1f46  Engine/Source/
 |---|---:|---:|
 | 外部同字节、同时间替换文件 | 1795128166269 | 1795128166269 |
 | 作者触碰同一文件 | 946684860000 | 946684860000 |
-| natural | 946684800000 | 1795128166600 |
+| 两次操作间无改动的冷开（⟨`compound_source_time_cold_open_keeps_generated_clock_stable`，待作者确认对应关系⟩） | 946684800000 | 1795128166600 |
 | 事务在登记表提交前失败 | 1795128227189 | 1795128167313 |
 | 重开后回放未完成的事务 | 1795128227602 | 1795128167828 |
 
@@ -151,6 +151,8 @@ c9a7e5db685aea573f99f2c5f7d84c8711c17e0282f05a29f8cb6e1e6d4b1f46  Engine/Source/
 
 部分恢复后重新打开时，已经恢复成旧字节的描述符会保留其现有对象与作者后续写入的时间，并完成持久化同步。如果仍是待回滚的新字节，则先核对日志记录的时间和内容。Windows 共享模式暂时阻止同步时，项目重开报告失败，释放句柄后可以用同一日志继续恢复。
 
+**用户可见的新失败路径：** (1) 准备之后、提交之前描述符被再次触碰（时间与保留值不符）时，本次全扫或定向导入的提交被拒绝，下一次扫描重新观测（`compound_source_time_opt_in_refuses_clock_conflict_before_any_reopen_restore`）。(2) Windows 上目标被其他进程以不允许同步的共享模式占用时，项目重开报告恢复失败并保留日志；句柄释放后重开可继续（`compound_source_time_retry_keeps_journal_when_unchanged_target_cannot_sync`，仅 Windows）。⟨Editor 中这两种失败的提示与日志分类：未核对⟩。
+
 | 原生验证 | 结果 |
 |---|---:|
 | 同一组全扫、作者修改、冷开和事务恢复 | 5/9 → 9/9 |
@@ -159,8 +161,16 @@ c9a7e5db685aea573f99f2c5f7d84c8711c17e0282f05a29f8cb6e1e6d4b1f46  Engine/Source/
 | 资源库 v7/v8 日志格式及回放 | 3/3 |
 | 既有事务进入活动状态前的错误与清理 | 2/2 |
 
-原有普通事务继续写 v7。携带精确时间的事务使用 v8。测试用冻结的 v7 格式样本验证新版回放，并检查实际写出的 v7 帧与旧字段契约。降级前须先用支持 v8 的版本完成未决事务的恢复或清理。此处的 Windows 恢复观测使用项目自身的事务故障点和真实文件共享模式。
+**格式与接口：**
+- **事务日志新增 v8**（`JOURNAL_VERSION_WITH_RETAINED_MTIME = 8`）。只有带保留时间的写入写 v8，其余写入仍写 v7（`legacy_wire_v7_is_still_emitted_by_ordinary_writes`）。不支持 v8 的旧版本遇到 v8 日志会以 “unsupported durable transaction journal version” 拒绝恢复（`legacy_wire_v7_reader_rejects_real_v8_stamp_but_current_replay_preserves_it`）；新版仍能回放冻结的 v7 样本（`legacy_wire_v7_recovers_the_frozen_active_generation`）。降级前须先用支持 v8 的版本完成未决事务的恢复或清理。
+- **`zr_resource` 新增公开 API：** `PreparedFileWrite::preserving_observed_mtime`、`SourceRevision::from_opened_snapshot`；公开 trait `RecoveryPolicy` 新增默认返回 `false` 的 `allows_retained_source_mtime`。未覆写它的恢复策略会把带保留时间的日志判为无效；本 PR 只有 `ProjectRecoveryPolicy` 对项目内 `.zmeta` 目标返回 `true`。
+- 保留时间只允许用于已存在、无 retirement 的目标（`validate_inputs` 与日志 `fold` 都会拒绝其他情形）。
+- 未改 `zircon_runtime_interface`、`.zmeta` 字段或 catalog 字段。此处的 Windows 恢复观测使用项目自身的事务故障点和真实文件共享模式。
 
 与 #219 的纹理数组导入修订组合运行，16 项复合资产用例和 6 项纹理用例全部通过。纹理用例覆盖源图层变化、依赖顺序、丢失图层时的发布，以及用既有项目的 15 个文件验证旧缓存迁移。
+
+**命令与追溯：** §8 的 5/9 在测试提交 `c3149d2e` 上测得；§9 的结果在修复 `1874fd1a` 上测得（tip `750a407b` 仅文档）。命令：`⟨Runtime 组完整 cargo 行⟩`、`⟨zr_resource 组完整 cargo 行⟩`；工具链 ⟨…⟩。“既有项目恢复和同摘要触碰 3/3” 为 ⟨用例名⟩；“既有事务进入活动状态前的错误与清理 2/2” 为 ⟨用例名⟩。仅 Windows x64/MSVC 执行；Linux/macOS 未运行（`clock_retry` 中一项为 `#[cfg(windows)]`，非 Windows 上该组应为 15 项）。整模块 `asset::tests::project`、`asset::project::manager::tests` 与 `zr_resource` 的 `io::transaction::` 全组：⟨已跑：… / 未跑⟩。
+
+**合入注意：** 本 PR 的 16 项来源时间用例（含主见证 `compound_source_time_second_full_scan_keeps_ready_source_stable`）与 3 项 `wire_v7` 用例都是不带 `#[ignore]` 的普通测试，只在包含 `1874fd1a` 的树上通过。测试与修复须同批合入，不可拆开 cherry-pick。
 
 [项目回归](https://github.com/He-Jiahui/ZirconEngine/blob/1874fd1acf81bf11653ca040cb43fd64897a8021/zircon_runtime/src/asset/tests/project/zmeta/clock_retry.rs) · [资源库格式回归](https://github.com/He-Jiahui/ZirconEngine/blob/1874fd1acf81bf11653ca040cb43fd64897a8021/zircon_runtime/crates/zr_resource/src/io/transaction/recovery/tests/wire_v7.rs)
