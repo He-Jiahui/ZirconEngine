@@ -35,6 +35,60 @@ fn precomputed_bounds_test_matches_legacy_projection_equations() {
     }
 }
 
+#[test]
+fn perspective_mesh_spheres_use_world_distance_to_each_side_plane() {
+    // UE MakeFrustumPlane normalizes the plane before IntersectSphere compares
+    // a world-space radius. Use the signed-distance oracle, not the old equations.
+    let mut mismatches = Vec::new();
+    for (aspect, horizontal_hit, horizontal_miss) in
+        [(0.5, 3.5625, 3.75), (1.0, 6.25, 6.5), (2.0, 12.0, 12.5)]
+    {
+        let camera = ViewportCameraSnapshot {
+            fov_y_radians: std::f32::consts::FRAC_PI_2,
+            aspect_ratio: aspect,
+            z_far: 10.0,
+            ..Default::default()
+        };
+        let frustum = BoundsVisibilityTest::new(&camera);
+        for (axis, slope, hit, miss) in [
+            (Vec3::X, aspect, horizontal_hit, horizontal_miss),
+            (Vec3::Y, 1.0, 6.25, 6.5),
+        ] {
+            for sign in [-1.0, 1.0] {
+                let outward = sign * axis;
+                let plane_normal = (outward + slope * Vec3::Z).normalize();
+                for (side, expected) in [(hit, true), (miss, false)] {
+                    let center = side * outward - 5.0 * Vec3::Z;
+                    let signed_distance = plane_normal.dot(center);
+                    assert_eq!(
+                        signed_distance <= 1.0,
+                        expected,
+                        "fixture must lie on the intended side of the unit-radius boundary"
+                    );
+                    let visible = frustum.is_visible(VisibilityBounds {
+                        center,
+                        radius: 1.0,
+                    });
+                    if visible != expected {
+                        mismatches.push((
+                            aspect,
+                            outward,
+                            center,
+                            signed_distance,
+                            visible,
+                            expected,
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    assert!(
+        mismatches.is_empty(),
+        "normalized side-plane sphere oracle: {mismatches:?}"
+    );
+}
+
 fn legacy_bounds_visible(bounds: VisibilityBounds, camera: &ViewportCameraSnapshot) -> bool {
     let view_position = view_matrix(camera.transform).transform_point3(bounds.center);
     let depth = -view_position.z;

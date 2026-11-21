@@ -16,6 +16,8 @@ enum BoundsProjection {
     Perspective {
         half_fov_tangent: Real,
         aspect_ratio: Real,
+        horizontal_radius_scale: Real,
+        vertical_radius_scale: Real,
     },
     Orthographic {
         half_width: Real,
@@ -28,10 +30,18 @@ impl BoundsVisibilityTest {
         let near = camera.z_near.max(0.001);
         let far = camera.z_far.max(near);
         let projection = match camera.projection_mode {
-            ProjectionMode::Perspective => BoundsProjection::Perspective {
-                half_fov_tangent: (camera.fov_y_radians * 0.5).tan(),
-                aspect_ratio: camera.aspect_ratio.max(0.001),
-            },
+            ProjectionMode::Perspective => {
+                let half_fov_tangent = (camera.fov_y_radians * 0.5).tan();
+                let aspect_ratio = camera.aspect_ratio.max(0.001);
+                // Keep the unnormalized side equations, but express the
+                // sphere radius in the same units as each plane's dot product.
+                BoundsProjection::Perspective {
+                    half_fov_tangent,
+                    aspect_ratio,
+                    horizontal_radius_scale: (half_fov_tangent * aspect_ratio).hypot(1.0),
+                    vertical_radius_scale: half_fov_tangent.hypot(1.0),
+                }
+            }
             ProjectionMode::Orthographic => {
                 let half_height = camera.ortho_size.max(0.01);
                 BoundsProjection::Orthographic {
@@ -62,11 +72,13 @@ impl BoundsVisibilityTest {
             BoundsProjection::Perspective {
                 half_fov_tangent,
                 aspect_ratio,
+                horizontal_radius_scale,
+                vertical_radius_scale,
             } => {
                 let half_height = depth.max(self.near) * half_fov_tangent;
                 let half_width = half_height * aspect_ratio;
-                view_position.x.abs() <= half_width + world_radius
-                    && view_position.y.abs() <= half_height + world_radius
+                view_position.x.abs() <= half_width + world_radius * horizontal_radius_scale
+                    && view_position.y.abs() <= half_height + world_radius * vertical_radius_scale
             }
             BoundsProjection::Orthographic {
                 half_width,
