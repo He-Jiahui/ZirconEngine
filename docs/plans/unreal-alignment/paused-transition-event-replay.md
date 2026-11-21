@@ -1,6 +1,6 @@
 # [Animation/Notify] 恢复播放不应重发已完成过渡的目标点通知
 
-基线 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`。固定源码复现推演，尚未编译、取得行为 RED 或实施修复。
+基线 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`。**状态：RED 已在本地组合上取得，未改生产，待政策决定。** 在 `main + #216 + #217` 的本地组合（`e65e9d4a`，非本 PR 提交）上两项宿主对照通过；`pause_fade_notify_resume_does_not_replay_completed_window` 逐帧为 `0、1、1`，同一通知发出两次（§8）。另有 3 项失败用例固定了“暂停时保留淡化”的候选政策（Q-214-1），不是缺陷 RED（§8–§9）。§1–§7 为初版调查与首轮编译记录，保留不改。
 
 ## 1. 不一致
 
@@ -23,12 +23,16 @@
 ## 4. Rust 落点
 
 私有 scan/transition 权属统一有效 dt，保留暂停但 dirty 的合法重评。若决定暂停冻结过渡，不止修 dt：还要保证同 owner 的 active transition 经 clean-paused 帧不会被播放状态整表写回丢掉；不保留已撤销/替换实例。不同淡出政策也必须满足 no-repeat。
+
+**修复验收约束（来自 §9–§10 实测）：** 正常播放中替换混合组件包不重启淡化；移除后重加的播放器、删除端点的新修订不继承旧过渡；同一播放器源片段与目标片段的重叠区间各发一次；typed 与 neutral 两条流逐帧一致。
 ## 5. ECS/ABI 与范围
 
 [发布:93–118](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/evaluation/pipeline/events.rs#L93-L118>) 是现有 typed/neutral 两种投影，分别判断只发一次；不改 ABI、资产、sampler、队列或全局按名消重。不是 [#171](https://github.com/He-Jiahui/ZirconEngine/pull/171) 同帧打断、[#207](https://github.com/He-Jiahui/ZirconEngine/pull/207) 单范围分页或 [#165](https://github.com/He-Jiahui/ZirconEngine/pull/165) 属性序列绑定。
 ## 6. 回归
 
-复用 [生产插件夹具的首次过渡/逐帧订阅:385–524](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/tests/physics_tick/clip_events.rs#L385-L524>)，先验证 paused/resume 的唯一 `run_mid` 总数 1；冻结策略逐帧是 `[0,0,1]`，正常不暂停 `[0,1,0]`，完成后才暂停再恢复 `[0,1,0,0]`。另测多帧保持、首次正常双端点与 defer 回滚。计划用 `zircon_plugin_animation_runtime --no-default-features --features native-host --test physics_tick` 的定向 test profile，未执行。
+复用 [生产插件夹具的首次过渡/逐帧订阅:385–524](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/tests/physics_tick/clip_events.rs#L385-L524>)，先验证 paused/resume 的唯一 `run_mid` 总数 1；不依赖暂停政策的合同只有：`true,false,true` 三帧下首帧 0 次、总数 1。`…resume_does_not_replay_completed_window` 只断言这两点。逐帧分布取决于暂停政策（待决定 Q-214-1）：若暂停时冻结过渡（elapsed 与目标时钟都不前进），三帧为 `[0,0,1]`、四帧 `true,false,false,true` 为 `[0,0,0,1]`（`…clean_pause_retains_transition_and_target_clock` 固定这一政策）；正常不暂停为 `[0,1,0]`；完成后才暂停再恢复为 `[0,1,0,0]`。若 John 选择"暂停时继续混合但不重扫"，须先以纯测试提交改写第 4 例，再动生产。另测多帧保持、首次正常双端点与 defer 回滚。计划用 `zircon_plugin_animation_runtime --no-default-features --features native-host --test physics_tick` 的定向 test profile，已于 §8–§10 在本地组合上执行。
+
+**政策依赖一览：** 缺陷 RED 只有 `…resume_does_not_replay_completed_window`（总数 1、首帧 0，不依赖政策）。`…clean_pause_retains_transition_and_target_clock`、`pause_guard_held_mixed_bundle_retains_the_existing_fade`、`pause_guard_same_id_ready_both_endpoints_adopts_pose_and_keeps_weight` 只在“暂停时冻结过渡”下成立；若 John 选“继续混合”，须先以纯测试提交改写这三项。`late_start_fade_keeps_each_source_once` 对两种政策都接受（`holds` 分支）。
 
 UE 补充源身份（SHA-256）：`Engine/Source/Runtime/Engine/Private/Components/SkeletalMeshComponent.cpp` = `e1926cb602881d192763fa9ab1bd4a735a5893e5eb2accdba05a7baf43b02cff`；`Engine/Source/Runtime/Engine/Private/Animation/AnimNode_StateMachine.cpp` = `8dca0f41f0378ad8858f193d69cc8a4fdf43139c8114d20842c67d16ef8c161b`。文档不包含 Epic 源码。
 
@@ -44,9 +48,9 @@ UE 补充源身份（SHA-256）：`Engine/Source/Runtime/Engine/Private/Componen
 
 这是实际 Windows x64/MSVC Rust 1.94.1 的 `zircon_plugin_animation_runtime --no-default-features --features native-host --test physics_tick --no-run --profile test --locked --jobs 1 --message-format=json`。锁定依赖在全新的物理 D 盘任务池编译；按 Cargo 返回的唯一目标、包号、源和实际字节确认 exe，再在三次单独进程隔离 smoke/TEMP/config/log 中执行，没有改动物理路径保护。没有启 Jolt、运行编辑器、设备或 UE。构建回执 `d539e805ebd8097ee76c01b87d7db4d7383cdef57d221c242458bf1e73581b93`；可执行文件 SHA-256 `34370b4764899c45496db49d67371f61e7ee52d5cd233ada896ac5a8f6a53a2b`；三次执行回执按表序 `e5cb191b5f6712b78469bb480ada4c0234b8d29f7f8f47ade86cf948e6fd2d43`、`019de66ba625c13cc9627cc0c37cb90b4e8cd46d314fbe8997b293a7658dd8f9`、`ddcaa1ca7ce99a2739dc671d75c106b487db914cbc4c2950f44df11abdcadc67`。
 
-**这不是该动画行为的 RED，也没有 GREEN。** 现有 `TestRuntime` 的基础模块组合、插件目录排序是独立的前置；不在此 PR 偷加假 Foundation、清 fatal 或替换既有 SDK 测试。对候选还有两条独立约束：正常 playing 的组件随 bundle 迁移不应重启淡化；同一机器资产热更新删除过渡端点时，不得让旧过渡永久复活。没有原帧证据之前，本 PR 不改生产。
+**这不是该动画行为的 RED，也没有 GREEN。** 现有 `TestRuntime` 的基础模块组合、插件目录排序是独立的前置；不在此 PR 偷加假 Foundation、清 fatal 或替换既有 SDK 测试。对候选还有两条独立约束：正常 playing 的组件随 bundle 迁移不应重启淡化；同一机器资产热更新删除过渡端点时，不得让旧过渡永久复活。没有原帧证据之前，本 PR 不改生产。（本节为 `6d81e87e` 时的记录；宿主前置已在 §8 的本地组合中解除，原帧证据见 §8。）**下一有效门：** John 对 Q-214-1 作答 → 若选“继续混合”，先以纯测试提交改写 §6 所列 3 项政策用例 → 再在 `state_machine_step.rs` 修复，使过渡完成后机器时钟接续目标时钟。`state_machine_step.rs` 也是 #171 的修改文件；若 #171 正在实施，等待并 rebase。**环境前置：** §7 的构建使用作者本机物理 D 盘任务池，其他主机上的失败不计 RED。
 
-## 原生宿主的暂停与恢复验证
+## 8. 原生宿主的暂停与恢复验证
 
 以 `6d81e87ed8047a53b2133dae41f5c0f046890969` 的测试和动画实现为输入，叠加 [#216](https://github.com/He-Jiahui/ZirconEngine/pull/216) 和 [#217](https://github.com/He-Jiahui/ZirconEngine/pull/217) 中的五个宿主生产文件。本地组合提交为 `e65e9d4a6133daa088c2743ad97bbd74b06c18af`。两个独立对照分别运行有动画插件的正常过渡和无动画插件的序列播放器，两者都通过了帧后的场景断言。[原暂停用例](https://github.com/He-Jiahui/ZirconEngine/blob/6d81e87ed8047a53b2133dae41f5c0f046890969/zircon_plugins/animation/runtime/tests/physics_tick/paused_event.rs)
 
@@ -61,7 +65,11 @@ UE 补充源身份（SHA-256）：`Engine/Source/Runtime/Engine/Private/Componen
 
 四案共记录 14 帧，每案使用原测试的场景和图资源。下一项修复验证需要同时覆盖普通播放、同一实体的播放器替换与重新添加，以及使用相同资产 ID 的状态机热更新。
 
-## 播放器编辑与状态机热更新的五项实测
+**追溯：** 测试提交（本 PR）`d45b1213`；实测树 `e65e9d4a` = `6d81e87e` + #216 ⟨head⟩ + #217 ⟨head⟩ 的五个宿主生产文件（本地，非本 PR 提交）；命令 `⟨…⟩`。
+
+**合入注意：** 本 PR 新增 10 个不带 `#[ignore]` 的用例。仅在 main 上，`physics_tick` 目标的用例（含既有用例）都会在建宿主时失败（前置由 #216、#217 处理）。在 `main + #216 + #217` 上、未改生产时有 4 项失败：缺陷 RED `pause_fade_notify_resume_does_not_replay_completed_window`，以及政策固定的 `…clean_pause_retains_transition_and_target_clock`、`pause_guard_held_mixed_bundle_retains_the_existing_fade`、`pause_guard_same_id_ready_both_endpoints_adopts_pose_and_keeps_weight`。本 PR 不能先于 #216、#217 和生产修复单独合入；政策用例是否先加 ignore【待 Q-214-1】。
+
+## 9. 播放器编辑与状态机热更新的五项实测
 
 原四个暂停用例验证通知的次数和时序。新增五案用于审查修复对正常播放、播放器生命周期和资产热更新的影响。持续播放的用例约束现有行为。其余四案考察“暂停时保留淡出进度”这项候选设计。
 
@@ -79,7 +87,9 @@ UE 补充源身份（SHA-256）：`Engine/Source/Runtime/Engine/Private/Componen
 
 这五案使用 Windows x64 的同一原生集成目标，筛选 `pause_guards::pause_guard_`，单线程执行。组合包含 [#216](https://github.com/He-Jiahui/ZirconEngine/pull/216) 和 [#217](https://github.com/He-Jiahui/ZirconEngine/pull/217) 的宿主修复。公开的两个测试文件对应实跑输入 `be6bb5680e401ff1fd4e3fdc010e0d1316c81485` 的相同 Git 对象。[测试代码](https://github.com/He-Jiahui/ZirconEngine/blob/0605aeb7276aab62549d26cbbe0bb53b62f23bff/zircon_plugins/animation/runtime/tests/physics_tick/pause_guards.rs)
 
-## 晚起淡化中的源与目标片段时钟
+**追溯：** 测试提交 `0605aeb7`；实测输入 `be6bb568`（本地；作者声明两个测试文件的 Git 对象与公开提交相同）；命令 `⟨…, 筛选 pause_guards::pause_guard_⟩`。
+
+## 10. 晚起淡化中的源与目标片段时钟
 
 根状态先用两个 0.25 秒步进播放半秒，再打开一个长 0.25 秒的淡化。此时旧片段和新片段处于不同的局部时间。两者都在 `Root/Hand` 上注册了 `fade_mid`，源片段的事件时刻为 0.6875 秒，目标片段的事件时刻为 0.1875 秒。
 
@@ -88,6 +98,8 @@ UE 补充源身份（SHA-256）：`Engine/Source/Runtime/Engine/Private/Componen
 | 暂停帧 0.125 秒 | `0, 0, 0, 2, 1, 1` | 暂停帧各发一个片段点，恢复帧发目标片段自己的根窗点。 |
 | 暂停帧 0 秒 | `0, 0, 0, 0, 2, 1` | 两个片段点在恢复帧发出，下一帧发稳态点。 |
 
-两组的根时钟都是 `0.25, 0.50, 0.625, 0.625, 0.75, 0.875` 秒。这个用例要求恢复时保留合法的新点，并逐项核对载荷、目标以及两种时间。直接过滤暂停帧会漏掉第一组的两个片段点。暂停后重复通知的修复还须处理同一播放器和同一目标来源的重叠时间区间。
+两组的根时钟都是 `0.25, 0.50, 0.625, 0.625, 0.75, 0.875` 秒。这个用例要求恢复时保留合法的新点，并逐项核对载荷、目标以及两种时间。当前实现在正时间步的暂停帧上完成淡化并发出两个片段点。用例对两种政策都接受：若暂停帧保留淡化（代码中的 `holds` 分支），两点改在恢复帧发出；若不保留，两点在暂停帧发出，恢复帧只发 Run 自己根窗内的点。所以修复不能靠“丢弃暂停帧的事件”来实现，否则第一组的两点会丢失。暂停后重复通知的修复还须处理同一播放器和同一目标来源的重叠时间区间。
 
 本次原生测试使用 #216、#217 已验证的五项宿主前置，运行 1 个用例，通过 1 项。[晚起淡化用例](https://github.com/He-Jiahui/ZirconEngine/blob/606b16654042bb01469093880ea6c15d35147667/zircon_plugins/animation/runtime/tests/physics_tick/pause_late_start.rs)
+
+**追溯：** 测试提交 `606b1665`；实测树 ⟨…⟩；命令 `⟨…⟩`。
