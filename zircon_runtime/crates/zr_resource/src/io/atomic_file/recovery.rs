@@ -6,7 +6,10 @@ use super::{path_entry, PathEntry};
 #[cfg(windows)]
 use super::directory::sync_parent_directory;
 #[cfg(windows)]
-use super::pathing::{is_atomic_write_transaction_path, target_file_name};
+use super::pathing::{
+    is_atomic_write_transaction_path_legacy, is_compact_backup_for_owner, native_leaf_token,
+    target_file_name,
+};
 #[cfg(windows)]
 use std::fs;
 #[cfg(windows)]
@@ -48,15 +51,21 @@ fn recover_missing_target_from_backup_platform(path: &Path) -> io::Result<bool> 
         }
     }
     let prefix = format!(".{}.zr-backup-", target_file_name(path));
+    let compact_owner = native_leaf_token(path);
     let mut backups = Vec::new();
     for entry in fs::read_dir(directory)? {
         let candidate = entry?.path();
-        let reserved_backup = candidate
+        // Preserve legacy matching on its own branch. Compact recovery requires the full
+        // native owner token, exact backup role and canonical complete nonce instead.
+        let legacy_backup = candidate
             .file_name()
             .and_then(|name| name.to_str())
             .is_some_and(|name| name.starts_with(&prefix))
-            && is_atomic_write_transaction_path(&candidate);
-        if !reserved_backup {
+            && is_atomic_write_transaction_path_legacy(&candidate);
+        let compact_backup = compact_owner
+            .as_deref()
+            .is_some_and(|owner| is_compact_backup_for_owner(&candidate, owner));
+        if !legacy_backup && !compact_backup {
             continue;
         }
         match path_entry(&candidate)? {

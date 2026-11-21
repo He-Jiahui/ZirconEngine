@@ -20,6 +20,9 @@ use std::path::Path;
 use directory::sync_new_directory;
 pub use directory::{ensure_parent_directories, sync_parent_directory};
 pub use pathing::is_atomic_write_transaction_path;
+pub(in crate::io) use pathing::is_compact_journal_staging_path;
+#[cfg(test)]
+pub(in crate::io) use pathing::sibling_file_name_for_test;
 pub use recovery::recover_missing_target_from_backup;
 pub(crate) use transaction::publish_staged_file_for_transaction;
 pub use transaction::replace_staged_file;
