@@ -159,6 +159,12 @@ impl ArtifactCacheShaderAsset {
             pipeline_layout: self.pipeline_layout,
             validation_diagnostics: self.validation_diagnostics,
         };
+        if asset.kind.participates_in_material_variants() {
+            // Rebuilds are driven by schema, not by the persisted derived table.
+            ShaderOptionAsset::validate_material_bit_budget(&asset.options).map_err(|message| {
+                AssetCodecError::Parse(format!("cached shader {}: {message}", asset.uri))
+            })?;
+        }
         asset.regenerate_material_artifact();
         Ok(asset)
     }

@@ -1,5 +1,7 @@
 //! 材质属性布局由 shader schema 唯一生成，并同时供导入产物、材质覆写与 GPU 上传使用；布局算法版本参与缓存与运行时一致性约束。
 
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 
 use crate::core::framework::render::{
@@ -167,15 +169,32 @@ fn material_texture_bindings(
         .collect()
 }
 
+/// Check the material-variant ABI at fallible ingress, using the packing rules below.
+pub(super) fn validate_material_option_bit_budget<'a>(
+    options: impl IntoIterator<Item = (&'a str, &'a str, &'a BTreeMap<String, String>)>,
+) -> Result<(), String> {
+    let mut total_bits = 0;
+    for (name, kind, editor) in options {
+        let kind = material_option_kind_from_token(kind);
+        let value_count = option_enum_values(kind, editor).count();
+        // The previous prefix fit in u32::BITS and one option adds at most usize::BITS.
+        total_bits += u32::from(material_option_bit_width(kind, value_count));
+        if total_bits > u32::BITS {
+            return Err(format!(
+                "material option `{name}` requires {total_bits} cumulative bits; limit is {} bits",
+                u32::BITS
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn material_option_table(options: &[ShaderOptionAsset]) -> MaterialOptionTable {
     let mut bit_offset = 0_u8;
     let mut refs = Vec::with_capacity(options.len());
     for option in options {
         let (kind, enum_values) = option_kind_and_values(option);
-        let bit_width = match kind {
-            MaterialOptionKind::Bool => 1,
-            MaterialOptionKind::Enum => enum_bit_width(enum_values.len()),
-        };
+        let bit_width = material_option_bit_width(kind, enum_values.len());
         let default_bits = option_default_bits(option, kind, &enum_values);
         refs.push(MaterialOptionRef {
             name: option.name.clone(),
@@ -195,10 +214,10 @@ fn material_option_table(options: &[ShaderOptionAsset]) -> MaterialOptionTable {
 
 fn option_kind_and_values(option: &ShaderOptionAsset) -> (MaterialOptionKind, Vec<String>) {
     let kind = material_option_kind_from_token(&option.kind);
-    match kind {
-        MaterialOptionKind::Bool => (kind, Vec::new()),
-        MaterialOptionKind::Enum => (kind, option_enum_values(option)),
-    }
+    let values = option_enum_values(kind, &option.editor)
+        .map(str::to_owned)
+        .collect();
+    (kind, values)
 }
 
 fn material_option_kind_from_token(kind: &str) -> MaterialOptionKind {
@@ -209,20 +228,26 @@ fn material_option_kind_from_token(kind: &str) -> MaterialOptionKind {
     }
 }
 
-fn option_enum_values(option: &ShaderOptionAsset) -> Vec<String> {
-    option
-        .editor
-        .get("values")
-        .or_else(|| option.editor.get("enum_values"))
-        .map(|values| {
-            values
-                .split(',')
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .map(str::to_string)
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default()
+fn option_enum_values(
+    kind: MaterialOptionKind,
+    editor: &BTreeMap<String, String>,
+) -> impl Iterator<Item = &str> {
+    let values = match kind {
+        MaterialOptionKind::Bool => None,
+        MaterialOptionKind::Enum => editor.get("values").or_else(|| editor.get("enum_values")),
+    };
+    values
+        .into_iter()
+        .flat_map(|values| values.split(','))
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+}
+
+fn material_option_bit_width(kind: MaterialOptionKind, value_count: usize) -> u8 {
+    match kind {
+        MaterialOptionKind::Bool => 1,
+        MaterialOptionKind::Enum => enum_bit_width(value_count),
+    }
 }
 
 fn enum_bit_width(value_count: usize) -> u8 {

@@ -18,6 +18,9 @@ use crate::plugin::PluginPackageManifest;
 mod compound_shader;
 #[path = "zmeta/metadata_lifecycle.rs"]
 mod metadata_lifecycle;
+#[cfg(any(feature = "target-server", feature = "graphics"))]
+#[path = "zmeta/option_budget.rs"]
+mod option_budget;
 #[path = "zmeta/package_roots.rs"]
 mod package_roots;
 #[path = "zmeta/preview_state_cas.rs"]
