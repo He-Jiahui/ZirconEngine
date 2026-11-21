@@ -1,0 +1,147 @@
+# 循环动画：恢复同一个事件采样区间时可能把同一圈的点通知再发一次
+
+阶段：独立问题调查与等价回归方案。ZE 基准 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`；本机 Unreal 参考树 `Build.version` 自报 6.0.0 / UE5 / CL 0，不能据此确定上游提交。以下 **80 对 96 是按固定源码和独立 IEEE binary32 运算复核的预测，不是已运行 UE 或 ZE 的测量**。此初始提交不改生产或测试。
+
+## 1. 差异：分页改变了事件个数，而不是仅推迟交付
+
+一个从 0 开始的正向循环 Clip，其长度 `0.02f32`，16 条不同名的普通点通知 `point00` 至 `point15` 都在局部 `0.01f32`。一帧推进 `0.1f32`，以下一帧 `0.00390625f32` 续读；第二次推进不会经过新的点。源不换、时间不倒退、World 不替换、没有状态机、跳段或重复入队。每条点被穿越五次，合计 **80** 个 occurrence；ZE 可以跨帧发成 **64+16**，不能把 80 变成 96。这也是 ZE [固定 range 的游标与默认预算契约][contract]：最多 64 条、64 KiB 文本、1 秒播放跨度。16 个同时间、不同名称的 track 是合法输入，不能靠删掉重合的点解决。
+
+固定实现初页用 `f32` 逐圈加片长，第 64 条（第 4 圈的最后一个名字）的播放时间是 `0x3d8f5c28`。同一 range 恢复时从局部时刻重建第 4 圈，得到大 1 ULP 的 `0x3d8f5c29`。由于它在数值上“晚于”游标，用于排除同圈旧项的名字/轨道序号比较不再执行，16 条都再次成为候选；之后真正的第 5 圈仍在范围内。分开走两帧 `0.0625+0.0375`、避开 64 条边界的对照，独立模型得到 **48+32=80**。这是对离散触发数的判定，不是比较两台引擎的浮点时间是否逐位相同。
+
+## 2. 影响：可在正常运行时到达，影响限定到流内的重复
+
+- [动画插件注册的 PostUpdate][system] 从一个普通播放组件取旧/新时刻，[直接播放器的范围生产][producer] 不需要 transition。第一帧先入队并 drain；已有积压时，下一次 tick [先 drain 旧范围，再提交新范围][tick]。`LevelSystem` [真实恢复同一 range 与原游标][queue]，不是测例重复塞入两份范围。
+- [注册的采样器][sampler] 读 resident clip；[发布者][publish] 把结果分别发给 typed `AnimationClipEvent` 和通用 `AnimationEventRecord`。应在**每条流内**验证逐名次数，不将两种合法投影相加报错。会多触发订阅者；没有实际测到声音播放、AI 最终状态或游戏动作倍增。
+- Editor Play 可以经[真实 session tick][editor]驱动运行时，但没有证实动画编辑工作台直接订阅这一流。其 Montage Preview/Apply 有自己的能力边界；不将“未实现高级 Montage”作为本案缺陷。
+
+## 3. Unreal 对照：按每个有效播放子区间收集点通知
+
+下列位置相对于本地 UE 根，不复制 UE 源码。普通 Sequence 路线在 `Engine/Source/Runtime/Engine/Private/Animation/AnimSequenceBase.cpp:383–427,430–498` 划分连续区间，正向按 `(previous,current]` 处理点。此版有 `MaxLoopCount` 上限；对主例 `0.1f32 / 0.02f32` 转整数得 **5**，足够五次穿越。**不能**把同一结论直接套到首帧 `0.09375` 的普通 Sequence，该输入的上限只有 4。前述期望同时来自 ZE 的“预算续读不重发/不漏发”合同，不以 UE 运行结果作背书。
+
+对一个有效相关 Slot、有效循环 Segment、没有跳段或中断的 Montage，另一路 `AnimInstance.cpp:2755–2780` → `AnimMontage.cpp:3237–3277,2818–2885` → `AnimCompositeBase.cpp:74–151,626–634` 将局部循环区间分别送给点通知扫描。`AnimNotifyQueue.cpp:53–87,138–147` 区分普通点与 NotifyState；这里限定触发概率 1、无筛选、有效权重，不把 NotifyState、同步标记、静默 scrub、section jump、反向或 branching point 的政策移植到 ZE。
+
+参考来源 SHA-256：`AnimSequenceBase.cpp` `538cedbee8cad1313c301078374a2750c2929e5ec198a54d2254d0c79ae6c3f7`；`AnimCompositeBase.cpp` `d44f671236f97955756c329411102cbe8a84953beb7346314165db71002e5f32`；`AnimMontage.cpp` `1dbd8796d7bbde0f0e51d00c8cfcbd758b1ea2b810119768bc4ee8b9e5c8bb10`；`AnimInstance.cpp` `043b137be446571454112ca2d7717743782c892c0a720cbe0b6c2c997514d897`；`AnimNotifyQueue.cpp` `082686bc5b5ec128c919a44b92e9dfeb0de6291e8775c9ab1c9c49714124ea8e`。
+
+## 4. Rust 适配：统一同一圈的身份，不用 epsilon 掩盖
+
+ZE [页内推进和游标存储][increment] 与 [下一页候选重建、比较][seed] 对同一 occurrence 采用不同生成式。候选修复是让私有堆项的初始与后继圈使用同一稳定的圈序号和时间生成规则，并验证反推圈序号在舍入边沿的相邻项。不能仅把比较换成宽松 epsilon，或对 `(event_name,time)` 全局去重：对时间很近的合法点、同时间不同轨、下一圈同名点，前者会漏发。修前要用真实采样和队列验证反例；修后保现有半开端点、同刻 tie、倒放、超额 payload、有限性与有界堆复杂度。
+
+## 5. 接口、ECS 与去重
+
+UE 传 instance/slot 与 `FAnimNotifyEventReference`；ZE 的 [clip 资产点 DTO][dto]、range 方向、World replacement epoch、两条 ECS 事件流是 ZE 自己的边界。先在 sampler 私有实现寻找解，不先改序列化资产、公共游标结构、C ABI、组件或全局调度。观察点仅是累计次数；不要求两台引擎相同帧派发、相同 tie 排序或相同浮点位型。
+
+[#171](https://github.com/He-Jiahui/ZirconEngine/pull/171) 是打断迁移的生产者提交**两个**相同窗口；本例只入队**一个** range，故 producer 去重不能修复它。[#147](https://github.com/He-Jiahui/ZirconEngine/pull/147) 是姿态混合，[#165](https://github.com/He-Jiahui/ZirconEngine/pull/165) 是暂停的属性序列绑定。均不重复。既有 [动画事件主链评审][prior] 的广义稳定身份/积压路线也不能代替这一特定预算边界回归。
+
+## 6. 原有测试依据与落实顺序
+
+- 未找到经典 Montage/Sequence 专门覆盖“浮点非整周期、重复多圈、64 条分页”的原测。UE 实有 `FUAFNotifyHandlerPipelineTests::Filter_Debounce_TapDance_SameSequenceAllFire`（`Engine/Plugins/Experimental/UAF/UAFTestSuites/Source/UAFCQTestSuite/Private/NotifyHandlerTests.cpp:3624–3671,3724–3728`，SHA-256 `8b4aaf5f3c7140f96b6bd0159fa0e850f7b53e9600dac9fc7dbceb6da79d6d38`），同类的四个合法点应全部触发；它是**另一子系统的计数对照**，不是本例的等价测试。`EditorAssetAutomationTests.cpp:523–533,605–613` 的 Montage factory 位于禁用的创建/复制分支，不作播放证据。
+- ZE [同 owner 的既有测试][leaf] 分别测了精确可表示的循环间隔，以及同刻非循环分页；[插件测试][plugin_test] 覆盖真正的直接播放器与负速跨边界，但没有在非精确循环间隔撞上数量预算。
+- 先在真实 `ProjectAnimationClipEventSampler` 和 `LevelSystem` 队列上运行同一输入。分别记录大预算单批的 80 个事件、默认预算第一次 64 条及其真实 continuation、第二次 drain 的数目和每个名的次数；第三次无新增 crossing 不得再发。加短区间、可精确表示的循环长度及相邻合法点控制。再用实际插件的两个 tick 和 World 订阅验证 typed/neutral；该门要求其原有 fixture 环境，不能用源文件 grep 或另一单测代替。**先以原版的行为失败决定修复是否成立，再在同一 PR 修并重复同一组输入。**
+
+[contract]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/core/framework/animation/clip_event_sampling.rs#L28-L92
+[system]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/runtime_system.rs#L25-L85
+[producer]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/evaluation/pipeline/parameter_apply.rs#L289-L351
+[tick]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/evaluation/pipeline/tick.rs#L192-L204
+[queue]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/scene/level_system/animation_runtime.rs#L153-L235
+[sampler]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/animation/clip_event.rs#L11-L40
+[publish]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/src/evaluation/pipeline/events.rs#L93-L118
+[editor]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/src/core/gateway/session/frame.rs#L48-L60
+[increment]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/animation/clip_event.rs#L184-L235
+[seed]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/animation/clip_event.rs#L265-L397
+[dto]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/core/framework/animation/asset/clip.rs#L27-L46
+[prior]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/docs/plans/optimize/zircon_runtime/08c-animation-runtime-review.md#L186-L190
+[leaf]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/animation/tests/clip_event.rs#L16-L56
+[plugin_test]: https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/animation/runtime/tests/physics_tick/clip_events.rs#L2-L138
+
+## 7. 原生 Runtime：默认 64 条预算把 80 个通知变成了 96 个（2026-11-18）
+
+[原版生产 + 仅测试提交 `ff910246d8418d0bd4d22a747864385576b3fbda`](https://github.com/He-Jiahui/ZirconEngine/blob/ff910246d8418d0bd4d22a747864385576b3fbda/zircon_runtime/src/animation/tests/clip_event.rs)。Windows x64/MSVC、Rust 1.94.1，`test -p zircon_runtime --no-default-features --features animation,native-host --lib loop_notify_resume_ --locked --offline --jobs 1 -- --test-threads 1 --show-output`。实际执行 **3 案，1 过、2 败、0 忽略、7,871 过滤，exit 101**。两处都是数量/逐名次数断言，不是夹具、类型或链接失败。
+
+| 原版观察 | 实际输出 | 应有输出 |
+|---|---|---|
+| 同一 clip、预算 128，一次采样 | 80 个点、每个名字 5 次 | 80 |
+| 默认预算 64，首帧终点 0.1，复用第一次返回的原游标 | 首批 64；末点 `0x3d8f5c28`；续页首个相同 occurrence 被算成 `0x3d8f5c29`，续出 32，共 **96** | 64 + 16 |
+| 独立真实 `LevelSystem`，一次 admit，使用 resident clip 的 `ProjectAnimationClipEventSampler` | 三次 drain **64 / 32 / 0**，每个名字 6 次；第一次后 backlog=1，第二次后为0 | 64 / 16 / 0，每名 5 次 |
+| 对照 | 同总跨度但分两帧，48+32；精确二进制片长 1/32，同样预算 64+16。两组每名均 5 次 | 各 80 |
+
+`.09375` 的 ZE 采样器变体也实际打印了同样的重复，仍按 §3 的不同 UE 循环上限解释，不能拿它宣称 UE 对同输入一定发 80。这里原生验证了 ZE 的 sampler / queue，并未把模型当作引擎证明；也没有启动 UE、Editor 游戏世界、插件 `PostUpdate`、AI 或声音消费者。现存插件整链夹具要求特定 smoke 和临时目录布局；本次不替换或放松这些检查。下一步先证明修复能同时保住同刻不同轨、极近但合法的两个点、计数/字节分页、正反向与大播放时间的有限进度，再改 sampler；没有动公共游标或播放资产。
+
+22 项选定来源和清单，原生回执 `f42fdf4c9a2a0f45b32a119139eda58f76fe8c5a964b30165aa156aaef94a394`；stdout `555cae1944af4ef75dc1db49cee5ebed80a553108e42f273cfff15b3a5158a4c`（2,673 B），stderr `34b538aca3094cf489426d31ac2772fc0895c4cd34627b9177ea89e4a10f57e5`（283,762 B）。
+
+## 8. 修复前的反证：只统一公式仍不能保证所有页拼接正确
+
+[已测基线与原始边界 `8cf8675b6252903202674083a5e324f18067bf7b`](https://github.com/He-Jiahui/ZirconEngine/blob/8cf8675b6252903202674083a5e324f18067bf7b/docs/plans/unreal-alignment/loop-notify-resume.md#L56-L69) 的 80→96 属于真实 Rust 结果。以下另为设计复核：用固定 binary32 位型和独立有理数/舍入模型检查，不是新的 Rust 或 UE 运行。
+
+- **不直接用 `ceil`/`floor` 倒推。** 即便统一产生绝对圈位置，`p=.01f,d=.02f` 的第 4 次点 `0x3d8f5c29` 倒算已是 `3.000000093…`，裸 `ceil` 会选到下一圈、漏掉当前位置尚未发出的另一条轨。反向第 3 次点的倒算为 `1.999999906…`，裸 `floor` 同样选错。
+- **不做 epsilon 或全局去重。** 两个合法点的位型 `0x3c23d70a`、`0x3c23d70b` 严格相邻，不能仅因靠近就按同时间或名字并为一个。反过来，`d=.5,p=.25` 时，圈序 `8388609` 与 `8388610` 可映射到同一播放时间 `0x4a800002`。当前公开游标只有时间、最后名称和轨道序号；在这一例里，**同一轨两个圈**留下的三个字段也完全相同。
+- **保留边界语义。** 只在短区间切到新算法、到较大范围退回旧算法，不能保证相邻两个播放范围拼接时不重复认领同一圈。不要用跳过、不再返回下一页或扩大单帧预算，来掩盖不可区分的 occurrence。
+
+下一门先用**同一个时间谓词**分别测正反向、同名同刻不同轨、相邻表示值、数量/字节/span 分页和相邻范围切换；再决定不可区分的大绝对时间应怎样处理或记录。维持 §7 冻结的 sampler/队列与健康控制，不改 ABI、资源或完整插件的验收状态。本节不提交生产修复。
+
+## 9. 双向续页：同刻尾项、相邻 f32 与字节预算的实测
+
+[测试提交 `e4d965ef25c73b43e428757c223bf091077df361`](https://github.com/He-Jiahui/ZirconEngine/blob/e4d965ef25c73b43e428757c223bf091077df361/zircon_runtime/src/animation/tests/clip_event_pages.rs)。原三个用例未删改，在同一 owning sampler 下加四项；所有方向先调用真实生产代码、记录全部页，再检查断言。复用 `test -p zircon_runtime --no-default-features --features animation,native-host --lib loop_notify_resume_ --locked --offline --jobs 1 -- --test-threads 1 --show-output`，Windows x64/MSVC、Rust 1.94.1 test profile。实际 **7 案：3 过、4 败、0 忽略、7,871 过滤**。原单区间 16 轨的采样器、真实队列两例仍 RED，精确周期/分帧正控仍过。
+
+| 输入/方向 | 实际各页 | 应有各页 | 实际观察 |
+|---|---|---|---|
+| 相邻 f32 时点且名序反向，`0.015625→0` | `1+1` | `1+1` | 两张/多张页合计 2 |
+| 相邻 f32 时点且名序反向，`0→0.015625` | `1+1` | `1+1` | 两张/多张页合计 2 |
+| 两条同名但 payload 不同＋一条其它名，预算 1，`0.0625→0.046875` | `1+1+1` | `1+1+1` | 实出 a:z-slot, a:a-slot, z |
+| 两条同名但 payload 不同＋一条其它名，预算 1，`0.0625→0.078125` | `1+0` | `1+1+1` | 实出 a:z-slot |
+| 两条同名但 payload 不同＋一条其它名，预算 1，`0.140625→0.125` | `1+0` | `1+1+1` | 实出 a:z-slot |
+| 20 轨，默认 64 上限切到同刻组中间，`0.1→0` | `64+20` | `64+36` | 共 84；每名 4–5 次（应各5次） |
+| 20 轨，默认 64 上限切到同刻组中间，`0→0.1` | `64+40` | `64+36` | 共 104；每名 5–6 次（应各5次） |
+| span、字节、单笔超限，`0→0.75` | `0+1+1+1+0+0+1+1+1` | `0+1+1+1+0+0+1+1+1` | 6 条；2 条 oversized 独立发出 |
+| span、字节、单笔超限，`1→0.25` | `0+1+1+1+0+0+1+1+1` | `0+1+1+1+0+0+1+1+1` | 6 条；2 条 oversized 独立发出 |
+
+默认上限 64 把第四组 20 个同刻点切在第 4 个名字后。正放续页把已发的 `point-00..03` 各多发一次（`64+40=104`）；倒放则把未发的 `point-04..19` 各漏掉一次（`64+20=84`）。应当都是 `64+36=100`。两个独立单刻窗口还出现发第一条后续页直接空并终止；字节预算、超限及相邻不同 f32 的正反向对照没有这个现象。
+
+按时间和同刻身份区分 `(播放位置, 名称, track index)`，同名不同 payload 仍为不同轨；不以只比较总数代替。`len=0` 的 span 跨页不等于范围已耗尽；对 `bbbb` 的超限独发也不能记为丢事件。输出中跑到的两向行为不表示同一失败用例的所有后续断言均执行。此组只锁正常可区分范围上的 owner 合同；极大绝对时间的碰撞策略、完整插件 PostUpdate、UE、设备与性能未运行。不动公共游标或生产。23 项有限来源/清单，原始回执 `b8dec8fb56b682d12b05b8d94420c46b3a690bdfa8e34f9d6bbfd77a2f568491`，stdout `b0c761e55b0d3c233f927c9e3508eb66de1d4c299715944d62f181b5f8a0e6c6`；不是精简的标量模拟。
+
+**下一步候选，而非这次已修。** 固定原范围、同一 clip，可尝试从每轨原来的起点恢复它不分页时的实际 `f32(t±周期)` 序列，按位定位续页，而不是重新反除圈号或把相邻值当作相等。只在同一指数带的严格内点跳过已消费项；跨二次幂边界、半格奇偶调整或不再前进时用原单步。反向已有反例：`0x4a800003→0x4a800002→0x4a800001` 后实际为 `0x4a7fffff`，不能继续整数等差猜 `0x4a800000`。独立 Python 模型在345个场景、19,784个查询与逐步参照位值相同，但它不是 Rust 实现、不是性能或插件验收。后续应把此 oracle 与定位成本上界加到实际采样器；不声称处理相邻的不同范围、空时间跨度不前进或初始浮点 seed 偏离理想数学圈的问题。
+
+## 10. 同一固定范围：独立位型、单次通过与真实游标续页
+
+[tests-only `fc68f3d7a568025580a18011a7ebe07b7784dfa5`](https://github.com/He-Jiahui/ZirconEngine/blob/fc68f3d7a568025580a18011a7ebe07b7784dfa5/zircon_runtime/src/animation/tests/clip_event_oracle.rs) 在 §9 的 7 例之外加 6 个公开行为用例（16 个窗口）。单批、分页都调用同一真实 Runtime sampler，后续页只用上一页实际返回的游标；另有固定的位型/轨道身份/位置锚点。比较包括实体、事件名、payload、target、片内及播放时刻的 binary32 位型和顺序；不是按 epsilon 或计数放行。Windows x64/MSVC、Rust 1.94.1 `test` profile；同一拥有者 `-p zircon_runtime --no-default-features --features animation,native-host --lib loop_notify_resume_ --locked --offline --jobs 1 -- --test-threads 1 --show-output`。
+
+实跑 **13 例，3 过、10 败，7,871 过滤**。16 个不绑定预算的单批都符合独立锚点；9 个有界分页窗口偏离。仅有数量是不够的，例如倒放末项和跨二次幂时两侧条数相同但时间已变：
+
+| 窗口 | 一次应有 | 实际分页 | 实际播放位型 | 不分页锚点 |
+|---|---:|---:|---|---|
+| `decimal-count-forward` | 5 | 6 | `3c23d70a 3cf5c28f 3d4ccccc 3d8f5c28 3d8f5c29 3db851ec` | `3c23d70a 3cf5c28f 3d4ccccc 3d8f5c28 3db851ea` |
+| `decimal-count-reverse` | 5 | 5 | `3db851eb 3d8f5c28 3d4ccccb 3cf5c28c 3c23d70a` | `3db851eb 3d8f5c28 3d4ccccb 3cf5c28c 3c23d704` |
+| `binade-reverse` | 5 | 5 | `4a800003 4a800002 4a800001 4a800000 4a7ffffd` | `4a800003 4a800002 4a800001 4a7fffff 4a7ffffc` |
+| `rounded-stop-reverse` | 1 | 2 | `4a800004 4a800002` | `4a800004` |
+| `seed-overflow-reverse` | 0 | 1 | `7ec00000` | `∅` |
+| `seed-finite-fresh-control` | 1 | 1 | `7ec00000` | `7ec00000` |
+
+原 `LevelSystem` 队列仍交付 `64+32` 而非 `64+16`。原始范围中首 seed 溢出无点，后来较小的空页游标不应复活它；作为独立**新**范围的尾窗则本来就可有点。这个区别不是跨范围修复要求。24 个选定来源/清单，回执 `3f3e01f1decb84d2fa37cabac979134b34eb65068862ed2f22e2681f1d354303`、stdout `76a1537efe939d7f79516d08969aff8db2932d97e72fab350c728300905e9151`。
+
+## 11. 先在未修复的引擎核对 20 轨双向原始位型
+
+[tests-only `d0ac5ad97a092cdcea703c2e020cff12eec6897e`](https://github.com/He-Jiahui/ZirconEngine/blob/d0ac5ad97a092cdcea703c2e020cff12eec6897e/zircon_runtime/src/animation/tests/clip_event_pages.rs)。§10 的第一份候选在原 13 项上实际 **12 过 1 败**，回执 `8f7801655c6a0e7e6907b67060395a34edf707ee985e14d09a3e475b7d02f9b3`，未把它发布为通过。正、倒放都回到 `64+36`，但原第 9 节的测试还要求倒放的每个位置距离十进制字面量不超过 2 ULP。**这个附加条件与同一个未修复引擎的一次采样冲突**。反向从 `.1f32` 的首点按旧原算式得到 `3db851eb`；按次减 `.02f32` 后，靠近 `.03`、`.01` 的位型分别是 `3cf5c28c`、`3c23d704`，距字面量为 −3、−6 ULP。正放的五个点简单倒序不是倒放的原轨迹。
+
+没有把容忍度从 2 放宽。只校正原 20 轨测试：按旧首算和 `f32` 单步推导的每方向五组硬位型，**再**在未改生产的同一 clip/range 分别用非绑定 `max_events=101` 实测；每方向各 100 条、一次结束、无续页，包含名称/实体/片内及播放位置/载荷/目标的完整列表均与硬锚逐项相同（不是只比哈希）。再将实际分页与该列表逐条比较，保留 `64+36`、每轨五次、组内次序、游标 `point-03` / track 16 和预算断言。
+
+| 方向 | 旧生产实际非绑定的五组位型（各 20 条） | 原分页计数 | 首差下标 |
+|---|---|---|---|
+| 0→0.1 | `3c23d70a 3cf5c28f 3d4ccccc 3d8f5c28 3db851ea` | `64+40` | `Some(64)` |
+| 0.1→0 | `3db851eb 3d8f5c28 3d4ccccb 3cf5c28c 3c23d704` | `64+20` | `Some(64)` |
+
+同 §10 选项实际 **3 过 10 败**，失败仍是多/漏/播放位置错误；原有 16 窗口结果不变。修前配对回执 `756400b0b1ea5993469cc15b2f31fca83f9491783487845096229dd634bb9cb3`、stdout `a827af5885cec2a36b6d49a380a3a88171c7a5c0dac3161c8d508fb809d871b2`；不与不同版本测试拼出 GREEN。
+
+## 12. 修复：续页只挑选原轨迹的下一条，不由游标重新生成一条轨迹
+
+[生产采样器 `34b821903e51c0a0223cfbb077318f2c1c6c97b3`](https://github.com/He-Jiahui/ZirconEngine/blob/34b821903e51c0a0223cfbb077318f2c1c6c97b3/zircon_runtime/src/animation/clip_event.rs)、[私有 seek/step](https://github.com/He-Jiahui/ZirconEngine/blob/34b821903e51c0a0223cfbb077318f2c1c6c97b3/zircon_runtime/src/animation/clip_event/occurrence.rs)。fresh 和非循环沿用原逻辑；已经延期的循环范围从**同一个范围的原始首点**依据旧的单精度步进定位。队列、公有游标、通知排序及预算策略未变。相同时间仍按名称和轨下标接续。加速只在均匀浮点间距的指数带内部跳跃；边界、停止和溢出用真正的原生单步，不大范围枚举所有过往事件。
+
+同 §11 的原命令、同 13 个已提交用例、三份黑盒测试逐字节相同，**3 过 10 败 → 13 过 0 败**。16 个窗口的整条有序事件流都逐位等于原单批和固定锚点；原版偏离的九个窗口已无首差。另一个既有 20 轨用例正放 `64+40` 和倒放 `64+20` 都恢复为 `64+36`。真实 Level 单 range `64+16`，第三帧无重复，既有小帧、同名 tie、相邻 ULP、字节/跨度/oversized 均保留。极端窗口中没有复活在原范围本来就不存在或已停止的轨。
+
+另外对同一生产提交运行私有 `--lib loop_occurrence_locator_` 3 例，**3 过 0 败**（同包、特性、test profile 与离线锁文件）。两个长距离方向单次定位的原生步进调用记录如下（测试计数、不是毫秒或设备性能）：
+
+- `LOOP_OCCURRENCE_LOCATOR_STEPS_V1 seed=3f800000 cursor=4b800000 reverse=false steps=92`
+- `LOOP_OCCURRENCE_LOCATOR_STEPS_V1 seed=4b800000 cursor=00000000 reverse=true steps=93`
+
+黑盒回执修前 `756400b0b1ea5993469cc15b2f31fca83f9491783487845096229dd634bb9cb3`、修后 `3c59e46ef1d2176ea7f32e4ea28360093d9c2cbe7b56afcfd648c3eae53ed1bd`，补充成本回执 `e02fc3f965500b45268e703b34bc1b524ee9d4e02f3bd02ff61e4c7ca1225fea`。本修复保证同一 clip、同一给定范围分页不改变旧单批轨迹；不重新定义数学循环次数、不同帧范围的拼接，或解决极大绝对时间上一个空 span 自身不前进的问题。未运行完整动画插件/UE 或设备性能门。
+
+
+补充原采样器全模块 `--lib animation::clip_event::`（同提交/特性/配置）：**26 过、0 败、2 个按仓库标记忽略**，包括原正反接缝、非循环、相同时间续页、预算及 heap 比较次数。未执行受管的 release 性能基准。回执 `98fa8601461a617b1341b26f2c28b0cc47faef0b71a1d3b4ae24dbfedf44e7e4`。

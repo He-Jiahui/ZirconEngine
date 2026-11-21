@@ -512,3 +512,269 @@ fn event_track(event: &str, time_seconds: Real, payload: Option<&str>) -> Animat
         payload: payload.map(str::to_string),
     }
 }
+
+#[test]
+fn loop_notify_resume_sampler_keeps_occurrence_multiplicity() {
+    const TRACKS: usize = 16;
+    const POINT: Real = 0.01;
+    const DURATION: Real = 0.02;
+    const POSITIONS: [Real; 5] = [0.01, 0.03, 0.05, 0.07, 0.09];
+    const ENTITY: u64 = 17;
+
+    let names: [String; TRACKS] = std::array::from_fn(|index| format!("point-{index:02}"));
+    let mut clip = clip_with_events(
+        names
+            .iter()
+            .rev()
+            .map(|name| event_track(name, POINT, None))
+            .collect(),
+    );
+    clip.duration_seconds = DURATION;
+    let limits = AnimationClipEventSamplingLimits::default();
+
+    let name_counts = |events: &[AnimationClipEvent]| {
+        names.each_ref().map(|name| {
+            events
+                .iter()
+                .filter(|event| event.event.as_str() == name.as_str())
+                .count()
+        })
+    };
+    let assert_occurrences = |label: &str, events: &[AnimationClipEvent], positions: &[Real]| {
+        assert_eq!(
+            name_counts(events),
+            [positions.len(); TRACKS],
+            "{label}: per-name counts"
+        );
+        assert_eq!(events.len(), positions.len() * TRACKS, "{label}: count");
+        for (group, &position) in events.chunks_exact(TRACKS).zip(positions) {
+            for (event, name) in group.iter().zip(&names) {
+                assert_eq!(event.entity, ENTITY);
+                assert_eq!(event.event.as_str(), name.as_str(), "{label}: point order");
+                assert_eq!(event.clip_time_seconds, POINT, "{label}: clip position");
+                assert_eq!(event.playback_time_seconds, group[0].playback_time_seconds);
+                assert!(
+                    event
+                        .playback_time_seconds
+                        .to_bits()
+                        .abs_diff(position.to_bits())
+                        <= 2,
+                    "{label}: {name} at {:?}, expected about {position}",
+                    event.playback_time_seconds,
+                );
+            }
+        }
+    };
+
+    // Both a UE-sequence-cap-compatible delta and the exact-binary original ZE witness.
+    let ends: [Real; 2] = [0.1, 0.09375];
+    let deliveries = ends.map(|end| {
+        let unpaged = sample_clip_events_budgeted(
+            &clip,
+            ENTITY,
+            0.0,
+            end,
+            true,
+            None,
+            AnimationClipEventSamplingLimits {
+                max_events: 128,
+                ..limits
+            },
+        );
+        let first = sample_clip_events_budgeted(&clip, ENTITY, 0.0, end, true, None, limits);
+        let resumed = first.next_cursor.clone().map(|cursor| {
+            sample_clip_events_budgeted(&clip, ENTITY, 0.0, end, true, Some(cursor), limits)
+        });
+        (unpaged, first, resumed)
+    });
+
+    // Emit both inputs' real pages even if the first behavioral assertion fails.
+    let time_bits = |events: &[AnimationClipEvent]| {
+        let mut bits: Vec<_> = events
+            .iter()
+            .map(|event| event.playback_time_seconds.to_bits())
+            .collect();
+        bits.dedup(); // Log adjacent equal values once; assertions still use the untouched events.
+        bits.iter()
+            .map(|bits| format!("{bits:08x}"))
+            .collect::<Vec<_>>()
+    };
+    for (end, (unpaged, first, resumed)) in ends.iter().zip(&deliveries) {
+        let rest = resumed
+            .as_ref()
+            .map_or(&[][..], |batch| batch.events.as_slice());
+        println!(
+            "clip-loop end={end:.8}/{:08x} unpaged={}:{:?} first={}:{:?} cursor={:?} resumed={}:{:?} resumed_counts={:?}",
+            end.to_bits(), unpaged.events.len(), time_bits(&unpaged.events),
+            first.events.len(), time_bits(&first.events),
+            first.next_cursor.as_ref().map(|cursor| format!("{:08x}", cursor.playback_time_seconds.to_bits())),
+            rest.len(), time_bits(rest), name_counts(rest),
+        );
+    }
+
+    assert_eq!(limits.max_events, 64);
+    for (end, (unpaged, first, resumed)) in ends.into_iter().zip(deliveries) {
+        assert!(!unpaged.budget_exhausted && unpaged.next_cursor.is_none());
+        assert_occurrences("nonbinding count budget", &unpaged.events, &POSITIONS);
+        assert!(first.budget_exhausted);
+        assert_occurrences("first default-budget page", &first.events, &POSITIONS[..4]);
+        let resumed = resumed.expect("sampler must retain the unfinished range");
+        assert!(!resumed.budget_exhausted && resumed.next_cursor.is_none());
+        let lengths = [first.events.len(), resumed.events.len()];
+        let events: Vec<_> = first.events.into_iter().chain(resumed.events).collect();
+        let label = format!("end {end}, default-budget pages {lengths:?}");
+        assert_occurrences(&label, &events, &POSITIONS);
+        assert_eq!(lengths, [64, 16], "{label}");
+    }
+}
+
+// Exercise the public LevelSystem queue as well as the resident native-host clip sampler.
+#[cfg(feature = "native-host")]
+#[test]
+fn loop_notify_resume_level_continues_one_original_range() {
+    use crate::animation::ProjectAnimationClipEventSampler;
+    use crate::asset::{AssetUri, ProjectAssetManager};
+    use crate::core::framework::animation::{
+        AnimationClipEventBatchAdmission, AnimationClipEventQueueAdmission,
+        AnimationClipEventSamplingRange,
+    };
+    use crate::core::resource::{ResourceId, ResourceKind, ResourceRecord};
+    use crate::scene::{components::NodeKind, DefaultLevelManager};
+
+    const POINT: Real = 0.01;
+    const TRACKS: usize = 16;
+    let names: [String; TRACKS] = std::array::from_fn(|index| format!("point-{index:02}"));
+    let mut clip = clip_with_events(
+        names
+            .iter()
+            .rev()
+            .map(|name| event_track(name, POINT, None))
+            .collect(),
+    );
+    clip.duration_seconds = 0.02;
+    let assets = ProjectAssetManager::default();
+    let uri = AssetUri::parse("res://animation/loop-event-queue.clip.zranim").unwrap();
+    let clip_id = ResourceId::from_locator(&uri);
+    let restored =
+        AnimationClipAsset::from_bytes(&clip.to_bytes().expect("serialize point tracks"))
+            .expect("decode point tracks");
+    assert_eq!(restored, clip, "the asset must preserve same-time tracks");
+    assets.resource_manager().register_ready(
+        ResourceRecord::new(clip_id, ResourceKind::AnimationClip, uri),
+        restored,
+    );
+    assert_eq!(assets.load_animation_clip_asset(clip_id).unwrap(), clip);
+    let sampler = ProjectAnimationClipEventSampler::new(&assets);
+    let level = DefaultLevelManager::default().create_default_level();
+    let entity = level
+        .with_world_mut(|world| world.spawn_node(NodeKind::Cube))
+        .unwrap();
+    let epoch = level.capture_world_replacement_epoch();
+    assert_eq!(
+        level.enqueue_animation_clip_event_range_batches(
+            epoch,
+            vec![vec![AnimationClipEventSamplingRange {
+                entity,
+                clip_id,
+                from_time_seconds: 0.0,
+                to_time_seconds: 0.1,
+                looping: true,
+            }]]
+        ),
+        AnimationClipEventQueueAdmission::Current {
+            batch_admissions: vec![AnimationClipEventBatchAdmission::Admitted],
+            admitted_range_count: 1,
+            deferred_range_count: 0,
+            rejected_range_count: 0,
+        }
+    );
+
+    let first = level.drain_animation_clip_events(epoch, &sampler).unwrap();
+    assert_eq!(level.animation_clip_event_backlog_len(epoch), Some(1));
+    let rest = level.drain_animation_clip_events(epoch, &sampler).unwrap();
+    assert_eq!(level.animation_clip_event_backlog_len(epoch), Some(0));
+    assert!(level
+        .drain_animation_clip_events(epoch, &sampler)
+        .unwrap()
+        .is_empty());
+    let counts = names.each_ref().map(|name| {
+        first
+            .iter()
+            .chain(&rest)
+            .filter(|ev| ev.event.as_str() == name.as_str())
+            .count()
+    });
+    eprintln!("CLIP_QUEUE_V1 pages={:?} actual_per_name={counts:?} real_range_backlog=1,0 third_empty=true", [first.len(), rest.len()]);
+    assert_eq!([first.len(), rest.len()], [64, 16]);
+    assert_eq!(counts, [5; TRACKS]);
+    let all: Vec<_> = first.into_iter().chain(rest).collect();
+    let times: [Real; 5] = [0.01, 0.03, 0.05, 0.07, 0.09];
+    for (group, position) in all.chunks_exact(TRACKS).zip(times) {
+        for (event, name) in group.iter().zip(&names) {
+            assert_eq!(event.event.as_str(), name.as_str());
+            assert_eq!(event.entity, entity);
+            assert_eq!(event.clip_time_seconds, POINT);
+            assert!(
+                event
+                    .playback_time_seconds
+                    .to_bits()
+                    .abs_diff(position.to_bits())
+                    <= 2
+            );
+        }
+    }
+}
+
+#[test]
+fn loop_notify_resume_split_frames_and_exact_period_controls() {
+    const TRACKS: usize = 16;
+    for (period, point, spans) in [
+        (0.02_f32, 0.01_f32, vec![(0., 0.0625), (0.0625, 0.1)]),
+        (1.0 / 32.0, 1.0 / 64.0, vec![(0., 5.0 / 32.0)]),
+    ] {
+        let names: [String; TRACKS] = std::array::from_fn(|i| format!("point-{i:02}"));
+        let mut clip =
+            clip_with_events(names.iter().map(|n| event_track(n, point, None)).collect());
+        clip.duration_seconds = period;
+        let limits = AnimationClipEventSamplingLimits::default();
+        let mut lengths = Vec::new();
+        let mut counts = [0u32; TRACKS];
+        for (from, to) in spans {
+            let mut cursor = None;
+            for page in 0..3 {
+                let batch =
+                    sample_clip_events_budgeted(&clip, 17, from, to, true, cursor.take(), limits);
+                lengths.push(batch.events.len());
+                for ev in batch.events {
+                    let i = names
+                        .iter()
+                        .position(|n| *n == ev.event)
+                        .expect("known track");
+                    assert_eq!(ev.clip_time_seconds, point);
+                    counts[i] += 1;
+                }
+                cursor = batch.next_cursor;
+                if cursor.is_none() {
+                    break;
+                }
+                assert!(
+                    page < 2,
+                    "a finite five-crossing input exhausted three pages"
+                );
+            }
+        }
+        eprintln!(
+            "CLIP_CONTROL_V1 period_bits={:08x} pages={lengths:?} counts={counts:?}",
+            period.to_bits()
+        );
+        assert_eq!(counts, [5; TRACKS]);
+        let expected = if period == 0.02 { [48, 32] } else { [64, 16] };
+        assert_eq!(lengths, expected);
+    }
+}
+
+#[path = "clip_event_pages.rs"]
+mod pages;
+
+#[path = "clip_event_oracle.rs"]
+mod oracle;
