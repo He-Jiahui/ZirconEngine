@@ -1,3 +1,4 @@
+use crate::core::{CoreError, ModuleDescriptor};
 use crate::plugin::RuntimeExtensionRegistry;
 
 use super::super::extension_merge::merge_runtime_extensions;
@@ -8,11 +9,17 @@ use super::RuntimeExtensionCatalogReport;
 // 全量报告先验证模块依赖顺序；失败时 finalize 空 registry 并同时返回 fatal，成功后逐登记合并再 finalize。
 pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn runtime_extension_report(
     registrations: &[RuntimePluginRegistrationReport],
+    host_descriptors: &[ModuleDescriptor],
+    previous_order_error: Option<&CoreError>,
 ) -> RuntimeExtensionCatalogReport {
     let mut registry = RuntimeExtensionRegistry::default();
     let mut diagnostics = Vec::with_capacity(registrations.len());
     let mut fatal_diagnostics = Vec::with_capacity(registrations.len());
-    let registrations = match order_runtime_plugin_registration_reports(registrations) {
+    let order = match previous_order_error {
+        Some(error) => Err(error.clone()),
+        None => order_runtime_plugin_registration_reports(registrations, host_descriptors),
+    };
+    let registrations = match order {
         Ok(registrations) => registrations,
         Err(error) => {
             let diagnostic = format!("runtime plugin module descriptor ordering failed: {error}");

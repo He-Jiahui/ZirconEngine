@@ -340,7 +340,7 @@ impl TestRuntimeBuilder {
             self.runtime_registrations,
             self.feature_registrations,
         );
-        let extension_report = catalog.runtime_extensions();
+        let extension_report = catalog.runtime_extensions_for_registered_host(&runtime.handle());
         if extension_report.has_fatal_diagnostics() {
             return Err(TestRuntimeError::RuntimeExtensionCatalog {
                 diagnostics: extension_report.diagnostics,
