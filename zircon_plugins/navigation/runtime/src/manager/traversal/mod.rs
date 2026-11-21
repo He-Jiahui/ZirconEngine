@@ -58,11 +58,11 @@ pub(super) fn begin_from_path(
     path: &NavPathResult,
     current: Vec3,
 ) -> Option<Vec3> {
-    let link = selection::select_upcoming_link(asset, path)?;
+    let (link, marked_entry) = selection::select_upcoming_link(asset, path)?;
     let mut runtime_state = manager.lock_state();
     runtime_state
         .off_mesh_traversal
-        .begin(agent_entity, nav_mesh, link, current)
+        .begin(agent_entity, nav_mesh, link, marked_entry, current)
 }
 
 pub(super) fn advance_active(
