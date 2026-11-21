@@ -2,7 +2,7 @@ use crate::core::framework::render::{
     FogVolumeData, PostProcessVolumeExtract, RenderLayerSet, RenderViewExtract,
     VolumeComponentOverride, VolumeShapeExtract, VOLUMETRIC_FOG_COMPONENT_ID,
 };
-use crate::core::math::{Real, Transform, Vec3};
+use crate::core::math::{Mat4, Real, Transform, Vec3};
 use crate::scene::components::{
     default_render_layer_mask, ColliderComponent, ColliderShape, PostProcessVolumeComponent,
 };
@@ -140,8 +140,13 @@ impl World {
             return Some(VolumeShapeExtract::global());
         }
         let collider = self.get::<ColliderComponent>(entity)?;
+        // Keep the authored point affine; only the compact shape uses projected TRS.
+        let center = self
+            .world_matrix(entity)
+            .unwrap_or(Mat4::IDENTITY)
+            .transform_point3(collider.local_transform.translation);
         let world_transform = self.world_transform(entity).unwrap_or_default();
-        volume_shape_extract_from_collider(world_transform, collider, volume.blend_distance)
+        volume_shape_extract_from_collider(center, world_transform, collider, volume.blend_distance)
     }
 }
 
@@ -228,13 +233,12 @@ fn post_process_volume_layers_for_view(view: &RenderViewExtract) -> RenderLayerS
 }
 
 fn volume_shape_extract_from_collider(
+    center: Vec3,
     world_transform: Transform,
     collider: &ColliderComponent,
     blend_distance: Real,
 ) -> Option<VolumeShapeExtract> {
     let collider_transform = collider.local_transform;
-    let center = world_transform.translation
-        + world_transform.rotation * (world_transform.scale * collider_transform.translation);
     let rotation = world_transform.rotation * collider_transform.rotation;
     let scale = (world_transform.scale * collider_transform.scale).abs();
 
