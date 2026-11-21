@@ -1,9 +1,7 @@
 //! Read-only, bounded browser resource residency over the desktop Raw export.
 use super::async_value::AsyncValue;
 use super::{asset_error_message, CookedAssetSource, RuntimeAssetManager};
-use crate::asset::artifact::{
-    RawAssetCatalog, RawSceneCatalogEntry, RenderArtifactStore, RAW_CATALOG_MAX_BYTES,
-};
+use crate::asset::artifact::{RawAssetCatalog, RenderArtifactStore, RAW_CATALOG_MAX_BYTES};
 use crate::asset::{AssetId, AssetKind};
 use crate::core::resource::{
     ResourceManager, ResourceMutationBatch, ResourceRecord, ResourceState,
@@ -56,7 +54,14 @@ pub struct BrowserAssetSource {
     scope: TaskGraphScope,
     limits: BrowserAssetLimits,
     state: Mutex<State>,
-    scene: Option<RawSceneCatalogEntry>,
+    // Match the Scene module's gate in lib.rs; asset-only builds still validate the catalog.
+    #[cfg(any(
+        feature = "native-host",
+        feature = "graphics",
+        feature = "animation",
+        feature = "ui"
+    ))]
+    scene: Option<crate::asset::artifact::RawSceneCatalogEntry>,
     startup_assets: Box<[AssetId]>,
     ui_roots: Box<[AssetId]>,
 }
@@ -168,6 +173,12 @@ impl BrowserAssetSource {
             payloads,
             scope,
             limits,
+            #[cfg(any(
+                feature = "native-host",
+                feature = "graphics",
+                feature = "animation",
+                feature = "ui"
+            ))]
             scene: catalog.scene,
             startup_assets: catalog.startup_assets.into_boxed_slice(),
             ui_roots: catalog.ui_roots.into_boxed_slice(),
@@ -204,6 +215,14 @@ impl BrowserAssetSource {
         }
         result
     }
+
+    /// Load the startup scene when the runtime includes the Scene module.
+    #[cfg(any(
+        feature = "native-host",
+        feature = "graphics",
+        feature = "animation",
+        feature = "ui"
+    ))]
     pub async fn load_scene(&self) -> Result<crate::scene::DynamicScene, CoreError> {
         let scene = self
             .scene
