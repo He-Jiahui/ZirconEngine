@@ -185,8 +185,22 @@ fn crash_publication_recovers_scene_and_opaque_workspace_before_reopen() {
         .to_project_toml_string(|reference| manager.persist_runtime_reference(reference))
         .unwrap()
         .into_bytes();
-    let scene_path = manager.source_path_for_uri(&scene_uri).unwrap();
+    let scene_path = manager
+        .primary_project_source_path_for_uri(&scene_uri)
+        .expect("a mounted project URI must resolve a first-write destination");
+    assert_eq!(
+        scene_path,
+        paths
+            .asset_root(&RelPath::project_assets())
+            .join(scene_uri.path())
+    );
+    assert!(!scene_path.try_exists().unwrap());
+    assert!(matches!(
+        manager.source_path_for_uri(&scene_uri),
+        Err(AssetImportError::MissingProjectAssetUri { uri }) if uri == scene_uri
+    ));
     fs::write(&scene_path, &old_scene_document).unwrap();
+    assert_eq!(manager.source_path_for_uri(&scene_uri).unwrap(), scene_path);
     let source_revision = Scene::load_scene_document(&manager, &scene_uri)
         .unwrap()
         .into_parts()
@@ -204,12 +218,18 @@ fn crash_publication_recovers_scene_and_opaque_workspace_before_reopen() {
         ProjectTransactionFault::CrashAfterTargetReplace(0),
     );
     assert!(result.is_err());
-    assert!(paths.derived_root().join(JOURNAL_DIRECTORY).exists());
+    let journal_directory = paths.derived_root().join(JOURNAL_DIRECTORY);
+    assert!(fs::read_dir(&journal_directory).unwrap().next().is_some());
+    assert_ne!(
+        fs::read(&scene_path).unwrap(),
+        old_scene_document,
+        "the injected interruption must run after the Scene replacement"
+    );
+    assert_eq!(fs::read(&workspace_path).unwrap(), OLD_WORKSPACE);
     drop(scoped);
     drop(manager);
 
     let reopened = ProjectManager::open(&root).unwrap();
-    let journal_directory = paths.derived_root().join(JOURNAL_DIRECTORY);
     assert!(journal_directory.is_dir());
     assert!(fs::read_dir(journal_directory).unwrap().next().is_none());
     assert!(reopened.paths().root().exists());
@@ -240,9 +260,95 @@ fn crash_publication_recovers_scene_and_opaque_workspace_before_reopen() {
         .into_bytes();
     assert_eq!(fs::read(&scene_path).unwrap(), new_scene_document);
     assert_eq!(fs::read(&workspace_path).unwrap(), NEW_WORKSPACE);
-    let committed_scene = Scene::load_scene_from_uri(&committed, &scene_uri).unwrap();
+    // Reopen the authored source, not an imported artifact: the fixture never scans this Scene.
+    let (committed_scene, committed_revision) = Scene::load_scene_document(&committed, &scene_uri)
+        .expect("the second reopen must decode the published Scene source")
+        .into_parts();
+    assert!(committed_revision.matches_path(&scene_path).unwrap());
     assert_eq!(committed_scene.nodes(), new_scene.nodes());
     drop(committed);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn first_scene_workspace_save_requires_a_mounted_project_destination() {
+    let root = fixture_root("first-save");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    let asset_root = RelPath::project_assets();
+    paths
+        .ensure_layout(std::slice::from_ref(&asset_root))
+        .unwrap();
+    fs::create_dir_all(paths.asset_root(&asset_root).join("scenes")).unwrap();
+    let scene_uri = AssetUri::parse("res://scenes/main.scene.toml").unwrap();
+    ProjectManifest::new("Editor document first save", scene_uri.clone(), 1)
+        .save(paths.manifest_path())
+        .unwrap();
+    let manager = ProjectManager::open(&root).unwrap();
+    let mut scene = Scene::empty_for_project(&manager).unwrap();
+    let node = scene.spawn_node(crate::scene::NodeKind::Empty).unwrap();
+    scene.rename_node(node, "FirstSave").unwrap();
+    scene.flush_pending_scene_systems();
+
+    let scene_path = paths.asset_root(&asset_root).join(scene_uri.path());
+    let workspace_path = paths.derived_root().join(WORKSPACE_FILE);
+    let journal_directory = paths.derived_root().join(JOURNAL_DIRECTORY);
+    assert_eq!(
+        manager
+            .primary_project_source_path_for_uri(&scene_uri)
+            .unwrap(),
+        scene_path
+    );
+    assert!(matches!(
+        manager.source_path_for_uri(&scene_uri),
+        Err(AssetImportError::MissingProjectAssetUri { uri }) if uri == scene_uri
+    ));
+    let generation = manager.catalog_input_generation().sequence();
+    let scoped = manager
+        .scoped_editor_document(&EditorDocumentScope::new(&root, generation))
+        .unwrap();
+
+    // Keep the relative Scene path identical; only the namespace is not mounted.
+    let unmounted_uri =
+        AssetUri::parse("package://com.zircon.unmounted/scenes/main.scene.toml").unwrap();
+    let error = scoped
+        .commit_scene_workspace(
+            &unmounted_uri,
+            &scene,
+            &SceneSourceRevision::Missing,
+            NEW_WORKSPACE,
+        )
+        .expect_err("an unknown package must not fall back to the project asset root");
+    assert!(
+        matches!(&error, SceneProjectError::Asset(AssetImportError::UnsupportedFormat(reason))
+            if reason.contains("unknown package com.zircon.unmounted")),
+        "{error:?}"
+    );
+    assert!(!scene_path.try_exists().unwrap());
+    assert!(!workspace_path.try_exists().unwrap());
+    assert!(!journal_directory.try_exists().unwrap());
+
+    let receipt = scoped
+        .commit_scene_workspace(
+            &scene_uri,
+            &scene,
+            &SceneSourceRevision::Missing,
+            OLD_WORKSPACE,
+        )
+        .unwrap();
+    receipt.ensure_durable().unwrap();
+    assert_eq!(receipt.source_path(), scene_path.as_path());
+    assert_eq!(manager.source_path_for_uri(&scene_uri).unwrap(), scene_path);
+    drop(scoped);
+    drop(manager);
+
+    let reopened = ProjectManager::open(&root).unwrap();
+    let (decoded, revision) = Scene::load_scene_document(&reopened, &scene_uri)
+        .unwrap()
+        .into_parts();
+    assert_eq!(decoded.nodes(), scene.nodes());
+    assert_eq!(&revision, receipt.source_revision());
+    assert_eq!(fs::read(&workspace_path).unwrap(), OLD_WORKSPACE);
+    drop((revision, receipt, reopened));
     fs::remove_dir_all(root).unwrap();
 }
 
