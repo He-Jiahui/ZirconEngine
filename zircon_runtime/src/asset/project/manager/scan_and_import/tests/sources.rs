@@ -18,6 +18,7 @@ fn generated_source_snapshot_moves_primary_bytes_without_cloning() {
             source_mtime_unix_ms: 17,
             source_file_snapshots: BTreeMap::new(),
         }),
+        descriptor_write_stamp: None,
         snapshot_complete: true,
     };
     let original = source
@@ -69,6 +70,7 @@ fn compound_snapshot_reuses_one_generation_for_digest_and_auxiliary_sources() {
         included_paths,
         compound_root: Some(compound_root),
         source_snapshot: None,
+        descriptor_write_stamp: None,
         snapshot_complete: false,
     };
 
@@ -156,6 +158,7 @@ fn gltf_generation_snapshot_digest_tracks_auxiliary_only_changes() {
         included_paths: Vec::new(),
         compound_root: None,
         source_snapshot: None,
+        descriptor_write_stamp: None,
         snapshot_complete: false,
     };
     let mut first = new_source();

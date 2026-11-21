@@ -56,6 +56,7 @@ fn pre_active_abort_uses_journal_first_cleanup_for_uncertain_tail() {
         staging: staging.clone(),
         backup: root.join("generation.backup"),
         rollback_staging: root.join("generation.rollback"),
+        retained_mtime: None,
         retirements: Vec::new(),
     }];
     let original = DurableTransactionError::operation(

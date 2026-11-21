@@ -1,12 +1,15 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 
 use crate::asset::project::ProjectGenerationObservation;
 use crate::asset::project::{AssetMetaDocument, AssetMetaError, AssetSourceUnit};
 use crate::asset::reference_resolver::persisted_source_path_for_locator;
 use crate::asset::{AssetImportError, AssetUri};
-use crate::core::resource::ResourceScheme;
+use crate::core::resource::{io::SourceRevision, ResourceScheme};
+
+use super::PreparedFileWrite;
 
 use super::super::{
     collect_files::{
@@ -41,7 +44,24 @@ pub(super) struct AssetImportSource {
     pub(super) included_paths: Vec<PathBuf>,
     pub(super) compound_root: Option<PathBuf>,
     pub(super) source_snapshot: Option<AssetImportSourceSnapshot>,
+    pub(super) descriptor_write_stamp: Option<DescriptorWriteStamp>,
     snapshot_complete: bool,
+}
+
+pub(super) struct DescriptorWriteStamp(SourceRevision, SystemTime);
+
+pub(super) fn prepare_generated_descriptor_write(
+    path: PathBuf,
+    bytes: Vec<u8>,
+    stamp: Option<DescriptorWriteStamp>,
+) -> PreparedFileWrite {
+    let write = PreparedFileWrite::new(path, bytes);
+    match stamp {
+        Some(DescriptorWriteStamp(revision, modified)) => {
+            write.preserving_observed_mtime(revision, modified)
+        }
+        None => write,
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -112,6 +132,7 @@ impl ProjectManager {
                 included_paths: Vec::new(),
                 compound_root: None,
                 source_snapshot: None,
+                descriptor_write_stamp: None,
                 snapshot_complete: false,
             });
         }
@@ -149,6 +170,7 @@ impl ProjectManager {
             included_paths,
             compound_root: Some(indexed_path.to_path_buf()),
             source_snapshot: None,
+            descriptor_write_stamp: None,
             snapshot_complete: false,
         })
     }
@@ -248,6 +270,7 @@ impl ProjectManager {
                 included_paths: Vec::new(),
                 compound_root: None,
                 source_snapshot: None,
+                descriptor_write_stamp: None,
                 snapshot_complete: false,
             });
         }
@@ -332,6 +355,7 @@ impl ProjectManager {
             included_paths,
             compound_root: Some(compound_root),
             source_snapshot: None,
+            descriptor_write_stamp: None,
             snapshot_complete: false,
         }))
     }
@@ -446,7 +470,10 @@ pub(super) fn materialize_compound_source_snapshot(
             ),
         ));
     }
-    let (source_bytes, mut latest_mtime_unix_ms) = read_primary_source_snapshot(source)?;
+    let (resolver, name) = primary_snapshot_resolver(source)?;
+    let (_, source_bytes, mut latest_mtime_unix_ms, (revision, modified)) =
+        resolver.read_descriptor_snapshot(name, source_byte_limit())?;
+    source.descriptor_write_stamp = Some(DescriptorWriteStamp(revision, modified));
     let mut total_bytes = source_bytes.len() as u64;
     // Retain the admitted primary even if a member fails, without publishing partial members.
     source.source_snapshot = Some(AssetImportSourceSnapshot {
@@ -569,6 +596,14 @@ fn snapshot_declared_auxiliary_sources(
 fn read_primary_source_snapshot(
     source: &AssetImportSource,
 ) -> Result<(Vec<u8>, u64), AssetImportError> {
+    let (resolver, name) = primary_snapshot_resolver(source)?;
+    let (_, bytes, mtime) = resolver.read_path_snapshot(name, source_byte_limit())?;
+    Ok((bytes, mtime))
+}
+
+fn primary_snapshot_resolver(
+    source: &AssetImportSource,
+) -> Result<(crate::asset::importer::AuxiliarySourceResolver, &Path), AssetImportError> {
     let parent = source
         .path
         .parent()
@@ -581,8 +616,7 @@ fn read_primary_source_snapshot(
         &source.asset_root,
         parent,
     )?;
-    let (_, bytes, mtime) = resolver.read_path_snapshot(Path::new(name), source_byte_limit())?;
-    Ok((bytes, mtime))
+    Ok((resolver, Path::new(name)))
 }
 
 fn source_budget_error(path: &Path, reason: impl Into<String>) -> AssetImportError {

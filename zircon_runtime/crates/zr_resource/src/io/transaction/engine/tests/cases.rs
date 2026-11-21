@@ -473,6 +473,7 @@ fn intent_recovery_cleanup_preserves_evidence_when_the_journal_cannot_be_removed
         staging: staging.clone(),
         backup: root.join("generation.backup"),
         rollback_staging: root.join("generation.rollback"),
+        retained_mtime: None,
         retirements: Vec::new(),
     }];
 

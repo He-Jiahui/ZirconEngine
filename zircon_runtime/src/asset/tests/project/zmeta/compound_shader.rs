@@ -499,3 +499,6 @@ fn shader_package_reuses_first_pass_wgsl_file_contents_for_data_entries() {
     assert!(source.contains("for (path, source) in wgsl_data_sources"));
     assert!(!source.contains("let source = fs::read_to_string(&path)?;"));
 }
+#[cfg(all(any(unix, windows), any(feature = "graphics", feature = "target-server")))]
+#[path = "compound_time.rs"]
+mod source_time_regressions;

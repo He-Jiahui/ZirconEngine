@@ -116,9 +116,13 @@ impl ProjectedMetaInventory {
     }
 
     pub(super) fn changed_documents(&self) -> impl Iterator<Item = (&PathBuf, &AssetMetaDocument)> {
-        self.documents.iter().filter(|(path, document)| {
-            self.originals.get(*path).and_then(Option::as_ref) != Some(*document)
-        })
+        self.documents
+            .iter()
+            .filter(|(path, _)| self.document_has_changed(path))
+    }
+
+    pub(super) fn document_has_changed(&self, path: &Path) -> bool {
+        self.originals.get(path).and_then(Option::as_ref) != self.documents.get(path)
     }
 }
 

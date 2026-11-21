@@ -177,12 +177,29 @@ fn require_original_or_new_target(
         return Ok(());
     }
     let actual = file_evidence(journal_path, &document.target, policy, evidence)?;
-    if actual == new_digest
-        || document
-            .original_digest
-            .as_deref()
-            .is_some_and(|original| actual == original)
-    {
+    let already_original = document
+        .original_digest
+        .as_deref()
+        .is_some_and(|original| actual == original);
+    if already_original || actual == new_digest {
+        // The opted writer has no retirements. Old bytes already meet the restore intent,
+        // whether they never changed or were restored on an earlier attempt. Keep a subsequent
+        // authored timestamp; only an actually new generation must satisfy the old A stamp.
+        if mode == RecoveryMode::RestoreOriginal && !already_original {
+            if let Some(stamp) = document.retained_mtime {
+                stamp
+                    .verify_path(&document.target, false)
+                    .map_err(|error| {
+                        DurableTransactionError::invalid(
+                            journal_path,
+                            format!(
+                                "cannot restore clock-protected target {}: {error}",
+                                document.target.display()
+                            ),
+                        )
+                    })?;
+            }
+        }
         Ok(())
     } else {
         Err(DurableTransactionError::invalid(

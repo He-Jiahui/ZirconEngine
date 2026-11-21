@@ -9,7 +9,10 @@ use std::path::{Path, PathBuf};
 use super::super::error::{DurableTransactionError, TransactionPhase};
 use super::super::owner_lock::owner_lock_path;
 use super::super::pathing::{journal_path, transaction_sibling, PathIdentity};
-use super::super::schema::{JournalIntent, JournalRetirement, TransactionJournal, JOURNAL_VERSION};
+use super::super::schema::{
+    JournalIntent, JournalRetirement, TransactionJournal, JOURNAL_VERSION,
+    JOURNAL_VERSION_WITH_RETAINED_MTIME,
+};
 use super::super::PreparedFileWrite;
 use super::frame_codec::encode_frame;
 use crate::io::{atomic_write_new, sync_parent_directory};
@@ -46,7 +49,11 @@ pub(in crate::io::transaction) fn persist_intent(
     persist_journal(
         path,
         &TransactionJournal {
-            version: JOURNAL_VERSION,
+            version: if intents.iter().any(|intent| intent.retained_mtime.is_some()) {
+                JOURNAL_VERSION_WITH_RETAINED_MTIME
+            } else {
+                JOURNAL_VERSION
+            },
             tag: tag.to_owned(),
             transaction_id: transaction_id.to_owned(),
             documents: intents
@@ -56,6 +63,7 @@ pub(in crate::io::transaction) fn persist_intent(
                     staging: intent.staging.clone(),
                     backup: intent.backup.clone(),
                     rollback_staging: intent.rollback_staging.clone(),
+                    retained_mtime: intent.retained_mtime,
                     retirements: intent.retirements.clone(),
                 })
                 .collect(),
@@ -150,6 +158,7 @@ fn intent_for_write(write: &PreparedFileWrite, tag: &str, transaction_id: &str) 
         staging: transaction_sibling(&write.path, tag, "stage", transaction_id),
         backup: transaction_sibling(&write.path, tag, "backup", transaction_id),
         rollback_staging: transaction_sibling(&write.path, tag, "rollback-stage", transaction_id),
+        retained_mtime: write.retained_mtime,
         retirements: write
             .retirements
             .iter()

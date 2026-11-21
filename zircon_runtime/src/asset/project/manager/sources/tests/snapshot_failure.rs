@@ -31,6 +31,7 @@ fn failed_compound_member_capture_keeps_primary_bytes_and_discards_partial_membe
         included_paths: vec![first_member, missing_member.clone()],
         compound_root: Some(compound_root),
         source_snapshot: None,
+        descriptor_write_stamp: None,
         snapshot_complete: false,
     };
 

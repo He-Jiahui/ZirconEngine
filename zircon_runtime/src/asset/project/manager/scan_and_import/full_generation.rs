@@ -30,8 +30,9 @@ use super::metadata::{
 };
 use super::projected_inventory::ProjectedMetaInventory;
 use super::sources::{
-    materialize_compound_source_snapshot, source_asset_root_for_digest, source_digest_for_import,
-    source_mtime_unix_ms_for_import, take_source_bytes_for_import, AssetImportSource,
+    materialize_compound_source_snapshot, prepare_generated_descriptor_write,
+    source_asset_root_for_digest, source_digest_for_import, source_mtime_unix_ms_for_import,
+    take_source_bytes_for_import, AssetImportSource,
 };
 use super::{stage_project_resource, ProjectManager, ShaderImportDependencyIndex};
 use crate::asset::project::manager::durable_transaction::{
@@ -151,6 +152,7 @@ impl ProjectManager {
         let mut payload_types = HashMap::new();
         let mut watch_sources = Vec::new();
         let mut writes = Vec::new();
+        let mut descriptor_write_stamps = HashMap::new();
         let mut prepared_ibl_paths = BTreeMap::new();
 
         let _import_phase = ProjectGenerationPhase::Import.enter();
@@ -298,6 +300,11 @@ impl ProjectManager {
                     restored_records.push(record.clone());
                     imported.push(record);
                 }
+                if let Some(stamp) = source.descriptor_write_stamp.take() {
+                    if inventory.document_has_changed(&source.meta_path) {
+                        descriptor_write_stamps.insert(source.meta_path.clone(), stamp);
+                    }
+                }
                 observation.record_restored_source();
                 continue;
             }
@@ -427,6 +434,11 @@ impl ProjectManager {
                 stage_project_resource(&mut registry, record.clone())?;
                 imported.push(record);
             }
+            if let Some(stamp) = source.descriptor_write_stamp.take() {
+                if inventory.document_has_changed(&source.meta_path) {
+                    descriptor_write_stamps.insert(source.meta_path.clone(), stamp);
+                }
+            }
         }
         drop(_import_phase);
 
@@ -485,9 +497,10 @@ impl ProjectManager {
                 .collect::<Vec<_>>();
             let mut changed_metadata_count = 0;
             for (path, document) in inventory.changed_documents() {
-                writes.push(PreparedFileWrite::new(
+                writes.push(prepare_generated_descriptor_write(
                     path.clone(),
                     document.to_pretty_bytes()?,
+                    descriptor_write_stamps.remove(path),
                 ));
                 changed_metadata_count += 1;
             }
@@ -846,7 +859,7 @@ impl ProjectManager {
     }
 
     #[cfg(test)]
-    fn scan_and_import_with_full_generation_fault(
+    pub(crate) fn scan_and_import_with_full_generation_fault(
         &mut self,
         select_fault: impl FnOnce(usize) -> ProjectTransactionFault,
     ) -> Result<Vec<ResourceRecord>, AssetImportError> {

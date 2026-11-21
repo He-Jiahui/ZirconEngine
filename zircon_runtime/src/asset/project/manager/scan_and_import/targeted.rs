@@ -24,8 +24,9 @@ use super::metadata::{
     failed_entries_for_source, validate_import_entries,
 };
 use super::sources::{
-    materialize_compound_source_snapshot, source_asset_root_for_digest, source_digest_for_import,
-    source_mtime_unix_ms_for_import, take_source_bytes_for_import, AssetImportSourceSnapshot,
+    materialize_compound_source_snapshot, prepare_generated_descriptor_write,
+    source_asset_root_for_digest, source_digest_for_import, source_mtime_unix_ms_for_import,
+    take_source_bytes_for_import, AssetImportSourceSnapshot,
 };
 use super::{stage_project_resource, ImportSourcePlan, ProjectManager};
 use crate::asset::project::manager::durable_transaction::{
@@ -546,9 +547,10 @@ impl ProjectManager {
             affected.sort_by(|left, right| left.primary_locator.cmp(&right.primary_locator));
             let persisted = asset_registry.prepare_persistence(self.paths.registry_root())?;
             let registry_write = PreparedFileWrite::new(persisted.path, persisted.bytes);
-            let writes = vec![PreparedFileWrite::new(
+            let writes = vec![prepare_generated_descriptor_write(
                 source.meta_path.clone(),
                 meta.to_pretty_bytes()?,
+                source.descriptor_write_stamp.take(),
             )];
             self.registry = registry.finish();
             self.asset_registry = Arc::new(asset_registry);
@@ -731,9 +733,10 @@ impl ProjectManager {
             reference_repairs,
         );
 
-        writes.push(PreparedFileWrite::new(
+        writes.push(prepare_generated_descriptor_write(
             source.meta_path.clone(),
             meta.to_pretty_bytes()?,
+            source.descriptor_write_stamp.take(),
         ));
         let persisted = asset_registry.prepare_persistence(self.paths.registry_root())?;
         let registry_write = PreparedFileWrite::new(persisted.path, persisted.bytes);

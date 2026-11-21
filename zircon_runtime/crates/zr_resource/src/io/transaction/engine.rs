@@ -4,6 +4,7 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 
 use super::commit::{
     cleanup_committed, commit_file, rollback_and_cleanup, should_fail_before_commit,
@@ -15,6 +16,7 @@ use super::journal::{
     persist_intent, plan_intent, record_commit_point, record_phase, record_prepared, record_state,
     CommitPointRecord,
 };
+use super::mtime::RetainedMtime;
 use super::observation::DurableCommitReport;
 use super::owner_lock::{owner_lock_path, TransactionOwnerLock};
 use super::pathing::{next_transaction_id, valid_tag, PathIdentity};
@@ -32,6 +34,7 @@ pub struct PreparedFileWrite {
     pub(crate) bytes: Vec<u8>,
     pub(super) retirements: Vec<PreparedFileRetirement>,
     pub(super) expected_revision: Option<SourceRevision>,
+    pub(super) retained_mtime: Option<RetainedMtime>,
 }
 
 #[derive(Debug)]
@@ -47,6 +50,7 @@ impl PreparedFileWrite {
             bytes,
             retirements: Vec::new(),
             expected_revision: None,
+            retained_mtime: None,
         }
     }
 
@@ -62,6 +66,18 @@ impl PreparedFileWrite {
     /// can still race the final check and platform replacement; this is not an external CAS.
     pub fn expecting_source(mut self, expected: SourceRevision) -> Self {
         self.expected_revision = Some(expected);
+        self
+    }
+
+    /// Keep the exact modification time of this admitted existing source across the generated
+    /// replacement, rollback, and reopen recovery. No retirements, no external-writer CAS.
+    pub fn preserving_observed_mtime(
+        mut self,
+        expected: SourceRevision,
+        mtime: SystemTime,
+    ) -> Self {
+        self.expected_revision = Some(expected);
+        self.retained_mtime = Some(RetainedMtime::from_time(mtime));
         self
     }
 
@@ -141,7 +157,11 @@ pub fn commit_prepared_files_with_revisions(
     let _owner = TransactionOwnerLock::acquire(&journal_directory, TransactionPhase::Stage)?;
     reject_pending_recovery(&journal_directory)?;
     for write in &writes {
-        verify_source_revision(&write.path, write.expected_revision.as_ref())?;
+        verify_source_revision(
+            &write.path,
+            write.expected_revision.as_ref(),
+            write.retained_mtime,
+        )?;
     }
     persist_intent(&journal, tag, &transaction_id, &intents)?;
     let cleanup_intents_snapshot = intents.clone();
@@ -180,9 +200,11 @@ pub fn commit_prepared_files_with_revisions(
         }
     }
     for document in &staged {
-        if let Err(error) =
-            verify_source_revision(&document.intent.target, document.expected_revision.as_ref())
-        {
+        if let Err(error) = verify_source_revision(
+            &document.intent.target,
+            document.expected_revision.as_ref(),
+            document.intent.retained_mtime,
+        ) {
             return Err(abort_pre_active(
                 &journal,
                 &cleanup_intents_snapshot,
@@ -217,6 +239,7 @@ pub fn commit_prepared_files_with_revisions(
         if let Err(error) = verify_source_revision(
             &staged[index].intent.target,
             staged[index].expected_revision.as_ref(),
+            staged[index].intent.retained_mtime,
         ) {
             rollback_and_cleanup(&journal, &mut staged, index, true, fault, report)?;
             return Err(error);
@@ -369,11 +392,17 @@ pub fn commit_prepared_files_with_revisions(
 pub(super) fn verify_source_revision(
     path: &Path,
     expected: Option<&SourceRevision>,
+    retained_mtime: Option<RetainedMtime>,
 ) -> Result<(), DurableTransactionError> {
     let Some(expected) = expected else {
         return Ok(());
     };
-    let actual = SourceRevision::observe(path).map_err(|source| {
+    let observed = if retained_mtime.is_some() {
+        expected.observe_bounded_like(path)
+    } else {
+        SourceRevision::observe(path)
+    };
+    let actual = observed.map_err(|source| {
         DurableTransactionError::operation(TransactionPhase::Stage, path, source)
     })?;
     if actual != *expected {
@@ -382,6 +411,14 @@ pub(super) fn verify_source_revision(
             expected: Box::new(expected.clone()),
             actual: Box::new(actual),
         });
+    }
+    if let Some(stamp) = retained_mtime {
+        actual
+            .pinned_modified()
+            .and_then(|observed| stamp.verify(observed))
+            .map_err(|source| {
+                DurableTransactionError::operation(TransactionPhase::Stage, path, source)
+            })?;
     }
     Ok(())
 }
@@ -420,6 +457,15 @@ fn validate_inputs(
     let mut live_paths = BTreeSet::new();
     let mut normalized_writes = Vec::with_capacity(writes.len());
     for mut write in writes {
+        if write.retained_mtime.is_some()
+            && (!matches!(&write.expected_revision, Some(SourceRevision::Present(_)))
+                || !write.retirements.is_empty())
+        {
+            return Err(invalid_input(
+                &write.path,
+                "retaining a file clock requires an observed existing target with no retirements",
+            ));
+        }
         if !write.path.is_absolute() {
             return Err(invalid_input(
                 &write.path,

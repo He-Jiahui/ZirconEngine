@@ -152,6 +152,7 @@ fn write_intent_journal(
             staging,
             backup,
             rollback_staging,
+            retained_mtime: None,
             retirements: Vec::new(),
         }],
         transitions: Vec::new(),
@@ -201,6 +202,7 @@ fn lexical_target_alias_in_journal_is_rejected_before_recovery_io() {
         staging: root.join("generation.stage"),
         backup: root.join("generation.backup"),
         rollback_staging: root.join("generation.rollback"),
+        retained_mtime: None,
         retirements: Vec::new(),
     };
     let mut identities = BTreeSet::new();
@@ -368,6 +370,7 @@ fn journal_fixture(
                 staging,
                 backup,
                 rollback_staging,
+                retained_mtime: None,
                 retirements: Vec::new(),
             }],
         },
@@ -404,6 +407,7 @@ fn active_recovery_uses_journal_first_cleanup_when_transition_append_fails() {
             staging: staging.clone(),
             backup: backup.clone(),
             rollback_staging: rollback_staging.clone(),
+            retained_mtime: None,
             retirements: Vec::new(),
         }],
     };
@@ -452,6 +456,7 @@ fn active_missing_existing_target_recovery_rejects_corrupted_backup_evidence() {
         staging: root.join("generation.stage"),
         backup,
         rollback_staging: root.join("generation.rollback"),
+        retained_mtime: None,
         retirements: Vec::new(),
     };
     let mut policy = AcceptNothing;
@@ -493,6 +498,7 @@ fn intent_recovery_uses_journal_first_cleanup_when_transition_append_fails() {
         staging: staging.clone(),
         backup: root.join("generation.backup"),
         rollback_staging: root.join("generation.rollback"),
+        retained_mtime: None,
         retirements: Vec::new(),
     }];
 
@@ -538,6 +544,7 @@ fn intent_recovery_does_not_cleanup_after_transition_append_failure() {
             staging: staging.clone(),
             backup: root.join("generation.backup"),
             rollback_staging: root.join("generation.rollback"),
+            retained_mtime: None,
             retirements: Vec::new(),
         }],
     };
@@ -568,6 +575,7 @@ fn recovery_attempts_every_document_after_a_restore_failure() {
                 staging: PathBuf::from(format!("{index}.stage")),
                 backup: PathBuf::from(format!("{index}.backup")),
                 rollback_staging: PathBuf::from(format!("{index}.rollback")),
+                retained_mtime: None,
                 retirements: Vec::new(),
             })
             .collect(),
@@ -632,3 +640,7 @@ fn test_directory(name: &str) -> PathBuf {
         crate::io::next_test_output_id()
     ))
 }
+
+#[cfg(any(unix, windows))]
+#[path = "wire_v7.rs"]
+mod wire_v7;
