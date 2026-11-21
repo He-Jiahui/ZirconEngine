@@ -75,8 +75,10 @@ pub(crate) struct NavigationRuntimeState {
     pub(crate) stats: NavigationRuntimeStats,
     pub(super) agent_motion: HashMap<u64, NavigationAgentMotionState>,
     pub(crate) crowds: HashMap<NavMeshHandle, crate::agent::NavigationCrowdRuntime>,
-    pub(crate) obstacle_worlds:
-        HashMap<NavMeshHandle, crate::runtime_obstacles::NavigationObstacleWorld>,
+    pub(crate) obstacle_worlds: HashMap<
+        (NavMeshHandle, crate::runtime_obstacles::CarvedLinkPolicy),
+        crate::runtime_obstacles::NavigationObstacleWorld,
+    >,
     pub(super) off_mesh_traversal: super::traversal::OffMeshTraversalRuntime,
     pub(crate) crowd_handle_cursor: usize,
     pub(super) next_bake_task: u64,

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{hash_map::Entry, HashMap};
 
 use zircon_plugin_navigation_recast::{
     RecastNavigationObstacle, RecastNavigationObstacleShape, RecastTileCache,
@@ -20,35 +20,53 @@ pub(crate) fn has_obstacle_worlds(manager: &DefaultNavigationManager) -> bool {
     !manager.lock_state().obstacle_worlds.is_empty()
 }
 
-// 查询前把世界障碍同步到对应网格的 TileCache，使动态雕刻对本次路径查询可见。
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub(crate) enum CarvedLinkPolicy {
+    GroundOnly,
+    AutomaticOnly,
+}
+
+// 查询前同步当前代理连接策略对应的 TileCache；不把首个代理的策略固化给整个网格。
 pub(crate) fn find_path_with_runtime_obstacles(
     manager: &DefaultNavigationManager,
     handle: NavMeshHandle,
-    asset: &NavMeshAsset,
+    query_asset: &NavMeshAsset,
     query: &NavPathQuery,
     obstacles: &[RuntimeObstacle],
 ) -> Result<NavPathResult, NavigationError> {
+    // The tick projects each loaded asset to either no links or its fixed automatic subset.
+    let (policy, other) = if query_asset.off_mesh_links.is_empty() {
+        (
+            CarvedLinkPolicy::GroundOnly,
+            CarvedLinkPolicy::AutomaticOnly,
+        )
+    } else {
+        (
+            CarvedLinkPolicy::AutomaticOnly,
+            CarvedLinkPolicy::GroundOnly,
+        )
+    };
+    let key = (handle, policy);
     let has_carving = obstacles.iter().any(|obstacle| obstacle.carve);
     let mut state = manager.lock_state();
-    if !has_carving && !state.obstacle_worlds.contains_key(&handle) {
+    if !has_carving {
+        // Retire both variants. If the selected one was live, keep the final synchronized
+        // cache query rather than switching backends on the last carve-removal frame.
+        let cached = state.obstacle_worlds.remove(&key);
+        state.obstacle_worlds.remove(&(handle, other));
+        if let Some(mut obstacle_world) = cached {
+            obstacle_world.synchronize(obstacles)?;
+            return Ok(obstacle_world.find_path(query));
+        }
         drop(state);
-        return manager.backend.find_path(asset, query);
+        return manager.backend.find_path(query_asset, query);
     }
-    if !state.obstacle_worlds.contains_key(&handle) {
-        state
-            .obstacle_worlds
-            .insert(handle, NavigationObstacleWorld::from_asset(asset)?);
-    }
-    let obstacle_world = state
-        .obstacle_worlds
-        .get_mut(&handle)
-        .expect("obstacle world was initialized");
+    let obstacle_world = match state.obstacle_worlds.entry(key) {
+        Entry::Occupied(entry) => entry.into_mut(),
+        Entry::Vacant(entry) => entry.insert(NavigationObstacleWorld::from_asset(query_asset)?),
+    };
     obstacle_world.synchronize(obstacles)?;
-    let path = obstacle_world.find_path(query);
-    if obstacle_world.is_empty() {
-        state.obstacle_worlds.remove(&handle);
-    }
-    Ok(path)
+    Ok(obstacle_world.find_path(query))
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -129,10 +147,6 @@ impl NavigationObstacleWorld {
 
     pub(crate) fn find_path(&self, query: &NavPathQuery) -> NavPathResult {
         self.cache.find_path(query)
-    }
-
-    pub(crate) fn is_empty(&self) -> bool {
-        self.bindings.is_empty()
     }
 }
 
