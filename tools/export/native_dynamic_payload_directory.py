@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import tomllib
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from .native_dynamic_contract import (
     NATIVE_DYNAMIC_LOADABLE_ARTIFACT_EXTENSIONS,
     NATIVE_DYNAMIC_LOADER_MANIFEST,
     NATIVE_DYNAMIC_PACKAGE_REPORT_FILE,
+    native_dynamic_is_loadable_artifact_path,
 )
 from .native_dynamic_payload_file_manifest import (
     native_dynamic_content_hash,
@@ -189,19 +190,29 @@ def materialized_package_loadable_artifacts_match_manifest(
         loadable_artifacts = package["loadable_artifacts"]
         if not isinstance(loadable_artifacts, list):
             return False
+        expected_artifacts = [
+            path for path in loadable_artifacts_by_prefix.get(package_prefix, [])
+            if native_dynamic_is_loadable_artifact_path(
+                PurePosixPath(path.removeprefix(package_prefix)),
+                NATIVE_DYNAMIC_LOADABLE_ARTIFACT_EXTENSIONS,
+            )
+        ]
+        expected_set = set(expected_artifacts)
+        reported_artifacts: set[str] = set()
         for artifact_path in loadable_artifacts:
             if not isinstance(artifact_path, str):
                 return False
-            if artifact_path not in manifest_paths:
+            if artifact_path not in manifest_paths or not artifact_path.startswith(package_prefix):
                 return False
-            if not artifact_path.startswith(package_prefix):
+            if artifact_path not in expected_set:
+                if diagnostics is not None:
+                    diagnostics.append(
+                        "NativeDynamic payload "
+                        f"materialized_packages[{index}] loadable_artifacts "
+                        f"include non-loadable payload file {artifact_path}"
+                    )
                 return False
-        reported_artifacts = {
-            artifact_path
-            for artifact_path in loadable_artifacts
-            if isinstance(artifact_path, str)
-        }
-        expected_artifacts = loadable_artifacts_by_prefix.get(package_prefix, [])
+            reported_artifacts.add(artifact_path)
         for artifact_path in expected_artifacts:
             if artifact_path not in reported_artifacts:
                 if diagnostics is not None:

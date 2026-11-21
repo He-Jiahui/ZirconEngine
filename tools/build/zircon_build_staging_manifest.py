@@ -10,9 +10,11 @@ import sys
 from pathlib import Path
 from typing import Iterator, Mapping
 
+from .zircon_build_asset_policy import shipping_runtime_asset_excluded
 from .zircon_build_asset_staging import (
-    ENGINE_ASSET_ROOTS,
     UI_COMPILED_ARTIFACT_STAGE_ROOT,
+    UI_COMPILED_ARTIFACT_SUFFIXES,
+    resolve_engine_asset_stage,
     ui_compiled_artifact_cache_root,
 )
 from .zircon_build_size_report import classify_product_path
@@ -181,15 +183,20 @@ def _source_candidates(config: object, staged_path: Path) -> Iterator[tuple[str,
                     yield "build_artifact", profile_root / artifact_name
 
     if relative.parts and relative.parts[0] == "assets":
+        selection = resolve_engine_asset_stage(config)
         asset_relative = Path(*relative.parts[1:])
-        for asset_root in ENGINE_ASSET_ROOTS:
-            yield "source_asset", config.repo_root / asset_root / asset_relative
-        compiled_relative = _compiled_ui_relative(asset_relative)
-        if compiled_relative is not None:
-            yield (
-                "ui_compiled_artifact",
-                ui_compiled_artifact_cache_root(config) / compiled_relative,
-            )
+        if selection.destination_root == config.engine_root / "assets" and not (
+            selection.runtime_shipping and shipping_runtime_asset_excluded(asset_relative)
+        ):
+            for asset_root in selection.asset_roots:
+                yield "source_asset", config.repo_root / asset_root / asset_relative
+            if selection.include_ui_compiled_artifacts:
+                compiled_relative = _compiled_ui_relative(asset_relative)
+                if compiled_relative is not None:
+                    yield (
+                        "ui_compiled_artifact",
+                        ui_compiled_artifact_cache_root(config) / compiled_relative,
+                    )
 
     if len(relative.parts) >= 2 and relative.parts[0] == "plugins":
         package_name = relative.parts[1]
@@ -214,6 +221,8 @@ def _source_candidates(config: object, staged_path: Path) -> Iterator[tuple[str,
 
 def _compiled_ui_relative(asset_relative: Path) -> Path | None:
     stage_parts = UI_COMPILED_ARTIFACT_STAGE_ROOT.parts
+    if asset_relative.suffix.lower() not in UI_COMPILED_ARTIFACT_SUFFIXES:
+        return None
     if asset_relative.parts[: len(stage_parts)] != stage_parts:
         return None
     return Path(*asset_relative.parts[len(stage_parts) :])

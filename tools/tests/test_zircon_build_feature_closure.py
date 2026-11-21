@@ -31,6 +31,32 @@ class FeatureClosureTests(unittest.TestCase):
         self.assertIn("platform-winit", closure.local_features)
         self.assertIn("dep:winit", closure.dependency_edges)
 
+    def test_runtime_cooked_features_select_zstd_without_native_host(self):
+        manifest = REPO_ROOT / "zircon_runtime" / "Cargo.toml"
+        # These are local feature requests, not a target-resolved dependency graph.
+        # target-web may request dep:zstd without selecting the crate on wasm32.
+        for feature, expects_cooked_assets in (
+            ("ui", True),
+            ("graphics", True),
+            ("cooked-assets", True),
+            ("target-web", True),
+            ("asset-types", False),
+            ("core-min", False),
+        ):
+            with self.subTest(feature=feature):
+                closure = resolve_feature_closure(manifest, (feature,))
+                self.assertIn("core-min", closure.local_features)
+                self.assertNotIn("native-host", closure.local_features)
+                self.assertNotIn("dep:zip", closure.dependency_edges)
+                self.assertEqual(
+                    "cooked-assets" in closure.local_features, expects_cooked_assets
+                )
+                if expects_cooked_assets:
+                    self.assertIn("asset-types", closure.local_features)
+                    self.assertIn("dep:zstd", closure.dependency_edges)
+                else:
+                    self.assertNotIn("dep:zstd", closure.dependency_edges)
+
 
 if __name__ == "__main__":
     unittest.main()

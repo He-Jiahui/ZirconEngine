@@ -388,6 +388,132 @@ fn root_resize_capture_prefers_workbench_left_drawer_shell_extent_over_stale_reg
 }
 
 #[test]
+fn root_bottom_dock_release_publishes_logical_height_100() {
+    assert_root_bottom_dock_release(1.0, (1920, 1200), 20.0, 200.0, 220.0);
+}
+
+#[test]
+fn root_bottom_dock_release_publishes_logical_height_150() {
+    assert_root_bottom_dock_release(1.5, (2880, 1800), 30.0, 300.0, 330.0);
+}
+
+fn assert_root_bottom_dock_release(
+    scale: f32,
+    (width_px, height_px): (u32, u32),
+    up_px: f32,
+    initial_height_px: f32,
+    final_height_px: f32,
+) {
+    const INITIAL_PREF: f32 = 200.0;
+    const FINAL_PREF: f32 = 220.0;
+    let _guard = lock_env();
+    let harness = ChildWindowHostHarness::new("zircon_root_bottom_dock_release_dpi");
+    harness.activate_workbench_page();
+    harness.activate_drawer_tab(ActivityDrawerSlot::Bottom, "editor.console#1");
+    let window = harness.root_ui.window();
+    window.set_size(PhysicalSize::new(width_px, height_px));
+    window.set_scale_factor(scale);
+    {
+        let mut host = harness.host.borrow_mut();
+        host.sync_shell_size();
+        let effects = callback_dispatch::dispatch_layout_command(
+            &host.runtime,
+            LayoutCommand::SetDrawerExtent {
+                slot: ActivityDrawerSlot::Bottom,
+                extent: INITIAL_PREF,
+            },
+        )
+        .expect("seed the normal logical dock preference");
+        host.apply_dispatch_effects(effects);
+        host.refresh_ui();
+        assert_eq!(
+            host.workbench_window_bridge.presentation_scale_factor(),
+            scale
+        );
+    }
+
+    let logical_preference = || {
+        let layout = harness
+            .host
+            .borrow()
+            .runtime
+            .current_layout()
+            .expect("Workbench layout");
+        layout.active_activity_window_drawers()[&ActivityDrawerSlot::Bottom].extent
+    };
+    let initial_pref = logical_preference();
+    assert_eq!(initial_pref, INITIAL_PREF);
+    let initial = harness.root_ui.get_host_presentation();
+    let dock = &initial.host_scene_data.bottom_dock;
+    let before = &dock.region_frame;
+    assert_eq!(dock.pane.id.as_str(), "editor.console#1");
+    assert!(dock.content_frame.height > 0.0);
+    assert!((before.height - initial_height_px).abs() <= 0.5);
+    let splitter = &initial.host_scene_data.resize_layer.bottom_splitter_frame;
+    assert!(splitter.width > 0.0 && splitter.height > 0.0);
+    let x = splitter.x + splitter.width * 0.5;
+    let y = splitter.y + splitter.height * 0.5;
+    let native_capture = || {
+        host_context(&harness.root_ui)
+            .get_resize_state()
+            .resize_active
+    };
+    let bottom_capture = || {
+        harness
+            .host
+            .borrow()
+            .active_drawer_resize
+            .as_ref()
+            .is_some_and(|active| {
+                active.region == ShellRegionId::Bottom && active.source_window.is_none()
+            })
+    };
+
+    harness.root_ui.dispatch_native_primary_press_for_test(x, y);
+    assert!(
+        native_capture() && bottom_capture(),
+        "root Bottom captures Down"
+    );
+    harness
+        .root_ui
+        .dispatch_native_pointer_move_for_test(x, y - up_px);
+    assert!(native_capture() && bottom_capture(), "Move keeps capture");
+    let transient_px = harness.host.borrow().transient_region_preferred[&ShellRegionId::Bottom];
+    assert!((transient_px - (before.height + up_px)).abs() <= 0.5);
+    let move_pref = logical_preference();
+    assert_eq!(move_pref, initial_pref, "Move must not commit a preference");
+
+    harness
+        .root_ui
+        .dispatch_native_primary_release_for_test(x, y - up_px);
+    harness.host.borrow_mut().refresh_ui();
+    assert!(!native_capture(), "Up must release the native capture");
+    {
+        let host = harness.host.borrow();
+        assert!(host.active_drawer_resize.is_none());
+        assert!(!host
+            .transient_region_preferred
+            .contains_key(&ShellRegionId::Bottom));
+    }
+    let final_presentation = harness.root_ui.get_host_presentation();
+    let final_dock = &final_presentation.host_scene_data.bottom_dock;
+    let after = &final_dock.region_frame;
+    let final_pref = logical_preference();
+    assert_eq!(final_dock.pane.id.as_str(), "editor.console#1");
+    assert!(final_dock.content_frame.height > 0.0);
+    assert!((after.x - before.x).abs() <= 0.5);
+    assert!((after.width - before.width).abs() <= 0.5);
+    assert!((after.bottom() - before.bottom()).abs() <= 0.5);
+    // Read out the layout model and published frame before the first unit-sensitive assertion.
+    eprintln!(
+        "BOTTOM_DOCK_RELEASE scale={scale} up_px={up_px} before_pref={initial_pref} move_pref={move_pref} transient_px={transient_px} after_pref={final_pref} before={before:?} after={after:?}"
+    );
+    assert_eq!(final_pref, FINAL_PREF);
+    assert!((after.height - final_height_px).abs() <= 0.5);
+    assert!((after.y - (before.y - up_px)).abs() <= 0.5);
+}
+
+#[test]
 fn root_native_focus_loss_cancels_drawer_resize_without_persisting_transient_extent() {
     let _guard = lock_env();
     let harness = ChildWindowHostHarness::new("zircon_retained_root_resize_focus_cancel");

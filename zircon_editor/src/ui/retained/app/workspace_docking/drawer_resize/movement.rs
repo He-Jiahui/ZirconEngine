@@ -73,12 +73,19 @@ impl RetainedEditorHost {
         let _ = self.shell_pointer_bridge.finish_resize(UiPoint::new(x, y));
         self.active_drawer_resize.take();
         self.apply_drawer_resize_pointer_position(region, start_x, start_y, base_preferred, x, y);
-        let preferred = self
+        let preferred_px = self
             .transient_region_preferred
             .get(&region)
             .copied()
             .unwrap_or(base_preferred);
         self.transient_region_preferred.remove(&region);
+
+        // The mounted Bottom frame is in device pixels; its layout preference is logical.
+        let preferred = if region == ShellRegionId::Bottom {
+            preferred_px / self.workbench_window_bridge.presentation_scale_factor()
+        } else {
+            preferred_px
+        };
 
         match dispatch_resize_to_group(&self.runtime, shell_region_group_key(region), preferred) {
             Ok(effects) => {

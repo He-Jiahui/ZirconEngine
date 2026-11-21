@@ -2,6 +2,8 @@
 import unittest
 from pathlib import Path
 
+from tools.tests.zircon_build_owner_assertions import assert_entry_bindings
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ZIRCON_BUILD = REPO_ROOT / "tools/build/zircon_build.py"
@@ -17,13 +19,8 @@ class ZirconBuildPluginAssetOwnerBoundaryTests(unittest.TestCase):
         build_text = ZIRCON_BUILD.read_text(encoding="utf-8")
         asset_text = ZIRCON_BUILD_PLUGIN_ASSETS.read_text(encoding="utf-8")
 
-        self.assertIn(
-            "from .build.zircon_build_plugin_assets import collect_plugin_asset_roots",
-            build_text,
-        )
-        self.assertIn(
-            "from .build.zircon_build_plugin_assets import collect_plugin_asset_roots",
-            build_text,
+        assert_entry_bindings(
+            self, "zircon_build_plugin_assets", "collect_plugin_asset_roots"
         )
         for function_name in (
             "collect_plugin_asset_roots",

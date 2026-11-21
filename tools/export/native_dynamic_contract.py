@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Set
+from pathlib import PurePath
+
 
 REPORT_FILE_NAME = "report.json"
 NATIVE_DYNAMIC_STAGE = "native_dynamic"
@@ -9,6 +12,7 @@ NATIVE_DYNAMIC_PACKAGE_REPORT_FILE = "native_dynamic_package.toml"
 NATIVE_DYNAMIC_LOADER_MANIFEST = "native_plugins.toml"
 NATIVE_DYNAMIC_LOADABLE_ARTIFACT_EXTENSIONS = {".dll", ".so", ".dylib"}
 NATIVE_DYNAMIC_DEBUG_ARTIFACT_EXTENSIONS = {".pdb", ".dbg", ".dsym"}
+_NATIVE_DYNAMIC_DEBUG_BUNDLE_SUFFIXES = tuple(NATIVE_DYNAMIC_DEBUG_ARTIFACT_EXTENSIONS)
 NATIVE_DYNAMIC_ARTIFACT_EXTENSIONS = (
     NATIVE_DYNAMIC_LOADABLE_ARTIFACT_EXTENSIONS | NATIVE_DYNAMIC_DEBUG_ARTIFACT_EXTENSIONS
 )
@@ -40,6 +44,17 @@ NATIVE_DYNAMIC_ABI_V3_EXPECTED_FIELDS = {
     "state_snapshot_contract": "NativePluginBehaviorV4.save_state/restore_state",
     "bridge_method_table": "NativePluginBridgeMethodTableV3",
 }
+
+
+def native_dynamic_is_loadable_artifact_path(
+    package_relative: PurePath,
+    extensions: Set[str],
+) -> bool:
+    """Only runtime libraries, not files carried inside a debug bundle."""
+    return package_relative.suffix.lower() in extensions and not any(
+        parent.lower().endswith(_NATIVE_DYNAMIC_DEBUG_BUNDLE_SUFFIXES)
+        for parent in package_relative.parts[:-1]
+    )
 
 
 def native_dynamic_package_directory(package_id: str) -> str:

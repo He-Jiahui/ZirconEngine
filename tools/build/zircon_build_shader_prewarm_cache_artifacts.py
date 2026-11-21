@@ -8,6 +8,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from .zircon_build_shader_prewarm_report_contract import parse_shader_id_record
+from .zircon_build_shader_prewarm_v3_artifacts import validate_v3_shader_cache_artifacts
 from .zircon_build_shader_prewarm_written_variants import (
     ReportedWrittenVariant,
     reported_written_variants,
@@ -18,13 +19,14 @@ from .zircon_build_shader_prewarm_written_variants import (
 
 _WGSL_ARTIFACT_SUFFIX = ".wgsl.zst"
 _META_ARTIFACT_SUFFIX = ".meta"
-_SHADER_VARIANT_CACHE_SCHEMA_VERSION = 1
+_SHADER_VARIANT_CACHE_SCHEMA_VERSION = 1  # Historical v1 .meta diagnostic only.
 
 
 def validate_shader_prewarm_cache_artifact_contract(
     cache_root: Path,
     *,
     report_path: Path,
+    require_current_format: bool = False,
     expected_pass_types: Sequence[str] = (),
     expected_quality_tiers: Sequence[str] = (),
     expected_geometry_sources: Sequence[str] = (),
@@ -36,8 +38,15 @@ def validate_shader_prewarm_cache_artifact_contract(
     if written_count <= 0:
         return
 
-    artifact_pairs = _shader_cache_artifact_pairs(Path(cache_root))
-    if artifact_pairs.missing_metadata:
+    # Current producer rows carry source_id. Stage requires v3 even when the
+    # caller supplies a legacy report, so v1 files never certify release input.
+    raw_variants = report.get("written_variants")
+    current_format = require_current_format or (
+        isinstance(raw_variants, list)
+        and any(isinstance(row, Mapping) and "source_id" in row for row in raw_variants)
+    )
+    artifact_pairs = None if current_format else _shader_cache_artifact_pairs(Path(cache_root))
+    if artifact_pairs is not None and artifact_pairs.missing_metadata:
         missing = ", ".join(str(path) for path in artifact_pairs.missing_metadata)
         raise RuntimeError(
             "shader prewarm cache artifacts are missing metadata for WGSL artifacts: "
@@ -51,7 +60,10 @@ def validate_shader_prewarm_cache_artifact_contract(
                 f"written_count: written={written_count} "
                 f"written_variants={len(written_variants)}"
             )
-        artifact_pairs.validate_reported_variants(written_variants)
+        if artifact_pairs is None:
+            validate_v3_shader_cache_artifacts(Path(cache_root), report, written_variants)
+        else:
+            artifact_pairs.validate_reported_variants(written_variants)
         validate_written_variant_source_labels(report, written_variants)
         _validate_expected_written_variant_dimensions(
             written_variants,
@@ -62,7 +74,8 @@ def validate_shader_prewarm_cache_artifact_contract(
             expected_shading_model_ids=expected_shading_model_ids,
         )
     elif (
-        expected_pass_types
+        current_format
+        or expected_pass_types
         or expected_quality_tiers
         or expected_geometry_sources
         or expected_geometry_source_ids
@@ -72,7 +85,7 @@ def validate_shader_prewarm_cache_artifact_contract(
             "shader prewarm report did not include written cache variants for "
             "requested shader ids"
         )
-    if artifact_pairs.pair_count < written_count:
+    if artifact_pairs is not None and artifact_pairs.pair_count < written_count:
         raise RuntimeError(
             "shader prewarm cache artifacts do not cover written variants: "
             f"written={written_count} cache_pairs={artifact_pairs.pair_count} "
