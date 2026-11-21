@@ -57,6 +57,46 @@ class ZirconBuildAssetManifestOriginTests(unittest.TestCase):
             write_staging_manifest(config)
         self.assertFalse((config.engine_root / "staging_manifest.json").exists())
 
+    def test_only_selected_ui_cache_files_can_claim_compiled_origin(self):
+        self._seed_assets(RUNTIME_SVG)
+        config = self._dev_config("cache-origin", asset_scope="all")
+        cache = self.root / "ui-cache/widgets"
+        for name in ("panel.ZUIART", "panel.zuicache", "compile-summary.json"):
+            self._write(cache / name, name.encode())
+
+        stage_engine_assets(config)
+        prefix = "assets/ui/compiled_artifacts/widgets/"
+        skipped = config.engine_root / prefix / "compile-summary.json"
+        self.assertFalse(skipped.exists())
+        manifest = write_staging_manifest(config)
+        original = manifest.read_bytes()
+        cache_rows = {
+            row["target_path"]: row["source"]["kind"]
+            for row in json.loads(original)["artifacts"] if row["target_path"].startswith(prefix)
+        }
+        self.assertEqual(cache_rows, {
+            prefix + "panel.ZUIART": "ui_compiled_artifact",
+            prefix + "panel.zuicache": "ui_compiled_artifact",
+        })
+
+        # An auxiliary file matches the cache bytes but was never selected for copying.
+        self._write(skipped, (cache / skipped.name).read_bytes())
+        with self.assertRaisesRegex(SystemExit, r"no source provenance: .*compile-summary\.json"):
+            write_staging_manifest(config)
+        self.assertEqual(manifest.read_bytes(), original)
+
+    def test_ordinary_source_under_ui_cache_destination_keeps_its_origin(self):
+        self._seed_assets(RUNTIME_SVG)
+        config = self._dev_config("asset-origin", asset_scope="all")
+        target = Path("assets/ui/compiled_artifacts/widgets/compile-summary.json")
+        source = Path("zircon_runtime") / target
+        self._write(self.repo / source, b"summary")
+        self._write(self.root / "ui-cache/widgets" / target.name, b"summary")
+        stage_engine_assets(config)
+        rows = json.loads(write_staging_manifest(config).read_bytes())["artifacts"]
+        (row,) = [entry for entry in rows if entry["target_path"] == target.as_posix()]
+        self.assertEqual(row["source"], {"kind": "source_asset", "path": source.as_posix()})
+
     def test_merged_and_missing_scope_keep_editor_first(self):
         self._seed_assets(RUNTIME_SVG)
         for scope, options in (("all", {"asset_scope": "all"}), ("implicit", {})):

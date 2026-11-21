@@ -13,6 +13,7 @@ from typing import Iterator, Mapping
 from .zircon_build_asset_policy import shipping_runtime_asset_excluded
 from .zircon_build_asset_staging import (
     UI_COMPILED_ARTIFACT_STAGE_ROOT,
+    UI_COMPILED_ARTIFACT_SUFFIXES,
     resolve_engine_asset_stage,
     ui_compiled_artifact_cache_root,
 )
@@ -220,6 +221,8 @@ def _source_candidates(config: object, staged_path: Path) -> Iterator[tuple[str,
 
 def _compiled_ui_relative(asset_relative: Path) -> Path | None:
     stage_parts = UI_COMPILED_ARTIFACT_STAGE_ROOT.parts
+    if asset_relative.suffix.lower() not in UI_COMPILED_ARTIFACT_SUFFIXES:
+        return None
     if asset_relative.parts[: len(stage_parts)] != stage_parts:
         return None
     return Path(*asset_relative.parts[len(stage_parts) :])
