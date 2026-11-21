@@ -325,6 +325,9 @@ fn level_tick_applies_loaded_animation_sequences_to_world_properties() {
 
 include!("physics_tick/clip_events.rs");
 
+#[path = "physics_tick/clip_end_idle.rs"]
+mod clip_end_idle;
+
 #[test]
 fn level_tick_without_animation_plugin_does_not_advance_sequence_players() {
     let runtime = runtime_with_scene_asset_only();

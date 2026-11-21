@@ -328,7 +328,16 @@ impl AnimationEvaluationProjection {
                         )
                     });
             }
-            if player.playing {
+            // The sampler clamps a non-looping range to this ready clip's duration.
+            // Do not keep the frame awake with a new range wholly at that terminal endpoint.
+            let at_terminal_endpoint = !player.looping
+                && clip_duration.is_some_and(|duration| {
+                    duration.is_finite()
+                        && duration > Real::EPSILON
+                        && previous_time_seconds >= duration
+                        && time_seconds >= duration
+                });
+            if player.playing && !at_terminal_endpoint {
                 scan.clip_event_samples.push(PendingClipEventSample {
                     entity,
                     clip_id,
