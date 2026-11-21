@@ -11,13 +11,13 @@ ZE 原任务指定只读 `cb495bb1c952a24c86f4513b8099bc4942c3a87d`；lead 要�
 | ZE 固定证据 | 符号与已读事实 |
 |---|---|
 | [zircon_build_config.py:79–82](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/tools/build/zircon_build_config.py#L79-L82>) | `BuildConfig.effective_target_triple` 选择 product profile 的 target，或调用者显式 target。 |
-| [zircon_build.py:859–890](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/tools/build/zircon_build.py#L859-L890>) | `run_cargo` 将这个 target 传给 Cargo；在本机 cb 对应 [849–880](<E:/Git/ZirconEngine/tools/build/zircon_build.py#L849-L880>)。 |
-| [zircon_build.py:903–943](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/tools/build/zircon_build.py#L903-L943>) | `copy_artifact` 调用 `find_artifact(target_dir, profile_dir, artifact_name)`，未传 target；后者优先 `<target_dir>/<profile>`，随后按排序扫描所有 `*/<profile>` 并取首个同名普通文件。在 cb 为 [893–933](<E:/Git/ZirconEngine/tools/build/zircon_build.py#L893-L933>)。 |
+| [zircon_build.py:859–890](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/tools/build/zircon_build.py#L859-L890>) | `run_cargo` 将这个 target 传给 Cargo；在本机 cb 对应 849–880（本机 `E:/Git/ZirconEngine/tools/build/zircon_build.py#L849-L880`）。 |
+| [zircon_build.py:903–943](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/tools/build/zircon_build.py#L903-L943>) | `copy_artifact` 调用 `find_artifact(target_dir, profile_dir, artifact_name)`，未传 target；后者优先 `<target_dir>/<profile>`，随后按排序扫描所有 `*/<profile>` 并取首个同名普通文件。在 cb 为 893–933（本机 `E:/Git/ZirconEngine/tools/build/zircon_build.py#L893-L933`）。 |
 | [zircon_build.py:637–724](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/tools/build/zircon_build.py#L637-L724>)、[752–778](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/tools/build/zircon_build.py#L752-L778>)、[811–827](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/tools/build/zircon_build.py#L811-L827>) | runtime DLL／preview、editor host、native plugin 都通过上述查找落到最终复制路径。 |
 
 ZE 调用链：`build → build_runtime / build_editor → run_cargo(--target=T) → copy_artifact → find_artifact(没有T) → copy_file`；native plugin 的链在 `build_native_dynamic_plugin` 直接进入同一个 `find_artifact`。
 
-UE 对应链（版本 6.0.0、BranchName UE5，仅作短说明，不转载正文）：[UEBuildTarget.cs:5646–5668](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/UnrealBuildTool/Build/UEBuildTarget.cs#L5646-L5668>) 的 `MakeBinaryPaths` 由 target/platform/configuration/architectures 计算确定输出；[UEBuildBinary.cs:578–588](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/UnrealBuildTool/Build/UEBuildBinary.cs#L578-L588>) 将确切路径登记为 `BuildProduct`；[UEBuildTarget.cs:2495–2536](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/UnrealBuildTool/Build/UEBuildTarget.cs#L2495-L2536>) 的 `PrepareReceipt` 保留 target 身份及产物路径；[CompileTask.cs:158–199](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/AutomationTool/BuildGraph/Tasks/CompileTask.cs#L158-L199>) 经 `UnrealBuild.Build`，从 `targetToManifest[target]` 获取输出。它不是在共享输出树按 basename 猜产物。
+UE 对应链（版本 6.0.0、BranchName UE5，仅作短说明，不转载正文）：UEBuildTarget.cs:5646–5668（本机 `UE/Engine/Source/Programs/UnrealBuildTool/Build/UEBuildTarget.cs#L5646-L5668`） 的 `MakeBinaryPaths` 由 target/platform/configuration/architectures 计算确定输出；UEBuildBinary.cs:578–588（本机 `UE/Engine/Source/Programs/UnrealBuildTool/Build/UEBuildBinary.cs#L578-L588`） 将确切路径登记为 `BuildProduct`；UEBuildTarget.cs:2495–2536（本机 `UE/Engine/Source/Programs/UnrealBuildTool/Build/UEBuildTarget.cs#L2495-L2536`） 的 `PrepareReceipt` 保留 target 身份及产物路径；CompileTask.cs:158–199（本机 `UE/Engine/Source/Programs/AutomationTool/BuildGraph/Tasks/CompileTask.cs#L158-L199`） 经 `UnrealBuild.Build`，从 `targetToManifest[target]` 获取输出。它不是在共享输出树按 basename 猜产物。
 
 ## 2. 影响：已复现什么，未验证什么
 
@@ -39,7 +39,7 @@ UE 对应链（版本 6.0.0、BranchName UE5，仅作短说明，不转载正文
 
 “先清理 product output 就不会触发”不能反证本问题：[clean_product_output:34–43](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/tools/build/zircon_build_product_output.py#L34-L43>) 清理 engine/symbols/reports/archive 等 generation 根，**不清空 `targets_root` 的 Cargo 缓存树**。复用缓存本身合理，不能因此丢失明确 target。
 
-UE 的具体做法是保持确定产物路径及本次 invocation 的 manifest：[UnrealBuild.cs:145–208](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/AutomationTool/AutomationUtils/UnrealBuild.cs#L145-L208>) 在 UBT 调用前删除本次指定的旧 manifest，运行后读取指定 manifest 并按 BuildTarget 绑定；[UEBuildTarget.cs:2255–2299](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/UnrealBuildTool/Build/UEBuildTarget.cs#L2255-L2299>) 写入确切 BuildProducts；[CompileTask.cs:193–199](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/AutomationTool/BuildGraph/Tasks/CompileTask.cs#L193-L199>) 找不到对应 target 的 manifest 就报错。`TargetReceipt` 记录 platform/configuration/architectures；其文件名是否带 architecture 后缀由平台策略决定，不能概括成所有平台都强制同一种目录命名。
+UE 的具体做法是保持确定产物路径及本次 invocation 的 manifest：UnrealBuild.cs:145–208（本机 `UE/Engine/Source/Programs/AutomationTool/AutomationUtils/UnrealBuild.cs#L145-L208`） 在 UBT 调用前删除本次指定的旧 manifest，运行后读取指定 manifest 并按 BuildTarget 绑定；UEBuildTarget.cs:2255–2299（本机 `UE/Engine/Source/Programs/UnrealBuildTool/Build/UEBuildTarget.cs#L2255-L2299`） 写入确切 BuildProducts；CompileTask.cs:193–199（本机 `UE/Engine/Source/Programs/AutomationTool/BuildGraph/Tasks/CompileTask.cs#L193-L199`） 找不到对应 target 的 manifest 就报错。`TargetReceipt` 记录 platform/configuration/architectures；其文件名是否带 architecture 后缀由平台策略决定，不能概括成所有平台都强制同一种目录命名。
 
 ## 4. Rust 借鉴：借身份传递，不移植 UBT
 
@@ -62,14 +62,14 @@ UE 的 `BuildProduct` / `BuildManifest` / `TargetReceipt` 是构建与打包数�
 3. staging 的 `profile_candidates` 在显式 target 下也限定同一 target，防止同一身份丢失链条被 provenance 的 legacy fallback 重新接受。无需新增全局产物架构。
 4. 回归放入现有 Python 工具测试 owner。下面名字带“拟新增”的都不是既有 UE/ZE 测试名。原调查委派限只读，因此当时只交草案和内存复现；该历史阶段不禁止后续已授权的同 PR 回归/修复，也不将内存推演当成 GREEN。
 
-**原测试搜索范围：**已 glob/grep [UnrealBuildTool.Tests](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/UnrealBuildTool.Tests>)、[EpicGames.Build.Tests](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/Shared/EpicGames.Build.Tests>)、[EpicGames.BuildGraph.Tests](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/Shared/EpicGames.BuildGraph.Tests>)、[AutomationTool.Tests](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/AutomationTool.Tests>) 中的 CSharp 文件，关键词为 `MakeBinaryPaths / BuildProducts / TargetReceipt / CompileTask / artifact / receipt / manifest / output`。没有找到直接覆盖“共享 Cargo 输出树中旧 host 与显式 triple 同名文件竞争”的 UE 原测试；这不是对 UE 全仓测试的不存在证明。
+**原测试搜索范围：**已 glob/grep UnrealBuildTool.Tests（本机 `UE/Engine/Source/Programs/UnrealBuildTool.Tests`）、EpicGames.Build.Tests（本机 `UE/Engine/Source/Programs/Shared/EpicGames.Build.Tests`）、EpicGames.BuildGraph.Tests（本机 `UE/Engine/Source/Programs/Shared/EpicGames.BuildGraph.Tests`）、AutomationTool.Tests（本机 `UE/Engine/Source/Programs/AutomationTool.Tests`） 中的 CSharp 文件，关键词为 `MakeBinaryPaths / BuildProducts / TargetReceipt / CompileTask / artifact / receipt / manifest / output`。没有找到直接覆盖“共享 Cargo 输出树中旧 host 与显式 triple 同名文件竞争”的 UE 原测试；这不是对 UE 全仓测试的不存在证明。
 
 | UE 原测试名／路径行或推导来源 | 输入 | UE 原期望／本问题建议期望 | ZE 现有落点与迁移状态 |
 |---|---|---|---|
-| `TestTargetRequiresUniqueEnvironmentFirstOrder`，[TargetRulesTests.cs:14–87](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/UnrealBuildTool.Tests/TargetRulesTests.cs#L14-L87>) | 未改规则、修改需独立环境的 warning、显式 override | 原测试分别检查不需要／需要／override 后不需要独立环境 | 对照 [ProductBuildProfileTests:37–61](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/tools/tests/test_zircon_build_product_profiles.py#L37-L61>) 的 target/identity 现有测试；**仅相关原测试阅读，不作为本缺陷直接迁移**。 |
-| `NodeTest`，[GraphTests.cs:27–52](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/Shared/EpicGames.BuildGraph.Tests/GraphTests.cs#L27-L52>) | UpdateVersion → Compile → Cook，显式 Requires 与 DefaultOutput | Cook 的传递输入依赖为 2，Compile 的为 1，按 producing node 关联输出 | 对照 [RuntimeBuildOrchestrationTests:23–65](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/tools/tests/test_zircon_build_runtime_orchestration.py#L23-L65>)；该 ZE 现有测试 mock 了 copy 层，**不是本问题原回归迁移**。 |
-| **源码推导，非迁移；无直接 UE 原测试**。[CompileTask.cs:193–199](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/AutomationTool/BuildGraph/Tasks/CompileTask.cs#L193-L199>) 的 target→manifest 约束 | 旧 flat DLL 与新请求 triple DLL 并存 | 应取请求 triple；旧 host 不得覆盖。现函数实测错误 | 现有 [test_zircon_build_runtime_orchestration.py](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/tools/tests/test_zircon_build_runtime_orchestration.py>)，拟新增 `test_explicit_target_artifact_ignores_flat_host_output`。 |
-| **源码推导，非迁移；无直接 UE 原测试**。[MakeBinaryPaths:5646–5668](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/UnrealBuildTool/Build/UEBuildTarget.cs#L5646-L5668>) | 无 flat；另一 triple 名排序靠前；请求 triple 存在／不存在 | 存在则只取请求 triple；不存在则报错，不能取 sibling | 同一现有 orchestration 测试 owner，拟新增 `test_artifact_lookup_is_scoped_to_requested_target`。 |
+| `TestTargetRequiresUniqueEnvironmentFirstOrder`，TargetRulesTests.cs:14–87（本机 `UE/Engine/Source/Programs/UnrealBuildTool.Tests/TargetRulesTests.cs#L14-L87`） | 未改规则、修改需独立环境的 warning、显式 override | 原测试分别检查不需要／需要／override 后不需要独立环境 | 对照 [ProductBuildProfileTests:37–61](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/tools/tests/test_zircon_build_product_profiles.py#L37-L61>) 的 target/identity 现有测试；**仅相关原测试阅读，不作为本缺陷直接迁移**。 |
+| `NodeTest`，GraphTests.cs:27–52（本机 `UE/Engine/Source/Programs/Shared/EpicGames.BuildGraph.Tests/GraphTests.cs#L27-L52`） | UpdateVersion → Compile → Cook，显式 Requires 与 DefaultOutput | Cook 的传递输入依赖为 2，Compile 的为 1，按 producing node 关联输出 | 对照 [RuntimeBuildOrchestrationTests:23–65](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/tools/tests/test_zircon_build_runtime_orchestration.py#L23-L65>)；该 ZE 现有测试 mock 了 copy 层，**不是本问题原回归迁移**。 |
+| **源码推导，非迁移；无直接 UE 原测试**。CompileTask.cs:193–199（本机 `UE/Engine/Source/Programs/AutomationTool/BuildGraph/Tasks/CompileTask.cs#L193-L199`） 的 target→manifest 约束 | 旧 flat DLL 与新请求 triple DLL 并存 | 应取请求 triple；旧 host 不得覆盖。现函数实测错误 | 现有 [test_zircon_build_runtime_orchestration.py](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/tools/tests/test_zircon_build_runtime_orchestration.py>)，拟新增 `test_explicit_target_artifact_ignores_flat_host_output`。 |
+| **源码推导，非迁移；无直接 UE 原测试**。MakeBinaryPaths:5646–5668（本机 `UE/Engine/Source/Programs/UnrealBuildTool/Build/UEBuildTarget.cs#L5646-L5668`） | 无 flat；另一 triple 名排序靠前；请求 triple 存在／不存在 | 存在则只取请求 triple；不存在则报错，不能取 sibling | 同一现有 orchestration 测试 owner，拟新增 `test_artifact_lookup_is_scoped_to_requested_target`。 |
 | **源码推导，非迁移；无直接 UE 原测试** | 无显式 target，仅 flat host | 应保持旧 host 布局；内存对照已正确 | 同一现有 orchestration 测试 owner，拟新增 targetless 兼容性用例。 |
 | **源码推导，非迁移；无直接 UE 原测试**。[staging source candidates:153–180](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/tools/build/zircon_build_staging_manifest.py#L153-L180>) | 显式 T、新 T 文件与 staged 旧 host 字节不符，但旧 host 字节匹配 | 不允许以 legacy hash match 证明请求 T 的来源；当前联合内存验证接受了旧来源 | 现有 [test_manifest_binds_staged_files_to_sources_and_hashes:11–89](<https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/tools/tests/test_zircon_build_staging_manifest.py#L11-L89>) 仅覆盖 flat；拟补 target 约束用例。 |
 
@@ -79,15 +79,15 @@ UE 的 `BuildProduct` / `BuildManifest` / `TargetReceipt` 是构建与打包数�
 
 | 源文件 | SHA256 |
 |---|---|
-| [UEBuildTarget.cs](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/UnrealBuildTool/Build/UEBuildTarget.cs>) | `f868dfab180c93b8ebbebc16d9f3406f7666e26ff337e786df9106cfe824bb06` |
-| [UEBuildBinary.cs](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/UnrealBuildTool/Build/UEBuildBinary.cs>) | `4c0fca77b09afdb34c0d0a7bc7a12038bedf0d2a65d853126006418ef9192297` |
-| [TargetReceipt.cs](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/UnrealBuildTool/System/TargetReceipt.cs>) | `eb0ae686d5c99b4d54c96dee099bf22b42306177c28fa4429fc536fa1140cbd7` |
-| [CompileTask.cs](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/AutomationTool/BuildGraph/Tasks/CompileTask.cs>) | `e00cdb87b1f52816db78b7fdbbfd0019dd0d57fafb053ec5d9f860c6b89f9669` |
-| [UnrealBuild.cs](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/AutomationTool/AutomationUtils/UnrealBuild.cs>) | `7d49c97ac8b9dad22138a4dc44d16ab731eaffb7463b14c793a52efca4cea0ac` |
-| [TargetRulesTests.cs](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/UnrealBuildTool.Tests/TargetRulesTests.cs>) | `89a438e2e92e494c5e870290b36ca19493a127102d4e6a027fdc73f7ea50c345` |
-| [GraphTests.cs](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/Shared/EpicGames.BuildGraph.Tests/GraphTests.cs>) | `245bf798fd5a6a3e89b0575f1b2b4b15172d57af3b77d69c50708d5631960ace` |
-| [DotnetProjectInfoTests.cs](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/Shared/EpicGames.Build.Tests/DotnetProjectInfoTests.cs>) | `8dcc133ace2eff5eaada0c4cc95a3508277890d2134e626c898299ee386dc813` |
-| [PackageGraphTests.cs](<E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Programs/AutomationTool.Tests/Oplog/PackageGraphTests.cs>) | `40a93124cfcadd290c88f46bb27bc7fb0bc3d7f845aa5391b6e84fe3e58aa6fc` |
+| UEBuildTarget.cs（本机 `UE/Engine/Source/Programs/UnrealBuildTool/Build/UEBuildTarget.cs`） | `f868dfab180c93b8ebbebc16d9f3406f7666e26ff337e786df9106cfe824bb06` |
+| UEBuildBinary.cs（本机 `UE/Engine/Source/Programs/UnrealBuildTool/Build/UEBuildBinary.cs`） | `4c0fca77b09afdb34c0d0a7bc7a12038bedf0d2a65d853126006418ef9192297` |
+| TargetReceipt.cs（本机 `UE/Engine/Source/Programs/UnrealBuildTool/System/TargetReceipt.cs`） | `eb0ae686d5c99b4d54c96dee099bf22b42306177c28fa4429fc536fa1140cbd7` |
+| CompileTask.cs（本机 `UE/Engine/Source/Programs/AutomationTool/BuildGraph/Tasks/CompileTask.cs`） | `e00cdb87b1f52816db78b7fdbbfd0019dd0d57fafb053ec5d9f860c6b89f9669` |
+| UnrealBuild.cs（本机 `UE/Engine/Source/Programs/AutomationTool/AutomationUtils/UnrealBuild.cs`） | `7d49c97ac8b9dad22138a4dc44d16ab731eaffb7463b14c793a52efca4cea0ac` |
+| TargetRulesTests.cs（本机 `UE/Engine/Source/Programs/UnrealBuildTool.Tests/TargetRulesTests.cs`） | `89a438e2e92e494c5e870290b36ca19493a127102d4e6a027fdc73f7ea50c345` |
+| GraphTests.cs（本机 `UE/Engine/Source/Programs/Shared/EpicGames.BuildGraph.Tests/GraphTests.cs`） | `245bf798fd5a6a3e89b0575f1b2b4b15172d57af3b77d69c50708d5631960ace` |
+| DotnetProjectInfoTests.cs（本机 `UE/Engine/Source/Programs/Shared/EpicGames.Build.Tests/DotnetProjectInfoTests.cs`） | `8dcc133ace2eff5eaada0c4cc95a3508277890d2134e626c898299ee386dc813` |
+| PackageGraphTests.cs（本机 `UE/Engine/Source/Programs/AutomationTool.Tests/Oplog/PackageGraphTests.cs`） | `40a93124cfcadd290c88f46bb27bc7fb0bc3d7f845aa5391b6e84fe3e58aa6fc` |
 
 **ZE 固定 blob SHA256：**主构建文件 e893 为 `38c70befc02ec23b18e461345a22208cbf17cf6ab52efba3747abaf9de8aef35`，cb 为 `b81044950db5e3d0ff850ee2ff3aaf3ff8da048d900e9fb9061894593a210857`。整体文件差异来自入口退役与输出路径处理等本地提交，但本问题函数 AST 相同；并非将 cb 已修复问题重提。e893/cb 的 staging owner 相同，SHA256 `93ec10729671f5e6588b6d37e54ffb2ee0e42fea479d6feeef289b5389f64d1d`；BuildConfig 相同，SHA256 `692c73bd2fc1b1743a5dba3976dc5b25fc6f03eef2249328ef3173e5418ed06a`。
 
@@ -129,6 +129,21 @@ UE 的 `BuildProduct` / `BuildManifest` / `TargetReceipt` 是构建与打包数�
   tools.tests.test_zircon_build_staging_manifest
 ```
 
-原始命令回执与完整日志保留本机：[真实RED日志](<D:/cargo-targets/zircon-local/ze-ue-build-identity-20261117-unittest-ea29e6bf45d54f17a2a9c4804daaaab3/unittest.log>)、[GREEN18日志](<D:/cargo-targets/zircon-local/ze-ue-build-identity-20261117-unittest-a3f717dc342e43879770b40bd636eba1/unittest.log>)，不是GitHub托管附件。
+原始命令回执与完整日志保留本机：真实RED日志（本机 `D:/cargo-targets/zircon-local/ze-ue-build-identity-20261117-unittest-ea29e6bf45d54f17a2a9c4804daaaab3/unittest.log`）、GREEN18日志（本机 `D:/cargo-targets/zircon-local/ze-ue-build-identity-20261117-unittest-a3f717dc342e43879770b40bd636eba1/unittest.log`），不是GitHub托管附件。
 
-**这里只证明工具层的选择/复制/符号/来源hash合同，不是Cargo实际编译、UBT、真实PE/ABI、引擎启动、产品staging或发布验收。** 模拟DLL/PDB是marker bytes，从未冒作可加载二进制。无引擎编译产物/符号包可作为本轮发行交付；仍需另行运行真实产品门。PR保持Draft，不合并。
+以上初次 18 项测试仅证明工具层选择、复制、符号与来源哈希的合同；DLL/PDB 是标记字节，不是引擎发行验收。
+
+### 集成复核：真实选择器、已有 PE 与作用域
+
+在主干 `ce3adcc98` 的原实现上，将本 PR 的六个先行断言交给同一套 Python runner 执行，零导入错误。§6 的草案名以这里实际执行的选择器为准：
+
+| 范围 | 原实现 FAIL | 原实现 PASS |
+|---|---|---|
+| Runtime / 插件复制 | `test_explicit_target_artifact_ignores_flat_host_output`、`test_native_plugin_artifact_ignores_sorting_first_other_target`、`test_missing_explicit_target_artifact_fails_closed` | `test_no_explicit_target_preserves_legacy_flat_output` |
+| 暂存来源 | `test_manifest_rejects_flat_source_for_explicit_target` | `test_manifest_records_exact_source_for_explicit_target` |
+
+修复组合树中，两个原模块连同已合入的资产来源回归共 26 项通过。`test_explicit_target_rejects_path_shaped_lookup` 和 `test_explicit_target_rejects_redirected_profile` 是额外保护，不计入六项 RED。显式目标含 `/`、`\`、`:` 或正好是 `.`、`..`，会报告 `Artifact lookup requires a Rust target triple, not a path`；目标/profile 目录被重定向或没有请求的文件时，会报告 `Built artifact not found under ...`，不会取 flat 代替。普通文件名 `foo.json` 不是 JSON target spec 解析接口：不会提取 stem 或重写为另一目标。
+
+生产调用：[Runtime、preview 和 Editor](../../../tools/build/zircon_build.py) 的 Cargo 参数都经过 `run_cargo`；动态插件的 `run_plugin_cargo` 也调用它。该处把同一 `effective_target_triple` 追加为 `--target T`；四处后续复制按同一 T 查找。命名的 Shipping profile 还会先拒绝与其定义不同的目标；`shipping-symbols` 是合法诊断模式，在配置中同时决定 Cargo profile 与输出目录。
+
+额外的 Windows 本地组合验证使用两份已有的真正 x64 PE，在新建目录中布置同名 `zircon_export_pack.exe`。Flat 副本的 SHA-256 为 `b0212a7722dd360ef04be95797fae922802c84ec752f5f7cff24c3c3e7f6def0`，显式 T 副本为 `d2d4ff11dea4a0c012304e504f2e79aca819ecff4c2c25ddde9b9c99cec164f5`。`copy_artifact` 选择后者，`write_staging_manifest` 记录同一 T 的准确文件和哈希；从新暂存位置启动 writer，确定性写包退出 0，ZRPK 哈希为 `c8c6c3782172077e845bc7a485739d16fcc1d0a484edce5d879a8ce2f69720f3`。这是用现成 PE 构造目录冲突、实际暂存并启动一个工具，不是本轮新编译 `--target T`，也不是整套 Editor/Runtime 发布或 Linux 主机验收。跨平台 cdylib 名称另见 [#271](https://github.com/He-Jiahui/ZirconEngine/pull/271)。
