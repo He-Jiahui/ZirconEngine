@@ -95,4 +95,18 @@ Web 宿主使用同一 Core TaskGraph 取得并验证目录，登记全部模块
 
 在公开提交 `ca47f2c35066492f22a4445308c35b2a02e13395` 对应的启动修复与 [WebGPU 编译修复 #239](https://github.com/He-Jiahui/ZirconEngine/pull/239) 上，Chrome 157 读取同一份预烘焙目录。修复前仅请求目录，`WebEngine.load` 返回 `ModuleGraphFrozen`。修复后请求了目录、8 个内容寻址的资产文件和 1 个场景文件，随后返回 `Source(ProjectAssetUnavailable)`，截至该次加载结束呈现 0 帧。两次目录 SHA-256 均为 `6a43dd44f07e58dd360dfee4608cedf7a9c03aa3a85e695692d1215012bb609b`。
 
-目录包含 1 个 UI 布局根。该次输入中记录的资产种类为 Mesh、AnimationSkeleton、Model、Shader、Material、AnimationClip、UiLayout 和 Texture。检查项目字体需求、目录登记和已驻留资产的对应关系是下一项运行时调查。
+目录包含 1 个 UI 布局根。该次输入中记录的资产种类为 Mesh、AnimationSkeleton、Model、Shader、Material、AnimationClip、UiLayout 和 Texture。检查项目字体需求、目录登记和已驻留资产的对应关系是下一项运行时调查，另见 [#241](https://github.com/He-Jiahui/ZirconEngine/pull/241)。
+
+## 10. 独立 Rust 正对照：预激活 I/O 不冻结模块图
+
+UE 的项目描述符测试核对加载阶段，`FModuleManager` 实际执行 `StartupModule` 后才发布 ready（`Engine/Source/Runtime/Core/Private/Modules/ModuleManager.cpp:1096–1112`）。ZE 不移植 UE DLL 生命周期，也不允许冻结后追加普通模块。浏览器宿主修复依赖的前提是：同一个 Core 拥有的 TaskGraph 无需先激活 `TasksModule` 就可执行目录准备；读完输入再登记真正使用它的模块，最后统一激活。
+
+新增 [Core 集成测试](../../../zircon_runtime/tests/core_bootstrap_scope.rs#L25-L71)走正式 TaskGraph、I/O 队列、模块声明、依赖、激活和收尾。I/O 任务交付一个夹具目录版本；任务结束后仍可登记模块，回调在激活前为 0 次、激活后恰好 1 次，之后的普通注册仍返回 `ModuleGraphFrozen`。这是 `core-min` 的原生正对照，验证修复依赖的 Core 契约，不把它当作 Web Fetch 或行为 RED，也不改变浏览器生产代码和原测试。
+
+Windows x64/MSVC、Rust 1.94.1、`zircon_runtime` / `core_bootstrap_scope` 集成测试，关闭默认特性、只启用 `core-min`，test profile。实际编译并执行所选测试，**1 通过、0 失败、0 忽略**（退出 0）。回执 SHA-256 `abdd4a553beb8b107e8c83a547c74093a78c22cb0c226c42632ee94bca8a3a99`。
+
+```text
+cargo test -p zircon_runtime --no-default-features --features core-min --profile test --locked --offline --jobs 1 --test core_bootstrap_scope early_io_does_not_freeze_module_registration -- --exact --nocapture --test-threads 1
+```
+
+本轮对照两份 HTTP 夹具除 `target_platform` 外相同；未重编 `target-web` 或重跑 Chrome，既有组合验证仍按第 7–9 节区分。没有 WebGPU 首帧或编辑器产品验收，GitHub `editor-compile-gate` 独立生效。
