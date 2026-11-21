@@ -5,7 +5,7 @@ use zircon_runtime_interface::resource::{ResourceKind, ResourceScheme};
 use zircon_runtime_interface::ui::component::UiValue;
 
 use crate::core::document::ScenePickerTicket;
-use crate::core::project::{SceneCreateRequest, SceneOpenRequest};
+use crate::core::project::{has_project_scene_suffix, SceneCreateRequest, SceneOpenRequest};
 use crate::ui::host::editor_asset_manager::EditorAssetCatalogGeneration;
 use crate::ui::retained_host::callback_dispatch::WorkbenchCommandPaletteOpenState;
 
@@ -311,7 +311,7 @@ fn parse_project_scene_uri(value: &str) -> Result<AssetUri, String> {
     if scene_uri.scheme() != ResourceScheme::Res {
         return Err("scene assets must use a project-owned res:// URI".to_string());
     }
-    if !scene_uri.path().ends_with(".scene.toml") {
+    if !has_project_scene_suffix(scene_uri.path()) {
         return Err("scene asset URI must end in .scene.toml".to_string());
     }
     if scene_uri.label().is_some() {

@@ -307,3 +307,258 @@ fn scene_picker_queries_a_catalog_snapshot_and_windows_its_results() {
     assert_eq!(queried.window_offset, 0);
     assert_eq!(queried.selected_command_id, "scene-picker-open-13");
 }
+
+#[test]
+fn editor157_picker_lists_and_submits_case_preserved_boundary_locators() {
+    // 255 ASCII characters in the file component; this catalog-only case performs no path IO.
+    let long = format!("res://Levels/{}Name.SCENE.TOML", "LongCASE".repeat(30));
+    let locators = [
+        "res://Levels/Cobalt.scene.toml",
+        "res://Levels/É.ScEnE.ToMl",
+        "res://Levels/UPPER.SCENE.TOML",
+        long.as_str(),
+    ];
+    let catalog = EditorAssetCatalogGeneration::from_snapshot_record(
+        EditorAssetCatalogSnapshotRecord {
+            assets: locators
+                .iter()
+                .map(|locator| catalog_record(locator, ResourceKind::Scene))
+                .collect(),
+            ..Default::default()
+        },
+        1,
+    );
+    let lifecycle = crate::core::document::DocumentLifecycleAuthority::default();
+    let root = std::path::Path::new("editor157-picker-boundaries");
+    lifecycle.begin_project_session(root);
+    let ticket = lifecycle.issue_scene_picker_ticket(root).unwrap();
+    editor157_assert_open_locators(&catalog, ticket, &locators);
+}
+
+#[test]
+fn editor157_picker_excludes_non_scenes_and_non_whole_scene_locators() {
+    let allowed = "res://Levels/Whole.scene.toml";
+    let rejected = [
+        ("res://Levels/Material.scene.toml", ResourceKind::Material),
+        ("res://Levels/Whole.scene.toml.backup", ResourceKind::Scene),
+        ("res://Levels/Whole.scene.toml#Root", ResourceKind::Scene),
+        (
+            "package://com.zircon.sample/Levels/Other.scene.toml",
+            ResourceKind::Scene,
+        ),
+        ("res://短", ResourceKind::Scene),
+        // Subtracting the suffix length in bytes would land inside the leading É.
+        ("res://É12345.toml", ResourceKind::Scene),
+    ];
+    let catalog = EditorAssetCatalogGeneration::from_snapshot_record(
+        EditorAssetCatalogSnapshotRecord {
+            assets: std::iter::once(catalog_record(allowed, ResourceKind::Scene))
+                .chain(rejected.map(|(locator, kind)| catalog_record(locator, kind)))
+                .collect(),
+            ..Default::default()
+        },
+        2,
+    );
+    let entries = scene_entries_from_catalog(&catalog);
+    let listed = entries
+        .iter()
+        .map(|entry| entry.scene_uri())
+        .collect::<Vec<_>>();
+    assert_eq!(listed, [allowed]);
+    let visible = scene_open_palette_state(&catalog, allowed, 0, false);
+    let selected =
+        scene_entry_for_open_submission(&entries, &visible.selected_command_id, allowed, 0)
+            .expect("the ordinary whole scene is available for Open");
+    assert_eq!(selected.scene_uri(), allowed);
+    for (locator, kind) in rejected {
+        let state = scene_open_palette_state(&catalog, locator, 0, false);
+        assert_eq!(state.total_match_count, 0, "{locator}");
+        assert!(state.selected_command_id.is_empty(), "{locator}");
+        assert!(
+            scene_entry_for_open_submission(&entries, &visible.selected_command_id, locator, 0)
+                .is_err(),
+            "{locator} must not be available to Open"
+        );
+        if kind == ResourceKind::Scene {
+            assert!(
+                scene_create_request_for_query(locator).is_err(),
+                "{locator}"
+            );
+        }
+    }
+}
+
+#[test]
+fn editor157_picker_create_request_preserves_scene_locator_case() {
+    for locator in [
+        "res://Levels/Cobalt.scene.toml",
+        "res://Levels/É.ScEnE.ToMl",
+        "res://Levels/UPPER.SCENE.TOML",
+    ] {
+        let request = scene_create_request_for_query(locator)
+            .unwrap_or_else(|error| panic!("valid Create destination {locator}: {error}"));
+        assert_eq!(request.scene_uri().to_string(), locator);
+    }
+}
+
+#[cfg(windows)]
+#[test]
+fn editor157_picker_submits_case_preserved_scene_locators_from_live_catalog() {
+    use crate::tests::editor_event::support::{
+        env_lock, EnvironmentVariableRestoreGuard, EventRuntimeHarness,
+    };
+    use crate::ui::host::editor_asset_manager::editor_asset_manager_handle;
+    use zircon_runtime::asset::{
+        project::ProjectPaths, project_asset_manager_handle, AssetUri, SceneAsset,
+    };
+    use zircon_runtime::core::manager::resolve_manager_service;
+    use zircon_runtime_interface::resource::ResourceState;
+
+    let _environment = env_lock().lock().unwrap();
+    let _profile = EnvironmentVariableRestoreGuard::capture("USERPROFILE");
+    let mut harness = EventRuntimeHarness::new("editor157-picker-config");
+    let locators = [
+        "res://Levels/Cobalt.scene.toml",
+        "res://Levels/MiXeD.ScEnE.ToMl",
+        "res://Levels/UPPER.SCENE.TOML",
+    ];
+    let source = SceneAsset {
+        entities: Vec::new(),
+    }
+    .to_project_toml_string(|_| unreachable!("an empty scene has no project references"))
+    .unwrap();
+    let mut written_sources = Vec::with_capacity(locators.len());
+    let initial_catalog = harness.open_project_with_assets("editor157-picker-project", |assets| {
+        let source_path = assets.source_path(locators[0]);
+        // Keep post-Ready recent-project writeback inside the same owned fixture.
+        let fixture_root = source_path.ancestors().nth(3).unwrap();
+        std::env::set_var("USERPROFILE", fixture_root);
+        for locator in locators {
+            let path = assets.source_path(locator);
+            assert!(path.starts_with(fixture_root), "{locator}: {path:?}");
+            std::fs::write(&path, &source).unwrap();
+            let path = ProjectPaths::resolve_existing_path(path).unwrap();
+            assert_eq!(
+                path.file_name().and_then(|name| name.to_str()),
+                locator.rsplit('/').next(),
+                "physical spelling for {locator}: {path:?}"
+            );
+            assert_eq!(std::fs::read(&path).unwrap().as_slice(), source.as_bytes());
+            written_sources.push((locator, path));
+        }
+    });
+
+    let core = harness.core.handle();
+    let runtime_assets =
+        resolve_manager_service(&core, project_asset_manager_handle(&core).unwrap())
+            .expect("resolve the active project asset manager");
+    let (project, _) = runtime_assets
+        .current_project_generation_snapshot()
+        .expect("the fixture must retain its active Runtime project")
+        .into_parts();
+    drop(runtime_assets);
+    let runtime_input = project.catalog_input_generation();
+    let mut runtime_locators = project
+        .registry()
+        .values()
+        .map(|record| record.primary_locator().to_string())
+        .collect::<Vec<_>>();
+    runtime_locators.sort_unstable();
+    for (locator, path) in written_sources {
+        assert!(
+            path.starts_with(project.paths().root()),
+            "{locator}: {path:?} is not in {:?}",
+            project.paths().root()
+        );
+        let uri = AssetUri::parse(locator).unwrap();
+        assert_eq!(
+            project.project_uri_for_source_path(&path).unwrap(),
+            uri,
+            "{path:?}"
+        );
+        let record = project.registry().get_by_locator(&uri).unwrap_or_else(|| {
+            panic!(
+                "live Runtime generation {} at {:?} lacks exact locator {locator} for {path:?}; registry: {runtime_locators:?}",
+                runtime_input.sequence(),
+                project.paths().root()
+            )
+        });
+        assert_eq!(record.primary_locator().to_string(), locator);
+        assert_eq!(record.kind, ResourceKind::Scene, "{locator}");
+        assert_eq!(record.state, ResourceState::Ready, "{locator}: {record:?}");
+        let input = runtime_input.record(record.id()).unwrap_or_else(|| {
+            panic!("ready Runtime record {locator} has no committed catalog input: {record:?}")
+        });
+        assert_eq!(input.resource(), record);
+        assert_eq!(input.source_path(), path);
+    }
+
+    // The retained workspace normally refreshes the registered projection again after open.
+    let editor_assets = resolve_manager_service(&core, editor_asset_manager_handle(&core).unwrap())
+        .expect("resolve the registered EditorAssetManager");
+    editor_assets
+        .refresh_from_runtime_project()
+        .expect("refresh the Editor catalog from the active Runtime project");
+    let catalog = editor_assets.catalog_snapshot();
+    drop(editor_assets);
+    for locator in locators {
+        let row = catalog.asset_by_locator(locator).unwrap_or_else(|| {
+            let published = catalog.assets.iter().map(|row| row.locator.as_str()).collect::<Vec<_>>();
+            panic!(
+                "live editor catalog lost exact locator {locator}; initial root {:?}, revision {}, epoch {}, {} rows; refreshed root {:?}, revision {}, epoch {}, rows {:?}; Runtime generation {}",
+                initial_catalog.project_root,
+                initial_catalog.catalog_revision,
+                initial_catalog.publish_epoch,
+                initial_catalog.assets.len(),
+                catalog.project_root,
+                catalog.catalog_revision,
+                catalog.publish_epoch,
+                published,
+                runtime_input.sequence()
+            )
+        });
+        assert_eq!(row.locator, locator);
+        assert_eq!(row.kind, ResourceKind::Scene, "{locator}");
+        assert_eq!(row.preview_state, PreviewState::Ready, "{locator}: {row:?}");
+        assert!(
+            !row.dirty && row.diagnostics.is_empty(),
+            "{locator}: {row:?}"
+        );
+    }
+    let ticket = harness.runtime.begin_scene_picker().unwrap();
+    editor157_assert_open_locators(&catalog, ticket, &locators);
+}
+
+fn editor157_assert_open_locators(
+    catalog: &EditorAssetCatalogGeneration,
+    ticket: crate::core::document::ScenePickerTicket,
+    locators: &[&str],
+) {
+    let entries = scene_entries_from_catalog(catalog);
+    let picker = ScenePickerSession::new(ticket.clone(), ScenePickerMode::Open, catalog);
+    let mut missing = Vec::new();
+    for &locator in locators {
+        if !entries.iter().any(|entry| entry.scene_uri() == locator) {
+            missing.push(locator);
+            continue;
+        }
+        let state = picker.command_palette_state(locator, 0, false);
+        assert_eq!(state.total_match_count, 1, "{locator}");
+        let submission = picker
+            .submission(&state.selected_command_id, locator, state.window_offset)
+            .unwrap_or_else(|error| panic!("visible Open scene {locator}: {error}"));
+        let ScenePickerSubmission::Open {
+            ticket: submitted_ticket,
+            request,
+        } = submission
+        else {
+            panic!("{locator} must submit an Open request");
+        };
+        assert_eq!(submitted_ticket, ticket);
+        assert_eq!(request.scene_uri().to_string(), locator);
+    }
+    assert!(
+        missing.is_empty(),
+        "catalog scenes missing from Open: {missing:?}"
+    );
+}
