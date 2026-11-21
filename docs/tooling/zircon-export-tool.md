@@ -2652,14 +2652,17 @@ profiles from publishing stale cooked assets and keeps malformed or future strat
 falling through to stale CookAssets inputs, while preserving the bundle paths and historical
 standalone/debug reports that omit the `strategies` field entirely.
 
-When `Pack` is launched by the main pipeline, by `--resume-from pack`, or directly through
-`--stage pack`, it first reads a non-fatal matching-profile
-`<out>/stages/cook_assets/report.json` and uses its `cooked_asset_manifest` path as the Pack
-manifest input. An explicit `--asset-manifest` still wins, and the fixed default
-`<out>/stages/cook_assets/assets.json` is only used when no current-profile CookAssets report is
-present.
-When a current-profile CookAssets report exists, `cooked_asset_manifest` must be a non-empty string;
-otherwise Pack writes a fatal preflight report and does not fall back to a stale default manifest.
+When the same pipeline invocation runs `CookAssets` before `Pack`, `--asset-manifest` selects only
+the CookAssets source. After CookAssets succeeds, Pack follows the report it just wrote to
+`<out>/stages/cook_assets/assets.json` rather than packing the source manifest. A dry run does not
+write a new CookAssets report: Pack previews the planned staged path without reading an older
+CookAssets report or requiring the file to exist. A CookAssets failure stops the invocation before
+Pack.
+
+Starting at Pack with `--stage pack` or `--resume-from pack` keeps the explicit `--asset-manifest`
+override. Without an override, Pack uses `cooked_asset_manifest` from a non-fatal matching-profile
+`<out>/stages/cook_assets/report.json` or the standard staged path if there is no CookAssets report.
+An invalid existing report or manifest path still fails preflight rather than falling back.
 When the trusted Validate report explicitly carries `profile_summary.strategies`, Pack also
 first applies the shared strategy-list hard gate, then requires that normalized list to include
 either `library_embed` or `native_dynamic` before building a full or delta pack. This prevents
@@ -2789,16 +2792,13 @@ resolution, delta argument pairing, and asset manifest existence/file checks.
 orchestration owner. This keeps pack command/report/path helpers out of the CLI root and holds
 `cli.py` below the large-file warning threshold after the Validate/Pack stage owner splits.
 
-`Pack` consumes a cooked asset manifest rather than reading `zircon-project.toml` directly. If
-`--asset-manifest` is supplied, that explicit path is used. Otherwise `Pack` first reads a matching
-non-fatal `<out>/stages/cook_assets/report.json` and uses its `cooked_asset_manifest` field. If no
-current-profile CookAssets report is present, it falls back to `<out>/stages/cook_assets/assets.json`,
-the standard output from the CookAssets handoff stage. This rule is shared by main-pipeline/resume
-execution and standalone `--stage pack`.
-An explicit `--asset-manifest` value is release input evidence and must be a non-empty trimmed
-string. Empty, whitespace-only, or padded explicit values are preserved through pipeline/resume
-defaulting, report `asset_manifest=null` in Pack's fatal preflight report, and skip command
-construction instead of previewing a default manifest path.
+`Pack` consumes a cooked asset manifest rather than reading `zircon-project.toml` directly. When
+CookAssets runs in the same invocation, Pack consumes its staged output as described above. With
+`--stage pack` or `--resume-from pack`, an explicit `--asset-manifest` selects the Pack input;
+otherwise Pack uses the CookAssets report or, if absent, the standard staged path.
+An explicit Pack input must be a non-empty trimmed string. Empty, whitespace-only, or padded
+explicit values are preserved through Pack defaulting, report `asset_manifest=null` in Pack's
+fatal preflight report, and skip command construction instead of previewing a default manifest path.
 The Pack output path follows the same rule: an explicit `--pack-file` must be non-empty and
 trimmed, and an empty or padded value reports `pack=null` plus `command=<skipped>` instead of falling back to
 `<out>/stages/pack/assets.zrpack`.
@@ -3465,8 +3465,9 @@ python -m tools.zircon_export --profile windows-release --out D:\zircon-export -
 ```
 
 `--validator <path>` lets callers use a prebuilt `zircon_export_validate` executable and skip
-`cargo run`. `--packer <path>` does the same for `zircon_export_pack`. `--asset-manifest <path>` is
-the CookAssets source manifest and remains an explicit Pack input override when needed.
+`cargo run`. `--packer <path>` does the same for `zircon_export_pack`. `--asset-manifest <path>`
+selects the CookAssets source when CookAssets runs. Use it with `--stage pack` or
+`--resume-from pack` to override the Pack input without running CookAssets in the same invocation.
 `--previous-pack` and `--delta-pack` enable M5-T2 delta package output for Pack and must be supplied
 together.
 `--template-dir <path>` makes PlatformBundle consume one export-template package.

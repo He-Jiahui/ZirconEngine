@@ -17,7 +17,7 @@ from .compile_host import (
     compile_host_command,
     run_compile_host,
 )
-from .cook_assets import run_cook_assets
+from .cook_assets import default_cooked_asset_manifest, run_cook_assets
 from .pipeline_report import run_report
 from .pack_stage import run_pack
 from .platform_bundle import run_platform_bundle
@@ -95,11 +95,23 @@ def run_pipeline(args: argparse.Namespace, resume_from: str) -> int:
         stages = pipeline_stages_from_resume(args, resume_from)
         print("pipeline_stages=" + ",".join(stages))
 
+    next_pack_args = args
     for stage in stages:
-        exit_code = run_pipeline_stage(args, stage)
+        exit_code = run_pipeline_stage(next_pack_args if stage == "pack" else args, stage)
         print(f"pipeline_stage={stage} exit_code={exit_code}")
         if exit_code != 0:
             return exit_code
+        if stage == "cook_assets":
+            # Pack uses the Cook report, not the source override. A dry run
+            # writes no report, so preview the planned output path instead.
+            next_pack_args = argparse.Namespace(**vars(args))
+            next_pack_args.asset_manifest = (
+                str(default_cooked_asset_manifest(resolve_user_path(args.out)))
+                if args.dry_run
+                else None
+            )
+        elif stage == "pack":
+            next_pack_args = args
     return 0
 
 
