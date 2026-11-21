@@ -499,9 +499,11 @@ impl RuntimeDynamicSession {
                 self.handle_pressed(ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1);
             }
             ZR_RUNTIME_TOUCH_PHASE_MOVED_V1 => self.handle_cursor_moved(cursor),
-            ZR_RUNTIME_TOUCH_PHASE_ENDED_V1 | ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1 => {
+            ZR_RUNTIME_TOUCH_PHASE_ENDED_V1 => {
                 self.handle_released(ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1);
             }
+            // A cancelled gesture ends pointer tracking, but does not activate a menu item.
+            ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1 => self.camera_controller.left_released(),
             _ => unreachable!("touch phase was validated before dispatch"),
         }
         ZrStatus::ok()
