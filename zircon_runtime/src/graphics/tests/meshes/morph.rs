@@ -33,6 +33,9 @@ use super::super::render_product_submit::{
 
 #[path = "morph/direct_velocity.rs"]
 mod direct_velocity;
+#[cfg(feature = "native-host")]
+#[path = "morph/generated_orientation.rs"]
+mod generated_orientation;
 #[path = "morph/skinned_velocity.rs"]
 mod skinned_velocity;
 #[path = "morph/velocity_png.rs"]

@@ -52,7 +52,7 @@ fn plugin_toml_preserves_the_versioned_gltf_output_schema() {
         .map(|kind| kind.as_str().expect("output kind is a string"))
         .collect::<Vec<_>>();
 
-    assert_eq!(GLTF_IMPORTER_VERSION, 4);
+    assert_eq!(GLTF_IMPORTER_VERSION, 5, "generated tangent output changed");
     assert_eq!(
         importer
             .get("importer_version")

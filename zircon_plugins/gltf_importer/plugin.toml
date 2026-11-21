@@ -44,7 +44,7 @@ additional_output_kinds = [
     "AnimationSkeleton",
     "AnimationClip",
 ]
-importer_version = 4
+importer_version = 5
 required_capabilities = ["runtime.asset.importer.model.gltf"]
 
 [[modules]]

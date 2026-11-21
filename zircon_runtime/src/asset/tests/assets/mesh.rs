@@ -20,6 +20,8 @@ use crate::core::resource::ResourceId;
 mod conversion_import;
 #[path = "mesh/document_roundtrip.rs"]
 mod document_roundtrip;
+#[path = "mesh/legacy_morph_generation.rs"]
+mod legacy_morph_generation;
 #[path = "mesh/morph_targets.rs"]
 mod morph_targets;
 #[path = "mesh/normal_generation.rs"]

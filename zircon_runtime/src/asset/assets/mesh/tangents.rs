@@ -13,19 +13,133 @@ use super::indices::MeshIndices;
 use super::mesh_asset::MeshAsset;
 use super::validation::MeshValidationError;
 
+const MISSING_TANGENT: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
+
+type MorphFrameDeltas = (Option<Vec<[f32; 3]>>, Option<Vec<[f32; 3]>>);
+
 impl MeshAsset {
     pub fn try_generate_missing_tangents(&mut self) -> Result<bool, MeshValidationError> {
         self.try_generate_missing_tangents_for_uv(MESH_ATTRIBUTE_UV0)
     }
 
+    /// Generates the base stream without rebuilding morph deltas. A missing
+    /// generated sign may adopt a shared sign from already-present targets on
+    /// this UV channel. Use the combined operation when the normal policy is known.
     pub fn try_generate_missing_tangents_for_uv(
         &mut self,
         uv_attribute: &'static str,
     ) -> Result<bool, MeshValidationError> {
+        let has_targets = !self.morph_targets.is_empty();
+        let Some(generated) = self.generate_missing_tangent_basis(uv_attribute, has_targets)?
+        else {
+            return Ok(false);
+        };
+        if has_targets
+            && self.indices.as_ref().map_or_else(
+                || generated.signs.iter().any(Option::is_none),
+                |indices| {
+                    (0..indices.len()).any(|corner| {
+                        generated.signs[mesh_vertex_index(Some(indices), corner)].is_none()
+                    })
+                },
+            )
+        {
+            self.adopt_existing_morph_signs_for_legacy_generation(uv_attribute, generated.signs);
+        }
+        Ok(true)
+    }
+
+    fn adopt_existing_morph_signs_for_legacy_generation(
+        &mut self,
+        uv_attribute: &'static str,
+        signs: Vec<Option<f32>>,
+    ) {
+        // Legacy generation does not know which normal policy the caller may
+        // use. Probe actual target frames, not UV parity or the fallback value.
+        // A failed probe is not a new error on the base-only API; rebuilding
+        // with that policy will still diagnose its incompatible frames.
+        let probe = |flat, mut signs: Vec<Option<f32>>| {
+            self.stage_morph_frames::<false>(flat, Some(uv_attribute), Some(&mut signs))
+                .ok()
+                .map(|_| signs)
+        };
+        let flat_signs = if self.indices.is_none()
+            || validate_face_corner_expanded_mesh(signs.len(), self.indices.as_ref()).is_ok()
+        {
+            probe(true, signs.clone())
+        } else {
+            None
+        };
+        let signs = match (probe(false, signs), flat_signs) {
+            (Some(mut preserved), Some(flat)) => {
+                for (sign, flat_sign) in preserved.iter_mut().zip(flat) {
+                    *sign = match (*sign, flat_sign) {
+                        (Some(a), Some(b)) if a != b => None,
+                        (a, b) => a.or(b),
+                    };
+                }
+                preserved
+            }
+            (Some(signs), None) | (None, Some(signs)) => signs,
+            (None, None) => return,
+        };
+        self.publish_generated_tangent_signs(signs);
+    }
+
+    /// Generates a missing base tangent stream and rebuilds its morph frames together.
+    /// An undefined generated base sign can take the shared sign of its valid targets.
+    /// Existing base tangents are not changed; any error leaves all streams unchanged.
+    pub fn try_generate_missing_tangents_and_morph_frames_for_uv(
+        &mut self,
+        uv_attribute: &'static str,
+        rebuild_flat_normals: bool,
+    ) -> Result<bool, MeshValidationError> {
+        let has_targets = !self.morph_targets.is_empty();
+        let Some(mut generated) = self.generate_missing_tangent_basis(uv_attribute, has_targets)?
+        else {
+            return Ok(false);
+        };
+        if !has_targets {
+            return Ok(true);
+        }
+        let frames = match self.stage_morph_frames::<true>(
+            rebuild_flat_normals,
+            Some(uv_attribute),
+            Some(&mut generated.signs),
+        ) {
+            Ok(frames) => frames,
+            Err(error) => {
+                generated.rollback(self);
+                return Err(error);
+            }
+        };
+        self.publish_generated_tangent_signs(generated.signs);
+        self.publish_morph_frames(rebuild_flat_normals, frames);
+        Ok(true)
+    }
+
+    fn publish_generated_tangent_signs(&mut self, signs: Vec<Option<f32>>) {
+        let Some(MeshAttributeValues::Float32x4(base_tangents)) =
+            self.attributes.get_mut(MESH_ATTRIBUTE_TANGENT)
+        else {
+            unreachable!("base tangents were installed before staging morph frames");
+        };
+        for (base, sign) in base_tangents.iter_mut().zip(signs) {
+            if let Some(sign) = sign {
+                base[3] = sign;
+            }
+        }
+    }
+
+    fn generate_missing_tangent_basis(
+        &mut self,
+        uv_attribute: &'static str,
+        track_signs: bool,
+    ) -> Result<Option<GeneratedTangentBasis>, MeshValidationError> {
         self.validate()?;
 
         if self.attributes.contains_key(MESH_ATTRIBUTE_TANGENT) {
-            return Ok(false);
+            return Ok(None);
         }
         if self.virtual_geometry.is_some() {
             return Err(MeshValidationError::TangentGenerationFailed {
@@ -43,10 +157,12 @@ impl MeshAsset {
         let uvs = required_float32x2_attribute(self, uv_attribute)?;
         let corner_tangents =
             mikktspace_corner_tangents_for_mesh(positions, normals, uvs, self.indices.as_ref())?;
-        publish_generated_corner_tangents(self, corner_tangents)?;
-        Ok(true)
+        publish_generated_corner_tangents(self, corner_tangents, track_signs).map(Some)
     }
 
+    /// Rebuilds targets against an existing, fixed base tangent stream. To let
+    /// a previously undefined generated base inherit a sign, use the combined
+    /// generation method before a base stream has been installed.
     pub fn try_rebuild_morph_tangent_frames_for_uv(
         &mut self,
         rebuild_flat_normals: bool,
@@ -58,6 +174,18 @@ impl MeshAsset {
         {
             return Ok(false);
         }
+        let frames =
+            self.stage_morph_frames::<true>(rebuild_flat_normals, tangent_uv_attribute, None)?;
+        self.publish_morph_frames(rebuild_flat_normals, frames);
+        Ok(true)
+    }
+
+    fn stage_morph_frames<const EMIT_DELTAS: bool>(
+        &self,
+        rebuild_flat_normals: bool,
+        tangent_uv_attribute: Option<&'static str>,
+        mut generated_signs: Option<&mut [Option<f32>]>,
+    ) -> Result<Vec<MorphFrameDeltas>, MeshValidationError> {
         if self.topology != RenderMeshTopology::TriangleList {
             return Err(MeshValidationError::TangentGenerationRequiresTriangleList {
                 topology: self.topology,
@@ -82,7 +210,11 @@ impl MeshAsset {
         }
         let mut target_positions = base_positions.to_vec();
         let mut target_normals = base_normals.to_vec();
-        let mut rebuilt_frames = Vec::with_capacity(self.morph_targets.len());
+        let mut rebuilt_frames = Vec::with_capacity(if EMIT_DELTAS {
+            self.morph_targets.len()
+        } else {
+            0
+        });
         for (target_index, target) in self.morph_targets.iter().enumerate() {
             target_positions.clone_from_slice(base_positions);
             if let Some(position_deltas) =
@@ -106,8 +238,8 @@ impl MeshAsset {
                 }
             }
 
-            let normal_deltas =
-                rebuild_flat_normals.then(|| vector_deltas(&target_normals, base_normals));
+            let normal_deltas = (EMIT_DELTAS && rebuild_flat_normals)
+                .then(|| vector_deltas(&target_normals, base_normals));
             let tangent_deltas = tangent_inputs
                 .map(|(uvs, base_tangents)| {
                     let target_corner_tangents = mikktspace_corner_tangents_for_mesh(
@@ -116,43 +248,25 @@ impl MeshAsset {
                         uvs,
                         indices,
                     )?;
-                    let target_tangents = morph_vertex_tangents_from_corners(
+                    morph_vertex_tangent_deltas_from_corners::<EMIT_DELTAS>(
                         &target_corner_tangents,
                         indices,
                         base_tangents,
+                        generated_signs.as_deref_mut(),
                         target_index,
-                    )?;
-                    for (vertex_index, (base, target)) in
-                        base_tangents.iter().zip(&target_tangents).enumerate()
-                    {
-                        if base[3].signum() != target[3].signum() {
-                            return Err(MeshValidationError::MorphTangentHandednessMismatch {
-                                target_index,
-                                vertex_index,
-                            });
-                        }
-                    }
-                    Ok::<_, MeshValidationError>(
-                        target_tangents
-                            .iter()
-                            .zip(base_tangents)
-                            .map(|(target, base)| {
-                                [
-                                    target[0] - base[0],
-                                    target[1] - base[1],
-                                    target[2] - base[2],
-                                ]
-                            })
-                            .collect(),
                     )
                 })
                 .transpose()?;
-            rebuilt_frames.push((normal_deltas, tangent_deltas));
+            if EMIT_DELTAS {
+                rebuilt_frames.push((normal_deltas, tangent_deltas));
+            }
         }
+        Ok(rebuilt_frames)
+    }
 
-        for (target, (normal_deltas, tangent_deltas)) in
-            self.morph_targets.iter_mut().zip(rebuilt_frames)
-        {
+    fn publish_morph_frames(&mut self, rebuild_flat_normals: bool, frames: Vec<MorphFrameDeltas>) {
+        // Staging preserves vertex counts and constructs the exact stream formats.
+        for (target, (normal_deltas, tangent_deltas)) in self.morph_targets.iter_mut().zip(frames) {
             if let Some(normal_deltas) = normal_deltas {
                 target.attributes.insert(
                     MESH_ATTRIBUTE_NORMAL.to_string(),
@@ -168,9 +282,6 @@ impl MeshAsset {
                 target.attributes.remove(MESH_ATTRIBUTE_TANGENT);
             }
         }
-
-        self.validate()?;
-        Ok(true)
     }
 }
 
@@ -235,10 +346,34 @@ fn optional_morph_float32x3_attribute<'a>(
     })
 }
 
+struct GeneratedTangentBasis {
+    original_vertex_count: usize,
+    previous_indices: Option<MeshIndices>,
+    signs: Vec<Option<f32>>,
+}
+
+impl GeneratedTangentBasis {
+    fn rollback(self, asset: &mut MeshAsset) {
+        asset.attributes.remove(MESH_ATTRIBUTE_TANGENT);
+        if let Some(indices) = self.previous_indices {
+            for values in asset.attributes.values_mut() {
+                truncate_attribute_values(values, self.original_vertex_count);
+            }
+            for target in &mut asset.morph_targets {
+                for values in target.attributes.values_mut() {
+                    truncate_attribute_values(values, self.original_vertex_count);
+                }
+            }
+            asset.indices = Some(indices);
+        }
+    }
+}
+
 fn publish_generated_corner_tangents(
     asset: &mut MeshAsset,
-    corner_tangents: Vec<[f32; 4]>,
-) -> Result<(), MeshValidationError> {
+    corner_tangents: Vec<Option<[f32; 4]>>,
+    track_signs: bool,
+) -> Result<GeneratedTangentBasis, MeshValidationError> {
     let vertex_count = asset.vertex_count()?;
     let expected_corner_count = asset
         .indices
@@ -252,26 +387,37 @@ fn publish_generated_corner_tangents(
             ),
         });
     }
-    if corner_tangents
-        .iter()
-        .flatten()
-        .any(|component| !component.is_finite())
-    {
-        return Err(MeshValidationError::TangentGenerationFailed {
-            reason: "MikkTSpace produced a non-finite corner tangent".to_string(),
-        });
-    }
+    let mut basis = GeneratedTangentBasis {
+        original_vertex_count: vertex_count,
+        previous_indices: None,
+        signs: if track_signs {
+            vec![None; vertex_count]
+        } else {
+            Vec::new()
+        },
+    };
     let Some(indices) = asset.indices.as_ref() else {
-        return insert_generated_tangents(asset, corner_tangents);
+        let tangents = corner_tangents
+            .into_iter()
+            .enumerate()
+            .map(|(vertex, computed)| {
+                if track_signs {
+                    basis.signs[vertex] = computed.map(|tangent| tangent[3]);
+                }
+                computed.unwrap_or(MISSING_TANGENT)
+            })
+            .collect();
+        return install_generated_tangents(asset, tangents, basis);
     };
 
     let mut split_sources = Vec::new();
-    let mut output_tangents = vec![[1.0, 0.0, 0.0, 1.0]; vertex_count];
+    let mut output_tangents = vec![MISSING_TANGENT; vertex_count];
     let mut primary_group = vec![None; vertex_count];
     let mut extra_groups = HashMap::new();
     let mut output_indices: Option<Vec<u32>> = None;
 
-    for (corner_index, tangent) in corner_tangents.into_iter().enumerate() {
+    for (corner_index, computed) in corner_tangents.into_iter().enumerate() {
+        let tangent = computed.unwrap_or(MISSING_TANGENT);
         let source_index = mesh_vertex_index(Some(indices), corner_index);
         let tangent_key = tangent_bits(tangent);
         let output_index = match primary_group[source_index] {
@@ -301,11 +447,21 @@ fn publish_generated_corner_tangents(
                     })?;
                     split_sources.push(source_index);
                     output_tangents.push(tangent);
+                    if track_signs {
+                        basis.signs.push(None);
+                    }
                     extra_groups.insert(group_key, output_index);
                     output_index
                 }
             }
         };
+        // Keep the existing split key. If both a fallback and a computed
+        // corner land in the same group, only the latter constrains the sign.
+        if track_signs {
+            if let Some(computed) = computed {
+                basis.signs[output_index] = Some(computed[3]);
+            }
+        }
         if output_index != source_index || output_indices.is_some() {
             // Before the first split every output index equals its source index.
             let output_indices = output_indices.get_or_insert_with(|| {
@@ -320,7 +476,7 @@ fn publish_generated_corner_tangents(
     }
 
     let Some(output_indices) = output_indices else {
-        return insert_generated_tangents(asset, output_tangents);
+        return install_generated_tangents(asset, output_tangents, basis);
     };
     if asset.mesh_sdf.is_some() {
         return Err(MeshValidationError::TangentGenerationFailed {
@@ -338,52 +494,25 @@ fn publish_generated_corner_tangents(
             append_remapped_attribute_values(values, &split_sources);
         }
     }
-    let previous_tangents = asset.attributes.insert(
-        MESH_ATTRIBUTE_TANGENT.to_string(),
-        MeshAttributeValues::Float32x4(output_tangents),
-    );
-    let previous_indices = asset.indices.replace(remapped_indices);
-    if let Err(error) = asset.validate() {
-        if let Some(previous_tangents) = previous_tangents {
-            asset
-                .attributes
-                .insert(MESH_ATTRIBUTE_TANGENT.to_string(), previous_tangents);
-        } else {
-            asset.attributes.remove(MESH_ATTRIBUTE_TANGENT);
-        }
-        for values in asset.attributes.values_mut() {
-            truncate_attribute_values(values, vertex_count);
-        }
-        for target in &mut asset.morph_targets {
-            for values in target.attributes.values_mut() {
-                truncate_attribute_values(values, vertex_count);
-            }
-        }
-        asset.indices = previous_indices;
-        return Err(error);
-    }
-    Ok(())
+    basis.previous_indices = asset.indices.replace(remapped_indices);
+    install_generated_tangents(asset, output_tangents, basis)
 }
 
-fn insert_generated_tangents(
+fn install_generated_tangents(
     asset: &mut MeshAsset,
     tangents: Vec<[f32; 4]>,
-) -> Result<(), MeshValidationError> {
-    let previous = asset.attributes.insert(
+    basis: GeneratedTangentBasis,
+) -> Result<GeneratedTangentBasis, MeshValidationError> {
+    debug_assert!(!asset.attributes.contains_key(MESH_ATTRIBUTE_TANGENT));
+    asset.attributes.insert(
         MESH_ATTRIBUTE_TANGENT.to_string(),
         MeshAttributeValues::Float32x4(tangents),
     );
     if let Err(error) = asset.validate() {
-        if let Some(previous) = previous {
-            asset
-                .attributes
-                .insert(MESH_ATTRIBUTE_TANGENT.to_string(), previous);
-        } else {
-            asset.attributes.remove(MESH_ATTRIBUTE_TANGENT);
-        }
+        basis.rollback(asset);
         return Err(error);
     }
-    Ok(())
+    Ok(basis)
 }
 
 fn append_remapped_attribute_values(values: &mut MeshAttributeValues, split_sources: &[usize]) {
@@ -424,28 +553,72 @@ fn remap_index_format(source: &MeshIndices, indices: Vec<u32>) -> MeshIndices {
     }
 }
 
-fn morph_vertex_tangents_from_corners(
-    corner_tangents: &[[f32; 4]],
+#[derive(Clone, Copy)]
+enum MorphVertexBasis {
+    Unreferenced,
+    Missing,
+    Computed([f32; 4]),
+}
+
+fn morph_vertex_tangent_deltas_from_corners<const EMIT_DELTAS: bool>(
+    corner_tangents: &[Option<[f32; 4]>],
     indices: Option<&MeshIndices>,
     base_tangents: &[[f32; 4]],
+    mut generated_signs: Option<&mut [Option<f32>]>,
     target_index: usize,
-) -> Result<Vec<[f32; 4]>, MeshValidationError> {
-    let mut target_tangents = base_tangents.to_vec();
-    let mut assigned = vec![false; base_tangents.len()];
+) -> Result<Vec<[f32; 3]>, MeshValidationError> {
+    let mut targets = vec![MorphVertexBasis::Unreferenced; base_tangents.len()];
     for (corner_index, tangent) in corner_tangents.iter().copied().enumerate() {
         let vertex_index = mesh_vertex_index(indices, corner_index);
-        if assigned[vertex_index]
-            && tangent_bits(target_tangents[vertex_index]) != tangent_bits(tangent)
-        {
-            return Err(MeshValidationError::MorphTangentCornerMismatch {
-                target_index,
-                vertex_index,
-            });
+        let target = &mut targets[vertex_index];
+        match (*target, tangent) {
+            (MorphVertexBasis::Computed(previous), Some(next))
+                if tangent_bits(previous) != tangent_bits(next) =>
+            {
+                return Err(MeshValidationError::MorphTangentCornerMismatch {
+                    target_index,
+                    vertex_index,
+                });
+            }
+            (_, Some(computed)) => *target = MorphVertexBasis::Computed(computed),
+            (MorphVertexBasis::Unreferenced, None) => *target = MorphVertexBasis::Missing,
+            (_, None) => {}
         }
-        target_tangents[vertex_index] = tangent;
-        assigned[vertex_index] = true;
     }
-    Ok(target_tangents)
+    let mut deltas = Vec::with_capacity(if EMIT_DELTAS { base_tangents.len() } else { 0 });
+    for (vertex_index, (target, base)) in targets.into_iter().zip(base_tangents).enumerate() {
+        let target = match target {
+            MorphVertexBasis::Unreferenced => {
+                if EMIT_DELTAS {
+                    deltas.push([0.0; 3]);
+                }
+                continue;
+            }
+            MorphVertexBasis::Missing => MISSING_TANGENT,
+            MorphVertexBasis::Computed(target) => {
+                let sign = target[3];
+                let previous = match generated_signs.as_deref_mut() {
+                    Some(signs) => *signs[vertex_index].get_or_insert(sign),
+                    None => base[3].signum(),
+                };
+                if previous != sign {
+                    return Err(MeshValidationError::MorphTangentHandednessMismatch {
+                        target_index,
+                        vertex_index,
+                    });
+                }
+                target
+            }
+        };
+        if EMIT_DELTAS {
+            deltas.push([
+                target[0] - base[0],
+                target[1] - base[1],
+                target[2] - base[2],
+            ]);
+        }
+    }
+    Ok(deltas)
 }
 
 fn tangent_bits(tangent: [f32; 4]) -> [u32; 4] {
@@ -532,7 +705,7 @@ struct MikktspaceMesh<'a> {
     positions: &'a [[f32; 3]],
     normals: &'a [[f32; 3]],
     uvs: &'a [[f32; 2]],
-    corner_tangents: Vec<[f32; 4]>,
+    corner_tangents: Vec<Option<[f32; 4]>>,
 }
 
 impl MikktspaceMesh<'_> {
@@ -579,8 +752,10 @@ impl bevy_mikktspace::Geometry for MikktspaceMesh<'_> {
         face: usize,
         vertex: usize,
     ) {
+        // The encoded sign already matches ZE's cross(N,T)*w convention for
+        // the positions, normals and UVs we pass unmodified to MikkTSpace.
         self.corner_tangents[face * 3 + vertex] =
-            tangent_space.unwrap_or_default().tangent_encoded();
+            tangent_space.map(|basis| basis.tangent_encoded());
     }
 }
 
@@ -589,14 +764,14 @@ fn mikktspace_corner_tangents_for_mesh(
     normals: &[[f32; 3]],
     uvs: &[[f32; 2]],
     indices: Option<&MeshIndices>,
-) -> Result<Vec<[f32; 4]>, MeshValidationError> {
+) -> Result<Vec<Option<[f32; 4]>>, MeshValidationError> {
     let corner_count = indices.map_or(positions.len(), MeshIndices::len);
     let mut geometry = MikktspaceMesh {
         indices,
         positions,
         normals,
         uvs,
-        corner_tangents: vec![[0.0; 4]; corner_count],
+        corner_tangents: vec![None; corner_count],
     };
     bevy_mikktspace::generate_tangents(&mut geometry).map_err(|error| {
         MeshValidationError::TangentGenerationFailed {
@@ -604,9 +779,16 @@ fn mikktspace_corner_tangents_for_mesh(
         }
     })?;
 
-    // MikkTSpace encodes a left-handed basis; Zircon reconstructs a right-handed basis.
-    for tangent in &mut geometry.corner_tangents {
-        tangent[3] = -tangent[3];
+    if geometry
+        .corner_tangents
+        .iter()
+        .flatten()
+        .flatten()
+        .any(|value| !value.is_finite())
+    {
+        return Err(MeshValidationError::TangentGenerationFailed {
+            reason: "MikkTSpace produced a non-finite corner tangent".to_string(),
+        });
     }
     Ok(geometry.corner_tangents)
 }

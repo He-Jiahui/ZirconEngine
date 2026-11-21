@@ -26,8 +26,9 @@ use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
 const BUILTIN_IMPORTER_PLUGIN_ID: &str = "zircon.builtin.asset_importers";
 const PLUGIN_REQUIRED_IMPORTER_PLUGIN_ID: &str = "zircon.runtime.plugin_required_importers";
+// Generated tangent frames changed; do not reuse the old cooked streams.
 const BUILTIN_GLTF_IMPORTER_VERSION: u32 =
-    2 + crate::asset::assets::DECODED_RGBA8_TEXTURE_BUILD_VERSION;
+    3 + crate::asset::assets::DECODED_RGBA8_TEXTURE_BUILD_VERSION;
 
 #[derive(Clone, Debug)]
 pub struct AssetImporter {

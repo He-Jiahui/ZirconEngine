@@ -87,6 +87,37 @@ fn project_import_identity_qualifies_the_production_recipe_and_toolchain() {
 }
 
 #[test]
+fn builtin_gltf_generated_tangent_fix_invalidates_version_four_artifacts() {
+    let current = crate::asset::AssetImporter::default()
+        .descriptor_for_source(std::path::Path::new("generated-tangent.glb"))
+        .unwrap();
+    assert_eq!(current.id, "zircon.builtin.model.gltf");
+    let mut previous = AssetMetaDocument::new(
+        AssetUuid::new(),
+        AssetUri::parse("res://models/generated-tangent.glb").unwrap(),
+        AssetKind::Model,
+    );
+    previous.importer_id.clone_from(&current.id);
+    previous.importer_version = 4;
+    assert!(
+        !importer_contract_matches(&previous, Some(&current)),
+        "version-4 glTF metadata must not admit the old generated tangent artifact"
+    );
+
+    let recipe = toml::Table::new();
+    let old = build_identity_for_import(
+        &recipe,
+        "blake3:same-source",
+        None,
+        Some((&previous.importer_id, previous.importer_version)),
+    );
+    let new = build_identity_for_import(&recipe, "blake3:same-source", Some(&current), None);
+    assert_ne!(old.action_key(), new.action_key());
+    previous.importer_version = current.importer_version;
+    assert!(importer_contract_matches(&previous, Some(&current)));
+}
+
+#[test]
 fn project_import_action_key_rebuilds_once_and_matches_full_and_targeted_paths() {
     let root = unique_temp_project_root("qualified_import_build_identity");
     let paths = ProjectPaths::from_root(&root).unwrap();
