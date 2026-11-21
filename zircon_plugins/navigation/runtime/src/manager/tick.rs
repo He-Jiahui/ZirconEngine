@@ -7,8 +7,8 @@ use zircon_runtime::core::framework::navigation::{
     NavAgentTickReport, NavMeshAgentDescriptor, NavPathQuery, NavPathStatus,
     NavigationAgentDebugState, NavigationDebugCapture, NavigationError,
 };
-use zircon_runtime::core::math::{Real, Transform, Vec3};
-use zircon_runtime::scene::World;
+use zircon_runtime::core::math::{try_affine_inverse, NumericPolicy, Real, Transform, Vec3};
+use zircon_runtime::scene::{SceneError, SceneResult, World};
 
 use super::agent_motion::{
     agent_displacement, next_agent_velocity, realized_velocity, rotate_toward_movement,
@@ -204,18 +204,28 @@ pub(crate) fn tick_world_agents_legacy(
             manager.clear_agent_velocity(entity);
             continue;
         }
-        let direction = displacement.normalize_or_zero();
         let next = current + displacement;
-        let updated = Transform {
-            translation: next,
-            rotation: if agent.update_rotation && direction.length_squared() > Real::EPSILON {
-                rotate_toward_movement(transform.rotation, direction, &agent, dt_seconds)
-            } else {
-                transform.rotation
-            },
-            ..transform
+        let parent_for_position_only = if agent.update_rotation {
+            None
+        } else {
+            world.parent_of(entity)
         };
-        match world.update_transform(entity, updated) {
+        let result = if let Some(parent) = parent_for_position_only {
+            write_parented_agent_position(world, entity, parent, next)
+        } else {
+            let direction = displacement.normalize_or_zero();
+            let updated = Transform {
+                translation: next,
+                rotation: if agent.update_rotation && direction.length_squared() > Real::EPSILON {
+                    rotate_toward_movement(transform.rotation, direction, &agent, dt_seconds)
+                } else {
+                    transform.rotation
+                },
+                ..transform
+            };
+            world.update_transform(entity, updated)
+        };
+        match result {
             Ok(true) => {
                 manager.record_agent_velocity(entity, realized_velocity(displacement, dt_seconds));
                 report.moved_agents += 1;
@@ -240,6 +250,40 @@ pub(crate) fn tick_world_agents_legacy(
     drop(state);
     update_report_metrics(manager, &mut report);
     Ok(report)
+}
+
+fn write_parented_agent_position(
+    world: &mut World,
+    entity: u64,
+    parent: u64,
+    world_position: Vec3,
+) -> SceneResult<bool> {
+    let parent_world = world
+        .world_matrix(parent)
+        .ok_or(SceneError::MissingParent {
+            child: entity,
+            parent,
+        })?;
+    let local_from_world =
+        try_affine_inverse(parent_world, NumericPolicy::STRICT).map_err(|error| {
+            SceneError::Message(format!("cannot invert navigation parent {parent}: {error}"))
+        })?;
+    let local = world
+        .local_transform(entity)
+        .ok_or(SceneError::MissingRequiredComponent {
+            operation: "move navigation agent",
+            entity,
+            component: "LocalTransform",
+        })?;
+    // This is a position-only request. Keep the authored basis rather than
+    // round-tripping the lossy world TRS, even under an inherited shear.
+    world.update_transform(
+        entity,
+        Transform {
+            translation: local_from_world.transform_point3(world_position),
+            ..local
+        },
+    )
 }
 
 fn apply_direct_traversal_position(
