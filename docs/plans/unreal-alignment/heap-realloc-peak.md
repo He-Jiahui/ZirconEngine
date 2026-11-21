@@ -76,6 +76,14 @@ UE 的池统计使用对齐后的大小，Rust 的 `Layout::size()` / `new_size`
 
 两版使用相同的集成测试源码和三个精确选择器，每项在独立 Windows x64/MSVC 进程中运行。修复版本三项全部通过。这里记录的帧数与重分配次数来自正确性测试。
 
-命令 ⟨FILL：`cargo test -p zircon_runtime --features profiling-memory --test runtime_profiling_memory_realloc -- --ignored --exact <name>` 或实际命令⟩；工具链 ⟨FILL⟩；基线运行 commit `7514690f`、修复运行 commit `fd44ec2c`；回执 SHA-256 ⟨FILL⟩。真实安装点 `zircon_app` 的 `profiling-memory` 构建检查：⟨FILL：已执行命令与结果 / 未执行⟩。
+两版均用 Rust 1.94.1 / Windows x64 MSVC，执行 `cargo test -p zircon_runtime --no-default-features --features core-min,profiling-memory --test runtime_profiling_memory_realloc --profile test --locked --offline --jobs 1 --no-run --message-format=json`，另显式指定各次受测工作树的 manifest 和受管 target。该命令只生成 libtest，不算运行成功。随后分别启动产物：串行控制使用 `<name> --exact --test-threads 1 --show-output`；两个并发控制各起单独进程，额外传 `--ignored`。测试文件在两版的 Git blob 均为 `2e015390f3170f1100279db3152a87a31ee2ce80`。
+
+| 输入与结果身份（本机归档） | tests-only `7514690f` | 修复 `fd44ec2c` |
+|---|---|---|
+| Cargo 编译回执 SHA-256 | `a6fa49ab4cf9d58b867728ad9bb457148f89a162a604f45985b76e85d95417b3` | `9b24e55f5d31f78d1b6e65b43fccf90e2fc35d931ef13e03ca1d735a0e8c340d` |
+| 原生测试程序 SHA-256 | `8504510c422f894718e2efb0d8673b1d0a43cbdedbdbf40e13eb724d918647f1` | `ae06b1839f39d4383a92038bc066a029e4c6e5e41885519f67651066bf54586f` |
+| 三次进程执行记录 SHA-256 | `7f0596aecc8425e843cd9b92d58716c65f8073029af8a7c96c71d3ad75141a12` | `535244bfc42363449cbca4ffea77fef98c04c0606f70ec661e846f6a2b4458e8` |
+
+集成复核再次直接运行上述修复程序，三项各 1 通过、0 忽略；8,192 帧中的最低 live 为 2,048 字节，8,192 次短时重叠后 peak 为 10,304 字节。真实安装点 `zircon_app` 的 `profiling-memory` 接线已读，但本次**未构建或启动该宿主**。这些结果证明包装器计账，不是进程 RSS、吞吐基准或产品内存采集验收。
 
 [分配器计数修订](https://github.com/He-Jiahui/ZirconEngine/blob/fd44ec2cc09950b29c3b0ac40da82f5d90b4bb4d/zircon_runtime/src/core/runtime/diagnostics/profiling/memory.rs) · [并发回归](https://github.com/He-Jiahui/ZirconEngine/blob/fd44ec2cc09950b29c3b0ac40da82f5d90b4bb4d/zircon_runtime/tests/runtime_profiling_memory_realloc.rs)
