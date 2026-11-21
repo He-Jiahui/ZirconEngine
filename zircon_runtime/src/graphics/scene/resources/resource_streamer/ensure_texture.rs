@@ -5,7 +5,10 @@ use crate::core::framework::render::{
     RenderFrameSubmissionBoundaryReason, RenderFrameSubmissionProducer,
     RenderFrameSubmissionTransaction,
 };
-use crate::core::resource::{ResourceId, ResourceSnapshot};
+use crate::core::resource::{
+    ResourceActiveVersionKey, ResourceHandle, ResourceId, ResourceKind,
+    ResourceManagementRowIdentity, ResourceManager, ResourceSnapshot, TextureMarker,
+};
 
 use crate::graphics::backend::RenderBackend;
 use crate::graphics::types::GraphicsError;
@@ -13,6 +16,8 @@ use crate::graphics::types::GraphicsError;
 use super::super::prepared::PreparedTexture;
 use super::super::{GpuTextureResource, GpuTextureUploadWork};
 use super::ResourceStreamer;
+
+type TextureSource = (ResourceManagementRowIdentity, ResourceActiveVersionKey);
 
 pub(in crate::graphics::scene::resources) enum TextureSnapshotFramePrepareError {
     GpuArtifact,
@@ -46,12 +51,18 @@ impl ResourceStreamer {
         id: ResourceId,
         submission_transaction: Option<&mut RenderFrameSubmissionTransaction>,
     ) -> Result<(), GraphicsError> {
-        let requested_revision = self.resource_revision(id)?;
-        if self
-            .textures
-            .get(&id)
-            .is_some_and(|prepared| prepared.revision == requested_revision)
-        {
+        let asset_manager = self.asset_manager()?;
+        let resources = asset_manager.resource_manager();
+        let cache_hit = {
+            let projection = resources.projection_snapshot();
+            let catalog = projection
+                .management()
+                .row_identity_by_id(id)
+                .ok_or_else(|| GraphicsError::Asset(format!("missing resource record {id}")))?;
+            let active = projection.active().row(id).map(|row| &row.key);
+            self.matches_prepared_texture(id, &catalog, active)
+        };
+        if cache_hit {
             crate::profile_counter!("render", "texture_prepare_cache_hit", 1);
             return Ok(());
         }
@@ -59,16 +70,18 @@ impl ResourceStreamer {
         crate::profile_counter!("render", "texture_prepare_rebuild", 1);
         let texture = {
             crate::profile_scope!("render", "texture", "load_snapshot");
-            self.asset_manager()?
+            asset_manager
                 .load_texture_asset_snapshot(id)
                 .map_err(|error| GraphicsError::Asset(error.to_string()))?
         };
         crate::profile_counter!("render", "texture_snapshot_load_count", 1);
+        let source = texture_snapshot_source(&resources, id, &texture)?;
         self.ensure_texture_snapshot_internal(
             backend,
             texture_layout,
             id,
             texture,
+            source,
             submission_transaction,
         )
     }
@@ -82,11 +95,13 @@ impl ResourceStreamer {
         texture: ResourceSnapshot<TextureAsset>,
         submission_transaction: &mut RenderFrameSubmissionTransaction,
     ) -> Result<(), TextureSnapshotFramePrepareError> {
-        if self
-            .textures
-            .get(&id)
-            .is_some_and(|prepared| prepared.revision == texture.revision())
-        {
+        let resources = self
+            .asset_manager()
+            .map_err(|_| TextureSnapshotFramePrepareError::GpuArtifact)?
+            .resource_manager();
+        let source = texture_snapshot_source(&resources, id, &texture)
+            .map_err(|_| TextureSnapshotFramePrepareError::GpuArtifact)?;
+        if self.matches_prepared_texture(id, &source.0, Some(&source.1)) {
             crate::profile_counter!("render", "texture_prepare_cache_hit", 1);
             return Ok(());
         }
@@ -103,7 +118,7 @@ impl ResourceStreamer {
             )
             .map_err(TextureSnapshotFramePrepareError::Submission)?;
         crate::profile_counter!("render", "texture_publication_before_upload_completion", 1);
-        self.publish_prepared_texture(id, revision, resource, capture_sample_rgba);
+        self.publish_prepared_texture(id, revision, source, resource, capture_sample_rgba);
         Ok(())
     }
 
@@ -113,14 +128,10 @@ impl ResourceStreamer {
         texture_layout: &wgpu::BindGroupLayout,
         id: ResourceId,
         texture: ResourceSnapshot<TextureAsset>,
+        source: TextureSource,
         submission_transaction: Option<&mut RenderFrameSubmissionTransaction>,
     ) -> Result<(), GraphicsError> {
-        let revision = texture.revision();
-        if self
-            .textures
-            .get(&id)
-            .is_some_and(|prepared| prepared.revision == revision)
-        {
+        if self.matches_prepared_texture(id, &source.0, Some(&source.1)) {
             return Ok(());
         }
         let (revision, capture_sample_rgba, work) =
@@ -131,7 +142,7 @@ impl ResourceStreamer {
             submission_transaction.map(|transaction| (id, transaction)),
         )?;
         crate::profile_counter!("render", "texture_publication_before_upload_completion", 1);
-        self.publish_prepared_texture(id, revision, resource, capture_sample_rgba);
+        self.publish_prepared_texture(id, revision, source, resource, capture_sample_rgba);
         Ok(())
     }
 
@@ -157,16 +168,34 @@ impl ResourceStreamer {
         Ok((revision, capture_sample_rgba, work))
     }
 
+    fn matches_prepared_texture(
+        &self,
+        id: ResourceId,
+        catalog: &ResourceManagementRowIdentity,
+        active: Option<&ResourceActiveVersionKey>,
+    ) -> bool {
+        self.textures
+            .get(&id)
+            .is_some_and(|prepared| prepared.matches_source(catalog, active))
+    }
+
     fn publish_prepared_texture(
         &mut self,
         id: ResourceId,
         revision: u64,
+        (catalog, active): TextureSource,
         resource: Arc<GpuTextureResource>,
         capture_sample_rgba: Option<[f32; 4]>,
     ) {
         self.textures.insert(
             id,
-            PreparedTexture::fully_resident(revision, resource, capture_sample_rgba),
+            PreparedTexture::fully_resident(
+                revision,
+                catalog,
+                active,
+                resource,
+                capture_sample_rgba,
+            ),
         );
         self.mip_streaming_states.remove(&id);
     }
@@ -263,6 +292,37 @@ impl ResourceStreamer {
         }
         Ok(Arc::new(work.resource))
     }
+}
+
+// Join the caller's actual snapshot Arc to the active key captured alongside the catalog row.
+// Do not replace that Arc: UI and other prepare callers may already have validated its contents.
+fn texture_snapshot_source(
+    resources: &ResourceManager,
+    id: ResourceId,
+    texture: &ResourceSnapshot<TextureAsset>,
+) -> Result<TextureSource, GraphicsError> {
+    let stale = || GraphicsError::Asset(format!("texture {id} changed during preparation"));
+    let projection = resources.projection_snapshot();
+    let (Some(catalog), Some(active)) = (
+        projection.management().row_identity_by_id(id),
+        projection.active().key(id),
+    ) else {
+        return Err(stale());
+    };
+    if texture.record().id != id
+        || texture.record().kind != ResourceKind::Texture
+        || catalog.row().kind != ResourceKind::Texture
+        || catalog.row().revision != texture.revision()
+    {
+        return Err(stale());
+    }
+    let matching = resources
+        .snapshot_expected::<TextureMarker, TextureAsset>(ResourceHandle::new(id), &active)
+        .map_err(|_| stale())?;
+    if !Arc::ptr_eq(texture.resource(), matching.resource()) {
+        return Err(stale());
+    }
+    Ok((catalog, active))
 }
 
 #[cfg(test)]

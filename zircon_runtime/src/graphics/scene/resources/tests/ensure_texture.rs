@@ -83,3 +83,6 @@ fn texture_prepare_profiling_covers_load_clone_prepare_and_enqueue_stages() {
         assert!(source.contains(marker), "missing profiling marker {marker}");
     }
 }
+
+#[path = "texture_aba.rs"]
+mod texture_aba;
