@@ -1,11 +1,12 @@
 use std::hint::black_box;
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
+use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 use crate::core::framework::navigation::{
     NavAvoidanceQuality, NavMeshAgentDescriptor, NavMeshAsset, NavMeshObstacleDescriptor,
-    NavMeshObstacleShape, NavSampleQuery, NavigationManager, NavigationSettingsAsset,
-    DEFAULT_AGENT_TYPE, DEFAULT_AREA_MASK, NAV_MESH_AGENT_COMPONENT_TYPE,
+    NavMeshObstacleShape, NavPathQuery, NavPathStatus, NavSampleQuery, NavigationManager,
+    NavigationSettingsAsset, DEFAULT_AGENT_TYPE, DEFAULT_AREA_MASK, NAV_MESH_AGENT_COMPONENT_TYPE,
     NAV_MESH_OBSTACLE_COMPONENT_TYPE,
 };
 use crate::core::framework::scene::ComponentPropertyPath;
@@ -466,23 +467,132 @@ fn fallback_queries_borrow_immutable_mesh_snapshots_outside_the_state_lock() {
 
 #[test]
 fn stable_destination_reuses_cached_path_without_another_query() {
+    observe_cold_then_warm_tick("batch", false);
+}
+
+#[test]
+fn targeted_cold_tick_returns_and_reuses_the_route() {
+    observe_cold_then_warm_tick("targeted", true);
+}
+
+#[test]
+fn arrived_tick_does_not_query_or_move() {
+    with_tick_deadline("arrived", || {
+        let manager = loaded_flat_navigation();
+        let mut world = World::empty();
+        let start = Vec3::X * -4.0;
+        let entity = spawn_test_agent(&mut world, start, start);
+        let path = manager
+            .find_path(NavPathQuery::new(start.to_array(), start.to_array()))
+            .unwrap();
+        assert_eq!(path.status, NavPathStatus::Complete);
+        println!("NAV_BUILTIN_COLD label=arrived phase=enter path=Complete");
+        let report = manager.tick_world_agents(&mut world, 0.1).unwrap();
+        println!(
+            "NAV_BUILTIN_COLD label=arrived phase=return moved={}",
+            report.moved_agents
+        );
+        assert_eq!(report.scanned_agents, 1);
+        assert_eq!(report.moved_agents, 0);
+        assert_eq!(report.blocked_agents, 0);
+        assert_eq!(world.world_transform(entity).unwrap().translation, start);
+        assert_eq!(manager.lock_state().repath_queries, 0);
+    });
+}
+
+fn loaded_flat_navigation() -> BuiltinNavigationManager {
     let manager = BuiltinNavigationManager::new();
     manager
         .load_nav_mesh(NavMeshAsset::simple_quad(DEFAULT_AGENT_TYPE, 6.0))
         .unwrap();
-    let mut world = World::empty();
-    spawn_test_agent(
-        &mut world,
-        Vec3::new(-4.0, 0.0, 0.0),
-        Vec3::new(4.0, 0.0, 0.0),
-    );
+    manager
+}
 
-    manager.tick_world_agents(&mut world, 0.1).unwrap();
-    let first_queries = manager.lock_state().repath_queries;
-    assert_eq!(first_queries, 1);
+fn observe_cold_then_warm_tick(label: &'static str, targeted: bool) {
+    with_tick_deadline(label, move || {
+        let manager = loaded_flat_navigation();
+        let mut world = World::empty();
+        let start = Vec3::X * -4.0;
+        let destination = Vec3::X * 4.0;
+        let entity = spawn_test_agent(&mut world, start, destination);
+        // A real flat path must already be usable. The direct query doesn't warm
+        // this agent's route cache.
+        let path = manager
+            .find_path(NavPathQuery::new(start.to_array(), destination.to_array()))
+            .unwrap();
+        assert_eq!(path.status, NavPathStatus::Complete);
+        assert!(path.points.len() >= 2);
+        assert!((Vec3::from_array(path.points[0].position) - start).length() < 1.0e-3);
+        assert!(
+            (Vec3::from_array(path.points.last().unwrap().position) - destination).length()
+                < 1.0e-3
+        );
+        assert!((path.length - (destination - start).length()).abs() < 1.0e-3);
+        assert_eq!(manager.lock_state().repath_queries, 0);
+        println!(
+            "NAV_BUILTIN_COLD label={label} phase=enter path=Complete length={}",
+            path.length
+        );
 
-    manager.tick_world_agents(&mut world, 0.1).unwrap();
-    assert_eq!(manager.lock_state().repath_queries, first_queries);
+        let tick = |world: &mut World| {
+            if targeted {
+                manager.tick_world_agent(world, entity, 0.1)
+            } else {
+                manager.tick_world_agents(world, 0.1)
+            }
+            .unwrap()
+        };
+        let cold = tick(&mut world);
+        let first_queries = manager.lock_state().repath_queries;
+        let first = world.world_transform(entity).unwrap().translation;
+        println!(
+            "NAV_BUILTIN_COLD label={label} phase=return moved={} queries={first_queries} x={}",
+            cold.moved_agents, first.x
+        );
+        assert_eq!(cold.scanned_agents, 1);
+        assert_eq!(cold.moved_agents, 1);
+        assert_eq!(cold.blocked_agents, 0);
+        assert_eq!(first_queries, 1);
+        assert!(first.x > start.x && first.x < destination.x);
+
+        let warm = tick(&mut world);
+        let second = world.world_transform(entity).unwrap().translation;
+        let queries = manager.lock_state().repath_queries;
+        println!(
+            "NAV_BUILTIN_COLD label={label} phase=warm moved={} queries={queries} x={}",
+            warm.moved_agents, second.x
+        );
+        assert_eq!(warm.scanned_agents, 1);
+        assert_eq!(warm.moved_agents, 1);
+        assert_eq!(warm.blocked_agents, 0);
+        assert_eq!(queries, first_queries);
+        assert!(second.x > first.x && second.x < destination.x);
+    });
+}
+
+fn with_tick_deadline(label: &'static str, run: impl FnOnce() + Send + 'static) {
+    // A stale self-lock must fail the test, not hang libtest. All live scene and
+    // manager state belongs to this worker; only the isolated timed-out worker
+    // is detached until libtest exits. On success or assertion panic, join it.
+    let (send, result) = mpsc::sync_channel(1);
+    let worker = std::thread::spawn(move || {
+        let _ = send.send(catch_unwind(AssertUnwindSafe(run)));
+    });
+    match result.recv_timeout(Duration::from_secs(8)) {
+        Ok(outcome) => {
+            worker.join().unwrap();
+            if let Err(error) = outcome {
+                resume_unwind(error);
+            }
+        }
+        Err(mpsc::RecvTimeoutError::Timeout) => {
+            panic!("NAV_BUILTIN_COLD label={label} phase=deadline tick fixture did not return");
+        }
+        Err(mpsc::RecvTimeoutError::Disconnected) => {
+            worker.join().unwrap();
+            panic!("tick fixture worker disconnected before sending its result");
+        }
+    }
 }
 
 #[test]
