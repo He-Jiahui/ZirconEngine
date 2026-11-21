@@ -20,6 +20,20 @@ _MAX_MANIFEST_BYTES = 64 * 1024
 _MAX_COMPRESSED_BYTES = 8 * 1024 * 1024
 _MAX_DECODED_BYTES = 32 * 1024 * 1024
 _ZSTD_MAGIC = b"\x28\xb5\x2f\xfd"
+_MAX_ZSTD_BLOCK_BYTES = 128 * 1024
+_MANIFEST_FIELDS = frozenset({
+    "schema_version", "hash", "canonical_string", "source_id", "source_hash",
+    "template_revision", "naga_version", "wgpu_version", "compressed_bytes",
+    "decoded_bytes", "payload_hash", "created_unix_seconds",
+})
+
+
+class _JsonObjectPairs(list[tuple[str, object]]):
+    """Distinguish JSON objects from arrays without losing duplicate keys."""
+
+
+def _reject_non_json_constant(token: str) -> None:
+    raise ValueError(f"non-JSON literal {token}")
 
 
 def validate_v3_shader_cache_artifacts(
@@ -57,9 +71,11 @@ def validate_v3_shader_cache_artifacts(
         ):
             raise RuntimeError(f"shader prewarm cache manifest source provenance mismatch ({manifest})")
         compressed_bytes = _require_uint(metadata, "compressed_bytes", len(_ZSTD_MAGIC), _MAX_COMPRESSED_BYTES, manifest)
-        _require_uint(metadata, "decoded_bytes", 0, _MAX_DECODED_BYTES, manifest)
+        decoded_bytes = _require_uint(metadata, "decoded_bytes", 0, _MAX_DECODED_BYTES, manifest)
         _require_uint(metadata, "created_unix_seconds", 0, 2**64 - 1, manifest)
-        _validate_published_payload(stem.with_suffix(".wgsl.zst"), manifest, compressed_bytes)
+        _validate_published_payload(
+            stem.with_suffix(".wgsl.zst"), manifest, compressed_bytes, decoded_bytes,
+        )
 
 
 def _read_committed_manifest(path: Path) -> Mapping[str, object]:
@@ -73,11 +89,23 @@ def _read_committed_manifest(path: Path) -> Mapping[str, object]:
     if len(data) > _MAX_MANIFEST_BYTES:
         raise RuntimeError(f"shader prewarm cache manifest exceeds byte budget ({path})")
     try:
-        metadata = json.loads(data.decode("utf-8"))
+        pairs = json.loads(
+            data.decode("utf-8"),
+            object_pairs_hook=_JsonObjectPairs,
+            parse_constant=_reject_non_json_constant,
+        )
     except (UnicodeError, ValueError, RecursionError) as error:
         raise RuntimeError(f"shader prewarm cache has invalid v3 manifest ({path}: {error})") from error
-    if not isinstance(metadata, Mapping):
+    if not isinstance(pairs, _JsonObjectPairs):
         raise RuntimeError(f"shader prewarm cache has invalid v3 manifest ({path})")
+    # Serde rejects duplicate fields of the runtime struct and ignores unknown fields.
+    metadata: dict[str, object] = {}
+    for field, value in pairs:
+        if field not in _MANIFEST_FIELDS:
+            continue
+        if field in metadata:
+            raise RuntimeError(f"shader prewarm cache has duplicate manifest field {field!r} ({path})")
+        metadata[field] = value
     return metadata
 
 
@@ -96,17 +124,80 @@ def _require_uint(metadata: Mapping[str, object], field: str, lower: int, upper:
     return value
 
 
-def _validate_published_payload(path: Path, manifest: Path, expected_bytes: int) -> None:
+def _validate_published_payload(
+    path: Path, manifest: Path, compressed_bytes: int, decoded_bytes: int,
+) -> None:
+    def require_compressed_size(actual: int) -> None:
+        if actual != compressed_bytes:
+            raise RuntimeError(
+                f"shader prewarm cache manifest compressed_bytes mismatch "
+                f"({manifest}: expected {compressed_bytes}, found {actual})"
+            )
+
     try:
         status = path.stat()
         if not stat.S_ISREG(status.st_mode):
             raise RuntimeError(f"shader prewarm cache manifest payload is not a regular file ({path})")
-        if status.st_size != expected_bytes:
-            raise RuntimeError(f"shader prewarm cache manifest compressed_bytes mismatch ({manifest}: expected {expected_bytes}, found {status.st_size})")
+        require_compressed_size(status.st_size)
         with path.open("rb") as stream:
-            if stream.read(len(_ZSTD_MAGIC)) != _ZSTD_MAGIC:
-                raise RuntimeError(f"shader prewarm cache payload is not a Zstd frame ({path})")
+            data = stream.read(compressed_bytes + 1)
     except FileNotFoundError as error:
         raise RuntimeError(f"shader prewarm cache manifest has no immutable WGSL payload ({manifest})") from error
     except OSError as error:
         raise RuntimeError(f"shader prewarm cache payload unavailable ({path}: {error})") from error
+
+    require_compressed_size(len(data))
+    if not data.startswith(_ZSTD_MAGIC):
+        raise RuntimeError(f"shader prewarm cache payload is not a Zstd frame ({path})")
+    try:
+        _check_zstd_frame(data, decoded_bytes)
+    except ValueError as error:
+        raise RuntimeError(f"shader prewarm cache payload has invalid Zstd frame ({path}: {error})") from error
+
+
+def _check_zstd_frame(data: bytes, decoded_bytes: int) -> None:
+    # RFC 8878 framing only: the producer writes one non-dictionary frame.
+    # Streaming frames may omit content size. No block decode or BLAKE3 here.
+    offset = len(_ZSTD_MAGIC)
+    if offset == len(data):
+        raise ValueError("missing frame header")
+    descriptor = data[offset]
+    if descriptor & 0x08:
+        raise ValueError("reserved frame header bit")
+    single_segment = bool(descriptor & 0x20)
+    checksum_size = 4 if descriptor & 0x04 else 0
+    dictionary_size = (0, 1, 2, 4)[descriptor & 3]
+    size_flag = descriptor >> 6
+    size_width = (1 if single_segment else 0, 2, 4, 8)[size_flag]
+    offset += 1 if single_segment else 2  # Descriptor, then optional window descriptor.
+    header_end = offset + dictionary_size + size_width
+    if header_end > len(data):
+        raise ValueError("truncated frame header")
+    if any(data[offset:offset + dictionary_size]):
+        raise ValueError("frame requires a dictionary")
+    if size_width:
+        content_size = int.from_bytes(data[header_end - size_width:header_end], "little")
+        if size_width == 2:
+            content_size += 256
+        if content_size != decoded_bytes:
+            raise ValueError("frame content size disagrees with manifest decoded_bytes")
+
+    offset = header_end
+    blocks_end = len(data) - checksum_size
+    while True:
+        if offset + 3 > blocks_end:
+            raise ValueError("missing block header")
+        block = int.from_bytes(data[offset:offset + 3], "little")
+        block_type = (block >> 1) & 3
+        block_size = block >> 3
+        if block_type == 3:
+            raise ValueError("reserved block type")
+        if block_size > _MAX_ZSTD_BLOCK_BYTES:
+            raise ValueError("block exceeds Zstd size limit")
+        offset += 3 + (1 if block_type == 1 else block_size)  # RLE stores one byte.
+        if offset > blocks_end:
+            raise ValueError("truncated block or frame checksum")
+        if block & 1:
+            if offset != blocks_end:
+                raise ValueError("trailing bytes after last block")
+            return

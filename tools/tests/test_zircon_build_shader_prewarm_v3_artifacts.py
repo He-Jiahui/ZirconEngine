@@ -181,6 +181,65 @@ class ShaderPrewarmV3ArtifactTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "not a Zstd frame"):
             fixture.lower()
 
+    def test_stage_rejects_duplicate_fields_in_committed_manifest(self):
+        fixture = self.fixture(_PASSES)
+        manifest, _, _ = fixture.artifacts[0]
+        original = manifest.read_bytes()
+        for duplicate in (b'"schema_version": 2', b'"compressed_bytes": 21'):
+            with self.subTest(duplicate=duplicate):
+                # Keep the real, valid value last: json.loads would silently keep it.
+                manifest.write_bytes(b"{" + duplicate + b"," + original[1:])
+                with self.assertRaisesRegex(RuntimeError, "duplicate manifest field"):
+                    fixture.stage()
+
+    def test_stage_allows_unknown_json_fields_but_not_non_json_literals(self):
+        fixture = self.fixture(_PASSES)
+        manifest, _, _ = fixture.artifacts[0]
+        original = manifest.read_bytes()
+        # Serde ignores unknown fields (and applies duplicate checks only to
+        # known fields of the manifest struct, not to nested objects).
+        manifest.write_bytes(b'{"extra": {"hash": 1, "hash": 2}, "extra": 1,' + original[1:])
+        fixture.stage()
+        manifest.write_bytes(b'{"extra": NaN,' + original[1:])
+        with self.assertRaisesRegex(RuntimeError, "invalid v3 manifest"):
+            fixture.stage()
+
+    def test_stage_rejects_same_length_payload_with_invalid_zstd_frame(self):
+        fixture = self.fixture(_PASSES)
+        _, payload, _ = fixture.artifacts[0]
+        for block_header, reason in (
+            (0x60, "missing block header"),  # Original block is no longer marked last.
+            (0x69, "truncated block"),
+            (0x59, "trailing bytes"),
+            (0x67, "reserved block type"),
+        ):
+            with self.subTest(block_header=block_header):
+                # Preserve both the magic and the file length.
+                payload.write_bytes(_PAYLOAD[:6] + bytes([block_header]) + _PAYLOAD[7:])
+                with self.assertRaisesRegex(RuntimeError, "invalid Zstd frame.*" + reason):
+                    fixture.stage()
+
+    def test_stage_matches_declared_frame_content_size_to_manifest(self):
+        fixture = self.fixture(_PASSES)
+        manifest, _, meta = fixture.artifacts[0]
+        _write_json(manifest, {**meta, "decoded_bytes": 13})
+        with self.assertRaisesRegex(RuntimeError, "frame content size.*decoded_bytes"):
+            fixture.stage()
+
+    def test_stage_accepts_streaming_frame_without_declared_content_size(self):
+        fixture = self.fixture(_PASSES)
+        manifest, payload, meta = fixture.artifacts[0]
+        # zstd streaming header: no content-size field and a window descriptor.
+        header = _PAYLOAD[:4] + b"\x00\x58"
+        # Encode the same WGSL as either one raw block or two six-byte raw blocks.
+        wgsl = _PAYLOAD[9:]
+        for blocks in (_PAYLOAD[6:], b"\x30\x00\x00" + wgsl[:6] + b"\x31\x00\x00" + wgsl[6:]):
+            with self.subTest(blocks=blocks):
+                streaming = header + blocks
+                _write_json(manifest, {**meta, "compressed_bytes": len(streaming)})
+                payload.write_bytes(streaming)
+                fixture.stage()
+
     def test_historical_v1_diagnostic_stays_valid_but_stage_rejects_it(self):
         fixture = self.fixture(_PASSES)
         fixture.convert_to_legacy()

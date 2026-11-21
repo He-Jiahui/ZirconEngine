@@ -42,3 +42,16 @@ Rust 运行时写出 `v3/<分片>/<hash>.wgsl.zst`，再用同目录 `<hash>.man
 正式 stage 只接受当前 v3，按报告 hash 读取提交清单、同分片的不可变 payload，并核对变体、来源 ID/摘要、工具链、声明预算、压缩字节数和 Zstd 帧头。没有清单的已报条目不算提交，已提交但缺 payload 不是成功；旧 v1 只保留历史诊断，不能证明当前运行时可读。另用独立只读核验解压上述九对并核对实际 BLAKE3，记录的物料 SHA-256 修前修后相同；Python 发布检查本身不重新做运行时的解压、BLAKE3 或 GPU 验证。
 
 [仅回归提交](https://github.com/He-Jiahui/ZirconEngine/blob/d1689f0542564bf258e362a4ea7ac3a9a218e23b/tools/tests/test_zircon_build_shader_prewarm_v3_artifacts.py) · [正式验收入口](https://github.com/He-Jiahui/ZirconEngine/blob/71d5fff6500a89f6804f058fe20b0ec29d3885d4/tools/build/zircon_build_shader_prewarm_acceptance.py#L37-L84) · [v3 物料验证](https://github.com/He-Jiahui/ZirconEngine/blob/71d5fff6500a89f6804f058fe20b0ec29d3885d4/tools/build/zircon_build_shader_prewarm_v3_artifacts.py#L25-L68) · [运行时字节回读](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/graphics/shader/variant_cache/disk.rs#L302-L352)
+
+## 8. 用真实 v3 制品复核错误放行
+
+以 `ed4f902448be0f3d01f96ec4ba6d808256805af5` 为审查基线。用上述 6/6/0 stage、标准 `BuildConfig` 和正式 staged acceptance 入口复测。原样物料修前修后通过，报告、注册表和六对制品的 14 个 SHA-256 全部不变，另用独立 Zstd 解码核对解压长度与 UTF-8。只改临时副本中的 `forward` 对：
+
+| 改动 | PR 审查基线 | 补丁后 |
+|---|---|---|
+| 在原有 `schema_version: 3` 前重复写入 `schema_version: 2` | 错误放行：Python 保留最后一个值，Serde 拒绝已知字段重复 | 拒绝，指出重复字段 |
+| 清除真实 Zstd 数据块的末块位，保留文件长度和魔数 | 错误放行；独立 Zstd 解码报告流在终止标记前结束 | 拒绝，指出缺失块头 |
+
+[Python 回归](../../../tools/tests/test_zircon_build_shader_prewarm_v3_artifacts.py)用 `python -B -m unittest tools.tests.test_zircon_build_shader_prewarm_v3_artifacts` 执行。修前 8 个断言/子断言发现错误放行，修后 16/16；排除下述两个既有入口错误后，相邻 Python 批次在 3.12 和 3.14 各通过 142/142。Python 仍只校验帧结构及可用的帧声明长度，不解码压缩块或验证其 BLAKE3；运行时及 GPU 验收边界不变。
+
+144 个非编译用例的全批次在旧公开基线上有两个 CLI dry-run 用例提前被退役 Jenkins 入口拒绝（`functional_scope_required`），该入口的移除已在 [#136](https://github.com/He-Jiahui/ZirconEngine/pull/136) 跟踪。未恢复服务、未修改入口或 CI，未重跑完整打包/新构建。
