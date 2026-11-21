@@ -269,3 +269,189 @@ fn native_add_popup_projects_the_current_arranged_trigger_anchor() {
         "the native popup must paint its real command row"
     );
 }
+
+#[test]
+fn file_menu_locale_publishes_the_same_clickable_trigger_and_command() {
+    use std::sync::Arc;
+
+    use crate::core::commands::{CommandEvalCtx, EditorCommandRegistry};
+    use crate::core::i18n::EditorI18nService;
+    use crate::core::settings::{
+        SettingValue, SettingsAuthority, SettingsKey, SettingsScope, EDITOR_LOCALE_KEY,
+    };
+    use crate::ui::binding::EditorUiBindingPayload;
+    use crate::ui::retained_host::callback_dispatch::load_startup_builtin_template_runtime;
+    use crate::ui::retained_host::host_contract::{
+        globals::HostContractState, hit_test_workbench_window_template_node_with_index,
+    };
+    use crate::ui::retained_host::primitives::PhysicalSize;
+    use zircon_runtime_interface::ui::layout::UiFrame;
+
+    const TRIGGER: &str = "MenuSlot0";
+    const TRIGGER_ROUTE: &str = "workbench.unreal.menu.file.open";
+    const OPEN_SCENE: &str = "file.scene.open";
+    let settings = SettingsAuthority::with_defaults();
+    let key = SettingsKey::parse(EDITOR_LOCALE_KEY).unwrap();
+    let i18n = Arc::new(EditorI18nService::default());
+    let runtime = Arc::new(load_startup_builtin_template_runtime().unwrap());
+    let mut bridge =
+        BuiltinWorkbenchWindowTemplateSurfaceBridge::new_mounted_with_runtime_and_i18n(
+            runtime,
+            UiFrame::new(0.0, 0.0, 1280.0, 800.0),
+            Arc::clone(&i18n),
+        )
+        .unwrap();
+    let trigger_id = bridge.control_node_id(TRIGGER).unwrap();
+    let popup_id = bridge.control_node_id(FILE_MENU_CONTROL_ID).unwrap();
+    let registry = EditorCommandRegistry::default_workbench();
+    let context = CommandEvalCtx::interactive().with_project_open(true);
+    let command_binding =
+        editor_operation_binding(&EditorOperationPath::parse(OPEN_SCENE).unwrap());
+    let mut host = HostContractState::new(PhysicalSize::new(1280, 800));
+    let mut labels = Vec::new();
+
+    for (step, (tag, root_label, leaf_label)) in [
+        ("en", "File", "Open Scene..."),
+        ("zh-CN", "文件", "打开场景..."),
+        ("en", "File", "Open Scene..."),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        if tag == "zh-CN" {
+            let change = settings
+                .set(
+                    SettingsScope::User,
+                    &key,
+                    SettingValue::Enum(tag.to_owned()),
+                )
+                .unwrap()
+                .expect("selecting Chinese must change the user setting");
+            assert!(!change.requires_restart);
+        } else if step != 0 {
+            assert!(settings.clear(SettingsScope::User, &key).unwrap().is_some());
+        }
+        assert_eq!(settings.snapshot().locale(), tag);
+        assert_eq!(i18n.synchronize_user_locale(&settings).unwrap(), step != 0);
+        let locale = i18n.active_locale();
+        assert_eq!(locale.as_str(), tag);
+
+        let menus = registry.menu_bar_model(&i18n, &locale, &context);
+        let (file, command) = menus
+            .menus
+            .iter()
+            .find_map(|menu| find_menu_command(&menu.items, OPEN_SCENE).map(|item| (menu, item)))
+            .expect("the actual File registry projection contains Open Scene");
+        assert_eq!(file.label, root_label);
+        assert_eq!(command.label, leaf_label);
+        assert!(command.enabled);
+        assert_eq!(command.shortcut.as_deref(), Some("Ctrl+O"));
+        bridge.apply_command_menu_bar(&menus).unwrap();
+        bridge.refresh_prepared_state_change().unwrap();
+
+        let closed = file_menu_locale_commit(&mut bridge, &mut host);
+        let trigger = file_menu_locale_node(&closed, TRIGGER);
+        assert_eq!(trigger.surface_node_id, Some(trigger_id));
+        assert_eq!(trigger.role.as_str(), "Button");
+        assert!(!trigger.disabled);
+        assert!(trigger.frame.width > 0.0 && trigger.frame.height > 0.0);
+        assert!(!file_menu_locale_node(&closed, FILE_MENU_CONTROL_ID).popup_open);
+        let hit = hit_test_workbench_window_template_node_with_index(
+            closed.structure(),
+            closed.workbench_hit_index(),
+            trigger.frame.x + trigger.frame.width * 0.5,
+            trigger.frame.y + trigger.frame.height * 0.5,
+        )
+        .expect("the published File slot must be a pointer target");
+        assert_eq!(hit.control_id.as_str(), TRIGGER);
+        assert_eq!(hit.binding_id.as_str(), "UnrealMenu/File");
+        assert_eq!(hit.action_id.as_str(), TRIGGER_ROUTE);
+        assert!(!hit.disabled);
+        let binding = bridge
+            .dispatch_control_state(hit.control_id.as_str(), UiEventKind::Click)
+            .unwrap()
+            .expect("the hit File control must dispatch its real Click binding");
+        assert!(matches!(
+            binding.payload(),
+            EditorUiBindingPayload::MenuAction { action_id } if action_id == TRIGGER_ROUTE
+        ));
+
+        let opened = file_menu_locale_commit(&mut bridge, &mut host);
+        let popup = file_menu_locale_node(&opened, FILE_MENU_CONTROL_ID);
+        assert_eq!(popup.surface_node_id, Some(popup_id));
+        assert!(popup.popup_open && popup.frame.width > 0.0 && popup.frame.height > 0.0);
+        let row = popup
+            .structured_menu_items
+            .iter()
+            .find(|item| item.action_id.as_str() == OPEN_SCENE)
+            .expect("the published popup must retain Open Scene's stable row");
+        assert_eq!(row.label.as_str(), leaf_label);
+        assert_eq!(row.shortcut.as_str(), "Ctrl+O");
+        assert!(!row.disabled);
+        assert_eq!(
+            bridge.main_menu_item_binding(FILE_MENU_CONTROL_ID, OPEN_SCENE),
+            Some(command_binding.clone())
+        );
+        assert!(bridge.close_popup(FILE_MENU_CONTROL_ID).unwrap());
+        eprintln!(
+            "FILE_MENU_LOCALE_V1 locale={tag} trigger={:?} command={:?} label={:?} shortcut={:?} disabled={} hit={:?}",
+            trigger.text.as_str(),
+            row.action_id.as_str(),
+            row.label.as_str(),
+            row.shortcut.as_str(),
+            row.disabled,
+            hit.action_id.as_str(),
+        );
+        labels.push(trigger.text.to_string());
+    }
+
+    // Fail after all three stages so the baseline must pass the same route and leaf controls.
+    assert_eq!(
+        labels,
+        ["File", "文件", "File"],
+        "committed File trigger text for en -> zh-CN -> en"
+    );
+}
+
+fn file_menu_locale_commit(
+    bridge: &mut BuiltinWorkbenchWindowTemplateSurfaceBridge,
+    host: &mut crate::ui::retained_host::host_contract::globals::HostContractState,
+) -> crate::ui::retained_host::host_contract::data::HostPresentationGeneration {
+    use crate::ui::retained_host::host_contract::data::{FrameRect, HostWindowPresentationData};
+    use zircon_runtime_interface::ui::layout::UiFrame;
+
+    let frames = bridge.layout_frames();
+    let host_frame = |frame: UiFrame| FrameRect {
+        x: frame.x,
+        y: frame.y,
+        width: frame.width,
+        height: frame.height,
+    };
+    let mut presentation = HostWindowPresentationData {
+        workbench_window_nodes: crate::ui::retained_host::to_host_contract_workbench_window_nodes(
+            Some(bridge.host_projection()),
+        ),
+        ..Default::default()
+    };
+    presentation.host_layout.center_band_frame = host_frame(frames.center_band_frame.unwrap());
+    presentation.host_layout.status_bar_frame = host_frame(frames.status_bar_frame.unwrap());
+    host.replace_host_presentation(presentation);
+    bridge.mark_host_projection_committed();
+    host.presentation_generation()
+}
+
+fn file_menu_locale_node<'a>(
+    generation: &'a crate::ui::retained_host::host_contract::data::HostPresentationGeneration,
+    control: &str,
+) -> &'a crate::ui::retained_host::host_contract::data::TemplatePaneNodeData {
+    let mut nodes = generation
+        .structure()
+        .workbench_window_nodes
+        .iter()
+        .filter(|node| node.control_id.as_str() == control);
+    let node = nodes
+        .next()
+        .expect("the mounted source must publish this control");
+    assert!(nodes.next().is_none(), "{control} must have one live owner");
+    node
+}
