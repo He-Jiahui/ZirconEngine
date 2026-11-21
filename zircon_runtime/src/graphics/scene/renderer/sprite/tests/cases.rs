@@ -264,3 +264,6 @@ fn empty_sprite_extract(
     extract.sprites = SpriteExtract::from_sprites(core_pipeline, sprites).into();
     extract
 }
+
+#[path = "affine_cases.rs"]
+mod affine_cases;

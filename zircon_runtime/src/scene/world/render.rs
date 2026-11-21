@@ -173,6 +173,14 @@ impl World {
                 view.camera.transform.translation,
             );
         let sprites = self.collect_render_sprites(&extract_layers);
+        // 与已经过滤并排序的 SpriteIndex 一一对应；兼容快照仍保留其原来的 TRS。
+        let sprite_world_matrices = sprites
+            .iter()
+            .map(|sprite| {
+                self.world_matrix(sprite.entity)
+                    .filter(|matrix| matrix.is_finite())
+            })
+            .collect();
         let particles =
             self.collect_render_particles(&camera_layers, view.camera.transform.translation);
         let collected_lights = self.collect_render_lights(&camera_layers, true);
@@ -203,7 +211,7 @@ impl World {
         geometry.virtual_geometry_debug = request.virtual_geometry_debug;
         geometry.scene_changes = self.render_component_change_artifact();
 
-        let scene = RenderFrameScenePayload::new(
+        let mut scene = RenderFrameScenePayload::new(
             world,
             geometry,
             Vec::new(),
@@ -233,6 +241,9 @@ impl World {
             particles,
             visibility,
         );
+        scene
+            .sprites
+            .set_prepared_sprite_world_matrices(sprite_world_matrices);
         RenderFrameExtract::new(scene, view, Default::default())
     }
 

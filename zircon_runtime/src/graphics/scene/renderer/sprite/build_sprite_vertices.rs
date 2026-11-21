@@ -92,11 +92,12 @@ fn sprite_vertex_source<'a>(
 pub(super) fn append_sprite_image_vertices(
     sprite: &crate::core::framework::render::RenderSpriteSnapshot,
     size: Vec2,
+    world_matrix: Option<Mat4>,
     vertices: &mut Vec<SpriteVertex>,
 ) {
     let base_rect = sprite_base_rect(sprite);
-    // 在切片遍历前构造一次世界变换，所有 tiled/sliced 子块共用它。
-    let transform = sprite.transform.matrix();
+    // 所有切片共用世界仿射；只有没有准备矩阵的兼容输入才重建 TRS。
+    let transform = world_matrix.unwrap_or_else(|| sprite.transform.matrix());
     visit_sprite_image_slices(sprite.image_mode, base_rect, size, |slice| {
         append_sprite_quad_vertices(sprite, size, slice, &transform, vertices);
     });
@@ -109,7 +110,8 @@ pub(crate) fn build_sprite_vertices(
     let mut projected = Vec::new();
     visit_stage_sprites(frame, stage, |index, sprite, size| {
         let mut vertices = Vec::new();
-        append_sprite_image_vertices(sprite, size, &mut vertices);
+        let matrix = frame.extract.sprites.prepared_sprite_world_matrix(index);
+        append_sprite_image_vertices(sprite, size, matrix, &mut vertices);
         if !vertices.is_empty() {
             projected.push((index, vertices));
         }
@@ -541,7 +543,7 @@ fn sprite_image_vertices(
     size: Vec2,
 ) -> Vec<SpriteVertex> {
     let mut vertices = Vec::new();
-    append_sprite_image_vertices(sprite, size, &mut vertices);
+    append_sprite_image_vertices(sprite, size, None, &mut vertices);
     vertices
 }
 

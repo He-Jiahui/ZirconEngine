@@ -48,7 +48,7 @@ pub(in crate::graphics::scene::scene_renderer::sprite) fn prepare_sprite_draw_ba
     stage: RenderPassStage,
 ) -> Vec<PreparedSpriteDrawBatch> {
     let mut batches = Vec::<PreparedSpriteDrawBatch>::new();
-    visit_stage_sprites(frame, stage, |_sprite_index, sprite, size| {
+    visit_stage_sprites(frame, stage, |sprite_index, sprite, size| {
         let texture_id = sprite.image.id();
         // 只合并尾部同贴图的连续精灵，保持 phase 遍历顺序及其透明混合先后。
         let created_batch = batches
@@ -67,7 +67,8 @@ pub(in crate::graphics::scene::scene_renderer::sprite) fn prepare_sprite_draw_ba
                 .last_mut()
                 .expect("sprite batch exists before vertex projection");
             let previous_vertex_count = current.vertices.len();
-            append_sprite_image_vertices(sprite, size, &mut current.vertices);
+            let matrix = frame.extract.sprites.prepared_sprite_world_matrix(sprite_index);
+            append_sprite_image_vertices(sprite, size, matrix, &mut current.vertices);
             let appended = current.vertices.len() != previous_vertex_count;
             if appended {
                 current.sprite_count += 1;
