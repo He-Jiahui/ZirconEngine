@@ -1,4 +1,6 @@
+use crate::core::framework::render::RenderViewportHandle;
 use crate::core::math::UVec2;
+use crate::graphics::types::ViewportRenderOutputTarget;
 
 use crate::graphics::scene::{
     cluster_buffer_bytes_for_size, cluster_dimensions_for_size, create_depth_texture,
@@ -9,25 +11,76 @@ use crate::graphics::scene::{
 use super::super::offscreen_target::OffscreenTarget;
 use super::create_cluster_buffer::create_cluster_buffer;
 use super::create_texture_bundle::create_texture_bundle;
+use super::texture_bundle::TextureBundle;
 
 impl OffscreenTarget {
+    #[cfg(test)]
     pub(crate) fn new(device: &wgpu::Device, size: UVec2) -> Self {
-        Self::new_with_render_size(device, size, size)
+        Self::new_with_render_size(device, size, size, None, None, None)
     }
 
-    pub(crate) fn new_with_render_size(
+    /// The retained final color may be moved across scene-only allocation changes, but never
+    /// across display extents or viewport owners. `output == None` means the graph has a direct
+    /// asset import and does not write the renderer-owned final attachment.
+    pub(crate) fn ensure_allocations(
+        device: &wgpu::Device,
+        active: &mut Option<Self>,
+        size: UVec2,
+        render_size: UVec2,
+        viewport: Option<RenderViewportHandle>,
+        output: Option<ViewportRenderOutputTarget>,
+    ) -> bool {
+        let retain_final = active.as_ref().filter(|target| {
+            target.size == size
+                && target.final_color_viewport == viewport
+                && (output.is_none()
+                    || target.final_color_output.is_none()
+                    || target.final_color_output == output)
+        });
+        let rebuild_scene = active
+            .as_ref()
+            .is_none_or(|target| target.size != size || target.render_size != render_size);
+        if rebuild_scene {
+            *active = Some(Self::new_with_render_size(
+                device,
+                size,
+                render_size,
+                viewport,
+                output,
+                retain_final,
+            ));
+        } else {
+            let final_reused = retain_final.is_some();
+            if let Some(target) = active.as_mut() {
+                if !final_reused {
+                    let final_color = create_final_color(device, size);
+                    target.final_color = final_color.texture;
+                    target.final_color_view = final_color.view;
+                    target.final_color_viewport = viewport;
+                    target.final_color_output = output;
+                } else if output.is_some() {
+                    target.final_color_output = output;
+                }
+            }
+        }
+        // Callers use this flag to invalidate bindings to scene-sized targets, not to final color.
+        rebuild_scene
+    }
+
+    fn new_with_render_size(
         device: &wgpu::Device,
         size: UVec2,
         render_size: UVec2,
+        viewport: Option<RenderViewportHandle>,
+        output: Option<ViewportRenderOutputTarget>,
+        retain_final: Option<&Self>,
     ) -> Self {
-        let final_color = create_texture_bundle(
-            device,
-            "zircon-offscreen-final-color",
-            size,
-            FINAL_COLOR_FORMAT,
-            wgpu::TextureUsages::RENDER_ATTACHMENT
-                | wgpu::TextureUsages::COPY_SRC
-                | wgpu::TextureUsages::TEXTURE_BINDING,
+        let final_color = retain_final.map_or_else(
+            || create_final_color(device, size),
+            |target| TextureBundle {
+                texture: target.final_color.clone(),
+                view: target.final_color_view.clone(),
+            },
         );
         let scene_color = create_texture_bundle(
             device,
@@ -110,6 +163,9 @@ impl OffscreenTarget {
             render_size,
             final_color: final_color.texture,
             final_color_view: final_color.view,
+            final_color_viewport: viewport,
+            final_color_output: output
+                .or_else(|| retain_final.and_then(|target| target.final_color_output)),
             global_illumination: global_illumination.texture,
             global_illumination_view: global_illumination.view,
             scene_color: scene_color.texture,
@@ -136,4 +192,16 @@ impl OffscreenTarget {
             cluster_buffer_bytes,
         }
     }
+}
+
+fn create_final_color(device: &wgpu::Device, size: UVec2) -> TextureBundle {
+    create_texture_bundle(
+        device,
+        "zircon-offscreen-final-color",
+        size,
+        FINAL_COLOR_FORMAT,
+        wgpu::TextureUsages::RENDER_ATTACHMENT
+            | wgpu::TextureUsages::COPY_SRC
+            | wgpu::TextureUsages::TEXTURE_BINDING,
+    )
 }

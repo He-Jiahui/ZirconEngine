@@ -1,6 +1,9 @@
 //! 输出策略分别标明目标写入与共享视口产品归属；纹理堆栈终结不等于视口最终呈现。
+use crate::core::framework::render::RenderViewportHandle;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct ViewportCameraStackOutputPolicy {
+    viewport: Option<RenderViewportHandle>,
     viewport_submission_start: bool,
     stack_terminal: bool,
     viewport_terminal: bool,
@@ -9,6 +12,7 @@ pub(crate) struct ViewportCameraStackOutputPolicy {
 impl ViewportCameraStackOutputPolicy {
     pub(crate) const fn new(stack_terminal: bool, viewport_terminal: bool) -> Self {
         Self {
+            viewport: None,
             viewport_submission_start: false,
             stack_terminal,
             viewport_terminal,
@@ -18,6 +22,15 @@ impl ViewportCameraStackOutputPolicy {
     pub(crate) const fn with_viewport_submission_start(mut self, start: bool) -> Self {
         self.viewport_submission_start = start;
         self
+    }
+
+    pub(crate) const fn with_viewport(mut self, viewport: RenderViewportHandle) -> Self {
+        self.viewport = Some(viewport);
+        self
+    }
+
+    pub(crate) const fn viewport(self) -> Option<RenderViewportHandle> {
+        self.viewport
     }
 
     pub(crate) const fn stack_terminal() -> Self {

@@ -152,7 +152,14 @@ impl SceneRenderer {
             let output_target_frame_plan = self.streamer.output_target_frame_plan();
 
             let size = viewport_size(frame);
-            if ensure_offscreen_target(&self.backend.device, &mut self.target, size, size) {
+            if ensure_offscreen_target(
+                &self.backend.device,
+                &mut self.target,
+                size,
+                size,
+                frame.camera_stack_output_policy().viewport(),
+                Some(frame.output_target()),
+            ) {
                 self.core
                     .post_process
                     .invalidate_taa_resolve_bind_group_cache();
