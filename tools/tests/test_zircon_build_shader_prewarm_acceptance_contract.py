@@ -65,6 +65,7 @@ class ZirconBuildShaderPrewarmAcceptanceContractTests(unittest.TestCase):
             cache_root,
             *,
             report_path,
+            require_current_format=False,
             expected_pass_types,
             expected_quality_tiers,
             expected_geometry_sources,
