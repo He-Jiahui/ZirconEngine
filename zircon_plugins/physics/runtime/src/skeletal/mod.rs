@@ -13,6 +13,9 @@ pub(crate) use runtime::{drive_ragdoll_bodies_from_animation, write_simulated_po
 pub use runtime::{RagdollMode, RagdollRuntime};
 
 #[cfg(test)]
+#[path = "tests/affine_points.rs"]
+mod affine_points;
+#[cfg(test)]
 #[path = "tests/authoring.rs"]
 mod authoring_tests;
 #[cfg(test)]

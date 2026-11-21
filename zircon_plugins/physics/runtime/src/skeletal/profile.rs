@@ -20,7 +20,7 @@ use crate::manager::validation::{
     physics_collider_shape_is_valid, physics_joint_constraint_metadata_is_valid,
 };
 
-use super::runtime::{RagdollMode, RagdollRuntime};
+use super::runtime::{AnimatedBonePlacement, RagdollMode, RagdollRuntime};
 
 const DEFAULT_RAGDOLL_BODY_MASS: Real = 1.0;
 
@@ -281,12 +281,11 @@ impl RagdollProfile {
         let rows = targets
             .targets(skeleton)
             .ok_or(RagdollProfileError::MissingSkeletonTargets { skeleton })?;
-        let skeleton_world = world
-            .world_transform(skeleton)
+        let skeleton_world = AnimatedBonePlacement::from_skeleton(world, skeleton)
             .ok_or(RagdollProfileError::MissingSkeletonTargets { skeleton })?;
         let target_lookup = SkeletalTargetLookup::new(rows);
         let bones = topologically_ordered_bones(&self.bones);
-        let mut bone_world_by_path = BTreeMap::<String, Transform>::new();
+        let mut bone_world_by_path = BTreeMap::<String, AnimatedBonePlacement>::new();
         let mut prepared = Vec::with_capacity(bones.len());
         for bone in bones {
             let local_bone = target_lookup
@@ -300,8 +299,8 @@ impl RagdollProfile {
                 .as_ref()
                 .and_then(|parent| bone_world_by_path.get(parent).copied())
                 .unwrap_or(skeleton_world);
-            let bone_world = combine_transforms(parent_world, local_bone);
-            let body_world = combine_transforms(bone_world, bone.body_offset);
+            let bone_world = parent_world.with_bone(local_bone);
+            let body_world = bone_world.body_pose(Some(bone.body_offset));
             if !transform_is_finite(body_world) {
                 return Err(RagdollProfileError::InvalidTransform {
                     bone_path: bone.bone_path.clone(),
@@ -626,14 +625,6 @@ fn topologically_ordered_bones(bones: &[RagdollBoneProfile]) -> Vec<&RagdollBone
         ordered.push(bone);
     }
     ordered
-}
-
-fn combine_transforms(parent: Transform, local: Transform) -> Transform {
-    Transform {
-        translation: parent.translation + parent.rotation * (parent.scale * local.translation),
-        rotation: parent.rotation * local.rotation,
-        scale: parent.scale * local.scale,
-    }
 }
 
 fn transform_is_finite(transform: Transform) -> bool {

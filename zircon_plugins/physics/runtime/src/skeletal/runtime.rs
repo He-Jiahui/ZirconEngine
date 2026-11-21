@@ -5,7 +5,7 @@ use zircon_runtime::core::framework::physics::{
     PhysicsBodySyncState, PhysicsWorldSyncState, SimulatedPoseFeed, SkeletalPoseTarget,
     SkeletalPoseTargets,
 };
-use zircon_runtime::core::math::{Real, Transform, Vec3};
+use zircon_runtime::core::math::{Mat4, Quat, Real, Transform, Vec3};
 use zircon_runtime::scene::components::RigidBodyType;
 use zircon_runtime::scene::ecs::Resource;
 use zircon_runtime::scene::world::World;
@@ -102,6 +102,50 @@ impl RagdollRuntime {
 
 impl Resource for RagdollRuntime {}
 
+/// Keep bone origins affine without changing the rigid body's rotation/scale policy.
+#[derive(Clone, Copy)]
+pub(super) struct AnimatedBonePlacement {
+    affine: Mat4,
+    rotation: Quat,
+    scale: Vec3,
+}
+
+impl AnimatedBonePlacement {
+    pub(super) fn from_skeleton(world: &World, skeleton: EntityId) -> Option<Self> {
+        let affine = world.world_matrix(skeleton)?;
+        let (scale, rotation, _) = affine.to_scale_rotation_translation();
+        Some(Self {
+            affine,
+            rotation,
+            scale,
+        })
+    }
+
+    pub(super) fn with_bone(self, local: Transform) -> Self {
+        Self {
+            affine: self.affine * local.matrix(),
+            rotation: self.rotation * local.rotation,
+            scale: self.scale * local.scale,
+        }
+    }
+
+    pub(super) fn body_pose(self, offset: Option<Transform>) -> Transform {
+        if let Some(offset) = offset {
+            Transform {
+                translation: self.affine.transform_point3(offset.translation),
+                rotation: self.rotation * offset.rotation,
+                scale: self.scale * offset.scale,
+            }
+        } else {
+            Transform {
+                translation: self.affine.w_axis.truncate(),
+                rotation: self.rotation,
+                scale: self.scale,
+            }
+        }
+    }
+}
+
 pub(crate) fn drive_ragdoll_bodies_from_animation(
     world: &mut World,
     ragdolls: &mut RagdollRuntime,
@@ -111,7 +155,7 @@ pub(crate) fn drive_ragdoll_bodies_from_animation(
         return;
     };
     let bindings = topologically_ordered_bindings(collect_bound_bodies(world));
-    let mut driven_bone_world = BTreeMap::<(EntityId, String), Transform>::new();
+    let mut driven_bone_world = BTreeMap::<(EntityId, String), AnimatedBonePlacement>::new();
     let mut visited_skeletons = std::collections::BTreeSet::new();
 
     for binding in bindings {
@@ -158,15 +202,11 @@ pub(crate) fn drive_ragdoll_bodies_from_animation(
                             .get(&(binding.skeleton, path.to_string()))
                             .copied()
                     })
-                    .or_else(|| world.world_transform(binding.skeleton));
+                    .or_else(|| AnimatedBonePlacement::from_skeleton(world, binding.skeleton));
                 if let Some(parent_world) = parent_world {
-                    let bone_world = combine_transforms(parent_world, target.local_transform);
-                    let body_world = state
-                        .body_offsets
-                        .get(&binding.bone_path)
-                        .copied()
-                        .map(|offset| combine_transforms(bone_world, offset))
-                        .unwrap_or(bone_world);
+                    let bone_world = parent_world.with_bone(target.local_transform);
+                    let body_world =
+                        bone_world.body_pose(state.body_offsets.get(&binding.bone_path).copied());
                     if transform_is_finite(body_world) {
                         let (linear_velocity, angular_velocity) = state
                             .last_animated_body_world
