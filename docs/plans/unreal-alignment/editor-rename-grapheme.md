@@ -28,9 +28,9 @@ UE 的 `Slate.Core.Text.TextLayout.TextEditing` 在 `Engine/Source/Runtime/Slate
 
 ZE 的产品回归从同一节点分别载入预组和分解两种标签，正常派发上述五个按键。编辑中核对草稿，提交后核对权威场景名字、一次 `RenameNode` 事件和一次历史记录。另以焦点级测试检查左右移动、双向删除、替换、簇内锚点，以及插入和删除后相邻字符重新组成字素的情形。既有三个焦点用例已通过。新用例的原生结果将在此草稿后续提交记录。[既有焦点回归](https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_editor/src/ui/retained/contract/data/text_focus/editing/tests/cases.rs#L11-L56)
 
-## 冷启动真实工程后，F2 重命名复现了字素拆分
+## 在临时 RenderableEmpty 工程中，retained F2 事件复现了字素拆分
 
-首次夹具只有空 `World::new()`，F2 未到达目标行为，不能作为公开路径的 RED。重跑在独占的真实 RenderableEmpty 工程中写入预组 `Caf\u{00E9}` 与分解 `Cafe\u{0301}` 场景名，经正常打开验证其 Edit World/文档身份。两种输入使用不同的真实节点，并分别按 F2、End、Shift+左、Backspace、Enter。
+首次夹具只有空 `World::new()`，F2 未到达目标行为，不能作为公开路径的 RED。重跑时，`zircon_editor --lib` 测试以 RenderableEmpty 模板在独占临时目录创建工程，向场景写入预组 `Caf\u{00E9}` 与分解 `Cafe\u{0301}` 场景名，经正常打开验证其 Edit World/文档身份。两种输入使用不同的真实节点，并分别按 F2、End、Shift+左、Backspace、Enter。
 
 - [实际 F2 用例](https://github.com/He-Jiahui/ZirconEngine/blob/1fde8273c28a5624de2fbbe6f8296feff5126e52/zircon_editor/src/ui/retained/app/tests/hierarchy_rename.rs#L149-L301)：预组提交 `Caf`；分解臂草稿、单条 `RenameNode` 和真实读回均为 `Cafe`，历史各恰增一笔。失败位于[最后语义断言](https://github.com/He-Jiahui/ZirconEngine/blob/1fde8273c28a5624de2fbbe6f8296feff5126e52/zircon_editor/src/ui/retained/app/tests/hierarchy_rename.rs#L291)，其期望是 `Caf`，不是初始化、焦点或提交失败。
 - [焦点用例](https://github.com/He-Jiahui/ZirconEngine/blob/1fde8273c28a5624de2fbbe6f8296feff5126e52/zircon_editor/src/ui/retained/contract/data/text_focus/editing/tests/cases.rs#L1-L137)：3 过、5 败。左右移动选区 `(2, 4)` 而非 `(1, 4)`；退格留下 `AeB` 而非 `AB`；拼接后停在 offset 1 而非 2；外来中间标量 offset 2 未贴边至 1；Shift 重输留下 `AeQ` 而非 `AQ`。
