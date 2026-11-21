@@ -1,3 +1,6 @@
+#[path = "queued_teleport.rs"]
+mod queued_teleport;
+
 use super::*;
 use zircon_runtime::core::framework::physics::{
     PhysicsBodyType, PhysicsColliderShape, PhysicsJointType,
