@@ -17,12 +17,8 @@ fn retained_node_id(
     control_id: &str,
 ) -> zircon_runtime_interface::ui::event_ui::UiNodeId {
     surface
-        .tree
-        .nodes
-        .values()
-        .find(|node| node.node_path.0 == format!("v2/{control_id}"))
-        .map(|node| node.node_id)
-        .expect("responsive shell control should be retained")
+        .unique_control_node_id(control_id)
+        .unwrap_or_else(|| panic!("expected one retained responsive shell control {control_id:?}"))
 }
 
 #[test]
@@ -350,4 +346,139 @@ fn reactbits_agent_workspace_builds_a_responsive_flow_surface() {
             .and_then(toml::Value::as_bool),
         Some(true)
     );
+}
+
+#[test]
+fn reactbits_agent_workspace_observes_retained_control_identity() {
+    use serde_json::json;
+
+    const ROOT: &str = "ReactBitsAgentWorkspaceRoot";
+    const MAIN: &str = "ReactBitsAgentMain";
+    let document = UiZuiAssetLoader::load_zui_str(REACTBITS_AGENT_WORKSPACE_ZUI).unwrap();
+    let compiled = UiV2DocumentCompiler::compile(&document).unwrap();
+    let surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
+        UiTreeId::new("reactbits-agent-workspace-contract"),
+        &document,
+        &compiled,
+    )
+    .unwrap();
+    let inspect = |surface: &UiSurface, control_id: &str| {
+        let raw = format!("v2/{control_id}");
+        let mut metadata_ids = Vec::new();
+        let mut path_ids = Vec::new();
+        for node in surface.tree.nodes.values() {
+            let name = node
+                .template_metadata
+                .as_ref()
+                .and_then(|m| m.control_id.as_deref());
+            if name == Some(control_id) {
+                metadata_ids.push(node.node_id);
+            }
+            if node.node_path.0 == raw {
+                path_ids.push(node.node_id);
+            }
+        }
+        (
+            surface.unique_control_node_id(control_id),
+            metadata_ids,
+            path_ids,
+        )
+    };
+    let compiled_root = compiled.arena.root.and_then(|h| compiled.arena.node(h));
+    let entry = json!({
+        "assetId": &document.asset.id, "authoredRoot": document.root_node_id(),
+        "compiledRoot": compiled_root.map(|n| n.source_id.as_str()), "retainedRoots": &surface.tree.roots,
+    });
+    println!("R24_REACTBITS_ENTRY {entry}");
+    let mut mismatches = Vec::new();
+    for (key, control_id) in [
+        ("root", ROOT),
+        ("sidebar", "ReactBitsAgentSidebar"),
+        ("main", MAIN),
+        ("context", "ReactBitsAgentContextPanel"),
+        ("context_summary", "ReactBitsAgentContextSummary"),
+    ] {
+        let authored = document
+            .nodes
+            .get(key)
+            .and_then(|n| n.control_id.as_deref());
+        let arena = compiled
+            .node_handles
+            .get(key)
+            .and_then(|h| compiled.arena.node(*h));
+        let compiled_control = arena.and_then(|n| n.control_id.as_deref());
+        let mut by_source = surface.tree.nodes.values().filter_map(|node| {
+            let metadata = node.template_metadata.as_ref()?;
+            (metadata.source_node_id.as_deref() == Some(key)).then_some((node, metadata))
+        });
+        let first = by_source.next();
+        let sole_source = by_source.next().is_none();
+        let (unique, metadata_ids, path_ids) = inspect(&surface, control_id);
+        let row = json!({
+            "sourceKey": key, "lookupKey": control_id, "authoredControlId": authored,
+            "arenaControlId": compiled_control, "retainedId": first.map(|(n, _)| n.node_id),
+            "parent": first.and_then(|(n, _)| n.parent), "rawPath": first.map(|(n, _)| &n.node_path.0),
+            "retainedControlId": first.and_then(|(_, m)| m.control_id.as_deref()),
+            "metadataIds": metadata_ids, "uniqueControlNodeId": unique, "legacyPathIds": path_ids,
+        });
+        println!("R24_REACTBITS_IDENTITY {row}");
+        let matches = first.is_some_and(|(node, metadata)| {
+            let id = node.node_id;
+            let legacy = if key == "root" {
+                surface.tree.roots == [id]
+                    && node.parent.is_none()
+                    && node.node_path.0 == "v2/root"
+                    && path_ids.is_empty()
+            } else {
+                node.parent.is_some() && path_ids == [id]
+            };
+            sole_source
+                && authored == Some(control_id)
+                && compiled_control == authored
+                && metadata.control_id.as_deref() == authored
+                && metadata_ids == [id]
+                && unique == Some(id)
+                && legacy
+        });
+        if !matches {
+            mismatches.push(key);
+        }
+    }
+
+    // The unchanged fixture above is the witness. This edited in-memory copy is a negative control.
+    let mut duplicate_document = document.clone();
+    duplicate_document.nodes.get_mut("main").unwrap().control_id = Some(ROOT.into());
+    let duplicate = UiV2SurfaceBuilder::build_surface(
+        UiTreeId::new("reactbits-agent-workspace-identity-negative-control"),
+        &duplicate_document,
+    )
+    .unwrap();
+    let (ambiguous, duplicate_ids, wrong_path_ids) = inspect(&duplicate, ROOT);
+    let (missing, missing_ids, absent_paths) = inspect(&duplicate, MAIN);
+    let wrong_source = wrong_path_ids
+        .first()
+        .and_then(|id| duplicate.tree.node(*id))
+        .and_then(|node| node.template_metadata.as_ref()?.source_node_id.as_deref());
+    let negative = json!({
+        "duplicateControlId": ROOT, "duplicateIds": duplicate_ids, "uniqueForDuplicate": ambiguous,
+        "legacyForDuplicate": wrong_path_ids, "legacyWrongSource": wrong_source,
+        "removedControlId": MAIN, "missingIds": missing_ids, "uniqueForMissing": missing,
+        "legacyForMissing": absent_paths,
+    });
+    println!("R24_REACTBITS_NEGATIVE {negative}");
+    assert_eq!(document.root_node_id(), Some("root"));
+    assert_eq!(
+        compiled_root.map(|n| n.source_id.as_str()),
+        document.root_node_id()
+    );
+    assert!(
+        mismatches.is_empty(),
+        "identity mismatch; see rows above: {mismatches:?}"
+    );
+    assert_eq!(duplicate_ids.len(), 2);
+    assert_eq!(ambiguous, None);
+    assert_eq!(wrong_path_ids.len(), 1);
+    assert_eq!(wrong_source, Some("main"));
+    assert!(missing_ids.is_empty() && absent_paths.is_empty());
+    assert_eq!(missing, None);
 }
