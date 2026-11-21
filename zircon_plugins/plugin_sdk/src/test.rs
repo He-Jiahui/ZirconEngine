@@ -120,6 +120,24 @@ impl TestRuntimeBaseModule {
     }
 }
 
+fn register_base_module_prerequisites(
+    runtime: &CoreRuntime,
+    base_modules: &[TestRuntimeBaseModule],
+) -> Result<()> {
+    use zircon_runtime::core::runtime::modules::{TasksModule, TimeModule};
+    use zircon_runtime::engine_module::EngineModule;
+
+    // Core activates these kernel providers through the selected roots' dependency
+    // closure. Do not turn them into explicit base roots or activate them here.
+    if base_modules.contains(&TestRuntimeBaseModule::Asset) {
+        register_module(runtime, TasksModule.descriptor())?;
+    }
+    if base_modules.contains(&TestRuntimeBaseModule::Scene) {
+        register_module(runtime, TimeModule.descriptor())?;
+    }
+    Ok(())
+}
+
 #[derive(Debug)]
 /// 已构建的 CoreRuntime、扩展目录报告和本次实际激活的模块名。
 pub struct TestRuntime {
@@ -320,6 +338,7 @@ impl TestRuntimeBuilder {
                 .map_err(|source| TestRuntimeError::TimePolicy { source })?;
         }
 
+        register_base_module_prerequisites(&runtime, &self.base_modules)?;
         for module in &self.base_modules {
             let mut descriptor = module.descriptor();
             if matches!(module, TestRuntimeBaseModule::Foundation) {

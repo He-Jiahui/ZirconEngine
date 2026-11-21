@@ -71,6 +71,276 @@ fn test_runtime_module_descriptor() -> ModuleDescriptor {
     )
 }
 
+mod base_dependencies {
+    use zircon_runtime::asset::AssetManager;
+    use zircon_runtime::core::runtime::modules::{TASKS_MODULE_NAME, TIME_MODULE_NAME};
+    use zircon_runtime::core::LifecycleState;
+
+    use super::*;
+
+    const BASE_MODULE_NAMES: [&str; 5] = [
+        foundation::FOUNDATION_MODULE_NAME,
+        asset::ASSET_MODULE_NAME,
+        SCENE_MODULE_NAME,
+        TASKS_MODULE_NAME,
+        TIME_MODULE_NAME,
+    ];
+
+    #[test]
+    fn test_runtime_builder_base_default_ticks_without_registrations() {
+        let fixture = ManagedConfigFixture::new("sdk-base-default");
+        let built = TestRuntime::builder()
+            .with_config_file_path(fixture.config_path())
+            .build();
+        println!(
+            "SDK_BASE_V1 case=default build={:?}",
+            built.as_ref().map(TestRuntime::activated_modules)
+        );
+        let runtime = built.expect("zero registrations must not prevent default SDK startup");
+        let explicit = runtime
+            .activated_modules()
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>();
+        assert_eq!(explicit.as_slice(), &BASE_MODULE_NAMES[..3]);
+        assert!(runtime.extension_report().is_success());
+        assert!(runtime.extension_report().registry.modules().is_empty());
+
+        // The SDK list is only the explicit activation requests. Probe the real Core
+        // unload gate to distinguish running prerequisites from matching names in a list.
+        for (provider, consumer) in [
+            (TASKS_MODULE_NAME, asset::ASSET_MODULE_NAME),
+            (TIME_MODULE_NAME, SCENE_MODULE_NAME),
+        ] {
+            let error = runtime
+                .runtime()
+                .deactivate_module(provider)
+                .expect_err("a running base root must protect its kernel prerequisite");
+            println!("SDK_BASE_V1 case=default provider={provider} unload_gate={error:?}");
+            assert!(
+                matches!(&error, CoreError::ModuleUnloadBlocked { module, dependents }
+                    if module.as_str() == provider && dependents.iter().any(|name| name.as_str() == consumer)),
+                "{error:?}"
+            );
+        }
+
+        let core = runtime.handle();
+        let handle = asset::project_asset_manager_handle(&core).expect("typed asset manager handle");
+        let manager = zircon_runtime::core::manager::resolve_manager_service(&core, handle)
+            .expect("admit the real ProjectAssetManager");
+        assert!(manager.current_project_snapshot().is_none());
+        drop(manager);
+
+        let level = runtime.create_default_level().expect("registered Scene");
+        let before = level.world_time();
+        // Exactly 31.25 ms: longer than one SDK default fixed step but shorter than two.
+        runtime.tick_level_seconds(&level, 0.03125).unwrap();
+        let after = level.world_time();
+        println!(
+            "SDK_BASE_V1 case=default asset_manager=resolved before={before:?} after={after:?}"
+        );
+        assert_eq!(before.last_outer_frame_index(), None);
+        assert_eq!(
+            after.last_outer_frame_index(),
+            Some(core.real_time().frame_index())
+        );
+        assert_eq!(after.virtual_time().delta(), Duration::from_micros(31_250));
+        assert_eq!(
+            after.fixed_time().frame_index(),
+            before.fixed_time().frame_index() + 1
+        );
+    }
+
+    #[test]
+    fn test_runtime_builder_base_explicit_missing_asset_still_rejects() {
+        let fixture = ManagedConfigFixture::new("sdk-base-no-asset");
+        let error = TestRuntime::builder()
+            .with_config_file_path(fixture.config_path())
+            .with_base_modules([
+                TestRuntimeBaseModule::Foundation,
+                TestRuntimeBaseModule::Scene,
+            ])
+            .build()
+            .expect_err("explicit selection without Asset must reject Scene");
+        println!("SDK_BASE_V1 case=missing_asset error={error:?}");
+        assert!(
+            matches!(
+                &error,
+                TestRuntimeError::Core {
+                    action: "install world runtime extensions",
+                    target,
+                    source: CoreError::MissingModuleDependency { module, dependency },
+                } if target == scene::WORLD_DRIVER_NAME
+                    && module == SCENE_MODULE_NAME
+                    && dependency == asset::ASSET_MODULE_NAME
+            ),
+            "{error:?}"
+        );
+    }
+
+    #[test]
+    fn test_runtime_builder_base_omission_does_not_register_kernels_or_roots() {
+        let fixture = ManagedConfigFixture::new("sdk-base-none");
+        let runtime = TestRuntime::builder()
+            .with_config_file_path(fixture.config_path())
+            .without_base_modules()
+            .without_scene_runtime_extension_plan()
+            .build()
+            .expect("bare fixture with no scene installation");
+        assert!(runtime.activated_modules().is_empty());
+        for name in BASE_MODULE_NAMES {
+            let result = runtime.runtime().deactivate_module(name);
+            println!("SDK_BASE_V1 case=omitted module={name} unload_gate={result:?}");
+            assert_eq!(result, Err(CoreError::MissingModule(name.to_owned())));
+        }
+    }
+
+    #[test]
+    fn test_runtime_builder_base_dormant_roots_register_but_do_not_activate() {
+        let fixture = ManagedConfigFixture::new("sdk-base-dormant");
+        let runtime = TestRuntime::builder()
+            .with_config_file_path(fixture.config_path())
+            // Also skip plan installation, which would resolve and lazily activate Scene.
+            .without_scene_runtime_extension_plan()
+            .without_base_module_activation()
+            .build()
+            .expect("register a dormant base closure");
+        assert!(runtime.activated_modules().is_empty());
+        for name in BASE_MODULE_NAMES {
+            let result = runtime.runtime().deactivate_module(name);
+            println!("SDK_BASE_V1 case=dormant module={name} unload_gate={result:?}");
+            assert_eq!(
+                result,
+                Err(CoreError::InvalidModuleLifecycleTransition {
+                    module: name.to_owned(),
+                    command: "deactivate",
+                    state: LifecycleState::Registered,
+                })
+            );
+        }
+    }
+
+    #[test]
+    fn sdk_base_selected_foundation_has_no_kernels() {
+        const KEY: &str = "sdk_base_selected_sentinel";
+        for activate in [true, false] {
+            let fixture = ManagedConfigFixture::new("sdk-base-selected-foundation");
+            let path = fixture.config_path();
+            std::fs::write(&path, r#"{"sdk_base_selected_sentinel":true}"#).unwrap();
+            let builder = TestRuntime::builder()
+                .with_config_file_path(path)
+                .with_base_modules([TestRuntimeBaseModule::Foundation])
+                .without_scene_runtime_extension_plan();
+            let builder = if activate {
+                builder
+            } else {
+                builder.without_base_module_activation()
+            };
+            let runtime = builder.build().expect("Foundation-only SDK runtime");
+            // Read the Core store directly: resolving the config manager could activate Foundation.
+            let sentinel = runtime.handle().load_config_value(KEY);
+            println!(
+                "SDK_BASE_SELECTED_V1 case=foundation activate={activate} explicit={:?} sentinel={sentinel:?}",
+                runtime.activated_modules()
+            );
+            if activate {
+                assert_eq!(
+                    runtime.activated_modules(),
+                    &[foundation::FOUNDATION_MODULE_NAME.to_owned()]
+                );
+                assert_eq!(sentinel, Some(serde_json::Value::Bool(true)));
+            } else {
+                assert!(runtime.activated_modules().is_empty());
+                assert_eq!(sentinel, None);
+                assert_selected_stop_states(&runtime, &[foundation::FOUNDATION_MODULE_NAME], &[]);
+            }
+            assert_selected_stop_states(
+                &runtime,
+                &[],
+                &[
+                    TASKS_MODULE_NAME,
+                    TIME_MODULE_NAME,
+                    asset::ASSET_MODULE_NAME,
+                    SCENE_MODULE_NAME,
+                ],
+            );
+        }
+    }
+
+    #[test]
+    fn sdk_base_selected_asset_has_only_tasks_kernel() {
+        for activate in [true, false] {
+            let fixture = ManagedConfigFixture::new("sdk-base-selected-asset");
+            let builder = TestRuntime::builder()
+                .with_config_file_path(fixture.config_path())
+                .with_base_modules([TestRuntimeBaseModule::Asset])
+                .without_scene_runtime_extension_plan();
+            let builder = if activate {
+                builder
+            } else {
+                builder.without_base_module_activation()
+            };
+            let runtime = builder.build().expect("Asset-only SDK runtime");
+            let missing = [
+                foundation::FOUNDATION_MODULE_NAME,
+                TIME_MODULE_NAME,
+                SCENE_MODULE_NAME,
+            ];
+            if activate {
+                assert_eq!(
+                    runtime.activated_modules(),
+                    &[asset::ASSET_MODULE_NAME.to_owned()]
+                );
+                let tasks_unload = runtime.runtime().deactivate_module(TASKS_MODULE_NAME);
+                println!("SDK_BASE_SELECTED_V1 case=asset activate=true tasks={tasks_unload:?}");
+                assert_eq!(
+                    tasks_unload,
+                    Err(CoreError::ModuleUnloadBlocked {
+                        module: TASKS_MODULE_NAME.to_owned(),
+                        dependents: vec![asset::ASSET_MODULE_NAME.to_owned()],
+                    })
+                );
+                let core = runtime.handle();
+                let handle = asset::project_asset_manager_handle(&core).unwrap();
+                let manager = zircon_runtime::core::manager::resolve_manager_service(&core, handle)
+                    .expect("admit the real ProjectAssetManager without Foundation or Scene");
+                assert!(manager.current_project_snapshot().is_none());
+            } else {
+                assert!(runtime.activated_modules().is_empty());
+                assert_selected_stop_states(
+                    &runtime,
+                    &[TASKS_MODULE_NAME, asset::ASSET_MODULE_NAME],
+                    &[],
+                );
+            }
+            println!(
+                "SDK_BASE_SELECTED_V1 case=asset activate={activate} explicit={:?}",
+                runtime.activated_modules()
+            );
+            assert_selected_stop_states(&runtime, &[], &missing);
+        }
+    }
+
+    fn assert_selected_stop_states(runtime: &TestRuntime, registered: &[&str], missing: &[&str]) {
+        for &module in registered {
+            assert_eq!(
+                runtime.runtime().deactivate_module(module),
+                Err(CoreError::InvalidModuleLifecycleTransition {
+                    module: module.to_owned(),
+                    command: "deactivate",
+                    state: LifecycleState::Registered,
+                })
+            );
+        }
+        for &module in missing {
+            assert_eq!(
+                runtime.runtime().deactivate_module(module),
+                Err(CoreError::MissingModule(module.to_owned()))
+            );
+        }
+    }
+}
+
 #[test]
 fn test_runtime_builder_registers_base_and_plugin_modules() {
     let fixture = ManagedConfigFixture::new("sdk-modules");
