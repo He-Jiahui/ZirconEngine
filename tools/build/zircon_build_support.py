@@ -24,7 +24,17 @@ def platform_runtime_library_name() -> str:
     return "libzircon_runtime.so"
 
 
-def platform_dynamic_library_name(crate_name: str) -> str:
+def platform_dynamic_library_name(crate_name: str, *, target_triple: str | None = None) -> str:
+    if target_triple:
+        # This stage publishes a load manifest. ExportTargetPlatform::policy
+        # admits native_dynamic only on Windows; do not infer it from the host.
+        parts = target_triple.split("-")
+        if len(parts) != 4 or parts[2] != "windows":
+            raise SystemExit(
+                f"Cannot stage native_dynamic plugins for {target_triple}: "
+                "only Windows targets support native plugin loading."
+            )
+        return f"{crate_name}.dll"
     if os.name == "nt":
         return f"{crate_name}.dll"
     if platform.system().lower() == "darwin":
