@@ -91,3 +91,22 @@ Chrome 157.0.8103.52 在 Windows 上运行 ZE 的完整 Web 库。`WebEngine.loa
 首个活动配置出现后，两次运行都在系统纹理准备过程中记录到 `WebAssembly.RuntimeError`。原测试页等待最终 Promise 达到 65 秒上限。补充观测中，38 秒时该 Promise 仍在等待。修订后的页面能报告这一阶段已经完成的配置，并保留未知的关闭状态。视口二次配置、渲染提交和调整尺寸继续等待产品验收。
 
 Windows 主机以 `zr_rhi_wgpu --lib --no-default-features` 运行能力投影与 session teardown 两组回归。与 [#235](https://github.com/He-Jiahui/ZirconEngine/pull/235)、[#236](https://github.com/He-Jiahui/ZirconEngine/pull/236) 的两个相交文件通过三方 Git 文件合并。产品修复提交为 `784d8b6a50e0c134e1831f049debbd8ee1d8fd2d`，修前和修后采用的同一回归页面来自 `0880334302f5245f3bf121076f880b4108d8b0e4`。[回归页](https://github.com/He-Jiahui/ZirconEngine/blob/0880334302f5245f3bf121076f880b4108d8b0e4/tools/validation/browser/web-canvas-adoption.html)
+
+## 9. 双尺寸真实呈现判定与 Chrome 复跑
+
+修订前页面计算了 `followupSubmitted`，但 `adopted` 可在该值为 false 时成立。新 [观察判定](../../../tools/validation/browser/canvas-adoption-checks.mjs#L2-L33) 必须同时满足：首帧和 96×64 resize 帧各有真实产品 `presented` 回执，且产品队列实际返回过引用**同一 Canvas context、相同活动格式、各自正确尺寸**的提交。没有提交、尺寸/上下文错误、未呈现或 owner 未释放都不能通过。保留 UE 的“操作实际目标”的观察量；ZE 不把 Win32 `setres` 或 UE staging 像素验证当作浏览器 Canvas 不同实现的帧证据。
+
+用 Node v24.22.2 实跑 [六个判定用例](../../../tools/validation/browser/canvas-adoption-checks.test.mjs)，**6/6 通过、0 跳过**。包含旧判定会漏掉的「回执已呈现但队列没有实际引用 Canvas」反例、错误尺寸/上下文、提交未返回、异常阶段、owner 未释放，以及完整事实的正对照。它们校验验证器判定，**不是模拟通过的产品帧**。日志 SHA-256 `551b79ea4df2198388950263636933ceddbccdcab39ede8777950a93cf2a5c2a`。
+
+```text
+node --test tools/validation/browser/canvas-adoption-checks.test.mjs
+```
+
+Windows / Chrome 157、真实 NVIDIA 非 fallback 适配器。同一次配对把[新版观测页](../../../tools/validation/browser/web-canvas-adoption.html)及其同级判定模块从同源 HTTP 提供给两份保留的绑定产品，合法空源目录和场景相同，无用户资产。没有重编 Rust、重新链接或替换产物，不能归为当前分支的独立 Wasm 构建。
+
+| 产品 Wasm SHA-256 | 结果 | 成功 configure | 产品队列提交 / 帧 | 释放 |
+|---|---|---:|---:|---|
+| `4148cc13d15fd79d82d943d528068b31d1a618fe3a88af96be59519855c95c0d` | 取得设备后在首次配置前拒绝 | 0 | 0 / 0 | owner 计数回基线 |
+| `b47a5166ec35c5f5dec9606fa7a4aaeb25933485898ab6752c9acbc049736d68` | `load-interrupted-after-first-configure`；活跃配置确认为原 64×48 Canvas 上的同一设备和 `bgra8unorm` | 1 | 0 / 0 | 引擎未返回，未知 |
+
+第二组的符号栈落在 `SystemTextureResources::prepare → WgpuTextureUploadBatch::push`，未得到视口交接、首帧、resize 或关闭证据。已在独立纯文档 Draft [#268](https://github.com/He-Jiahui/ZirconEngine/pull/268) 记录该故障，不推断底层根因。配对观察摘要 SHA-256 `71e7d76686f1ac18152080964f984713350168493a6119a8a5bc97b70976a039`。本次改动仅限验证与证据，保持真实产品和 `editor-compile-gate` 验收。

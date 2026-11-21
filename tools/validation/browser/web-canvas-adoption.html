@@ -5,6 +5,8 @@
 <canvas id="target" width="64" height="48"></canvas>
 <pre id="report">Loading WebEngine…</pre>
 <script type="module">
+import { canvasAdoptionStage, canvasFollowupSubmitted } from './canvas-adoption-checks.mjs';
+
 const message = error => error instanceof Error ? error.message : String(error);
 const size = object => ({ width: object.width, height: object.height });
 const ownerKeys = ['live_engines', 'registered_canvases', 'event_listeners'];
@@ -265,12 +267,7 @@ async function run() {
   checks.viewportHandoff = checks.contextBound && checks.initialConfigured && loadConfigure.length >= 2 &&
     loadConfigure.slice(1).every(event => event.called > first.returned && matches(event) && event.format === first.format) &&
     out.unconfigure.every(event => event.phase !== 'load');
-  const submittedFrame = (step, width, height) => out.frames.some(frame => frame.phase === step &&
-    !frame.error && frame.receipt?.presented === true) && out.submissions.some(event => event.phase === step &&
-      event.returned !== null && event.canvasPasses.some(({ texture }) => texture.phase === step &&
-        texture.contextId === context?.contextId && texture.format === first?.format &&
-        texture.width === width && texture.height === height));
-  checks.followupSubmitted = submittedFrame('first-frame', 64, 48) && submittedFrame('resized-frame', 96, 64);
+  checks.followupSubmitted = canvasFollowupSubmitted(out, context?.contextId, first?.format);
   out.counts = Object.fromEntries(['load', 'close', 'total'].map(step => {
     const counted = list => list.filter(event => step === 'total' || event.phase === step);
     const configured = counted(out.configure), unconfigured = counted(out.unconfigure);
@@ -278,18 +275,7 @@ async function run() {
       configureSucceeded: configured.filter(active).length, unconfigureStarted: unconfigured.length,
       unconfigureSucceeded: unconfigured.filter(e => e.returned !== null).length }];
   }));
-  out.stage = out.fixtureError ? 'fixture-error' : !out.gpu.adapters.length ? 'before-adapter-request' :
-    !checks.adapterReturned ? 'adapter-unresolved' : !out.gpu.devices.length ? 'before-device-request' :
-    !checks.deviceReturned ? 'device-unresolved' : !first ? 'before-first-configure' :
-    !checks.initialConfigured ? 'first-configure-incomplete' : !checks.viewportHandoff ? 'before-viewport-handoff' :
-    !checks.loaded ? 'load-failed-after-viewport-handoff' :
-    !(checks.liveOwners && checks.closed && checks.ownersReleased) ? 'owner-lifecycle-incomplete' : 'adopted';
-  if (out.interruption) {
-    const step = out.interruption.phase;
-    out.stage = step === 'load' && checks.initialConfigured
-      ? (checks.viewportHandoff ? 'load-interrupted-after-viewport-handoff' : 'load-interrupted-after-first-configure')
-      : `${step}-interrupted`;
-  }
+  out.stage = canvasAdoptionStage(out);
   out.error = out.interruption?.error ?? out.fixtureError ?? out.load.error ?? out.close?.error ?? out.close?.freeError ?? null;
   out.passed = !out.interruption && out.stage === 'adopted';
   // Existing request observers may still settle after the report; return a detached snapshot.
