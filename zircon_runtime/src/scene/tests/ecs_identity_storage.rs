@@ -850,3 +850,6 @@ fn public_location_debug_output_redacts_owner_local_entity_slots() {
     assert!(!component_location.contains("#[derive(Clone, Copy, Debug, PartialEq, Eq)]"));
     assert!(!component_location.contains(".field(\"entity\","));
 }
+
+#[path = "ecs_despawn_identity.rs"]
+mod despawn_identity;

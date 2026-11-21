@@ -11,6 +11,9 @@ impl World {
         if !self.entity_dense_rows.contains_key(&entity) {
             return Err(SceneError::missing_entity("remove", entity));
         }
+        let internal = self
+            .internal_entity(entity)
+            .ok_or_else(|| SceneError::missing_entity("remove", entity))?;
         let execution = self.begin_schedule_execution();
         let _hierarchy_index_rebuild_rows = self.ensure_hierarchy_mutation_index_current();
         let removed_kind = self.kinds.get(&entity).copied();
@@ -27,18 +30,24 @@ impl World {
                     target,
                 });
             }
+            if self.internal_entity(entity) != Some(internal) {
+                return Err(SceneError::missing_entity("remove", entity));
+            }
             self.mark_inspection_subtree_fields_dirty(child);
         }
         self.record_world_fact(WorldFact::Despawned(entity));
-        if let Some(internal) = self.internal_entity(entity) {
-            let component_ids = self.entity_archetype_component_ids(entity);
-            for component_id in &component_ids {
+        {
+            let notification_component_ids = self.entity_archetype_component_ids(entity);
+            for component_id in &notification_component_ids {
                 self.trigger_component_lifecycle(LifecycleEventKind::Remove, entity, *component_id);
                 if let Some(target) = execution.target_change(self) {
                     return Err(SceneError::LifecycleTargetReplaced {
                         operation: "remove entity",
                         target,
                     });
+                }
+                if self.internal_entity(entity) != Some(internal) {
+                    return Err(SceneError::missing_entity("remove", entity));
                 }
                 self.trigger_component_lifecycle(
                     LifecycleEventKind::Despawn,
@@ -51,6 +60,9 @@ impl World {
                         target,
                     });
                 }
+                if self.internal_entity(entity) != Some(internal) {
+                    return Err(SceneError::missing_entity("remove", entity));
+                }
                 if let Some((type_id, type_name)) =
                     self.component_registry.rust_type_for_id(*component_id)
                 {
@@ -58,6 +70,8 @@ impl World {
                         .push_type_id(type_id, type_name, entity);
                 }
             }
+            // 回调可改变组件集合；通知快照不能代替当前拥有的 sparse rows。
+            let component_ids = self.entity_archetype_component_ids(entity);
             self.component_storage
                 .remove_entity_components(internal, &component_ids);
         }
