@@ -1360,3 +1360,7 @@ fn main_window_pending_asset_quiesce_owns_closing_before_cancel_can_run() {
     drop(harness);
     std::fs::remove_dir_all(output).unwrap();
 }
+
+#[cfg(windows)]
+#[path = "reopen_close.rs"]
+mod reopen_close;
