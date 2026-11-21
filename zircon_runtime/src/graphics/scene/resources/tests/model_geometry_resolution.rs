@@ -302,7 +302,7 @@ fn model_mesh_reference_checks_cold_candidate_and_keeps_real_absence_inline() {
         "tests/model-mesh/cold-other-uuid",
     ));
     resources.register_record(other.clone()).unwrap();
-    let original = resources.registry().get(other.id).unwrap();
+    let original = resources.registry().get(other.id).unwrap().clone();
     assert!(matches!(
         ensure_cold_model_meshes(&manager, &model),
         Err(crate::graphics::types::GraphicsError::Asset(message))
@@ -312,7 +312,7 @@ fn model_mesh_reference_checks_cold_candidate_and_keeps_real_absence_inline() {
         resolve_model_geometry(&manager, &model, &resources.projection_snapshot()),
         Err(ResourceActiveSnapshotError::Stale)
     ));
-    assert_eq!(resources.registry().get(other.id).unwrap(), original);
+    assert_eq!(resources.registry().get(other.id).unwrap(), &original);
     assert!(resources
         .projection_snapshot()
         .active()

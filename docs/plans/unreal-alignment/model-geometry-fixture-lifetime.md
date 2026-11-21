@@ -1,0 +1,16 @@
+# Model geometry fixture: keep an owned before-state
+
+**Draft — test-only prerequisite for [BD02 (#135)](https://github.com/He-Jiahui/ZirconEngine/pull/135).** The initial commit opened the review with the problem definition. The subsequent two-line fixture repair removes the compilation blocker locally without changing production code.
+
+1. **Difference.** ZE's [existing model-resolution test](../../../zircon_runtime/src/graphics/scene/resources/tests/model_geometry_resolution.rs#L293-L331) keeps a reference borrowed from a temporary registry guard. Unreal's `TryGetAssetByObjectPath` copies its asset data while its read guard is active. This comparison is about ownership of the test's evidence, not a difference in mesh lookup policy.
+2. **Effect.** Windows/MSVC Rust 1.94.1 reports `E0716` when building `zircon_runtime` with `native-host,graphics` and default features disabled. `libtest` never starts; this is a compile prerequisite, not a rendered regression or a behavioral failure.
+3. **Cause and source.** ZE's [registry view](../../../zircon_runtime/crates/zr_resource/src/manager/resource_manager.rs#L178-L189) owns an `RwLockReadGuard`; [get returns a borrowed record](../../../zircon_runtime/crates/zr_resource/src/registry.rs#L98-L106). In the local Unreal source, `Engine/Source/Runtime/AssetRegistry/Private/AssetRegistry.cpp:2824–2852,2862–2877` returns/copies `FAssetData` before the scope lock is released, and distinguishes incomplete discovery from known absence. This is an ownership precedent, not an Unreal UUID or inline-model-fallback test.
+4. **Rust direction.** Snapshot the existing `ResourceRecord` by value from the short-lived view; compare it against the later guarded read. Do not extend the lock across the operations under test.
+5. **Boundary.** This is a Rust fixture-lifetime repair. The UUID/locator check, strategy for inline fallback, resource generations, ECS, and renderer behavior stay unchanged. There is no need for a new test or harness.
+6. **Change and landing gate.** The [existing regression](../../../zircon_runtime/src/graphics/scene/resources/tests/model_geometry_resolution.rs#L293-L331) now clones one record before executing the two resolution paths. The same full-record equality and all lookup/fallback assertions remain. Reuse `zircon_runtime`'s existing libtest; no runtime source changed.
+
+## Actual local validation
+
+- Windows/MSVC Rust 1.94.1, `zircon_runtime --lib --no-default-features --features native-host,graphics`: compilation succeeded. The repaired regression executed and passed. The model-resolution group was **7 passed, 1 failed, 0 ignored**.
+- The unchanged [M6 drift fixture](../../../zircon_runtime/src/graphics/scene/resources/tests/model_geometry_resolution.rs#L152-L173) failed at `register_ready(..., 7_u8)` because the registry rejected a different concrete payload type for an existing identity (`PayloadTypeConflict`). This failure precedes that case's resolver assertion; its behavior and assertions were not changed here.
+- No GPU or Unreal binary was run. The [GitHub editor compile gate](../../../.github/workflows/ci.yml#L37-L97) remains required for `main`; local CPU validation does not substitute for it.
