@@ -16,6 +16,8 @@ mod import;
 mod inspector;
 #[path = "interactive_transform.rs"]
 mod interactive_transform;
+#[path = "move_authored_basis.rs"]
+mod move_authored_basis;
 #[path = "node_ops/mod.rs"]
 mod node_ops;
 #[path = "reflected_command/mod.rs"]

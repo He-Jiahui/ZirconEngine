@@ -260,14 +260,36 @@ impl InteractiveTransformSession {
                     source,
                 })?
                 .into_transform();
-        let world_delta = self.world_delta(target_pivot_world);
-
         self.pending.clear();
-        for target in &self.targets {
-            let desired_world = world_delta * target.frozen_world;
-            let local_target = target.parent_world_inverse * desired_world;
-            self.pending
-                .push(decompose_checked(target.entity, local_target)?);
+        if self.spec.kind() == InteractiveTransformKind::Move {
+            let delta = target_pivot_world.translation - self.frozen_pivot.translation;
+            for target in &self.targets {
+                let mut local = target.before.transform;
+                // Pull back a displacement, not a pose. At zero delta, restore the
+                // exact authored baseline (including after a drag out and back).
+                if delta != Vec3::ZERO {
+                    local.translation +=
+                        (target.parent_world_inverse * delta.extend(0.0)).truncate();
+                }
+                if !is_finite_mat4(target.frozen_world)
+                    || !(target.frozen_world.w_axis.truncate() + delta).is_finite()
+                    || !local.translation.is_finite()
+                {
+                    return Err(InteractiveTransformError::NonRepresentableTransform {
+                        entity: target.entity,
+                        recomposition_residual: f32::INFINITY,
+                    });
+                }
+                self.pending.push(local);
+            }
+        } else {
+            let world_delta = self.world_delta(target_pivot_world);
+            for target in &self.targets {
+                let desired_world = world_delta * target.frozen_world;
+                let local_target = target.parent_world_inverse * desired_world;
+                self.pending
+                    .push(decompose_checked(target.entity, local_target)?);
+            }
         }
 
         for index in 0..self.targets.len() {
