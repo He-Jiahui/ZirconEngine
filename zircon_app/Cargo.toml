@@ -238,6 +238,11 @@ windows-sys = { workspace = true, features = [
     "Win32_UI_WindowsAndMessaging",
 ] }
 
+[[example]]
+name = "web_focus_fixture"
+crate-type = ["cdylib"]
+required-features = ["animation"]
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"

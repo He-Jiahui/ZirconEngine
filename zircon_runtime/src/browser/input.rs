@@ -1,4 +1,4 @@
-use crate::core::framework::input::{InputButton, InputEvent};
+use crate::core::framework::input::{InputButton, InputEvent, InputManager};
 use std::collections::VecDeque;
 use std::sync::{
     atomic::{AtomicBool, AtomicU64, Ordering},
@@ -10,8 +10,21 @@ const INPUT_TEXT_BYTES: usize = 128;
 
 #[derive(Default)]
 struct Queue {
+    // Distinct FIFO gaps, at most one before/between/after each raw event.
+    canvas_blurs: Vec<usize>,
     events: VecDeque<InputEvent>,
     omitted: u64,
+}
+#[derive(Default)]
+pub(crate) struct BrowserInputFrame {
+    events: Vec<InputEvent>,
+    canvas_blurs: Vec<usize>,
+}
+impl BrowserInputFrame {
+    pub(crate) fn clear(&mut self) {
+        self.events.clear();
+        self.canvas_blurs.clear();
+    }
 }
 /// Browser callbacks retain this bounded ingress, never the engine or its World.
 pub struct BrowserInput {
@@ -66,6 +79,7 @@ impl BrowserInput {
         }
         if matches!(event, InputEvent::CursorMoved { .. })
             && matches!(queue.events.back(), Some(InputEvent::CursorMoved { .. }))
+            && queue.canvas_blurs.last() != Some(&queue.events.len())
         {
             *queue.events.back_mut().expect("last cursor event exists") = event;
             return;
@@ -73,10 +87,23 @@ impl BrowserInput {
         if queue.events.len() == INPUT_CAPACITY {
             queue.omitted = queue.omitted.saturating_add(queue.events.len() as u64);
             queue.events.clear();
+            queue.canvas_blurs.clear();
             // Losing a release must not leave keys or pointers captured.
             queue.events.push_back(InputEvent::FocusLost);
         }
         queue.events.push_back(event);
+    }
+    /// End the owning canvas's keyboard input without losing window focus.
+    pub fn canvas_keyboard_blurred(&self) {
+        let mut queue = self.queue.lock().unwrap_or_else(|e| e.into_inner());
+        if self.is_closed() {
+            return;
+        }
+        // A local blur must not consume capacity or cause an all-input reset.
+        let gap = queue.events.len();
+        if queue.canvas_blurs.last() != Some(&gap) {
+            queue.canvas_blurs.push(gap);
+        }
     }
     pub fn set_visible(&self, visible: bool) {
         if self.visible.swap(visible, Ordering::AcqRel) != visible {
@@ -100,16 +127,52 @@ impl BrowserInput {
     }
     pub fn close(&self) {
         self.closed.store(true, Ordering::Release);
-        self.queue
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .events
-            .clear();
-    }
-    pub(crate) fn drain(&self, events: &mut Vec<InputEvent>) {
         let mut queue = self.queue.lock().unwrap_or_else(|e| e.into_inner());
-        events.clear();
-        events.extend(queue.events.drain(..));
+        queue.events.clear();
+        queue.canvas_blurs.clear();
+    }
+    pub(crate) fn submit_frame(
+        &self,
+        frame: &mut BrowserInputFrame,
+        manager: &dyn InputManager,
+        mut visit_raw: impl FnMut(&InputEvent) -> Result<(), String>,
+    ) -> Result<(), String> {
+        if self.is_closed() {
+            frame.clear();
+            return Ok(());
+        }
+        manager.begin_frame();
+        self.drain(frame);
+        let mut canvas_blurs = frame.canvas_blurs.drain(..).peekable();
+        for (index, event) in frame.events.drain(..).enumerate() {
+            if canvas_blurs.next_if_eq(&index).is_some() {
+                self.release_canvas_keyboard(manager);
+            }
+            visit_raw(&event)?;
+            manager.submit_event(event);
+        }
+        // A blur can be the final item, including in a frame with no raw events.
+        if canvas_blurs.next().is_some() {
+            self.release_canvas_keyboard(manager);
+        }
+        Ok(())
+    }
+    fn release_canvas_keyboard(&self, manager: &dyn InputManager) {
+        if self.is_closed() {
+            return;
+        }
+        // Release the actual held identities; never send a synthetic key to UI.
+        for button in manager.snapshot().pressed_buttons {
+            if matches!(&button, InputButton::Key(_) | InputButton::KeyCode(_)) {
+                manager.submit_event(InputEvent::ButtonReleased(button));
+            }
+        }
+    }
+    fn drain(&self, frame: &mut BrowserInputFrame) {
+        let mut queue = self.queue.lock().unwrap_or_else(|e| e.into_inner());
+        frame.clear();
+        frame.events.extend(queue.events.drain(..));
+        std::mem::swap(&mut frame.canvas_blurs, &mut queue.canvas_blurs);
     }
 }
 fn truncate(text: &mut String) {
@@ -137,12 +200,14 @@ mod tests {
         assert!(queue.omitted > 0);
         assert!(matches!(queue.events.front(), Some(InputEvent::FocusLost)));
         drop(queue);
-        let mut frame = Vec::new();
+        let mut frame = BrowserInputFrame::default();
         input.drain(&mut frame);
         input.close();
+        input.canvas_keyboard_blurred();
         input.push(InputEvent::ButtonReleased(InputButton::MouseLeft));
         input.drain(&mut frame);
-        assert!(frame.is_empty());
+        assert!(frame.events.is_empty());
+        assert!(frame.canvas_blurs.is_empty());
     }
     #[test]
     fn browser_lifecycle_resets_clock_boundary_and_coalesces_cursor_motion() {

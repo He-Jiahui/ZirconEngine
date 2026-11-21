@@ -1,7 +1,6 @@
 //! Single-threaded browser composition over the existing engine modules.
 use crate::asset::runtime::browser::{BrowserAssetLimits, BrowserAssetSource};
 use crate::asset::{runtime_asset_manager_handle, RuntimeAssetManagerAccess};
-use crate::core::framework::input::{InputEvent, InputManager};
 use crate::core::framework::render::{
     RenderExtractContext, RenderExtractProducer, RenderFrameTiming, RenderFramework,
     RenderSubmissionConfig, RenderViewportDescriptor, RenderViewportHandle,
@@ -39,6 +38,7 @@ mod open;
 mod turn;
 mod ui;
 pub use input::BrowserInput;
+use input::BrowserInputFrame;
 #[cfg(feature = "memory-validation")]
 mod allocator;
 #[cfg(feature = "memory-validation")]
@@ -88,7 +88,7 @@ pub struct BrowserEngine {
     canvas: web_sys::HtmlCanvasElement,
     identity: u64,
     input: Arc<BrowserInput>,
-    frame_events: Vec<InputEvent>,
+    frame_events: BrowserInputFrame,
     last_timestamp: Option<f64>,
     lifecycle_generation: u64,
     frame: u64,

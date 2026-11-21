@@ -1,0 +1,148 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Zircon canvas keyboard focus regression</title>
+<canvas id="first" width="64" height="64"></canvas>
+<canvas id="second" width="64" height="64"></canvas>
+<button id="sibling" type="button">Other focus target</button>
+<pre id="result">Waiting for WebAssembly fixture</pre>
+<script type="module">
+const [first, second, sibling, result] = ['first', 'second', 'sibling', 'result']
+  .map(id => document.getElementById(id));
+const idle = [false, false, false];
+const down = [true, true, false];
+const held = [true, false, false];
+const up = [false, false, true];
+const require = (condition, message) => { if (!condition) throw new Error(message); };
+const foreground = () => !document.hidden && document.hasFocus();
+
+function verify(Fixture) {
+  const report = {canvas_blurs: [], window_blurs: [], frames: []};
+  const observation = new AbortController();
+  window.addEventListener('blur', event => {
+    report.window_blurs.push({window: event.target === window, trusted: event.isTrusted});
+  }, {signal: observation.signal});
+
+  function focus(target) {
+    const from = document.activeElement;
+    let blur;
+    const observe = event => { blur = event; };
+    from?.addEventListener('blur', observe);
+    try { target.focus(); } finally { from?.removeEventListener('blur', observe); }
+    require(foreground() && document.activeElement === target, `cannot focus ${target.id}`);
+    if ((from === first || from === second) && from !== target) {
+      require(blur?.isTrusted && blur.target === from && blur.relatedTarget === target,
+        `expected real canvas blur: ${from.id} -> ${target.id}`);
+      report.canvas_blurs.push({from: from.id, to: target.id, trusted: blur.isTrusted});
+    }
+  }
+
+  function key(type, target) {
+    require(document.activeElement === target, `wrong keyboard target: ${target.id}`);
+    // Dispatch to the actual DOM focus owner; these key samples are not trusted input.
+    const event = new KeyboardEvent(type,
+      {key: 'a', code: 'KeyA', keyCode: 65, bubbles: true, cancelable: true});
+    target.dispatchEvent(event);
+    require(event.keyCode === 65 && event.key === 'a' && event.code === 'KeyA' &&
+      event.target === target && event.defaultPrevented === (target !== sibling),
+      `unexpected ${type} payload or listener routing on ${target.id}`);
+  }
+
+  function mouse(type) {
+    const event = new PointerEvent(type,
+      {pointerId: 1, pointerType: 'mouse', button: 0, cancelable: true});
+    first.dispatchEvent(event);
+    require(event.defaultPrevented, `missing canvas listener for ${type}`);
+  }
+
+  function step(fixture, phase, keys, mouseLeft = idle, hostRequests = 0) {
+    fixture.step();
+    const state = JSON.parse(fixture.snapshot(65, 'a'));
+    const expected = {physical: keys, logical: keys, mouse_left: mouseLeft,
+      cursor_requests: hostRequests, ime_requests: hostRequests};
+    const pass = Object.entries(expected)
+      .every(([field, value]) => JSON.stringify(state[field]) === JSON.stringify(value));
+    report.frames.push({phase, focus: document.activeElement?.id, expected, state, pass});
+    require(foreground() && state.omitted_events === 0, `invalid frame: ${phase}`);
+  }
+
+  function withFixtures(canvases, run) {
+    const fixtures = [];
+    try {
+      for (const canvas of canvases) fixtures.push(new Fixture(canvas));
+      run(...fixtures);
+    } finally {
+      let remaining = 0;
+      for (const fixture of fixtures.reverse()) {
+        try { remaining = fixture.close(); } finally { fixture.free(); }
+      }
+      require(remaining === 0, 'production DOM listeners leaked');
+    }
+  }
+
+  try {
+    withFixtures([first], a => {
+      focus(first); key('keydown', first); step(a, 'normal/down', down);
+      key('keyup', first); step(a, 'normal/up', up); step(a, 'normal/empty', idle);
+    });
+    withFixtures([first], a => {
+      focus(first); mouse('pointerdown'); key('keydown', first);
+      step(a, 'sibling/down', down, down);
+      focus(sibling); step(a, 'sibling/blur-before-up', up, held);
+      key('keyup', sibling); step(a, 'sibling/up-on-button', idle, held);
+      step(a, 'sibling/empty', idle, held);
+      focus(first); key('keydown', first); step(a, 'sibling/return-down', down, held);
+      mouse('pointerup'); key('keyup', first); step(a, 'sibling/return-up', up, up);
+    });
+    withFixtures([first, second], (a, b) => {
+      focus(first); key('keydown', first); step(a, 'two/a-down', down);
+      focus(second); key('keyup', second); step(b, 'two/unmatched-up-on-b', idle);
+      key('keydown', second); step(b, 'two/b-down', down);
+      step(a, 'two/a-lost', up); step(b, 'two/b-still-held', held);
+      focus(first); step(b, 'two/b-lost', up);
+      key('keyup', first); step(a, 'two/unmatched-up-on-a', idle);
+    });
+    withFixtures([first], a => {
+      focus(first); key('keydown', first); focus(sibling); key('keyup', sibling);
+      focus(first); key('keydown', first);
+      // Both edges belong to this frame; the fresh press after reacquisition wins.
+      step(a, 'ordered/first-down-blur-return-down', [true, true, true]);
+      key('keyup', first); step(a, 'ordered/final-up', up);
+    });
+    require(report.window_blurs.length === 0, 'local cases must not trigger Window blur');
+    withFixtures([first], a => {
+      focus(first); mouse('pointerdown'); key('keydown', first);
+      step(a, 'window/down', down, down);
+      // Wiring control only: no claim of OS/window deactivation from this event.
+      window.dispatchEvent(new Event('blur'));
+      const [blur] = report.window_blurs;
+      require(report.window_blurs.length === 1 && blur.window && !blur.trusted,
+        'expected only the constructed Window blur');
+      step(a, 'window/constructed-blur', up, up, 1);
+      step(a, 'window/empty', idle);
+    });
+    report.status = report.frames.every(frame => frame.pass) ? 'passed' : 'manager-failed';
+  } catch (error) {
+    Object.assign(report, {status: 'fixture-failed', error: String(error)});
+  } finally {
+    observation.abort();
+  }
+  return report;
+}
+
+async function run() {
+  let pkg;
+  try {
+    pkg = await import('./web_focus_fixture.js');
+    await pkg.default();
+  } catch (error) {
+    return {status: 'package-load-failed', error: String(error)};
+  }
+  return verify(pkg.WebFocusFixture);
+}
+
+window.__zirconFocusFixture = run().then(report => {
+  result.textContent = JSON.stringify(report, null, 2);
+  document.documentElement.dataset.fixtureStatus = report.status;
+  return report;
+});
+</script>
