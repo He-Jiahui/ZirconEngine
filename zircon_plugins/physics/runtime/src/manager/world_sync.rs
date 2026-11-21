@@ -67,7 +67,12 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
         }
 
         if let Some(collider) = world.collider(entity) {
-            let transform = combine_transforms(entity_transform, collider.local_transform);
+            let mut transform = combine_transforms(entity_transform, collider.local_transform);
+            if let Some(world_matrix) = world.world_matrix(entity) {
+                // The local origin is a point in the full hierarchy, including inherited shear.
+                transform.translation =
+                    world_matrix.transform_point3(collider.local_transform.translation);
+            }
             if transform_is_finite(transform)
                 && collider_shape_sync_input_is_valid(&collider.shape)
                 && collider_layer_sync_input_is_valid(collider.layer)
