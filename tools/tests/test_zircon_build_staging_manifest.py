@@ -1,6 +1,7 @@
 # 核对暂存清单对源文件、哈希和插件载荷的记录。
 import hashlib
 import json
+import os
 import tempfile
 import types
 import unittest
@@ -8,6 +9,70 @@ from pathlib import Path
 
 
 class ZirconBuildStagingManifestTests(unittest.TestCase):
+    def _stage_runtime_with_explicit_target(self, *, stale_dll=False):
+        temporary = self.enterContext(
+            tempfile.TemporaryDirectory(dir=os.environ.get("TMPDIR"))
+        )
+        root = Path(temporary)
+        out_root = root / "out"
+        config = types.SimpleNamespace(
+            repo_root=root / "repo",
+            out_root=out_root,
+            engine_root=out_root / "ZirconEngine",
+            targets_root=out_root / "targets",
+            mode="debug",
+            targets=("runtime",),
+            runtime_features=("target-client",),
+            effective_target_triple="x86_64-pc-windows-msvc",
+            plugins=(),
+            dry_run=False,
+        )
+        runtime_root = config.targets_root / "runtime" / "lib"
+        selected = {
+            "zircon_runtime.dll": b"selected-runtime-library",
+            "zircon_runtime.pdb": b"selected-runtime-symbols",
+        }
+        for name, contents in selected.items():
+            flat = b"stale-flat-" + contents
+            self._write(runtime_root / "debug" / name, flat)
+            self._write(runtime_root / config.effective_target_triple / "debug" / name, contents)
+            # Stage independently of copy_artifact to exercise the provenance guard itself.
+            self._write(
+                config.engine_root / name,
+                flat if stale_dll and name == "zircon_runtime.dll" else contents,
+            )
+        return config, selected
+
+    def test_manifest_rejects_flat_source_for_explicit_target(self):
+        from tools.build.zircon_build_staging_manifest import (
+            STAGING_MANIFEST_FILE_NAME,
+            write_staging_manifest,
+        )
+
+        config, _ = self._stage_runtime_with_explicit_target(stale_dll=True)
+
+        with self.assertRaisesRegex(SystemExit, "no source provenance.*zircon_runtime.dll"):
+            write_staging_manifest(config)
+        self.assertFalse((config.engine_root / STAGING_MANIFEST_FILE_NAME).exists())
+
+    def test_manifest_records_exact_source_for_explicit_target(self):
+        from tools.build.zircon_build_staging_manifest import write_staging_manifest
+
+        config, selected = self._stage_runtime_with_explicit_target()
+        manifest_path = write_staging_manifest(config)
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        by_path = {entry["target_path"]: entry for entry in manifest["artifacts"]}
+        for name, contents in selected.items():
+            with self.subTest(artifact=name):
+                self.assertEqual(
+                    {
+                        "kind": "build_artifact",
+                        "path": f"targets/runtime/lib/{config.effective_target_triple}/debug/{name}",
+                    },
+                    by_path[name]["source"],
+                )
+                self.assertEqual(hashlib.sha256(contents).hexdigest(), by_path[name]["sha256"])
+
     def test_manifest_binds_staged_files_to_sources_and_hashes(self):
         from tools.build.zircon_build_staging_manifest import write_staging_manifest
 

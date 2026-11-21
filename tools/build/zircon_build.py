@@ -33,7 +33,11 @@ try:
         stage_engine_assets,
     )
     from .zircon_build_artifact_io import copy_file, copy_sidecars
-    from .zircon_build_staging_manifest import write_staging_manifest
+    from .zircon_build_staging_manifest import (
+        artifact_target_triple,
+        exact_target_profile_root,
+        write_staging_manifest,
+    )
     from .zircon_build_runtime_manifest import write_runtime_artifact_manifest
     from .zircon_build_product_profile import (
         ProductBuildProfile,
@@ -112,7 +116,11 @@ except ImportError:  # pragma: no cover - exercised when run as a script.
         stage_engine_assets,
     )
     from tools.build.zircon_build_artifact_io import copy_file, copy_sidecars
-    from tools.build.zircon_build_staging_manifest import write_staging_manifest
+    from tools.build.zircon_build_staging_manifest import (
+        artifact_target_triple,
+        exact_target_profile_root,
+        write_staging_manifest,
+    )
     from tools.build.zircon_build_runtime_manifest import write_runtime_artifact_manifest
     from tools.build.zircon_build_product_profile import (
         ProductBuildProfile,
@@ -820,9 +828,12 @@ def build_native_dynamic_plugin(config: BuildConfig, package: PluginPackage) -> 
     native_out.mkdir(parents=True, exist_ok=True)
     copy_file(package.manifest_path, package_out / "plugin.toml", config)
     copy_resource_dirs(package.package_root, package_out, config)
+    target_triple = artifact_target_triple(config)
     for crate in package.native_dynamic_crates:
         artifact_name = platform_dynamic_library_name(crate.name)
-        artifact = find_artifact(target_dir, config.profile_dir, artifact_name)
+        artifact = find_artifact(
+            target_dir, config.profile_dir, artifact_name, target_triple=target_triple
+        )
         copy_file(artifact, native_out / artifact.name, config)
         copy_sidecars(artifact, native_out, config)
 
@@ -907,7 +918,12 @@ def copy_artifact(
     *,
     published_name: str | None = None,
 ) -> None:
-    artifact = find_artifact(target_dir, config.profile_dir, artifact_name)
+    artifact = find_artifact(
+        target_dir,
+        config.profile_dir,
+        artifact_name,
+        target_triple=artifact_target_triple(config),
+    )
     destination_name = published_name or artifact.name
     copy_file(artifact, config.engine_root / destination_name, config)
     shipping = bool(
@@ -923,21 +939,33 @@ def copy_artifact(
     )
 
 
-def find_artifact(target_dir: Path, profile_dir: str, artifact_name: str) -> Path:
-    profile_roots = [target_dir / profile_dir]
-    # Cargo places target-specific products under <target>/<triple>/<profile>
-    # when --target is supplied.  Keep the legacy layout as the first lookup
-    # so existing development builds remain unchanged.
-    profile_roots.extend(
-        candidate
-        for candidate in sorted(target_dir.glob("*/" + profile_dir))
-        if candidate not in profile_roots
-    )
+def find_artifact(
+    target_dir: Path,
+    profile_dir: str,
+    artifact_name: str,
+    *,
+    target_triple: str | None = None,
+) -> Path:
+    if target_triple:
+        # Cargo --target products belong only to this triple and profile.
+        profile_roots = [exact_target_profile_root(target_dir, profile_dir, target_triple)]
+    else:
+        # Preserve the flat-first search, including the legacy fallback scan.
+        profile_roots = [target_dir / profile_dir]
+        profile_roots.extend(
+            candidate
+            for candidate in sorted(target_dir.glob("*/" + profile_dir))
+            if candidate not in profile_roots
+        )
     for profile_root in profile_roots:
+        if target_triple and profile_root.resolve() != profile_root:
+            continue
         candidates = [profile_root / artifact_name, profile_root / "deps" / artifact_name]
         candidates.extend(profile_root.rglob(artifact_name) if profile_root.exists() else [])
         for candidate in candidates:
-            if candidate.exists() and candidate.is_file():
+            if candidate.exists() and candidate.is_file() and (
+                not target_triple or candidate.resolve().is_relative_to(profile_root)
+            ):
                 return candidate
     roots = ", ".join(str(root) for root in profile_roots)
     raise SystemExit(f"Built artifact not found under {roots}: {artifact_name}")
