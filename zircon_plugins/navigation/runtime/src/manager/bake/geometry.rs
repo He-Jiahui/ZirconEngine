@@ -166,7 +166,7 @@ fn collect_bake_geometry_for_source(
         let before = geometry.source_triangles();
         match geometry_source {
             NavMeshUseGeometry::RenderMeshes => {
-                let Some(transform) = world.world_transform(node.id) else {
+                let Some(node_world) = world.world_matrix(node.id) else {
                     if node.mesh.is_some() {
                         return Err(NavigationError::new(
                             zircon_runtime::core::framework::navigation::NavigationErrorKind::InvalidConfiguration,
@@ -178,7 +178,7 @@ fn collect_bake_geometry_for_source(
                 collect_render_node_geometry(
                     asset_manager,
                     &node,
-                    transform.matrix(),
+                    node_world,
                     &mut geometry,
                     area,
                 )?;
@@ -209,10 +209,10 @@ fn collect_collider_geometry(
     if collider.sensor {
         return Ok(());
     }
-    let Some(transform) = world.world_transform(node.id) else {
+    let Some(node_world) = world.world_matrix(node.id) else {
         return Ok(());
     };
-    let matrix = transform.matrix() * collider.local_transform.matrix();
+    let matrix = node_world * collider.local_transform.matrix();
     collect_collider_shape_geometry(matrix, &collider.shape, geometry, area)
 }
 
