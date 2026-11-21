@@ -55,7 +55,7 @@ children = [{ node = "set_projection_mode" }, { node = "align_view" }]
 [nodes.activate_scene_mode]
 component = "IconButton"
 control_id = "ActivateSceneMode"
-props = { label = "Tool", icon = "editor_pages/scene_viewport/tools/universal-transform.svg", icon_placement = "icon_only" }
+props = { label = "Tool", icon = "editor_pages/tools/universal-transform.svg", icon_placement = "icon_only" }
 layout = { width = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "ViewportToolbar/ActivateSceneMode", event = "Change", route = "workbench.viewport.activate_scene_mode" }]
 
