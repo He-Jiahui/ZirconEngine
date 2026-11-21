@@ -276,6 +276,135 @@ fn no_physics_keeps_sight_unknown_instead_of_falling_back_to_visible() {
 }
 
 #[test]
+fn near_sight_shortcut_counts_no_queries_with_a_live_provider() {
+    let rows = [
+        sight_metric_probe("coincident", 0.0, MetricProvider::Blocked),
+        sight_metric_probe("below", 5.0e-5, MetricProvider::Blocked),
+        sight_metric_probe("boundary", 1.0e-4, MetricProvider::Blocked),
+    ];
+    assert!(rows
+        .iter()
+        .all(|r| r.visible && r.calls == 0 && r.fallback == 0));
+    assert!(
+        rows.iter().all(|r| r.queries == 0),
+        "near sight shortcut cannot count a physics query: {rows:?}"
+    );
+}
+
+#[test]
+fn near_sight_shortcut_counts_no_queries_without_a_provider() {
+    let rows = [
+        sight_metric_probe("coincident_missing", 0.0, MetricProvider::Missing),
+        sight_metric_probe("coincident_disabled", 0.0, MetricProvider::Disabled),
+    ];
+    assert!(rows
+        .iter()
+        .all(|r| r.visible && r.calls == 0 && r.fallback == 0));
+    assert!(
+        rows.iter().all(|r| r.queries == 0),
+        "near sight shortcut cannot count a physics query without a provider: {rows:?}"
+    );
+}
+
+#[test]
+fn resolved_short_range_sight_counts_actual_clear_and_blocked_queries() {
+    let clear = sight_metric_probe("trace_clear", 2.0e-4, MetricProvider::Clear);
+    let blocked = sight_metric_probe("trace_blocked", 2.0e-4, MetricProvider::Blocked);
+    assert!(clear.visible && !blocked.visible);
+    for row in [clear, blocked] {
+        assert_eq!((row.calls, row.queries, row.fallback), (1, 1, 0));
+    }
+}
+
+#[test]
+fn unavailable_short_range_sight_stays_unknown_without_counting_queries() {
+    let missing = sight_metric_probe("trace_missing", 2.0e-4, MetricProvider::Missing);
+    let disabled = sight_metric_probe("trace_disabled", 2.0e-4, MetricProvider::Disabled);
+    for row in [missing, disabled] {
+        assert!(!row.visible);
+        assert_eq!((row.calls, row.queries, row.fallback), (0, 0, 1));
+    }
+}
+
+#[derive(Clone, Copy)]
+enum MetricProvider {
+    Clear,
+    Blocked,
+    Missing,
+    Disabled,
+}
+
+#[derive(Debug)]
+struct MetricRow {
+    calls: usize,
+    queries: usize,
+    fallback: usize,
+    visible: bool,
+}
+
+fn sight_metric_probe(label: &str, gap: f32, kind: MetricProvider) -> MetricRow {
+    let mut world = World::empty();
+    let receiver = spawn_receiver(&mut world, Vec3::ZERO, receiver_config(1.0));
+    let source_position = Vec3::new(0.0, 0.0, -gap);
+    let source = spawn_source(&mut world, source_position, AiPerceptionChannels::ALL);
+    assert_ne!(receiver, source);
+    let calls = Arc::new(AtomicUsize::new(0));
+    let blocker = matches!(kind, MetricProvider::Blocked).then(|| ray_hit(999, gap / 4.0));
+    let provider = (!matches!(kind, MetricProvider::Missing)).then(|| PhysicsHits {
+        hits: blocker.into_iter().collect(),
+        calls: calls.clone(),
+    });
+    let (registry, import, owner) = physics_import(provider);
+    if matches!(kind, MetricProvider::Disabled) {
+        registry
+            .frozen_bridge_table()
+            .set_owner_enabled(owner.unwrap(), false);
+    }
+    let mut budget = AiTickBudget::new(1);
+    let mut perceived = PerceivedStimuli::default();
+    let mut event_adapter = HearingStimulusAdapter::default();
+    let report = tick_perception(
+        &world,
+        TEST_WORLD,
+        0.0,
+        &mut budget,
+        &mut perceived,
+        &mut event_adapter,
+        &[],
+        Some(&import),
+    );
+    let snapshot = perceived.snapshot(receiver).unwrap();
+    assert_eq!(snapshot.agent, receiver);
+    assert!(snapshot.stimuli.iter().all(|stimulus| {
+        stimulus.source == source
+            && stimulus.position == source_position
+            && stimulus.age_seconds == 0.0
+    }));
+    let visible = snapshot
+        .stimuli
+        .iter()
+        .any(|s| s.sense == AiPerceptionSense::Sight);
+    assert!(snapshot
+        .stimuli
+        .iter()
+        .any(|s| s.sense == AiPerceptionSense::Hearing));
+    assert_eq!(report.scanned_pairs, 1);
+    assert_eq!(budget.consumed_pairs(), 1);
+    assert_eq!(report.refreshed_stimuli, 1 + usize::from(visible));
+    let row = MetricRow {
+        calls: calls.load(Ordering::Relaxed),
+        queries: report.physics_queries,
+        fallback: report.fallback_sight_pairs,
+        visible,
+    };
+    println!(
+        "SIGHT_METRIC label={label} gap={gap} calls={} queries={} fallback={} visible={} hearing=true pairs=1 refreshed={}",
+        row.calls, row.queries, row.fallback, row.visible, report.refreshed_stimuli
+    );
+    row
+}
+
+#[test]
 fn sound_event_registers_hearing_stimulus() {
     let mut world = World::empty();
     let receiver = spawn_receiver(&mut world, Vec3::ZERO, receiver_config(1.0));

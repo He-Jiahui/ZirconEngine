@@ -267,14 +267,15 @@ fn scan_pair(
     let occluded = if distance <= OCCLUSION_DISTANCE_EPSILON {
         Some(false)
     } else {
-        occlusion.and_then(|query_provider| query_provider.is_occluded(&query, source.entity))
+        let resolved =
+            occlusion.and_then(|query_provider| query_provider.is_occluded(&query, source.entity));
+        // A resolved bridge call, not geometric visibility, owns the query count.
+        report.physics_queries += usize::from(resolved.is_some());
+        resolved
     };
     match occluded {
-        Some(true) => {
-            report.physics_queries += 1;
-        }
+        Some(true) => {}
         Some(false) => {
-            report.physics_queries += 1;
             perceived.refresh(receiver.entity, stimulus(source, AiPerceptionSense::Sight));
             report.refreshed_stimuli += 1;
         }
