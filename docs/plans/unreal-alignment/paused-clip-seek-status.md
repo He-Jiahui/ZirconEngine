@@ -38,7 +38,7 @@ Windows x64/MSVC 下构建 `zircon_plugin_sound_runtime` 的 `--lib` 测试目�
 
 [暂停、定位与读回断言](https://github.com/He-Jiahui/ZirconEngine/blob/f36731ab854072da6003b32876bb6c864ecea29e/zircon_plugins/sound/runtime/src/service_types/tests/paused_clip_seek.rs#L52-L100)
 
-## 同一原生回归修后通过
+## 同一原生回归修后通过（历史版本 63b477f，不代表后续 HEAD）
 
 修前的两次读回都是第 4,576 帧（0.572 秒）；修后同一测试在保持暂停时两次都读到第 **12,000 帧 / 1.5 秒**。恢复后仍能在同一播放句柄上继续推进。测试字节不变，使用真正的 Kira mixer 处理块，不开启声卡，也未观测 DAC 音频。
 
@@ -47,3 +47,34 @@ Windows x64/MSVC 上，同一个 `zircon_plugin_sound_runtime` 库测试从 **0 
 暂停期间，仅对成功定位过的播放句柄返回已保存的逻辑游标。普通暂停仍读后端位置；恢复或切换到播放后清除此状态，重新随实际后端前进。没有新增 ABI、修改媒体导入或改变设备所有权。
 
 [状态读回](https://github.com/He-Jiahui/ZirconEngine/blob/2de0971fc46bc266def7968fc523378bd863ee7a/zircon_plugins/sound/runtime/src/service_types/playback_status.rs#L40-L74) · [记录定位](https://github.com/He-Jiahui/ZirconEngine/blob/2de0971fc46bc266def7968fc523378bd863ee7a/zircon_plugins/sound/runtime/src/service_types/playback_controls/seek.rs#L40-L53) · [恢复时清除](https://github.com/He-Jiahui/ZirconEngine/blob/2de0971fc46bc266def7968fc523378bd863ee7a/zircon_plugins/sound/runtime/src/engine/state/playback.rs#L51-L60) · [没有改动的精确断言](https://github.com/He-Jiahui/ZirconEngine/blob/2de0971fc46bc266def7968fc523378bd863ee7a/zircon_plugins/sound/runtime/src/service_types/tests/paused_clip_seek.rs#L52-L100)
+
+## 续审：恢复命令已返回，不代表新的混音位置已发布
+
+旧修复在 `resume_playback` / toggle-to-play 成功入队时立即清除暂停游标。原测试在恢复后又处理了八个块才读状态，观察不到入队到新位置发布之间的窗口。Kira 0.12.2 的 `StaticSound::on_start_processing` **先发布上一块的重采样器位置，再消费命令**；即使同一回调已处理恢复，句柄此时也可能仍暴露旧位置。比较位置大小无法判定反馈新旧（seek 可以向后）。这是同一个 clip 游标读回的交接问题，不是 sequence 末键或 WAV 导入问题。
+
+| 本机 UE 生产或测试所有者 | 在 ZE 中采用的合同与区别 |
+| --- | --- |
+| `Engine/Source/Runtime/Engine/Private/Components/AudioComponent.cpp:1091–1114,1183–1193`；`Engine/Source/Runtime/AudioMixer/Private/AudioMixerSource.cpp:1224–1249,1281–1298` | 组件意图和音频线程上的音源分开；百分比来自 mixer 源帧，并非控制调用的回执。ZE 以 `SoundPlaybackId` 标识 clip，以绝对素材帧/秒回读，不复制 UObject 或声部百分比 API。 |
+| `Engine/Source/Runtime/MediaUtils/Private/MediaPlayerFacade.cpp:536–575,1243–1316` | 仅类比 V2 显示时钟：接受的目标可先于样本时间；不把 UE 的媒体播放器当作音频组件实现，也不把图片序列帧率测试当音频原测。 |
+| `Engine/Source/Runtime/MovieSceneTracks/Private/Systems/MovieSceneAudioSystem.cpp:785–812,1049–1091` | UE section 的评估时间驱动组件，而非反过来。ZE 的 `advance_timeline_sequences(delta)` 明确接受调用方时间增量；同一个 SoundManager 上，clip 冻结或 seek 不得改写独立自动化序列的时间。未改序列采样。 |
+| `Engine/Plugins/Runtime/Harmonix/Source/HarmonixMetasoundTests/Private/MusicClock/MusicClockTests.cpp:233–281`，`Harmonix.Metasound.MusicClock.RuntimeMusicSource.TransportStates` | 对应生产 `RuntimeMusicSource.cpp:267–305`，仅 Running 时从时间源更新位置。移植原测的**暂停冻结、Continue 后从原位置推进**断言；Rust 回归通过真实 Kira mixer 手工驱动，不使用 UE 的手动节拍时钟。UE Stop 后时间归零；ZE Stop 移除该 ID 并保留终态记录。原测没有暂停 seek；seek 与过期反馈断言是 ZE 合同回归。 |
+
+**实现。** 最新成功的暂停 seek 由该 clip 的活动记录持有；负数、非有限值及被拒绝的控制不替换它。有限非负目标仍饱和到切片。恢复时同步改变服务的 paused 标志，游标暂不交还：命令入队后，新建该输出代的请求序号；混音回调在读命令前采集序号，到下一次 Kira 发布上一块位置后才确认。只接纳覆盖本句柄请求的序号，允许同一块覆盖多个请求；不靠时间估计、播放方向或状态轮询次数。普通未 seek 的播放不需要序号。这里确认的是**混音反馈批次**，不是某一源帧已到达 DAC；交接后位置由 Kira 的实际重采样器决定。
+
+仅调整可裁剪 Sound 插件内部。保留 Kira/CPAL 和设备生命周期、中立框架接口、Wasm/宿主与插件边界；不涉及自研 ECS、父子变换矩阵、VM、CI，也不重新启用生产手动拉取音频块的入口。无设备入口仅用于测试，不替代 CPAL 或跨平台实机验收。
+
+**证据与待验。** 已核对原 RED 和 GREEN 的独立测试日志（均非仅 `--no-run` 的回执），且试验提交 `bcb18a844b6ab0a45143649843be9b6347320f2c` 与旧 PR 头 `63b477f82a7b93449ead47d4b5b650974260d01a` 仅本文有差异。上述 1/1 GREEN 不覆盖这次改动。当前过滤器共五项：原精确回归、普通暂停/恢复、先后定位与非法输入及恢复首块（前/后向、resume/toggle）、两句柄错开一块恢复、clip 与 sequence 独立。两次读到目标后，还要求同一 ID 的真实 mixer 位置继续推进，不允许永远钉住目标。
+
+[服务回归](../../../zircon_plugins/sound/runtime/src/service_types/tests/paused_clip_seek.rs)和[反馈发布顺序](../../../zircon_plugins/sound/runtime/src/kira_bridge/cursor_feedback.rs)已做静态检查：14 个所改 Rust 文件通过定向 rustfmt。独立的块事件顺序模型枚举了 136 个控制写入/请求与回调交错，未见先确认、后发布的顺序；这不执行 Rust 或 Kira。
+
+三盘均不足 50 GiB，本轮未编译或运行这些 Rust 用例。下列命令仅以 `-DryRun` 核对过选包、工作树、串行参数和专用缓存路径；盘余量恢复后，由已准备 MSVC 的环境在本任务树执行（不使用旧树的 Jenkins 入口）：
+
+```powershell
+& 'E:\Git\ZirconEngine\tools\dev\local-cargo.ps1' `
+  -RepoRoot 'D:\CodexData\worktrees\ze-pr259-sound-review-20261121' `
+  -TargetDir 'F:\cargo-targets\zircon-local\windows\pr259-review-20261121\target' `
+  test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sound_runtime `
+  --no-default-features --lib --locked --jobs 1 paused_clip_seek_tests '--' '--test-threads' 1
+```
+
+预期只运行上述五个库单测（test profile、无可选特性）。须见真实测试数和退出码后再做验收决定；未执行 UE 自动化、真实声卡或 Wasm 产品测试。

@@ -115,7 +115,7 @@ fn active_playback(clip: SoundClipId) -> ActivePlayback {
         looped: false,
         completion_action: SoundPlaybackCompletionAction::None,
         paused: false,
-        has_paused_seek: false,
+        cursor_owner: Default::default(),
         muted: false,
         range_start_frame: 0,
         range_end_frame: None,

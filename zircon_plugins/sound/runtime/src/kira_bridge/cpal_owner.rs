@@ -473,8 +473,9 @@ pub(crate) struct OwnerCpalBackend {
     stream: Option<cpal::Stream>,
     pending_retirement: Option<ProviderRetirement>,
     gate: Arc<CallbackGate>,
+    cursor_feedback: Arc<super::cursor_feedback::CursorFeedback>,
     #[cfg(test)]
-    mock_output: Option<MockBackend>,
+    mock_output: Option<(MockBackend, u64)>,
 }
 
 #[cfg(test)]
@@ -542,7 +543,8 @@ impl Backend for OwnerCpalBackend {
                     stream: None,
                     pending_retirement: None,
                     gate: Arc::new(CallbackGate::new()),
-                    mock_output: Some(mock_output),
+                    cursor_feedback: Default::default(),
+                    mock_output: Some((mock_output, 0)),
                 },
                 sample_rate,
             ));
@@ -564,6 +566,7 @@ impl Backend for OwnerCpalBackend {
                 stream: None,
                 pending_retirement: None,
                 gate: Arc::new(CallbackGate::new()),
+                cursor_feedback: Default::default(),
                 #[cfg(test)]
                 mock_output: None,
             },
@@ -573,7 +576,7 @@ impl Backend for OwnerCpalBackend {
 
     fn start(&mut self, mut renderer: Renderer) -> Result<(), Self::Error> {
         #[cfg(test)]
-        if let Some(mock_output) = &mut self.mock_output {
+        if let Some((mock_output, _)) = &mut self.mock_output {
             mock_output
                 .start(renderer)
                 .expect("Kira mock output start is infallible");
@@ -586,6 +589,8 @@ impl Backend for OwnerCpalBackend {
         let config = self.config;
         let channels = config.channels;
         let gate = Arc::clone(&self.gate);
+        let feedback = Arc::clone(&self.cursor_feedback);
+        let mut previous_block = 0;
         let stream = device.build_output_stream(
             config,
             move |data: &mut [f32], _| {
@@ -593,7 +598,7 @@ impl Backend for OwnerCpalBackend {
                 let Some(_lease) = gate.enter() else { return };
                 #[cfg(test)]
                 signal_once(&CALLBACK_ENTER_SIGNAL);
-                renderer.on_start_processing();
+                feedback.start_block(&mut previous_block, || renderer.on_start_processing());
                 renderer.process(data, channels);
                 #[cfg(test)]
                 {
@@ -616,6 +621,14 @@ impl Backend for OwnerCpalBackend {
 }
 
 impl OwnerCpalBackend {
+    pub(super) fn request_cursor_feedback(&self) -> u64 {
+        self.cursor_feedback.request()
+    }
+
+    pub(super) fn has_cursor_feedback(&self, request: u64) -> bool {
+        self.cursor_feedback.has_published(request)
+    }
+
     pub(crate) fn quiesce(&mut self, timeout: Duration) -> Result<(), CpalQuiescenceError> {
         let deadline = Instant::now()
             .checked_add(timeout)
@@ -689,11 +702,12 @@ impl OwnerCpalBackend {
 
     #[cfg(test)]
     pub(crate) fn process_mock_block_for_test(&mut self) {
-        let mock_output = self
+        let (mock_output, previous_block) = self
             .mock_output
             .as_mut()
             .expect("expected Kira mock output");
-        mock_output.on_start_processing();
+        self.cursor_feedback
+            .start_block(previous_block, || mock_output.on_start_processing());
         mock_output.process();
     }
 

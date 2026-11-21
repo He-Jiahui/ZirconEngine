@@ -9,6 +9,22 @@ use zircon_runtime::core::framework::sound::{SoundError, SoundPlaybackId, SoundT
 
 use super::KiraEngine;
 
+impl KiraEngine<super::OwnerCpalBackend> {
+    pub(crate) fn resume_after_paused_seek(
+        &mut self,
+        id: SoundPlaybackId,
+    ) -> Result<u64, SoundError> {
+        self.resume(id)?;
+        Ok(self.manager_mut()?.backend_mut().request_cursor_feedback())
+    }
+
+    pub(crate) fn has_cursor_feedback(&mut self, request: u64) -> bool {
+        self.manager
+            .as_mut()
+            .is_some_and(|manager| manager.backend_mut().has_cursor_feedback(request))
+    }
+}
+
 impl<B: Backend> KiraEngine<B> {
     pub(crate) fn play(
         &mut self,

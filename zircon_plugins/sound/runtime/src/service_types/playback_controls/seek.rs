@@ -49,7 +49,11 @@ impl DefaultSoundManager {
             .ok_or(SoundError::UnknownPlayback { playback })?;
         active.cursor_frame = clamped_frame;
         active.cursor_position = clamped_frame as f64;
-        active.has_paused_seek = active.paused;
+        active.cursor_owner = if active.paused {
+            crate::engine::ClipCursorOwner::PausedSeek
+        } else {
+            crate::engine::ClipCursorOwner::Mixer
+        };
         Ok(())
     }
 }

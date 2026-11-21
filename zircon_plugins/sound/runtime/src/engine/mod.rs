@@ -19,6 +19,6 @@ mod state;
 pub(crate) use hrtf::{SoundHrtfRenderState, SoundHrtfRenderStateKey};
 pub(crate) use occlusion::{occlusion_gain_for_query, SoundOcclusionQuery};
 pub(crate) use state::{
-    ActivePlayback, LoadedClip, SoundDynamicEventExecutor, SoundDynamicEventExecutorKey,
-    SoundEngineState, SoundGraphSnapshot, SourceVoice,
+    ActivePlayback, ClipCursorOwner, LoadedClip, SoundDynamicEventExecutor,
+    SoundDynamicEventExecutorKey, SoundEngineState, SoundGraphSnapshot, SourceVoice,
 };
