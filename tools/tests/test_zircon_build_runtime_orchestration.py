@@ -16,7 +16,6 @@ from tools.build.zircon_build import (
 from tools.build.zircon_build_abi import AbiValidationError
 from tools.build.zircon_build_product_output import _validate_product_abis
 from tools.build.zircon_build_product_profile import load_product_build_profile
-from tools.build.zircon_build_support import platform_dynamic_library_name
 
 
 class ArtifactTargetIdentityTests(unittest.TestCase):
@@ -78,7 +77,7 @@ class ArtifactTargetIdentityTests(unittest.TestCase):
             f"--target={self.TARGET}", plugins=(package,),
         )
         target_dir = config.targets_root / "plugins" / "fixture"
-        artifact_name = platform_dynamic_library_name("fixture")
+        artifact_name = "fixture.dll"  # The requested target is Windows, on any host.
         self.write_artifact_pair(
             target_dir / self.OTHER_TARGET / "debug" / artifact_name,
             b"other-dll",

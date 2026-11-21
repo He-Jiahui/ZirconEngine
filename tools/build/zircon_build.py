@@ -819,6 +819,10 @@ def build_plugins(config: BuildConfig) -> None:
 def build_native_dynamic_plugin(config: BuildConfig, package: PluginPackage) -> None:
     target_dir = plugin_target_dir(config, package)
     crate_names = [crate.name for crate in package.native_dynamic_crates]
+    target_triple = artifact_target_triple(config)
+    artifact_names = [
+        platform_dynamic_library_name(name, target_triple=target_triple) for name in crate_names
+    ]
     print(f"Building native_dynamic plugin {package.plugin_id}: {', '.join(crate_names)}")
     run_plugin_cargo(config, target_dir, crate_names)
     if config.dry_run:
@@ -828,9 +832,7 @@ def build_native_dynamic_plugin(config: BuildConfig, package: PluginPackage) -> 
     native_out.mkdir(parents=True, exist_ok=True)
     copy_file(package.manifest_path, package_out / "plugin.toml", config)
     copy_resource_dirs(package.package_root, package_out, config)
-    target_triple = artifact_target_triple(config)
-    for crate in package.native_dynamic_crates:
-        artifact_name = platform_dynamic_library_name(crate.name)
+    for artifact_name in artifact_names:
         artifact = find_artifact(
             target_dir, config.profile_dir, artifact_name, target_triple=target_triple
         )
