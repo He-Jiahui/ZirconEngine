@@ -23,7 +23,7 @@ use zircon_runtime::core::framework::{
     },
     scene::physics::{PhysicsCcdMode, PhysicsMaterialMetadata},
 };
-use zircon_runtime::core::math::Real;
+use zircon_runtime::core::math::{Real, Vec3};
 use zircon_runtime::core::resource::AssetReference;
 
 use crate::backend::builtin::{
@@ -41,7 +41,8 @@ use zircon_runtime::core::runtime::tasks::EngineThreadBudget;
 
 use super::command_apply::{apply_body_command, apply_projected_body_state};
 use super::conversion::{
-    create_shape, motion_type, quat, rvec3, vec3, zircon_quat, zircon_translation, zircon_vec3,
+    create_shape, motion_type, quat, rvec3, translate_native_shape, vec3, zircon_quat,
+    zircon_translation, zircon_vec3,
 };
 use super::layers::{OBJECT_LAYER_MOVING, OBJECT_LAYER_NON_MOVING};
 use super::mesh_shape::validate_mesh_asset;
@@ -129,6 +130,29 @@ impl JoltPhysicsBackend {
             PhysicsSleepPolicy::Never
         };
         Some((record.desc.body.body_type, ccd_mode, sleep_policy))
+    }
+
+    // Test-only raw native observation, including static/inactive bodies. Mutate only a clone.
+    #[cfg(test)]
+    pub(crate) fn debug_native_body_state(&self, body: BodyHandle) -> Option<PhysicsBodySyncState> {
+        let mut record = self.bodies.get(body)?.clone();
+        unsafe { read_native_body_state(self.body_interface(), &mut record) };
+        Some(record.desc.body)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn debug_native_center_of_mass(
+        &self,
+        body: BodyHandle,
+    ) -> Option<zircon_runtime::core::math::Vec3> {
+        let record = self.bodies.get(body)?;
+        let center = unsafe {
+            joltc_sys::JPC_BodyInterface_GetCenterOfMassPosition(
+                self.body_interface(),
+                record.native_id,
+            )
+        };
+        Some(zircon_translation(center))
     }
 
     fn body_interface(&self) -> *mut joltc_sys::JPC_BodyInterface {
@@ -314,6 +338,28 @@ impl PhysicsBackend for JoltPhysicsBackend {
                     .to_string(),
             });
         }
+        let center_delta = desc.collider.transform.translation - desc.body.transform.translation;
+        let has_offset = center_delta != Vec3::ZERO;
+        if !center_delta.is_finite()
+            || (has_offset && (desc.body.transform.rotation.length_squared() - 1.0).abs() > 1.0e-5)
+        {
+            return Err(PhysicsBackendError::InvalidDescriptor {
+                kind: PhysicsBackendObjectKind::Body,
+                detail: "collider center requires a finite offset and a rigid body rotation"
+                    .to_string(),
+            });
+        }
+        let local_offset = if has_offset {
+            desc.body.transform.rotation.inverse() * center_delta
+        } else {
+            Vec3::ZERO
+        };
+        if !local_offset.is_finite() {
+            return Err(PhysicsBackendError::InvalidDescriptor {
+                kind: PhysicsBackendObjectKind::Body,
+                detail: "collider center overflows the native body frame".to_string(),
+            });
+        }
         let resolved_mass = if desc.body.body_type == PhysicsBodyType::Static {
             None
         } else {
@@ -328,6 +374,15 @@ impl PhysicsBackend for JoltPhysicsBackend {
                 create_shape(&shape.shape, &self.mesh_assets, Some(resolved.density))?
             },
             None => shape.native,
+        };
+        let (native_body_shape, owns_body_shape) = if has_offset {
+            let placed = unsafe { translate_native_shape(native_body_shape, local_offset) };
+            if resolved_mass.is_some() {
+                unsafe { JPC_Shape_Release(native_body_shape) };
+            }
+            (placed?, true)
+        } else {
+            (native_body_shape, resolved_mass.is_some())
         };
         let native_settings = JPC_BodyCreationSettings {
             Position: rvec3(desc.body.transform.translation),
@@ -362,7 +417,7 @@ impl PhysicsBackend for JoltPhysicsBackend {
         };
         let body_interface = self.body_interface();
         let native_body = unsafe { JPC_BodyInterface_CreateBody(body_interface, &native_settings) };
-        if native_body_shape != shape.native {
+        if owns_body_shape {
             unsafe { JPC_Shape_Release(native_body_shape) };
         }
         if native_body.is_null() {

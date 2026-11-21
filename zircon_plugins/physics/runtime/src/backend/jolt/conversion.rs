@@ -206,6 +206,28 @@ unsafe fn create_compound_shape(
             ..JPC_SubShapeSettings::default()
         });
     }
+    let result = create_native_compound(&sub_shapes);
+    release_shapes(owned_shapes);
+    result
+}
+
+// Borrows the base shape; a successful result owns one reference, even if pointers match.
+// Jolt turns a single placed child into a native RotatedTranslatedShape.
+pub(super) unsafe fn translate_native_shape(
+    shape: *mut JPC_Shape,
+    offset: Vec3,
+) -> Result<*mut JPC_Shape, PhysicsBackendError> {
+    create_native_compound(&[JPC_SubShapeSettings {
+        Shape: shape,
+        Position: vec3(offset.to_array()),
+        Rotation: quat(Quat::IDENTITY),
+        ..JPC_SubShapeSettings::default()
+    }])
+}
+
+unsafe fn create_native_compound(
+    sub_shapes: &[JPC_SubShapeSettings],
+) -> Result<*mut JPC_Shape, PhysicsBackendError> {
     let mut native_shape = ptr::null_mut();
     let mut native_error = ptr::null_mut();
     let created = JPC_StaticCompoundShapeSettings_Create(
@@ -217,7 +239,6 @@ unsafe fn create_compound_shape(
         &mut native_shape,
         &mut native_error,
     );
-    release_shapes(owned_shapes);
     if created && !native_shape.is_null() {
         Ok(native_shape)
     } else {

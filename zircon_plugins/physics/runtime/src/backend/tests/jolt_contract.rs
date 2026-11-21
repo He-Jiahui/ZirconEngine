@@ -756,3 +756,444 @@ fn jolt_direct_trait_rejects_nonfinite_command_batches_before_any_mutation() {
         assert!(state.transform.scale.is_finite());
     }
 }
+
+#[test]
+fn native_offset_floor_stops_sphere_at_authored_center() {
+    let row = native_point_probe("offset", NativePointPlacement::Offset);
+    assert!(
+        row.correct(),
+        "native solver must honor the authored collider center: {row:?}"
+    );
+}
+
+#[test]
+fn native_rotated_offset_floor_stops_sphere_at_authored_center() {
+    let row = native_point_probe("rotated", NativePointPlacement::RotatedOffset);
+    assert!(
+        row.correct(),
+        "native solver must resolve the collider center in the body frame: {row:?}"
+    );
+}
+
+#[test]
+fn native_zero_offset_floor_keeps_existing_response() {
+    let row = native_point_probe("zero", NativePointPlacement::Zero);
+    assert!(
+        row.correct(),
+        "zero-offset native floor must retain its response: {row:?}"
+    );
+}
+
+#[test]
+fn native_translated_body_floor_keeps_existing_response() {
+    let row = native_point_probe("translated", NativePointPlacement::Translated);
+    assert!(
+        row.correct(),
+        "translated native body must retain its response: {row:?}"
+    );
+}
+
+#[derive(Clone, Copy)]
+enum NativePointPlacement {
+    Offset,
+    RotatedOffset,
+    Zero,
+    Translated,
+}
+
+#[derive(Debug)]
+struct NativePointRow {
+    target_y: f32,
+    other_y: f32,
+    target_vy: f32,
+    other_vy: f32,
+    target_tail_range: f32,
+}
+
+impl NativePointRow {
+    fn correct(&self) -> bool {
+        (self.target_y - 0.25).abs() < 0.06
+            && self.other_y < -25.0
+            && self.target_vy.abs() < 0.1
+            && self.other_vy < -20.0
+            && self.target_tail_range < 0.02
+    }
+}
+
+fn native_point_probe(label: &str, placement: NativePointPlacement) -> NativePointRow {
+    use zircon_runtime::core::math::Quat;
+    const STEPS: usize = 180;
+    let mut backend = JoltPhysicsBackend::new(PhysicsSettings::default())
+        .expect("initialize real native Jolt world, without a fallback");
+    assert_eq!(backend.name(), "jolt");
+    let material = PhysicsMaterialMetadata {
+        restitution: 0.0,
+        ..PhysicsMaterialMetadata::default()
+    };
+    let floor_geometry = PhysicsColliderShape::Box {
+        half_extents: [0.5; 3],
+    };
+    let ball_geometry = PhysicsColliderShape::Sphere { radius: 0.25 };
+    let floor_shape = backend
+        .create_shape(&floor_geometry, &material)
+        .expect("native floor geometry");
+    let ball_shape = backend
+        .create_shape(&ball_geometry, &material)
+        .expect("shared native sphere geometry");
+    let (body_origin, rotation, center, other) = match placement {
+        NativePointPlacement::Offset => (
+            Vec3::new(0.0, -0.5, 0.0),
+            Quat::IDENTITY,
+            Vec3::new(8.0, -0.5, 0.0),
+            Vec3::ZERO,
+        ),
+        NativePointPlacement::RotatedOffset => (
+            Vec3::new(3.0, -0.5, 4.0),
+            Quat::from_rotation_y(std::f32::consts::FRAC_PI_2),
+            Vec3::new(3.0, -0.5, -4.0),
+            Vec3::new(3.0, 0.0, 4.0),
+        ),
+        NativePointPlacement::Zero => (
+            Vec3::new(0.0, -0.5, 0.0),
+            Quat::IDENTITY,
+            Vec3::new(0.0, -0.5, 0.0),
+            Vec3::X * 8.0,
+        ),
+        NativePointPlacement::Translated => (
+            Vec3::new(8.0, -0.5, 0.0),
+            Quat::IDENTITY,
+            Vec3::new(8.0, -0.5, 0.0),
+            Vec3::ZERO,
+        ),
+    };
+    let world = WorldHandle::new(890);
+    let mut floor = body_desc(
+        world,
+        8900,
+        floor_shape,
+        floor_geometry,
+        PhysicsBodyType::Static,
+        -0.5,
+    );
+    floor.body.transform.translation = body_origin;
+    floor.body.transform.rotation = rotation;
+    floor.collider.transform.translation = center;
+    floor.collider.transform.rotation = rotation;
+    let original_floor = floor.clone();
+    let floor_handle = backend
+        .create_body(&floor)
+        .expect("native static body with separate collider center");
+    assert_eq!(floor, original_floor);
+    native_body_origin_matches(&backend, floor_handle, floor.body.transform);
+    let starts = [
+        Vec3::new(center.x, 2.0, center.z),
+        Vec3::new(other.x, 2.0, other.z),
+    ];
+    assert!(starts[0].distance(starts[1]) > 7.9);
+    let mut handles = Vec::new();
+    for (index, start) in starts.iter().copied().enumerate() {
+        let mut ball = body_desc(
+            world,
+            8901 + index as u64,
+            ball_shape,
+            ball_geometry.clone(),
+            PhysicsBodyType::Dynamic,
+            2.0,
+        );
+        ball.body.transform.translation = start;
+        ball.collider.transform = ball.body.transform;
+        ball.body.sleep_policy = PhysicsSleepPolicy::Never;
+        ball.body.linear_damping = 0.0;
+        ball.body.angular_damping = 0.0;
+        let handle = backend.create_body(&ball).expect("native dynamic sphere");
+        assert_eq!(
+            backend.debug_body_runtime_policy(handle).unwrap().2,
+            PhysicsSleepPolicy::Never
+        );
+        handles.push(handle);
+    }
+    assert!(
+        backend.destroy_shape(ball_shape).is_err(),
+        "shared shape stays referenced by both bodies"
+    );
+    let mut active = Vec::new();
+    backend.read_active_states(&mut active);
+    for (handle, start) in handles.iter().zip(starts) {
+        let state = active
+            .iter()
+            .find_map(|(h, s)| (h == handle).then_some(s))
+            .expect("new sphere is natively active");
+        assert!(state.transform.translation.distance(start) < 1e-5);
+    }
+    let mut heights = [Vec::new(), Vec::new()];
+    let mut velocities = [Vec::new(), Vec::new()];
+    for _ in 0..STEPS {
+        backend
+            .step(FIXED_STEP_SECONDS)
+            .expect("actual JPC native physics update");
+        active.clear();
+        backend.read_active_states(&mut active);
+        for index in 0..2 {
+            let state = active
+                .iter()
+                .find_map(|(h, s)| (*h == handles[index]).then_some(s))
+                .expect("NeverSleep native sphere must produce every sampled state");
+            let p = state.transform.translation;
+            assert!(p.is_finite() && state.linear_velocity.iter().all(|v| v.is_finite()));
+            assert!((p.x - starts[index].x).abs() < 0.02 && (p.z - starts[index].z).abs() < 0.02);
+            assert_eq!(state.body_type, PhysicsBodyType::Dynamic);
+            heights[index].push(p.y);
+            velocities[index].push(state.linear_velocity[1]);
+        }
+    }
+    for ys in &heights {
+        assert_eq!(ys.len(), STEPS);
+        assert!(
+            ys[0] < 2.0 && ys[0] > 1.9 && ys[29] < 1.0 && ys[29] > 0.3,
+            "actual initial free-fall, not a canned rest pose"
+        );
+    }
+    let tail = &heights[0][STEPS - 30..];
+    let low = tail.iter().copied().fold(f32::INFINITY, f32::min);
+    let high = tail.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+    let row = NativePointRow {
+        target_y: heights[0][STEPS - 1],
+        other_y: heights[1][STEPS - 1],
+        target_vy: velocities[0][STEPS - 1],
+        other_vy: velocities[1][STEPS - 1],
+        target_tail_range: high - low,
+    };
+    native_body_origin_matches(&backend, floor_handle, floor.body.transform);
+    println!("NATIVE_POINT label={label} target_y={} other_y={} target_vy={} other_vy={} target_tail={} initial_y={} early_y={} frames={} native=true commands=0 constraints=0 events_used=false", row.target_y, row.other_y, row.target_vy, row.other_vy, row.target_tail_range, heights[0][0], heights[0][29], STEPS);
+    println!("NATIVE_ORIGIN label={label} static_origin=pass before_after=true");
+    for handle in handles {
+        backend
+            .destroy_body(handle)
+            .expect("release both dynamic references");
+    }
+    backend
+        .destroy_body(floor_handle)
+        .expect("release floor body");
+    backend
+        .destroy_shape(ball_shape)
+        .expect("release shared sphere shape after both bodies");
+    backend
+        .destroy_shape(floor_shape)
+        .expect("release original floor shape");
+    row
+}
+
+fn native_body_origin_matches(
+    backend: &JoltPhysicsBackend,
+    handle: crate::backend::BodyHandle,
+    expected: Transform,
+) {
+    let observed = backend
+        .debug_native_body_state(handle)
+        .expect("native body exists");
+    assert!(
+        observed
+            .transform
+            .translation
+            .distance(expected.translation)
+            < 1e-4,
+        "direct native origin is not the collider/COM: {:?} versus {:?}",
+        observed.transform,
+        expected
+    );
+    assert!(observed.transform.rotation.dot(expected.rotation).abs() > 1.0 - 1e-5);
+}
+
+#[test]
+fn native_dynamic_offset_retains_body_origin_and_hits_authored_geometry() {
+    let row = native_owned_point_probe("dynamic", false);
+    assert!(
+        row.correct(),
+        "density-owned dynamic geometry must use collider center, not move body origin: {row:?}"
+    );
+}
+
+#[test]
+fn native_kinematic_offset_retains_body_origin_and_hits_authored_geometry() {
+    let row = native_owned_point_probe("kinematic", true);
+    assert!(
+        row.correct(),
+        "density-owned kinematic geometry must use collider center, not move body origin: {row:?}"
+    );
+}
+
+#[derive(Debug)]
+struct NativeOwnedPointRow {
+    center: Vec3,
+    vy: f32,
+    tail: f32,
+    center_frame_error: f32,
+    floor_center_error: f32,
+}
+
+impl NativeOwnedPointRow {
+    fn correct(&self) -> bool {
+        (self.center.y - 0.25).abs() < 0.06
+            && (self.center.x - 3.0).abs() < 0.5
+            && (self.center.z + 4.0).abs() < 0.5
+            && self.vy.abs() < 0.1
+            && self.tail < 0.02
+            && self.center_frame_error < 1e-4
+            && self.floor_center_error < 1e-4
+    }
+}
+
+fn native_owned_point_probe(label: &str, kinematic_floor: bool) -> NativeOwnedPointRow {
+    use zircon_runtime::core::math::Quat;
+    const STEPS: usize = 180;
+    let mut backend = JoltPhysicsBackend::new(PhysicsSettings::default())
+        .expect("actual native Jolt, no fallback");
+    assert_eq!(backend.name(), "jolt");
+    let material = PhysicsMaterialMetadata {
+        restitution: 0.0,
+        ..PhysicsMaterialMetadata::default()
+    };
+    let box_geometry = PhysicsColliderShape::Box {
+        half_extents: [0.5; 3],
+    };
+    let ball_geometry = PhysicsColliderShape::Sphere { radius: 0.25 };
+    let floor_shape = backend.create_shape(&box_geometry, &material).unwrap();
+    let ball_shape = backend.create_shape(&ball_geometry, &material).unwrap();
+    let world = WorldHandle::new(891);
+    let rotation = Quat::from_rotation_y(std::f32::consts::FRAC_PI_2);
+    let geometry_xz = Vec3::new(3.0, 0.0, -4.0);
+    let original_xz = Vec3::new(3.0, 0.0, 4.0);
+    let floor_type = if kinematic_floor {
+        PhysicsBodyType::Kinematic
+    } else {
+        PhysicsBodyType::Static
+    };
+    let mut floor = body_desc(world, 8910, floor_shape, box_geometry, floor_type, -0.5);
+    let floor_xz = if kinematic_floor {
+        original_xz
+    } else {
+        geometry_xz
+    };
+    floor.body.transform.translation = floor_xz - Vec3::Y * 0.5;
+    floor.body.transform.rotation = if kinematic_floor {
+        rotation
+    } else {
+        Quat::IDENTITY
+    };
+    floor.body.sleep_policy = PhysicsSleepPolicy::Never;
+    floor.body.gravity_scale = 0.0;
+    floor.collider.transform = floor.body.transform;
+    floor.collider.transform.translation = geometry_xz - Vec3::Y * 0.5;
+    let floor_body = backend
+        .create_body(&floor)
+        .expect("static/kinematic native support");
+    native_body_origin_matches(&backend, floor_body, floor.body.transform);
+    let floor_center_error = backend
+        .debug_native_center_of_mass(floor_body)
+        .unwrap()
+        .distance(floor.collider.transform.translation);
+    let mut ball = body_desc(
+        world,
+        8911,
+        ball_shape,
+        ball_geometry,
+        PhysicsBodyType::Dynamic,
+        2.0,
+    );
+    let start_xz = if kinematic_floor {
+        geometry_xz
+    } else {
+        original_xz
+    };
+    let start = start_xz + Vec3::Y * 2.0;
+    ball.body.transform.translation = start;
+    ball.body.transform.rotation = if kinematic_floor {
+        Quat::IDENTITY
+    } else {
+        rotation
+    };
+    ball.body.sleep_policy = PhysicsSleepPolicy::Never;
+    ball.body.linear_damping = 0.0;
+    ball.body.angular_damping = 0.0;
+    ball.collider.transform = ball.body.transform;
+    ball.collider.transform.translation = geometry_xz + Vec3::Y * 2.0;
+    let ball_body = backend.create_body(&ball).expect("dynamic native probe");
+    native_body_origin_matches(&backend, ball_body, ball.body.transform);
+    assert_eq!(
+        backend.debug_body_runtime_policy(ball_body).unwrap().2,
+        PhysicsSleepPolicy::Never
+    );
+    assert!(backend.destroy_shape(floor_shape).is_err());
+    assert!(backend.destroy_shape(ball_shape).is_err());
+    let mut active = Vec::new();
+    let mut heights = Vec::with_capacity(STEPS);
+    let local_sphere_center = if kinematic_floor {
+        Vec3::ZERO
+    } else {
+        Vec3::X * 8.0
+    };
+    let mut center_frame_error = 0.0_f32;
+    let mut final_state = None;
+    for _ in 0..STEPS {
+        backend
+            .step(FIXED_STEP_SECONDS)
+            .expect("actual native update");
+        active.clear();
+        backend.read_active_states(&mut active);
+        let state = active
+            .iter()
+            .find_map(|(h, s)| (*h == ball_body).then_some(s))
+            .expect("NeverSleep dynamic origin observed every step");
+        let p = state.transform.translation;
+        assert!(p.is_finite() && state.linear_velocity.iter().all(|v| v.is_finite()));
+        assert!(
+            (p.x - start.x).abs() < 0.02 && (p.z - start.z).abs() < 0.02,
+            "observed dynamic origin must remain distinct from the offset geometry"
+        );
+        // For this uniform sphere the native COM is its geometric center, not the body origin.
+        let center = backend.debug_native_center_of_mass(ball_body).unwrap();
+        assert!(center.is_finite() && state.transform.rotation.is_finite());
+        let expected = p + state.transform.rotation * local_sphere_center;
+        center_frame_error = center_frame_error.max(center.distance(expected));
+        heights.push(center.y);
+        final_state = Some(state.clone());
+    }
+    native_body_origin_matches(&backend, floor_body, floor.body.transform);
+    let floor_center_error = floor_center_error.max(
+        backend
+            .debug_native_center_of_mass(floor_body)
+            .unwrap()
+            .distance(floor.collider.transform.translation),
+    );
+    let last = final_state.unwrap();
+    let direct = backend
+        .debug_native_body_state(ball_body)
+        .expect("native origin even without active filter");
+    assert!(
+        direct
+            .transform
+            .translation
+            .distance(last.transform.translation)
+            < 1e-5
+    );
+    assert_eq!(direct.linear_velocity, last.linear_velocity);
+    assert_eq!(heights.len(), STEPS);
+    assert!(heights[0] > 1.9 && heights[0] < 2.0 && heights[29] > 0.3 && heights[29] < 1.0);
+    let tail = &heights[STEPS - 30..];
+    let range = tail.iter().copied().fold(f32::NEG_INFINITY, f32::max)
+        - tail.iter().copied().fold(f32::INFINITY, f32::min);
+    let row = NativeOwnedPointRow {
+        center: backend.debug_native_center_of_mass(ball_body).unwrap(),
+        vy: last.linear_velocity[1],
+        tail: range,
+        center_frame_error,
+        floor_center_error,
+    };
+    let origin = direct.transform.translation;
+    println!("NATIVE_OWNED label={label} center_x={} center_y={} center_z={} vy={} tail={} origin_x={} origin_y={} origin_z={} center_frame_error={} floor_center_error={} initial_y={} early_y={} frames={} direct_origin=true native_center=true floor_origin=true events_used=false", row.center.x, row.center.y, row.center.z, row.vy, row.tail, origin.x, origin.y, origin.z, row.center_frame_error, row.floor_center_error, heights[0], heights[29], STEPS);
+    backend.destroy_body(ball_body).unwrap();
+    backend.destroy_body(floor_body).unwrap();
+    backend.destroy_shape(ball_shape).unwrap();
+    backend.destroy_shape(floor_shape).unwrap();
+    row
+}
