@@ -1,11 +1,16 @@
 //! 运行时引用写入项目文档前同时核对 UUID、逻辑路径与唯一物理源；scene/world 保存由此得到可迁移 path hint，而非信任旧 locator。
 
+use std::{fs, io};
+
 use zircon_runtime_interface::project::{AssetRef, PersistedAssetReference, RelPath};
 use zircon_runtime_interface::resource::ResourceScheme;
 
+use crate::asset::project::{AssetMetaDocument, AssetSourceUnit, ProjectPaths};
 use crate::asset::reference_resolver::persisted_source_path_for_locator;
-use crate::asset::{AssetReference, ReferenceResolutionError};
+use crate::asset::safe_project_path::is_safe_regular_file;
+use crate::asset::{AssetId, AssetKind, AssetReference, AssetUri, ReferenceResolutionError};
 
+use super::meta_path_for_source::meta_path_for_source;
 use super::ProjectManager;
 
 impl ProjectManager {
@@ -100,6 +105,80 @@ impl ProjectManager {
         )
         .map_err(|source| ReferenceResolutionError::AssetRef { source })?;
         Ok(PersistedAssetReference::project(asset_ref))
+    }
+
+    /// Find the current source for the stable GUID of a typed Scene prefab reference.
+    /// If the previous address is still occupied or the current source cannot be verified,
+    /// keep the original reference so the normal writer reports its original error.
+    pub(super) fn relocated_scene_prefab_locator(
+        &self,
+        reference: &AssetReference,
+    ) -> Option<&AssetUri> {
+        let previous = &reference.locator;
+        if previous.scheme() != ResourceScheme::Res
+            || previous.label().is_some()
+            || self.asset_registry.entry_by_path(previous).is_some()
+        {
+            return None;
+        }
+        let entry = self.asset_registry.entry_by_uuid(reference.uuid)?;
+        let current = entry.path();
+        if entry.type_marker() != AssetKind::Prefab
+            || current.scheme() != ResourceScheme::Res
+            || current.label().is_some()
+            || !self.asset_registry.source_entries(previous).is_empty()
+        {
+            return None;
+        }
+
+        let record = self
+            .catalog_input_generation
+            .record(AssetId::from_asset_uuid(reference.uuid))?;
+        let indexed_meta = record.meta();
+        if indexed_meta.uuid != reference.uuid
+            || &indexed_meta.url != current
+            || indexed_meta.asset_kind != AssetKind::Prefab
+            || indexed_meta.unit != AssetSourceUnit::Single
+            || !indexed_meta.included_files.is_empty()
+            || indexed_meta.source_digest != entry.source_digest()
+        {
+            return None;
+        }
+        let source_path = self.source_path_for_no_follow(current).ok()?;
+        let root = self.project_asset_root_for_source_path(&source_path).ok()?;
+        let meta_path = meta_path_for_source(&source_path);
+        if !ProjectPaths::same_lexical_path(&source_path, record.source_path()).ok()?
+            || !ProjectPaths::same_lexical_path(&meta_path, record.meta_path()).ok()?
+            || !is_safe_regular_file(root, &source_path).ok()?
+            || !is_safe_regular_file(root, &meta_path).ok()?
+        {
+            return None;
+        }
+
+        // Check the old source and sidecar even when they have not reached the registry yet.
+        // Only NotFound is evidence of vacancy. Links, directories and probe errors block repair.
+        let previous_is_vacant = self.project_asset_roots().iter().all(|root| {
+            let path = root.join(previous.path());
+            [meta_path_for_source(&path), path].iter().all(|path| {
+                fs::symlink_metadata(path)
+                    .is_err_and(|error| error.kind() == io::ErrorKind::NotFound)
+            })
+        });
+        if !previous_is_vacant {
+            return None;
+        }
+
+        let live_meta = AssetMetaDocument::load(meta_path).ok()?;
+        if live_meta.uuid != indexed_meta.uuid
+            || live_meta.url != indexed_meta.url
+            || live_meta.asset_kind != indexed_meta.asset_kind
+            || live_meta.unit != indexed_meta.unit
+            || live_meta.included_files != indexed_meta.included_files
+            || live_meta.source_digest != indexed_meta.source_digest
+        {
+            return None;
+        }
+        Some(current)
     }
 }
 
