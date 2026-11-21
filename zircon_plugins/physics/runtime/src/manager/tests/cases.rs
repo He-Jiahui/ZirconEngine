@@ -9,12 +9,15 @@ use zircon_runtime::core::framework::physics::{
     PhysicsSimulationMode, PhysicsWorldSyncState,
 };
 use zircon_runtime::core::framework::scene::physics::PhysicsSleepPolicy;
-use zircon_runtime::core::framework::scene::WorldHandle;
-use zircon_runtime::core::math::{Transform, Vec3};
+use zircon_runtime::core::framework::scene::{EntityId, WorldHandle};
+use zircon_runtime::core::math::{transform_to_mat4, Quat, Transform, Vec3};
 use zircon_runtime::scene::components::{NodeKind, RigidBodyComponent, RigidBodyType};
 use zircon_runtime::scene::world::World;
 
-use super::{apply_synchronized_bodies_to_scene, DefaultPhysicsManager, PhysicsBodyCommand};
+use super::{
+    apply_synchronized_bodies_to_scene, build_world_sync_state, DefaultPhysicsManager,
+    PhysicsBodyCommand,
+};
 
 #[test]
 fn physics_manager_settings_and_clock_recover_poisoned_state_locks() {
@@ -116,6 +119,299 @@ fn physics_sync_to_scene_applies_synchronized_body_state() {
     assert_eq!(body.sleep_policy, PhysicsSleepPolicy::Never);
     assert_eq!(body.lock_translation, [true, false, true]);
     assert_eq!(body.lock_rotation, [false, true, false]);
+}
+
+#[test]
+fn physics_sync_to_scene_keeps_parented_world_pose_after_a_real_builtin_step() {
+    let manager = DefaultPhysicsManager::default();
+    manager
+        .store_settings(PhysicsSettings {
+            backend: "builtin".to_owned(),
+            simulation_mode: PhysicsSimulationMode::Simulate,
+            fixed_hz: 64,
+            ..PhysicsSettings::default()
+        })
+        .unwrap();
+    let handle = WorldHandle::new(145);
+    let mut scene = World::new();
+    let parent = scene.spawn_node(NodeKind::Empty).unwrap();
+    let child = scene.spawn_node(NodeKind::Empty).unwrap();
+    let parent_local = Transform::from_translation(Vec3::new(10.0, 0.0, 0.0));
+    scene.update_transform(parent, parent_local).unwrap();
+    scene
+        .update_transform(child, Transform::from_translation(Vec3::new(2.0, 0.0, 0.0)))
+        .unwrap();
+    assert!(scene.set_parent_checked(child, Some(parent)).unwrap());
+    scene
+        .set_rigid_body(
+            child,
+            Some(RigidBodyComponent {
+                body_type: RigidBodyType::Dynamic,
+                linear_velocity: Vec3::new(64.0, 0.0, 0.0),
+                linear_damping: 0.0,
+                angular_damping: 0.0,
+                gravity_scale: 0.0,
+                ..RigidBodyComponent::default()
+            }),
+        )
+        .unwrap();
+    assert_eq!(
+        scene
+            .world_matrix(child)
+            .unwrap()
+            .transform_point3(Vec3::ZERO)
+            .x,
+        12.0
+    );
+
+    let result = manager.tick_scene_world(handle, &mut scene, 1.0 / 64.0);
+    assert_eq!(result.step_plan.steps, 1);
+    assert_eq!(result.step_plan.step_seconds, 1.0 / 64.0);
+    let sync = manager
+        .synchronized_world_snapshot(handle)
+        .expect("snapshot from the actual fixed step");
+    assert_eq!(sync.world, handle);
+    assert_eq!(sync.bodies.len(), 1);
+    assert_eq!(sync.bodies[0].entity, child);
+    assert_eq!(sync.bodies[0].transform.translation.x, 13.0);
+    assert_eq!(scene.local_transform(child).unwrap().translation.x, 3.0);
+
+    apply_synchronized_bodies_to_scene(&mut scene, &sync);
+    let local_x = scene.local_transform(child).unwrap().translation.x;
+    let world_x = scene
+        .world_matrix(child)
+        .unwrap()
+        .transform_point3(Vec3::ZERO)
+        .x;
+    eprintln!("PHYSICS_PARENTED_WRITEBACK before_step=12 snapshot=13 local_after={local_x} world_after={world_x}");
+    assert_eq!(scene.parent_of(child), Some(parent));
+    assert_eq!(scene.local_transform(parent), Some(parent_local));
+    assert_eq!(
+        (local_x, world_x),
+        (3.0, 13.0),
+        "do not apply the parent translation twice"
+    );
+}
+
+#[test]
+fn physics_sync_to_scene_does_not_write_unrepresentable_relative_pose() {
+    let mut scene = World::new();
+    let parent = scene.spawn_node(NodeKind::Empty).unwrap();
+    let child = scene.spawn_node(NodeKind::Empty).unwrap();
+    scene
+        .update_transform(
+            parent,
+            Transform {
+                scale: Vec3::new(2.0, 1.0, 1.0),
+                ..Transform::default()
+            },
+        )
+        .unwrap();
+    assert!(scene.set_parent_checked(child, Some(parent)).unwrap());
+    scene
+        .set_rigid_body(
+            child,
+            Some(RigidBodyComponent {
+                body_type: RigidBodyType::Dynamic,
+                ..RigidBodyComponent::default()
+            }),
+        )
+        .unwrap();
+    let before_local = scene.local_transform(child).unwrap();
+    let before_world = scene.world_matrix(child).unwrap();
+    let mut sync = build_world_sync_state(WorldHandle::new(146), &scene);
+    assert_eq!(sync.bodies.len(), 1);
+    assert_eq!(sync.bodies[0].entity, child);
+    // P^-1 * Rz(pi/4) has nonorthogonal columns (dot=3/8). A local TRS cannot
+    // represent this requested world pose exactly; dropping shear is not a fix.
+    sync.bodies[0].transform = Transform {
+        rotation: Quat::from_rotation_z(std::f32::consts::FRAC_PI_4),
+        ..Transform::default()
+    };
+    apply_synchronized_bodies_to_scene(&mut scene, &sync);
+    assert_eq!(scene.parent_of(child), Some(parent));
+    assert_eq!(scene.local_transform(child), Some(before_local));
+    assert_eq!(scene.world_matrix(child), Some(before_world));
+}
+
+#[test]
+fn physics_sync_to_scene_applies_a_representable_child_target_after_its_parent() {
+    let mut scene = World::new();
+    // Stable IDs are not parent order. The child is intentionally first in the snapshot.
+    let child = scene.spawn_node(NodeKind::Empty).unwrap();
+    let parent = scene.spawn_node(NodeKind::Empty).unwrap();
+    assert!(child < parent);
+    let parent_target = Transform {
+        translation: Vec3::new(20.0, 3.0, 0.0),
+        rotation: Quat::from_rotation_z(std::f32::consts::FRAC_PI_2),
+        scale: Vec3::new(-2.0, 3.0, 1.0),
+    };
+    scene
+        .update_transform(
+            parent,
+            Transform {
+                translation: Vec3::new(10.0, 3.0, 0.0),
+                ..parent_target
+            },
+        )
+        .unwrap();
+    assert!(scene.set_parent_checked(child, Some(parent)).unwrap());
+    for entity in [parent, child] {
+        scene
+            .set_rigid_body(
+                entity,
+                Some(RigidBodyComponent {
+                    body_type: RigidBodyType::Dynamic,
+                    ..RigidBodyComponent::default()
+                }),
+            )
+            .unwrap();
+    }
+    let mut sync = build_world_sync_state(WorldHandle::new(147), &scene);
+    assert_eq!(sync.bodies.len(), 2);
+    assert_eq!(sync.bodies[0].entity, child);
+    assert_eq!(sync.bodies[1].entity, parent);
+    let child_target = Transform {
+        // T(20,3,0) * Rz(90deg) * S(-2,3,1) * (3,-1,0,1) = (23,-3,0,1).
+        translation: Vec3::new(23.0, -3.0, 0.0),
+        ..parent_target
+    };
+    sync.bodies[0].transform = child_target;
+    sync.bodies[1].transform = parent_target;
+    assert_eq!(scene.local_transform(child), Some(Transform::default()));
+
+    apply_synchronized_bodies_to_scene(&mut scene, &sync);
+
+    assert_eq!(scene.parent_of(child), Some(parent));
+    assert_eq!(scene.local_transform(parent), Some(parent_target));
+    let world = scene.world_matrix(child).unwrap();
+    let local = scene.local_transform(child).unwrap();
+    eprintln!(
+        "PHYSICS_PARENTED_TARGET local={:?} world={:?}",
+        local.translation,
+        world.transform_point3(Vec3::ZERO)
+    );
+    assert!(
+        transform_to_mat4(local).abs_diff_eq(
+            transform_to_mat4(Transform::from_translation(Vec3::new(3.0, -1.0, 0.0))),
+            1.0e-5,
+        ),
+        "a changed, representable child pose must be converted against the updated parent; actual {local:?}"
+    );
+    assert!(world.abs_diff_eq(transform_to_mat4(child_target), 1.0e-5));
+}
+
+#[test]
+fn physics_sync_to_scene_uses_the_full_sheared_parent_matrix() {
+    let (mut scene, parent, child) = sheared_parent_fixture(-std::f32::consts::FRAC_PI_4);
+    let parent_world = scene.world_matrix(parent).unwrap();
+    assert!(parent_world.x_axis.dot(parent_world.y_axis).abs() > 1.0);
+    let mut sync = build_world_sync_state(WorldHandle::new(148), &scene);
+    assert_eq!(sync.bodies.len(), 1);
+    // P = diag(2,1,1) * Rz(45deg); local Rz(-45deg) cancels the
+    // rotation, so the requested world basis is exactly diag(2,1,1).
+    let child_local = Transform {
+        translation: Vec3::new(1.0, 2.0, 0.0),
+        rotation: Quat::from_rotation_z(-std::f32::consts::FRAC_PI_4),
+        ..Transform::default()
+    };
+    let child_world = Transform {
+        translation: Vec3::new(
+            -std::f32::consts::SQRT_2,
+            3.0 * std::f32::consts::FRAC_1_SQRT_2,
+            0.0,
+        ),
+        scale: Vec3::new(2.0, 1.0, 1.0),
+        ..Transform::default()
+    };
+    assert!(
+        scene
+            .world_matrix(child)
+            .unwrap()
+            .w_axis
+            .truncate()
+            .length()
+            < 1.0e-5
+    );
+    sync.bodies[0].transform = child_world;
+    apply_synchronized_bodies_to_scene(&mut scene, &sync);
+
+    assert_eq!(scene.parent_of(child), Some(parent));
+    assert_eq!(scene.world_matrix(parent), Some(parent_world));
+    assert!(
+        transform_to_mat4(scene.local_transform(child).unwrap())
+            .abs_diff_eq(transform_to_mat4(child_local), 1.0e-5,),
+        "a sheared parent must not be approximated by world TRS or rejected wholesale"
+    );
+    assert!(scene
+        .world_matrix(child)
+        .unwrap()
+        .abs_diff_eq(transform_to_mat4(child_world), 1.0e-5));
+}
+
+#[test]
+fn physics_sync_to_scene_does_not_flatten_an_unchanged_sheared_pose() {
+    let (mut scene, parent, child) = sheared_parent_fixture(0.0);
+    let before = scene.world_matrix(child).unwrap();
+    assert!(before.x_axis.dot(before.y_axis).abs() > 1.0);
+    let local = scene.local_transform(child).unwrap();
+    let sync = build_world_sync_state(WorldHandle::new(149), &scene);
+    assert_eq!(sync.bodies.len(), 1);
+    assert_eq!(Some(sync.bodies[0].transform), scene.world_transform(child));
+    apply_synchronized_bodies_to_scene(&mut scene, &sync);
+    assert_eq!(scene.parent_of(child), Some(parent));
+    assert_eq!(
+        scene.local_transform(child),
+        Some(local),
+        "a snapshot echo is not a pose change"
+    );
+    assert_eq!(scene.world_matrix(child), Some(before));
+}
+
+fn sheared_parent_fixture(child_z: f32) -> (World, EntityId, EntityId) {
+    let mut scene = World::new();
+    let grandparent = scene.spawn_node(NodeKind::Empty).unwrap();
+    let parent = scene.spawn_node(NodeKind::Empty).unwrap();
+    let child = scene.spawn_node(NodeKind::Empty).unwrap();
+    scene
+        .update_transform(
+            grandparent,
+            Transform {
+                scale: Vec3::new(2.0, 1.0, 1.0),
+                ..Transform::default()
+            },
+        )
+        .unwrap();
+    scene
+        .update_transform(
+            parent,
+            Transform {
+                rotation: Quat::from_rotation_z(std::f32::consts::FRAC_PI_4),
+                ..Transform::default()
+            },
+        )
+        .unwrap();
+    scene
+        .update_transform(
+            child,
+            Transform {
+                rotation: Quat::from_rotation_z(child_z),
+                ..Transform::default()
+            },
+        )
+        .unwrap();
+    scene.set_parent_checked(parent, Some(grandparent)).unwrap();
+    scene.set_parent_checked(child, Some(parent)).unwrap();
+    scene
+        .set_rigid_body(
+            child,
+            Some(RigidBodyComponent {
+                body_type: RigidBodyType::Dynamic,
+                ..RigidBodyComponent::default()
+            }),
+        )
+        .unwrap();
+    (scene, parent, child)
 }
 
 #[test]
