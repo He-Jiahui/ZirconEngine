@@ -112,7 +112,7 @@ pub(crate) fn rotate_toward_movement(
         return current_rotation;
     }
     let target_direction = target_direction.normalize_or_zero();
-    let target_yaw = target_direction.x.atan2(-target_direction.z);
+    let target_yaw = horizontal_yaw(target_direction);
     let angular_speed = finite_non_negative(agent.angular_speed);
     if angular_speed <= Real::EPSILON {
         return current_rotation;
@@ -125,7 +125,7 @@ pub(crate) fn rotate_toward_movement(
     }
 
     let current_forward = current_forward.normalize_or_zero();
-    let current_yaw = current_forward.x.atan2(-current_forward.z);
+    let current_yaw = horizontal_yaw(current_forward);
     let delta = shortest_angle_delta(current_yaw, target_yaw);
     let max_step = angular_speed.to_radians() * dt_seconds;
     if delta.abs() <= max_step {
@@ -133,6 +133,11 @@ pub(crate) fn rotate_toward_movement(
     } else {
         Quat::from_rotation_y(current_yaw + delta.signum() * max_step)
     }
+}
+
+fn horizontal_yaw(forward: Vec3) -> Real {
+    // A positive rotation around +Y takes the -Z forward axis toward -X.
+    (-forward.x).atan2(-forward.z)
 }
 
 fn desired_agent_velocity(
