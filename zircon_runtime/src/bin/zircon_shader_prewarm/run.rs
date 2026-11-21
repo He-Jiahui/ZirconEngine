@@ -185,7 +185,19 @@ pub fn run(args: impl IntoIterator<Item = OsString>) -> Result<ExitCode, String>
         args.validate_wgpu_modules,
         args.validate_wgpu_pipelines,
     );
-    finish_shader_prewarm_report(&report, args.report.as_deref(), args.pretty)
+    let exit_code = finish_shader_prewarm_report(&report, args.report.as_deref(), args.pretty)?;
+    // Only a completed default batch can make a later default run incremental.
+    // A projection, merge, preflight, validation, or report failure leaves the
+    // inventory available to readers but cannot certify it as prewarmed.
+    if exit_code == ExitCode::SUCCESS
+        && !has_external_permutation_inputs
+        && !has_external_resource_registry
+    {
+        for (asset_root, inventory) in &asset_inventories {
+            inventory.record_default_prewarm_success(asset_root, &inventory_snapshot_root);
+        }
+    }
+    Ok(exit_code)
 }
 
 fn finish_shader_prewarm_report(
