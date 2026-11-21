@@ -21,6 +21,20 @@ impl Counters {
     fn deallocated(&self, bytes: usize) {
         self.live.fetch_sub(bytes, Ordering::Relaxed);
     }
+
+    fn reallocated(&self, old_size: usize, new_size: usize) {
+        self.allocations.fetch_add(1, Ordering::Relaxed);
+        // Commit only the net change: the old block must not briefly disappear
+        // from concurrent live and peak accounting.
+        let live = if new_size >= old_size {
+            let bytes = new_size - old_size;
+            self.live.fetch_add(bytes, Ordering::Relaxed) + bytes
+        } else {
+            let bytes = old_size - new_size;
+            self.live.fetch_sub(bytes, Ordering::Relaxed) - bytes
+        };
+        self.peak.fetch_max(live, Ordering::Relaxed);
+    }
 }
 
 static COUNTERS: Counters = Counters {
@@ -59,8 +73,7 @@ unsafe impl<A: GlobalAlloc> GlobalAlloc for CountingAllocator<A> {
     unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
         let replacement = unsafe { self.0.realloc(pointer, layout, new_size) };
         if !replacement.is_null() {
-            COUNTERS.deallocated(layout.size());
-            COUNTERS.allocated(new_size);
+            COUNTERS.reallocated(layout.size(), new_size);
         }
         replacement
     }
