@@ -38,7 +38,8 @@ fn dependency_state(revision: u64) -> ModelMeshDependencyState {
 fn m6_model_mesh_resolution_uses_one_active_capture_and_rejects_drift() {
     use crate::core::resource::{
         MeshMarker, ResourceActiveSnapshotError, ResourceHandle, ResourceKind, ResourceRecord,
-        ResourceSourceMember, ResourceSourceOutcome, ResourceSourcePublication,
+        ResourceRegistryError, ResourceSourceMember, ResourceSourceOutcome,
+        ResourceSourcePublication,
     };
     use std::sync::Arc;
     let manager = ProjectAssetManager::default();
@@ -164,11 +165,42 @@ fn m6_model_mesh_resolution_uses_one_active_capture_and_rejects_drift() {
             &captured.active().key(mesh_id).unwrap(),
         )
         .is_err());
-    resources
+    let before = resources
+        .snapshot_expected::<_, MeshAsset>(
+            ResourceHandle::<MeshMarker>::new(mesh_id),
+            &fresh.active().key(mesh_id).unwrap(),
+        )
+        .unwrap();
+    assert_eq!(
+        resources
+            .register_ready(child.clone().with_source_hash("wrong-type"), 7_u8)
+            .unwrap_err(),
+        ResourceRegistryError::PayloadTypeConflict {
+            id: mesh_id.to_string(),
+        }
+    );
+    let after = resources.projection_snapshot();
+    assert!(Arc::ptr_eq(fresh.active(), after.active()));
+    let unchanged = resources
+        .snapshot_expected::<_, MeshAsset>(
+            ResourceHandle::<MeshMarker>::new(mesh_id),
+            &fresh.active().key(mesh_id).unwrap(),
+        )
+        .unwrap();
+    assert!(Arc::ptr_eq(before.resource(), unchanged.resource()));
+
+    // A first publication can carry a valid Mesh kind but an incompatible
+    // concrete payload. Exercise the resolver's independent read-side guard
+    // without replacing the already-established MeshAsset identity above.
+    let incompatible = ProjectAssetManager::default();
+    let resources_with_bad_payload = incompatible.resource_manager();
+    resources_with_bad_payload
         .register_ready(child.clone().with_source_hash("wrong-type"), 7_u8)
         .unwrap();
+    let wrong_capture = resources_with_bad_payload.projection_snapshot();
+    assert!(wrong_capture.active().key(mesh_id).is_some());
     assert!(matches!(
-        resolve_model_geometry(&manager, &model, &resources.projection_snapshot()),
+        resolve_model_geometry(&incompatible, &model, &wrong_capture),
         Err(ResourceActiveSnapshotError::KindConflict)
     ));
 
