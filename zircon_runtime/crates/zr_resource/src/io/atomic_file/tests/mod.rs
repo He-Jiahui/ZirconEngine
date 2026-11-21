@@ -1,3 +1,7 @@
+#[cfg(windows)]
+#[path = "owner.rs"]
+mod owner;
+
 use std::fs;
 use std::path::Path;
 use std::sync::{Arc, Barrier};
