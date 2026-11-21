@@ -26,6 +26,8 @@ mod component_state;
 mod property_animation;
 #[path = "spawn_transform.rs"]
 mod spawn_transform;
+#[path = "world_position.rs"]
+mod world_position;
 
 fn assert_vec3_close(actual: Vec3, expected: Vec3) {
     let delta = (actual - expected).abs();
