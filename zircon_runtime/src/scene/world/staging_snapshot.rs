@@ -1,5 +1,7 @@
 use std::io::{self, Write};
 
+use zircon_runtime_interface::reflect::ReflectedValue;
+
 use crate::scene::dynamic_scene::DynamicSceneError;
 
 use super::World;
@@ -37,6 +39,42 @@ impl World {
             });
         }
         Ok(estimated_bytes)
+    }
+
+    /// 为隔离预检和发布产物累计目标默认值的额外预算；每个实例中要补的键和值各计一次。
+    /// 沿用 prepared 载荷的紧凑文本字节数 ×2 估算，不等同于真实内存占用，也不构造 JSON 值树。
+    pub(in crate::scene) fn account_dynamic_scene_preflight_defaults<'schema>(
+        base_estimated_bytes: usize,
+        limit_bytes: usize,
+        defaults: impl IntoIterator<Item = (&'schema str, &'schema ReflectedValue)>,
+    ) -> Result<usize, DynamicSceneError> {
+        let Some(remaining_bytes) = limit_bytes.checked_sub(base_estimated_bytes) else {
+            return Err(DynamicSceneError::TargetSnapshotTooLarge {
+                estimated_bytes: base_estimated_bytes,
+                limit_bytes,
+            });
+        };
+        let too_large = || DynamicSceneError::TargetSnapshotTooLarge {
+            estimated_bytes: limit_bytes.saturating_add(1),
+            limit_bytes,
+        };
+        let mut counter = BoundedByteCounter::new(remaining_bytes / 2);
+        for field in defaults {
+            if let Err(error) = serde_json::to_writer(&mut counter, &field) {
+                return Err(if counter.exceeded {
+                    too_large()
+                } else {
+                    DynamicSceneError::TargetSnapshotEstimation {
+                        reason: error.to_string(),
+                    }
+                });
+            }
+        }
+        counter
+            .bytes
+            .checked_mul(2)
+            .and_then(|bytes| base_estimated_bytes.checked_add(bytes))
+            .ok_or_else(too_large)
     }
 
     // 动态场景预检只复制持久化 World；调度器、事件和观察者等现场状态暂时取出后归还原 World。
