@@ -11,6 +11,10 @@ mod blend_space_state;
 mod cache_invalidation;
 #[path = "evaluation_diagnostics.rs"]
 mod evaluation_diagnostics;
+#[path = "physics_tick/pause_guards.rs"]
+mod pause_guards;
+#[path = "physics_tick/pause_late_start.rs"]
+mod pause_late_start;
 #[path = "runtime_helpers.rs"]
 mod runtime_helpers;
 #[path = "state_machine_boundaries.rs"]
@@ -324,6 +328,7 @@ fn level_tick_applies_loaded_animation_sequences_to_world_properties() {
 }
 
 include!("physics_tick/clip_events.rs");
+include!("physics_tick/paused_event.rs");
 
 #[test]
 fn level_tick_without_animation_plugin_does_not_advance_sequence_players() {
