@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Zircon Web startup order</title>
+<template id="canvas-template"><canvas width="128" height="64"></canvas></template>
+<main id="host"></main>
+<pre id="result">Running...</pre>
+<script type="module">
+  const ownerKeys = ['event_listeners', 'live_engines', 'registered_canvases'];
+  const cases = [
+    ['wrong', 'unsupported browser asset catalog schema, target, or entry count'],
+    ['correct', 'browser bundle has no startup scene'],
+  ];
+
+  function snapshot(pkg) {
+    const values = JSON.parse(pkg.browser_memory_snapshot());
+    for (const key of ownerKeys) {
+      if (!Number.isSafeInteger(values[key]) || values[key] < 0) {
+        throw new Error(`Invalid browser owner count: ${key}`);
+      }
+    }
+    return Object.fromEntries(ownerKeys.map(key => [key, values[key]]));
+  }
+
+  async function runCase(pkg, baseline, root, detail) {
+    const expected = `Initialization("AssetModule.Manager.ProjectAssetManager", "${detail}")`;
+    const url = new URL(`./web-startup-order/${root}/`, import.meta.url);
+    const canvas = document.getElementById('canvas-template').content.firstElementChild.cloneNode();
+    document.getElementById('host').append(canvas);
+    let engine;
+    let observed = null;
+    let isError = false;
+    let cleanupError = null;
+    try {
+      engine = await pkg.WebEngine.load(canvas, url.href);
+    } catch (error) {
+      isError = error instanceof Error;
+      observed = isError ? error.message : String(error);
+    }
+    try {
+      if (engine) {
+        try {
+          await engine.close();
+        } finally {
+          engine.free();
+        }
+      }
+    } catch (error) {
+      cleanupError = String(error);
+    } finally {
+      canvas.remove();
+    }
+    const owners = snapshot(pkg);
+    const ownersUnchanged = ownerKeys.every(key => owners[key] === baseline[key]);
+    const passed = isError && observed === expected && cleanupError === null && ownersUnchanged;
+    return { root, expected, observed, isError, owners, ownersUnchanged, cleanupError, passed };
+  }
+
+  async function run() {
+    const pkg = await import('./zircon_app.js');
+    await pkg.default();
+    const baseline = snapshot(pkg);
+    if (!ownerKeys.every(key => baseline[key] === 0)) {
+      return { status: 'setup-error', error: 'Expected a fresh browser instance', baseline };
+    }
+    const results = [];
+    for (const [root, detail] of cases) {
+      results.push(await runCase(pkg, baseline, root, detail));
+    }
+    return { status: results.every(result => result.passed) ? 'passed' : 'failed', baseline, cases: results };
+  }
+
+  window.__zirconBootOrder = run()
+    .catch(error => ({ status: 'setup-error', error: String(error) }))
+    .then(report => {
+      document.getElementById('result').textContent = JSON.stringify(report, null, 2);
+      return report;
+    });
+</script>
+</html>
