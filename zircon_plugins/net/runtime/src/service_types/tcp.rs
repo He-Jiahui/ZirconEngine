@@ -110,7 +110,8 @@ impl DefaultNetManager {
         if let Some(entry) = connections.get_mut(&connection) {
             entry.state = result.state;
         }
-        self.state.record_inbound_bytes(result.payload.len());
-        Ok(result.payload)
+        let payload = result.payload?;
+        self.state.record_inbound_bytes(payload.len());
+        Ok(payload)
     }
 }

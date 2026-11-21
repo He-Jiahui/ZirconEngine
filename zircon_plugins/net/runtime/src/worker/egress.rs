@@ -19,7 +19,8 @@ pub(crate) struct AcceptedTcpConnection {
 
 #[derive(Debug)]
 pub(crate) struct TcpPollResult {
-    pub(crate) payload: Vec<u8>,
+    // 已完成读取的状态独立于字节结果；接收失败也必须回传该状态。
+    pub(crate) payload: Result<Vec<u8>, NetError>,
     pub(crate) state: NetConnectionState,
 }
 
