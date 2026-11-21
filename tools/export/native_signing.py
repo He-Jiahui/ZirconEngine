@@ -7,6 +7,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from .native_dynamic_contract import native_dynamic_is_loadable_artifact_path
+
 
 def execute_native_dynamic_signing(
     *,
@@ -295,7 +297,8 @@ def native_dynamic_signable_artifacts(
     for file_path in file_paths:
         if not file_path.is_file():
             continue
-        if file_path.suffix.lower() not in loadable_artifact_extensions:
+        package_relative = file_path.relative_to(package_dir)
+        if not native_dynamic_is_loadable_artifact_path(package_relative, loadable_artifact_extensions):
             continue
         artifacts.append(file_path)
     return artifacts
