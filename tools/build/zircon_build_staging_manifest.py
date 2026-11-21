@@ -152,17 +152,38 @@ def _find_source(
     return None
 
 
-def _source_candidates(config: object, staged_path: Path) -> Iterator[tuple[str, Path]]:
-    relative = staged_path.relative_to(config.engine_root)
-    profile_dir = _profile_dir(config.mode)
+def artifact_target_triple(config: object) -> str | None:
     target_triple = getattr(config, "effective_target_triple", None)
     if callable(target_triple):
         target_triple = target_triple()
+    return str(target_triple) if target_triple else None
 
-    def profile_candidates(root: Path) -> Iterator[Path]:
+
+def exact_target_profile_root(
+    target_dir: Path, profile_dir: str, target_triple: str
+) -> Path:
+    if target_triple in (".", "..") or any(char in target_triple for char in "/\\:"):
+        raise SystemExit(f"Artifact lookup requires a Rust target triple, not a path: {target_triple!r}")
+    # Resolve the base, not the identity: a redirected T/profile is not this root.
+    return target_dir.resolve() / target_triple / profile_dir
+
+
+def _source_candidates(config: object, staged_path: Path) -> Iterator[tuple[str, Path]]:
+    relative = staged_path.relative_to(config.engine_root)
+    profile_dir = _profile_dir(config.mode)
+    target_triple = artifact_target_triple(config)
+
+    def artifact_candidates(root: Path, *names: str) -> Iterator[tuple[str, Path]]:
         if target_triple:
-            yield root / str(target_triple) / profile_dir
-        yield root / profile_dir
+            profile_root = exact_target_profile_root(root, profile_dir, target_triple)
+            if not profile_root.is_relative_to(config.targets_root.resolve()):
+                return
+        else:
+            profile_root = root / profile_dir
+        for name in names:
+            source = profile_root / name
+            if not target_triple or source.resolve().is_relative_to(profile_root):
+                yield "build_artifact", source
 
     if relative.parent == Path("."):
         artifact_names = [relative.name]
@@ -178,9 +199,7 @@ def _source_candidates(config: object, staged_path: Path) -> Iterator[tuple[str,
             config.targets_root / "runtime" / "bin",
             config.targets_root / "runtime" / "lib",
         ):
-            for profile_root in profile_candidates(target_root):
-                for artifact_name in artifact_names:
-                    yield "build_artifact", profile_root / artifact_name
+            yield from artifact_candidates(target_root, *artifact_names)
 
     if relative.parts and relative.parts[0] == "assets":
         selection = resolve_engine_asset_stage(config)
@@ -207,8 +226,7 @@ def _source_candidates(config: object, staged_path: Path) -> Iterator[tuple[str,
             yield "plugin_source", package.package_root / package_relative
             if package_relative.parts and package_relative.parts[0] == "native":
                 plugin_root = config.targets_root / "plugins" / package_name
-                for profile_root in profile_candidates(plugin_root):
-                    yield "build_artifact", profile_root / package_relative.name
+                yield from artifact_candidates(plugin_root, package_relative.name)
 
     if relative.as_posix() in {"plugins.toml", "plugins/native_plugins.toml"} or (
         relative.parts and relative.parts[0] == "cache"
