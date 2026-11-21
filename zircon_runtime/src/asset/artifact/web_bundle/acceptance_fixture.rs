@@ -19,6 +19,22 @@ use crate::scene::components::{
 };
 use crate::scene::{DynamicScene, World};
 
+#[path = "font_policy_fixture.rs"]
+mod font_policy_fixture;
+
+#[derive(Default)]
+struct FixtureOptions<'a> {
+    font_ref: Option<&'a str>,
+    extra_assets: &'a [FixtureAsset<'a>],
+    without_ui_root: bool,
+}
+
+struct FixtureAsset<'a> {
+    locator: &'a str,
+    asset: ImportedAsset,
+    preload: bool,
+}
+
 fn uri(label: &str) -> AssetUri {
     AssetUri::parse(label).unwrap()
 }
@@ -84,6 +100,14 @@ fn export_root() -> PathBuf {
 #[test]
 #[ignore = "exports a registered fixed browser scene; run explicitly with ZIRCON_WEB_FIXTURE_OUTPUT"]
 fn export_webgpu_acceptance_fixture() {
+    let catalog = publish_acceptance_fixture(export_root(), FixtureOptions::default());
+    println!("WEB_FIXTURE {}", serde_json::to_string(&catalog).unwrap());
+}
+
+fn publish_acceptance_fixture(
+    output: PathBuf,
+    options: FixtureOptions<'_>,
+) -> crate::asset::artifact::RawAssetCatalog {
     const MODEL: &str = "res://browser/actor.model";
     const MESH: &str = "res://browser/actor.mesh";
     const MATERIAL: &str = "res://browser/checker.material";
@@ -93,7 +117,6 @@ fn export_webgpu_acceptance_fixture() {
     const SHADER: &str = "builtin://shader/pbr.wgsl";
     const UI: &str = "res://browser/hud.view";
 
-    let output = export_root();
     let mut writer = WebBundleWriter::new(output.clone()).unwrap();
     let vertices = [
         (Vec3::new(-0.8, -0.6, 0.0), Vec2::new(0.0, 1.0)),
@@ -230,8 +253,7 @@ fn export_webgpu_acceptance_fixture() {
         }),
         &[SKELETON],
     );
-    let view = UiV2ViewAsset::from_toml_str(
-        r#"
+    let mut view_source = r#"
 [asset]
 kind = "view"
 id = "browser.acceptance.hud"
@@ -242,9 +264,12 @@ node = "root"
 component = "Text"
 control_id = "BrowserHud"
 props = { text = "Zircon WebGPU 64 bones" }
-"#,
-    )
-    .unwrap();
+"#
+    .to_owned();
+    if let Some(uri) = options.font_ref {
+        view_source.push_str(&format!("[nodes.root.style.self]\nfont = {uri:?}\n"));
+    }
+    let view = UiV2ViewAsset::from_toml_str(&view_source).unwrap();
     add(&mut writer, UI, ImportedAsset::UiV2View(view), &[]);
 
     let mut world = World::empty();
@@ -279,18 +304,33 @@ props = { text = "Zircon WebGPU 64 bones" }
         ))
         .unwrap();
     let scene = DynamicScene::from_world(&world).unwrap();
+    let mut startup_assets: Vec<_> = [MODEL, MATERIAL, SKELETON, CLIP]
+        .into_iter()
+        .map(id)
+        .collect();
+    for extra in options.extra_assets {
+        let record = ResourceRecord::new(
+            id(extra.locator),
+            asset_kind_for_imported_asset(&extra.asset),
+            uri(extra.locator),
+        );
+        writer.add_asset(&record, &extra.asset).unwrap();
+        if extra.preload {
+            startup_assets.push(record.id);
+        }
+    }
+    let ui_roots = if options.without_ui_root {
+        // Keep its cooked payload resident; only remove the UI instance.
+        startup_assets.push(id(UI));
+        vec![]
+    } else {
+        vec![id(UI)]
+    };
     writer
-        .set_startup_scene(
-            &scene,
-            [MODEL, MATERIAL, SKELETON, CLIP]
-                .iter()
-                .map(|label| id(label))
-                .collect(),
-            vec![id(UI)],
-        )
+        .set_startup_scene(&scene, startup_assets, ui_roots)
         .unwrap();
     let catalog = writer.publish().unwrap();
-    assert_eq!(catalog.assets.len(), 8);
+    assert_eq!(catalog.assets.len(), 8 + options.extra_assets.len());
     for entry in &catalog.assets {
         let bytes = std::fs::read(output.join(entry.relative_payload_path())).unwrap();
         assert_eq!(entry.payload_bytes, bytes.len() as u64);
@@ -305,5 +345,5 @@ props = { text = "Zircon WebGPU 64 bones" }
             entry.record.kind
         );
     }
-    println!("WEB_FIXTURE {}", serde_json::to_string(&catalog).unwrap());
+    catalog
 }

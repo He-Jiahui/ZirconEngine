@@ -1,7 +1,7 @@
 use super::error;
 use crate::asset::runtime::browser::BrowserAssetSource;
 use crate::asset::{
-    AssetKind, RuntimeAssetManager, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset,
+    AssetKind, AssetUri, RuntimeAssetManager, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset,
 };
 use crate::core::framework::input::{InputButton, InputEvent, TouchPhase};
 use crate::core::framework::render::{
@@ -9,7 +9,9 @@ use crate::core::framework::render::{
 };
 use crate::core::math::UVec2;
 use crate::text::{
-    font::{prepare_runtime_font_asset_admission, RuntimeFontAssetClaimScope},
+    font::{
+        prepare_runtime_font_asset_admission, RuntimeFontAssetClaimScope, DEFAULT_UI_FONT_ASSET,
+    },
     TextRuntimeContext,
 };
 use crate::ui::{
@@ -114,9 +116,20 @@ impl BrowserUi {
                     input: UiInputManager::summary(),
                 });
             }
+            let default_uri = AssetUri::parse(DEFAULT_UI_FONT_ASSET)
+                .expect("the default UI font URI must remain valid");
+            // The runtime already owns the packaged default. Only a catalog entry makes
+            // the implicit default a project dependency; typed admission still validates it.
+            let has_project_default = manager.resolve_asset_id(&default_uri).is_some();
             let mut dependencies = surfaces
                 .iter()
-                .flat_map(|surface| surface.view.text_font_asset_dependencies())
+                .flat_map(|surface| {
+                    if has_project_default {
+                        surface.view.text_font_asset_dependencies()
+                    } else {
+                        surface.view.explicit_text_font_asset_dependencies()
+                    }
+                })
                 .collect::<Vec<_>>();
             dependencies.sort_unstable();
             dependencies.dedup();
