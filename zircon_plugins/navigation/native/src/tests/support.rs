@@ -1,7 +1,7 @@
-use zircon_runtime::asset::{
-    NavMeshAreaCostAsset, NavMeshAsset, NavMeshLinkAsset, NavMeshLinkCapacity, NavMeshPolygonAsset,
+use zircon_runtime::core::framework::navigation::{
+    NavLinkMotion, NavMeshAreaCostAsset, NavMeshAsset, NavMeshLinkAsset, NavMeshLinkCapacity,
+    NavMeshPolygonAsset, AREA_JUMP, AREA_WALKABLE,
 };
-use zircon_runtime::core::framework::navigation::{NavLinkMotion, AREA_JUMP, AREA_WALKABLE};
 
 pub(super) fn two_island_asset(with_link: bool) -> NavMeshAsset {
     let mut asset = NavMeshAsset {
