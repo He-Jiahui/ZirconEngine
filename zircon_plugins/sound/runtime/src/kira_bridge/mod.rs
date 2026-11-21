@@ -1,5 +1,7 @@
 #[path = "cpal_owner.rs"]
 mod cpal_owner;
+#[path = "cursor_feedback.rs"]
+mod cursor_feedback;
 #[path = "device.rs"]
 mod device;
 #[path = "graph_compile.rs"]

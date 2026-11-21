@@ -214,6 +214,7 @@ fn owner_rejected_candidate_preserves_registered_playback_and_generation() {
                 looped: true,
                 completion_action: SoundPlaybackCompletionAction::None,
                 paused: false,
+                cursor_owner: Default::default(),
                 muted: false,
                 range_start_frame: 0,
                 range_end_frame: None,

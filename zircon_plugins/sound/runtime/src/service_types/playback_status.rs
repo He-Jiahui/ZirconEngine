@@ -42,7 +42,15 @@ impl DefaultSoundManager {
             .get(&active.clip)
             .map(|clip| clip.asset.sample_rate_hz)
             .unwrap_or_default();
-        let kira_position = state.kira.playback_position(playback).ok();
+        use crate::engine::ClipCursorOwner;
+        let mixer_owns_cursor = match active.cursor_owner {
+            ClipCursorOwner::Mixer => true,
+            ClipCursorOwner::PausedSeek => false,
+            ClipCursorOwner::AwaitingMixer(request) => state.kira.has_cursor_feedback(request),
+        };
+        let kira_position = mixer_owns_cursor
+            .then(|| state.kira.playback_position(playback).ok())
+            .flatten();
         let (cursor_frame, cursor_seconds) = kira_position
             .map(|position| {
                 absolute_position_from_kira_slice(
@@ -106,3 +114,7 @@ pub(crate) fn absolute_position_from_kira_slice(
         absolute_frame as f32 / sample_rate_hz as f32,
     )
 }
+
+#[cfg(test)]
+#[path = "tests/paused_clip_seek.rs"]
+mod paused_clip_seek_tests;
