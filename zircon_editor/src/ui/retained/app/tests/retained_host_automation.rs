@@ -519,3 +519,6 @@ fn automation_adapter_names_only_the_real_retained_callbacks() {
     assert!(source.contains("invoke_surface_control_clicked"));
     assert!(!source.contains("dispatch_binding("));
 }
+
+#[path = "details_enter.rs"]
+mod details_enter;
