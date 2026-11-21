@@ -47,3 +47,29 @@ cargo test -p ze_local_cargo_source_probe --lib --no-default-features --profile 
 共享池可执行文件在 A 结束后与 B 结束后都是 `df99405355ad129f61b8b85a29635e557bf61a081e48c411b54f7b99add10bcb`。隔离池 B 为 `1226d6853da930280efc1cb6eec2ec0136ddf46bc0ebcc1aec65218819bcca61`。`verify` 核对三个实际回执的当前目录、测试名、编译目录、日志摘要及池关系，对 `b-shared` 返回 **1**，精确证明回归。隔离 B 只证明问题不在 B 的 Rust 测试，不是生产修复。
 
 复跑方法：用 `python -B tools/validation/local_cargo_worktree_probe.py prepare <新的获准报告目录>` 生成工作树；以 `local-cargo.ps1 -RepoRoot <source-a 或 source-b> -TargetDir <该用例的池内 target> -ReceiptDirectory <报告目录内用例名>` 运行上述命令（PowerShell 传递字面 `'--'`）。按表中用例名依次用同一空池运行 A 和 B，再用单独空池运行 B；最后运行 `python -B tools/validation/local_cargo_worktree_probe.py verify <报告目录>`，它不会编译。时间戳、文件内容和依赖均保留，不删除两池，也不复用生产输出。
+
+## 候选防护：绑定编译输出池，不重配依赖缓存
+
+UBT 按产物路径和生产属性检查历史；它的 `ActionHistoryPartition.GetLayerLocationForFile` 还按 BaseDir/平台/架构/目标/配置分层。ZE 不实现第二套 Cargo 指纹：由 [本地来源绑定](../../../tools/dev/local_cargo_pool_source.py)在进程启动前把两个**物理编译输出目录**绑定到一个**物理工作树目录**（路径、卷和目录文件 ID）。同源不重写记录，依然用 Cargo 的原生锁和正常源码新鲜度；改变 target 目录名不能绕过共享的 sibling `build`。已有无来源记录的非空编译输出、其他来源、无效或半写记录均拒绝，不接管、不清理、不复制完整 target，也不移动或改写现有 Cargo home。`sourceClosureVerified` 仍为 `false`。
+
+按 [#136 当前冻结入口](https://github.com/He-Jiahui/ZirconEngine/blob/b9489641af65ff5f27c869d57684190bec782d14/tools/dev/local_cargo.py#L856-L875)，在只读分支返回之后、路径准入和目录建立完成后、`execution_attempted = True` 之前接入，不恢复旧入口或原生 artifact 模式。该两行接线目前只在本地 review 工作树（验证提交 `7da04c0d3a1c9b501cb005351d8240e318954336`，入口 blob `084b8033f9a60dadb85dc214896f4221d531eac8`），**未部署**；本 Draft 不引入 #136 的退役改动。
+
+```python
+from tools.dev.local_cargo_pool_source import bind_compiler_pool
+
+# After bounded directory validation/creation, before recording a Cargo launch:
+bind_compiler_pool(repo, target, Path(environment["CARGO_BUILD_BUILD_DIR"]))
+```
+
+[新增 7 条 Python 单测](../../../tools/tests/test_local_cargo_pool_source.py)验证兼容复用与 Cargo home 保持、错树拒绝、两类旧产物保护、替换 target 名仍保护 build、半写及硬链接记录拒绝、两个并发首次认领最多一个成功。与 #136 的 21 条入口单测组合 **28/28**（`python -B -X utf8 -m unittest -v tools.tests.test_local_cargo_pool_source tools.tests.test_agent_local_cargo`；输出 SHA-256 `dd12d0d752a06d23e3ba2f8f01f8db1cae2091c6fc280dfcdb3dad92ab034b11`）。同一新池上，使用上节不变的夹具和命令得到以下真实顺序；B 源仍早于 A 产物。
+
+| 请求 | 实际 | 保存的回执或拒绝诊断 SHA-256 |
+|---|---|---|
+| A，首次 | 编译并执行 `source_generation_a`，内嵌目录为 A，退出 0 | `2b6533cf4468546651925b4568244d02fdd9807552e5dfba67d16b9d8d81e531` |
+| A，同池 | 仍运行 A，未编译，退出 0 | `e33c7529865a86842fd0cca46f153ebffb43a7d95abe8fd37adcd0bfaf3508e2` |
+| B，同池 | 退出 **2**，`commandExecuted=false`、`executionAttempted=false`，未生成 Cargo 回执目录 | `93355f637cefdb1695e10edbf2f2f2459a9ad160f25de2a9f8bd9e7bf43a1249` |
+| A，B 被拒后 | 仍运行 A，未编译，退出 0 | `33faa74c2e32883a00ae98dbfa3a170768d3d3fd08e7ecfe9a2e8e52cde58198` |
+
+上述顺序中 A 的可执行文件时间戳和摘要 `51d02e882b06df55266f763fe91e61dcdf7d2cb6dd7e5b8698e9d120aeb84226`、来源记录摘要 `990cc5fbc1437152cea099699bd4a69856d7ca08d3b426d3ab97e5f392071ac0` 在第一次生成后不变。原 RED 和独立 B 正对照不覆盖也不删除。
+
+边界：本候选选择明确拒绝而不是自动建 N 份引擎缓存。默认池的只读投影和依赖缓存位置不变，但**计划相同不表示运行准入相同**；只有所有 writer 都经此防护的输出池才可实际绑定。首次写记录并发失败走保守拒绝，不抢锁、不重置；不能证明同一工作树的完整字节闭包、外部工具未写池或旧池可直接迁移。#136 的新入口进入主干后，先复核生产 pool 的所有 writer、旧池迁移与可用依赖缓存，再在本 Draft 接线和复验，不把无依赖夹具当作完整引擎或产品验收。
