@@ -1,11 +1,12 @@
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
 
-use crate::asset::project::ProjectGenerationObservation;
+use crate::asset::importer::AuxiliarySourceResolver;
 use crate::asset::project::{AssetMetaDocument, AssetMetaError, AssetSourceUnit};
+use crate::asset::project::{ProjectGenerationObservation, ProjectPaths};
 use crate::asset::reference_resolver::persisted_source_path_for_locator;
-use crate::asset::{AssetImportError, AssetUri};
+use crate::asset::{AssetImportError, AssetImporterHandler, AssetUri};
 use crate::core::resource::ResourceScheme;
 
 use super::super::{
@@ -41,6 +42,7 @@ pub(super) struct AssetImportSource {
     pub(super) included_paths: Vec<PathBuf>,
     pub(super) compound_root: Option<PathBuf>,
     pub(super) source_snapshot: Option<AssetImportSourceSnapshot>,
+    // Primary and legacy source capture; the selected handler can augment it separately.
     snapshot_complete: bool,
 }
 
@@ -506,22 +508,7 @@ fn snapshot_declared_auxiliary_sources(
         .source_snapshot
         .as_mut()
         .expect("the primary source is captured before auxiliary discovery");
-    let retained = snapshot
-        .source_file_snapshots
-        .values()
-        .try_fold(snapshot.source_bytes.len() as u64, |total, bytes| {
-            total.checked_add(bytes.len() as u64)
-        })
-        .ok_or_else(|| source_budget_error(&source.path, "source snapshot size overflow"))?;
-    let remaining = source_byte_limit().checked_sub(retained).ok_or_else(|| {
-        source_budget_error(
-            &source.path,
-            format!(
-                "source snapshot exceeds the {}-byte cumulative limit",
-                source_byte_limit()
-            ),
-        )
-    })?;
+    let remaining = source_snapshot_bytes_remaining(&source.path, snapshot)?;
     let extension = source
         .path
         .extension()
@@ -564,6 +551,104 @@ fn snapshot_declared_auxiliary_sources(
         snapshot.source_file_snapshots.insert(path, bytes);
     }
     Ok(())
+}
+
+/// Adds a selected handler's inputs for a single-file source. Compound membership and its
+/// legacy discovery are independent: a generated compound sidecar is not a primary manifest.
+pub(super) fn snapshot_handler_auxiliary_sources(
+    source: &mut AssetImportSource,
+    handler: Option<&dyn AssetImporterHandler>,
+    supplied_is_complete: bool,
+) -> Result<(), AssetImportError> {
+    let Some(handler) = handler.filter(|_| source.unit == AssetSourceUnit::Single) else {
+        return Ok(());
+    };
+    let snapshot = source
+        .source_snapshot
+        .as_mut()
+        .expect("primary source must be captured before calling the selected importer");
+    let paths = handler.auxiliary_source_paths(&source.path, &snapshot.source_bytes)?;
+    if paths.is_empty() {
+        return Ok(());
+    }
+    let file_limit = AuxiliarySourceResolver::MAX_SNAPSHOT_FILES;
+    let file_budget_error = || {
+        source_budget_error(
+            &source.path,
+            format!("declared auxiliary sources exceed the {file_limit}-file cumulative limit"),
+        )
+    };
+    if snapshot.source_file_snapshots.len() > file_limit {
+        return Err(file_budget_error());
+    }
+    let parent = source
+        .path
+        .parent()
+        .ok_or_else(|| AssetImportError::Parse("source has no parent".into()))?;
+    let resolver = AuxiliarySourceResolver::for_asset_root(&source.asset_root, parent)?;
+    let primary = ProjectPaths::lexical_identity(&source.path)?;
+    let mut identities = snapshot
+        .source_file_snapshots
+        .keys()
+        .map(ProjectPaths::lexical_identity)
+        .collect::<Result<BTreeSet<_>, _>>()?;
+    let mut remaining = source_snapshot_bytes_remaining(&source.path, snapshot)?;
+    let mut additional = BTreeMap::new();
+    let mut latest_mtime = snapshot.source_mtime_unix_ms;
+    for relative in paths {
+        let path = resolver.resolve_declared_path(&relative)?;
+        let identity = ProjectPaths::lexical_identity(&path)?;
+        if identity == primary {
+            return Err(AssetImportError::Parse(format!(
+                "declared auxiliary source {} names the primary source of {}; use the captured primary bytes instead",
+                relative.display(), source.uri
+            )));
+        }
+        if !identities.insert(identity) {
+            continue;
+        }
+        if supplied_is_complete {
+            return Err(AssetImportError::Parse(format!(
+                "supplied source snapshot for {} does not contain {}",
+                source.uri,
+                relative.display()
+            )));
+        }
+        if snapshot.source_file_snapshots.len() + additional.len() >= file_limit {
+            return Err(file_budget_error());
+        }
+        let (_, bytes, mtime) = resolver.read_path_snapshot(&relative, remaining)?;
+        remaining -= bytes.len() as u64;
+        latest_mtime = latest_mtime.max(mtime);
+        // Keep the manifest's normalized lexical name, not the resolver's physical spelling.
+        // The context can look it up without consulting the disk again.
+        additional.insert(path, bytes);
+    }
+    snapshot.source_file_snapshots.extend(additional);
+    snapshot.source_mtime_unix_ms = latest_mtime;
+    Ok(())
+}
+
+fn source_snapshot_bytes_remaining(
+    source_path: &Path,
+    snapshot: &AssetImportSourceSnapshot,
+) -> Result<u64, AssetImportError> {
+    let retained = snapshot
+        .source_file_snapshots
+        .values()
+        .try_fold(snapshot.source_bytes.len() as u64, |total, bytes| {
+            total.checked_add(bytes.len() as u64)
+        })
+        .ok_or_else(|| source_budget_error(source_path, "source snapshot size overflow"))?;
+    source_byte_limit().checked_sub(retained).ok_or_else(|| {
+        source_budget_error(
+            source_path,
+            format!(
+                "source snapshot exceeds the {}-byte cumulative limit",
+                source_byte_limit()
+            ),
+        )
+    })
 }
 
 fn read_primary_source_snapshot(

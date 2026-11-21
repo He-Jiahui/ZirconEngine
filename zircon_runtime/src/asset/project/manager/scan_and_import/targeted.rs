@@ -24,14 +24,20 @@ use super::metadata::{
     failed_entries_for_source, validate_import_entries,
 };
 use super::sources::{
-    materialize_compound_source_snapshot, source_asset_root_for_digest, source_digest_for_import,
-    source_mtime_unix_ms_for_import, take_source_bytes_for_import, AssetImportSourceSnapshot,
+    materialize_compound_source_snapshot, snapshot_handler_auxiliary_sources,
+    source_asset_root_for_digest, source_digest_for_import, source_mtime_unix_ms_for_import,
+    take_source_bytes_for_import, AssetImportSourceSnapshot,
 };
 use super::{stage_project_resource, ImportSourcePlan, ProjectManager};
 use crate::asset::project::manager::durable_transaction::{
     commit_prepared_files, journal_directory, PreparedFileWrite, ProjectFileCommitOutcome,
     ProjectTransactionFault,
 };
+
+enum SuppliedSourceSnapshot {
+    ModelPlan(AssetImportSourceSnapshot),
+    GeneratedPrimary(AssetImportSourceSnapshot),
+}
 
 pub(crate) struct PreparedTargetedGeneration {
     journal_directory: PathBuf,
@@ -317,8 +323,7 @@ impl ProjectManager {
         let model_generation = self.prepare_targeted_generation_with_source_snapshot(
             &source_uri,
             &source_path,
-            source_snapshot,
-            false,
+            source_snapshot.map(SuppliedSourceSnapshot::ModelPlan),
         )?;
         let material_generation =
             self.prepare_targeted_generation(&material_uri, &material_path)?;
@@ -394,7 +399,7 @@ impl ProjectManager {
         uri: &AssetUri,
         indexed_path: &Path,
     ) -> Result<PreparedTargetedGeneration, AssetImportError> {
-        self.prepare_targeted_generation_with_source_snapshot(uri, indexed_path, None, false)
+        self.prepare_targeted_generation_with_source_snapshot(uri, indexed_path, None)
     }
 
     pub(crate) fn prepare_generated_source_generation(
@@ -412,12 +417,13 @@ impl ProjectManager {
         self.prepare_targeted_generation_with_source_snapshot(
             uri,
             indexed_path,
-            Some(AssetImportSourceSnapshot {
-                source_bytes,
-                source_mtime_unix_ms,
-                source_file_snapshots: BTreeMap::new(),
-            }),
-            true,
+            Some(SuppliedSourceSnapshot::GeneratedPrimary(
+                AssetImportSourceSnapshot {
+                    source_bytes,
+                    source_mtime_unix_ms,
+                    source_file_snapshots: BTreeMap::new(),
+                },
+            )),
         )
     }
 
@@ -425,14 +431,30 @@ impl ProjectManager {
         &mut self,
         uri: &AssetUri,
         indexed_path: &Path,
-        source_snapshot: Option<AssetImportSourceSnapshot>,
-        persist_source_snapshot: bool,
+        source_snapshot: Option<SuppliedSourceSnapshot>,
     ) -> Result<PreparedTargetedGeneration, AssetImportError> {
-        let source = self.prepare_targeted_import_source(uri, indexed_path)?;
-        let mut source = match source_snapshot {
-            Some(snapshot) => source.with_source_snapshot(snapshot),
-            None => source,
-        };
+        let mut source = self.prepare_targeted_import_source(uri, indexed_path)?;
+        let supplied_is_complete =
+            matches!(&source_snapshot, Some(SuppliedSourceSnapshot::ModelPlan(_)));
+        let persist_source_snapshot = matches!(
+            &source_snapshot,
+            Some(SuppliedSourceSnapshot::GeneratedPrimary(_))
+        );
+        if let Some(
+            SuppliedSourceSnapshot::ModelPlan(snapshot)
+            | SuppliedSourceSnapshot::GeneratedPrimary(snapshot),
+        ) = source_snapshot
+        {
+            source = source.with_source_snapshot(snapshot);
+        }
+        let selected = self
+            .importer
+            .registry()
+            .select_with_availability(&source.path);
+        let capture_handler = selected
+            .as_ref()
+            .ok()
+            .and_then(|(handler, available)| available.then_some(handler.as_ref()));
         let replaced_ids = self
             .asset_registry
             .source_entries(&source.uri)
@@ -444,6 +466,11 @@ impl ProjectManager {
             Err(error) if source.source_snapshot.is_none() => return Err(error),
             Err(error) => Some(error),
         };
+        if source_snapshot_error.is_none() {
+            // This is importer preflight, not the legacy snapshot error path that stages an
+            // Error row. Like import_context failure, do not publish any targeted replacement.
+            snapshot_handler_auxiliary_sources(&mut source, capture_handler, supplied_is_complete)?;
+        }
         let source_bytes = take_source_bytes_for_import(&mut source)?;
         let source_mtime_unix_ms = source_mtime_unix_ms_for_import(&source)?;
         let source_file_snapshots = source.take_source_file_snapshots();
@@ -461,7 +488,10 @@ impl ProjectManager {
             &source_file_snapshots,
             Some(&source_root),
         );
-        let descriptor = self.importer.descriptor_for_source(&source.path).ok();
+        let descriptor = selected
+            .as_ref()
+            .ok()
+            .map(|(handler, _)| handler.descriptor().clone());
         let fallback_kind = descriptor
             .as_ref()
             .map(|descriptor| descriptor.output_kind)
@@ -600,7 +630,9 @@ impl ProjectManager {
         .with_build_identity(build_identity)
         .with_source_file_snapshots(source_file_snapshots)
         .with_project_resolver(Arc::clone(&self.asset_registry), project_roots);
-        let mut outcome = self.importer.import_context(&context)?;
+        let mut outcome = self
+            .importer
+            .import_context_with_selection(&context, || selected.map(|(handler, _)| handler))?;
         validate_import_entries(&source.uri, &outcome)?;
         let reference_repairs = outcome.reference_repairs.clone();
         let prepared_ibl_writes = super::prepare_environment_ibl_import(

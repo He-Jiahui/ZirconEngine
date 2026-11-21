@@ -10,6 +10,7 @@ use zircon_runtime::plugin::{
     RuntimeExtensionRegistryError, RuntimePlugin, RuntimePluginDescriptor,
 };
 
+use crate::array::texture_array_auxiliary_source_paths;
 use crate::{
     import_cubemap, import_image, import_psd, import_texture_array_manifest,
     import_texture_container, ARRAY_IMPORTER_CAPABILITY, CONTAINER_IMPORTER_CAPABILITY,
@@ -73,10 +74,10 @@ impl RuntimePlugin for TextureImporterRuntimePlugin {
             cubemap_importer_descriptor(),
             import_cubemap,
         ))?;
-        registry.register_asset_importer(FunctionAssetImporter::new(
-            array_importer_descriptor(),
-            import_texture_array_manifest,
-        ))?;
+        registry.register_asset_importer(
+            FunctionAssetImporter::new(array_importer_descriptor(), import_texture_array_manifest)
+                .with_auxiliary_source_paths(texture_array_auxiliary_source_paths),
+        )?;
         registry.register_asset_importer(DiagnosticOnlyAssetImporter::new(
             optional_native_container_importer_descriptor(),
             "cubemap/dxgi texture import requires a NativeDynamic texture backend",

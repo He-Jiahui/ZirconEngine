@@ -86,6 +86,18 @@ impl AssetImporterRegistry {
             .map(|slot| slot.importer.clone())
     }
 
+    /// Returns the selected handler and its registered availability from the same slot.
+    pub(crate) fn select_with_availability(
+        &self,
+        source_path: &Path,
+    ) -> Result<(Arc<dyn AssetImporterHandler>, bool), AssetImportError> {
+        let slot = self.select_slot(source_path)?;
+        Ok((
+            slot.importer.clone(),
+            slot.availability.status.is_available(),
+        ))
+    }
+
     fn select_slot(&self, source_path: &Path) -> Result<&AssetImporterSlot, AssetImportError> {
         if let Some(importer) = self.best_full_suffix_match(source_path) {
             return Ok(importer);

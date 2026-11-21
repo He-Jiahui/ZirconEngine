@@ -303,3 +303,45 @@ fn project_large_compound_retains_one_member_copy_and_enforces_cumulative_budget
         .iter()
         .any(|diagnostic| diagnostic.message.contains("limit")));
 }
+
+#[test]
+fn repeated_auxiliary_slots_only_charge_one_companion_to_the_snapshot_budget() {
+    use super::super::sources::{
+        materialize_compound_source_snapshot, snapshot_handler_auxiliary_sources,
+    };
+    use crate::asset::importer::AuxiliarySourceResolver;
+    use crate::asset::{AssetImporterDescriptor, FunctionAssetImporter};
+
+    const PRIMARY: &[u8] = b"captured manifest";
+    const COMPANION: &[u8] = b"captured companion";
+    let fixture = Fixture::new("repeated-declaration");
+    let source_path = fixture.assets.join("manifest.fixture");
+    let companion_path = fixture.assets.join("member.bin");
+    fs::write(&source_path, PRIMARY).unwrap();
+    fs::write(&companion_path, COMPANION).unwrap();
+    BYTE_LIMIT.with(|limit| limit.set(Some((PRIMARY.len() + COMPANION.len()) as u64)));
+
+    let manager = ProjectManager::open(&fixture.root).unwrap();
+    let mut source = manager
+        .prepare_targeted_import_source(
+            &AssetUri::parse("res://manifest.fixture").unwrap(),
+            &source_path,
+        )
+        .unwrap();
+    materialize_compound_source_snapshot(&mut source).unwrap();
+    let importer = FunctionAssetImporter::new(
+        AssetImporterDescriptor::new("fixture", "fixture", AssetKind::Data, 1),
+        |_| panic!("capture must not execute the importer"),
+    )
+    .with_auxiliary_source_paths(|_, primary| {
+        assert_eq!(primary, PRIMARY);
+        Ok(vec![
+            PathBuf::from("./member.bin");
+            AuxiliarySourceResolver::MAX_SNAPSHOT_FILES + 1
+        ])
+    });
+    snapshot_handler_auxiliary_sources(&mut source, Some(&importer), false).unwrap();
+    let snapshots = source.take_source_file_snapshots();
+    assert_eq!(snapshots.len(), 1);
+    assert_eq!(snapshots[&companion_path].as_slice(), COMPANION);
+}

@@ -89,6 +89,24 @@ impl AuxiliarySourceResolver {
         self.admit_existing_file(&candidate)
     }
 
+    /// Resolves a hosted importer's ordinary relative declaration without opening it.
+    pub(crate) fn resolve_declared_path(
+        &self,
+        reference: &Path,
+    ) -> Result<PathBuf, AssetImportError> {
+        if reference.file_name().is_none()
+            || reference
+                .components()
+                .any(|component| !matches!(component, Component::Normal(_) | Component::CurDir))
+        {
+            return Err(auxiliary_error(format!(
+                "declared auxiliary source {} must be a normal relative file path",
+                ProjectPaths::display_path(reference).display()
+            )));
+        }
+        self.resolve_lexical_path(reference)
+    }
+
     pub(super) fn resolve_lexical_path(
         &self,
         reference: &Path,

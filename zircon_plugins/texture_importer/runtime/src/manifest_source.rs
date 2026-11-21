@@ -18,14 +18,26 @@ pub(crate) fn decode_manifest_image(
     context: &AssetImportContext,
     source: &str,
 ) -> Result<DecodedManifestImage, AssetImportError> {
-    let resolved = resolve_manifest_source(context, source)?;
+    read_manifest_image(resolve_manifest_source(context, source)?)
+}
+
+pub(crate) fn read_manifest_image(
+    resolved: ResolvedManifestSource,
+) -> Result<DecodedManifestImage, AssetImportError> {
     let bytes = std::fs::read(&resolved.path).map_err(|error| {
         AssetImportError::Parse(format!(
             "read texture manifest source {}: {error}",
             resolved.path.display()
         ))
     })?;
-    let rgba = image::load_from_memory(&bytes).map_err(|error| {
+    decode_manifest_image_bytes(resolved, &bytes)
+}
+
+pub(crate) fn decode_manifest_image_bytes(
+    resolved: ResolvedManifestSource,
+    bytes: &[u8],
+) -> Result<DecodedManifestImage, AssetImportError> {
+    let rgba = image::load_from_memory(bytes).map_err(|error| {
         AssetImportError::Parse(format!(
             "decode texture manifest source {}: {error}",
             resolved.path.display()
@@ -67,7 +79,7 @@ pub(crate) fn resolve_manifest_source(
     })
 }
 
-fn validated_relative_source(source: &str) -> Result<&Path, AssetImportError> {
+pub(crate) fn validated_relative_source(source: &str) -> Result<&Path, AssetImportError> {
     let path = Path::new(source);
     let valid = !source.trim().is_empty()
         && !source.contains("://")

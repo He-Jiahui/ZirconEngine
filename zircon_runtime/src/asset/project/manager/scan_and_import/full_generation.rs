@@ -30,8 +30,9 @@ use super::metadata::{
 };
 use super::projected_inventory::ProjectedMetaInventory;
 use super::sources::{
-    materialize_compound_source_snapshot, source_asset_root_for_digest, source_digest_for_import,
-    source_mtime_unix_ms_for_import, take_source_bytes_for_import, AssetImportSource,
+    materialize_compound_source_snapshot, snapshot_handler_auxiliary_sources,
+    source_asset_root_for_digest, source_digest_for_import, source_mtime_unix_ms_for_import,
+    take_source_bytes_for_import, AssetImportSource,
 };
 use super::{stage_project_resource, ProjectManager, ShaderImportDependencyIndex};
 use crate::asset::project::manager::durable_transaction::{
@@ -157,8 +158,18 @@ impl ProjectManager {
         for mut source in sources {
             let file = source.path.clone();
             let uri = source.uri.clone();
-            // Do not reopen a primary that failed admission: the first error owns this failure.
-            let source_snapshot_error = match materialize_compound_source_snapshot(&mut source) {
+            let selected = self.importer.registry().select_with_availability(&file);
+            let capture_handler = selected
+                .as_ref()
+                .ok()
+                .and_then(|(handler, available)| available.then_some(handler.as_ref()));
+            // Do not reopen a primary that failed admission or make an absent provider fatal
+            // before the existing persisted-importer restore check.
+            let snapshot_result =
+                materialize_compound_source_snapshot(&mut source).and_then(|()| {
+                    snapshot_handler_auxiliary_sources(&mut source, capture_handler, false)
+                });
+            let source_snapshot_error = match snapshot_result {
                 Ok(()) => None,
                 Err(error) if source.source_snapshot.is_none() => return Err(error),
                 Err(error) => Some(error),
@@ -187,7 +198,10 @@ impl ProjectManager {
                 &source_file_snapshots,
                 Some(&source_root),
             );
-            let descriptor = self.importer.descriptor_for_source(&file).ok();
+            let descriptor = selected
+                .as_ref()
+                .ok()
+                .map(|(handler, _)| handler.descriptor().clone());
             let fallback_kind = descriptor
                 .as_ref()
                 .map(|descriptor| descriptor.output_kind)
@@ -304,7 +318,11 @@ impl ProjectManager {
 
             let import_result = match source_snapshot_error {
                 Some(error) => Err(error),
-                None => self.importer.import_context(&import_context),
+                None => self
+                    .importer
+                    .import_context_with_selection(&import_context, || {
+                        selected.map(|(handler, _)| handler)
+                    }),
             };
             let (metadata, direct_references, reference_repairs) = match import_result {
                 Ok(outcome) => {
