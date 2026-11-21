@@ -1,12 +1,12 @@
 # M01 / Draft 问题定义：材质 option 超出 u32 位预算仍被接收，枚举值在真实 shader 变体入口被截断
 
-> 取证说明：UE 的本机路径与文件 SHA256 是用户提供参考树的依据；本轮 D: 审计快照/工作记录仅本地保存，不随本 PR 发布，也不冒充 GitHub 可读证据。UE/ZE 测试均未在本轮执行。
+> 取证说明：UE 的本机路径与文件 SHA256 是用户提供参考树的依据；本轮 D: 审计快照/工作记录仅本地保存，不随本 PR 发布，也不冒充 GitHub 可读证据。UE 测试均未执行；ZE 原生测试结果见第 7、8 节与“普通预热程序的冷缓存与热缓存结果”，均为作者本机 Windows x64/MSVC 回执，不是 CI 结果。
 
-状态：**仅调查、问题定义稿**。顺序保持「独立 Draft → 同一问题的等价/契约单测 → 可行修复」；本稿不是 PR 创建、修复、测试通过或引擎验收回执。
+状态：**问题定义 + 回归 + 修复 Draft（PR #152）；原实现 5 案 2 过 3 败 → 修复后 5 过 0 败（作者本机 Windows，非 CI）。** 测试 `658212a2`，修复 `02b6afc0`，预热程序观察记录 `4fb30c96`。第 1–6 节、“UE 既有测试迁移表与 ZE 落点”“模块 / owner / 覆盖与未知”为 2026-11-17 只读阶段原文，其中“本轮未实施”“未新增、未执行”均指该阶段。Q-152-1 / Q-152-2 的落地语义见第 4 节补记，待 John 确认。
 
 - 源码读取基线：ZE 本机 HEAD `cb495bb1c952a24c86f4513b8099bc4942c3a87d`。lead 更正的远端基线为 `e89349ca51b4e9d024c194cd3bdf645bd25b6c37`；本地只读 `git diff --name-only e893… cb495… -- zircon_runtime zircon_plugins zircon_runtime_interface zircon_editor zircon_app` 输出为空。因此本文 ZE 链接固定为 **e893 blob**，不把流程退役提交夹入引擎问题。
-- UE 本地只读版本由 [Build.version:1–10][ue-version] 确认为 `6.0.0 / BranchName UE5`。UE 子目录不是本稿已确认的独立 Git checkout，不把其向上继承的 ZE HEAD 当成 UE 提交号；以下以精确路径、符号、行号与文件 SHA256 定位。
-- 已读规范 [ZE AGENTS][ze-agents]、[任务树 AGENTS][task-agents] 及工程/dev 相关规则；未触碰外来 skill/catalog 脏文件。**未改源码、未 Cargo、未运行 UE、未 Git 写、未访问远端。**
+- UE 本地只读版本由 Build.version:1–10（UE 本机参考树 `Engine/Build/Build.version`） 确认为 `6.0.0 / BranchName UE5`。UE 子目录不是本稿已确认的独立 Git checkout，不把其向上继承的 ZE HEAD 当成 UE 提交号；以下以精确路径、符号、行号与文件 SHA256 定位。
+- 已读规范 [ZE AGENTS](../../../AGENTS.md)、任务树 AGENTS（本机，未随 PR 发布） 及工程/dev 相关规则；未触碰外来 skill/catalog 脏文件。**未改源码、未 Cargo、未运行 UE、未 Git 写、未访问远端。**（2026-11-17 阶段）
 
 ## 1. 差异、精确位置及真实可达性
 
@@ -39,18 +39,18 @@
 
 **UE 对应的是命名静态参数的保真与有界 permutation 输入，不是要求 ZE 增加 UE 材质系统。**
 
-- [StaticParameterSet.h:395–428][ue-static-set] 的 `FStaticParameterSetRuntimeData::StaticSwitchParameters` 按独立条目保存静态 bool，而不是把所有命名参数压到一个 u32。
-- [MaterialShader.cpp:956–1006、1092–1105][ue-material-shader] 的比较与 `SetStaticSwitchParameterValue` 保留条目；[MaterialInstance.cpp:4859–4912][ue-material-instance] 的 `UMaterialInstance::UpdateStaticPermutation` 比较完整集合、更新编译资源。
-- 传统链：[MaterialExpressions.cpp:8968–8972][ue-material-expressions] 的 `UMaterialExpressionStaticBoolParameter::Compile` → [HLSLMaterialTranslator.cpp:8947–8965][ue-material-translator] 的 `StaticBoolParameter` 按 `ParameterInfo` 找值。现代 MIR 在 [MaterialExpressionsToMIR.cpp:759–788][ue-material-mir] 也从完整静态参数列表读对应 bool。
+- StaticParameterSet.h:395–428（UE 本机参考树 `Engine/Source/Runtime/Engine/Public/StaticParameterSet.h`） 的 `FStaticParameterSetRuntimeData::StaticSwitchParameters` 按独立条目保存静态 bool，而不是把所有命名参数压到一个 u32。
+- MaterialShader.cpp:956–1006、1092–1105（UE 本机参考树 `Engine/Source/Runtime/Engine/Private/Materials/MaterialShader.cpp`） 的比较与 `SetStaticSwitchParameterValue` 保留条目；MaterialInstance.cpp:4859–4912（UE 本机参考树 `Engine/Source/Runtime/Engine/Private/Materials/MaterialInstance.cpp`） 的 `UMaterialInstance::UpdateStaticPermutation` 比较完整集合、更新编译资源。
+- 传统链：MaterialExpressions.cpp:8968–8972（UE 本机参考树 `Engine/Source/Runtime/Engine/Private/Materials/MaterialExpressions.cpp`） 的 `UMaterialExpressionStaticBoolParameter::Compile` → HLSLMaterialTranslator.cpp:8947–8965（UE 本机参考树 `Engine/Source/Runtime/Engine/Private/Materials/HLSLMaterialTranslator.cpp`） 的 `StaticBoolParameter` 按 `ParameterInfo` 找值。现代 MIR 在 MaterialExpressionsToMIR.cpp:759–788（UE 本机参考树 `Engine/Source/Runtime/Engine/Private/Materials/MaterialExpressionsToMIR.cpp`） 也从完整静态参数列表读对应 bool。
 
-**UE permutation 上限另行区分：**[ShaderPermutation.h:96–138、451–492、540–549][ue-permutation] 的 `TShaderPermutationInt` 检查各维 value 范围，`TShaderPermutationDomain` 的总基数是 `constexpr int32` 乘积、构造函数检查 ID 范围。这不是“最多 32 个材质参数”，也不是无限维支持。31 个 bool × 3 值的全排列基数为 6,442,450,944，超过正 int32；不能把本稿 ZE witness 声称为该 UE 模板可运行的等量 domain。其常量溢出编译诊断本轮未实际验证。本问题允许 ZE **明确拒绝**超预算声明，所要求的是不静默接受后损失作者值，而非必须支持该组合。
+**UE permutation 上限另行区分：**ShaderPermutation.h:96–138、451–492、540–549（UE 本机参考树 `Engine/Source/Runtime/RenderCore/Public/ShaderPermutation.h`） 的 `TShaderPermutationInt` 检查各维 value 范围，`TShaderPermutationDomain` 的总基数是 `constexpr int32` 乘积、构造函数检查 ID 范围。这不是“最多 32 个材质参数”，也不是无限维支持。31 个 bool × 3 值的全排列基数为 6,442,450,944，超过正 int32；不能把本稿 ZE witness 声称为该 UE 模板可运行的等量 domain。其常量溢出编译诊断本轮未实际验证。本问题允许 ZE **明确拒绝**超预算声明，所要求的是不静默接受后损失作者值，而非必须支持该组合。
 
 ## 2. 有界风险
 
 - 仅针对累计材质 option 位宽超过现有 u32 容量的 shader 声明。32 位内健康布局、本稿未检查的内置 shader、普通浮点/颜色 uniform 不因此被判定有错。
 - 上述 33 位 witness 在值验证成功后将合法 enum=2 变成 0，可导致错误分支、材质间错误共用 variant；没有证据称所有材质受影响、存在内存破坏或 GPU 驱动问题。
 - 更多 bool 导致 offset≥32 的移位还可能触发受检查构建的 panic，但不是本稿成立所必需的证据，也不把未运行的 release/debug 行为写成实测。
-- 未盘点产品资产中实际有多少超预算 shader，因此频率未知；这是一条已接收输入的确定性编码/诊断缺陷，不是“ZE 尚无 UE 高级材质”的能力差距。
+- 未盘点产品资产中实际有多少超预算 shader，因此频率未知；这是一条已接收输入的确定性编码/诊断缺陷，不是“ZE 尚无 UE 高级材质”的能力差距。修复前须盘点仓库内置与产品 shader 的 option 位宽：⟨FILL：超 32 位的数量/名称，或“无”⟩。若有，本 PR 的硬错误会打断现有内容，须 John 另定迁移。
 
 ## 3. 根因与 UE 实际处理
 
@@ -75,13 +75,13 @@ ZE 自身既有 [32 位上限/超限 import 诊断合同:165](<https://github.co
 
 ## 6. ZE 具体修改草案（本轮未实施）
 
-| 现有落点 | 最小职责 |
-|---|---|
-| [property_layout.rs::material_option_table / generate_material_artifact][ze-pack] | 分配前检查总预算，记录越界 option 名、所需位数与剩余容量；不生成可误用的成功 table |
-| [import_shader_package.rs::import_shader_package][ze-import] | 传播布局失败到既有导入错误/diagnostic，在错误 artifact 发布前停下 |
-| [shader_asset.rs::regenerate_material_artifact:125–138][ze-regenerate] | 程序化/缓存再生成同样拒绝非法 table；不清空错误并当作默认成功 |
-| [material_property_layout.rs 的 bits/definition 编码][ze-bits] | 校验已构造 table 的边界；合法 32 位内行为不变；拒绝而非默认 0 |
-| [material/validation.rs][ze-validation]、[ensure_material.rs][ze-ensure] | 将超预算声明判为不可用，并复核先算 bits 后 readiness 的时序，防止检查太晚 |
+| 现有落点 | 最小职责 | 落地（`02b6afc0`） |
+|---|---|---|
+| [property_layout.rs::material_option_table / generate_material_artifact][ze-pack] | 分配前检查总预算，记录越界 option 名、所需位数与剩余容量；不生成可误用的成功 table | 新增 `validate_material_option_bit_budget`；`material_option_table` 本体不变 |
+| [import_shader_package.rs::import_shader_package][ze-import] | 传播布局失败到既有导入错误/diagnostic，在错误 artifact 发布前停下 | 未改；错误经作者解析入口传播 |
+| [shader_asset.rs::regenerate_material_artifact:125–138][ze-regenerate] | 程序化/缓存再生成同样拒绝非法 table；不清空错误并当作默认成功 | 未改；缓存读回在其前复查 |
+| [material_property_layout.rs 的 bits/definition 编码][ze-bits] | 校验已构造 table 的边界；合法 32 位内行为不变；拒绝而非默认 0 | 未改；绕过导入与读回自行构造的表不在保证内（见第 8 节末段） |
+| [material/validation.rs][ze-validation]、[ensure_material.rs][ze-ensure] | 将超预算声明判为不可用，并复核先算 bits 后 readiness 的时序，防止检查太晚 | 未改 |
 
 应先冻结 witness、完成 Draft 审核，再添加下表中的测试；不能为“绿色”把跨界输入自动截断/丢弃 enum，或把现有小表回归改为只比较错误实现的镜像结果。
 
@@ -91,15 +91,18 @@ ZE 自身既有 [32 位上限/超限 import 诊断合同:165](<https://github.co
 
 | UE 既有测试名 / 路径行 | 输入 | 期望 | ZE 现成落点 / 迁移判定 |
 |---|---|---|---|
-| `FExportMaterialProxyAnisotropyTest` / `MaterialBaking.ExportMaterialProxy.ShaderDependencyConsistency`，[ExportMaterialProxyTest.cpp:24–66][ue-baking-test] | 灰色 0.5、DefaultLit、同步编译后创建 BaseColor baking proxy | shader 依赖一致、无 assertion | 与 option 预算无关，**不迁移、不借其名声称覆盖** |
+| `FExportMaterialProxyAnisotropyTest` / `MaterialBaking.ExportMaterialProxy.ShaderDependencyConsistency`，ExportMaterialProxyTest.cpp:24–66（UE 本机参考树 `Engine/Source/Developer/MaterialBaking/Private/Tests/ExportMaterialProxyTest.cpp`） | 灰色 0.5、DefaultLit、同步编译后创建 BaseColor baking proxy | shader 依赖一致、无 assertion | 与 option 预算无关，**不迁移、不借其名声称覆盖** |
 | 本次未找到 named-option 编码预算/33 位拒绝的既有 UE 测试 | — | — | 本稿后续用**源码推导契约**，不是“UE 单测迁移” |
 
-| 拟测契约（未新增、未执行） | 输入 / 期望 | ZE 已存在测试落点 |
-|---|---|---|
-| M-T1，合法边界 | 30 bool + 3 值 enum=2：恰好 32 位；编码为 bit31，反解仍为 2，生成 define=2 | [property_layout 测试:106–127][ze-pack-tests] 与 [option_lookup 测试][ze-option-tests] |
-| M-T2，非法跨界 | 31 bool + 3 值 enum；现源码推导 2→0。修复契约为 artifact/admission 明确拒绝，名称/位预算诊断完整，不进入 variant registry | 同上；导入整链放 [compound_shader.rs:5–75][ze-import-tests] 现有复合 shader harness |
-| M-T3，消费者见证 | 对合法边界生成的 0/2 两值，核对真实 `shader_material_option_defines` 与 registry variant id 不混同；非法声明不能进入该阶段 | [renderer/mesh/tests/material_options.rs:5–55][ze-consumer-tests]，并复用其既有 variant registry，不造新渲染器 |
-| M-T4，再生成 | 缓存/程序构造非法 option schema 应受控失败；小表、bool/enum 默认位不变 | [property_layout 测试][ze-pack-tests]；[shader_asset.rs 的再生成入口][ze-regenerate] |
+| 拟测契约（2026-11-17 拟定；落地对应见右列） | 输入 / 期望 | ZE 已存在测试落点 | 落地（`658212a2`） |
+|---|---|---|---|
+| M-T1，合法边界 | 30 bool + 3 值 enum=2：恰好 32 位；编码为 bit31，反解仍为 2，生成 define=2 | [property_layout 测试:106–127][ze-pack-tests] 与 [option_lookup 测试][ze-option-tests] | `material_budget_exact32_roundtrips_through_the_registered_importer`；解析对照 `material_budget_non_material_document_options_are_not_a_surface_table` |
+| M-T2，非法跨界 | 31 bool + 3 值 enum；现源码推导 2→0。修复契约为 artifact/admission 明确拒绝，名称/位预算诊断完整，不进入 variant registry | 同上；导入整链放 [compound_shader.rs:5–75][ze-import-tests] 现有复合 shader harness | `material_budget_overflow_is_not_a_ready_shader` |
+| M-T2b，移位防护 | 33 个 bool 的移位 panic 防护 | — | **未新增**（第 7 节：未构造 32 位移位 panic） |
+| M-T3，消费者见证 | 对合法边界生成的 0/2 两值，核对真实 `shader_material_option_defines` 与 registry variant id 不混同；非法声明不能进入该阶段 | [renderer/mesh/tests/material_options.rs:5–55][ze-consumer-tests]，并复用其既有 variant registry，不造新渲染器 | registry variant id 未核；现测只核 `definition_values_for_bits` |
+| M-T4，再生成 | 缓存/程序构造非法 option schema 应受控失败；小表、bool/enum 默认位不变 | [property_layout 测试][ze-pack-tests]；[shader_asset.rs 的再生成入口][ze-regenerate] | `material_budget_cache_reader_rejects_oversized_declaration`、`material_budget_reopen_reimports_valid_source_after_bad_cache` |
+
+测试模块 `asset/tests/project/zmeta/option_budget.rs` 仅在 `target-server` 或 `graphics` feature 下编译（`zmeta.rs` 的 `#[cfg(any(…))]`）；第 7 节命令使用 `--features target-server`。
 
 现有覆盖注意：`render_shader_option_table_packs_bool_and_enum_bits` 只覆盖 3 位；[option_lookup.rs:48–65][ze-option-tests] 的忽略性能例虽有 512 条，显式用 `index % 32` 复用 bit，并非 512 个独立 option 的正确性证明；[material_options.rs][ze-consumer-tests] 覆盖预置 bits=0/1，未从越界作者 schema 出发。本轮所有这些测试均**只读、未运行**。
 
@@ -110,32 +113,29 @@ ZE 自身既有 [32 位上限/超限 import 诊断合同:165](<https://github.co
 | 材质作者/实例、属性值 | runtime asset material/shader；[MaterialAsset][ze-material]、[ShaderAsset][ze-regenerate] | 参数到 artifact、校验、实际 mesh 消费链 | 未渲染材质球预览，不断言完整材质球 UI 功能 |
 | shader 变体/管线 | runtime graphics ResourceStreamer / MeshPipelineVariantRegistry；[ensure_material][ze-ensure]、[registry][ze-registry] | bits → key → define → 源组装/缓存入口 | GPU/产品帧与磁盘 cache 运行状态未测 |
 | 材质编辑器 | 独立插件 workspace 的 [material_editor/editor/Cargo.toml][ze-editor-cargo]；图/实例作者 helper [shader_compilation.rs][ze-editor-compile]、[instance_projection.rs][ze-editor-instance] | 已核真实路径及其 Runtime contract 委托，不把插件误当 runtime 内置 | UI 点击/撤销/保存/预览 owner 联调未测，不另报第二问题 |
-| 构建边界 | [plugins workspace:66–81、164–170][ze-plugins-cargo]、[runtime graphics feature:177–183][ze-runtime-cargo]；UE [Engine.Build.cs:73–109][ue-engine-build]、[RenderCore.Build.cs:18–26][ue-rendercore-build] | 确认 crate/模块依赖，UE Engine 依赖 RenderCore/RHI | Cargo/UBT/编译均未执行；人工 CODEOWNER 未查明，不虚构人名 |
+| 构建边界 | [plugins workspace:66–81、164–170][ze-plugins-cargo]、[runtime graphics feature:177–183][ze-runtime-cargo]；UE Engine.Build.cs:73–109（UE 本机参考树 `Engine/Source/Runtime/Engine/Engine.Build.cs`）、RenderCore.Build.cs:18–26（UE 本机参考树 `Engine/Source/Runtime/RenderCore/RenderCore.Build.cs`） | 确认 crate/模块依赖，UE Engine 依赖 RenderCore/RHI | Cargo/UBT/编译均未执行；人工 CODEOWNER 未查明，不虚构人名 |
 
-去重：已读 lead 提供的 [PR snapshot][pr-snapshot]（SHA256 `B374EE7808D92536D2680A200DE47479F5A458015F568562465B209C0AB0EF30`）。open #135/#144 为普通 mesh/editor affine，#138 为 CPU side-plane，#140/#141/#143 为 TBN/Mikk/fixture，#137/#139/#142 为几何测试编译/载荷/插件 API，#145 为物理写回，#136 为流程。M01 是材质 option 的表示/admission/define，不修改这些问题文件，不借 mesh/TBN 作第二 issue。snapshot 只涵盖其所含 #131–145，不能声称已遍历全部历史 PR。
+去重：已读 lead 提供的 作者本机 PR 快照 `github-pr-snapshot.json`（未随 PR 发布；SHA256 `B374EE7808D92536D2680A200DE47479F5A458015F568562465B209C0AB0EF30`）。open #135/#144 为普通 mesh/editor affine，#138 为 CPU side-plane，#140/#141/#143 为 TBN/Mikk/fixture，#137/#139/#142 为几何测试编译/载荷/插件 API，#145 为物理写回，#136 为流程。M01 是材质 option 的表示/admission/define，不修改这些问题文件，不借 mesh/TBN 作第二 issue。snapshot 只涵盖其所含 #131–145，不能声称已遍历全部历史 PR。去重范围补记（2026-11-17）：上述去重只覆盖 #131–145 快照。同日另有 #146–#179 开放；跨 PR 索引见 Draft #169 的 `docs/plans/unreal-alignment/module-coverage.md`（未合入）。按标题核对 #146–#179，未见与本问题同根因的 PR；这不是正文级查重。#180–#261 未经该标题核对。
 
 ## UE 源文件指纹（仅短说明，不复制实现）
 
 | 文件 | SHA256 |
 |---|---|
-| [Build.version][ue-version] | `3DCD8B6654872D013F2B00AA5F0EF1E0DB89D4E8627CE820554675A27F228EA6` |
-| [Engine.Build.cs][ue-engine-build] | `1C6A698C731CA203FC9648A53C13BCC3768FAE1FB91CD9EC658A3ABFA962E212` |
-| [StaticParameterSet.h][ue-static-set] | `5F26DEFCD61BE6ECA75944895BCADB102087550FB9BF117AF325029F9C905DE7` |
-| [MaterialShader.cpp][ue-material-shader] | `03BFB2BA34C5F95B6966DA548C0EDD013B79F857926225A6D6665F0E46FA572E` |
-| [MaterialInstance.cpp][ue-material-instance] | `D3EE5244AFF7F059D5CDB0EC4CCB9F9CFEF56BA996D624B8CA2F3CE00CF5EDD6` |
-| [HLSLMaterialTranslator.cpp][ue-material-translator] | `41C8ED07B7B5EE4E27BB2174E8AC6EEE139F0C34C4D41B1A5A35A6B9E3B5637A` |
-| [MaterialExpressions.cpp][ue-material-expressions] | `54AE761435C1347F4E53DBE38C77FE887D23B98D65C06DB075E78B6C9CF28DD8` |
-| [MaterialExpressionsToMIR.cpp][ue-material-mir] | `C96D4C27CC36F8C7BC84C6A0929014B23E465754B345A6EAE7A03AE765CCF694` |
-| [ShaderPermutation.h][ue-permutation] | `EE3AB3AB6B424CC388F25D8EFCFF9F6723B565292042D74E23A4A30B20FD52FC` |
-| [RenderCore.Build.cs][ue-rendercore-build] | `52AB046FD064FFEB48C111E60A1D7E3F63E5C529AF3CABC539F0455B56C3D13C` |
-| [MaterialBaking.Build.cs][ue-baking-build] | `2DCC2255FFE58322AD76EE5B0ADACD7936101041B24809F97AEC97DEFD388885` |
-| [ExportMaterialProxyTest.cpp][ue-baking-test] | `18085E2472B9122C5A349222E6F99AB2232AEE84A7CE784B85BE936E88788F06` |
+| `Engine/Build/Build.version` | `3DCD8B6654872D013F2B00AA5F0EF1E0DB89D4E8627CE820554675A27F228EA6` |
+| `Engine/Source/Runtime/Engine/Engine.Build.cs` | `1C6A698C731CA203FC9648A53C13BCC3768FAE1FB91CD9EC658A3ABFA962E212` |
+| `Engine/Source/Runtime/Engine/Public/StaticParameterSet.h` | `5F26DEFCD61BE6ECA75944895BCADB102087550FB9BF117AF325029F9C905DE7` |
+| `Engine/Source/Runtime/Engine/Private/Materials/MaterialShader.cpp` | `03BFB2BA34C5F95B6966DA548C0EDD013B79F857926225A6D6665F0E46FA572E` |
+| `Engine/Source/Runtime/Engine/Private/Materials/MaterialInstance.cpp` | `D3EE5244AFF7F059D5CDB0EC4CCB9F9CFEF56BA996D624B8CA2F3CE00CF5EDD6` |
+| `Engine/Source/Runtime/Engine/Private/Materials/HLSLMaterialTranslator.cpp` | `41C8ED07B7B5EE4E27BB2174E8AC6EEE139F0C34C4D41B1A5A35A6B9E3B5637A` |
+| `Engine/Source/Runtime/Engine/Private/Materials/MaterialExpressions.cpp` | `54AE761435C1347F4E53DBE38C77FE887D23B98D65C06DB075E78B6C9CF28DD8` |
+| `Engine/Source/Runtime/Engine/Private/Materials/MaterialExpressionsToMIR.cpp` | `C96D4C27CC36F8C7BC84C6A0929014B23E465754B345A6EAE7A03AE765CCF694` |
+| `Engine/Source/Runtime/RenderCore/Public/ShaderPermutation.h` | `EE3AB3AB6B424CC388F25D8EFCFF9F6723B565292042D74E23A4A30B20FD52FC` |
+| `Engine/Source/Runtime/RenderCore/RenderCore.Build.cs` | `52AB046FD064FFEB48C111E60A1D7E3F63E5C529AF3CABC539F0455B56C3D13C` |
+| `Engine/Source/Developer/MaterialBaking/MaterialBaking.Build.cs` | `2DCC2255FFE58322AD76EE5B0ADACD7936101041B24809F97AEC97DEFD388885` |
+| `Engine/Source/Developer/MaterialBaking/Private/Tests/ExportMaterialProxyTest.cpp` | `18085E2472B9122C5A349222E6F99AB2232AEE84A7CE784B85BE936E88788F06` |
 
-测试模块补充：[MaterialBaking.Build.cs:9–24][ue-baking-build] 依赖 Engine/RenderCore/RHI；上表既有测试不是独立无渲染单测，因此未移植其运行条件，也没有据其源码声称本机 UE 已通过。
+测试模块补充：MaterialBaking.Build.cs:9–24（UE 本机参考树 `Engine/Source/Developer/MaterialBaking/MaterialBaking.Build.cs`） 依赖 Engine/RenderCore/RHI；上表既有测试不是独立无渲染单测，因此未移植其运行条件，也没有据其源码声称本机 UE 已通过。
 
-[ze-agents]: <E:/Git/ZirconEngine/AGENTS.md>
-[task-agents]: <D:/CodexData/worktrees/ze-ue-audit-20261117/AGENTS.md>
-[pr-snapshot]: <D:/CodexData/worktrees/ze-ue-audit-20261117/reports/ue-module-audit-20261117/github-pr-snapshot.json>
 [ze-zshader]: <https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/asset/assets/shader/zshader.rs#L55-L98>
 [ze-import]: <https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/asset/importer/ingest/import_shader_package.rs#L105-L155>
 [ze-pack]: <https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/src/asset/assets/shader/property_layout.rs#L170-L249>
@@ -158,19 +158,6 @@ ZE 自身既有 [32 位上限/超限 import 诊断合同:165](<https://github.co
 [ze-editor-instance]: <https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/material_editor/editor/src/instance_projection.rs#L219-L265>
 [ze-plugins-cargo]: <https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_plugins/Cargo.toml#L66-L81>
 [ze-runtime-cargo]: <https://github.com/He-Jiahui/ZirconEngine/blob/e89349ca51b4e9d024c194cd3bdf645bd25b6c37/zircon_runtime/Cargo.toml#L177-L183>
-[ue-version]: <E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Build/Build.version#L1-L10>
-[ue-engine-build]: <E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Engine/Engine.Build.cs#L73-L109>
-[ue-static-set]: <E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Engine/Public/StaticParameterSet.h#L395-L428>
-[ue-material-shader]: <E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/Materials/MaterialShader.cpp#L956-L1105>
-[ue-material-instance]: <E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/Materials/MaterialInstance.cpp#L4859-L4912>
-[ue-material-translator]: <E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/Materials/HLSLMaterialTranslator.cpp#L8947-L8965>
-[ue-material-expressions]: <E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/Materials/MaterialExpressions.cpp#L8968-L8972>
-[ue-material-mir]: <E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/Engine/Private/Materials/MaterialExpressionsToMIR.cpp#L759-L788>
-[ue-permutation]: <E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/RenderCore/Public/ShaderPermutation.h#L451-L549>
-[ue-rendercore-build]: <E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Runtime/RenderCore/RenderCore.Build.cs#L18-L26>
-[ue-baking-build]: <E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Developer/MaterialBaking/MaterialBaking.Build.cs#L9-L24>
-[ue-baking-test]: <E:/Git/ZirconEngine/dev/UnrealEngine/Engine/Source/Developer/MaterialBaking/Private/Tests/ExportMaterialProxyTest.cpp#L24-L66>
-
 ## 7. 真实注册导入器、磁盘载荷与重开：原版 2 过 3 败
 
 [仅测试提交 `658212a20bf1d7e41813a3dd916baeae90e7e83f`](https://github.com/He-Jiahui/ZirconEngine/blob/658212a20bf1d7e41813a3dd916baeae90e7e83f/zircon_runtime/src/asset/tests/project/zmeta.rs) 与[测试实现](https://github.com/He-Jiahui/ZirconEngine/blob/658212a20bf1d7e41813a3dd916baeae90e7e83f/zircon_runtime/src/asset/tests/project/zmeta/option_budget.rs)。真实文件系统工程，内置 `zircon.builtin.shader.zshader_package` 导入合法 Surface WGSL；实际 `ProjectManager::scan_and_import`、`ArtifactStore::read`、材质值编码及 `definition_values_for_bits`。Windows x64/MSVC、Rust 1.94.1、test profile，`test -p zircon_runtime --no-default-features --features target-server --lib material_budget_ --locked --offline --jobs 1 -- --test-threads 1 --show-output`。5 个用例：**2 过、3 败**，0 忽略，7,889 过滤。
@@ -205,6 +192,6 @@ ZE 自身既有 [32 位上限/超限 import 诊断合同:165](<https://github.co
 
 再增加一个 bool，使最后枚举累计占 33 位。公开主干的冷报告写下一个值为 `0` 的排列。本 PR 的冷运行返回 1，指出 `detail_mode` 需要 33 位、上限为 32，未写 WGSL。未修改任何项目文件，第二次使用同一资产库存默认重试却返回 0，零请求、零写入、零失败；强制 `--quality-tier high` 再次返回相同解析诊断。这一默认重试问题也可以用合法 32 位 shader 和语法损坏的材质在主干独立复现。
 
-使用 Windows x64 普通 `zircon_shader_prewarm`，编译指定 `target-server,dynamic-api`、`dev` profile。以上是程序与实际缓存的结果，未启用 WGPU 模块或管线验证。交付工具另有 v1 与 v3 元数据格式之差，在 Python 验收器处出现，不是变体生成失败。没有为此补记修改引擎源码。
+使用 Windows x64 普通 `zircon_shader_prewarm`，编译指定 `target-server,dynamic-api`、`dev` profile。以上是程序与实际缓存的结果，未启用 WGPU 模块或管线验证。交付工具另有 v1 与 v3 元数据格式之差，在 Python 验收器处出现，不是变体生成失败。没有为此补记修改引擎源码。主干运行 commit ⟨FILL⟩、本 PR 运行 commit ⟨FILL⟩、完整命令行 ⟨FILL⟩、退出码（冷 1 / 热 0 / 强制 high ⟨FILL⟩）、回执 SHA-256 ⟨FILL⟩。
 
 [位数检查与材质解析](https://github.com/He-Jiahui/ZirconEngine/blob/aa68636392c8bbd993f4e198621a094ce08df591/zircon_runtime/src/asset/assets/shader/zshader.rs) · [默认库存快路](https://github.com/He-Jiahui/ZirconEngine/blob/aa68636392c8bbd993f4e198621a094ce08df591/zircon_runtime/src/bin/zircon_shader_prewarm/run.rs#L119-L179) · [正式磁盘提交](https://github.com/He-Jiahui/ZirconEngine/blob/aa68636392c8bbd993f4e198621a094ce08df591/zircon_runtime/src/graphics/shader/variant_cache/disk.rs#L208-L242)
