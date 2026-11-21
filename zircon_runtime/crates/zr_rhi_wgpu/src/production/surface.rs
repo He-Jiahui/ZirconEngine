@@ -22,6 +22,8 @@ pub(crate) struct WgpuSurfaceService {
 }
 
 struct WgpuSurfaceSession {
+    // Identity of the native surface, not the replaceable public session.
+    retirement_scope: SurfaceSession,
     descriptor: RenderSurfaceDescriptor,
     surface: wgpu::Surface<'static>,
     config: wgpu::SurfaceConfiguration,
@@ -30,6 +32,7 @@ struct WgpuSurfaceSession {
 
 struct WgpuSurfaceFrame {
     session: SurfaceSession,
+    retirement_scope: SurfaceSession,
     target: TextureHandle,
     default_view: TextureViewHandle,
     desc: TextureDesc,
@@ -76,6 +79,7 @@ impl WgpuSurfaceService {
         self.sessions.insert(
             session,
             WgpuSurfaceSession {
+                retirement_scope: session,
                 descriptor,
                 surface,
                 config,
@@ -92,6 +96,7 @@ impl WgpuSurfaceService {
         registry: &mut WgpuResourceRegistry,
         session: SurfaceSession,
         swapchain: &SwapchainDesc,
+        before_configure: impl FnOnce(&mut WgpuResourceRegistry, SurfaceSession),
     ) -> Result<SurfaceSessionCreateOutcome, RhiError> {
         self.handles.validate_session(session)?;
         let mut old = self.sessions.remove(&session).ok_or_else(|| {
@@ -103,6 +108,7 @@ impl WgpuSurfaceService {
         let (config, negotiated) =
             negotiate_surface_config(&old.surface, adapter, &old.descriptor)?;
         if old.descriptor.is_renderable() {
+            before_configure(registry, old.retirement_scope);
             old.surface.configure(device, &config);
         }
         old.config = config;
@@ -195,6 +201,7 @@ impl WgpuSurfaceService {
             frame,
             WgpuSurfaceFrame {
                 session,
+                retirement_scope: surface.retirement_scope,
                 target,
                 default_view,
                 desc: texture_desc.clone(),
@@ -222,15 +229,18 @@ impl WgpuSurfaceService {
         let frame_resources = self
             .frames
             .get(&frame_id)
-            .map(|resources| (resources.target, resources.default_view))
             .ok_or_else(|| RhiError::SurfaceUnavailable("surface frame is not live".to_string()))?;
-        if !registry.surface_frame_has_submission(frame_resources.0, submission)? {
+        if !registry.surface_frame_has_submission(frame_resources.target, submission)? {
             return Err(RhiError::SurfaceFrameSubmissionMissingTarget {
                 frame: frame_id,
                 submission,
             });
         }
-        registry.release_surface_frame(frame_resources.0, frame_resources.1)?;
+        registry.release_surface_frame(
+            frame_resources.retirement_scope,
+            frame_resources.target,
+            frame_resources.default_view,
+        )?;
         let frame_resources = self
             .frames
             .remove(&frame_id)
@@ -264,9 +274,12 @@ impl WgpuSurfaceService {
         let frame_resources = self
             .frames
             .get(&frame)
-            .map(|resources| (resources.target, resources.default_view))
             .ok_or_else(|| RhiError::SurfaceUnavailable("surface frame is not live".to_string()))?;
-        registry.release_surface_frame(frame_resources.0, frame_resources.1)?;
+        registry.release_surface_frame(
+            frame_resources.retirement_scope,
+            frame_resources.target,
+            frame_resources.default_view,
+        )?;
         self.frames
             .remove(&frame)
             .ok_or_else(|| RhiError::SurfaceUnavailable("surface frame is not live".to_string()))?;

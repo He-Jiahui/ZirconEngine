@@ -1,6 +1,7 @@
 //! 资源销毁先使句柄失效，原生对象引用和描述符预算估算保留至已登记的末次使用票据全部终结。
 use zr_rhi::{
-    GpuMemoryClass, GpuMemorySnapshot, RhiError, SubmissionTicket, TransientAllocatorStats,
+    GpuMemoryClass, GpuMemorySnapshot, RhiError, SubmissionTicket, SurfaceSession,
+    TransientAllocatorStats,
 };
 
 use crate::resource_validation::texture_storage_size;
@@ -37,12 +38,34 @@ impl WgpuResourceRegistry {
         resource: WgpuRetiredResource,
         last_uses: Vec<SubmissionTicket>,
     ) {
+        self.retire_native_in_scope(resource, last_uses, None);
+    }
+
+    pub(super) fn retire_native_in_scope(
+        &mut self,
+        resource: WgpuRetiredResource,
+        last_uses: Vec<SubmissionTicket>,
+        surface: Option<SurfaceSession>,
+    ) {
         if !last_uses.is_empty() {
             self.retired.push(WgpuRetirement {
                 after: last_uses,
+                surface,
                 resource,
             });
         }
+    }
+
+    /// Releases only terminal native view/texture references for this swapchain.
+    pub(crate) fn reap_surface_retired(
+        &mut self,
+        surface: SurfaceSession,
+        mut is_terminal: impl FnMut(SubmissionTicket) -> bool,
+    ) {
+        self.retired.retain(|retirement| {
+            retirement.surface != Some(surface)
+                || !retirement.after.iter().copied().all(&mut is_terminal)
+        });
     }
 
     /// Drops only native objects whose every observed ticket is terminal.
