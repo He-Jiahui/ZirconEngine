@@ -33,6 +33,7 @@ mod hierarchy_rename;
 mod hierarchy_search_actions;
 #[path = "menu_pointer.rs"]
 mod menu_pointer;
+mod model_close;
 #[path = "native_game_keyboard.rs"]
 mod native_game_keyboard;
 #[path = "native_viewport_cancel.rs"]
