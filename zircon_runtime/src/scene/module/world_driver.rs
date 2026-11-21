@@ -4,6 +4,7 @@ use crate::core::{CoreError, CoreHandle, FrameTimeSnapshot};
 use crate::scene::ecs::{
     SceneScheduleRunner, SceneStageRunError, SceneStageTickContexts, SystemStage, SystemTickContext,
 };
+use crate::scene::level_system::{LevelFrameExecution, ScheduledFixedStepAdmission};
 use crate::scene::world_time::{WorldFixedStep, WorldTimeSnapshot};
 use crate::scene::{
     FixedStepFailurePhase, FixedStepFailureReceipt, LevelSystem, LevelTickError, SimulationTickId,
@@ -51,25 +52,23 @@ impl WorldDriver {
         for stage in schedule.stages() {
             if *stage == SystemStage::FixedFirst {
                 for committed_steps in 0..fixed_step_plan.step_count {
-                    let mut active_step = ActiveFixedStep::begin(level, world_generation)?;
+                    let mut active_step = ActiveFixedStep::begin(
+                        level,
+                        &execution,
+                        world_generation,
+                        committed_steps,
+                    )?;
                     let tick = active_step.step()?.id();
                     let fixed_execution_result = (|| -> Result<(), FixedStageExecutionError> {
                         for fixed_stage in SystemStage::FIXED_LOOP {
-                            ensure_fixed_step_world_generation(
-                                level,
-                                world_generation,
-                                fixed_stage,
-                            )
-                            .map_err(|source| {
-                                FixedStageExecutionError::unattributed(fixed_stage, source)
-                            })?;
+                            require_fixed_stage_execution(level, &execution, fixed_stage)?;
                             let active_fixed_step = active_step.step().map_err(|source| {
                                 FixedStageExecutionError::unattributed(fixed_stage, source)
                             })?;
                             let tick_contexts = stage_tick_contexts(
                                 fixed_stage,
                                 world_time,
-                                world_generation,
+                                tick.world_generation(),
                                 Some(active_fixed_step),
                                 std::time::Duration::ZERO,
                             )
@@ -80,22 +79,14 @@ impl WorldDriver {
                                 .map_err(|error| {
                                 FixedStageExecutionError::from_stage(fixed_stage, error)
                             })?;
-                            ensure_fixed_step_world_generation(
-                                level,
-                                world_generation,
-                                fixed_stage,
-                            )
-                            .map_err(|source| {
-                                FixedStageExecutionError::unattributed(fixed_stage, source)
-                            })?;
+                            require_fixed_stage_execution(level, &execution, fixed_stage)?;
                         }
                         Ok(())
                     })();
                     if let Err(error) = fixed_execution_result {
                         if let Err(abort_error) = active_step.abort() {
-                            // Replacement settles the old time transaction. Keep
-                            // its callback error as the original failure source.
-                            if level.with_world(|world| execution.is_bound_to(world)) {
+                            // A retired frame must retain the original stage failure.
+                            if level.ensure_fixed_step_execution(&execution).is_ok() {
                                 return Err(LevelTickError::from(CoreError::Initialization(
                                     "WorldDriver fixed-step execution rollback".to_string(),
                                     format!("{}; abort failed: {abort_error}", error.source),
@@ -111,7 +102,7 @@ impl WorldDriver {
                             error.source,
                         ));
                     }
-                    match active_step.commit(world_generation) {
+                    match active_step.commit() {
                         Ok(()) => {}
                         Err(FixedStepCommitError::Rejected(source)) => {
                             return Err(fixed_step_failure(
@@ -166,18 +157,35 @@ impl WorldDriver {
 
 struct ActiveFixedStep<'a> {
     level: &'a LevelSystem,
+    execution: &'a LevelFrameExecution,
     step: Option<WorldFixedStep>,
 }
 
 impl<'a> ActiveFixedStep<'a> {
-    fn begin(level: &'a LevelSystem, world_generation: u64) -> Result<Self, CoreError> {
-        let step = level
-            .begin_fixed_step(world_generation)
-            .map_err(|error| fixed_step_error("begin", error))?;
-        Ok(Self {
-            level,
-            step: Some(step),
-        })
+    fn begin(
+        level: &'a LevelSystem,
+        execution: &'a LevelFrameExecution,
+        frame_generation: u64,
+        committed_steps: u32,
+    ) -> Result<Self, LevelTickError> {
+        match level
+            .begin_scheduled_fixed_step(execution, frame_generation)
+            .map_err(|error| fixed_step_error("begin", error))?
+        {
+            ScheduledFixedStepAdmission::Begun(step) => Ok(Self {
+                level,
+                execution,
+                step: Some(step),
+            }),
+            ScheduledFixedStepAdmission::Retired { tick, reason } => Err(fixed_step_failure(
+                level,
+                FixedStepFailurePhase::Stage(SystemStage::FixedFirst),
+                tick,
+                None,
+                committed_steps,
+                fixed_step_error("execution", reason),
+            )),
+        }
     }
 
     fn step(&self) -> Result<&WorldFixedStep, CoreError> {
@@ -188,16 +196,13 @@ impl<'a> ActiveFixedStep<'a> {
         })
     }
 
-    fn commit(&mut self, expected_world_generation: u64) -> Result<(), FixedStepCommitError> {
+    fn commit(&mut self) -> Result<(), FixedStepCommitError> {
         let step = self.step.as_ref().ok_or_else(|| {
             FixedStepCommitError::Rollback(fixed_step_invariant_error(
                 "active transaction was already settled before commit",
             ))
         })?;
-        if let Err(error) = self
-            .level
-            .commit_fixed_step(expected_world_generation, step)
-        {
+        if let Err(error) = self.level.commit_scheduled_fixed_step(self.execution, step) {
             let commit_error = fixed_step_error("commit", error);
             return match self.abort() {
                 Ok(()) => Err(FixedStepCommitError::Rejected(commit_error)),
@@ -294,19 +299,16 @@ fn fixed_step_failure(
     )
 }
 
-fn ensure_fixed_step_world_generation(
+fn require_fixed_stage_execution(
     level: &LevelSystem,
-    expected: u64,
+    execution: &LevelFrameExecution,
     stage: SystemStage,
-) -> Result<(), CoreError> {
-    let actual = level.world_generation();
-    if actual == expected {
-        return Ok(());
-    }
-    Err(CoreError::Initialization(
-        "WorldDriver fixed-step world generation".to_string(),
-        format!("World generation changed during {stage:?}: expected {expected}, found {actual}"),
-    ))
+) -> Result<(), FixedStageExecutionError> {
+    level
+        .ensure_fixed_step_execution(execution)
+        .map_err(|error| {
+            FixedStageExecutionError::unattributed(stage, fixed_step_error("execution", error))
+        })
 }
 
 fn lock_poison_recovered<T>(lock: &Mutex<T>) -> MutexGuard<'_, T> {

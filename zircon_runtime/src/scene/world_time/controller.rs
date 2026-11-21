@@ -371,7 +371,7 @@ impl WorldTimeController {
     }
 
     /// 借用 `step` 并先匹配活动身份，再尝试扣除一整步；成功才推进时钟、扣名额并移动插值历史。
-    /// 身份错误或债务不足保留原状态；World 代际检查由 Level 的外层提交入口完成。
+    /// 身份错误或债务不足保留原状态；World/排程身份由 Level 在扣债前校验。
     /// 返回成功不消费令牌对象，但重复提交会因不再有匹配活动步而被拒绝。
     pub(crate) fn commit_fixed_step(
         &mut self,
@@ -427,7 +427,7 @@ impl WorldTimeController {
     }
 
     /// World 替换后清插值身份与未消费的单步预约，不重置累计时长或债务。
-    /// 若替换发生在活动步中，外层 WorldDriver 检查代际并负责中止原令牌。
+    /// 若替换发生在活动步中，外层 WorldDriver 检查执行身份并负责中止原令牌。
     pub(crate) fn reset_after_world_replacement(&mut self) {
         self.reset_fixed_interpolation_history();
         self.single_step_requested = false;

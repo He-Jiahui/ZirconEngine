@@ -26,11 +26,11 @@ use crate::scene::world_time::{
 };
 use crate::scene::{
     dynamic_scene::{CompiledSceneSpawn, DynamicScene, DynamicSceneError},
-    ecs::{RuntimeSceneSystemContext, SystemTickContext},
+    ecs::{RuntimeSceneSystemContext, ScheduleExecution, SystemTickContext},
     inspection::SubscriptionTable,
     world::World,
-    EntityId, EntityRemap, LevelTickError, WorldDriver, WorldTimePolicyReceipt, WorldTimeState,
-    WORLD_DRIVER_NAME,
+    EntityId, EntityRemap, LevelTickError, SimulationTickId, WorldDriver, WorldTimePolicyReceipt,
+    WorldTimeState, WORLD_DRIVER_NAME,
 };
 
 #[cfg(feature = "animation")]
@@ -84,6 +84,29 @@ pub struct LevelSystem {
     metadata: Arc<Mutex<LevelMetadata>>,
     lifecycle: Arc<Mutex<LevelLifecycleState>>,
     subsystems: Arc<Mutex<Arc<[String]>>>,
+}
+
+/// The pinned schedule also carries the Level reset boundary for fixed time.
+/// Non-fixed dispatch continues to use the schedule lease alone.
+pub(crate) struct LevelFrameExecution {
+    schedule: ScheduleExecution,
+    replacement_epoch: u64,
+}
+
+impl std::ops::Deref for LevelFrameExecution {
+    type Target = ScheduleExecution;
+
+    fn deref(&self) -> &ScheduleExecution {
+        &self.schedule
+    }
+}
+
+pub(crate) enum ScheduledFixedStepAdmission {
+    Begun(WorldFixedStep),
+    Retired {
+        tick: SimulationTickId,
+        reason: WorldFixedStepError,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -215,20 +238,25 @@ impl LevelSystem {
     pub(crate) fn begin_world_frame(
         &self,
         outer: FrameTimeSnapshot,
-    ) -> Result<(WorldTimeSnapshot, u64, crate::scene::ecs::ScheduleExecution), WorldTimeAdvanceError>
-    {
+    ) -> Result<(WorldTimeSnapshot, u64, LevelFrameExecution), WorldTimeAdvanceError> {
         let mut world = self.lock_world();
         let time = {
             let mut controller = lock_poison_recovered(&self.world_time);
             controller.advance(outer)?
         };
         let generation = world.world_generation();
+        let replacement_epoch = self.world_replacement_epoch.load(Ordering::Acquire);
         let execution = world.begin_schedule_execution();
         world.reclaim_dropped_runtime_event_mirrors();
         world.reset_ecs_frame_performance_diagnostics();
+        let execution = LevelFrameExecution {
+            schedule: execution,
+            replacement_epoch,
+        };
         Ok((time, generation, execution))
     }
 
+    #[cfg(test)]
     pub(crate) fn begin_fixed_step(
         &self,
         world_generation: u64,
@@ -236,6 +264,65 @@ impl LevelSystem {
         lock_poison_recovered(&self.world_time).begin_fixed_step(world_generation)
     }
 
+    pub(crate) fn begin_scheduled_fixed_step(
+        &self,
+        execution: &LevelFrameExecution,
+        frame_generation: u64,
+    ) -> Result<ScheduledFixedStepAdmission, WorldFixedStepError> {
+        let world = self.lock_world();
+        let mut controller = lock_poison_recovered(&self.world_time);
+        if let Err(reason) = self.check_fixed_step_execution(&world, execution) {
+            // Preserve the typed stage receipt without issuing a usable token
+            // or consuming debt, even if the old schedule is later reattached.
+            let step = controller.begin_fixed_step(frame_generation)?;
+            let tick = step.id();
+            controller.abort_fixed_step(step)?;
+            return Ok(ScheduledFixedStepAdmission::Retired { tick, reason });
+        }
+        let step = controller.begin_fixed_step(world.world_generation())?;
+        Ok(ScheduledFixedStepAdmission::Begun(step))
+    }
+
+    pub(crate) fn ensure_fixed_step_execution(
+        &self,
+        execution: &LevelFrameExecution,
+    ) -> Result<(), WorldFixedStepError> {
+        self.check_fixed_step_execution(&self.lock_world(), execution)
+    }
+
+    fn check_fixed_step_execution(
+        &self,
+        world: &World,
+        execution: &LevelFrameExecution,
+    ) -> Result<(), WorldFixedStepError> {
+        if !execution.is_bound_to(world) {
+            return Err(WorldFixedStepError::ExecutionReplaced);
+        }
+        let actual = self.world_replacement_epoch.load(Ordering::Acquire);
+        if actual != execution.replacement_epoch {
+            return Err(WorldFixedStepError::ReplacementEpochChanged {
+                expected: execution.replacement_epoch,
+                actual,
+            });
+        }
+        Ok(())
+    }
+
+    pub(crate) fn commit_scheduled_fixed_step(
+        &self,
+        execution: &LevelFrameExecution,
+        step: &WorldFixedStep,
+    ) -> Result<(), WorldFixedStepError> {
+        // Keep the World lane through clock settlement so a replacement cannot
+        // slip in after the last stage check and still consume the old debt.
+        let world = self.lock_world();
+        self.check_fixed_step_execution(&world, execution)?;
+        lock_poison_recovered(&self.world_time).commit_fixed_step(step)
+    }
+
+    // The direct time-controller fixtures use a strict revision precondition,
+    // not a schedule lease. Registered fixed steps use the owner fence above.
+    #[cfg(test)]
     pub(crate) fn commit_fixed_step(
         &self,
         expected_world_generation: u64,
