@@ -31,10 +31,10 @@ _MANAGED_ARTIFACT_ROOT = re.compile(
     re.IGNORECASE,
 )
 _CARGO_DENIAL_REASON = (
-    "The local coordinator is retired. Use tools/dev/local-cargo.ps1 for compilation: "
+    "Use tools/dev/local-cargo.ps1 for scoped compilation: "
     "an explicit Cargo target alone does not confine build, cache and temporary outputs. "
     "Every compiler output must physically stay below D:/cargo-targets, E:/cargo-targets "
-    "or F:/cargo-targets. Jenkins migration acceptance remains pending."
+    "or F:/cargo-targets. Agent-local command evidence is separate from product acceptance."
 )
 _ARTIFACT_DIRECTORY_DENIAL_REASON = (
     "Use the physical-output-checked local build wrapper to create compiler output directories. "

@@ -1,16 +1,11 @@
 # Checkout policy
 
-Keep the shared `main` checkout clean. It is the synchronization and inspection checkout; task implementation must use a Jenkins-managed worktree on its own `codex/` branch. This is the user's 2026-10-17 checkout policy and supersedes the former shared-main default.
+Keep the shared `main` checkout for synchronization and inspection. Implement tasks on their own branch/worktree and use native Git within the granted action scope under [the management standard](../../../../docs/tools/agent-artifact-management.md).
 
-An explicit user-authorized branch, checkout, or worktree takes precedence. Read-only inspection may proceed on any branch. Before a mutation on an unexpected branch, establish whether the task authorizes that checkout; ask only when the unresolved choice affects the actual write.
+An explicit user-authorized branch, checkout, or worktree takes precedence. Read-only inspection may proceed on any branch. Before a mutation on an unexpected branch, establish whether the task authorizes that checkout; ask only when the unresolved choice affects the actual write. Preserve a dirty shared original checkout; do not reset, stash, clean or bulk-commit foreign work to establish a new task tree.
 
-Jenkins owns branch/worktree creation, switching, multi-worktree merges, release,
-deletion and all other version-management writes. Agents use the assigned
-checkout and edit only authorized canonical paths. A user-authorized checkout
-does not itself authorize agents to run Git lifecycle operations outside Jenkins;
-an explicit exception for those actions does. Follow the
-[management standard](../../../../docs/tools/agent-artifact-management.md).
+Record repository, branch/worktree, base SHA, exact task paths and preexisting changes. Resolve the actual Git directory with `git rev-parse --absolute-git-dir` and check that tree's `index.lock` before every Git write. A linked worktree's `.git` is a file. Preserve unknown locks, foreign staged paths and same-file edits; lock age or empty bytes do not authorize removal.
 
-The latest 2026-10-17 user instruction permits immediate scoped branch commits even when other sessions have edits on main. Preserve those edits; never reset, stash, clean or bulk-commit foreign work. Check main cleanliness only when synchronizing main. A task commit needs no source-hash reconciliation, validation recipe, complete compilation or formal acceptance.
+When the existing task authorization covers committing, the Agent may stage and commit its exact task files directly. Preserve any explicitly applicable gate; do not impose a whole-tree hash or compilation gate on ordinary commits. A milestone completion alone does not grant commit authority. Inspect the exact staged scope and report the actual SHA; retain validation failures and original-owner repair handoffs independently of the commit.
 
-Jenkins commits exact task paths on the task worktree branch and optionally checks the combined candidate. Validation is advisory: failures retain their logs and produce original-owner repair handoffs while PR integration may continue. Publish the task branch and merge through a real PR under the applicable remote-action authorization. The scheduled queue observes the real PR and fast-forwards local main from its actual remote merge result; it does not require equality with the optionally checked local tree. Main must be clean immediately before and after synchronization. Keep branch commits, failures and original request identities. See [the delivery contract](../../../../docs/tools/jenkins-branch-integration.md).
+Local integration, rollback and worktree removal retain their own authorized scope. Fix input SHAs and the actual result tree, preserve conflicts and unknown deliveries, and verify writers have ended and unique changes are delivered before removing an owned tree. Check shared main cleanliness only when synchronizing it, immediately before and after that operation. Push, remote PR creation/merge, publication and external notifications still require their corresponding authorization.

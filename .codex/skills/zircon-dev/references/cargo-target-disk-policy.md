@@ -25,4 +25,4 @@ The former pool, reservation, sccache, retention, cleanup and worker contracts a
 
 The old `tools/maintenance/cleanup-stale-targets.ps1` workflow and its scheduled task are disabled for retirement. Do not run automatic `cargo clean` or restore legacy scheduled cleanup. Cleanup requires a reviewed exact path set and verification that no live process or retained data reference owns it.
 
-Formal Jenkins migration acceptance is separate from local command evidence; it remains open until its declared gates are actually met.
+Follow the current [compilation storage rules](../../../../docs/tools/build-storage-policy.md) and [management standard](../../../../docs/tools/agent-artifact-management.md). Historical migration acceptance stays separate from local command evidence.

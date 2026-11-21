@@ -119,6 +119,12 @@ jobs:
       - name: Test editor build input boundaries
         run: python -B -m unittest tools.tests.test_editor_build_inputs -v
 
+      - name: Test independent local workflow boundaries
+        run: >-
+          python -B -m unittest tools.tests.test_agent_local_cargo
+          tools.tests.test_agent_execution_policy tools.tests.test_workflow_retirement_entries
+          tools.tests.test_jenkins_retirement tools.tests.test_session_workflow_handoff -v
+
       - name: Test Cargo test-reachability guard
         run: python -m unittest tools.tests.test_validate_cargo_test_reachability -v
 

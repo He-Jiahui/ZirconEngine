@@ -21,6 +21,8 @@ created: 2026-10-02
 
 # 单机 Jenkins 多 Session 协调架构与实施方案
 
+> **历史设计，非当前执行规范。** 下文的「当前」均指当时的架构与部署；其中的路径、唯一派发和迁移阶段不适用于普通开发。当前以 [Agent 直接开发管理标准](../tools/agent-artifact-management.md)为准。不得按此恢复、提交或重放旧流程；原证据与验收状态保留。
+
 目标是在有限的 CPU、内存和磁盘资源下缩短正式验收时间。多个 Session 共用一个开发 checkout，由 Jenkins 展示和编排独立步骤；本机支持库负责源码归属、资源准入、增量池、产物索引及正式验收。
 
 本文固定设计边界、操作协议和关键失败行为，实施顺序由[里程碑计划](../plans/jenkins-session-coordination/01-single-host-jenkins-coordination.md)拥有。当前正在实现并验收：工程内 controller、插件与 Windows agent 已运行，支持模块与流程逐阶段集成；正式接受状态以该计划的门槛记录为准。多机器接入、远程调度和跨机器传输暂缓。根据用户 2026-10-04 的最新要求，Jenkins 流水线的构建、临时、缓存、封存输入和产物固定在 `E:\Git\ZirconEngine\.jenkins\builds\zircon-jenkins`；此前 D/E/F 盘根级路径仅保留为历史证据。

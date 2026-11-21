@@ -5,6 +5,8 @@ created: 2026-10-11
 
 # Codex 目录盘点与 Jenkins 生命周期管理
 
+> **历史实施记录，不是当前执行要求。** 下文保留原盘点、归属与待审状态。当前授权的盘点按 [Agent 直接开发管理标准](agent-artifact-management.md)执行；不据此向旧服务提交或恢复任务。
+
 本次交付[管理标准](agent-artifact-management.md)、[项目技能](../../.codex/skills/zircon-artifact-management/SKILL.md)
 和[只读盘点工具](../../tools/dev/artifact_inventory.py)。分支、工作树、合并、所有版本操作、
 源码准备、文件生成、验证编译、产物复用与清理由 Jenkins 统一负责。AI 只编辑明确授权的

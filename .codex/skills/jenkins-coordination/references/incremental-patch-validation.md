@@ -1,5 +1,7 @@
 # Incremental patch validation
 
+> **Historical reference, not a current execution prerequisite.** The user replaced Jenkins-managed development with [Agent direct ownership](../../../../docs/tools/agent-artifact-management.md). The original workflow below is retained to interpret old patches, requests and receipts. Do not invoke it for ordinary tasks, replay queues, restore services or infer acceptance from the change of owner.
+
 Use this workflow for ZirconEngine engineering changes sent to Jenkins. The user
 requires incremental patches and coordinator-owned source preparation,
 application, compilation and validation, with a reusable source baseline.

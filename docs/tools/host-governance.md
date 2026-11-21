@@ -1,5 +1,7 @@
 # C/D/E ownership governance through Jenkins
 
+> **Historical operations reference only.** Do not install the job, scan through the service, submit a request, or replay old work from this page. Current scoped inventory and cleanup follow the [Agent management standard](agent-artifact-management.md). Original findings, credentials, data and receipts are not changed or treated as fresh evidence.
+
 `zircon-governance` is a bounded job on the existing controller and Windows agent.
 It uses the existing `.jenkins/state/coordination.sqlite3`, selected driver and
 runtime Python. It does not restore the retired coordinator. The operator client

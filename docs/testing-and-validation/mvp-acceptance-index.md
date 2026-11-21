@@ -5,11 +5,11 @@
 <a id="current-execution"></a>
 ## 当前执行入口
 
-所有迁入章节均按当前 [AGENTS](../../AGENTS.md)、[验证政策](milestone-validation-policy.md)、[基础门槛](minimum-viable-engine-foundation.md)、[协调器退役规则](../tooling/coordinator-retirement.md)及 [Jenkins 协调技能](../../.codex/skills/jenkins-coordination/SKILL.md)执行。它们约束的是执行方式，不降低后文的产品、持久化、干净环境、连续两次运行、性能或证据完整性要求。
+所有迁入章节均按当前 [AGENTS](../../AGENTS.md)、[Agent 直接开发管理标准](../tools/agent-artifact-management.md)、[验证政策](milestone-validation-policy.md)、[基础门槛](minimum-viable-engine-foundation.md)及[协调器退役规则](../tooling/coordinator-retirement.md)执行。它们约束的是执行方式，不降低后文的产品、持久化、干净环境、连续两次运行、性能或证据完整性要求。
 
-旧本地 coordinator 的服务、注册、心跳、lease、validation copy、ticket、queue 和 commit/closeout 命令均已退役，不恢复或重放。来源中的这些用语、已勾选的历史步骤、旧技能名称及回执仅为迁入记录；每节开头都再次标明。它们不构成当前操作步骤，也不要求创建源码副本。源码身份、共享修改保护、真实命令退出、进程终止与证据归属继续由当前 Jenkins 路径负责；有明确用户例外时，独立本地结果仍只属于其实际覆盖范围。
+Agent 在任务 worktree 使用授权的原生 Git、限定范围的生成和独立本地验证。迁入正文中的旧 Jenkins 所有权、M8 唯一入口、模板、旧技能和协调器说明仅用于解释历史，不执行、不恢复、不重放。当前命令只记录实际执行范围和结果；按所属产品门独立核验源码归属、原生锁和适用的进程终态。
 
-干净环境、source fingerprint、固定产品项目、build/stage/run 的同源性、真实窗口/PNG、进程资源释放及 F0—F5 验收继续是独立门槛。迁入的旧服务登记或 lease 复选框按原状态保留为历史字段；当前协作按现行 checkout 规则，不以退役接口为前置条件。待验、source-ready、静态通过或本地组件通过均不能替代里程碑或 Jenkins 接受。
+干净环境、source fingerprint、固定产品项目、build/stage/run 的同源性、真实窗口/PNG、进程资源释放及 F0—F5 验收继续是独立门槛。迁入的旧登记/lease/接受复选框、回执及全部原状态保留为历史字段，本次不改写为成功。待验、source-ready、静态通过或本地组件通过均不能替代里程碑或产品接受；历史迁移验收保持原状态。
 
 历史计划、过程日志与大体积数据通过 [历史数据索引](historical-data-index.md#archive-readback)按原路径读取。E 盘归档已有本机证据，共享 CI 读回尚无证明；原 plans/_data 此阶段仍保留。
 
@@ -32,7 +32,7 @@
 
 来源：`docs/plans/mvp/index.md`；SHA-256 `989bf19483fa87a75169f4c76ba63a8b4caddcca96992f4148156f111fcc0ca5`。
 
-> 迁入说明：本节旧协调器命令、登记/lease/validation copy 及旧技能指令仅作历史记录；按[当前执行入口](#current-execution)执行。原产品门槛、证据、测试、退出条件和勾选状态保留。
+> 迁入说明：本节旧 Jenkins 与本地协调器命令、登记/lease/validation copy 及旧技能指令仅作历史记录；按[当前执行入口](#current-execution)执行。原产品门槛、证据、测试、退出条件和勾选状态保留。
 
 <details><summary>来源元数据与迁入时状态</summary>
 
@@ -258,7 +258,7 @@ flowchart LR
 
 来源：`docs/plans/mvp/00-current-source-baseline-recovery.md`；SHA-256 `2b292dee4df6fb56d7770898009972efd5455b8fb10b33b899ea6ed639b9d143`。
 
-> 迁入说明：本节旧协调器命令、登记/lease/validation copy 及旧技能指令仅作历史记录；按[当前执行入口](#current-execution)执行。原产品门槛、证据、测试、退出条件和勾选状态保留。
+> 迁入说明：本节旧 Jenkins 与本地协调器命令、登记/lease/validation copy 及旧技能指令仅作历史记录；按[当前执行入口](#current-execution)执行。原产品门槛、证据、测试、退出条件和勾选状态保留。
 
 <details><summary>来源元数据与迁入时状态</summary>
 
@@ -297,17 +297,17 @@ last_refined: 2026-10-03
 
 **Architecture:** 先核验当前独立验证入口，再修最早的 Runtime 04 公共编译原因，最后从 Runtime 向 Editor/App 逐层收敛编译。禁止在上层 call site 增加临时 fallback，也不把声明 `mod resolver_index` 当成 migration 架构已完成。
 
-**Tech Stack:** PowerShell、Python、Rust、独立本地 Cargo 与 Jenkins、Windows 原生验证。
+**Tech Stack:** PowerShell、Python、Rust、独立本地 Cargo、Windows 原生验证。
 
 
 <a id="m0-01"></a>
-### 当前控制面（2026-10-03）
+### 当前本地验证与历史控制面
 
 旧本地协调器及其 matrix、登记、心跳、租约、票据和关闭流程已退役。本页保留旧源码、命令、job ID 与回执作为历史证据；这些记录不要求恢复服务，也不授权重放旧请求。执行以[退役规则](../tooling/coordinator-retirement.md)和[验证策略](milestone-validation-policy.md)为准。
 
-当前本地证据使用 `tools/dev/local-cargo.ps1` 或 `python -B -m tools.dev.local_cargo`，物理输出与缓存只放在盘根 `D:\cargo-targets`、`E:\cargo-targets` 或 `F:\cargo-targets` 下，并通过 35 GiB 启动预检。独立 Jenkins 的功能测试和有边界提交还须核验当前 `active.json`、source/driver/tray、storage owner/keeper 与实际进程身份，遵循 [jenkins-coordination](../../.codex/skills/jenkins-coordination/SKILL.md)。M8 唯一入口规则按实际激活证据执行，不改写其状态来绕过门槛。
+在任务 worktree 使用 `tools/dev/local-cargo.ps1` 或 `python -B -m tools.dev.local_cargo`。物理输出、缓存、编译临时路径与 35 GiB 启动预检遵循[编译存储规则](../tools/build-storage-policy.md)。旧激活和 M8 迁移门保留原证据与状态，不作为当前验证步骤。
 
-本地命令通过、静态审阅和历史票据均不自动授予 Jenkins、里程碑、生产迁移或 F0-F5 接受。本计划的 M0.1、M0.2、M0.3 仍需各自适用的当前证据；未完成项保持开放。
+本地命令通过、静态审阅和历史票据均不自动授予里程碑、迁移或 F0-F5 接受。本计划的 M0.1、M0.2、M0.3 仍需各自适用的当前证据；未完成项保持开放。
 
 ---
 
@@ -344,7 +344,7 @@ last_refined: 2026-10-03
 
 | 范围 | 权威 owner | 本计划职责 |
 |---|---|---|
-| 当前 CLI/stdout 与命令证据 | `tools/dev/local_cargo.py`、独立 Jenkins 入口 | 保留实际退出码、机器可读结果与输入身份；旧 coordinator 只保留历史资料 |
+| 当前 CLI/stdout 与命令证据 | `tools/dev/local_cargo.py` | 保留实际退出码、机器可读结果与输入身份；旧 coordinator 只保留历史资料 |
 | validator 与 target policy | `.codex/skills/zircon-dev`、`tools/dev/local_cargo.py` | 验证物理盘根、容量及原生执行结果；不把 dry run 作为通过 |
 | migration inventory/resolver | Runtime 04 | 完成 index 的生命周期接线和 focused contract |
 | Editor/App 编译 follow-up | 对应最低 owner | 只修阻断当前编译的共享根因；跨 owner 走 failure handoff |
@@ -369,7 +369,7 @@ last_refined: 2026-10-03
 - [x] `validate-matrix.ps1` 继续严格 `ConvertFrom-Json`；不得恢复宽松截断或忽略前导文本。
 - [x] validation ticket `source_manifest` 以 JSON `null` 封存归属删除路径；queue claim、copy overlay 与 materialized-copy 的路径重现统一判为 `snapshot_stale`。
 - [ ] 运行当前本地入口的 focused 支持回归，检查错误退出码、物理输出拒绝、容量门与 dry-run 无编译语义。
-- [ ] 若执行 Jenkins 功能测试，先核验激活/源码/进程证据，再使用固定模板与新的输入身份；精确 reconcile 已提交请求，不借新提交掩盖旧未知结果。
+- [ ] 历史 Jenkins 功能测试（原待验项，不执行）：核验激活、源码、进程、固定模板与输入身份；原请求结果不明时不重投。
 
 
 <a id="m0-09"></a>
@@ -377,7 +377,7 @@ last_refined: 2026-10-03
 
 - [ ] 运行当前独立入口的 Python focused suites；历史 smoke 中会启动旧服务的测试不作为当前操作步骤。
 - [ ] 从 Windows 原生环境核验当前入口的目标路径和机器可读结果；dry run 仅证明准备行为，不能关闭编译或接受门。
-- [ ] Jenkins 适用时，按 `jenkins-coordination` 的 snapshot/driver/request/verify 契约运行固定模板并核对实际归档字节与 native termination。
+- [ ] 历史 Jenkins 验收（原待验项，不执行）：snapshot/driver/request/verify、固定模板、归档字节与 native termination。
 - [ ] 失败时修复最低工具 owner 或返回具体阻塞；继续不依赖该失败的独立工作，不恢复旧控制面。
 
 
@@ -386,7 +386,7 @@ last_refined: 2026-10-03
 
 - [ ] 当前入口的输出、实际退出码和错误边界有行为回归证据。
 - [ ] 当前编译/测试请求具有明确输入与终止结果；dry run、queued/accepted 与历史 receipt 不算通过。
-- [ ] 当前工具与 Jenkins 的适用接受门分别记录，没有将本地结果升级为迁移或里程碑接受。
+- [ ] 分别记录当前工具证据、适用里程碑接受与历史迁移状态；不得将本地结果升级成后两者的通过证据。
 
 
 <a id="m0-11"></a>
@@ -421,7 +421,7 @@ M0.2 continues from the lowest passing test target while these owners complete t
 <a id="m0-14"></a>
 #### 测试阶段：M0.2 Runtime 04 Resolver Gate
 
-- [ ] 在 Windows 原生验证 lane 中先运行 `zircon_runtime` package check；按当前独立入口及适用 Jenkins 门保留实际结果。
+- [ ] 在 Windows 原生验证 lane 中先运行 `zircon_runtime` package check，用独立本地入口并保留实际结果。
 - [ ] 运行 migration resolver/index/source-boundary focused tests，并包含所有新增 typed failure 分支。
 - [ ] 运行 Runtime 04 asset migration parent batch，确认 scan、sidecar、transaction 和 idempotent migration 未回归。
 - [ ] 若上层失败，先回到 index/inventory generation；不得修改 Editor/App 适配失败的 resolver 语义。
@@ -458,13 +458,15 @@ M0.2 continues from the lowest passing test target while these owners complete t
 <a id="m0-19"></a>
 #### M0.3 Validation Manifest
 
-| 顺序 | 包 / profile | 受管 compile gate | 受影响 contract | 已知 open failure |
+下表保留既有基线的包与 feature 选择。`default` 只描述此明示基线，不是普通本地入口的默认参数；先声明实际选择，入口不能表达时说明限制并保持待验，不更改 features 来冒充原门通过。
+
+| 顺序 | 包 / profile | compile gate（基线声明） | 受影响 contract | 已知 open failure |
 |---|---|---|---|---|
 | 1 | `zircon_runtime` / default | 当前独立入口 `check -p zircon_runtime --locked` | Runtime04 single-inventory indexed resolver；Runtime15 receipt-test hard cut | [Runtime04 indexed resolver generation](historical-data-index.md#archive-readback)（归档原路径：`docs/plans/zircon_runtime/runtime/04/failure-2026-07-23-asset-migration-indexed-resolver-generation.md`）；[Runtime15 plan-status receipt compile debt](historical-data-index.md#archive-readback)（归档原路径：`docs/plans/zircon_runtime/runtime/15/failure-2026-08-02-plan-status-receipt-test-compile-debt.md`） |
 | 2 | `zircon_editor` / default | 当前独立入口 `check -p zircon_editor --locked` | Runtime facade、RHI neutral presenter、Editor host compile boundary | [Frameworks01 RHI WGPU presenter/backend contract test owner](historical-data-index.md#archive-readback)（归档原路径：`docs/plans/zircon_runtime/frameworks/01/failure-2026-08-02-rhi-wgpu-presenter-and-backend-contract-test-owner.md`） |
 | 3 | `zircon_app` / default | 当前独立入口 `check -p zircon_app --locked` | Runtime/Editor entry composition 与 app startup compile boundary | fresh gate 前没有可复用的 current-source lowest failure；实际诊断按最低 owner 处理并保留归属 |
 
-三个包按同一 current-source manifest 顺序验证；任一相关 compile input 变化都须重新判定受影响证据，不允许用旧 ticket、feature bypass 或上层 alias 继续。本地结果只形成独立命令证据；Jenkins 接受使用核验通过的当前入口、固定 `managed-cargo-check-v2` 模板与精确请求身份，里程碑接受另按验证策略审查完整范围。
+三个包按同一 current-source manifest 顺序验证；任一相关 compile input 变化都须重新判定受影响证据，不允许用旧 ticket、feature bypass 或上层 alias 继续。本地结果只形成独立命令证据；里程碑接受按验证策略审查完整范围。历史 `managed-cargo-check-v2` 模板、原请求及接受状态保持原样，不运行旧入口。
 
 
 <a id="m0-20"></a>
@@ -543,7 +545,7 @@ unmanaged target artifact 与脏的外部 `E:\Git\zr_vm` 仍是 compile gate 风
 
 来源：`docs/plans/mvp/01-f0-reproducible-bootstrap.md`；SHA-256 `0f058bce0d137c0c066ec8ecb540cfad308045dec319b5b8a311468191943934`。
 
-> 迁入说明：本节旧协调器命令、登记/lease/validation copy 及旧技能指令仅作历史记录；按[当前执行入口](#current-execution)执行。原产品门槛、证据、测试、退出条件和勾选状态保留。
+> 迁入说明：本节旧 Jenkins 与本地协调器命令、登记/lease/validation copy 及旧技能指令仅作历史记录；按[当前执行入口](#current-execution)执行。原产品门槛、证据、测试、退出条件和勾选状态保留。
 
 <details><summary>来源元数据与迁入时状态</summary>
 
@@ -765,7 +767,7 @@ F0 必须覆盖以下产品输入：
 
 来源：`docs/plans/mvp/02-f1-project-and-assets.md`；SHA-256 `4304d901d08ffc1bac9b2cc9ab291750bece222f0b29cee5f272422cc15014d9`。
 
-> 迁入说明：本节旧协调器命令、登记/lease/validation copy 及旧技能指令仅作历史记录；按[当前执行入口](#current-execution)执行。原产品门槛、证据、测试、退出条件和勾选状态保留。
+> 迁入说明：本节旧 Jenkins 与本地协调器命令、登记/lease/validation copy 及旧技能指令仅作历史记录；按[当前执行入口](#current-execution)执行。原产品门槛、证据、测试、退出条件和勾选状态保留。
 
 <details><summary>来源元数据与迁入时状态</summary>
 
@@ -986,7 +988,7 @@ staged editor 通过固定 CLI 路径创建项目，关闭后通过 `--project` 
 
 来源：`docs/plans/mvp/03-f2-scene-runtime.md`；SHA-256 `ac93b5c29fdb3796fe37301d829e46feba19648caedef6c925653537082643e1`。
 
-> 迁入说明：本节旧协调器命令、登记/lease/validation copy 及旧技能指令仅作历史记录；按[当前执行入口](#current-execution)执行。原产品门槛、证据、测试、退出条件和勾选状态保留。
+> 迁入说明：本节旧 Jenkins 与本地协调器命令、登记/lease/validation copy 及旧技能指令仅作历史记录；按[当前执行入口](#current-execution)执行。原产品门槛、证据、测试、退出条件和勾选状态保留。
 
 <details><summary>来源元数据与迁入时状态</summary>
 
@@ -1228,7 +1230,7 @@ staged `zircon_runtime` 通过正常 App entry 打开 F1 项目，进入窗口�
 
 来源：`docs/plans/mvp/04-f3-persistence.md`；SHA-256 `5ea6d0ac95701c1498e7e8377ce1f0ed372b214a8ab644b36d55398a76bd54ef`。
 
-> 迁入说明：本节旧协调器命令、登记/lease/validation copy 及旧技能指令仅作历史记录；按[当前执行入口](#current-execution)执行。原产品门槛、证据、测试、退出条件和勾选状态保留。
+> 迁入说明：本节旧 Jenkins 与本地协调器命令、登记/lease/validation copy 及旧技能指令仅作历史记录；按[当前执行入口](#current-execution)执行。原产品门槛、证据、测试、退出条件和勾选状态保留。
 
 <details><summary>来源元数据与迁入时状态</summary>
 
@@ -1465,7 +1467,7 @@ F3 使用唯一、可精确比较的 authoring delta：
 
 来源：`docs/plans/mvp/05-f4-basic-authoring.md`；SHA-256 `04f8ad5715f487aadb356449934eb853400235a3f839089fa50ba5053391dbe2`。
 
-> 迁入说明：本节旧协调器命令、登记/lease/validation copy 及旧技能指令仅作历史记录；按[当前执行入口](#current-execution)执行。原产品门槛、证据、测试、退出条件和勾选状态保留。
+> 迁入说明：本节旧 Jenkins 与本地协调器命令、登记/lease/validation copy 及旧技能指令仅作历史记录；按[当前执行入口](#current-execution)执行。原产品门槛、证据、测试、退出条件和勾选状态保留。
 
 <details><summary>来源元数据与迁入时状态</summary>
 
@@ -1753,7 +1755,7 @@ Runtime 已向 production Editor 发布 immutable world inspection generation；
 
 来源：`docs/plans/mvp/06-f5-acceptance-wave.md`；SHA-256 `a9276c0c31221668766696f67098daa01331731a00670f6ebf8ccfaa30b36fa9`。
 
-> 迁入说明：本节旧协调器命令、登记/lease/validation copy 及旧技能指令仅作历史记录；按[当前执行入口](#current-execution)执行。原产品门槛、证据、测试、退出条件和勾选状态保留。
+> 迁入说明：本节旧 Jenkins 与本地协调器命令、登记/lease/validation copy 及旧技能指令仅作历史记录；按[当前执行入口](#current-execution)执行。原产品门槛、证据、测试、退出条件和勾选状态保留。
 
 <details><summary>来源元数据与迁入时状态</summary>
 

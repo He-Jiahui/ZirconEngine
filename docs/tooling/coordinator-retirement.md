@@ -8,6 +8,7 @@ related_code:
   - tools/jenkins/install-coordinator-worker.ps1
   - tools/dev/local-cargo.ps1
   - tools/dev/local_cargo.py
+  - tools/dev/session_workflow_handoff.py
   - tools/audits/check_conventions.py
   - tools/jenkins/jenkins_coordinator.py
   - tools/jenkins/tray/
@@ -19,6 +20,7 @@ plan_sources:
 tests:
   - tools/tests/test_local_cargo.py
   - tools/tests/test_check_conventions.py
+  - tools/tests/test_session_workflow_handoff.py
 doc_type: workflow-detail
 ---
 
@@ -28,7 +30,17 @@ doc_type: workflow-detail
 
 本仓库的旧协调器已弃用。后台服务、托盘、自启动和 Codex 自动登记挂钩停用；普通工作不再要求协调器登记、心跳、路径租约、归因接口、验证票据、候选提交或里程碑关闭接口。旧命令、源码和历史说明保留为迁移资料。
 
-`AGENTS.md`、项目技能及生成的 OpenCode 适配器采用当前规则。保留实际验证、必要审阅、文件归属、原有修改、原生 Cargo/进程锁及提交和外部通知授权要求。独立 Jenkins 协调器使用 [Windows 托盘与激活入口](jenkins-tray.md)；只有当前 `active.json` 及其验收证据核验通过，才按 [jenkins-coordination 技能](../../.codex/skills/jenkins-coordination/SKILL.md) 开始协调器功能测试和有边界的命令提交。全工作区、里程碑和生产迁移仍需各自接受证据，旧票据和本地命令结果不能自动授予这些验收。
+当前工作按 [AGENTS](../../AGENTS.md) 与 [Agent 直接开发管理标准](../tools/agent-artifact-management.md)执行：Agent 直接管理获准的原生 Git/worktree、生成、复用和本地验证，不需要 Jenkins 服务、激活文件、capsule、登记、队列或本地例外许可。保留实际验证、必要审阅、文件归属、原有修改、原生 Cargo/进程锁及提交和远端/通知授权要求。旧 [Jenkins 指南](../../.codex/skills/jenkins-coordination/guide.md)与下文迁移表是历史资料，既不要求恢复其流程，也不证明任何主机服务已停止或卸载。全工作区、里程碑和产品仍需各自的真实接受证据；旧票据、本地窄命令与工作流替换都不关闭历史迁移验收。
+
+## 已有会话与旧工作树
+
+只在本地 `main` 合入退役提交，不会更新远端、其他工作树或已有会话记住的规则。旧树里要求服务在线或声明其排他拥有 Git 的文字已经失效，不构成新的等待或审批条件；按当前用户授权直接使用原生 Git 和 GitHub，不恢复旧服务来创建 Draft PR。
+
+本机可在各客户端支持的用户全局指引中附加仅限本仓库及同一 Git common-dir 工作树的规则。`tools/dev/session_workflow_handoff.py` 提供纯文本生成、保留原内容的自有标记段合并、人工确认后的会话筛选及一次性投递回执归一化；模块不自行读写用户配置、访问会话数据库、启动服务、联网、轮询或重试。安装时先读取原文件，保留原有字节并核验哈希；不能把整份用户指引替换成项目规则。
+
+DSH 的全局指引在初次请求、相关文件读取或会话恢复时载入，不是持续监视所有外部修改。活跃/等待中的旧会话应通过受支持的定向入口核对最新上下文；消息插入、规则文件已写入或历史交接均不等于采纳。没有接受回执的投递保留原请求 ID 和 `unknown`，不自动重发。已经按新规则继续工作的会话不重复投递，不恢复过时的人机确认或取消后续用户指示。
+
+用户指定的问题交付顺序保持为：先独立 Draft PR，再在同一 PR 补回归、提交修复，实际验收后才合并。退役不提供额外操作权限，也不取消真实 GitHub/CI、审阅和产品验收门槛。见[本次复现与逐项核验](session-workflow-stall-20261117.md)。
 
 ## 数据位置
 
@@ -79,12 +91,12 @@ doc_type: workflow-detail
 独立入口不启动协调器，检查实际输出路径和 35 GiB 空间保留量。所有目标、构建目录、编译缓存及临时编译产物必须物理位于盘根 `D:\cargo-targets`、`E:\cargo-targets` 或 `F:\cargo-targets` 下。原协调器池保持保留，新入口默认使用单独的 `zircon-local` 命名空间。
 
 ```powershell
-.\tools\dev\local-cargo.ps1 -DryRun check -p zircon_runtime --locked
-.\tools\dev\local-cargo.ps1 check -p zircon_runtime --locked
-.\tools\dev\local-cargo.ps1 test -p zircon_runtime --lib <focused-filter> --locked
+.\tools\dev\local-cargo.ps1 -DryRun check -p zircon_runtime --no-default-features --features core-min --lib --locked
+.\tools\dev\local-cargo.ps1 check -p zircon_runtime --no-default-features --features core-min --lib --locked
+.\tools\dev\local-cargo.ps1 test -p zircon_runtime --no-default-features --features core-min --lib <focused-filter> --locked
 ```
 
-命令范围和执行节奏遵循 `docs/testing-and-validation/milestone-validation-policy.md`。原生 Cargo 锁继续生效；入口返回实际 Cargo 退出码。Dry run 不创建目录、不执行编译，也不形成验收证据。Jenkins 请求通过独立入口封存和接受，不能把本地结果升级为 Jenkins 接受回执。
+命令范围和执行节奏遵循 `docs/testing-and-validation/milestone-validation-policy.md`。Agent 独立执行并记录实际 Cargo 退出码，原生锁继续生效。Dry run 不创建目录、不执行编译，也不形成验收证据。历史 Jenkins 请求和接受回执保持原身份；本地命令不复用或改写它们，也不需要先完成旧迁移验收。
 
 The optional `.codex/hooks/pre_tool_use_cargo_guard.py` hook is advisory. It
 recognizes a subset of direct Cargo commands in `Bash` payloads and intentionally
@@ -92,7 +104,7 @@ fails open on malformed input. Cargo aliases, global options, `miri`, `nextest`,
 direct `rustc`, indirect execution and other command tools can bypass its text
 matcher. Hook success is not output-policy validation. Use
 `tools/dev/local-cargo.ps1` for independently guarded local commands within the
-current authorization, or the authorized Jenkins lane.
+current authorization and the Agent management standard; no Jenkins lane is required.
 
 ## 恢复方法
 

@@ -31,16 +31,9 @@ Use this entry for delivery policy and milestone planning. Complete the user's a
 
 ## Source preparation
 
-Keep shared main clean and implement tasks in their Jenkins-managed worktrees under the [checkout policy](../zircon-dev/references/main-branch-development-policy.md). Agents must not create source snapshots or backup copies, including in outbox or temporary directories. Edit authorized canonical paths within the assigned task worktree and hand off scoped patches and hashes. The independent Jenkins coordinator owns source baseline, candidate and bundle preparation under the [source ownership policy](../jenkins-coordination/references/incremental-patch-validation.md). If a verified handoff is unavailable, keep the required coordinator acceptance pending.
+Use the task's own branch/worktree under the [checkout policy](../zircon-dev/references/main-branch-development-policy.md); preserve the shared main checkout and foreign changes. Agents directly manage authorized native Git, source preparation, generation, local validation, compatible artifact reuse and bounded cleanup under the [management standard](../../../docs/tools/agent-artifact-management.md). Do not create ad hoc source snapshots, backups or validation copies in outbox or temporary directories.
 
-Jenkins owns version operations, worktrees and their merges, file-generation
-workflows, builds, artifact reuse and all output cleanup, including scheduled
-maintenance. Follow the [management standard](../../../docs/tools/agent-artifact-management.md).
-Agents edit explicitly authorized canonical files and hand off incremental
-inputs; they do not create alternate trees, local generation/build runs or
-cleanup jobs. Use [Artifact Management](../zircon-artifact-management/SKILL.md)
-for directory inventories and lifecycle handoff; retain pending receipts with
-their original identities. Explicit user exceptions remain authoritative.
+Use [Artifact Management](../zircon-artifact-management/SKILL.md) for directory inventories and lifecycle evidence. Preserve original asynchronous identities, historical receipts and pending gates. Reuse existing scoped commit authority only when it covers the action; push, remote PR actions, publication and notification still require their corresponding authorization. Do not start services or create scheduled maintenance merely because a task needs validation or cleanup.
 
 ## Select the needed guidance
 

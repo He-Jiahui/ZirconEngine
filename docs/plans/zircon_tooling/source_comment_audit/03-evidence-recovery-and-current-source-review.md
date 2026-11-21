@@ -49,7 +49,7 @@ surface 批次另有 [主审安装与语言检查](E:/cargo-targets/zircon-local
 
 用户已授权增加正式账本目录的写入范围，但当前会话尚未验证该目的地的授权已启用。配置修改曾被自动审批拒绝；不通过替代写入方式绕过拒绝。正式账本发布保持待完成，独立审查继续。
 
-旧本地协调器已弃用。依当前工作协议，不恢复服务、队列、租约或提交 API；保存历史数据与实际归属。验证与交付遵循 [验证策略](../../milestone-validation-policy.md)、[Zircon Dev](../../../../.codex/skills/zircon-dev/SKILL.md) 及 [独立 Jenkins 协调](../../../../.codex/skills/jenkins-coordination/SKILL.md) 的适用门槛。未取得的验收保持待完成；静态推导、未安装候选、语言格式通过均不能冒充动态或里程碑验收。
+当前验证与交付使用任务工作树中的独立本地工具，遵循[验证策略](../../../testing-and-validation/milestone-validation-policy.md)和 [Zircon Dev](../../../../.codex/skills/zircon-dev/SKILL.md)。保留历史数据、实际归属和所有未取得的验收；静态推导、未安装候选、语言格式通过均不能冒充动态或里程碑验收。
 
 首次提交前重新诊断共享索引锁和外来暂存内容，仅提交本任务精确增量。保留既有产品修改、注释历史和排除路径；提交授权及其附带企业微信通知继续有效，本计划不表示已提交或已通知。
 

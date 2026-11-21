@@ -1,9 +1,8 @@
----
-name: jenkins-coordination
-description: Run functional Jenkins coordinator tests or submit bounded commands through the independent Jenkins pilot and Windows tray.
----
+# Jenkins coordination (historical)
 
-# Jenkins coordination
+> **Historical guide — not a discoverable skill or current development entry.** The repository now uses Agent-managed direct development. Follow [the current management standard](../../../docs/tools/agent-artifact-management.md), not the Jenkins ownership, sole-entry, registration or handoff requirements retained below. The original guidance and headings are preserved to interpret historical links, requests and receipts; no service stop, uninstall, credential deletion or acceptance is asserted.
+>
+> Do not execute these historical commands for ordinary work, automatically replay queues or restore services. A separately authorized historical operation must retain its actual scope, original identity and evidence. Fixed-commit links to the former skill remain historical; current reference links use this ordinary guide. Immutable plans may intentionally retain the former `SKILL.md` path: read its exact old version from the source's original commit/history, for example `git show <historical-commit>:.codex/skills/jenkins-coordination/SKILL.md`. Do not rewrite a hash-bound source, restore a discoverable skill or alter validation merely to resolve that historical link.
 
 Use the currently verified Jenkins management entry and runtime. The retired local coordinator, service, tray, scheduled tasks, leases, attribution APIs, and queue must remain untouched.
 

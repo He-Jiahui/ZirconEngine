@@ -1255,7 +1255,7 @@ try {
                 }
                 $normalPixelsDirectory = Join-Path $profileDirectory 'normal-frame-pixels'
                 [System.IO.Directory]::CreateDirectory($normalPixelsDirectory) | Out-Null
-                $capturePython = Join-Path $repoRoot '.jenkins/runtime/python/python.exe'
+                $capturePython = Resolve-AgentPython
                 $normalCapture = Join-Path $repoRoot 'tools/analysis/visual/capture-editor-normal-frame.py'
                 $normalCaptureContractArguments = @()
                 if ($null -ne $normalCaseProducerConfigurationBinding) {
@@ -1467,10 +1467,7 @@ if (-not $SkipVisualOracle) {
         foreach ($expectedExtent in $oracleCase.ExpectedExtents) {
             $oracleArguments += @('--expected-extent', $expectedExtent)
         }
-        $oraclePython = Join-Path $repoRoot '.jenkins\runtime\python\python.exe'
-        if (-not (Test-Path -LiteralPath $oraclePython -PathType Leaf)) {
-            throw "Bundled Python is unavailable: $oraclePython"
-        }
+        $oraclePython = Resolve-AgentPython
         & $oraclePython -B -X utf8 @oracleArguments
         if ($LASTEXITCODE -ne 0) {
             throw "Editor UI visual oracle failed for '$($oracleCase.CaseId)' with exit code $LASTEXITCODE."

@@ -74,7 +74,7 @@ class BuildEditorStorageModeContractTests(unittest.TestCase):
                     self.assertNotIn('--target', command)
 
     def test_artifact_requires_successful_cargo_message_and_selected_target(self) -> None:
-        with tempfile.TemporaryDirectory() as folder:
+        with tempfile.TemporaryDirectory(dir=(r'E:\cargo-targets\zircon-local' if os.name == 'nt' else None)) as folder:
             root = Path(folder)
             log = root / 'cargo.log'
             artifact = root / 'target' / 'debug' / 'zircon_runtime.dll'
@@ -89,7 +89,7 @@ class BuildEditorStorageModeContractTests(unittest.TestCase):
                     build_editor.reported_artifact(log, artifact.name, root / 'other')
 
     def test_inventory_detects_dirty_new_and_external_source(self) -> None:
-        with tempfile.TemporaryDirectory() as folder:
+        with tempfile.TemporaryDirectory(dir=(r'E:\cargo-targets\zircon-local' if os.name == 'nt' else None)) as folder:
             root = Path(folder)
             source = root / 'source'
             source.mkdir()
@@ -106,7 +106,7 @@ class BuildEditorStorageModeContractTests(unittest.TestCase):
             self.assertIn('source/new.rs', second)
 
     def test_shipping_excludes_source_fonts_but_copies_runtime_and_editor_assets(self) -> None:
-        with tempfile.TemporaryDirectory() as folder:
+        with tempfile.TemporaryDirectory(dir=(r'E:\cargo-targets\zircon-local' if os.name == 'nt' else None)) as folder:
             root = Path(folder)
             for owner in ('zircon_runtime', 'zircon_editor'):
                 assets = root / 'source' / owner / 'assets'
@@ -126,7 +126,7 @@ class BuildEditorStorageModeContractTests(unittest.TestCase):
 @unittest.skipUnless(os.name == 'nt', 'Windows editor packaging')
 class BuildEditorPackageContractTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.folder = tempfile.TemporaryDirectory()
+        self.folder = tempfile.TemporaryDirectory(dir=(r'E:\cargo-targets\zircon-local' if os.name == 'nt' else None))
         self.addCleanup(self.folder.cleanup)
         self.root = Path(self.folder.name)
         self.source = self.root / 'source'
@@ -392,7 +392,8 @@ class BuildEditorPackageContractTests(unittest.TestCase):
                         staged_closures.append(build_editor.editor_bundle_closure(path))
                     return rename(path, destination)
                 with patch.object(build_editor.local_cargo, 'free_bytes', return_value=100 * 1024**3), \
-                        patch('tools.jenkins.frontend.sole_entry_enforced', return_value=False), \
+                        patch('tools.jenkins.frontend.sole_entry_enforced', side_effect=AssertionError('retired gate accessed')), \
+                        patch('tools.build.editor_startup_smoke.run_startup_smoke', return_value={'status': 'fixture-only', 'first_frame_verified': False}), \
                         patch.object(runtime_manifest.platform, 'machine', return_value='AMD64'), \
                         patch.object(runtime_manifest, '_load_interface_spec', return_value={'family': 'synthetic-fixture'}), \
                         patch.object(runtime_manifest, '_load_payload_schema_set_digest', return_value='a' * 64), \
@@ -466,7 +467,8 @@ class BuildEditorPackageContractTests(unittest.TestCase):
                     kwargs['stdout'].write(('\n'.join(json.dumps(row) for row in rows) + '\n').encode())
                     return SimpleNamespace(returncode=0)
                 with patch.object(build_editor.local_cargo, 'free_bytes', return_value=100 * 1024**3), \
-                        patch('tools.jenkins.frontend.sole_entry_enforced', return_value=False), \
+                        patch('tools.jenkins.frontend.sole_entry_enforced', side_effect=AssertionError('retired gate accessed')), \
+                        patch('tools.build.editor_startup_smoke.run_startup_smoke', return_value={'status': 'fixture-only', 'first_frame_verified': False}), \
                         patch.object(runtime_manifest.platform, 'machine', return_value='AMD64'), \
                         patch.object(runtime_manifest, '_load_interface_spec', return_value={'family': 'synthetic-fixture'}), \
                         patch.object(runtime_manifest, '_load_payload_schema_set_digest', return_value='a' * 64), \

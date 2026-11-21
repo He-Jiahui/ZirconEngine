@@ -1,6 +1,7 @@
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $sourcePathResolver = Join-Path $repoRoot 'tools\maintenance\WindowsPathResolver.psm1'
-$fixturePython = [IO.Path]::GetFullPath((Join-Path $repoRoot '.jenkins\runtime\python\python.exe'))
+. (Join-Path $repoRoot 'tools\dev\agent-cargo-common.ps1')
+$fixturePython = Resolve-AgentPython
 $fixturePowerShell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
 Import-Module (Join-Path $repoRoot 'tools\mvp\MvpTestFixturePaths.psm1') -Force -ErrorAction Stop
 
@@ -92,7 +93,7 @@ function Assert-EditorFixtureCommands {
         $call.repo_root | Should Be $Source
         $call.target_dir | Should Be $Target
         $call.python_interpreter | Should Be $fixturePython
-        $call.independent_preview | Should Be $true
+        $call.independent_preview | Should Be $false
     }
 }
 
@@ -116,8 +117,6 @@ function New-EditorFixtureSource {
     param([Parameter(Mandatory)][string]$SourceRoot, [string]$Tag = 'fixture')
     $manifest = @('[workspace]', 'members = []', '') -join [Environment]::NewLine
     Write-EditorFixtureText -Path (Join-Path $SourceRoot 'Cargo.toml') -Value $manifest
-    # This is a synthetic pre-activation checkout, not the canonical checkout's gate.
-    Write-EditorFixtureText -Path (Join-Path $SourceRoot '.jenkins\state\entry-inventory.json') -Value '{"activation":{"soleEntryEnforcementApplied":false}}'
     $fonts = Join-Path $SourceRoot 'zircon_runtime\assets\fonts'
     Write-EditorFixtureText -Path (Join-Path $fonts 'fixture.txt') -Value "$Tag asset"
     foreach ($font in @('default', 'editor-ui')) {
@@ -144,19 +143,19 @@ function Write-EditorFixtureExecutor {
     $executor = @'
 $ErrorActionPreference = 'Stop'
 $received = @($args | ForEach-Object { [string]$_ })
-if ($received.Count -lt 8 -or $received[0] -ne '-RepoRoot' -or
+if ($received.Count -lt 7 -or $received[0] -ne '-RepoRoot' -or
     $received[2] -ne '-TargetDir' -or $received[4] -ne '-PythonInterpreter' -or
-    $received[6] -ne '-IndependentPreview') { throw 'Unexpected local-cargo invocation prefix.' }
+    $received[6] -notin @('build', 'rustc')) { throw 'Unexpected local-cargo invocation prefix.' }
 $source = $received[1]
 $target = $received[3]
 $python = $received[5]
-$cargo = @($received[7..($received.Count - 1)])
+$cargo = @($received[6..($received.Count - 1)])
 $packageIndex = [Array]::IndexOf($cargo, '-p')
 if ($packageIndex -lt 0 -or $packageIndex + 1 -ge $cargo.Count) { throw 'Cargo package is missing.' }
 $package = $cargo[$packageIndex + 1]
 $record = [ordered]@{
     argv = $received; repo_root = $source; target_dir = $target
-    python_interpreter = $python; independent_preview = $true; cargo_argv = $cargo
+    python_interpreter = $python; independent_preview = $false; cargo_argv = $cargo
 }
 [IO.File]::AppendAllText($env:BUILD_EDITOR_TEST_LOG, (($record | ConvertTo-Json -Depth 6 -Compress) + [Environment]::NewLine), [Text.UTF8Encoding]::new($false))
 if ($env:BUILD_EDITOR_TEST_FAIL_PACKAGE -eq $package) {

@@ -176,19 +176,8 @@ PLUGIN_LOAD_MANIFEST = "plugins/native_plugins.toml"
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    # The product builder is a known M8 entry point.  Dispatch before parsing
-    # interactive build options so sole-entry mode cannot execute Cargo or
-    # publish products without the caller's immutable Jenkins identity.
-    try:
-        from tools.jenkins.frontend import entry_from_environment
-    except ModuleNotFoundError:
-        sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-        from tools.jenkins.frontend import entry_from_environment
-    forwarded = entry_from_environment(resolve_repo_root(), job="zircon-flow",
-                                       parameters={"entry": "zircon_build"})
-    if forwarded is not None:
-        print(json.dumps(forwarded, sort_keys=True))
-        return 0
+    # Agent-owned execution: parse read-only/help options before any build work.
+    # Stale coordinator identities must not redirect this canonical checkout.
     args = parse_args(argv)
     repo_root = resolve_repo_root()
     plugin_catalog = discover_plugins(repo_root)
@@ -381,7 +370,8 @@ def default_runtime_features(targets: Sequence[str]) -> tuple[str, ...]:
 def resolve_out_root(raw: str) -> Path:
     path = Path(raw).expanduser()
     if not path.is_absolute():
-        path = (Path.cwd() / path).resolve()
+        path = Path.cwd() / path
+    # Preserve lexical ancestry for the physical output guard at execution.
     return path
 
 

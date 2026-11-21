@@ -27,6 +27,8 @@ python -B .codex/skills/project-skills-index/scripts/refresh_catalog.py --write
 python -B .codex/skills/project-skills-index/scripts/refresh_catalog.py --check
 ```
 
-The helper reads source frontmatter and writes only the generated Codex catalog. It does not manage another client, register a session, or require a service. If `python` resolves to an unavailable Windows alias, choose an available general Codex runtime Python with PyYAML. Keep the Jenkins interpreter reserved according to [interpreter ownership](../jenkins-coordination/SKILL.md#interpreter-ownership).
+The helper reads source frontmatter and writes only the generated Codex catalog. It does not manage another client or register a session. If `python` resolves to an unavailable Windows alias, select a general-purpose Python interpreter with PyYAML, such as the installed Codex runtime Python.
+
+To retire a discovery entry, preserve its historical guidance as ordinary `guide.md`/reference material, update applicable links and refresh the catalog. The helper discovers every nested `SKILL.md`; metadata labels or deleting a generated row alone do not retire a skill.
 
 Validate actual skills with the current skill-creator validator, check local routes, and run helper checks when the helper changes. Skill prose maintenance needs structural checks instead of Rust builds.

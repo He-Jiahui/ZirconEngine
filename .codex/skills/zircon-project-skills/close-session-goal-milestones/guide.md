@@ -1,6 +1,6 @@
 # Close Session Goal Milestones
 
-Close the authorized scope using actual validation, required review and applicable failure resolution. The retired coordinator's candidate, milestone, commit, lease and close-goal APIs are not prerequisites. Its historical records remain preserved for Jenkins migration.
+Close the authorized scope using actual validation, required review and applicable failure resolution under [the management standard](../../../../docs/tools/agent-artifact-management.md). Preserve historical records and their original acceptance states.
 
 ## Before closeout
 
@@ -15,7 +15,7 @@ Close the authorized scope using actual validation, required review and applicab
 - Routine completion does not require a commit. Committing, pushing, publishing and external messages each require authorization; milestone completion does not grant it.
 - If committing is authorized, inspect the exact staged diff against the owned manifest and preserve foreign staged paths. Use a specific Conventional Commit subject. Do not delete a live index lock or bypass an applicable validation/review gate.
 - Do not automatically invoke old coordinator submission/notification actions or manually send/backfill WeCom messages.
-- Local Cargo command results provide command evidence only. Jenkins migration and formal acceptance remain pending until their declared gates are implemented and met.
+- Local Cargo command results cover only their actual command/source scope. Product and milestone acceptance require their declared complete evidence. Historical migration and formal acceptance states remain unchanged.
 
 ## Finish by mode
 

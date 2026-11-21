@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Static self-check for a ZirconEngine change before Jenkins handoff.
+"""Static self-check for a scoped ZirconEngine change before local delivery.
 
 `patch` checks a unified diff (from a file, stdin, or read-only Git queries);
 `scan` checks whole files for the content rules. The guard reads files only.
-It is not a build, a test run, or Jenkins acceptance; rule meanings live in
+It does not build, run tests, or grant acceptance; rule meanings live in
 references/defect-classes.md.
 """
 

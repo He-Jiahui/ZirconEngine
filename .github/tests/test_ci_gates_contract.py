@@ -31,6 +31,14 @@ class CiGatesContractTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
 
+    def test_source_contracts_cover_independent_local_workflow_boundaries(self) -> None:
+        contracts = job_body(self.workflow, "source-contracts")
+        self.assertIn("Test independent local workflow boundaries", contracts)
+        for module in ("test_agent_local_cargo", "test_agent_execution_policy",
+                       "test_workflow_retirement_entries", "test_jenkins_retirement",
+                       "test_session_workflow_handoff"):
+            self.assertIn("tools.tests." + module, contracts)
+
     def test_pull_requests_compile_the_editor_and_plugins_and_run_commands(self) -> None:
         self.assertRegex(self.workflow, r"(?m)^  pull_request:\s*$")
         gate = job_body(self.workflow, "editor-compile-gate")
@@ -580,7 +588,9 @@ class CiGatesContractTests(unittest.TestCase):
             self.assertIn('--recipe "$env:CI_RECIPE"', body)
             self.assertNotRegex(body, r"matrix\.(?:args|filter|package|manifest)")
         source = SCOPE_PATH.read_text(encoding="utf-8")
-        for contract in ('module.parse_cargo(args, enforce_policy=True)',
+        self.assertNotIn('ROOT / "tools/jenkins-management/entry.py"', source)
+        for contract in ('module.admit_cargo(args, ROOT)',
+                         'ROOT / "tools/dev/agent_cargo_policy.py"',
                          '["--", "-D", "warnings"]', 'execute_single = admission(lint)',
                          'args += ["--target", value["platform"]]',
                          'make_plan(ROOT, args.base, args.head, args.select)'):

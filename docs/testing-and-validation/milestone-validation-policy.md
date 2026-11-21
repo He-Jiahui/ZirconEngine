@@ -2,7 +2,7 @@
 
 This document is the authoritative execution policy for active milestone validation. It replaces any local default that asks contributors to run Cargo compilation or broad tests after every implementation slice. It does not weaken acceptance criteria or remove regression tests.
 
-The local coordinator and its managed matrix, registration, lease, ticket and commit workflows are retired. Older plan commands that require them are historical. Use the current [validation guidance](../../.codex/skills/zircon-dev/validation/guide.md) for independent command evidence and retain every applicable acceptance gate. Jenkins migration acceptance remains pending; do not restore the old service or infer acceptance from a dry run. See [retirement](../tooling/coordinator-retirement.md).
+Run authorized validation directly from the task worktree under [the management standard](../tools/agent-artifact-management.md) and [local validation guidance](../../.codex/skills/zircon-dev/validation/guide.md). Record the actual command, source scope and observed result. Neither command evidence nor a dry run replaces a product or milestone acceptance gate. [Retired workflows](../tooling/coordinator-retirement.md) are historical; their original acceptance states remain unchanged.
 
 ## 0. Foundation Priority
 
@@ -32,7 +32,7 @@ Before every compilation-capable command (`check`, `build`, `test`, including
 targets/test filters, action/profile, exact command and coverage reason to the
 user using [the build declaration](../../.codex/skills/zircon-dev/validation/guide.md#declare-every-build).
 For ordinary work, disable default features and name only needed features. Preserve the declared
-scope in the Jenkins request and actual command evidence; declare changes before
+scope in the local validation manifest and actual command evidence; declare changes before
 execution. Required transitive dependencies remain part of the scoped build.
 
 The validation lane then runs the smallest complete batch in this order:
@@ -59,10 +59,11 @@ selection, action/profile, exact command and coverage reason before execution.
 Use the documented defaults when they are part of that gate; do not narrow the
 required coverage merely to satisfy the ordinary minimal-scope default.
 
-This scope permission does not grant local execution outside Jenkins ownership,
-remote Git actions, service startup, alternate output roots or destructive
-cleanup. Those actions retain their own authorization. Physical storage, native
-locks, source/process preservation and actual terminal evidence still apply.
+Agents execute authorized local commands directly; this scope permission does
+not grant remote Git actions, service startup, alternate output roots or
+destructive cleanup. Those actions retain their own authorization. Physical
+storage, native locks, source/process preservation and actual terminal evidence
+still apply.
 Ordinary implementation slices continue to use the smallest affected scope.
 
 ### Authorized Windows/MSVC U09 regression

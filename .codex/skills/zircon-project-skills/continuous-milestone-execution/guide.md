@@ -7,6 +7,6 @@ Use [the execution loop](execution-loop/index.md) as the common workflow. An exp
 - Read the current milestone and the code, tests, and CI constraints relevant to the next step. Reuse unchanged material already read.
 - Execute dependency-ready work, resolving routine choices from existing requirements.
 - Diagnose failures at their owning layer and validate the affected batch under the repository policy.
-- For Jenkins engineering validation, use [the incremental patch workflow](../../jenkins-coordination/references/incremental-patch-validation.md). Submit scoped patches against a reusable baseline; let Jenkins apply them and run the relevant build and tests. Do not repeatedly copy the project or substitute snapshot reconstruction when the patch interface is unavailable.
+- Run the authorized generation/build/test batch in the task worktree under [the management standard](../../../../docs/tools/agent-artifact-management.md) and [local validation guide](../../zircon-dev/validation/guide.md). Preserve source identity, physical output checks, native locks and actual evidence; do not create ad hoc source snapshots or repeated project copies.
 - Continue independent work when a dependency is pending. Use [receipt lifecycle](../cross-session-coordination/references/receipt-lifecycle.md) rather than automatic turn release or repeated polling.
 - Complete only the requested scope. Starting another Goal, publishing, committing, or notifying requires the applicable authorization.

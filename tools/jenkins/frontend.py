@@ -1,10 +1,18 @@
-"""Public Jenkins adapters for ordinary management and formal M8 requests.
+"""Historical Jenkins adapters; canonical workflow routing and CLI are retired.
 
-Ordinary build/test capability verifies a healthy selected runtime and the
-complete installed capsule. It remains independent of formal M8 acceptance.
-Explicit functional requests retain their original bounded validation gate.
+Native/path evidence libraries remain available. No current Agent development
+entry may use an installed capsule or stale identity to reactivate this workflow.
+Historical request schemas and acceptance helpers do not grant new acceptance.
 """
 from __future__ import annotations
+
+# Retired public command: exit before importing historical execution owners.
+if __name__ == "__main__":
+    import sys as _sys
+    from pathlib import Path as _Path
+    _sys.path.insert(0, str(_Path(__file__).resolve().parents[2]))
+    from tools.jenkins.retirement import retired_cli as _retired_cli
+    raise SystemExit(_retired_cli())
 
 import json
 from pathlib import Path
@@ -64,13 +72,9 @@ def management_client_path(repo_root: str | Path, name: str) -> Path:
 
 
 def management_entry(repo_root: str | Path):
-    """Load the pinned installed adapter; its capability retains complete boot checks."""
-    import importlib.util
-    path = management_client_path(repo_root, "tools/jenkins-management/entry.py")
-    spec = importlib.util.spec_from_file_location("zircon_ordinary_management_entry", path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    """Reject a retired adapter before reading installed state or contacting services."""
+    from .retirement import MESSAGE
+    raise JenkinsError("jenkins_workflow_retired", MESSAGE)
 
 
 def _m8_enforced(repo_root: str | Path) -> bool:
@@ -467,70 +471,16 @@ def entry_from_environment(repo_root: str | Path, *, job: str | None = None,
                            transport=None, manager=None, functional: bool = False,
                            expected_driver_digest: str | None = None,
                            expected_runtime_operation_id: str | None = None) -> dict | None:
-    """Dispatch a known entry using the caller's immutable State identity."""
-    ordinary = not functional and not _m8_enforced(repo_root)
-    job = _resolve_job(job, ordinary=ordinary)
-    if ordinary:
-        _require_ordinary_job(job)
-    raw = __import__("os").environ.get("ZIRCON_JENKINS_IDENTITY_FILE", "")
-    path = Path(raw)
-    if not path.is_file():
-        raise JenkinsError("ordinary_identity_pending", "Jenkins entry requires the original ZIRCON_JENKINS_IDENTITY_FILE")
-    if ordinary:
-        entry = management_entry(repo_root)
-        identity_file, _raw = entry.document(path)
-        return submit_entry(None, identity=identity_file, parameters=parameters,
-                            repo_root=repo_root, job=job, transport=transport, manager=manager,
-                            expected_driver_digest=expected_driver_digest,
-                            expected_runtime_operation_id=expected_runtime_operation_id)
-    identity_file = _read_json(path)
-    state = State(Path(repo_root) / ".jenkins" / "state" / "coordination.sqlite3")
-    payload, normalized = _registered_entry(state, identity_file, repo_root)
-    merged = _entry_parameters(payload, normalized, (identity_file.get("parameters"), parameters), job=job)
-    return submit_entry(state, identity=normalized, parameters=merged,
-                        repo_root=repo_root, job=job, transport=transport, manager=manager, functional=functional,
-                        expected_driver_digest=expected_driver_digest,
-                        expected_runtime_operation_id=expected_runtime_operation_id)
+    """A stale environment must never reactivate the retired workflow."""
+    from .retirement import MESSAGE
+    raise JenkinsError("jenkins_workflow_retired", MESSAGE)
+
+
 
 
 def main(argv=None) -> int:
-    import argparse
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("gate", "dispatch", "capability"))
-    parser.add_argument("--repo-root", default=".")
-    parser.add_argument("--job")
-    parser.add_argument("--functional", action="store_true",
-                        help="Use the bounded validation-only Flow route; this does not enable M8")
-    parser.add_argument("--expected-driver-digest")
-    parser.add_argument("--expected-runtime-operation-id")
-    args = parser.parse_args(argv)
-    if args.action == "gate":
-        print("true" if sole_entry_enforced(args.repo_root) else "false")
-        return 0
-    try:
-        if args.action == "capability":
-            context = management_entry(args.repo_root).capability(Path(args.repo_root).absolute(), public_transport=True)
-            result = {"status": "ready", "verificationMode": "public-transport", "nativeLifecycleVerified": False,
-                      "ordinaryEntry": context["config"]["ordinaryEntry"],
-                      "driverDigest": context["config"]["driverDigest"],
-                      "runtimeOperationId": context["config"]["runtimeOperationId"],
-                      "formalAcceptance": False, "m8Accepted": False}
-        else:
-            if args.functional and (not args.expected_driver_digest or not args.expected_runtime_operation_id):
-                raise JenkinsError("functional_scope_invalid", "Functional dispatch requires exact driver and runtime fences")
-            if not args.functional and (args.expected_driver_digest is not None
-                                        or args.expected_runtime_operation_id is not None):
-                raise JenkinsError("functional_scope_invalid", "Runtime fences are accepted only with explicit --functional")
-            result = entry_from_environment(
-                args.repo_root, job=args.job, functional=args.functional,
-                expected_driver_digest=args.expected_driver_digest,
-                expected_runtime_operation_id=args.expected_runtime_operation_id)
-        print(json.dumps(result, ensure_ascii=False, sort_keys=True))
-        return 2 if result.get("status") == "pending" else 0
-    except Exception as error:
-        print(json.dumps({"status": "pending", "reasonCode": getattr(error, "code", "ordinary_entry_pending"),
-                          "message": str(error), "formalAcceptance": False, "m8Accepted": False}))
-        return 2
+    from .retirement import retired_cli
+    return retired_cli()
 
 
 if __name__ == "__main__":
