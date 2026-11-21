@@ -1,5 +1,7 @@
+#[cfg(feature = "native-host")]
 use zircon_runtime::core::framework::project::ExportPackagingStrategy;
 use zircon_runtime::core::CoreRuntime;
+#[cfg(feature = "native-host")]
 use zircon_runtime::plugin::PluginModuleKind;
 
 use super::*;
@@ -33,6 +35,7 @@ fn animation_runtime_has_no_process_wide_ik_inbox() {
     }
 }
 
+#[cfg(feature = "native-host")]
 #[test]
 fn animation_registration_contributes_runtime_module() {
     let report = plugin_registration();
@@ -120,6 +123,7 @@ fn animation_registration_contributes_runtime_module() {
         }));
 }
 
+#[cfg(feature = "native-host")]
 #[test]
 fn animation_evaluate_runs_after_physics_sync() {
     let report = plugin_registration();
@@ -158,6 +162,7 @@ fn animation_module_resolves_manager() {
         .unwrap();
 }
 
+#[cfg(feature = "native-host")]
 #[test]
 fn animation_package_manifest_declares_dist_contract() {
     let manifest = package_manifest();
