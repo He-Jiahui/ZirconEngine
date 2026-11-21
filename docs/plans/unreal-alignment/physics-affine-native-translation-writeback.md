@@ -1,0 +1,51 @@
+# Same-frame native translation is dropped under inherited affine shear
+
+**Problem-only Draft.** No test or production change here. The evidence is from an exact **local composition**, not from unchanged `main`: [#145](https://github.com/He-Jiahui/ZirconEngine/pull/145) (parented writeback), [#198](https://github.com/He-Jiahui/ZirconEngine/pull/198) (proper solver rotation) and the production-only patch from [#199](https://github.com/He-Jiahui/ZirconEngine/pull/199) (fixed-time settlement). They remain independent Drafts. This Draft does not copy any prerequisite patch into its diff.
+
+## Measured symptom
+
+Windows/MSVC Rust 1.94.1 `test` library, `zircon_plugin_physics_runtime`, defaults off, `backend-jolt,zircon_runtime/native-host,zircon_runtime/physics-contracts` and linked Jolt C++ Release. `74b8dbac9eeb898ee87d05c5f6edbf40169f7d4d` → `9ea0cd8918fe2993640b24bc357296d065defbc3` changes only #199’s four production files. The same 7 registered `LevelSystem::tick` witnesses give **2/7 → 5/7**; the fixed-time generation rejections disappear. The root, signed orthogonal-parent controls and two QueryOnly shear echoes pass. Neither QueryOnly witness runs a solver step.
+
+Both remaining failures occur after successful registered ticks that execute Jolt at **1/64 s**, not during rigid-body admission or fixed-clock settlement. These are centered sphere body-origin measurements on the same directly read native handle, checked against the published body row and the authored scene. Angular velocity is zero; native orientation still matches the admitted rotation within the fixture’s tolerance.
+
+| Inherited shear | Initial scene and native | Native after first / second tick | Scene after both ticks | Representable child-local points for two accumulating steps |
+|---|---|---|---|---|
+| `diag(2,1,1)` parent, `Ry(45°)` child | `(36,-2,5)` | `(37,-1.5,5)` / `(37,-1.5,5)` | `(36,-2,5)` | `(2.5,1.5,3)`, then `(3,2,3)` |
+| `diag(-2,1,1)` parent, `Ry(45°)` child | `(28,-2,5)` | `(29,-1.5,5)` / `(29,-1.5,5)` | `(28,-2,5)` | `(1.5,1.5,3)`, then `(1,2,3)` |
+
+The authored local stays `(2,1,3)` and the world basis remains unchanged (`X·Z≈1.5`), but the scene never consumes the translation and the next native tick repeats the first endpoint. ZE’s [transform change detection](../../../zircon_plugins/physics/runtime/src/manager/change_detection.rs#L35-L50) and [Jolt reuse path](../../../zircon_plugins/physics/runtime/src/manager/jolt_world.rs#L206-L223) explain why a stale authored input can send that body back; no separate command trace was captured. The six original #145 comparators remain **5/6** on both compositions; the lone old echo stops before the applier at the whole-body equality against the old lossy rotation. It is not one of the new translation failures and is not rebaselined here.
+
+## Frozen three-node baseline — real native RED
+
+Local test-only freeze `ea938fcc9830420156547f534042a81f2b3cbe22` over the exact production composition `9ea0cd8918fe2993640b24bc357296d065defbc3`. Unmodified #200 production behavior, same Windows/MSVC target/features as above. The existing tests and their previous mount are byte-identical; the new mount is excluded by `cfg(test)` in shipping builds.
+
+- **New exact scope: 5/7, native process exit 101.** `D=diag(±2,1,1)` on the grandparent and `Rz(45°)` on the immediate parent create an actual sheared parent (`X·Y≈−1.5`). Both translation cases commit ticks 1 and 2 with elapsed 15.625/31.25 ms and zero debt. On the same native handle, first/second origins are `(40.414215,-2.378680,6)` twice for positive and `(25.585787,-2.378680,6)` twice for reflected. The ECS `WorldMatrix` cache stays at `(39.414215,-2.878680,6)` / `(24.585787,-2.878680,6)` respectively; local remains `(2,1,3)` with bit-identical R/S. The native-frame chord is zero. The compact whole-target inverse has `local X·Y≈3.26355` independent of the point. The two-step local oracles are `T0 + 2/√2·X` / `T0 + 2/√2·Y`, with no basis replacement.
+- **Actual spin controls pass:** a speed-only command after zero-time native admission produces nonzero rotation (`ωz=1/256`, sign-invariant quaternion chord `3.050902e-5` in both cases); the measured float `abs(dot)` is `1.0000001`. A dot-only classifier could mistake this for the unchanged frame. The unrepresentable whole pose stays refused (including its translation), valid angular velocity is synchronized and the fixed tick is committed. Both zero-native-step QueryOnly echoes preserve authored and cached geometry.
+- Controlled direct rows (not native executions) preserve refusal for an unproven translation, either equivalent quaternion sign, changed scale or a genuine `Δq` with zero velocity. Valid body metadata still updates. A representable whole target under the same signed shear is still accepted after an ancestor moves, including the child-first row order. Previous registered **5/7** and historical **5/6** re-execute with identical outcomes; their existing failures are not reinterpreted as new evidence.
+
+Only this evidence is published here. The test-only composition and its three prerequisite production changes remain local; do not count this as an unchanged-`main` RED, CI result, or packaged-editor acceptance.
+
+## The missing distinction
+
+The [#198 producer](https://github.com/He-Jiahui/ZirconEngine/blob/7409c2c457d58f6c66dc69a8a51613918623e928/zircon_plugins/physics/runtime/src/manager/world_sync.rs#L138-L175) projects a proper solver rotation from the authored affine matrix. The [#145 applier](https://github.com/He-Jiahui/ZirconEngine/blob/f21704dbbcbf255841338b6e5d39305a938e1a50/zircon_plugins/physics/runtime/src/manager/world_sync.rs#L273-L374) validates the *whole* compact target via `parent_inverse * requested_world` and strict recomposition. Rejecting an unrepresentable target linear block is correct. It does not prove that the independent point is unrepresentable. If `P=[A,b]` is the current parent world matrix, `B` is the unchanged local R/S basis and `x` is the verified native body origin, `t'=A⁻¹(x-b)` implies `P*[B,t']=[AB,x]` whenever the inverse and recomposition are valid. This preserves the full affine basis, including shear and reflection.
+
+The [fixed post-step consumer](../../../zircon_plugins/physics/runtime/src/runtime_system.rs#L139-L155) reads a snapshot by World handle. [Jolt reconciliation](../../../zircon_plugins/physics/runtime/src/manager/jolt_world.rs#L83-L100) and active readback mix submitted metadata with native pose. Neither a finite quaternion, zero angular velocity nor a reusable World handle proves a same-frame, translation-only native result. In particular the solver does not author compact scale. A result with genuine rotation or scale change must not bypass the existing whole-pose checks. Writes that are justified go through Scene’s normal `LocalTransform` mutation path, not an edit of `WorldMatrix` or a new public physics/interface contract.
+
+## Local Unreal source comparison
+
+In the local `dev/UnrealEngine` checkout, `Engine/Source/Runtime/Engine/Private/PhysicsEngine/Experimental/PhysScene_Chaos.cpp:2542–2565` builds a world delta and rotation from a dirty particle; `:2767–2778` calls `MoveComponent(..., MOVECOMP_SkipPhysicsMove)`. `Engine/Source/Runtime/Engine/Private/Components/PrimitiveComponent.cpp:3284–3325` forwards non-swept movement to `InternalSetWorldLocationAndRotation`. `Engine/Source/Runtime/Engine/Private/Components/SceneComponent.cpp:3293–3356` owns the relative conversion and separates location and rotation, with an additional negative-scale `FTransform` branch. This is an ownership/feedback comparison, not an Unreal run, and not an affine or rotation-threshold oracle for ZE. Keep ZE’s authoritative `parent_world * local_matrix`.
+
+## Verified local candidate — production not in this Draft
+
+Tested local `ef612abd7cfc498778881a93bfff153883a1643f` over the frozen `ea938fcc9830420156547f534042a81f2b3cbe22` cohort. The candidate does not alter the public step result or physics snapshot schemas. It associates a one-shot, private writeback record with the actual active Jolt readback and installed native snapshot, fixed-step/outer-frame identity, and Level replacement epoch. Endpoint `q` must match the submitted orientation exactly modulo quaternion sign and signed scale must match. A queued teleport, missing native provenance or stale source does not authorize the point exception. A content revision is used conservatively to validate the authored source of this point write; it is not a new condition on time settlement. The existing full-pose path runs first. Only when that target is unrepresentable, the proof is live, and the parent's current linear block still matches, can the validated point update `LocalTransform.T` with R/S unchanged. This is not a change to the legacy full-pose stale-result policy.
+
+| Exact scope | Local result |
+|---|---:|
+| Frozen three-node registered/controlled | **5/7 → 7/7** |
+| Previous registered 7 | **5/7 → 7/7** |
+| Six historical #145 controls | **5/6 → 5/6**; the same pre-applier lossy-rotation comparator only |
+| Independent candidate-only guards | **4/4**: live snapshot vs equal-valued copy/retired native lane, changed authored pose/reattachment, ancestor position vs basis, singular derived inverse |
+
+In the real moving three-node cases, the second direct native origin and published ECS cache now agree at `(41.414215,-1.878680,6)` and `(26.585787,-1.878680,6)` (positive/reflected). The handle remains the same, time commits twice, debt is zero, authored rotation/scale bits and the affine basis are retained. The frozen genuine small-rotation refusal, legal whole pose, and zero-solver-step QueryOnly echoes still pass. The separate Windows/MSVC configuration with `backend-jolt` off built successfully; the same six historical selectors give **5/6** there, with the same lone pre-applier failure. This is not a GPU or packaged-editor result.
+
+Delivery of production needs a common verifiable base containing the prerequisites, or an explicitly authorized stack with that same base. The published diff is still just this evidence note; neither the tested production nor prerequisite changes are in the main-target Draft. Do not mix collider-center fixes, QueryOnly admission, editor/GPU work, hosted workflows or a merge into this problem report.
