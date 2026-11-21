@@ -109,3 +109,17 @@ Chrome 157 的九组字体准入回归通过 9/9。未写字体的 HUD 和已预
 Windows 主机的 `zircon_runtime` 库测试使用 `native-host,ui,memory-validation` 三项功能，关闭默认特性。首次编译在现有模型几何测试中返回 `E0716`。应用 [#137](https://github.com/He-Jiahui/ZirconEngine/pull/137) 的两行测试修复后，同一配置编译成功。精确执行 `export_webgpu_font_policy_fixtures`，1 项通过，产生九个真实目录。每份目录的场景、原始资产长度、BLAKE3 及启动依赖均已核对。
 
 使用产品 `WebEngine.load` 的前后配对中，默认样式和已预载自定义字体都进入了渲染器。九个用例结束时监听器、实例和登记画布均归零。[测试提交](https://github.com/He-Jiahui/ZirconEngine/blob/ec39dfc609c9fdac1487a91051d2843c104a8349/tools/validation/browser/web-font-policy.html) · [修订版调查](https://github.com/He-Jiahui/ZirconEngine/blob/f1c24f68353a8be3ccefd66a705ccf8167e75bb7/docs/plans/unreal-alignment/web-ui-packaged-font.md)
+
+## 10. UE Canvas 原测的 Rust 度量对照
+
+UE `Canvas.BasicMultilineWidth` 先要求真实引擎字体，再用 `CanvasStringSize` 检查 `Hello\nWorld\nTest` 的宽度与最宽单行一致（容差 0.1）。[Rust 集成测试](../../../zircon_runtime/tests/ui_packaged_font_metrics.rs#L7-L33)在同一输入和容差上走生产 UI 的成形与内在尺寸入口：未指定 Font URI 或 family，测量前还检查三条显式硬行均有实际字体 face 的非 `.notdef` 字形，避免用三个零宽度通过。测试进程未加载项目或系统字体；进程内字体集合由与 Web `PackagedOnly` 同源的内置成形输入初始化。
+
+ZE 复用随引擎封装的字体集合、Rust 成形和中立 UI 尺寸接口；不要求 UE `UFont`、Slate 延迟行视图、Canvas 绘制 API 或相同字形尺寸。本对照不是 Web 字体准入 RED，也不改变 #241 的环境路由和显式字体错误；原 `WebEngine.load` 回归的历史边界是**到达渲染器，不代表绘制首帧**。
+
+Windows x64/MSVC、Rust 1.94.1、test profile，关闭默认特性、只启用 `ui,native-host`。`native-host` 提供此基线已声明的 zstd；不夹带 [#233](https://github.com/He-Jiahui/ZirconEngine/pull/233) 的薄域依赖修复。直接从 #241 工作树实际重编 `zircon_runtime` 并执行唯一集成用例，**1/1 通过、0 忽略**（退出 0）。普通回执 SHA-256 `a0c7f2307b975868111c2307fe8fe48872498335ba9fd2d76c0e49ae52d73b65`。
+
+```text
+cargo test -p zircon_runtime --no-default-features --features ui,native-host --profile test --locked --offline --jobs 1 --test ui_packaged_font_metrics unreal_canvas_multiline_width_uses_packaged_ui_font -- --exact --nocapture --test-threads 1
+```
+
+未重跑 Chrome、验证帧或运行编辑器门禁；本次提交只增测试和记录，不修改生产实现。
